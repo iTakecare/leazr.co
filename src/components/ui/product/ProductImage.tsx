@@ -66,8 +66,9 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
     
     // Add cache buster
+    const timestamp = Date.now();
     const separator = imageUrl.includes('?') ? '&' : '?';
-    return `${imageUrl}${separator}t=${Date.now()}`;
+    return `${imageUrl}${separator}t=${timestamp}&contentType=image/jpeg`;
   };
   
   return (

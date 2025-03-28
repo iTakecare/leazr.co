@@ -85,145 +85,129 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
 }
 
 /**
- * Télécharge une image à partir d'une URL et la stocke dans un bucket Supabase
- * @param imageUrl L'URL de l'image à télécharger
- * @param bucketName Le nom du bucket où stocker l'image
+ * Méthode simplifiée pour télécharger et stocker une image
+ * @param imageUrl URL de l'image à télécharger
+ * @param bucketName Nom du bucket Supabase
  * @param folder Dossier optionnel dans le bucket
- * @returns La nouvelle URL de l'image stockée ou null en cas d'erreur
+ * @returns URL de l'image stockée ou null en cas d'erreur
  */
 export async function downloadAndStoreImage(imageUrl: string, bucketName: string, folder: string = ''): Promise<string | null> {
   try {
     if (!imageUrl) return null;
+    console.log(`Téléchargement d'image depuis: ${imageUrl}`);
     
-    // Vérifier que le bucket existe avant tout
-    console.log(`Vérification du bucket ${bucketName} avant téléchargement`);
+    // Vérifier que le bucket existe
     const bucketExists = await ensureStorageBucket(bucketName);
-    
     if (!bucketExists) {
       console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
       toast.error(`Erreur: Le bucket ${bucketName} n'a pas pu être créé`);
-      throw new Error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
+      return null;
     }
     
     // Extraire le nom du fichier et l'extension de l'URL
     const urlParts = imageUrl.split('/');
     let fileName = urlParts[urlParts.length - 1];
-    
-    // Nettoyer le nom de fichier
     fileName = fileName.split('?')[0]; // Supprimer les paramètres de requête
-    
-    // Extraire l'extension du fichier
-    const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
-    const fileNameWithoutExt = fileName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
     
     // Générer un nom unique pour éviter les collisions
     const timestamp = Date.now();
-    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt || 'jpg'}`;
+    const fileNameWithoutExt = fileName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}.${fileExt}`;
     const filePath = folder ? `${folder}/${uniqueFileName}` : uniqueFileName;
     
-    // Télécharger l'image
+    // Télécharger l'image avec timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
     try {
-      console.log(`Téléchargement de l'image: ${imageUrl}`);
-      
-      // Force un timeout pour éviter les requêtes qui ne se terminent jamais
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-      
       const response = await fetch(imageUrl, { 
         signal: controller.signal,
-        headers: {
-          'Accept': 'image/*',
-          'Cache-Control': 'no-cache' 
-        }
+        headers: { 'Accept': 'image/*' }
       });
       
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`Erreur lors du téléchargement de l'image: ${response.statusText}`);
+        throw new Error(`Erreur lors du téléchargement: ${response.status} ${response.statusText}`);
       }
       
       // Vérifier le type de contenu
       const contentType = response.headers.get('content-type');
-      console.log(`Type de contenu de la réponse: ${contentType}`);
+      console.log(`Type de contenu: ${contentType}`);
       
-      // Si le contentType est JSON, c'est probablement une erreur
       if (contentType && contentType.includes('application/json')) {
-        const jsonData = await response.json();
-        console.error('Réponse JSON reçue au lieu d\'une image:', jsonData);
+        console.error('Réponse JSON reçue au lieu d\'une image');
         toast.error("Le serveur a renvoyé du JSON au lieu d'une image");
         return null;
       }
       
-      // Récupérer comme blob
-      const blob = await response.blob();
+      // Obtenir le blob et forcer le type MIME correct
+      const arrayBuffer = await response.arrayBuffer();
+      let mimeType = contentType || `image/${fileExt}`;
       
-      // Déterminer le type MIME correct à partir de l'extension
-      let mimeType = '';
-      switch (fileExt.toLowerCase()) {
-        case 'jpg':
-        case 'jpeg':
-          mimeType = 'image/jpeg';
-          break;
-        case 'png':
-          mimeType = 'image/png';
-          break;
-        case 'gif':
-          mimeType = 'image/gif';
-          break;
-        case 'webp':
-          mimeType = 'image/webp';
-          break;
-        case 'svg':
-          mimeType = 'image/svg+xml';
-          break;
-        default:
-          // Si on ne peut pas déterminer le type, utiliser celui du blob
-          mimeType = blob.type;
-          // Si le blob n'a pas de type ou est application/octet-stream, forcer à JPEG
-          if (!mimeType || mimeType === 'application/octet-stream' || mimeType.includes('application/json')) {
-            mimeType = 'image/jpeg';
-          }
+      // S'assurer que le type MIME est correct
+      if (!mimeType.startsWith('image/')) {
+        mimeType = detectMimeType(fileExt);
       }
       
-      // Créer un nouveau blob avec le type MIME correct
-      const arrayBuffer = await blob.arrayBuffer();
-      const correctBlob = new Blob([arrayBuffer], { type: mimeType });
+      console.log(`Utilisation du type MIME: ${mimeType}`);
+      const blob = new Blob([arrayBuffer], { type: mimeType });
       
-      console.log(`Upload de l'image vers ${bucketName}/${filePath} avec type ${mimeType}`);
-      
-      const { data, error } = await supabase
-        .storage
+      // Upload vers Supabase
+      console.log(`Upload vers ${bucketName}/${filePath}`);
+      const { data, error } = await supabase.storage
         .from(bucketName)
-        .upload(filePath, correctBlob, {
+        .upload(filePath, blob, {
           contentType: mimeType,
           upsert: true
         });
       
       if (error) {
         console.error(`Erreur lors de l'upload: ${error.message}`);
-        toast.error(`Erreur lors de l'upload: ${error.message}`);
+        toast.error("Erreur lors de l'upload de l'image");
         return null;
       }
       
       // Obtenir l'URL publique
-      const { data: publicUrlData } = supabase
-        .storage
+      const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
-      const publicUrl = publicUrlData.publicUrl;
-      console.log(`Image téléchargée avec succès: ${publicUrl}`);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error(`Erreur lors du téléchargement et stockage de l'image:`, error);
+      console.log(`Image téléchargée avec succès: ${publicUrlData.publicUrl}`);
+      return publicUrlData.publicUrl;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error(`Erreur lors du téléchargement: ${fetchError}`);
       toast.error("Erreur lors du téléchargement de l'image");
       return null;
     }
   } catch (error) {
-    console.error(`Erreur dans downloadAndStoreImage:`, error);
-    toast.error("Erreur lors du téléchargement de l'image");
+    console.error(`Erreur générale dans downloadAndStoreImage:`, error);
+    toast.error("Erreur lors du traitement de l'image");
     return null;
+  }
+}
+
+/**
+ * Détecte le type MIME à partir de l'extension de fichier
+ */
+function detectMimeType(extension: string): string {
+  switch (extension.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'bmp':
+      return 'image/bmp';
+    default:
+      return 'image/jpeg';  // Fallback
   }
 }
