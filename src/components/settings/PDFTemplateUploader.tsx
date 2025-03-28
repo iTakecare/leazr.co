@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +35,6 @@ const PDFTemplateUploader = ({
   
   console.log("PDFTemplateUploader rendu avec templateImages:", templateImages);
   
-  // Au montage, vérifier si templateImages est disponible
   useEffect(() => {
     const loadImages = async () => {
       console.log("Initialisation des images avec templateImages:", templateImages);
@@ -46,7 +44,6 @@ const PDFTemplateUploader = ({
         if (templateImages && Array.isArray(templateImages) && templateImages.length > 0) {
           console.log("Utilisation des templateImages fournis:", templateImages);
           
-          // S'assurer que toutes les images ont un numéro de page défini
           const imagesWithPageNumbers = templateImages.map((img, idx) => ({
             ...img,
             page: img.page !== undefined ? img.page : idx
@@ -55,16 +52,12 @@ const PDFTemplateUploader = ({
           console.log("Images avec numéros de page:", imagesWithPageNumbers);
           setLocalImages(imagesWithPageNumbers);
           
-          // Si des numéros de page ont été ajoutés/corrigés, notifier le parent
           if (JSON.stringify(imagesWithPageNumbers) !== JSON.stringify(templateImages)) {
             onChange(imagesWithPageNumbers);
           }
         } else {
-          // Si aucun templateImages n'est fourni, essayer de lister toutes les images dans le bucket
-          console.log("Aucun templateImages fourni, listing depuis le stockage");
           const supabase = getSupabaseClient();
           
-          // Vérifier si le bucket existe
           const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
           
           if (bucketError) {
@@ -74,7 +67,6 @@ const PDFTemplateUploader = ({
             return;
           }
           
-          // Trouver ou créer le bucket pdf-templates
           let pdfBucketExists = buckets?.some(bucket => bucket.name === 'pdf-templates');
           
           if (!pdfBucketExists) {
@@ -104,14 +96,12 @@ const PDFTemplateUploader = ({
           } else if (storageFiles && storageFiles.length > 0) {
             console.log("Fichiers trouvés dans le stockage:", storageFiles);
             
-            // Filtrer les fichiers qui ne sont pas des images (comme .emptyFolderPlaceholder)
             const imageFiles = storageFiles.filter(file => 
               !file.name.startsWith('.') && 
               (file.metadata?.mimetype?.startsWith('image/') || 
                file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
             );
             
-            // Mapper les fichiers de stockage à notre format attendu
             const mappedImages = imageFiles.map((file, index) => {
               const imageUrl = supabase.storage
                 .from('pdf-templates')
@@ -127,7 +117,7 @@ const PDFTemplateUploader = ({
             
             console.log("Images mappées depuis le stockage:", mappedImages);
             setLocalImages(mappedImages);
-            onChange(mappedImages); // Mettre à jour le composant parent avec les images trouvées
+            onChange(mappedImages);
           } else {
             console.log("Aucun fichier trouvé dans le stockage");
             setLocalImages([]);
@@ -145,7 +135,6 @@ const PDFTemplateUploader = ({
     loadImages();
   }, []);
   
-  // Upload d'une image en utilisant le service
   const handleImageUpload = async (file: File) => {
     if (!file) return null;
     
@@ -154,14 +143,16 @@ const PDFTemplateUploader = ({
       
       console.log("Début du processus d'upload pour:", file.name);
       
-      // Utiliser la fonction uploadImage qui gère correctement le type MIME
       const uniqueId = uuidv4();
       const result = await uploadImage(file, 'pdf-templates', '');
       
       if (result && result.url) {
         console.log("Upload réussi, URL de l'image:", result.url);
+        
+        const imageId = uniqueId;
+        
         return {
-          id: result.path.split('/').pop() || uniqueId,
+          id: imageId,
           name: file.name,
           url: result.url,
           page: localImages.length
@@ -178,14 +169,12 @@ const PDFTemplateUploader = ({
     }
   };
   
-  // Supprimer une image
   const deleteImage = async (imageId: string) => {
     try {
       console.log("Tentative de suppression du fichier:", imageId);
       
       const supabase = getSupabaseClient();
       
-      // Supprimer le fichier du stockage
       const { error } = await supabase.storage
         .from('pdf-templates')
         .remove([imageId]);
@@ -198,10 +187,8 @@ const PDFTemplateUploader = ({
       
       console.log("Fichier supprimé avec succès");
       
-      // Mettre à jour la liste d'images
       const updatedImages = localImages.filter(img => img.id !== imageId);
       
-      // Réindexer les numéros de page
       updatedImages.forEach((img, idx) => {
         img.page = idx;
       });
@@ -209,7 +196,6 @@ const PDFTemplateUploader = ({
       setLocalImages(updatedImages);
       onChange(updatedImages);
       
-      // Si la page actuellement sélectionnée n'existe plus, sélectionner la dernière page disponible
       if (selectedPage >= updatedImages.length && onPageSelect) {
         onPageSelect(Math.max(0, updatedImages.length - 1));
       }
@@ -221,12 +207,10 @@ const PDFTemplateUploader = ({
     }
   };
   
-  // Gérer l'upload de fichier
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Vérifier le type de fichier (images seulement)
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image");
       return;
@@ -239,9 +223,8 @@ const PDFTemplateUploader = ({
       const newImages = [...localImages, uploadedImage];
       console.log("Nouveau tableau d'images après upload:", newImages);
       setLocalImages(newImages);
-      onChange(newImages); // Notifier le composant parent immédiatement
+      onChange(newImages);
       
-      // S'il s'agit de la première image, la sélectionner automatiquement
       if (newImages.length === 1 && onPageSelect) {
         onPageSelect(0);
       }
@@ -250,66 +233,56 @@ const PDFTemplateUploader = ({
     }
   };
 
-  // Déplacer une image vers le haut
   const moveUp = (index: number) => {
     if (index === 0) return;
     
     const newImages = [...localImages];
     [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
     
     setLocalImages(newImages);
-    onChange(newImages); // Notifier le composant parent immédiatement
+    onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index - 1)) {
       onPageSelect(selectedPage === index ? index - 1 : index);
     }
   };
   
-  // Déplacer une image vers le bas
   const moveDown = (index: number) => {
     if (index === localImages.length - 1) return;
     
     const newImages = [...localImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     
-    // Mettre à jour les numéros de page
     newImages.forEach((img, idx) => {
       img.page = idx;
     });
     
     setLocalImages(newImages);
-    onChange(newImages); // Notifier le composant parent immédiatement
+    onChange(newImages);
     
-    // Mettre à jour l'index de page sélectionné si c'était l'une des pages déplacées
     if (onPageSelect && (selectedPage === index || selectedPage === index + 1)) {
       onPageSelect(selectedPage === index ? index + 1 : index);
     }
   };
   
-  // Prévisualiser une image
   const previewImage = (imageUrl: string) => {
     window.open(imageUrl, '_blank');
   };
   
-  // Sélectionner une page pour l'édition
   const selectPage = (index: number) => {
     if (onPageSelect) {
       onPageSelect(index);
     }
   };
   
-  // Gérer l'erreur de chargement d'image
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, imageUrl: string) => {
     console.error("Échec de chargement de l'image:", imageUrl);
-    e.currentTarget.src = "/placeholder.svg"; // Image de secours
+    e.currentTarget.src = "/placeholder.svg";
     
-    // Essayer de recharger l'image avec un paramètre de contournement de cache
     setTimeout(() => {
       if (e.currentTarget.src === "/placeholder.svg") {
         const timestamp = new Date().getTime();
@@ -319,7 +292,6 @@ const PDFTemplateUploader = ({
     }, 2000);
   };
 
-  // Forcer le rendu des images en ajoutant un timestamp aux URLs
   const timestampedImages = localImages.map(img => ({
     ...img,
     displayUrl: `${img.url}?t=${new Date().getTime()}`
