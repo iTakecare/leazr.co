@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -498,53 +497,63 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
       throw new Error('Échec de la récupération des données du produit');
     }
     
-    // Vérifier aussi physiquement dans le bucket de stockage
-    const { data: storageFiles, error: storageError } = await supabase.storage
-      .from('product-images')
-      .list(productId);
-      
-    if (storageError) {
-      console.warn(`Erreur lors de la vérification des fichiers dans le stockage: ${storageError.message}`);
-    }
+    // Set pour stocker les URLs uniques d'images valides
+    const validImageUrls = new Set<string>();
     
-    // Créer un ensemble de toutes les URLs trouvées
-    const allImageUrls = new Set<string>();
-    
-    // Ajouter l'image principale si elle existe
+    // 1. Ajouter l'image principale si elle existe et est valide
     const mainImage = product?.image_url || null;
-    if (mainImage && typeof mainImage === 'string' && mainImage.trim() !== '') {
-      allImageUrls.add(mainImage);
+    if (isValidImageUrl(mainImage)) {
+      validImageUrls.add(mainImage);
     }
     
-    // Ajouter les images supplémentaires de la base de données
+    // 2. Ajouter les images supplémentaires de la base de données
     if (product?.image_urls && Array.isArray(product.image_urls)) {
       product.image_urls.forEach(url => {
-        if (url && typeof url === 'string' && url.trim() !== '') {
-          allImageUrls.add(url);
+        if (isValidImageUrl(url)) {
+          validImageUrls.add(url);
         }
       });
     }
     
-    // Réconcilier avec les fichiers physiquement présents
-    if (storageFiles && storageFiles.length > 0) {
-      const bucketUrl = supabase.storage.from('product-images').getPublicUrl('').data.publicUrl;
-      
-      // Générer les URLs pour tous les fichiers du stockage
-      storageFiles.forEach(file => {
-        const url = `${bucketUrl}/${productId}/${file.name}`;
-        allImageUrls.add(url);
-      });
+    // 3. Vérifier les fichiers physiques dans le stockage
+    try {
+      const { data: storageFiles, error: storageError } = await supabase.storage
+        .from('product-images')
+        .list(productId);
+        
+      if (storageError) {
+        console.warn(`Erreur lors de la vérification des fichiers dans le stockage: ${storageError.message}`);
+      } else if (storageFiles && storageFiles.length > 0) {
+        // Filtrer les fichiers de type placeholder et autres fichiers invisibles
+        const validFiles = storageFiles.filter(file => 
+          !file.name.startsWith('.') && 
+          !file.name.endsWith('.emptyFolderPlaceholder') &&
+          isValidImageFileName(file.name)
+        );
+        
+        if (validFiles.length > 0) {
+          const bucketUrl = supabase.storage.from('product-images').getPublicUrl('').data.publicUrl;
+          
+          // Générer les URLs pour tous les fichiers valides du stockage
+          validFiles.forEach(file => {
+            const url = `${bucketUrl}/${productId}/${file.name}`;
+            validImageUrls.add(url);
+          });
+        }
+      }
+    } catch (storageError) {
+      console.warn('Impossible d\'accéder au stockage:', storageError);
     }
     
     // Convertir l'ensemble en tableau
-    const imagesList = Array.from(allImageUrls);
+    const imagesList = Array.from(validImageUrls);
     
     // S'il n'y a pas d'image principale définie mais que nous avons des images, définir la première comme principale
     let finalMainImage = mainImage;
     let finalAdditionalImages: string[] = [];
     
     if (imagesList.length > 0) {
-      if (!finalMainImage) {
+      if (!isValidImageUrl(finalMainImage)) {
         finalMainImage = imagesList[0];
         
         // Mettre à jour la base de données avec cette image principale
@@ -580,7 +589,7 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
     console.log(`Images récupérées pour le produit ${productId}:`, {
       mainImage: finalMainImage,
       additionalImages: finalAdditionalImages,
-      totalCount: 1 + finalAdditionalImages.length
+      totalCount: (finalMainImage ? 1 : 0) + finalAdditionalImages.length
     });
     
     return {
@@ -593,6 +602,38 @@ export const fetchProductImages = async (productId: string): Promise<{mainImage:
     throw error;
   }
 };
+
+// Fonction pour vérifier si une URL d'image est valide
+function isValidImageUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return false;
+  }
+  
+  // Vérifier que l'URL ne contient pas de placeholder ou de fichier caché
+  if (
+    url.includes('.emptyFolderPlaceholder') || 
+    url.split('/').pop()?.startsWith('.') ||
+    url === '/placeholder.svg'
+  ) {
+    return false;
+  }
+  
+  // Vérifier les extensions d'images connues
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+  return imageExtensions.some(ext => url.toLowerCase().endsWith(ext)) || 
+         url.includes('/images/') || 
+         url.includes('/product-images/');
+}
+
+// Fonction pour vérifier si un nom de fichier est une image valide
+function isValidImageFileName(fileName: string): boolean {
+  if (!fileName || fileName.startsWith('.')) {
+    return false;
+  }
+  
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+  return imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+}
 
 // Fonction utilitaire pour comparer deux tableaux
 function arraysEqual(arr1: any[], arr2: any[]): boolean {
