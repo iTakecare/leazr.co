@@ -72,6 +72,22 @@ export async function createAttribute(attribute: Omit<AttributeDefinition, 'id' 
     console.log("Creating new attribute:", attribute);
     const supabase = getSupabaseClient();
     
+    // First check if an attribute with this name already exists
+    const { data: existingAttribute, error: checkError } = await supabase
+      .from('product_attributes')
+      .select('*')
+      .eq('name', attribute.name)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking for existing attribute:", checkError);
+    }
+    
+    if (existingAttribute) {
+      console.log("Attribute with this name already exists:", existingAttribute);
+      return existingAttribute;
+    }
+    
     const { data, error } = await supabase
       .from('product_attributes')
       .insert([{ 
@@ -99,12 +115,29 @@ export async function updateAttribute(id: string, attribute: Partial<AttributeDe
   try {
     const supabase = getSupabaseClient();
     
+    // First check if the attribute exists
+    const { data: existingAttribute, error: checkError } = await supabase
+      .from('product_attributes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking for existing attribute:", checkError);
+      throw checkError;
+    }
+    
+    if (!existingAttribute) {
+      throw new Error(`Attribute with ID ${id} not found`);
+    }
+    
+    const updateData: Partial<AttributeDefinition> = {};
+    if (attribute.name !== undefined) updateData.name = attribute.name;
+    if (attribute.display_name !== undefined) updateData.display_name = attribute.display_name;
+    
     const { data, error } = await supabase
       .from('product_attributes')
-      .update({ 
-        name: attribute.name,
-        display_name: attribute.display_name
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -126,6 +159,18 @@ export async function deleteAttribute(id: string): Promise<void> {
   try {
     const supabase = getSupabaseClient();
     
+    // Delete the attribute values first
+    const { error: valuesError } = await supabase
+      .from('product_attribute_values')
+      .delete()
+      .eq('attribute_id', id);
+    
+    if (valuesError) {
+      console.error(`Error deleting values for attribute with ID ${id}:`, valuesError);
+      throw valuesError;
+    }
+    
+    // Then delete the attribute itself
     const { error } = await supabase
       .from('product_attributes')
       .delete()
@@ -146,6 +191,23 @@ export async function createAttributeValue(attributeValue: Omit<AttributeValue, 
   try {
     console.log("Creating new attribute value:", attributeValue);
     const supabase = getSupabaseClient();
+    
+    // Check if a value with the same value already exists for this attribute
+    const { data: existingValue, error: checkError } = await supabase
+      .from('product_attribute_values')
+      .select('*')
+      .eq('attribute_id', attributeValue.attribute_id)
+      .eq('value', attributeValue.value)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error("Error checking for existing attribute value:", checkError);
+    }
+    
+    if (existingValue) {
+      console.log("Attribute value already exists:", existingValue);
+      return existingValue;
+    }
     
     const { data, error } = await supabase
       .from('product_attribute_values')
@@ -175,12 +237,13 @@ export async function updateAttributeValue(id: string, attributeValue: Partial<A
   try {
     const supabase = getSupabaseClient();
     
+    const updateData: Partial<AttributeValue> = {};
+    if (attributeValue.value !== undefined) updateData.value = attributeValue.value;
+    if (attributeValue.display_value !== undefined) updateData.display_value = attributeValue.display_value;
+    
     const { data, error } = await supabase
       .from('product_attribute_values')
-      .update({ 
-        value: attributeValue.value,
-        display_value: attributeValue.display_value
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();

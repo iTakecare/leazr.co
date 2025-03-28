@@ -23,17 +23,24 @@ export const updateProductVariationAttributes = async (
       }
     }
     
-    const { error } = await supabase
+    // Using update with eq condition to ensure we get the correct record
+    const { data, error } = await supabase
       .from('products')
       .update({ variation_attributes: attributesToSave })
-      .eq('id', productId);
+      .eq('id', productId)
+      .select();
     
     if (error) {
       console.error('Error updating product variation attributes:', error);
       throw new Error(error.message);
     }
     
-    console.log('Successfully updated product variation attributes');
+    if (!data || data.length === 0) {
+      console.error('No product found with ID:', productId);
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    console.log('Successfully updated product variation attributes:', data);
   } catch (error) {
     console.error('Error in updateProductVariationAttributes:', error);
     throw error;
@@ -223,15 +230,18 @@ export const updateParentProductRemovePrice = async (productId: string) => {
         monthly_price: 0
       })
       .eq('id', productId)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Error updating parent product price:', error);
       throw new Error(error.message);
     }
     
-    return data;
+    if (!data || data.length === 0) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    return data[0];
   } catch (error) {
     console.error('Error in updateParentProductRemovePrice:', error);
     throw error;
