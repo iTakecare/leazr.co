@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { uploadImage, getStorageImageUrl } from "@/utils/imageUtils";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -78,7 +79,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           return;
         }
         
-        // Filter for real files and create proper image URLs
+        // Filter for real files and create proper image URLs with absolute timestamps
         const imageFiles = files
           .filter(file => 
             !file.name.startsWith('.') && 
@@ -88,28 +89,33 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
             // Create a clean timestamp to avoid caching issues
             const timestamp = Date.now();
             
-            // Get the public URL without any transformation
-            const { data } = supabase.storage
-              .from("product-images")
-              .getPublicUrl(`${productId}/${file.name}`);
-            
-            // Make sure we have a valid URL
-            if (!data || !data.publicUrl) {
-              console.error(`Failed to get public URL for ${file.name}`);
+            try {
+              // Get the public URL directly using supabase client
+              const publicUrl = supabase.storage
+                .from("product-images")
+                .getPublicUrl(`${productId}/${file.name}`).data.publicUrl;
+              
+              // Make sure we have a valid URL
+              if (!publicUrl) {
+                console.error(`Failed to get public URL for ${file.name}`);
+                return null;
+              }
+              
+              // Add cache-busting parameters
+              const urlWithParams = new URL(publicUrl);
+              urlWithParams.searchParams.set('t', timestamp.toString());
+              
+              console.log(`Generated URL for ${file.name}: ${urlWithParams.toString()}`);
+              
+              return {
+                name: file.name,
+                url: urlWithParams.toString(),
+                isMain: false
+              };
+            } catch (e) {
+              console.error(`Error generating URL for ${file.name}:`, e);
               return null;
             }
-            
-            // Add the timestamp parameter to bypass cache
-            const publicUrl = data.publicUrl;
-            const urlWithCache = `${publicUrl}?t=${timestamp}`;
-            
-            console.log(`Generated URL for ${file.name}: ${urlWithCache}`);
-            
-            return {
-              name: file.name,
-              url: urlWithCache,
-              isMain: false
-            };
           })
           .filter(Boolean); // Remove any null entries
         
@@ -159,60 +165,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           continue;
         }
         
-        console.log(`Uploading image ${file.name} to product-images/${productId}`);
-        
-        // Create a reasonable file size limit to avoid large uploads (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error(`L'image ${file.name} est trop grande (max: 5MB)`);
-          continue;
-        }
-        
-        // Create a clean filename (replace special characters, add timestamp)
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-        const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-        
-        // Determine the correct MIME type based on extension
-        let contentType = 'image/jpeg'; // default
-        if (fileExt === 'png') contentType = 'image/png';
-        else if (fileExt === 'gif') contentType = 'image/gif';
-        else if (fileExt === 'webp') contentType = 'image/webp';
-        else if (fileExt === 'svg') contentType = 'image/svg+xml';
-        else if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
-        
-        // Use the file's reported MIME type if it seems valid
-        if (file.type.startsWith('image/')) {
-          contentType = file.type;
-        }
-        
-        console.log(`Uploading with content type: ${contentType}`);
-        
-        try {
-          // Convert the file to a Blob with the correct MIME type
-          const arrayBuffer = await file.arrayBuffer();
-          const fileBlob = new Blob([arrayBuffer], { type: contentType });
-          
-          // Direct upload to Supabase with proper content type
-          const filePath = `${productId}/${cleanFileName}`;
-          
-          const { data, error } = await supabase.storage
-            .from("product-images")
-            .upload(filePath, fileBlob, {
-              cacheControl: '3600',
-              upsert: false,
-              contentType: contentType  // Ensure proper content type
-            });
-          
-          if (error) {
-            console.error('Error uploading file:', error);
-            toast.error(`Erreur lors de l'upload: ${error.message}`);
-            continue;
-          }
-          
+        const imageUrl = await uploadImage(file, "product-images", productId);
+        if (imageUrl) {
           uploadedCount++;
-        } catch (uploadError) {
-          console.error('Exception during upload:', uploadError);
-          toast.error(`Erreur inattendue lors de l'upload`);
-          continue;
         }
       }
       
@@ -368,9 +323,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           {images.map((image, index) => (
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
-                {/* Utiliser directement la source d'image simple avec forçage de rafraîchissement */}
+                {/* Direct image source with forced refresh */}
                 <img
-                  src={`${image.url}&r=${retryCount}`}
+                  src={image.url}
                   alt={`Produit ${index + 1}`}
                   className="object-cover w-full h-full"
                   loading="lazy"

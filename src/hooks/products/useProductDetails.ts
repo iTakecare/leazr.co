@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Product, ProductVariationAttributes } from '@/types/catalog';
 import { getProductById, getProducts, findVariantByAttributes } from '@/services/catalogService';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,12 +23,17 @@ export function useProductDetails(productId: string | null) {
     enabled: !!productId,
   });
 
-  const loadProductImages = async (id: string): Promise<string[]> => {
+  const loadProductImages = useCallback(async (id: string): Promise<string[]> => {
     try {
+      console.log(`Loading images for product ${id} from product-images bucket`);
+      
+      // Check if the folder exists
       const { data: files, error } = await supabase
         .storage
-        .from('product-images')
-        .list(id);
+        .from("product-images")
+        .list(id, {
+          sortBy: { column: 'name', order: 'asc' }
+        });
       
       if (error) {
         console.error("Error loading product images from storage:", error);
@@ -36,7 +41,8 @@ export function useProductDetails(productId: string | null) {
       }
       
       const imageFiles = files.filter(file => 
-        !file.name.endsWith('/') && 
+        !file.name.startsWith('.') && 
+        !file.name.endsWith('/') &&
         file.name !== '.emptyFolderPlaceholder'
       );
       
@@ -45,31 +51,46 @@ export function useProductDetails(productId: string | null) {
         return [];
       }
       
+      // Generate direct public URLs with cache-busting parameters
+      const timestamp = new Date().getTime();
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
-          .from('product-images')
+          .from("product-images")
           .getPublicUrl(`${id}/${file.name}`);
         
-        return data.publicUrl;
-      });
+        if (!data || !data.publicUrl) {
+          console.error(`Failed to get public URL for ${file.name}`);
+          return null;
+        }
+        
+        // Add cache-busting parameter
+        const url = `${data.publicUrl}?t=${timestamp}`;
+        console.log(`Generated image URL: ${url}`);
+        return url;
+      }).filter(Boolean) as string[];
       
       console.log("Loaded product images from storage:", imageUrls);
       return imageUrls;
     } catch (err) {
-      console.error("Error loading product images from storage:", err);
+      console.error("Error in loadProductImages:", err);
       return [];
     }
-  };
+  }, []);
 
-  const getValidImages = async (product: Product | null): Promise<string[]> => {
+  const getValidImages = useCallback(async (product: Product | null): Promise<string[]> => {
     if (!product || !productId) return [];
     
+    // Try to load images from Supabase storage first
     const storageImages = await loadProductImages(productId);
     if (storageImages.length > 0) {
+      console.log("Using images from storage:", storageImages);
       return storageImages;
     }
     
+    console.log("No storage images found, falling back to product object images");
+    
+    // Fall back to images in the product object
     const validImages: string[] = [];
     const seenUrls = new Set<string>();
     
@@ -93,6 +114,7 @@ export function useProductDetails(productId: string | null) {
       }
     };
     
+    // Check all possible image locations in the product object
     if (isValidImage(product.image_url as string)) {
       validImages.push(product.image_url as string);
       seenUrls.add(product.image_url as string);
@@ -103,37 +125,26 @@ export function useProductDetails(productId: string | null) {
       seenUrls.add(product.imageUrl as string);
     }
     
-    if (product.image_urls && Array.isArray(product.image_urls)) {
-      product.image_urls.forEach(url => {
-        if (isValidImage(url) && !seenUrls.has(url)) {
-          validImages.push(url);
-          seenUrls.add(url);
-        }
-      });
-    }
-    
-    if (product.imageUrls && Array.isArray(product.imageUrls)) {
-      product.imageUrls.forEach(url => {
-        if (isValidImage(url) && !seenUrls.has(url)) {
-          validImages.push(url);
-          seenUrls.add(url);
-        }
-      });
-    }
-    
-    if (product.images && Array.isArray(product.images)) {
-      product.images.forEach(img => {
+    // Check image arrays
+    const checkAndAddImages = (images: any[] | undefined) => {
+      if (!images || !Array.isArray(images)) return;
+      
+      images.forEach(img => {
         const imgUrl = typeof img === 'string' ? img : (img?.src || '');
         if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
           validImages.push(imgUrl);
           seenUrls.add(imgUrl);
         }
       });
-    }
+    };
+    
+    checkAndAddImages(product.image_urls as any[]);
+    checkAndAddImages(product.imageUrls as any[]);
+    checkAndAddImages(product.images as any[]);
     
     console.log("Found valid images from product object:", validImages);
     return validImages;
-  };
+  }, [productId, loadProductImages]);
 
   useEffect(() => {
     if (isLoading) {
@@ -223,7 +234,7 @@ export function useProductDetails(productId: string | null) {
       });
       setSelectedOptions(defaultOptions);
     }
-  }, [data, isLoading, isError, productId]);
+  }, [data, isLoading, isError, productId, getValidImages]);
   
   const handleOptionChange = (attributeName: string, value: string) => {
     setSelectedOptions(prev => ({
@@ -301,6 +312,7 @@ export function useProductDetails(productId: string | null) {
     setIsRequestFormOpen,
     isLoading: loading,
     getValidImages,
+    loadProductImages
   };
 }
 
