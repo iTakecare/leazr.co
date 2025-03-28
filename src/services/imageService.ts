@@ -1,3 +1,4 @@
+
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -41,11 +42,13 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     // Créer la structure de dossier basée sur l'ID du produit
     const productFolder = `${productId}`;
     
-    // Conserver le nom d'origine du fichier
-    const originalFileName = file.name;
+    // Générer un nom de fichier unique avec timestamp pour éviter les conflits
+    const timestamp = new Date().getTime();
+    const fileName = file.name.replace(/\s+/g, '-');
+    const uniqueFileName = `${timestamp}-${fileName}`;
     
     // Déterminer le nom de fichier
-    const filePath = `${productFolder}/${originalFileName}`;
+    const filePath = `${productFolder}/${uniqueFileName}`;
     
     console.log(`Téléchargement de l'image vers: ${filePath} dans le bucket ${bucketName}`);
     
@@ -137,7 +140,7 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
             const blob = new Blob(byteArrays, { type: mimeType });
             
             // Créer un nouveau File à partir du Blob en conservant le nom du fichier original
-            fileToUpload = new File([blob], originalFileName, { type: mimeType });
+            fileToUpload = new File([blob], uniqueFileName, { type: mimeType });
             contentType = mimeType;
             
             console.log(`Fichier converti de JSON à ${mimeType}`);
@@ -150,57 +153,46 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       }
     }
     
-    // Upload avec FormData pour préserver le type MIME
-    let uploadAttempts = 0;
-    const maxUploadAttempts = 3;
-    let uploadSuccessful = false;
-    let uploadError, uploadData;
+    // Utiliser upload directs pour éviter les problèmes de duplication
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, fileToUpload, {
+        contentType,
+        upsert: false  // Ne pas écraser si existe déjà
+      });
     
-    while (!uploadSuccessful && uploadAttempts < maxUploadAttempts) {
-      uploadAttempts++;
-      console.log(`Tentative d'upload ${uploadAttempts}/${maxUploadAttempts}`);
-      
-      try {
-        // Utiliser FormData pour l'upload
-        const formData = new FormData();
-        formData.append('file', fileToUpload);
+    if (error) {
+      if (error.message.includes('The resource already exists')) {
+        console.warn("L'image existe déjà, génération d'un nouveau nom de fichier");
+        // Générer un nouveau nom avec un timestamp plus précis
+        const preciseTimestamp = new Date().getTime() + Math.floor(Math.random() * 1000);
+        const newFilePath = `${productFolder}/${preciseTimestamp}-${fileName}`;
         
-        // Utiliser l'API REST directement
-        const uploadUrl = `${supabase.storageUrl}/object/${bucketName}/${filePath}`;
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`
-          },
-          body: formData
-        });
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from(bucketName)
+          .upload(newFilePath, fileToUpload, {
+            contentType,
+            upsert: false
+          });
         
-        if (!response.ok) {
-          console.warn(`Échec de l'upload via API REST: ${response.statusText}`);
-          const errorText = await response.text();
-          throw new Error(`Échec de l'upload: ${errorText}`);
+        if (retryError) {
+          console.error('Erreur lors de la seconde tentative d\'upload:', retryError);
+          toast.error(`Échec de l'upload: ${retryError.message}`);
+          throw new Error(retryError.message);
         }
         
-        const result = await response.json();
-        uploadData = result;
-        uploadSuccessful = true;
-      } catch (e) {
-        console.warn(`Exception lors de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}:`, e);
-        uploadError = e;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        data = retryData;
+      } else {
+        console.error('Erreur détaillée lors du téléchargement de l\'image:', error);
+        toast.error(`Erreur lors du téléchargement: ${error.message}`);
+        throw new Error(error.message);
       }
-    }
-    
-    if (!uploadSuccessful) {
-      console.error('Erreur détaillée lors du téléchargement de l\'image après plusieurs tentatives:', uploadError);
-      toast.error(`Erreur lors du téléchargement: ${uploadError?.message || "Erreur inconnue"}`);
-      throw new Error(uploadError?.message || "Échec de l'upload après plusieurs tentatives");
     }
     
     // Get public URL
     const { data: publicURL } = supabase.storage
       .from(bucketName)
-      .getPublicUrl(filePath);
+      .getPublicUrl(data?.path || filePath);
     
     console.log(`Image téléchargée avec succès: ${publicURL.publicUrl}`);
     
@@ -231,6 +223,9 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
         if (!Array.isArray(imageUrls)) {
           imageUrls = [];
         }
+        
+        // Filtrer les URLs vides ou nulles avant d'ajouter la nouvelle
+        imageUrls = imageUrls.filter(url => url && typeof url === 'string' && url.trim() !== '');
         
         // Add new URL and update
         const { error: updateError } = await supabase.from('products').update({
@@ -278,30 +273,16 @@ export const reorderProductImages = async (
 ): Promise<boolean> => {
   try {
     console.log(`Réorganisation des images pour le produit ${productId}`);
-    const { supabase } = await import('@/integrations/supabase/client');
     
-    // Récupérer d'abord le produit pour vérifier son existence
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('id, image_url, image_urls')
-      .eq('id', productId)
-      .single();
-    
-    if (fetchError) {
-      console.error('Erreur lors de la récupération du produit:', fetchError);
-      throw new Error(`Échec de la récupération des données du produit: ${fetchError.message}`);
-    }
-    
-    if (!product) {
-      throw new Error(`Produit avec l'ID ${productId} non trouvé`);
-    }
+    // Filtrer les URLs vides ou nulles
+    const validImageUrls = imageUrls.filter(url => url && typeof url === 'string' && url.trim() !== '');
     
     // Préparer les mises à jour
     const updates: {
       image_url?: string;
       image_urls?: string[];
     } = {
-      image_urls: imageUrls
+      image_urls: validImageUrls
     };
     
     // Si une nouvelle image principale est spécifiée, la définir
@@ -333,7 +314,6 @@ export const reorderProductImages = async (
 export const setMainProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
   try {
     console.log(`Définition de l'image principale pour le produit ${productId}:`, imageUrl);
-    const { supabase } = await import('@/integrations/supabase/client');
     
     const { error } = await supabase
       .from('products')
@@ -358,7 +338,6 @@ export const setMainProductImage = async (productId: string, imageUrl: string): 
 export const removeProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
   try {
     console.log(`Suppression de l'image pour le produit ${productId}:`, imageUrl);
-    const { supabase } = await import('@/integrations/supabase/client');
     
     // Récupérer d'abord le produit pour obtenir les URLs d'images actuelles
     const { data: product, error: fetchError } = await supabase
@@ -377,6 +356,9 @@ export const removeProductImage = async (productId: string, imageUrl: string): P
     
     // Filtrer les images pour retirer celle à supprimer
     let updatedImageUrls = (product.image_urls || []).filter(url => url !== imageUrl);
+    
+    // Filtrer les URLs vides ou nulles
+    updatedImageUrls = updatedImageUrls.filter(url => url && typeof url === 'string' && url.trim() !== '');
     
     const updates: {
       image_url?: string | null;
@@ -402,21 +384,27 @@ export const removeProductImage = async (productId: string, imageUrl: string): P
       throw new Error(`Échec de la suppression de l'image: ${updateError.message}`);
     }
     
-    // Extraire le nom de fichier de l'URL
+    // Essayer de supprimer physiquement le fichier du stockage
     try {
       const url = new URL(imageUrl);
       const pathParts = url.pathname.split('/');
-      const fileName = pathParts.pop();
-      const folderPath = pathParts.pop();
-      
-      if (fileName && folderPath) {
-        // Supprimer le fichier du stockage
-        const { error: storageError } = await supabase.storage
-          .from('product-images')
-          .remove([`${folderPath}/${fileName}`]);
+      // Chercher les parties pertinentes du chemin
+      const bucketIndex = pathParts.findIndex(part => part === 'product-images');
+      if (bucketIndex >= 0 && bucketIndex + 2 < pathParts.length) {
+        const folderPath = pathParts[bucketIndex + 1];
+        const fileName = pathParts[bucketIndex + 2];
         
-        if (storageError) {
-          console.warn(`Erreur lors de la suppression du fichier physique, mais l'image a été supprimée de la base de données:`, storageError);
+        if (fileName && folderPath) {
+          // Supprimer le fichier du stockage
+          const { error: storageError } = await supabase.storage
+            .from('product-images')
+            .remove([`${folderPath}/${fileName}`]);
+          
+          if (storageError) {
+            console.warn(`Erreur lors de la suppression du fichier physique, mais l'image a été supprimée de la base de données:`, storageError);
+          } else {
+            console.log(`Fichier physique supprimé avec succès: ${folderPath}/${fileName}`);
+          }
         }
       }
     } catch (parseError) {
@@ -428,6 +416,73 @@ export const removeProductImage = async (productId: string, imageUrl: string): P
   } catch (error) {
     console.error('Erreur dans removeProductImage:', error);
     toast.error(`Erreur lors de la suppression de l'image: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    throw error;
+  }
+};
+
+// Fonction pour récupérer correctement toutes les images d'un produit
+export const fetchProductImages = async (productId: string): Promise<{mainImage: string | null, additionalImages: string[]}> => {
+  try {
+    console.log(`Récupération des images pour le produit ${productId}`);
+    
+    // Récupérer les données du produit
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('image_url, image_urls')
+      .eq('id', productId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Erreur lors de la récupération des données du produit:', fetchError);
+      throw new Error('Échec de la récupération des données du produit');
+    }
+    
+    // Vérifier aussi physiquement dans le bucket de stockage
+    const { data: storageFiles, error: storageError } = await supabase.storage
+      .from('product-images')
+      .list(productId);
+      
+    if (storageError) {
+      console.warn(`Erreur lors de la vérification des fichiers dans le stockage: ${storageError.message}`);
+    }
+    
+    // Préparer les données de retour
+    const mainImage = product?.image_url || null;
+    let additionalImages = (product?.image_urls || []).filter(url => 
+      url && typeof url === 'string' && url.trim() !== '' && url !== mainImage
+    );
+    
+    // Réconcilier avec les fichiers physiquement présents si nécessaire
+    if (storageFiles && storageFiles.length > 0) {
+      // Créer les URLs pour tous les fichiers du stockage
+      const bucketUrl = supabase.storage.from('product-images').getPublicUrl('').data.publicUrl;
+      const storageUrls = storageFiles.map(file => 
+        `${bucketUrl}/${productId}/${file.name}`
+      );
+      
+      // Ajouter les URLs qui ne sont pas déjà dans la liste
+      for (const url of storageUrls) {
+        if (url !== mainImage && !additionalImages.includes(url)) {
+          additionalImages.push(url);
+        }
+      }
+      
+      // Vérifier si l'image principale est présente physiquement, sinon la remplacer
+      if (mainImage && !storageUrls.includes(mainImage) && additionalImages.length > 0) {
+        // Mise à jour du produit avec la première image additionnelle comme principale
+        await supabase.from('products').update({
+          image_url: additionalImages[0]
+        }).eq('id', productId);
+      }
+    }
+    
+    return {
+      mainImage,
+      additionalImages
+    };
+  } catch (error) {
+    console.error('Erreur dans fetchProductImages:', error);
+    toast.error(`Erreur lors de la récupération des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 };
