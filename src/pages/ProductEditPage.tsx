@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,14 +25,14 @@ import {
   Info,
   Layers,
   X,
-  Plus
+  Plus,
+  Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 
-// Liste des catégories de produits
 const productCategories = [
   "laptop",
   "desktop",
@@ -49,7 +48,6 @@ const productCategories = [
   "other"
 ];
 
-// Traductions des catégories
 const categoryTranslations: Record<string, string> = {
   "laptop": "Ordinateur portable",
   "desktop": "Ordinateur de bureau",
@@ -65,7 +63,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Liste des marques populaires
 const popularBrands = [
   "Apple",
   "Samsung",
@@ -272,6 +269,13 @@ const ProductEditPage = () => {
     }
   };
 
+  const handleCopyId = () => {
+    if (id) {
+      navigator.clipboard.writeText(id);
+      toast.success("ID copié dans le presse-papier");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -325,10 +329,28 @@ const ProductEditPage = () => {
           <TabsContent value="details">
             <Card>
               <CardHeader>
-                <CardTitle>Informations du produit</CardTitle>
-                <CardDescription>
-                  Modifiez les informations de base du produit ici.
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Informations du produit</CardTitle>
+                    <CardDescription>
+                      Modifiez les informations de base du produit ici.
+                    </CardDescription>
+                  </div>
+                  {id && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <div className="mr-2">ID: {id}</div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6" 
+                        onClick={handleCopyId}
+                        title="Copier l'ID"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
