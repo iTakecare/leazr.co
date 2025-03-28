@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "react-router-dom";
 
 interface NavbarUserProfileProps {
   user: any;
@@ -10,7 +11,7 @@ interface NavbarUserProfileProps {
 
 const NavbarUserProfile = ({ user, avatarUrl, getUserInitials }: NavbarUserProfileProps) => {
   return (
-    <div className="flex items-center gap-3">
+    <Link to="/settings?tab=profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
       <div className="text-sm font-medium">
         {user.first_name ? `${user.first_name} ${user.last_name || ''}` : user.email}
       </div>
@@ -20,7 +21,7 @@ const NavbarUserProfile = ({ user, avatarUrl, getUserInitials }: NavbarUserProfi
           {getUserInitials()}
         </AvatarFallback>
       </Avatar>
-    </div>
+    </Link>
   );
 };
 
