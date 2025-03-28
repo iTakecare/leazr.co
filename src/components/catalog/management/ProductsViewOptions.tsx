@@ -7,7 +7,7 @@ interface ProductsViewOptionsProps {
   groupingOption: "model" | "brand";
   onGroupingChange: (option: "model" | "brand") => void;
   viewMode: "grid" | "accordion";
-  onViewModeChange: (mode: string) => void;
+  onViewModeChange: (mode: "grid" | "accordion") => void;
 }
 
 const ProductsViewOptions: React.FC<ProductsViewOptionsProps> = ({

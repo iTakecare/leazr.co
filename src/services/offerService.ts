@@ -1,9 +1,33 @@
 
 // This file re-exports all offer service functionality
 // It provides backward compatibility while allowing for better code organization
+
+// Import specific named exports from services
+import { 
+  generateAndDownloadOfferPdf, 
+  getOfferDataForPdf, 
+  generateSamplePdf 
+} from './offers/offerPdf';
+
+import { 
+  isOfferSigned, 
+  saveOfferSignature, 
+  generateSignatureLink 
+} from './offers/offerSignature';
+
+// Import and re-export from other offer service files
 export * from './offers';
 export * from './offers/offerDetail';
-// Avoid re-exporting these as they're already being exported from './offers'
-// export * from './offers/offerPdf';
-// export * from './offers/offerSignature';
+
+// Re-export types
 export * from './offers/types';
+
+// Explicitly re-export named exports that might conflict with star exports
+export {
+  generateAndDownloadOfferPdf,
+  getOfferDataForPdf,
+  generateSamplePdf,
+  isOfferSigned,
+  saveOfferSignature,
+  generateSignatureLink
+};
