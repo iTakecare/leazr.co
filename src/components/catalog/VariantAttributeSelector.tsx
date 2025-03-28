@@ -36,13 +36,30 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   });
   
   useEffect(() => {
+    // Make sure we're working with a clean object, not null or undefined
     setAttributes(initialAttributes || {});
   }, [initialAttributes]);
   
   const updateAttributes = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       console.log("Updating product variation attributes:", attributes);
-      return updateProductVariationAttributes(productId, attributes);
+      try {
+        // Convert any empty arrays to non-empty ones to avoid RLS issues
+        const cleanedAttributes: ProductVariationAttributes = {};
+        
+        Object.entries(attributes).forEach(([key, values]) => {
+          if (Array.isArray(values) && values.length > 0) {
+            cleanedAttributes[key] = values;
+          }
+        });
+        
+        console.log("Cleaned attributes for saving:", cleanedAttributes);
+        await updateProductVariationAttributes(productId, cleanedAttributes);
+        return true;
+      } catch (error) {
+        console.error("Error in mutation function:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Attributs de variation mis à jour avec succès");
@@ -50,7 +67,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     },
     onError: (error: any) => {
       console.error("Error updating attributes:", error);
-      toast.error(`Erreur lors de la mise à jour des attributs: ${error.message}`);
+      toast.error(`Erreur lors de la mise à jour des attributs: ${error.message || "Erreur inconnue"}`);
     }
   });
   
@@ -60,8 +77,16 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
       return;
     }
     
+    // Use custom attribute name if "custom" is selected
+    const attributeName = newAttributeName === "custom" ? "" : newAttributeName.trim();
+    
+    if (!attributeName) {
+      toast.error("Veuillez saisir un nom d'attribut personnalisé");
+      return;
+    }
+    
     // Check if attribute already exists
-    if (attributes[newAttributeName]) {
+    if (attributes[attributeName]) {
       toast.error("Cet attribut existe déjà");
       return;
     }
@@ -71,13 +96,13 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     
     setAttributes(prev => ({
       ...prev,
-      [newAttributeName]: values
+      [attributeName]: values
     }));
     
     setNewAttributeName("");
     setNewAttributeValue("");
     
-    toast.success(`Attribut "${newAttributeName}" ajouté`);
+    toast.success(`Attribut "${attributeName}" ajouté`);
   };
   
   const handleAddValueToAttribute = (attributeName: string) => {
@@ -246,9 +271,10 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                 {newAttributeName === "custom" && (
                   <Input
                     placeholder="Nom de l'attribut personnalisé"
-                    value={newAttributeName === "custom" ? "" : newAttributeName}
+                    value=""
                     onChange={(e) => setNewAttributeName(e.target.value)}
                     className="mt-2"
+                    autoFocus
                   />
                 )}
               </div>

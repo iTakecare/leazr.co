@@ -39,8 +39,8 @@ export const updateProductVariationAttributes = async (
       throw new Error(`Product with ID ${productId} not found`);
     }
     
-    // Important: Do not use .select() here to avoid the "multiple rows returned" error
-    const { error } = await supabase
+    // This is the critical fix: Use update without select() and check affected rows instead
+    const { error, count } = await supabase
       .from('products')
       .update({ variation_attributes: attributesToSave })
       .eq('id', productId);
@@ -50,7 +50,11 @@ export const updateProductVariationAttributes = async (
       throw new Error(error.message);
     }
     
-    console.log('Successfully updated product variation attributes for ID:', productId);
+    if (count === 0) {
+      console.warn(`No products were updated. Product ID ${productId} may not exist.`);
+    } else {
+      console.log('Successfully updated product variation attributes for ID:', productId);
+    }
   } catch (error) {
     console.error('Error in updateProductVariationAttributes:', error);
     throw error;
@@ -103,6 +107,7 @@ export const addVariantPrice = async (variantPrice: {
     
     if (checkError) {
       console.error('Error checking existing combinations:', checkError);
+      throw new Error(checkError.message);
     }
     
     // If we found existing combinations, check for duplicates
@@ -121,7 +126,7 @@ export const addVariantPrice = async (variantPrice: {
         // Check if all attribute values match
         return newKeys.every(key => 
           comboAttributes[key] !== undefined && 
-          String(comboAttributes[key]) === String(newAttributes[key])
+          String(comboAttributes[key]).toLowerCase() === String(newAttributes[key]).toLowerCase()
         );
       });
       
@@ -134,30 +139,36 @@ export const addVariantPrice = async (variantPrice: {
     // No match found, insert the new combination
     const { data, error } = await supabase
       .from('product_variant_prices')
-      .insert([variantPrice]);
+      .insert([variantPrice])
+      .select();
     
     if (error) {
       console.error('Error adding variant price:', error);
       throw new Error(error.message);
     }
     
-    // Fetch the newly created record
-    const { data: newRecord, error: fetchError } = await supabase
-      .from('product_variant_prices')
-      .select('*')
-      .eq('product_id', variantPrice.product_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (fetchError) {
-      console.error('Error fetching new variant price record:', fetchError);
-      // Return at least something if we can't fetch the new record
-      return { id: 'unknown', ...variantPrice };
+    if (data && data.length > 0) {
+      console.log("Successfully added new variant price:", data[0]);
+      return data[0];
+    } else {
+      // Fetch the newly created record if insert didn't return it
+      const { data: newRecord, error: fetchError } = await supabase
+        .from('product_variant_prices')
+        .select('*')
+        .eq('product_id', variantPrice.product_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching new variant price record:', fetchError);
+        // Return at least something if we can't fetch the new record
+        return { id: 'unknown', ...variantPrice };
+      }
+      
+      console.log("Successfully fetched new variant price:", newRecord);
+      return newRecord;
     }
-    
-    console.log("Successfully added new variant price:", newRecord);
-    return newRecord;
   } catch (error) {
     console.error('Error in addVariantPrice:', error);
     throw error;
@@ -261,15 +272,15 @@ export const findVariantCombinationPrice = async (
       throw new Error(error.message);
     }
     
-    // Find the matching price variant
+    // Find the matching price variant with case insensitive comparison
     const matchingVariant = data?.find(variant => {
       if (!variant.attributes) return false;
       
       // Check if all selected attributes match this variant
-      return Object.entries(attributes).every(([key, value]) => 
-        variant.attributes[key] !== undefined && 
-        String(variant.attributes[key]).toLowerCase() === String(value).toLowerCase()
-      );
+      return Object.entries(attributes).every(([key, value]) => {
+        if (!variant.attributes[key]) return false;
+        return String(variant.attributes[key]).toLowerCase() === String(value).toLowerCase();
+      });
     });
     
     console.log("Found matching variant:", matchingVariant || "None");
