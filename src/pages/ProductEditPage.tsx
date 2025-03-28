@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,14 +26,12 @@ import {
   Info,
   Layers,
   X,
-  Plus,
-  Tag
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import AttributeManager from "@/components/catalog/AttributeManager";
 
 // Liste des catégories de produits
 const productCategories = [
@@ -307,7 +306,7 @@ const ProductEditPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-md mx-auto mb-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
           <TabsTrigger value="details">
             <Info className="h-4 w-4 mr-2" />
             Informations
@@ -319,10 +318,6 @@ const ProductEditPage = () => {
           <TabsTrigger value="variants">
             <Layers className="h-4 w-4 mr-2" />
             Variantes
-          </TabsTrigger>
-          <TabsTrigger value="attributes">
-            <Tag className="h-4 w-4 mr-2" />
-            Attributs
           </TabsTrigger>
         </TabsList>
         
@@ -459,14 +454,15 @@ const ProductEditPage = () => {
                   <Trash2 className="w-4 h-4 mr-2" />
                   Supprimer
                 </Button>
+                
                 <Button 
-                  type="submit" 
+                  type="submit"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Enregistrement...
+                      Mise à jour...
                     </>
                   ) : (
                     <>
@@ -484,75 +480,53 @@ const ProductEditPage = () => {
               <CardHeader>
                 <CardTitle>Images du produit</CardTitle>
                 <CardDescription>
-                  Gérez les images du produit. L'image principale est utilisée comme visuel principal.
+                  Ajoutez des images pour votre produit (maximum 5 images).
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {imagePreviews.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative border rounded-md overflow-hidden aspect-square">
-                        <img
-                          src={preview}
-                          alt={`Aperçu ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        {index === 0 && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">
-                            Image principale
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {imagePreviews.length < 5 && (
-                      <div 
-                        className="border border-dashed rounded-md flex items-center justify-center cursor-pointer aspect-square bg-muted/50" 
-                        onClick={() => document.getElementById("image-upload")?.click()}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {imagePreviews.map((src, index) => (
+                    <div key={index} className="relative rounded-lg overflow-hidden border h-40">
+                      <img 
+                        src={src} 
+                        alt={`Preview ${index}`}
+                        className="w-full h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm"
                       >
-                        <div className="text-center space-y-1">
-                          <Plus className="mx-auto h-6 w-6 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">Ajouter</p>
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1">
+                          Image principale
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center border border-dashed rounded-md p-6 cursor-pointer" onClick={() => document.getElementById("image-upload")?.click()}>
-                    <div className="text-center space-y-2">
-                      <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Cliquez pour télécharger des images (max 5)</p>
+                      )}
                     </div>
-                  </div>
-                )}
-                
-                <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageChange}
-                  multiple
-                />
-                
-                <p className="text-xs text-muted-foreground mt-2">
-                  La première image sera utilisée comme image principale.
-                  {imagePreviews.length > 0 && ` ${5 - imagePreviews.length} emplacement(s) restant(s).`}
-                </p>
-                
-                {imageFiles.length > 0 && (
-                  <Button 
-                    onClick={() => handleSubmit(new Event('submit') as unknown as React.FormEvent)} 
-                    className="mt-4" 
+                  ))}
+                  
+                  {imagePreviews.length < 5 && (
+                    <label className="border border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                      <Plus className="w-8 h-8 text-gray-400" />
+                      <span className="text-sm text-gray-500 mt-2">Ajouter une image</span>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleImageChange}
+                      />
+                    </label>
+                  )}
+                </div>
+              </CardContent>
+              {imageFiles.length > 0 && (
+                <CardFooter>
+                  <Button
+                    type="button"
+                    onClick={() => imageFiles.forEach((file, index) => handleUploadImage(file, index))}
+                    className="ml-auto"
                     disabled={isUploading}
                   >
                     {isUploading ? (
@@ -563,52 +537,26 @@ const ProductEditPage = () => {
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Télécharger les images
+                        Télécharger toutes les images
                       </>
                     )}
                   </Button>
-                )}
-              </CardContent>
+                </CardFooter>
+              )}
             </Card>
           </TabsContent>
           
           <TabsContent value="variants">
-            {product && <ProductVariantManager product={product} />}
+            {product && (
+              <ProductVariantManager
+                product={product}
+                onVariantAdded={() => {
+                  queryClient.invalidateQueries({ queryKey: ["product", id] });
+                }}
+              />
+            )}
           </TabsContent>
           
-          <TabsContent value="attributes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestion des attributs</CardTitle>
-                <CardDescription>
-                  Créez et gérez les attributs de produits qui peuvent être utilisés pour définir les variantes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AttributeManager />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <div className="flex justify-end mt-6">
-            <Button 
-              type="submit" 
-              className="w-full md:w-auto"
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Enregistrer les modifications
-                </>
-              )}
-            </Button>
-          </div>
         </form>
       </Tabs>
     </div>

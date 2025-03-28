@@ -379,6 +379,29 @@ export const addProduct = async (product: Partial<Product>) => {
 };
 
 /**
+ * Crée un nouveau produit
+ */
+export const createProduct = async (productData: Partial<Product>): Promise<Product> => {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .insert([productData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating product:', error);
+      throw new Error(error.message);
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Error in createProduct:', error);
+    throw error;
+  }
+};
+
+/**
  * Met à jour un produit existant
  */
 export const updateProduct = async (id: string, product: Partial<Product>) => {

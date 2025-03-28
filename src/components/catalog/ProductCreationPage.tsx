@@ -19,12 +19,14 @@ import {
   Save, 
   ArrowLeft, 
   Info,
-  Tag
+  Tag,
+  Image as ImageIcon,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import AttributeManager from "@/components/catalog/AttributeManager";
+import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 
 // Liste des catégories de produits
 const productCategories = [
@@ -92,7 +94,8 @@ const ProductCreationPage = () => {
     monthly_price: 0,
     stock: 0,
     active: true,
-    is_parent: false
+    is_parent: false,
+    variation_attributes: {}
   });
   
   // Create product mutation
@@ -155,14 +158,18 @@ const ProductCreationPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
           <TabsTrigger value="details">
             <Info className="h-4 w-4 mr-2" />
             Informations
           </TabsTrigger>
-          <TabsTrigger value="attributes">
-            <Tag className="h-4 w-4 mr-2" />
-            Attributs
+          <TabsTrigger value="images">
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Images
+          </TabsTrigger>
+          <TabsTrigger value="variants">
+            <Layers className="h-4 w-4 mr-2" />
+            Variantes
           </TabsTrigger>
         </TabsList>
         
@@ -292,16 +299,43 @@ const ProductCreationPage = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="attributes">
+          <TabsContent value="images">
             <Card>
               <CardHeader>
-                <CardTitle>Gestion des attributs</CardTitle>
+                <CardTitle>Images du produit</CardTitle>
                 <CardDescription>
-                  Créez et gérez les attributs de produits qui peuvent être utilisés pour définir les variantes.
+                  Vous pourrez ajouter des images après avoir créé le produit.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <AttributeManager />
+                <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-md">
+                  <div className="text-center">
+                    <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Créez d'abord le produit pour ajouter des images
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="variants">
+            <Card>
+              <CardHeader>
+                <CardTitle>Variantes et attributs</CardTitle>
+                <CardDescription>
+                  Une fois le produit créé, vous pourrez ajouter des variantes, des attributs et définir les prix.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center p-8">
+                  <Layers className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">Pas encore de variantes</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Vous devez d'abord créer le produit pour pouvoir gérer ses variantes et attributs.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
