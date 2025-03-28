@@ -277,10 +277,10 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                 {Array.isArray(variantPrices) && variantPrices.map((variant) => (
                   <TableRow key={variant.id}>
                     <TableCell>
-                      {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
+                      {variant.attributes && Object.entries(variant.attributes || {}).map(([key, value]) => (
                         <div key={key}>
                           <Badge className="mr-1">{key}:</Badge>
-                          {value}
+                          {String(value)}
                         </div>
                       ))}
                     </TableCell>

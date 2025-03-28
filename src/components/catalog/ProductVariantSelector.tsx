@@ -73,11 +73,19 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           if (price) {
             setCurrentPrice(price.monthly_price || price.price);
             
+            // Convert ProductAttributes to ensure type compatibility
+            const attributesAsStrings: Record<string, string> = {};
+            if (selectedOptions) {
+              Object.entries(selectedOptions).forEach(([key, value]) => {
+                attributesAsStrings[key] = String(value);
+              });
+            }
+            
             const variant: Product = {
               ...product,
               price: price.price,
               monthly_price: price.monthly_price || 0,
-              selected_attributes: selectedOptions as ProductAttributes,
+              selected_attributes: attributesAsStrings as ProductAttributes,
             };
             
             setSelectedVariant(variant);

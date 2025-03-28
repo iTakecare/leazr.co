@@ -35,7 +35,9 @@ export const useProductDetails = (productId: string | undefined) => {
     if (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) {
       console.log("Product has variation attributes:", product.variation_attributes);
       setVariationAttributes(product.variation_attributes);
-    } else if (product.variant_combination_prices && Array.isArray(product.variant_combination_prices) && product.variant_combination_prices.length > 0) {
+    } else if (product.variant_combination_prices && 
+               Array.isArray(product.variant_combination_prices) && 
+               product.variant_combination_prices.length > 0) {
       // Extract variation attributes from variant combination prices if not directly provided
       const extractedAttributes: ProductVariationAttributes = {};
       
