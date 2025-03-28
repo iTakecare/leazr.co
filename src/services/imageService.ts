@@ -58,3 +58,60 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     throw error;
   }
 };
+
+// Adding missing functions needed by other components
+export const uploadImage = async (file: File, bucket: string, folder: string = '') => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Get file extension
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
+    
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+    
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      throw new Error(uploadError.message);
+    }
+    
+    // Get public URL
+    const { data: publicURL } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+    
+    return publicURL.publicUrl;
+  } catch (error) {
+    console.error('Error in uploadImage:', error);
+    throw error;
+  }
+};
+
+export const detectFileExtension = (fileName: string): string => {
+  const parts = fileName.split('.');
+  return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+};
+
+export const detectMimeTypeFromSignature = async (file: File): Promise<string> => {
+  // Simple mime type detection based on file extension
+  const ext = detectFileExtension(file.name);
+  
+  const mimeTypes: Record<string, string> = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+  
+  return mimeTypes[ext] || file.type || 'application/octet-stream';
+};
