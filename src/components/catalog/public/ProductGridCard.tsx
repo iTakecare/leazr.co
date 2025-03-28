@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
@@ -32,8 +33,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   
-  React.useEffect(() => {
+  useEffect(() => {
     setImageUrl(getProductImage());
+    setIsLoading(true);
+    setHasError(false);
   }, [product]);
   
   if (product.is_variation || product.parent_id) {
@@ -94,6 +97,21 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     
     if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
       const validImages = product.image_urls.filter(url => 
+        url && 
+        typeof url === 'string' && 
+        url.trim() !== '' && 
+        !url.includes('.emptyFolderPlaceholder') &&
+        !url.includes('undefined') &&
+        url !== '/placeholder.svg'
+      );
+      
+      if (validImages.length > 0) {
+        return validImages[0];
+      }
+    }
+    
+    if (product?.imageUrls && Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+      const validImages = product.imageUrls.filter(url => 
         url && 
         typeof url === 'string' && 
         url.trim() !== '' && 
@@ -172,7 +190,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    setImageUrl("/placeholder.svg");
+    console.error(`Failed to load product image for ${product.name}: ${imageUrl}`);
   };
 
   const addTimestamp = (url: string): string => {
@@ -193,18 +211,26 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
           </div>
         )}
-        {hasError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-sm text-gray-500">Image non disponible</div>
-          </div>
-        )}
+        
         <img 
           src={addTimestamp(imageUrl)} 
           alt={product.name} 
-          className={`absolute inset-0 object-contain w-full h-full p-5 ${hasError ? 'hidden' : ''}`}
+          className="absolute inset-0 object-contain w-full h-full p-5"
           onLoad={handleImageLoad}
           onError={handleImageError}
+          style={{ display: hasError ? 'none' : 'block' }}
         />
+        
+        {hasError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
+            <img 
+              src="/placeholder.svg" 
+              alt={product.name} 
+              className="w-16 h-16 object-contain opacity-50"
+            />
+            <div className="text-sm text-gray-500 mt-2">Image non disponible</div>
+          </div>
+        )}
         
         {co2Savings > 0 && (
           <div className="absolute top-2 right-2 z-10">

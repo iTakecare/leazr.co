@@ -32,6 +32,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       });
     }
     
+    // Convert set back to array
     return Array.from(uniqueUrlsSet);
   };
   
@@ -77,6 +78,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     } else {
       setSelectedImage('/placeholder.svg');
       setIsLoading(false);
+      setHasError(true);
     }
   }, [allImages, imageUrl, imageUrls]);
   
@@ -153,13 +155,13 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
         <div className="flex-1 relative">
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden transition-all hover:shadow-md relative group">
             <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
-              <img 
-                src="/placeholder.svg"
-                alt={altText}
-                className="max-w-full max-h-full object-contain"
-              />
-              <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
-                Image non disponible
+              <div className="text-center text-gray-500">
+                <img 
+                  src="/placeholder.svg"
+                  alt={altText}
+                  className="max-w-full max-h-full object-contain mx-auto"
+                />
+                <div className="mt-2 text-sm">Image non disponible</div>
               </div>
             </div>
           </div>

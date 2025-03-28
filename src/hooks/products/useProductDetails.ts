@@ -16,43 +16,61 @@ export function useProductDetails(productId: string | null) {
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [duration] = useState(24); // Default lease duration in months
   
-  // Fetch product data
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => productId ? getProductById(productId) : null,
     enabled: !!productId,
   });
 
-  // Filter out invalid images from a product
   const getValidImages = (product: Product | null): string[] => {
     if (!product) return [];
     
     const validImages: string[] = [];
     const seenUrls = new Set<string>();
     
-    // Check main image
-    if (product.image_url && 
-        typeof product.image_url === 'string' && 
-        product.image_url.trim() !== '' && 
-        !product.image_url.includes('.emptyFolderPlaceholder') && 
-        !product.image_url.includes('undefined') &&
-        product.image_url !== '/placeholder.svg') {
-      validImages.push(product.image_url);
-      seenUrls.add(product.image_url);
+    const isValidImage = (url: string): boolean => {
+      return url && 
+        typeof url === 'string' && 
+        url.trim() !== '' && 
+        !url.includes('.emptyFolderPlaceholder') && 
+        !url.includes('undefined') &&
+        url !== '/placeholder.svg';
+    };
+    
+    if (isValidImage(product.image_url as string)) {
+      validImages.push(product.image_url as string);
+      seenUrls.add(product.image_url as string);
     }
     
-    // Check additional images
+    if (isValidImage(product.imageUrl as string) && !seenUrls.has(product.imageUrl as string)) {
+      validImages.push(product.imageUrl as string);
+      seenUrls.add(product.imageUrl as string);
+    }
+    
     if (product.image_urls && Array.isArray(product.image_urls)) {
       product.image_urls.forEach(url => {
-        if (url && 
-            typeof url === 'string' && 
-            url.trim() !== '' && 
-            !url.includes('.emptyFolderPlaceholder') && 
-            !url.includes('undefined') &&
-            url !== '/placeholder.svg' && 
-            !seenUrls.has(url)) {
+        if (isValidImage(url) && !seenUrls.has(url)) {
           validImages.push(url);
           seenUrls.add(url);
+        }
+      });
+    }
+    
+    if (product.imageUrls && Array.isArray(product.imageUrls)) {
+      product.imageUrls.forEach(url => {
+        if (isValidImage(url) && !seenUrls.has(url)) {
+          validImages.push(url);
+          seenUrls.add(url);
+        }
+      });
+    }
+    
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach(img => {
+        const imgUrl = typeof img === 'string' ? img : (img.src || '');
+        if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
+          validImages.push(imgUrl);
+          seenUrls.add(imgUrl);
         }
       });
     }
@@ -82,11 +100,9 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
-    // Get valid images
     const validImages = getValidImages(data);
     console.log("Valid images for product:", validImages);
     
-    // Set the current image (only set if there are valid images)
     if (validImages.length > 0) {
       setCurrentImage(validImages[0]);
       console.log("Setting current image to:", validImages[0]);
@@ -95,7 +111,6 @@ export function useProductDetails(productId: string | null) {
       console.log("No valid images found for product");
     }
 
-    // Check if product has variants
     const hasVariationAttrs = data.variation_attributes && 
       Object.keys(data.variation_attributes).length > 0;
     
@@ -104,10 +119,8 @@ export function useProductDetails(productId: string | null) {
     
     setHasVariants(hasVariationAttrs || hasVariantPrices);
 
-    // Extract variation attributes from variant combination prices if not directly provided
     const extractedAttributes: ProductVariationAttributes = {};
     
-    // Ensure variant_combination_prices is an array before processing
     const variantPrices = Array.isArray(data.variant_combination_prices) 
       ? data.variant_combination_prices 
       : [];
@@ -119,10 +132,8 @@ export function useProductDetails(productId: string | null) {
             extractedAttributes[key] = [];
           }
           
-          // Convert value to string to ensure consistent handling
           const stringValue = String(value);
           
-          // Check if this value is already in the array
           if (!extractedAttributes[key].includes(stringValue)) {
             extractedAttributes[key].push(stringValue);
           }
@@ -130,11 +141,9 @@ export function useProductDetails(productId: string | null) {
       }
     });
 
-    // If the product already has defined variation_attributes, use those
     if (data.variation_attributes && Object.keys(data.variation_attributes).length > 0) {
       setVariationAttributes(data.variation_attributes);
       
-      // Set default selected options based on first available value for each attribute
       const defaultOptions: Record<string, string> = {};
       Object.entries(data.variation_attributes).forEach(([key, values]) => {
         if (Array.isArray(values) && values.length > 0) {
@@ -143,11 +152,9 @@ export function useProductDetails(productId: string | null) {
       });
       setSelectedOptions(defaultOptions);
     } 
-    // Otherwise use the extracted ones
     else if (Object.keys(extractedAttributes).length > 0) {
       setVariationAttributes(extractedAttributes);
       
-      // Set default selected options based on first available value for each attribute
       const defaultOptions: Record<string, string> = {};
       Object.entries(extractedAttributes).forEach(([key, values]) => {
         if (Array.isArray(values) && values.length > 0) {
@@ -158,7 +165,6 @@ export function useProductDetails(productId: string | null) {
     }
   }, [data, isLoading, isError]);
   
-  // Handle option changes (e.g., color, size, etc.)
   const handleOptionChange = (attributeName: string, value: string) => {
     setSelectedOptions(prev => ({
       ...prev,
@@ -166,39 +172,30 @@ export function useProductDetails(productId: string | null) {
     }));
   };
   
-  // Check if a specific attribute option is available based on selected attributes
   const isOptionAvailable = (attributeName: string, optionValue: string): boolean => {
-    // Basic implementation - in a real app, this would check compatibility with other selected options
     return true;
   };
   
-  // Handle quantity changes
   const handleQuantityChange = (newQuantity: number) => {
-    setQuantity(Math.max(1, newQuantity)); // Ensure quantity is at least 1
+    setQuantity(Math.max(1, newQuantity));
   };
   
-  // Get attributes options for a specific attribute
   const getOptionsForAttribute = (attributeName: string): string[] => {
     return variationAttributes[attributeName] || [];
   };
   
-  // Check if product has attribute options for a specific attribute
   const hasAttributeOptions = (attributeName: string): boolean => {
     return !!variationAttributes[attributeName] && 
            Array.isArray(variationAttributes[attributeName]) && 
            variationAttributes[attributeName].length > 0;
   };
   
-  // Compute the current price based on selected options
   const currentPrice = selectedVariant?.price || product?.price || 0;
   
-  // Calculate the product specifications from the product data
   const specifications = product?.specifications || {};
   
-  // Calculate if the product has any options
   const hasOptions = Object.keys(variationAttributes).length > 0;
   
-  // Calculate minimum monthly price (for display in the UI)
   const calculateMinMonthlyPrice = (): number => {
     if (product?.monthly_price) {
       return product.monthly_price;
@@ -214,13 +211,11 @@ export function useProductDetails(productId: string | null) {
       }
     }
     
-    // Default fallback
     return currentPrice / duration;
   };
   
   const minMonthlyPrice = calculateMinMonthlyPrice();
   
-  // Calculate total monthly price based on selected options and quantity
   const totalPrice = (selectedVariant?.monthly_price || product?.monthly_price || (currentPrice / duration)) * quantity;
 
   return {
@@ -246,7 +241,7 @@ export function useProductDetails(productId: string | null) {
     handleQuantityChange,
     isRequestFormOpen,
     setIsRequestFormOpen,
-    isLoading: loading, // Alias loading as isLoading for compatibility with ProductDetailPage
+    isLoading: loading,
     getValidImages,
   };
 }

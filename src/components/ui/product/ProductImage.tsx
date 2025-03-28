@@ -15,6 +15,8 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     // Initialize image URL when component mounts or product changes
     const bestImageUrl = getProductImage();
     setImageUrl(bestImageUrl);
+    setIsLoading(true);
+    setHasError(false);
   }, [product]);
   
   // Get the best available image URL
@@ -85,6 +87,11 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         onLoad={handleImageLoad}
         onError={handleImageError}
       />
+      {hasError && (
+        <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
+          Image non disponible
+        </div>
+      )}
     </div>
   );
 };
