@@ -16,136 +16,59 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     setIsLoading(true);
     setHasError(false);
     
-    // Initialize image URL when component mounts or product changes
-    const bestImageUrl = getProductImage();
-    setImageUrl(bestImageUrl);
+    // Get the best image URL
+    if (product) {
+      const url = getBestImageUrl();
+      setImageUrl(url);
+    }
   }, [product]);
   
-  // Get the best available image URL
-  const getProductImage = (): string => {
+  const getBestImageUrl = (): string => {
     if (!product) return "/placeholder.svg";
     
-    // Check for direct image_url first
-    if (product.image_url && 
-        typeof product.image_url === 'string' && 
-        product.image_url.trim() !== '' && 
-        !product.image_url.includes('.emptyFolderPlaceholder') && 
-        !product.image_url.includes('undefined') &&
-        !product.image_url.endsWith('/') &&
-        product.image_url !== '/placeholder.svg') {
-      return product.image_url;
+    // Simple validation function
+    const isValidUrl = (url: string | null | undefined): boolean => {
+      if (!url || typeof url !== 'string' || url.trim() === '') return false;
+      if (url === '/placeholder.svg') return false;
+      return true;
+    };
+    
+    // First check direct image_url
+    if (isValidUrl(product.image_url as string)) {
+      return product.image_url as string;
     }
     
-    // Try imageUrl (alternative property name)
-    if (product.imageUrl && 
-        typeof product.imageUrl === 'string' && 
-        product.imageUrl.trim() !== '' && 
-        !product.imageUrl.includes('.emptyFolderPlaceholder') && 
-        !product.imageUrl.includes('undefined') &&
-        !product.imageUrl.endsWith('/') &&
-        product.imageUrl !== '/placeholder.svg') {
-      return product.imageUrl;
+    // Then check image_urls array
+    if (Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+      const validUrl = product.image_urls.find(url => isValidUrl(url));
+      if (validUrl) return validUrl;
     }
     
-    // Check image_urls array
-    if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-      // Filter to ensure we have valid URLs
-      const validImages = product.image_urls.filter(url => 
-        url && 
-        typeof url === 'string' && 
-        url.trim() !== '' && 
-        !url.includes('.emptyFolderPlaceholder') &&
-        !url.includes('undefined') &&
-        !url.endsWith('/') &&
-        url !== '/placeholder.svg'
-      );
-      
-      if (validImages.length > 0) {
-        return validImages[0];
-      }
-    }
-    
-    // Check imageUrls array (alternative property name)
-    if (product.imageUrls && Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
-      const validImages = product.imageUrls.filter(url => 
-        url && 
-        typeof url === 'string' && 
-        url.trim() !== '' && 
-        !url.includes('.emptyFolderPlaceholder') &&
-        !url.includes('undefined') &&
-        !url.endsWith('/') &&
-        url !== '/placeholder.svg'
-      );
-      
-      if (validImages.length > 0) {
-        return validImages[0];
-      }
-    }
-    
-    // Check if there's an images array
-    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-      const validImages = product.images
-        .map(img => typeof img === 'string' ? img : (img?.src || ''))
-        .filter(url => 
-          url && 
-          typeof url === 'string' && 
-          url.trim() !== '' && 
-          !url.includes('.emptyFolderPlaceholder') &&
-          !url.includes('undefined') &&
-          !url.endsWith('/') &&
-          url !== '/placeholder.svg'
-        );
-      
-      if (validImages.length > 0) {
-        return validImages[0];
-      }
-    }
-    
-    // Fall back to a placeholder
+    // Fall back to placeholder
     return "/placeholder.svg";
   };
   
-  // Add timestamp to prevent caching issues
+  // Add timestamp to prevent caching
   const getImageWithTimestamp = (url: string): string => {
     if (!url || url === "/placeholder.svg") return "/placeholder.svg";
     
     try {
-      // Create URL object to validate URL
-      const urlObject = new URL(url);
-      
-      // Add a timestamp query parameter to prevent caching
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}t=${new Date().getTime()}`;
     } catch (e) {
-      // If URL is invalid, return placeholder
-      console.error(`Invalid URL: ${url}`);
       return "/placeholder.svg";
     }
   };
   
   const handleImageLoad = () => {
-    console.log("ProductImage - Image loaded successfully:", imageUrl);
     setIsLoading(false);
     setHasError(false);
   };
   
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error(`ProductImage - Failed to load image: ${imageUrl}`);
+  const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    (e.target as HTMLImageElement).src = "/placeholder.svg";
   };
-  
-  // Improved debug to check what's happening
-  useEffect(() => {
-    console.log("ProductImage - Current image URL:", imageUrl);
-    console.log("ProductImage - Product image properties:", {
-      image_url: product?.image_url,
-      imageUrl: product?.imageUrl,
-      image_urls: product?.image_urls,
-      imageUrls: product?.imageUrls
-    });
-  }, [imageUrl, product]);
   
   return (
     <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative">

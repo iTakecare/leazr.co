@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
-import { uploadProductImage, fetchProductImages } from "@/services/imageService";
+import { uploadProductImage } from "@/services/imageService";
 import { ensureStorageBucket } from "@/services/storageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
+import { supabase } from "@/integrations/supabase/client";
 
 const productCategories = [
   "laptop",
@@ -111,39 +113,27 @@ const ProductEditPage = () => {
     active: true
   });
   
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   
+  // Check/create product-images bucket on component mount
   useEffect(() => {
     const initStorageBucket = async () => {
       try {
-        console.log("Vérification/initialisation du bucket product-images");
-        let bucketExists = false;
-        
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          console.log(`Tentative ${attempt}/3 d'initialisation du bucket`);
-          bucketExists = await ensureStorageBucket("product-images");
-          
-          if (bucketExists) {
-            console.log("Bucket product-images vérifié avec succès");
-            break;
-          } else {
-            console.error(`Le bucket product-images n'a pas pu être créé à la tentative ${attempt}`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        if (!bucketExists) {
-          console.error("Le bucket product-images n'a pas pu être créé après plusieurs tentatives");
-          toast.error("Erreur lors de la préparation du stockage des images");
+        console.log("Checking product-images bucket");
+        const bucketExists = await ensureStorageBucket("product-images");
+        if (bucketExists) {
+          console.log("product-images bucket verified successfully");
+        } else {
+          console.error("Could not verify product-images bucket");
+          toast.error("Error preparing image storage");
         }
       } catch (error) {
-        console.error("Erreur lors de l'initialisation du bucket product-images:", error);
-        toast.error("Erreur lors de la préparation du stockage des images");
+        console.error("Error initializing product-images bucket:", error);
+        toast.error("Error preparing image storage");
       }
     };
     
@@ -156,26 +146,7 @@ const ProductEditPage = () => {
     enabled: !!id
   });
   
-  const isValidImageUrl = (url: string): boolean => {
-    if (!url || 
-        typeof url !== 'string' || 
-        url.trim() === '' || 
-        url.includes('.emptyFolderPlaceholder') || 
-        url.includes('undefined') ||
-        url === '/placeholder.svg' ||
-        url.endsWith('/')) {
-      return false;
-    }
-    
-    try {
-      new URL(url);
-      return true;
-    } catch (e) {
-      console.error(`Invalid image URL: ${url}`);
-      return false;
-    }
-  };
-  
+  // Load product data and images on product data change
   useEffect(() => {
     if (product) {
       setFormData({
@@ -192,58 +163,59 @@ const ProductEditPage = () => {
         variation_attributes: product.variation_attributes || {}
       });
       
-      const loadImages = async () => {
-        try {
-          if (id) {
-            const { mainImage, additionalImages } = await fetchProductImages(id);
-            console.log("Fetched images from service:", { mainImage, additionalImages });
-            
-            const validMainImage = isValidImageUrl(mainImage) ? mainImage : null;
-            const validAdditionalImages = (additionalImages || []).filter(url => isValidImageUrl(url));
-            
-            if (validMainImage) {
-              setImagePreview(validMainImage);
-              const allImages = [validMainImage, ...validAdditionalImages];
-              const uniqueImages = [...new Set(allImages)];
-              setImagePreviews(uniqueImages.slice(0, 5));
-              console.log("Images chargées:", { mainImage: validMainImage, additionalImages: validAdditionalImages, allImages: uniqueImages });
-            } else {
-              const productImages = [];
-              
-              if (isValidImageUrl(product.image_url as string)) {
-                productImages.push(product.image_url as string);
-              }
-              
-              if (product.image_urls && Array.isArray(product.image_urls)) {
-                product.image_urls
-                  .filter(url => isValidImageUrl(url))
-                  .forEach(url => {
-                    if (!productImages.includes(url)) {
-                      productImages.push(url);
-                    }
-                  });
-              }
-              
-              if (productImages.length > 0) {
-                setImagePreview(productImages[0]);
-                setImagePreviews(productImages.slice(0, 5));
-                console.log("Images récupérées depuis l'objet produit:", productImages);
-              } else {
-                setImagePreview(null);
-                setImagePreviews([]);
-                console.log("Aucune image valide trouvée pour ce produit");
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Erreur lors du chargement des images:", error);
-          toast.error("Impossible de charger les images du produit");
-        }
-      };
-      
-      loadImages();
+      // Load product images from storage
+      loadProductImages();
     }
   }, [product, id]);
+
+  // Function to load product images directly from Supabase storage
+  const loadProductImages = async () => {
+    if (!id) return;
+    
+    setIsLoadingImages(true);
+    try {
+      // Get list of files from product-images bucket for this product
+      const { data: files, error } = await supabase
+        .storage
+        .from('product-images')
+        .list(`${id}`);
+      
+      if (error) {
+        console.error("Error loading product images:", error);
+        toast.error("Impossible de charger les images du produit");
+        setIsLoadingImages(false);
+        return;
+      }
+      
+      // Filter out folder objects and get only actual image files
+      const imageFiles = files.filter(file => !file.name.endsWith('/') && file.name !== '.emptyFolderPlaceholder');
+      
+      if (imageFiles.length === 0) {
+        console.log("No images found for product in bucket");
+        setImagePreviews([]);
+        setIsLoadingImages(false);
+        return;
+      }
+      
+      // Create public URLs for each image
+      const imageUrls = imageFiles.map(file => {
+        const { data } = supabase
+          .storage
+          .from('product-images')
+          .getPublicUrl(`${id}/${file.name}`);
+        
+        return data.publicUrl;
+      });
+      
+      console.log("Loaded product images from storage:", imageUrls);
+      setImagePreviews(imageUrls);
+    } catch (error) {
+      console.error("Error in loadProductImages:", error);
+      toast.error("Impossible de charger les images du produit");
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
   
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
@@ -286,85 +258,150 @@ const ProductEditPage = () => {
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     console.log(`Selected ${files.length} new image files`);
-    const newFiles = Array.from(files).slice(0, 5 - imageFiles.length);
-    if (newFiles.length === 0) return;
-    
-    const updatedFiles = [...imageFiles, ...newFiles];
-    setImageFiles(updatedFiles);
+    const newFiles = Array.from(files);
+    setImageFiles(prev => [...prev, ...newFiles]);
 
+    // Create preview URLs for the new files
     newFiles.forEach(file => {
-      console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
-      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreviews(prev => {
-          const currentPreviews = Array.isArray(prev) ? prev : [];
-          return [...currentPreviews, reader.result as string];
-        });
+        setImagePreviews(prev => [
+          ...prev,
+          reader.result as string
+        ]);
       };
       reader.readAsDataURL(file);
     });
   };
   
-  const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  const removeImage = async (index: number) => {
+    if (!id) return;
+    
+    // Check if it's an uploaded image or a new file
+    const imageUrl = imagePreviews[index];
+    if (imageUrl.startsWith('data:')) {
+      // It's a new file that hasn't been uploaded yet
+      setImageFiles(prev => prev.filter((_, i) => i !== index));
+      setImagePreviews(prev => prev.filter((_, i) => i !== index));
+      return;
+    }
+    
+    // It's an existing image from storage
+    try {
+      setIsUploading(true);
+      
+      // Extract the file name from the URL
+      const urlParts = imageUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1].split('?')[0]; // Remove query parameters
+      
+      // Delete the file from storage
+      const { error } = await supabase
+        .storage
+        .from('product-images')
+        .remove([`${id}/${fileName}`]);
+      
+      if (error) {
+        console.error("Error deleting image:", error);
+        toast.error("Erreur lors de la suppression de l'image");
+        return;
+      }
+      
+      // Remove from previews
+      setImagePreviews(prev => prev.filter((_, i) => i !== index));
+      toast.success("Image supprimée avec succès");
+    } catch (error) {
+      console.error("Error removing image:", error);
+      toast.error("Erreur lors de la suppression de l'image");
+    } finally {
+      setIsUploading(false);
+    }
   };
   
-  const handleUploadImage = async (file: File, index: number) => {
+  const handleUploadImages = async () => {
+    if (!id || imageFiles.length === 0) return;
+    
+    try {
+      setIsUploading(true);
+      toast.info(`Téléchargement de ${imageFiles.length} image(s)...`);
+      
+      // Ensure bucket exists
+      const bucketReady = await ensureStorageBucket("product-images");
+      if (!bucketReady) {
+        toast.error("Impossible de préparer le stockage pour les images");
+        setIsUploading(false);
+        return;
+      }
+      
+      // Upload each file
+      for (const file of imageFiles) {
+        // Create a unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        
+        // Upload to Supabase Storage
+        const { error } = await supabase
+          .storage
+          .from('product-images')
+          .upload(`${id}/${fileName}`, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        
+        if (error) {
+          console.error("Error uploading image:", error);
+          toast.error(`Erreur lors du téléchargement: ${error.message}`);
+        }
+      }
+      
+      // Clear the files list
+      setImageFiles([]);
+      
+      // Reload images from storage
+      await loadProductImages();
+      
+      // Also update the product to trigger any dependent UI updates
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      
+      toast.success("Images téléchargées avec succès");
+    } catch (error: any) {
+      console.error("Error uploading images:", error);
+      toast.error(`Erreur lors du téléchargement: ${error.message || "Erreur inconnue"}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  const handleSetMainImage = async (index: number) => {
     if (!id) return;
     
     try {
       setIsUploading(true);
-      toast.info(`Téléchargement de l'image ${index + 1}...`);
       
-      let bucketReady = false;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        console.log(`Tentative ${attempt}/3 de vérification du bucket product-images`);
-        bucketReady = await ensureStorageBucket("product-images");
-        
-        if (bucketReady) {
-          break;
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
+      // Get the URL of the selected image
+      const imageUrl = imagePreviews[index];
       
-      if (!bucketReady) {
-        toast.error("Impossible de créer le bucket pour les images");
-        setIsUploading(false);
-        return null;
-      }
+      // Extract the file name from the URL (remove query parameters)
+      const urlParts = imageUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1].split('?')[0]; 
       
-      console.log(`Début de l'upload de l'image ${index + 1} pour le produit ${id}`);
-      const imageUrl = await uploadProductImage(file, id, index === 0);
+      // Create a full URL to the image
+      const publicUrl = supabase
+        .storage
+        .from('product-images')
+        .getPublicUrl(`${id}/${fileName}`).data.publicUrl;
       
-      if (!imageUrl) {
-        toast.error("Échec du téléchargement de l'image");
-        setIsUploading(false);
-        return null;
-      }
-      
-      setImagePreviews(prev => {
-        const updated = [...prev];
-        updated[index] = imageUrl;
-        return updated;
+      // Update the product with this new main image URL
+      await updateMutation.mutateAsync({
+        image_url: publicUrl
       });
       
-      toast.success("Image téléchargée avec succès");
-      
-      setImageFiles(prev => prev.filter((_, i) => i !== index));
-      
-      queryClient.invalidateQueries({ queryKey: ["product", id] });
-      
-      return imageUrl;
-    } catch (error: any) {
-      console.error("Erreur détaillée lors du téléchargement:", error);
-      toast.error(`Erreur lors du téléchargement: ${error.message || "Erreur inconnue"}`);
-      return null;
+      toast.success("Image principale définie avec succès");
+    } catch (error) {
+      console.error("Error setting main image:", error);
+      toast.error("Erreur lors de la définition de l'image principale");
     } finally {
       setIsUploading(false);
     }
@@ -377,16 +414,12 @@ const ProductEditPage = () => {
     
     try {
       toast.info("Mise à jour du produit en cours...");
-      
-      if (imageFiles.length > 0) {
-        for (let i = 0; i < imageFiles.length; i++) {
-          const file = imageFiles[i];
-          await handleUploadImage(file, i);
-        }
-      }
-      
       await updateMutation.mutateAsync(formData);
       
+      // If there are new images to upload, do it after the product is updated
+      if (imageFiles.length > 0) {
+        await handleUploadImages();
+      }
     } catch (error: any) {
       console.error("Error updating product:", error);
       toast.error(`Erreur lors de la mise à jour: ${error.message}`);
@@ -406,14 +439,15 @@ const ProductEditPage = () => {
     }
   };
 
+  // Add timestamp to prevent caching issues
   const addTimestamp = (url: string): string => {
-    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
+    if (!url || url === '/placeholder.svg' || url.startsWith('data:')) return url;
     
     try {
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}t=${new Date().getTime()}`;
     } catch (e) {
-      return "/placeholder.svg";
+      return url;
     }
   };
 
@@ -647,50 +681,73 @@ const ProductEditPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {imagePreviews.length > 0 ? (
-                    imagePreviews.map((src, index) => (
-                      <div key={index} className="relative rounded-lg overflow-hidden border h-40">
-                        <img 
-                          src={addTimestamp(src)}
-                          alt={`Preview ${index}`}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                            console.error(`Error loading image preview: ${src}`);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm"
-                        >
-                          <X className="w-4 h-4 text-gray-600" />
-                        </button>
-                        {index === 0 && imagePreviews.length > 0 && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1">
-                            Image principale
+                {isLoadingImages ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <span className="ml-2">Chargement des images...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {imagePreviews.length > 0 ? (
+                      imagePreviews.map((src, index) => (
+                        <div key={index} className="relative rounded-lg overflow-hidden border h-40 flex items-center justify-center">
+                          <img 
+                            src={addTimestamp(src)}
+                            alt={`Preview ${index}`}
+                            className="max-w-full max-h-full object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              console.error(`Error loading image preview: ${src}`);
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleSetMainImage(index)}
+                                className="bg-white hover:bg-gray-100 text-gray-800"
+                              >
+                                Définir comme principale
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage(index)}
+                              >
+                                Supprimer
+                              </Button>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    ))
-                  ) : null}
-                  
-                  {imagePreviews.length < 5 && (
-                    <label className="border border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                      <Plus className="w-8 h-8 text-gray-400" />
-                      <span className="text-sm text-gray-500 mt-2">Ajouter une image</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleImageChange}
-                      />
-                    </label>
-                  )}
-                </div>
+                          
+                          {product?.image_url === src && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-primary text-white text-xs text-center py-1">
+                              Image principale
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : null}
+                    
+                    {imagePreviews.length < 5 && (
+                      <label className="border border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                        <Plus className="w-8 h-8 text-gray-400" />
+                        <span className="text-sm text-gray-500 mt-2">Ajouter une image</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          multiple
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
                 
-                {imagePreviews.length === 0 && (
+                {imagePreviews.length === 0 && !isLoadingImages && (
                   <p className="text-sm text-muted-foreground mt-4 text-center">
                     Aucune image n'est actuellement associée à ce produit.
                   </p>
@@ -700,7 +757,7 @@ const ProductEditPage = () => {
                 <CardFooter>
                   <Button
                     type="button"
-                    onClick={() => imageFiles.forEach((file, index) => handleUploadImage(file, index))}
+                    onClick={handleUploadImages}
                     className="ml-auto"
                     disabled={isUploading}
                   >
@@ -712,7 +769,7 @@ const ProductEditPage = () => {
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Télécharger toutes les images
+                        Télécharger {imageFiles.length} image(s)
                       </>
                     )}
                   </Button>

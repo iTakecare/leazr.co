@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Product, ProductVariationAttributes } from '@/types/catalog';
 import { getProductById, getProducts, findVariantByAttributes } from '@/services/catalogService';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useProductDetails(productId: string | null) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -22,8 +23,52 @@ export function useProductDetails(productId: string | null) {
     enabled: !!productId,
   });
 
-  const getValidImages = (product: Product | null): string[] => {
-    if (!product) return [];
+  const loadProductImages = async (id: string): Promise<string[]> => {
+    try {
+      const { data: files, error } = await supabase
+        .storage
+        .from('product-images')
+        .list(id);
+      
+      if (error) {
+        console.error("Error loading product images from storage:", error);
+        return [];
+      }
+      
+      const imageFiles = files.filter(file => 
+        !file.name.endsWith('/') && 
+        file.name !== '.emptyFolderPlaceholder'
+      );
+      
+      if (imageFiles.length === 0) {
+        console.log("No images found for product in storage bucket");
+        return [];
+      }
+      
+      const imageUrls = imageFiles.map(file => {
+        const { data } = supabase
+          .storage
+          .from('product-images')
+          .getPublicUrl(`${id}/${file.name}`);
+        
+        return data.publicUrl;
+      });
+      
+      console.log("Loaded product images from storage:", imageUrls);
+      return imageUrls;
+    } catch (err) {
+      console.error("Error loading product images from storage:", err);
+      return [];
+    }
+  };
+
+  const getValidImages = async (product: Product | null): Promise<string[]> => {
+    if (!product || !productId) return [];
+    
+    const storageImages = await loadProductImages(productId);
+    if (storageImages.length > 0) {
+      return storageImages;
+    }
     
     const validImages: string[] = [];
     const seenUrls = new Set<string>();
@@ -86,7 +131,7 @@ export function useProductDetails(productId: string | null) {
       });
     }
     
-    console.log("Found valid images:", validImages);
+    console.log("Found valid images from product object:", validImages);
     return validImages;
   };
 
@@ -112,16 +157,19 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
-    const validImages = getValidImages(data);
-    console.log("Valid images for product:", validImages);
+    const loadImages = async () => {
+      const validImages = await getValidImages(data);
+      
+      if (validImages.length > 0) {
+        setCurrentImage(validImages[0]);
+        console.log("Setting current image to:", validImages[0]);
+      } else {
+        setCurrentImage(null);
+        console.log("No valid images found for product");
+      }
+    };
     
-    if (validImages.length > 0) {
-      setCurrentImage(validImages[0]);
-      console.log("Setting current image to:", validImages[0]);
-    } else {
-      setCurrentImage(null);
-      console.log("No valid images found for product");
-    }
+    loadImages();
 
     const hasVariationAttrs = data.variation_attributes && 
       Object.keys(data.variation_attributes).length > 0;
@@ -175,7 +223,7 @@ export function useProductDetails(productId: string | null) {
       });
       setSelectedOptions(defaultOptions);
     }
-  }, [data, isLoading, isError]);
+  }, [data, isLoading, isError, productId]);
   
   const handleOptionChange = (attributeName: string, value: string) => {
     setSelectedOptions(prev => ({
@@ -184,9 +232,7 @@ export function useProductDetails(productId: string | null) {
     }));
   };
   
-  const isOptionAvailable = (attributeName: string, optionValue: string): boolean => {
-    return true;
-  };
+  const isOptionAvailable = () => true;
   
   const handleQuantityChange = (newQuantity: number) => {
     setQuantity(Math.max(1, newQuantity));
@@ -228,7 +274,7 @@ export function useProductDetails(productId: string | null) {
   
   const minMonthlyPrice = calculateMinMonthlyPrice();
   
-  const totalPrice = (selectedVariant?.monthly_price || product?.monthly_price || (currentPrice / duration)) * quantity;
+  const totalPrice = (selectedVariant?.monthly_price || product?.monthly_price || ((selectedVariant?.price || product?.price || 0) / duration)) * quantity;
 
   return {
     product,
