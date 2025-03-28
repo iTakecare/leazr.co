@@ -79,7 +79,7 @@ export function useProductDetails(productId: string | null) {
           const stringValue = String(value);
           
           // Check if this value is already in the array
-          if (!extractedAttributes[key].includes(stringValue)) {
+          if (Array.isArray(extractedAttributes[key]) && !extractedAttributes[key].includes(stringValue)) {
             extractedAttributes[key].push(stringValue);
           }
         });
