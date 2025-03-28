@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -290,6 +289,7 @@ const GeneralSettings = () => {
       const detectedMimeType = await detectMimeTypeFromSignature(file);
       console.log(`Type MIME détecté: ${detectedMimeType || 'non détecté, utilisation du type par défaut'}`);
       
+      // Fixed: Pass the file object directly, not a string
       const result = await uploadImage(file, 'site-settings', fileName);
       
       if (!result || !result.url) {
@@ -333,6 +333,7 @@ const GeneralSettings = () => {
       setIsUploading(true);
       
       const file = e.target.files[0];
+      // Fixed: Pass the file object directly, not a string
       const result = await uploadImage(file, 'site-settings', 'logos');
       
       if (result && result.url) {

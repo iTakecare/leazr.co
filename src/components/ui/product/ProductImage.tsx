@@ -72,16 +72,33 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       
       // Detect image format from URL
       let contentType = 'image/jpeg';
-      if (imageUrl.toLowerCase().endsWith('.webp') || imageUrl.includes('/webp')) {
+      
+      // Check for WebP format (more specific checks first)
+      if (imageUrl.toLowerCase().endsWith('.webp')) {
         contentType = 'image/webp';
-      } else if (imageUrl.toLowerCase().endsWith('.png') || imageUrl.includes('/png')) {
+      } else if (imageUrl.toLowerCase().includes('/webp')) {
+        contentType = 'image/webp';
+      } 
+      // Check for PNG format
+      else if (imageUrl.toLowerCase().endsWith('.png')) {
         contentType = 'image/png';
-      } else if (imageUrl.toLowerCase().endsWith('.gif') || imageUrl.includes('/gif')) {
+      } else if (imageUrl.toLowerCase().includes('/png')) {
+        contentType = 'image/png';
+      } 
+      // Check for GIF format
+      else if (imageUrl.toLowerCase().endsWith('.gif')) {
         contentType = 'image/gif';
-      } else if (imageUrl.toLowerCase().endsWith('.svg') || imageUrl.includes('/svg')) {
+      } else if (imageUrl.toLowerCase().includes('/gif')) {
+        contentType = 'image/gif';
+      } 
+      // Check for SVG format
+      else if (imageUrl.toLowerCase().endsWith('.svg')) {
+        contentType = 'image/svg+xml';
+      } else if (imageUrl.toLowerCase().includes('/svg')) {
         contentType = 'image/svg+xml';
       }
       
+      // Add the content type to the URL
       return `${imageUrl}${separator}t=${timestamp}&contentType=${encodeURIComponent(contentType)}`;
     } catch (e) {
       console.error("Error formatting image URL:", e);

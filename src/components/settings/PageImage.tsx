@@ -12,7 +12,7 @@ const PageImage: React.FC<PageImageProps> = ({
   currentPage,
   setPageLoaded
 }) => {
-  // Pour debugging
+  // For debugging
   if (pageImage) {
     console.log(`PageImage rendering for page ${currentPage + 1}:`, 
       typeof pageImage === 'object' ? 
@@ -21,25 +21,33 @@ const PageImage: React.FC<PageImageProps> = ({
     );
   }
 
-  // Function to extract proper image source
+  // Function to extract proper image source and detect content type
   const getImageSource = () => {
     if (!pageImage) return null;
 
     // Direct URL
     if (typeof pageImage === 'string') {
-      // Ajouter un timestamp pour éviter les problèmes de cache
+      // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
       const separator = pageImage.includes('?') ? '&' : '?';
       
-      // Déterminer le type de contenu
+      // Determine content type from URL
       let contentType = 'image/jpeg';
-      if (pageImage.toLowerCase().endsWith('.webp') || pageImage.includes('/webp')) {
+      if (pageImage.toLowerCase().endsWith('.webp')) {
         contentType = 'image/webp';
-      } else if (pageImage.toLowerCase().endsWith('.png') || pageImage.includes('/png')) {
+      } else if (pageImage.toLowerCase().includes('/webp')) {
+        contentType = 'image/webp';
+      } else if (pageImage.toLowerCase().endsWith('.png')) {
         contentType = 'image/png';
-      } else if (pageImage.toLowerCase().endsWith('.gif') || pageImage.includes('/gif')) {
+      } else if (pageImage.toLowerCase().includes('/png')) {
+        contentType = 'image/png';
+      } else if (pageImage.toLowerCase().endsWith('.gif')) {
         contentType = 'image/gif';
-      } else if (pageImage.toLowerCase().endsWith('.svg') || pageImage.includes('/svg')) {
+      } else if (pageImage.toLowerCase().includes('/gif')) {
+        contentType = 'image/gif';
+      } else if (pageImage.toLowerCase().endsWith('.svg')) {
+        contentType = 'image/svg+xml';
+      } else if (pageImage.toLowerCase().includes('/svg')) {
         contentType = 'image/svg+xml';
       }
       
@@ -48,19 +56,27 @@ const PageImage: React.FC<PageImageProps> = ({
     
     // Object with URL property
     if (pageImage.url) {
-      // Ajouter un timestamp pour éviter les problèmes de cache
+      // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
       const separator = pageImage.url.includes('?') ? '&' : '?';
       
-      // Déterminer le type de contenu
+      // Determine content type from URL
       let contentType = 'image/jpeg';
-      if (pageImage.url.toLowerCase().endsWith('.webp') || pageImage.url.includes('/webp')) {
+      if (pageImage.url.toLowerCase().endsWith('.webp')) {
         contentType = 'image/webp';
-      } else if (pageImage.url.toLowerCase().endsWith('.png') || pageImage.url.includes('/png')) {
+      } else if (pageImage.url.toLowerCase().includes('/webp')) {
+        contentType = 'image/webp';
+      } else if (pageImage.url.toLowerCase().endsWith('.png')) {
         contentType = 'image/png';
-      } else if (pageImage.url.toLowerCase().endsWith('.gif') || pageImage.url.includes('/gif')) {
+      } else if (pageImage.url.toLowerCase().includes('/png')) {
+        contentType = 'image/png';
+      } else if (pageImage.url.toLowerCase().endsWith('.gif')) {
         contentType = 'image/gif';
-      } else if (pageImage.url.toLowerCase().endsWith('.svg') || pageImage.url.includes('/svg')) {
+      } else if (pageImage.url.toLowerCase().includes('/gif')) {
+        contentType = 'image/gif';
+      } else if (pageImage.url.toLowerCase().endsWith('.svg')) {
+        contentType = 'image/svg+xml';
+      } else if (pageImage.url.toLowerCase().includes('/svg')) {
         contentType = 'image/svg+xml';
       }
       
@@ -73,12 +89,12 @@ const PageImage: React.FC<PageImageProps> = ({
       
       // Handle JSON-encoded base64 data
       if (typeof pageImage.data === 'string') {
-        // Si le data semble être une URL data
+        // If it's already a data URL
         if (pageImage.data.startsWith('data:')) {
           return pageImage.data;
         }
         
-        // Si c'est du JSON encodé
+        // If it's JSON encoded
         if (pageImage.data.startsWith('{')) {
           try {
             const jsonData = JSON.parse(pageImage.data);
@@ -90,10 +106,10 @@ const PageImage: React.FC<PageImageProps> = ({
           }
         }
         
-        // S'assurer que c'est un data URL bien formaté
+        // Ensure it's a properly formatted data URL
         if (!imageSrc.startsWith('data:')) {
-          // Essayer de déterminer le type de contenu à partir du préfixe base64
-          let contentType = 'image/png'; // par défaut
+          // Try to determine content type from base64 prefix
+          let contentType = 'image/png'; // default
           
           if (imageSrc.startsWith('/9j/')) {
             contentType = 'image/jpeg';
@@ -103,9 +119,11 @@ const PageImage: React.FC<PageImageProps> = ({
             contentType = 'image/webp';
           } else if (imageSrc.startsWith('R0lGODlh')) {
             contentType = 'image/gif';
+          } else if (imageSrc.startsWith('PHN2Zy')) {
+            contentType = 'image/svg+xml';
           }
           
-          // Vérifier si le base64 contient déjà un en-tête data:image
+          // Add data:image header if not present
           if (!imageSrc.includes('data:')) {
             imageSrc = `data:${contentType};base64,${imageSrc}`;
           }
@@ -127,7 +145,7 @@ const PageImage: React.FC<PageImageProps> = ({
         alt={`Template page ${currentPage + 1}`}
         className="w-full h-full object-contain"
         onError={(e) => {
-          console.error("Erreur de chargement de l'image:", e.currentTarget.src);
+          console.error("Image loading error:", e.currentTarget.src);
           e.currentTarget.src = "/placeholder.svg";
         }}
         onLoad={() => setPageLoaded(true)}
