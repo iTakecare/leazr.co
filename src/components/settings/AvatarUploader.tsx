@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -16,26 +17,27 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ avatarUrl, onAvatarChan
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [avatarUrlState, setAvatarUrl] = useState(avatarUrl);
 
   const handleAvatarUpload = async (file: File) => {
-  try {
-    setIsUploading(true);
-    setMessage('Téléchargement en cours...');
-    
-    const result = await uploadImage(file, 'avatars', 'users');
-    
-    if (result && result.url) {
-      setAvatarUrl(result.url);
-      onAvatarChange(result.url);
-      setMessage('Avatar téléchargé avec succès');
+    try {
+      setIsUploading(true);
+      setMessage('Téléchargement en cours...');
+      
+      const result = await uploadImage(file, 'avatars');
+      
+      if (result && result.url) {
+        setAvatarUrl(result.url);
+        onAvatarChange(result.url);
+        setMessage('Avatar téléchargé avec succès');
+      }
+    } catch (error) {
+      console.error('Erreur lors du téléchargement de l\'avatar:', error);
+      setError(error instanceof Error ? error.message : 'Erreur inconnue');
+    } finally {
+      setIsUploading(false);
     }
-  } catch (error) {
-    console.error('Erreur lors du téléchargement de l\'avatar:', error);
-    setError(error instanceof Error ? error.message : 'Erreur inconnue');
-  } finally {
-    setIsUploading(false);
-  }
-};
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
@@ -46,8 +48,6 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ avatarUrl, onAvatarChan
 
     handleAvatarUpload(file);
   };
-
-  const [avatarUrlState, setAvatarUrl] = useState(avatarUrl);
 
   return (
     <div className="flex flex-col items-center space-y-4">
