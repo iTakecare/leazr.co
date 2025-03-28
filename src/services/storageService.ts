@@ -33,7 +33,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       // Continuer avec les autres méthodes
     }
     
-    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création`);
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création via RPC`);
     
     // 2. Tenter de créer le bucket via la fonction RPC
     try {
@@ -44,16 +44,25 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       if (rpcError) {
         console.warn(`Erreur RPC lors de la création du bucket: ${rpcError.message}`);
         if (rpcError.message.includes('already exists')) {
+          console.log(`Le bucket ${bucketName} existe déjà (détecté via RPC)`);
           return true; // Le bucket existe déjà
         }
       } else {
         console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+        
+        // Ajouter un délai pour permettre à Supabase de terminer la création
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Créer les politiques d'accès pour le nouveau bucket
+        await createPublicPolicies(bucketName);
         return true;
       }
     } catch (rpcException) {
       console.warn(`Exception RPC: ${rpcException}`);
       // Continuer avec la méthode directe
     }
+    
+    console.log(`Tentative de création directe du bucket ${bucketName}`);
     
     // 3. Essayer de créer directement le bucket si la méthode RPC a échoué
     try {
@@ -74,6 +83,9 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
       
       console.log(`Bucket ${bucketName} créé avec succès via API directe`);
+      
+      // Ajouter un délai pour permettre à Supabase de terminer la création
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // 4. Créer manuellement les politiques d'accès publiques pour le nouveau bucket
       await createPublicPolicies(bucketName);
@@ -141,8 +153,10 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
   try {
     if (!imageUrl) return null;
     
-    // Vérifier que le bucket existe
+    // Vérifier que le bucket existe avant tout
+    console.log(`Vérification du bucket ${bucketName} avant téléchargement`);
     const bucketExists = await ensureStorageBucket(bucketName);
+    
     if (!bucketExists) {
       console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
       toast.error(`Erreur: Le bucket ${bucketName} n'a pas pu être créé`);
@@ -165,24 +179,52 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     try {
       console.log(`Téléchargement de l'image: ${imageUrl}`);
       const response = await fetch(imageUrl);
+      
       if (!response.ok) {
         throw new Error(`Erreur lors du téléchargement de l'image: ${response.statusText}`);
       }
       
       const blob = await response.blob();
       
-      // Uploader l'image dans le bucket
+      // Uploader l'image dans le bucket avec plusieurs tentatives si nécessaire
       console.log(`Upload de l'image vers ${bucketName}/${filePath}`);
-      const { data, error } = await supabase
-        .storage
-        .from(bucketName)
-        .upload(filePath, blob, {
-          contentType: blob.type,
-          upsert: true
-        });
       
-      if (error) {
-        console.error(`Erreur lors de l'upload de l'image dans ${bucketName}/${filePath}:`, error);
+      let attempts = 0;
+      const maxAttempts = 3;
+      let uploadSuccessful = false;
+      let data, error;
+      
+      while (!uploadSuccessful && attempts < maxAttempts) {
+        attempts++;
+        
+        try {
+          const result = await supabase
+            .storage
+            .from(bucketName)
+            .upload(filePath, blob, {
+              contentType: blob.type,
+              upsert: true
+            });
+          
+          data = result.data;
+          error = result.error;
+          
+          if (error) {
+            console.warn(`Tentative ${attempts}/${maxAttempts} échouée: ${error.message}`);
+            // Attendre un peu avant de réessayer
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            uploadSuccessful = true;
+          }
+        } catch (uploadError) {
+          console.warn(`Exception lors de la tentative ${attempts}/${maxAttempts}:`, uploadError);
+          // Attendre un peu avant de réessayer
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      if (!uploadSuccessful) {
+        console.error(`Échec de l'upload après ${maxAttempts} tentatives:`, error);
         toast.error("Erreur lors de l'upload de l'image");
         return null;
       }

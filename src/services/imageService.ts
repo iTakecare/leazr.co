@@ -1,3 +1,4 @@
+
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -12,11 +13,26 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     // Vérifier d'abord si le bucket existe
     const bucketName = 'product-images';
     
-    // Vérifier le bucket
-    const isBucketReady = await ensureStorageBucket(bucketName);
+    // Vérifier le bucket avec plusieurs tentatives si nécessaire
+    let bucketReady = false;
+    let attempts = 0;
+    const maxAttempts = 3;
     
-    if (!isBucketReady) {
-      console.error(`Le bucket ${bucketName} n'existe pas ou n'a pas pu être créé`);
+    while (!bucketReady && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Tentative ${attempts}/${maxAttempts} de vérification du bucket ${bucketName}`);
+      
+      bucketReady = await ensureStorageBucket(bucketName);
+      
+      if (!bucketReady) {
+        console.warn(`Échec de la tentative ${attempts}/${maxAttempts} de vérification/création du bucket`);
+        // Attendre un peu avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    if (!bucketReady) {
+      console.error(`Le bucket ${bucketName} n'existe pas ou n'a pas pu être créé après ${maxAttempts} tentatives`);
       toast.error("Erreur lors de la préparation du stockage des images");
       throw new Error(`Impossible de créer ou vérifier le bucket ${bucketName}`);
     }
@@ -59,19 +75,45 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       // Non bloquant, on continue
     }
     
-    // Uploader le fichier
+    // Uploader le fichier avec plusieurs tentatives
     console.log(`Upload du fichier ${file.name} (type: ${file.type}, taille: ${file.size} bytes)`);
-    const { error: uploadError, data: uploadData } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file, { 
-        contentType: file.type || 'application/octet-stream',
-        upsert: true 
-      });
     
-    if (uploadError) {
-      console.error('Erreur détaillée lors du téléchargement de l\'image:', uploadError);
-      toast.error(`Erreur lors du téléchargement: ${uploadError.message}`);
-      throw new Error(uploadError.message);
+    let uploadAttempts = 0;
+    const maxUploadAttempts = 3;
+    let uploadSuccessful = false;
+    let uploadError, uploadData;
+    
+    while (!uploadSuccessful && uploadAttempts < maxUploadAttempts) {
+      uploadAttempts++;
+      console.log(`Tentative d'upload ${uploadAttempts}/${maxUploadAttempts}`);
+      
+      try {
+        const result = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, { 
+            contentType: file.type || 'application/octet-stream',
+            upsert: true 
+          });
+        
+        uploadError = result.error;
+        uploadData = result.data;
+        
+        if (uploadError) {
+          console.warn(`Échec de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}: ${uploadError.message}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          uploadSuccessful = true;
+        }
+      } catch (e) {
+        console.warn(`Exception lors de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}:`, e);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    if (!uploadSuccessful) {
+      console.error('Erreur détaillée lors du téléchargement de l\'image après plusieurs tentatives:', uploadError);
+      toast.error(`Erreur lors du téléchargement: ${uploadError?.message || "Erreur inconnue"}`);
+      throw new Error(uploadError?.message || "Échec de l'upload après plusieurs tentatives");
     }
     
     // Get public URL
@@ -138,10 +180,26 @@ export const uploadImage = async (
   upsert: boolean = true
 ): Promise<{ url: string }> => {
   try {
-    // Vérifier d'abord si le bucket existe
-    const isBucketReady = await ensureStorageBucket(bucket);
-    if (!isBucketReady) {
-      console.error(`Le bucket ${bucket} n'existe pas ou n'a pas pu être créé`);
+    // Vérifier d'abord si le bucket existe avec plusieurs tentatives
+    let bucketReady = false;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (!bucketReady && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Tentative ${attempts}/${maxAttempts} de vérification du bucket ${bucket}`);
+      
+      bucketReady = await ensureStorageBucket(bucket);
+      
+      if (!bucketReady) {
+        console.warn(`Échec de la tentative ${attempts}/${maxAttempts} de vérification/création du bucket`);
+        // Attendre un peu avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    if (!bucketReady) {
+      console.error(`Le bucket ${bucket} n'existe pas ou n'a pas pu être créé après ${maxAttempts} tentatives`);
       toast.error(`Erreur lors de la préparation du bucket ${bucket}`);
       throw new Error(`Impossible de créer ou vérifier le bucket ${bucket}`);
     }
@@ -163,17 +221,42 @@ export const uploadImage = async (
     
     console.log(`Upload du fichier vers: ${bucket}/${filePath}`);
     
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        contentType: file.type || 'application/octet-stream',
-        upsert: upsert
-      });
+    // Upload avec plusieurs tentatives
+    let uploadAttempts = 0;
+    const maxUploadAttempts = 3;
+    let uploadSuccessful = false;
+    let uploadError;
     
-    if (uploadError) {
+    while (!uploadSuccessful && uploadAttempts < maxUploadAttempts) {
+      uploadAttempts++;
+      console.log(`Tentative d'upload ${uploadAttempts}/${maxUploadAttempts}`);
+      
+      try {
+        const result = await supabase.storage
+          .from(bucket)
+          .upload(filePath, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: upsert
+          });
+        
+        uploadError = result.error;
+        
+        if (uploadError) {
+          console.warn(`Échec de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}: ${uploadError.message}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          uploadSuccessful = true;
+        }
+      } catch (e) {
+        console.warn(`Exception lors de la tentative d'upload ${uploadAttempts}/${maxUploadAttempts}:`, e);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    if (!uploadSuccessful) {
       console.error('Erreur détaillée lors du téléchargement de l\'image:', uploadError);
-      toast.error(`Erreur lors du téléchargement: ${uploadError.message}`);
-      throw new Error(uploadError.message);
+      toast.error(`Erreur lors du téléchargement: ${uploadError?.message || "Erreur inconnue"}`);
+      throw new Error(uploadError?.message || "Échec de l'upload après plusieurs tentatives");
     }
     
     // Get public URL
