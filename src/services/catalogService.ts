@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductAttributes } from "@/types/catalog";
 
@@ -58,48 +57,22 @@ export const getProducts = async (): Promise<Product[]> => {
  */
 export const getProductById = async (id: string): Promise<Product> => {
   try {
-    // Récupérer le produit de base
-    const { data: product, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", id)
+    const { supabase } = await import('@/lib/supabase');
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
       .single();
-
-    if (error) throw error;
-
-    // Récupérer les variantes de ce produit (s'il est parent)
-    const { data: variants, error: variantsError } = await supabase
-      .from("products")
-      .select("*")
-      .eq("parent_id", id);
-
-    // Récupérer les prix de variantes pour ce produit
-    const { data: variantPrices, error: variantPricesError } = await supabase
-      .from("product_variant_prices")
-      .select("*")
-      .eq("product_id", id);
-
-    if (variantsError) console.error("Erreur lors de la récupération des variantes:", variantsError);
-    if (variantPricesError) console.error("Erreur lors de la récupération des prix de variantes:", variantPricesError);
-
-    // Déterminer si c'est un produit parent
-    const isParent = 
-      product.is_parent || 
-      (variants && variants.length > 0) || 
-      (variantPrices && variantPrices.length > 0) ||
-      (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
-
-    // Construire l'objet produit avec toutes ses données associées
-    return {
-      ...product,
-      variants: variants || [],
-      variant_combination_prices: variantPrices || [],
-      is_parent: isParent,
-      createdAt: product.created_at,
-      updatedAt: product.updated_at
-    };
+    
+    if (error) {
+      console.error('Error fetching product:', error);
+      throw new Error(error.message);
+    }
+    
+    return data as Product;
   } catch (error) {
-    console.error("Erreur lors de la récupération du produit:", error);
+    console.error('Error in getProductById:', error);
     throw error;
   }
 };
@@ -181,16 +154,22 @@ export const findVariantByAttributes = async (
  */
 export const getCategories = async () => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("categories")
-      .select("*")
-      .order("name", { ascending: true });
-
-    if (error) throw error;
+      .from('categories')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching categories:', error);
+      throw new Error(error.message);
+    }
+    
     return data || [];
   } catch (error) {
-    console.error("Erreur lors de la récupération des catégories:", error);
-    return [];
+    console.error('Error in getCategories:', error);
+    throw error;
   }
 };
 
@@ -199,36 +178,46 @@ export const getCategories = async () => {
  */
 export const getBrands = async () => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("brands")
-      .select("*")
-      .order("name", { ascending: true });
-
-    if (error) throw error;
+      .from('brands')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching brands:', error);
+      throw new Error(error.message);
+    }
+    
     return data || [];
   } catch (error) {
-    console.error("Erreur lors de la récupération des marques:", error);
-    return [];
+    console.error('Error in getBrands:', error);
+    throw error;
   }
 };
 
 /**
  * Ajoute une nouvelle catégorie
  */
-export const addCategory = async ({ name, translation }: { name: string; translation: string }) => {
+export const addCategory = async (category: { name: string, translation: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("categories")
-      .insert([
-        { name, translation }
-      ])
+      .from('categories')
+      .insert(category)
       .select()
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error adding category:', error);
+      throw new Error(error.message);
+    }
+    
     return data;
   } catch (error) {
-    console.error("Erreur lors de l'ajout de la catégorie:", error);
+    console.error('Error in addCategory:', error);
     throw error;
   }
 };
@@ -236,27 +225,25 @@ export const addCategory = async ({ name, translation }: { name: string; transla
 /**
  * Met à jour une catégorie existante
  */
-export const updateCategory = async ({ 
-  originalName, 
-  name, 
-  translation 
-}: { 
-  originalName: string; 
-  name: string; 
-  translation: string 
-}) => {
+export const updateCategory = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("categories")
+      .from('categories')
       .update({ name, translation })
-      .eq("name", originalName)
+      .eq('name', originalName)
       .select()
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error updating category:', error);
+      throw new Error(error.message);
+    }
+    
     return data;
   } catch (error) {
-    console.error("Erreur lors de la mise à jour de la catégorie:", error);
+    console.error('Error in updateCategory:', error);
     throw error;
   }
 };
@@ -266,15 +253,21 @@ export const updateCategory = async ({
  */
 export const deleteCategory = async ({ name }: { name: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { error } = await supabase
-      .from("categories")
+      .from('categories')
       .delete()
-      .eq("name", name);
-
-    if (error) throw error;
+      .eq('name', name);
+    
+    if (error) {
+      console.error('Error deleting category:', error);
+      throw new Error(error.message);
+    }
+    
     return true;
   } catch (error) {
-    console.error("Erreur lors de la suppression de la catégorie:", error);
+    console.error('Error in deleteCategory:', error);
     throw error;
   }
 };
@@ -282,20 +275,24 @@ export const deleteCategory = async ({ name }: { name: string }) => {
 /**
  * Ajoute une nouvelle marque
  */
-export const addBrand = async ({ name, translation }: { name: string; translation: string }) => {
+export const addBrand = async (brand: { name: string, translation: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("brands")
-      .insert([
-        { name, translation }
-      ])
+      .from('brands')
+      .insert(brand)
       .select()
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error adding brand:', error);
+      throw new Error(error.message);
+    }
+    
     return data;
   } catch (error) {
-    console.error("Erreur lors de l'ajout de la marque:", error);
+    console.error('Error in addBrand:', error);
     throw error;
   }
 };
@@ -303,27 +300,25 @@ export const addBrand = async ({ name, translation }: { name: string; translatio
 /**
  * Met à jour une marque existante
  */
-export const updateBrand = async ({ 
-  originalName, 
-  name, 
-  translation 
-}: { 
-  originalName: string; 
-  name: string; 
-  translation: string 
-}) => {
+export const updateBrand = async ({ originalName, name, translation }: { originalName: string, name: string, translation: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { data, error } = await supabase
-      .from("brands")
+      .from('brands')
       .update({ name, translation })
-      .eq("name", originalName)
+      .eq('name', originalName)
       .select()
       .single();
-
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error updating brand:', error);
+      throw new Error(error.message);
+    }
+    
     return data;
   } catch (error) {
-    console.error("Erreur lors de la mise à jour de la marque:", error);
+    console.error('Error in updateBrand:', error);
     throw error;
   }
 };
@@ -333,15 +328,21 @@ export const updateBrand = async ({
  */
 export const deleteBrand = async ({ name }: { name: string }) => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
     const { error } = await supabase
-      .from("brands")
+      .from('brands')
       .delete()
-      .eq("name", name);
-
-    if (error) throw error;
+      .eq('name', name);
+    
+    if (error) {
+      console.error('Error deleting brand:', error);
+      throw new Error(error.message);
+    }
+    
     return true;
   } catch (error) {
-    console.error("Erreur lors de la suppression de la marque:", error);
+    console.error('Error in deleteBrand:', error);
     throw error;
   }
 };
@@ -393,31 +394,23 @@ export const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'up
  */
 export const updateProduct = async (id: string, product: Partial<Product>): Promise<Product> => {
   try {
-    // Transformation des propriétés pour correspondre au schéma de la table
-    const productData: any = { ...product };
-    
-    // Suppression des propriétés qui ne sont pas dans la table
-    delete productData.createdAt;
-    delete productData.updatedAt;
-    delete productData.variants;
-    delete productData.variant_combination_prices;
+    const { supabase } = await import('@/lib/supabase');
     
     const { data, error } = await supabase
-      .from("products")
-      .update(productData)
-      .eq("id", id)
-      .select()
+      .from('products')
+      .update(product)
+      .eq('id', id)
+      .select('*')
       .single();
-
-    if (error) throw error;
     
-    return {
-      ...data,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    };
+    if (error) {
+      console.error('Error updating product:', error);
+      throw new Error(error.message);
+    }
+    
+    return data as Product;
   } catch (error) {
-    console.error("Erreur lors de la mise à jour du produit:", error);
+    console.error('Error in updateProduct:', error);
     throw error;
   }
 };
@@ -456,6 +449,9 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
  */
 export const uploadProductImage = async (file: File, productId: string, isMainImage: boolean = false): Promise<string> => {
   try {
+    const { supabase } = await import('@/lib/supabase');
+    
+    // Get file extension
     const fileExt = file.name.split('.').pop();
     const fileName = `${productId}${isMainImage ? '-main' : `-${Date.now()}`}.${fileExt}`;
     const filePath = `product-images/${fileName}`;
@@ -479,28 +475,46 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     const { error: uploadError } = await supabase.storage
       .from('products')
       .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: urlData } = supabase.storage
+    
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      throw new Error(uploadError.message);
+    }
+    
+    // Get public URL
+    const { data: publicURL } = supabase.storage
       .from('products')
       .getPublicUrl(filePath);
-
-    const imageUrl = urlData.publicUrl;
-
-    // Si c'est l'image principale, mettre à jour le produit
+    
+    // Update product with image URL
     if (isMainImage) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('products')
-        .update({ image_url: imageUrl })
+        .update({ image_url: publicURL.publicUrl })
         .eq('id', productId);
-
-      if (updateError) throw updateError;
+    } else {
+      // Get current image_urls array
+      const { data: product } = await supabase
+        .from('products')
+        .select('image_urls')
+        .eq('id', productId)
+        .single();
+      
+      let imageUrls = product?.image_urls || [];
+      if (!Array.isArray(imageUrls)) {
+        imageUrls = [];
+      }
+      
+      // Add new URL and update
+      await supabase
+        .from('products')
+        .update({ image_urls: [...imageUrls, publicURL.publicUrl] })
+        .eq('id', productId);
     }
-
-    return imageUrl;
+    
+    return publicURL.publicUrl;
   } catch (error) {
-    console.error("Erreur lors du téléchargement de l'image:", error);
+    console.error('Error in uploadProductImage:', error);
     throw error;
   }
 };

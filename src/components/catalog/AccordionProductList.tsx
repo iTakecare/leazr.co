@@ -217,7 +217,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                       
                       {!readOnly && (
                         <div className="flex items-center gap-1 ml-auto">
-                          <Link to={`/products/${product.id}`}>
+                          <Link to={`/catalog/edit/${product.id}`}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <Edit className="h-4 w-4" />
                             </Button>
