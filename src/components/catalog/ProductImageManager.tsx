@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useExistingStorageBucket } from "@/hooks/useExistingStorageBucket";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -24,27 +25,34 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [images, setImages] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   const BUCKET_NAME = "product-images";
 
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
+    if (isLoadingImages) return;
+    
     try {
+      setIsLoadingImages(true);
       console.log(`Attempting to load images for product ${productId} from bucket ${BUCKET_NAME}`);
       
       // Check if product folder exists
       const { data: files, error } = await supabase.storage
         .from(BUCKET_NAME)
-        .list(productId);
+        .list(productId, {
+          sortBy: { column: 'name', order: 'asc' }
+        });
       
       if (error) {
         console.error(`Error listing files in ${BUCKET_NAME}/${productId}:`, error);
-        // Instead of throwing, we'll return an empty list
         setImages([]);
+        setIsLoadingImages(false);
         return;
       }
       
       if (!files || files.length === 0) {
         console.log(`No images found for product ${productId}`);
         setImages([]);
+        setIsLoadingImages(false);
         return;
       }
       
@@ -54,13 +62,14 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           file.name !== '.emptyFolderPlaceholder'
         )
         .map(file => {
+          const timestamp = Date.now(); // Add timestamp to bust cache
           const { publicUrl } = supabase.storage
             .from(BUCKET_NAME)
             .getPublicUrl(`${productId}/${file.name}`).data;
           
           return {
             name: file.name,
-            url: publicUrl,
+            url: `${publicUrl}?t=${timestamp}`,
             isMain: false
           };
         });
@@ -75,8 +84,10 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       console.error("Error loading images:", error);
       toast.error("Error loading images");
       setImages([]);
+    } finally {
+      setIsLoadingImages(false);
     }
-  };
+  }, [productId, onChange, isLoadingImages]);
 
   // Use the hook to check the existing bucket
   const { error, isLoading } = useExistingStorageBucket(BUCKET_NAME, loadImages);
@@ -184,8 +195,15 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-center h-10">
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="aspect-square w-full" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -208,19 +226,29 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           onChange={handleFileChange}
           disabled={isUploading}
         />
-        {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={handleRetry}
-          disabled={isUploading}
+          disabled={isUploading || isLoadingImages}
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
+          {isLoadingImages ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
           Refresh
         </Button>
       </div>
 
-      {images.length === 0 ? (
+      {isLoadingImages ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="aspect-square w-full" />
+          ))}
+        </div>
+      ) : images.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">No images have been uploaded for this product.</p>
         </Card>
@@ -230,7 +258,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
                 <img
-                  src={`${image.url}?t=${Date.now()}`}
+                  src={image.url}
                   alt={`Product ${index + 1}`}
                   className="object-cover w-full h-full"
                   onError={(e) => {

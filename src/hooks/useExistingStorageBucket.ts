@@ -2,10 +2,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { ensureStorageBucket } from "@/services/storageService";
 
 export const useExistingStorageBucket = (bucketName: string, onSuccess: () => Promise<void>) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasCreationBeenAttempted, setHasCreationBeenAttempted] = useState(false);
   
   useEffect(() => {
     const checkBucket = async () => {
@@ -13,44 +15,41 @@ export const useExistingStorageBucket = (bucketName: string, onSuccess: () => Pr
         setIsLoading(true);
         setError(null);
         
-        // Check if the bucket exists
-        const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-        
-        if (listError) {
-          console.error(`Error checking bucket ${bucketName}:`, listError);
-          setError(`Storage access error. ${listError.message}`);
-          return;
+        // First, try to create/ensure the bucket exists
+        if (!hasCreationBeenAttempted) {
+          const bucketCreated = await ensureStorageBucket(bucketName);
+          setHasCreationBeenAttempted(true);
+          
+          if (!bucketCreated) {
+            console.error(`Error: Could not access or create bucket ${bucketName}`);
+            setError(`Storage access error. Could not access or create bucket ${bucketName}.`);
+            setIsLoading(false);
+            return;
+          }
         }
         
-        const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-        
-        if (!bucketExists) {
-          console.error(`Bucket ${bucketName} doesn't exist`);
-          setError(`Bucket ${bucketName} doesn't exist`);
-          return;
-        }
-        
-        // Verify we can access the bucket by listing its contents
+        // Verify bucket access by listing its contents
         const { error: accessError } = await supabase.storage.from(bucketName).list();
         
         if (accessError) {
           console.error(`Error accessing bucket ${bucketName}:`, accessError);
           setError(`Error accessing bucket ${bucketName}: ${accessError.message}`);
+          setIsLoading(false);
           return;
         }
         
         // Bucket exists and is accessible, call success callback
         await onSuccess();
+        setIsLoading(false);
       } catch (err) {
         console.error(`Error checking bucket ${bucketName}:`, err);
         setError(`Error checking bucket ${bucketName}`);
-      } finally {
         setIsLoading(false);
       }
     };
     
     checkBucket();
-  }, [bucketName, onSuccess]);
+  }, [bucketName, onSuccess, hasCreationBeenAttempted]);
   
   return { error, isLoading };
 };
