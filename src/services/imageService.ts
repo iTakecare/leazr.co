@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { ensureStorageBucket } from "@/services/storageService";
 
 /**
  * Detects the file extension from a File object
@@ -119,6 +120,16 @@ export const uploadProductImage = async (
   isMain: boolean = false
 ): Promise<string | null> => {
   try {
+    const BUCKET_NAME = 'catalog';
+    
+    // Ensure bucket exists before upload
+    const bucketExists = await ensureStorageBucket(BUCKET_NAME);
+    if (!bucketExists) {
+      console.error(`Bucket ${BUCKET_NAME} does not exist and could not be created`);
+      toast.error(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
+      return null;
+    }
+    
     const extension = detectFileExtension(file);
     const folderPath = `products/${productId}`;
     const fileName = `${isMain ? 'main' : uuidv4()}.${extension}`;
@@ -126,8 +137,25 @@ export const uploadProductImage = async (
     
     console.log(`Uploading product image: ${fileName}, MIME type: ${mimeType}`);
     
+    // Create empty placeholder file to ensure folder exists
+    try {
+      const { error: placeholderError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(`${folderPath}/.placeholder`, new Blob([]), {
+          contentType: 'text/plain',
+          upsert: true
+        });
+      
+      if (placeholderError && !placeholderError.message.includes('The resource already exists')) {
+        console.warn("Warning creating folder placeholder:", placeholderError);
+      }
+    } catch (e) {
+      console.warn("Exception creating folder placeholder (continuing):", e);
+    }
+    
+    // Upload the actual image file
     const { data, error } = await supabase.storage
-      .from('catalog')
+      .from(BUCKET_NAME)
       .upload(`${folderPath}/${fileName}`, file, {
         contentType: mimeType,
         upsert: true
@@ -135,11 +163,12 @@ export const uploadProductImage = async (
     
     if (error) {
       console.error("Product image upload error:", error);
-      throw error;
+      toast.error(`Erreur lors de l'upload: ${error.message}`);
+      return null;
     }
     
     const { data: urlData } = supabase.storage
-      .from('catalog')
+      .from(BUCKET_NAME)
       .getPublicUrl(`${folderPath}/${fileName}`);
     
     const imageUrl = urlData?.publicUrl || '';
@@ -147,13 +176,19 @@ export const uploadProductImage = async (
     
     // Update the product's image URL if this is the main image
     if (isMain) {
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ image_url: imageUrl })
-        .eq('id', productId);
-      
-      if (updateError) {
-        console.error("Error updating product image URL:", updateError);
+      try {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ image_url: imageUrl })
+          .eq('id', productId);
+        
+        if (updateError) {
+          console.error("Error updating product image URL:", updateError);
+        } else {
+          console.log(`Successfully updated product ${productId} with main image URL`);
+        }
+      } catch (updateErr) {
+        console.error("Exception when updating product image URL:", updateErr);
       }
     }
     

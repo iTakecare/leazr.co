@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
 import { checkBucketExists, ensureFolderExists } from "@/utils/storage";
 import { uploadProductImage } from "@/services/imageService";
+import { ensureStorageBucket } from "@/services/storageService";
 
 interface ProductImage {
   id: string;
@@ -35,9 +36,32 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [images, setImages] = useState<ProductImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isBucketCreated, setIsBucketCreated] = useState(false);
   
   // Bucket name constant - using 'catalog' which should already exist
   const BUCKET_NAME = 'catalog';
+
+  // First, ensure the bucket exists
+  useEffect(() => {
+    const createBucketIfNeeded = async () => {
+      try {
+        // Try to create/ensure the bucket exists
+        const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
+        console.log(`Bucket ${BUCKET_NAME} creation result:`, bucketCreated);
+        setIsBucketCreated(bucketCreated);
+        
+        if (!bucketCreated) {
+          console.error(`Failed to create or ensure bucket: ${BUCKET_NAME}`);
+          setLoadError(`Impossible de créer le bucket de stockage ${BUCKET_NAME}`);
+        }
+      } catch (error) {
+        console.error("Error ensuring storage bucket:", error);
+        setLoadError(`Erreur lors de la création du bucket: ${BUCKET_NAME}`);
+      }
+    };
+    
+    createBucketIfNeeded();
+  }, []);
 
   // Initialize images
   useEffect(() => {
@@ -61,9 +85,14 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         const bucketExists = await checkBucketExists(BUCKET_NAME);
         if (!bucketExists) {
           console.error(`Bucket ${BUCKET_NAME} does not exist`);
-          setLoadError(`Le bucket ${BUCKET_NAME} n'existe pas`);
-          setIsLoading(false);
-          return;
+          
+          // Try to create the bucket
+          const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
+          if (!bucketCreated) {
+            setLoadError(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
+            setIsLoading(false);
+            return;
+          }
         }
         
         // Try to load images from storage first
@@ -209,6 +238,17 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     setIsUploading(true);
     
     try {
+      // First make sure the bucket exists
+      if (!isBucketCreated) {
+        const bucketCreated = await ensureStorageBucket(BUCKET_NAME);
+        if (!bucketCreated) {
+          toast.error(`Le bucket ${BUCKET_NAME} n'existe pas et n'a pas pu être créé`);
+          setIsUploading(false);
+          return;
+        }
+        setIsBucketCreated(true);
+      }
+      
       const newImages: ProductImage[] = [];
       const imageFiles = Array.from(files).slice(0, 5 - images.length);
       
@@ -303,11 +343,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            disabled={isUploading}
+            disabled={isUploading || !isBucketCreated}
             multiple
             className="flex-1"
           />
-          <Button disabled={isUploading} className="min-w-20 relative">
+          <Button disabled={isUploading || !isBucketCreated} className="min-w-20 relative">
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

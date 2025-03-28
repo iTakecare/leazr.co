@@ -73,6 +73,42 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
       
       console.log(`Bucket ${bucketName} créé avec succès via API directe`);
+      
+      // Create public access policies
+      try {
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_select`,
+          definition: 'TRUE',
+          policy_type: 'SELECT'
+        });
+        
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_insert`,
+          definition: 'TRUE',
+          policy_type: 'INSERT'
+        });
+        
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_update`,
+          definition: 'TRUE',
+          policy_type: 'UPDATE'
+        });
+        
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_delete`,
+          definition: 'TRUE',
+          policy_type: 'DELETE'
+        });
+        
+        console.log(`Created public access policies for bucket ${bucketName}`);
+      } catch (policyError) {
+        console.error("Failed to create policies (continuing anyway):", policyError);
+      }
+      
       return true;
     } catch (error) {
       console.error(`Exception lors de la création directe du bucket ${bucketName}:`, error);
