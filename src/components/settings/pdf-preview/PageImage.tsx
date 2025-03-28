@@ -18,14 +18,15 @@ const PageImage: React.FC<PageImageProps> = ({
   useEffect(() => {
     if (!pageImage) {
       setImageUrl(null);
+      setPageLoaded(false);
       return;
     }
     
     try {
       // Case 1: Direct URL string
       if (typeof pageImage === 'string') {
+        // Already a data URL
         if (pageImage.startsWith('data:')) {
-          // Already a data URL
           setImageUrl(pageImage);
         } else {
           // Add cache buster to URL
@@ -44,7 +45,7 @@ const PageImage: React.FC<PageImageProps> = ({
         return;
       }
       
-      // Case 3: Object with data property
+      // Case 3: Object with data property that might be a direct binary or base64 string
       if (pageImage.data) {
         // If data is already a data URL
         if (typeof pageImage.data === 'string' && pageImage.data.startsWith('data:')) {
@@ -52,70 +53,42 @@ const PageImage: React.FC<PageImageProps> = ({
           return;
         }
         
-        // If data is JSON string, try to parse it
-        if (typeof pageImage.data === 'string' && (
-          pageImage.data.startsWith('{') || 
-          pageImage.data.startsWith('[') ||
-          pageImage.data.includes('"data":')
-        )) {
-          try {
-            // Parse the JSON to extract image data
-            let parsedData = JSON.parse(pageImage.data);
-            
-            // Handle different JSON structures
-            let imageData = parsedData;
-            if (parsedData.data) {
-              imageData = parsedData.data;
-            }
-            
-            // Convert to data URL if needed
-            if (typeof imageData === 'string' && !imageData.startsWith('data:')) {
-              // Detect content type from base64 prefix
-              let contentType = 'image/png'; // default
+        // Try to handle JSON data
+        if (typeof pageImage.data === 'string') {
+          // Check if it's a JSON string
+          if (pageImage.data.startsWith('{') || pageImage.data.startsWith('[')) {
+            try {
+              const jsonData = JSON.parse(pageImage.data);
               
-              if (imageData.startsWith('/9j/')) {
-                contentType = 'image/jpeg';
-              } else if (imageData.startsWith('iVBORw0KGgo')) {
-                contentType = 'image/png';
-              } else if (imageData.startsWith('UklGR')) {
-                contentType = 'image/webp';
-              } else if (imageData.startsWith('R0lGODlh')) {
-                contentType = 'image/gif';
-              } else if (imageData.startsWith('PHN2Zz')) {
-                contentType = 'image/svg+xml';
+              // If parsed JSON has a data property with a string value
+              if (jsonData && typeof jsonData.data === 'string') {
+                // If it's already a data URL
+                if (jsonData.data.startsWith('data:')) {
+                  setImageUrl(jsonData.data);
+                  return;
+                }
+                
+                // Assume it's base64 and detect content type
+                const contentType = detectContentType(jsonData.data);
+                setImageUrl(`data:${contentType};base64,${jsonData.data}`);
+                return;
               }
               
-              setImageUrl(`data:${contentType};base64,${imageData}`);
-            } else {
-              // Use the parsed data directly
-              setImageUrl(imageData);
+              // If parsed JSON itself is a base64 string
+              if (typeof jsonData === 'string') {
+                const contentType = detectContentType(jsonData);
+                setImageUrl(`data:${contentType};base64,${jsonData}`);
+                return;
+              }
+            } catch (e) {
+              console.error("Error parsing JSON:", e);
+              // Continue with treating as base64
             }
-          } catch (e) {
-            console.error("Failed to parse JSON data:", e, pageImage.data.substring(0, 100));
-            setImageUrl("/placeholder.svg");
-          }
-          return;
-        }
-        
-        // Direct base64 string without JSON wrapper
-        if (typeof pageImage.data === 'string') {
-          // Detect content type
-          let contentType = 'image/png'; // default
-          
-          if (pageImage.data.startsWith('/9j/')) {
-            contentType = 'image/jpeg';
-          } else if (pageImage.data.startsWith('iVBORw0KGgo')) {
-            contentType = 'image/png';
-          } else if (pageImage.data.startsWith('UklGR')) {
-            contentType = 'image/webp';
-          } else if (pageImage.data.startsWith('R0lGODlh')) {
-            contentType = 'image/gif';
-          } else if (pageImage.data.startsWith('PHN2Zz')) {
-            contentType = 'image/svg+xml';
           }
           
-          // Check if it already has a data prefix
+          // If not valid JSON, treat as base64 string
           if (!pageImage.data.startsWith('data:')) {
+            const contentType = detectContentType(pageImage.data);
             setImageUrl(`data:${contentType};base64,${pageImage.data}`);
           } else {
             setImageUrl(pageImage.data);
@@ -124,25 +97,46 @@ const PageImage: React.FC<PageImageProps> = ({
         }
       }
       
-      // Fallback
-      console.warn("Unable to determine image format", pageImage);
-      setImageUrl("/placeholder.svg");
+      // Last resort: try to use the object directly
+      console.warn("Unable to determine image format, using object directly:", pageImage);
+      setImageUrl(String(pageImage));
       
     } catch (e) {
       console.error("Error processing image data:", e);
       setImageUrl("/placeholder.svg");
     }
-  }, [pageImage]);
+  }, [pageImage, setPageLoaded]);
+  
+  // Helper to detect content type from base64 data
+  const detectContentType = (data: string): string => {
+    if (!data) return 'image/png';
+    
+    // Remove possible data URL prefix to check only the base64 content
+    const base64Data = data.startsWith('data:') 
+      ? data.split(',')[1] 
+      : data;
+    
+    // Common image signatures in base64
+    if (base64Data.startsWith('/9j/')) return 'image/jpeg';
+    if (base64Data.startsWith('iVBORw0KGgo')) return 'image/png';
+    if (base64Data.startsWith('UklGR')) return 'image/webp';
+    if (base64Data.startsWith('R0lGODlh')) return 'image/gif';
+    if (base64Data.startsWith('PHN2Zz')) return 'image/svg+xml';
+    
+    // Default to PNG if no match
+    return 'image/png';
+  };
   
   // Handle image loading
   const handleImageLoad = () => {
-    console.log("Image loaded successfully:", imageUrl?.substring(0, 50));
+    console.log("Image loaded successfully");
     setPageLoaded(true);
   };
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error("Error loading image:", e.currentTarget.src.substring(0, 100));
     e.currentTarget.src = "/placeholder.svg";
+    setPageLoaded(true); // Still mark as loaded so the UI isn't stuck
   };
   
   if (imageUrl) {

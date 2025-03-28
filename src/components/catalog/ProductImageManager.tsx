@@ -99,6 +99,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           });
         
         console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
+        console.log("Images mises à jour:", imageFiles);
         setImages(imageFiles);
         
         if (onChange) {
@@ -135,7 +136,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     let uploadedCount = 0;
     
     try {
-      // Try to upload directly without bucket check
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
@@ -156,18 +156,30 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
         const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
         
-        // Force correct MIME type
-        const fileWithCorrectMime = enforceCorrectMimeType(file);
-        const contentType = fileWithCorrectMime.type;
+        // Determine the correct MIME type based on extension
+        let contentType = 'image/jpeg'; // default
+        if (fileExt === 'png') contentType = 'image/png';
+        else if (fileExt === 'gif') contentType = 'image/gif';
+        else if (fileExt === 'webp') contentType = 'image/webp';
+        else if (fileExt === 'svg') contentType = 'image/svg+xml';
+        else if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
+        
+        // Use the file's reported MIME type if it seems valid
+        if (file.type.startsWith('image/')) {
+          contentType = file.type;
+        }
         
         console.log(`Uploading with content type: ${contentType}`);
         
-        // Direct upload to Supabase with proper content type
-        const filePath = `${productId}/${cleanFileName}`;
-        
         try {
-          // Convertir le fichier en Blob avec le type MIME explicite
-          const fileBlob = new Blob([await fileWithCorrectMime.arrayBuffer()], { type: contentType });
+          // Read file as ArrayBuffer to ensure binary data integrity
+          const arrayBuffer = await file.arrayBuffer();
+          
+          // Create a new Blob with the correct MIME type to ensure proper handling
+          const fileBlob = new Blob([arrayBuffer], { type: contentType });
+          
+          // Direct upload to Supabase with proper content type
+          const filePath = `${productId}/${cleanFileName}`;
           
           const { data, error } = await supabase.storage
             .from("product-images")
