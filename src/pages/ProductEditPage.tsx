@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,25 +14,6 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Loader2, 
-  Save, 
-  ArrowLeft, 
-  Image as ImageIcon, 
-  Trash2, 
-  Upload,
-  Info,
-  Layers,
-  X,
-  Plus,
-  Copy
-} from "lucide-react";
-import { toast } from "sonner";
-import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import { Product } from "@/types/catalog";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 
 const productCategories = [
   "laptop",
@@ -241,7 +221,8 @@ const ProductEditPage = () => {
       const bucketExists = await ensureStorageBucket("product-images");
       if (!bucketExists) {
         toast.error("Impossible de créer le bucket pour les images");
-        throw new Error("Le bucket de stockage n'a pas pu être préparé");
+        setIsUploading(false);
+        return null;
       }
       
       console.log(`Début de l'upload de l'image ${index + 1} pour le produit ${id}`);
@@ -249,6 +230,7 @@ const ProductEditPage = () => {
       
       if (!imageUrl) {
         toast.error("Échec du téléchargement de l'image");
+        setIsUploading(false);
         return null;
       }
       

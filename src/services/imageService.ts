@@ -1,3 +1,4 @@
+
 /**
  * Service pour gérer le téléchargement et la manipulation d'images
  */
@@ -18,6 +19,8 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
       toast.error("Erreur lors de la préparation du stockage des images");
       throw new Error(`Impossible de créer ou vérifier le bucket ${bucketName}`);
     }
+    
+    console.log(`Bucket ${bucketName} vérifié et prêt pour l'upload`);
     
     // Créer la structure de dossier basée sur l'ID du produit
     const productFolder = `${productId}`;

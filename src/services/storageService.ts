@@ -1,5 +1,5 @@
 
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -11,14 +11,13 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
-    // Vérifier si le bucket existe déjà
+    // 1. Vérifier si le bucket existe déjà avec l'API directe
     const { data: existingBuckets, error: bucketError } = await supabase
       .storage
       .listBuckets();
     
     if (bucketError) {
       console.error(`Erreur lors de la vérification des buckets:`, bucketError);
-      toast.error("Erreur lors de la vérification des buckets");
       return false;
     }
     
@@ -26,86 +25,104 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
     
     if (bucketExists) {
       console.log(`Le bucket ${bucketName} existe déjà`);
-      // Ne pas essayer de créer des politiques si le bucket existe déjà
       return true;
     }
     
-    // Le bucket n'existe pas, on le crée via RPC pour utiliser la fonction créée en SQL
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création`);
+    
+    // 2. Tenter de créer le bucket via la fonction RPC
     try {
-      const { error: createError } = await supabase.rpc('create_storage_bucket', {
+      const { error: rpcError } = await supabase.rpc('create_storage_bucket', {
         bucket_name: bucketName
       });
       
+      if (rpcError) {
+        console.warn(`Erreur RPC lors de la création du bucket: ${rpcError.message}`);
+        if (rpcError.message.includes('already exists')) {
+          return true; // Le bucket existe déjà
+        }
+      } else {
+        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+        return true;
+      }
+    } catch (rpcException) {
+      console.warn(`Exception RPC: ${rpcException}`);
+      // Continuer avec la méthode directe
+    }
+    
+    // 3. Essayer de créer directement le bucket si la méthode RPC a échoué
+    try {
+      // Créer le bucket directement
+      const { data, error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 52428800 // 50MB
+      });
+      
       if (createError) {
-        // Vérifier si l'erreur est due au fait que le bucket existe déjà
         if (createError.message && createError.message.includes('already exists')) {
-          console.log(`Le bucket ${bucketName} existe déjà (détecté via message d'erreur)`);
+          console.log(`Le bucket ${bucketName} existe déjà (détecté via erreur de création)`);
           return true;
         }
         
-        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-        toast.error("Erreur lors de la création du bucket");
+        console.error(`Échec de la création directe du bucket ${bucketName}: ${createError.message}`);
         return false;
       }
       
-      console.log(`Bucket ${bucketName} créé avec succès`);
+      console.log(`Bucket ${bucketName} créé avec succès via API directe`);
+      
+      // 4. Créer manuellement les politiques d'accès publiques pour le nouveau bucket
+      await createPublicPolicies(bucketName);
+      
       return true;
     } catch (error) {
-      console.error(`Exception lors de la création du bucket ${bucketName}:`, error);
-      
-      // Dernier recours: essayer de créer le bucket directement via l'API Storage
-      try {
-        const { error: directError } = await supabase.storage.createBucket(bucketName, {
-          public: true,
-          fileSizeLimit: 52428800 // 50MB
-        });
-        
-        if (directError) {
-          if (directError.message && directError.message.includes('already exists')) {
-            console.log(`Le bucket ${bucketName} existe déjà (détection directe)`);
-            return true;
-          }
-          console.error(`Erreur lors de la création directe du bucket ${bucketName}:`, directError);
-          toast.error("Erreur lors de la création du bucket");
-          return false;
-        }
-        
-        console.log(`Bucket ${bucketName} créé directement avec succès`);
-        
-        // Créer les politiques d'accès manuellement
-        try {
-          // Politique pour SELECT (lecture publique)
-          await supabase.rpc('create_storage_policy', {
-            bucket_name: bucketName,
-            policy_name: `${bucketName}_public_select`,
-            definition: 'TRUE',
-            policy_type: 'SELECT'
-          });
-          
-          // Politique pour INSERT (écriture publique)
-          await supabase.rpc('create_storage_policy', {
-            bucket_name: bucketName,
-            policy_name: `${bucketName}_public_insert`,
-            definition: 'TRUE',
-            policy_type: 'INSERT'
-          });
-          
-          console.log(`Politiques d'accès créées manuellement pour ${bucketName}`);
-        } catch (policyError) {
-          console.warn(`Erreur lors de la création manuelle des politiques (non bloquant):`, policyError);
-        }
-        
-        return true;
-      } catch (finalError) {
-        console.error(`Échec final de création du bucket ${bucketName}:`, finalError);
-        toast.error("Impossible de créer le bucket de stockage");
-        return false;
-      }
+      console.error(`Exception lors de la création directe du bucket ${bucketName}:`, error);
+      toast.error(`Erreur: Impossible de créer le bucket ${bucketName}`);
+      return false;
     }
   } catch (error) {
     console.error(`Erreur générale dans ensureStorageBucket pour ${bucketName}:`, error);
     toast.error("Erreur lors de la préparation du stockage");
     return false;
+  }
+}
+
+/**
+ * Crée des politiques d'accès publiques pour un bucket
+ * @param bucketName Le nom du bucket
+ */
+async function createPublicPolicies(bucketName: string): Promise<void> {
+  try {
+    console.log(`Création des politiques d'accès pour le bucket ${bucketName}`);
+    
+    // Utiliser une API fetch directe pour créer les politiques si nécessaire
+    // Cette méthode est plus fiable que l'API RPC dans certains cas
+    
+    const policyTypes = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
+    
+    for (const policyType of policyTypes) {
+      const policyName = `${bucketName}_public_${policyType.toLowerCase()}`;
+      
+      try {
+        // Essayer d'abord avec RPC
+        const { error } = await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: policyName,
+          definition: 'TRUE',
+          policy_type: policyType
+        });
+        
+        if (error) {
+          console.warn(`Erreur lors de la création de la politique ${policyType} via RPC:`, error);
+          // On continue, ce n'est pas bloquant
+        } else {
+          console.log(`Politique ${policyType} créée avec succès pour ${bucketName}`);
+        }
+      } catch (error) {
+        console.warn(`Exception lors de la création de politique ${policyType}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error(`Erreur lors de la création des politiques pour ${bucketName}:`, error);
   }
 }
 
