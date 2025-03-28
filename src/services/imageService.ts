@@ -154,45 +154,48 @@ export const uploadProductImage = async (file: File, productId: string, isMainIm
     }
     
     // Utiliser upload directs pour éviter les problèmes de duplication
-    const { data, error } = await supabase.storage
+    let uploadResult = await supabase.storage
       .from(bucketName)
       .upload(filePath, fileToUpload, {
         contentType,
         upsert: false  // Ne pas écraser si existe déjà
       });
     
-    if (error) {
-      if (error.message.includes('The resource already exists')) {
+    let resultFilePath = filePath;
+    
+    if (uploadResult.error) {
+      if (uploadResult.error.message.includes('The resource already exists')) {
         console.warn("L'image existe déjà, génération d'un nouveau nom de fichier");
         // Générer un nouveau nom avec un timestamp plus précis
         const preciseTimestamp = new Date().getTime() + Math.floor(Math.random() * 1000);
         const newFilePath = `${productFolder}/${preciseTimestamp}-${fileName}`;
         
-        const { data: retryData, error: retryError } = await supabase.storage
+        const retryResult = await supabase.storage
           .from(bucketName)
           .upload(newFilePath, fileToUpload, {
             contentType,
             upsert: false
           });
         
-        if (retryError) {
-          console.error('Erreur lors de la seconde tentative d\'upload:', retryError);
-          toast.error(`Échec de l'upload: ${retryError.message}`);
-          throw new Error(retryError.message);
+        if (retryResult.error) {
+          console.error('Erreur lors de la seconde tentative d\'upload:', retryResult.error);
+          toast.error(`Échec de l'upload: ${retryResult.error.message}`);
+          throw new Error(retryResult.error.message);
         }
         
-        data = retryData;
+        uploadResult = retryResult;
+        resultFilePath = newFilePath;
       } else {
-        console.error('Erreur détaillée lors du téléchargement de l\'image:', error);
-        toast.error(`Erreur lors du téléchargement: ${error.message}`);
-        throw new Error(error.message);
+        console.error('Erreur détaillée lors du téléchargement de l\'image:', uploadResult.error);
+        toast.error(`Erreur lors du téléchargement: ${uploadResult.error.message}`);
+        throw new Error(uploadResult.error.message);
       }
     }
     
     // Get public URL
     const { data: publicURL } = supabase.storage
       .from(bucketName)
-      .getPublicUrl(data?.path || filePath);
+      .getPublicUrl(uploadResult.data?.path || resultFilePath);
     
     console.log(`Image téléchargée avec succès: ${publicURL.publicUrl}`);
     
