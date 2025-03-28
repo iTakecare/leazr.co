@@ -23,8 +23,23 @@ export const updateProductVariationAttributes = async (
       }
     }
     
-    // Using update without trying to return the updated record
-    // This avoids the "JSON object requested, multiple (or no) rows returned" error
+    // First check if the product exists before updating
+    const { data: existingProduct, error: checkError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .single();
+      
+    if (checkError) {
+      console.error('Error checking product existence:', checkError);
+      throw new Error(checkError.message);
+    }
+    
+    if (!existingProduct) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    // Important: Do not use .select() here to avoid the "multiple rows returned" error
     const { error } = await supabase
       .from('products')
       .update({ variation_attributes: attributesToSave })
@@ -33,23 +48,6 @@ export const updateProductVariationAttributes = async (
     if (error) {
       console.error('Error updating product variation attributes:', error);
       throw new Error(error.message);
-    }
-    
-    // Verify the update was successful by fetching the product
-    const { data: verificationData, error: verificationError } = await supabase
-      .from('products')
-      .select('id, variation_attributes')
-      .eq('id', productId)
-      .maybeSingle();
-    
-    if (verificationError) {
-      console.error('Error verifying product update:', verificationError);
-      throw new Error(verificationError.message);
-    }
-    
-    if (!verificationData) {
-      console.error('No product found with ID:', productId);
-      throw new Error(`Product with ID ${productId} not found`);
     }
     
     console.log('Successfully updated product variation attributes for ID:', productId);
@@ -94,19 +92,72 @@ export const addVariantPrice = async (variantPrice: {
   stock?: number;
 }) => {
   try {
+    console.log("Adding new variant price combination:", variantPrice);
     const { supabase } = await import('@/integrations/supabase/client');
     
+    // First check if a similar combination already exists
+    const { data: existingCombinations, error: checkError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', variantPrice.product_id);
+    
+    if (checkError) {
+      console.error('Error checking existing combinations:', checkError);
+    }
+    
+    // If we found existing combinations, check for duplicates
+    if (existingCombinations && existingCombinations.length > 0) {
+      const matchingCombination = existingCombinations.find(combo => {
+        // Compare attributes objects
+        const comboAttributes = combo.attributes || {};
+        const newAttributes = variantPrice.attributes || {};
+        
+        // Check if all attribute keys match
+        const comboKeys = Object.keys(comboAttributes);
+        const newKeys = Object.keys(newAttributes);
+        
+        if (comboKeys.length !== newKeys.length) return false;
+        
+        // Check if all attribute values match
+        return newKeys.every(key => 
+          comboAttributes[key] !== undefined && 
+          String(comboAttributes[key]) === String(newAttributes[key])
+        );
+      });
+      
+      if (matchingCombination) {
+        console.log("A matching combination already exists:", matchingCombination);
+        return matchingCombination;
+      }
+    }
+    
+    // No match found, insert the new combination
     const { data, error } = await supabase
       .from('product_variant_prices')
-      .insert(variantPrice)
-      .select();
+      .insert([variantPrice]);
     
     if (error) {
       console.error('Error adding variant price:', error);
       throw new Error(error.message);
     }
     
-    return data && data.length > 0 ? data[0] : null;
+    // Fetch the newly created record
+    const { data: newRecord, error: fetchError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', variantPrice.product_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching new variant price record:', fetchError);
+      // Return at least something if we can't fetch the new record
+      return { id: 'unknown', ...variantPrice };
+    }
+    
+    console.log("Successfully added new variant price:", newRecord);
+    return newRecord;
   } catch (error) {
     console.error('Error in addVariantPrice:', error);
     throw error;
@@ -195,6 +246,9 @@ export const findVariantCombinationPrice = async (
   attributes: Record<string, string>
 ) => {
   try {
+    console.log("Finding variant combination for product:", productId);
+    console.log("With attributes:", JSON.stringify(attributes, null, 2));
+    
     const { supabase } = await import('@/integrations/supabase/client');
     
     const { data, error } = await supabase
@@ -218,6 +272,7 @@ export const findVariantCombinationPrice = async (
       );
     });
     
+    console.log("Found matching variant:", matchingVariant || "None");
     return matchingVariant || null;
   } catch (error) {
     console.error('Error in findVariantCombinationPrice:', error);

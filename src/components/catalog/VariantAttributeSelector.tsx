@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ProductVariationAttributes } from "@/types/catalog";
 import { updateProductVariationAttributes } from "@/services/variantPriceService";
+import { getAttributes } from "@/services/attributeService";
 
 interface VariantAttributeSelectorProps {
   productId: string;
@@ -27,6 +28,12 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [attributeToAddValueTo, setAttributeToAddValueTo] = useState<string | null>(null);
   const [valueToAdd, setValueToAdd] = useState("");
+  
+  // Get predefined attributes
+  const { data: predefinedAttributes } = useQuery({
+    queryKey: ["product-attributes"],
+    queryFn: getAttributes
+  });
   
   useEffect(() => {
     setAttributes(initialAttributes || {});
@@ -211,11 +218,39 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
             <div className="flex items-end gap-2 flex-wrap">
               <div className="space-y-2">
                 <label className="text-sm">Nom de l'attribut</label>
-                <Input
-                  placeholder="Ex: Couleur, Taille, etc."
-                  value={newAttributeName}
-                  onChange={(e) => setNewAttributeName(e.target.value)}
-                />
+                {predefinedAttributes && predefinedAttributes.length > 0 ? (
+                  <select 
+                    className="w-full p-2 border rounded"
+                    value={newAttributeName}
+                    onChange={(e) => setNewAttributeName(e.target.value)}
+                  >
+                    <option value="">Sélectionnez un attribut</option>
+                    {predefinedAttributes.map(attr => (
+                      <option 
+                        key={attr.id} 
+                        value={attr.name}
+                        disabled={attributes[attr.name] !== undefined}
+                      >
+                        {attr.display_name}
+                      </option>
+                    ))}
+                    <option value="custom">Attribut personnalisé...</option>
+                  </select>
+                ) : (
+                  <Input
+                    placeholder="Ex: Couleur, Taille, etc."
+                    value={newAttributeName}
+                    onChange={(e) => setNewAttributeName(e.target.value)}
+                  />
+                )}
+                {newAttributeName === "custom" && (
+                  <Input
+                    placeholder="Nom de l'attribut personnalisé"
+                    value={newAttributeName === "custom" ? "" : newAttributeName}
+                    onChange={(e) => setNewAttributeName(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm">Première valeur (optionnelle)</label>
