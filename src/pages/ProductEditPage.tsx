@@ -39,7 +39,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import ProductImageUploader from "@/components/product/ProductImageUploader";
+import ProductImageManager from "@/components/product/ProductImageManager";
 
 const productCategories = [
   "laptop",
@@ -200,7 +200,7 @@ const ProductEditPage = () => {
   
   const handleImageChange = (images: any[]) => {
     console.log("Images mises à jour:", images);
-    // Les images sont gérées directement par le composant ProductImageUploader
+    // Les images sont gérées directement par le composant ProductImageManager
   };
   
   const handleSetMainImage = async (imageUrl: string) => {
@@ -428,7 +428,7 @@ const ProductEditPage = () => {
             </CardHeader>
             <CardContent>
               {id && (
-                <ProductImageUploader
+                <ProductImageManager
                   productId={id}
                   onChange={handleImageChange}
                   onSetMainImage={handleSetMainImage}

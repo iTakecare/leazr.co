@@ -457,60 +457,61 @@ export const deleteProduct = async (id: string) => {
 
 /**
  * Télécharge une image pour un produit
+ * @param file The image file to upload
+ * @param productId The product ID
+ * @param isMain Whether this is the main product image
+ * @returns The URL of the uploaded image or null if there was an error
  */
-export const uploadProductImage = async (file: File, productId: string, isMainImage = false) => {
+export const uploadProductImage = async (
+  file: File,
+  productId: string,
+  isMain: boolean = false
+): Promise<string | null> => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
+    // Determine file extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     
-    // Get file extension
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}${isMainImage ? '-main' : `-${Date.now()}`}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
+    // Create a unique filename within the product folder
+    const timestamp = Date.now();
+    const fileName = `${isMain ? 'main' : `image-${timestamp}`}.${fileExt}`;
+    const filePath = `products/${productId}/${fileName}`;
     
-    // Check if bucket exists - we know it already exists from your information
-    console.log(`Uploading image to path: ${filePath} in product-images bucket`);
+    // Determine content type
+    let contentType = file.type;
+    if (fileExt === 'webp') contentType = 'image/webp';
     
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file);
+    console.log(`Uploading image: ${filePath} (${contentType})`);
     
-    if (uploadError) {
-      console.error('Error uploading image:', uploadError);
-      throw new Error(uploadError.message);
+    // Upload the file to the storage bucket
+    const { data, error } = await supabase.storage
+      .from('catalog')
+      .upload(filePath, file, {
+        contentType,
+        upsert: true,
+      });
+    
+    if (error) {
+      console.error("Error uploading image:", error);
+      throw error;
     }
     
-    // Get public URL
-    const { data: publicURL } = supabase.storage
-      .from('product-images')
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('catalog')
       .getPublicUrl(filePath);
     
-    // Update product with image URL
-    if (isMainImage) {
-      await supabase.from('products').update({
-        image_url: publicURL.publicUrl
-      }).eq('id', productId);
-    } else {
-      // Get current image_urls array
-      const { data: product } = await supabase.from('products')
-        .select('image_urls')
-        .eq('id', productId)
-        .single();
-      
-      let imageUrls = product?.image_urls || [];
-      if (!Array.isArray(imageUrls)) {
-        imageUrls = [];
-      }
-      
-      // Add new URL and update
-      await supabase.from('products').update({
-        image_urls: [...imageUrls, publicURL.publicUrl]
-      }).eq('id', productId);
+    const imageUrl = publicUrlData.publicUrl;
+    console.log("Image uploaded successfully:", imageUrl);
+    
+    // If this is the main image, update the product
+    if (isMain) {
+      await updateProduct(productId, { image_url: imageUrl });
     }
     
-    return publicURL.publicUrl;
-  } catch (error) {
-    console.error('Error in uploadProductImage:', error);
-    throw error;
+    return imageUrl;
+  } catch (error: any) {
+    console.error(`Error in uploadProductImage:`, error);
+    return null;
   }
 };
 
