@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadImage, listFiles, deleteFile, enforceCorrectMimeType } from "@/services/fileUploadService";
 import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,24 +78,40 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           return;
         }
         
-        // Filter for real files
+        // Filter for real files and create proper image URLs
         const imageFiles = files
           .filter(file => 
             !file.name.startsWith('.') && 
             file.name !== '.emptyFolderPlaceholder'
           )
           .map(file => {
+            // Create a clean timestamp to avoid caching issues
             const timestamp = Date.now();
-            const { publicUrl } = supabase.storage
+            
+            // Get the public URL without any transformation
+            const { data } = supabase.storage
               .from("product-images")
-              .getPublicUrl(`${productId}/${file.name}`).data;
+              .getPublicUrl(`${productId}/${file.name}`);
+            
+            // Make sure we have a valid URL
+            if (!data || !data.publicUrl) {
+              console.error(`Failed to get public URL for ${file.name}`);
+              return null;
+            }
+            
+            // Add the timestamp parameter to bypass cache
+            const publicUrl = data.publicUrl;
+            const urlWithCache = `${publicUrl}?t=${timestamp}`;
+            
+            console.log(`Generated URL for ${file.name}: ${urlWithCache}`);
             
             return {
               name: file.name,
-              url: `${publicUrl}?t=${timestamp}`,
+              url: urlWithCache,
               isMain: false
             };
-          });
+          })
+          .filter(Boolean); // Remove any null entries
         
         console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
         console.log("Images mises à jour:", imageFiles);
@@ -172,10 +187,8 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         console.log(`Uploading with content type: ${contentType}`);
         
         try {
-          // Read file as ArrayBuffer to ensure binary data integrity
+          // Convert the file to a Blob with the correct MIME type
           const arrayBuffer = await file.arrayBuffer();
-          
-          // Create a new Blob with the correct MIME type to ensure proper handling
           const fileBlob = new Blob([arrayBuffer], { type: contentType });
           
           // Direct upload to Supabase with proper content type
@@ -355,10 +368,12 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           {images.map((image, index) => (
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
+                {/* Utiliser directement la source d'image simple avec forçage de rafraîchissement */}
                 <img
                   src={`${image.url}&r=${retryCount}`}
                   alt={`Produit ${index + 1}`}
                   className="object-cover w-full h-full"
+                  loading="lazy"
                   onError={(e) => {
                     console.error(`Failed to load image: ${image.url}`);
                     (e.target as HTMLImageElement).src = "/placeholder.svg";
