@@ -11,7 +11,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
-    // 1. Vérifier si le bucket existe déjà avec l'API directe
+    // 1. Vérifier si le bucket existe déjà
     try {
       const { data: existingBuckets, error: bucketError } = await supabase
         .storage
@@ -33,40 +33,72 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       // Continuer avec les autres méthodes
     }
     
-    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création via RPC`);
-    
-    // 2. Tenter de créer le bucket via la fonction RPC
+    // 2. Si le bucket n'existe pas, essayer de l'appeler directement via l'API Storage REST
     try {
-      const { error: rpcError } = await supabase.rpc('create_storage_bucket', {
-        bucket_name: bucketName
+      console.log(`Le bucket ${bucketName} n'existe pas, tentative de création via API REST`);
+      
+      // Construire l'URL pour créer le bucket
+      const url = `${STORAGE_URL}/bucket/${bucketName}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({
+          id: bucketName,
+          name: bucketName,
+          public: true
+        })
       });
       
-      if (rpcError) {
-        console.warn(`Erreur RPC lors de la création du bucket: ${rpcError.message}`);
-        if (rpcError.message.includes('already exists')) {
-          console.log(`Le bucket ${bucketName} existe déjà (détecté via RPC)`);
-          return true; // Le bucket existe déjà
-        }
-      } else {
-        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
-        
-        // Ajouter un délai pour permettre à Supabase de terminer la création
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (response.ok) {
+        console.log(`Bucket ${bucketName} créé avec succès via API REST`);
         
         // Créer les politiques d'accès pour le nouveau bucket
         await createPublicPolicies(bucketName);
         return true;
+      } else {
+        const errorData = await response.json();
+        
+        // Si le bucket existe déjà, c'est considéré comme un succès
+        if (response.status === 409 || errorData.message?.includes('already exists')) {
+          console.log(`Le bucket ${bucketName} existe déjà (détecté via API REST)`);
+          return true;
+        }
+        
+        console.error(`Erreur lors de la création du bucket via API REST:`, errorData);
       }
-    } catch (rpcException) {
-      console.warn(`Exception RPC: ${rpcException}`);
-      // Continuer avec la méthode directe
+    } catch (restError) {
+      console.warn(`Exception lors de l'appel à l'API REST: ${restError}`);
+      // Continuer avec la méthode suivante
     }
     
-    console.log(`Tentative de création directe du bucket ${bucketName}`);
-    
-    // 3. Essayer de créer directement le bucket si la méthode RPC a échoué
+    // 3. Essayer via l'edge function create-storage-bucket
     try {
-      // Créer le bucket directement
+      console.log(`Tentative de création via l'edge function create-storage-bucket`);
+      const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
+        body: { bucket_name: bucketName }
+      });
+      
+      if (error) {
+        console.error(`Erreur lors de l'appel à la fonction create-storage-bucket:`, error);
+      } else if (data?.success) {
+        console.log(`Bucket ${bucketName} créé avec succès via edge function`);
+        return true;
+      } else if (data?.message?.includes('already exists')) {
+        console.log(`Le bucket ${bucketName} existe déjà (signalé par edge function)`);
+        return true;
+      }
+    } catch (functionError) {
+      console.warn(`Exception lors de l'appel à l'edge function: ${functionError}`);
+    }
+    
+    // 4. Dernière tentative: création directe via l'API Supabase
+    try {
+      console.log(`Tentative de création directe du bucket ${bucketName}`);
+      
       const { data, error: createError } = await supabase.storage.createBucket(bucketName, {
         public: true,
         fileSizeLimit: 52428800 // 50MB
@@ -83,20 +115,12 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
       
       console.log(`Bucket ${bucketName} créé avec succès via API directe`);
-      
-      // Ajouter un délai pour permettre à Supabase de terminer la création
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 4. Créer manuellement les politiques d'accès publiques pour le nouveau bucket
-      await createPublicPolicies(bucketName);
-      
       return true;
     } catch (error) {
       console.error(`Exception lors de la création directe du bucket ${bucketName}:`, error);
       return false;
     }
   } catch (error) {
-    // Capture toutes les erreurs non traitées
     console.error(`Erreur générale dans ensureStorageBucket pour ${bucketName}:`, error);
     return false;
   }
@@ -110,28 +134,34 @@ async function createPublicPolicies(bucketName: string): Promise<void> {
   try {
     console.log(`Création des politiques d'accès pour le bucket ${bucketName}`);
     
-    // Utiliser une API fetch directe pour créer les politiques si nécessaire
-    // Cette méthode est plus fiable que l'API RPC dans certains cas
-    
     const policyTypes = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
     
+    // Utiliser l'API REST pour créer les politiques
     for (const policyType of policyTypes) {
       const policyName = `${bucketName}_public_${policyType.toLowerCase()}`;
       
       try {
-        // Essayer d'abord avec RPC
-        const { error } = await supabase.rpc('create_storage_policy', {
-          bucket_name: bucketName,
-          policy_name: policyName,
-          definition: 'TRUE',
-          policy_type: policyType
+        const url = `${STORAGE_URL}/policies`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({
+            name: policyName,
+            definition: 'TRUE',
+            bucket_id: bucketName,
+            operations: [policyType]
+          })
         });
         
-        if (error) {
-          console.warn(`Erreur lors de la création de la politique ${policyType} via RPC:`, error);
-          // On continue, ce n'est pas bloquant
-        } else {
+        if (response.ok) {
           console.log(`Politique ${policyType} créée avec succès pour ${bucketName}`);
+        } else {
+          const errorData = await response.json();
+          console.warn(`Erreur lors de la création de la politique ${policyType}:`, errorData);
         }
       } catch (error) {
         console.warn(`Exception lors de la création de politique ${policyType}:`, error);

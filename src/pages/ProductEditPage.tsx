@@ -148,20 +148,28 @@ const ProductEditPage = () => {
     const initStorageBucket = async () => {
       try {
         console.log("Vérification/initialisation du bucket product-images");
-        const bucketExists = await ensureStorageBucket("product-images");
-        if (!bucketExists) {
-          console.error("Le bucket product-images n'a pas pu être créé ou vérifié");
-          if (!(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true')) {
-            toast.error("Erreur lors de la préparation du stockage des images");
+        let bucketExists = false;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          console.log(`Tentative ${attempt}/3 d'initialisation du bucket`);
+          bucketExists = await ensureStorageBucket("product-images");
+          
+          if (bucketExists) {
+            console.log("Bucket product-images vérifié avec succès");
+            break;
+          } else {
+            console.error(`Le bucket product-images n'a pas pu être créé à la tentative ${attempt}`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-        } else {
-          console.log("Bucket product-images vérifié avec succès");
+        }
+        
+        if (!bucketExists) {
+          console.error("Le bucket product-images n'a pas pu être créé après plusieurs tentatives");
+          toast.error("Erreur lors de la préparation du stockage des images");
         }
       } catch (error) {
         console.error("Erreur lors de l'initialisation du bucket product-images:", error);
-        if (!(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true')) {
-          toast.error("Erreur lors de la préparation du stockage");
-        }
+        toast.error("Erreur lors de la préparation du stockage des images");
       }
     };
     
@@ -284,15 +292,19 @@ const ProductEditPage = () => {
       setIsUploading(true);
       toast.info(`Téléchargement de l'image ${index + 1}...`);
       
-      const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.DEV;
-      
-      let bucketExists = true;
-      
-      if (!isDemoMode) {
-        bucketExists = await ensureStorageBucket("product-images");
+      let bucketReady = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`Tentative ${attempt}/3 de vérification du bucket product-images`);
+        bucketReady = await ensureStorageBucket("product-images");
+        
+        if (bucketReady) {
+          break;
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
       
-      if (!bucketExists && !isDemoMode) {
+      if (!bucketReady) {
         toast.error("Impossible de créer le bucket pour les images");
         setIsUploading(false);
         return null;
