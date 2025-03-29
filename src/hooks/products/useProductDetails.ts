@@ -1,7 +1,8 @@
+
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, ProductVariationAttributes } from '@/types/catalog';
-import { getProductById, getProducts, findVariantByAttributes } from '@/services/catalogService';
+import { getProductById } from '@/services/catalogService';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useProductDetails(productId: string | null) {
@@ -16,6 +17,8 @@ export function useProductDetails(productId: string | null) {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [duration] = useState(24); // Default lease duration in months
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const imagesLoadedRef = useRef(false);
   
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -51,8 +54,7 @@ export function useProductDetails(productId: string | null) {
         return [];
       }
       
-      // Generate direct public URLs with cache-busting parameters
-      const timestamp = new Date().getTime();
+      // Generate direct public URLs
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
@@ -64,8 +66,7 @@ export function useProductDetails(productId: string | null) {
           return null;
         }
         
-        // Add cache-busting parameter
-        const url = `${data.publicUrl}?t=${timestamp}`;
+        const url = data.publicUrl;
         console.log(`Generated image URL: ${url}`);
         return url;
       }).filter(Boolean) as string[];
@@ -78,13 +79,21 @@ export function useProductDetails(productId: string | null) {
     }
   }, []);
 
-  const getValidImages = useCallback(async (product: Product | null): Promise<string[]> => {
-    if (!product || !productId) return [];
+  const getValidImages = useCallback(async (prod: Product | null): Promise<string[]> => {
+    if (!prod || !productId) return [];
+    
+    // If we already loaded images, don't reload them
+    if (productImages.length > 0 && imagesLoadedRef.current) {
+      console.log("Using cached product images:", productImages);
+      return productImages;
+    }
     
     // Try to load images from Supabase storage first
     const storageImages = await loadProductImages(productId);
     if (storageImages.length > 0) {
       console.log("Using images from storage:", storageImages);
+      setProductImages(storageImages);
+      imagesLoadedRef.current = true;
       return storageImages;
     }
     
@@ -105,24 +114,18 @@ export function useProductDetails(productId: string | null) {
         return false;
       }
       
-      try {
-        new URL(url);
-        return true;
-      } catch (e) {
-        console.error(`Invalid image URL: ${url}`);
-        return false;
-      }
+      return true;
     };
     
     // Check all possible image locations in the product object
-    if (isValidImage(product.image_url as string)) {
-      validImages.push(product.image_url as string);
-      seenUrls.add(product.image_url as string);
+    if (isValidImage(prod.image_url as string)) {
+      validImages.push(prod.image_url as string);
+      seenUrls.add(prod.image_url as string);
     }
     
-    if (isValidImage(product.imageUrl as string) && !seenUrls.has(product.imageUrl as string)) {
-      validImages.push(product.imageUrl as string);
-      seenUrls.add(product.imageUrl as string);
+    if (isValidImage(prod.imageUrl as string) && !seenUrls.has(prod.imageUrl as string)) {
+      validImages.push(prod.imageUrl as string);
+      seenUrls.add(prod.imageUrl as string);
     }
     
     // Check image arrays
@@ -138,13 +141,15 @@ export function useProductDetails(productId: string | null) {
       });
     };
     
-    checkAndAddImages(product.image_urls as any[]);
-    checkAndAddImages(product.imageUrls as any[]);
-    checkAndAddImages(product.images as any[]);
+    checkAndAddImages(prod.image_urls as any[]);
+    checkAndAddImages(prod.imageUrls as any[]);
+    checkAndAddImages(prod.images as any[]);
     
     console.log("Found valid images from product object:", validImages);
+    setProductImages(validImages);
+    imagesLoadedRef.current = true;
     return validImages;
-  }, [productId, loadProductImages]);
+  }, [productId, loadProductImages, productImages]);
 
   useEffect(() => {
     if (isLoading) {
@@ -168,13 +173,18 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
+    // Reset ref when product changes
+    if (productId) {
+      imagesLoadedRef.current = false;
+    }
+    
     const loadImages = async () => {
       const validImages = await getValidImages(data);
       
-      if (validImages.length > 0) {
+      if (validImages.length > 0 && !currentImage) {
         setCurrentImage(validImages[0]);
         console.log("Setting current image to:", validImages[0]);
-      } else {
+      } else if (validImages.length === 0) {
         setCurrentImage(null);
         console.log("No valid images found for product");
       }
@@ -234,7 +244,7 @@ export function useProductDetails(productId: string | null) {
       });
       setSelectedOptions(defaultOptions);
     }
-  }, [data, isLoading, isError, productId, getValidImages]);
+  }, [data, isLoading, isError, productId, getValidImages, currentImage]);
   
   const handleOptionChange = (attributeName: string, value: string) => {
     setSelectedOptions(prev => ({
@@ -312,19 +322,7 @@ export function useProductDetails(productId: string | null) {
     setIsRequestFormOpen,
     isLoading: loading,
     getValidImages,
-    loadProductImages
-  };
-}
-
-export function useProductsList() {
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(),
-  });
-
-  return {
-    products: data || [],
-    loading: isLoading,
-    error: isError ? error || 'Failed to fetch products' : null,
+    loadProductImages,
+    productImages
   };
 }

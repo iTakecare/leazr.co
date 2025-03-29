@@ -11,6 +11,12 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
   try {
     console.log(`Vérification/création du bucket de stockage: ${bucketName}`);
     
+    // Cache des buckets existants pour éviter des appels répétés
+    if ((window as any).__existingBuckets && (window as any).__existingBuckets[bucketName]) {
+      console.log(`Le bucket ${bucketName} existe déjà (depuis le cache)`);
+      return true;
+    }
+    
     // 1. Vérifier si le bucket existe déjà
     try {
       const { data: existingBuckets, error: bucketError } = await supabase
@@ -24,6 +30,11 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         
         if (bucketExists) {
           console.log(`Le bucket ${bucketName} existe déjà`);
+          // Mettre en cache pour les appels futurs
+          if (typeof window !== "undefined") {
+            (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+            (window as any).__existingBuckets[bucketName] = true;
+          }
           return true;
         }
       }
@@ -40,6 +51,10 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       
       if (!rpcError) {
         console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+        if (typeof window !== "undefined") {
+          (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+          (window as any).__existingBuckets[bucketName] = true;
+        }
         return true;
       } else {
         console.error(`Erreur lors de l'appel à la fonction RPC:`, rpcError);
@@ -59,9 +74,17 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         console.error(`Erreur lors de l'appel à la fonction create-storage-bucket:`, error);
       } else if (data?.success) {
         console.log(`Bucket ${bucketName} créé avec succès via edge function`);
+        if (typeof window !== "undefined") {
+          (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+          (window as any).__existingBuckets[bucketName] = true;
+        }
         return true;
       } else if (data?.message?.includes('already exists')) {
         console.log(`Le bucket ${bucketName} existe déjà (signalé par edge function)`);
+        if (typeof window !== "undefined") {
+          (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+          (window as any).__existingBuckets[bucketName] = true;
+        }
         return true;
       }
     } catch (functionError) {
@@ -80,6 +103,10 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       if (createError) {
         if (createError.message && createError.message.includes('already exists')) {
           console.log(`Le bucket ${bucketName} existe déjà (détecté via erreur de création)`);
+          if (typeof window !== "undefined") {
+            (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+            (window as any).__existingBuckets[bucketName] = true;
+          }
           return true;
         }
         
@@ -94,9 +121,17 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
           
           if (!adminError) {
             console.log(`Bucket ${bucketName} créé avec succès via admin API`);
+            if (typeof window !== "undefined") {
+              (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+              (window as any).__existingBuckets[bucketName] = true;
+            }
             return true;
           } else if (adminError.message?.includes('already exists')) {
             console.log(`Le bucket ${bucketName} existe déjà (via admin API)`);
+            if (typeof window !== "undefined") {
+              (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+              (window as any).__existingBuckets[bucketName] = true;
+            }
             return true;
           } else {
             console.error(`Échec de la création via admin API: ${adminError.message}`);
@@ -109,6 +144,10 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
       
       console.log(`Bucket ${bucketName} créé avec succès via API directe`);
+      if (typeof window !== "undefined") {
+        (window as any).__existingBuckets = (window as any).__existingBuckets || {};
+        (window as any).__existingBuckets[bucketName] = true;
+      }
       
       // Create public access policies
       try {
@@ -258,6 +297,24 @@ export async function downloadAndStoreImage(imageUrl: string, bucketName: string
     console.error(`Erreur générale dans downloadAndStoreImage:`, error);
     toast.error("Erreur lors du traitement de l'image");
     return null;
+  }
+}
+
+/**
+ * Obtient une URL d'image avec cache-busting
+ */
+export function getImageUrlWithCacheBuster(url: string | null): string {
+  if (!url) return "/placeholder.svg";
+  
+  try {
+    // Nettoyer l'URL en supprimant les paramètres existants
+    const baseUrl = url.split('?')[0];
+    
+    // Ajouter un timestamp comme paramètre de cache-busting
+    return `${baseUrl}?t=${Date.now()}`;
+  } catch (error) {
+    console.error("Erreur lors de la génération de l'URL avec cache-busting:", error);
+    return url;
   }
 }
 

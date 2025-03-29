@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, ZoomIn } from "lucide-react";
 
 interface ProductImageDisplayProps {
@@ -13,9 +13,50 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   altText,
   imageUrls = []
 }) => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [allImages, setAllImages] = useState<string[]>([]);
+  const imageProcessedRef = useRef(false);
+  const initialRenderRef = useRef(true);
+  
   // Filter valid images and deduplicate them
-  const filterValidImages = (urls: string[]): string[] => {
-    // Create a set to deduplicate images (convert to Set and back to Array)
+  useEffect(() => {
+    // Skip if we've already processed the images with the same inputs
+    if (imageProcessedRef.current && !initialRenderRef.current) {
+      return;
+    }
+    
+    initialRenderRef.current = false;
+    imageProcessedRef.current = true;
+    
+    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
+    
+    // Helper function to check if an image URL is valid
+    const isValidImageUrl = (url: string | null | undefined): boolean => {
+      if (!url || typeof url !== 'string' || url.trim() === '') {
+        return false;
+      }
+      
+      if (url === '/placeholder.svg') {
+        return false;
+      }
+      
+      // Exclude placeholder or hidden files
+      if (
+        url.includes('.emptyFolderPlaceholder') || 
+        url.split('/').pop()?.startsWith('.') ||
+        url.includes('undefined') ||
+        url.endsWith('/')
+      ) {
+        return false;
+      }
+      
+      return true;
+    };
+    
+    // Create a set to deduplicate images
     const uniqueUrlsSet = new Set<string>();
     
     // Add main image if valid
@@ -24,101 +65,44 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     }
     
     // Add additional images if valid
-    if (Array.isArray(urls)) {
-      urls.forEach(url => {
+    if (Array.isArray(imageUrls)) {
+      imageUrls.forEach(url => {
         if (isValidImageUrl(url)) {
-          uniqueUrlsSet.add(url);
+          // Remove any existing timestamp parameters to avoid duplicates
+          const baseUrl = url.split('?')[0];
+          uniqueUrlsSet.add(baseUrl);
         }
       });
     }
     
     // Convert set back to array
-    return Array.from(uniqueUrlsSet);
-  };
-  
-  // Helper function to check if an image URL is valid
-  const isValidImageUrl = (url: string | null | undefined): boolean => {
-    if (!url || typeof url !== 'string' || url.trim() === '') {
-      return false;
-    }
+    const validImages = Array.from(uniqueUrlsSet);
+    console.log("ProductImageDisplay - Valid images:", validImages);
     
-    if (url === '/placeholder.svg') {
-      return false;
-    }
+    setAllImages(validImages);
     
-    // Exclude placeholder or hidden files
-    if (
-      url.includes('.emptyFolderPlaceholder') || 
-      url.split('/').pop()?.startsWith('.') ||
-      url.includes('undefined') ||
-      url.endsWith('/')
-    ) {
-      return false;
-    }
-    
-    // Try to validate as URL
-    try {
-      new URL(url);
-      return true;
-    } catch (e) {
-      console.error(`Invalid URL: ${url}`);
-      return false;
-    }
-  };
-
-  // Use imageUrl as the default, then add any additional valid images from imageUrls
-  const allImages = filterValidImages([imageUrl, ...(imageUrls || [])]);
-
-  const [selectedImage, setSelectedImage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  console.log("ProductImageDisplay - Available images:", allImages);
-  
-  // Set the first image as the selected image on component mount or when images change
-  useEffect(() => {
-    if (allImages.length > 0) {
-      setSelectedImage(allImages[0]);
+    // If we have images, set the first one as selected
+    if (validImages.length > 0) {
+      setSelectedImage(validImages[0]);
       setCurrentIndex(0);
       setIsLoading(true);
-      console.log("ProductImageDisplay - Setting initial image:", allImages[0]);
     } else {
       setSelectedImage('/placeholder.svg');
       setIsLoading(false);
       setHasError(true);
     }
-  }, [allImages, imageUrl, imageUrls]);
-  
-  // Pre-load the first image
-  useEffect(() => {
-    if (allImages.length > 0) {
-      const img = new Image();
-      img.src = addTimestamp(allImages[0]);
-      img.onload = () => {
-        setIsLoading(false);
-        setHasError(false);
-        console.log("ProductImageDisplay - Image loaded successfully:", allImages[0]);
-      };
-      img.onerror = () => {
-        setIsLoading(false);
-        setHasError(true);
-        console.error("ProductImageDisplay - Failed to load image:", allImages[0]);
-      };
-    }
-  }, [allImages]);
+  }, [imageUrl, imageUrls]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
-    console.log("ProductImageDisplay - Image loaded:", selectedImage);
+    console.log("ProductImageDisplay - Image loaded successfully:", selectedImage);
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
     console.error("ProductImageDisplay - Error loading image:", selectedImage);
-    (e.target as HTMLImageElement).src = "/placeholder.svg";
   };
   
   const handleThumbnailClick = (url: string, index: number) => {
@@ -153,8 +137,8 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     
     try {
       // Add a timestamp query parameter to prevent caching
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${new Date().getTime()}`;
+      const baseUrl = url.split('?')[0]; // Remove any existing query params
+      return `${baseUrl}?t=${new Date().getTime()}`;
     } catch (e) {
       return "/placeholder.svg";
     }
@@ -189,9 +173,9 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
         <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
           {allImages.map((url, index) => (
             <button
-              key={index}
+              key={`thumb-${index}-${url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))}`}
               className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
-                ${selectedImage === url ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
+                ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
                 overflow-hidden flex-shrink-0`}
               onClick={() => handleThumbnailClick(url, index)}
             >
@@ -203,7 +187,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
                   (e.target as HTMLImageElement).src = "/placeholder.svg";
                 }}
               />
-              {selectedImage === url && (
+              {currentIndex === index && (
                 <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
               )}
             </button>
@@ -216,20 +200,22 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden transition-all hover:shadow-md relative group">
           <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
             {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                 <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
               </div>
             )}
-            <img 
-              src={addTimestamp(selectedImage)} 
-              alt={altText}
-              className={`max-w-full max-h-full object-contain transition-all duration-300 
-                ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
+            {selectedImage && (
+              <img 
+                src={addTimestamp(selectedImage)} 
+                alt={altText}
+                className={`max-w-full max-h-full object-contain transition-all duration-300 
+                  ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+              />
+            )}
             {hasError && (
-              <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
+              <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded z-20">
                 Image non disponible
               </div>
             )}
