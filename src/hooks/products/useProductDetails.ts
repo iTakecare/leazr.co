@@ -51,7 +51,8 @@ export function useProductDetails(productId: string | null) {
         return [];
       }
       
-      // Generate direct public URLs without cache-busting parameters
+      // Generate direct public URLs with cache-busting parameters
+      const timestamp = new Date().getTime();
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
@@ -63,7 +64,8 @@ export function useProductDetails(productId: string | null) {
           return null;
         }
         
-        const url = data.publicUrl;
+        // Add cache-busting parameter
+        const url = `${data.publicUrl}?t=${timestamp}`;
         console.log(`Generated image URL: ${url}`);
         return url;
       }).filter(Boolean) as string[];
@@ -103,23 +105,24 @@ export function useProductDetails(productId: string | null) {
         return false;
       }
       
-      return true;
-    };
-    
-    // Clean up URL for comparison
-    const normalizeUrl = (url: string): string => {
-      return url.replace(/([^:])\/\/+/g, '$1/').split('?')[0];
+      try {
+        new URL(url);
+        return true;
+      } catch (e) {
+        console.error(`Invalid image URL: ${url}`);
+        return false;
+      }
     };
     
     // Check all possible image locations in the product object
     if (isValidImage(product.image_url as string)) {
       validImages.push(product.image_url as string);
-      seenUrls.add(normalizeUrl(product.image_url as string));
+      seenUrls.add(product.image_url as string);
     }
     
-    if (isValidImage(product.imageUrl as string) && !seenUrls.has(normalizeUrl(product.imageUrl as string))) {
+    if (isValidImage(product.imageUrl as string) && !seenUrls.has(product.imageUrl as string)) {
       validImages.push(product.imageUrl as string);
-      seenUrls.add(normalizeUrl(product.imageUrl as string));
+      seenUrls.add(product.imageUrl as string);
     }
     
     // Check image arrays
@@ -128,9 +131,9 @@ export function useProductDetails(productId: string | null) {
       
       images.forEach(img => {
         const imgUrl = typeof img === 'string' ? img : (img?.src || '');
-        if (isValidImage(imgUrl) && !seenUrls.has(normalizeUrl(imgUrl))) {
+        if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
           validImages.push(imgUrl);
-          seenUrls.add(normalizeUrl(imgUrl));
+          seenUrls.add(imgUrl);
         }
       });
     };

@@ -36,72 +36,71 @@ export async function uploadImage(
     fileName = `${timestamp}-${fileName}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    // Determine proper MIME type using the proper extension
-    let contentType = 'application/octet-stream'; // default fallback
+    // Use FormData for correct content-type handling
+    const formData = new FormData();
+    formData.append('file', file);
     
-    if (extension === 'png') contentType = 'image/png';
-    else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
-    else if (extension === 'gif') contentType = 'image/gif';
-    else if (extension === 'webp') contentType = 'image/webp';
-    else if (extension === 'svg') contentType = 'image/svg+xml';
-    else if (file.type.startsWith('image/')) contentType = file.type;
-    
-    console.log(`Normalized filename: ${fileName}, detected MIME type: ${contentType}`);
-    
-    // Create a Blob from the file with explicit MIME type
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([arrayBuffer], { type: contentType });
-    
-    console.log(`Uploading ${fileName} with explicit content-type: ${contentType}, Blob type: ${fileBlob.type}`);
-    
-    // Upload with explicit contentType
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, fileBlob, {
-        contentType: contentType,
-        cacheControl: '3600',
-        upsert: true
-      });
-    
-    if (error) {
-      console.error('Error uploading image:', error);
-      toast.error(`Erreur lors de l'upload: ${error.message}`);
-      
-      // If error is about an object that already exists, try with a different name
-      if (error.message.includes('already exists')) {
-        const newFileName = `${timestamp}-${Math.floor(Math.random() * 10000)}-${fileName}`;
-        const newFilePath = folderPath ? `${folderPath}/${newFileName}` : newFileName;
-        
-        console.log(`Retrying with new filename: ${newFileName}`);
-        
-        const { error: retryError } = await supabase.storage
-          .from(bucketName)
-          .upload(newFilePath, fileBlob, {
-            contentType: contentType,
-            cacheControl: '3600',
-            upsert: false
-          });
-          
-        if (retryError) {
-          console.error('Error in retry upload:', retryError);
-          return null;
-        }
-        
-        // Get URL for the successful retry
-        const { data: retryUrlData } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(newFilePath);
-          
-        return retryUrlData?.publicUrl || null;
+    // Using direct Fetch API for better control over content-type
+    const fetchResponse = await fetch(
+      `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: formData
       }
+    );
+    
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      console.error('Error uploading using fetch:', errorText);
       
-      return null;
+      // Fall back to traditional supabase upload method as backup
+      console.log('Falling back to traditional upload method');
+      
+      // Determine proper MIME type using the proper extension
+      let contentType = 'application/octet-stream'; // default fallback
+      
+      if (extension === 'png') contentType = 'image/png';
+      else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+      else if (extension === 'gif') contentType = 'image/gif';
+      else if (extension === 'webp') contentType = 'image/webp';
+      else if (extension === 'svg') contentType = 'image/svg+xml';
+      else if (file.type.startsWith('image/')) contentType = file.type;
+      
+      // Create a new File object with the correct MIME type
+      const newFile = new File([await file.arrayBuffer()], fileName, {
+        type: contentType
+      });
+      
+      console.log(`Using explicit File with content-type: ${newFile.type}`);
+      
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, newFile, {
+          contentType: contentType,
+          upsert: true
+        });
+        
+      if (error) {
+        console.error('Error in fallback upload:', error);
+        toast.error(`Erreur lors de l'upload: ${error.message}`);
+        return null;
+      }
+    } else {
+      console.log('Upload successful using fetch API');
     }
     
-    // Get public URL
+    // Generate public URL
     const { data } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
+    
+    if (!data || !data.publicUrl) {
+      console.error('Failed to get public URL');
+      return null;
+    }
     
     console.log(`Uploaded image: ${data.publicUrl}`);
     return data.publicUrl;

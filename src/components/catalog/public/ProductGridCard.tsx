@@ -32,18 +32,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
-  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
-    const url = getProductImage();
-    
-    setImageUrl(url);
+    setImageUrl(getProductImage());
     setIsLoading(true);
     setHasError(false);
-    
-    // Pas de préchargement d'image pour éviter les erreurs CORS
-    // Laisser l'élément img gérer le chargement directement
-  }, [product, retryCount]);
+  }, [product]);
   
   if (product.is_variation || product.parent_id) {
     return null;
@@ -54,28 +48,34 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const getMinimumMonthlyPrice = (): number => {
     let minPrice = product.monthly_price || 0;
     
-    if (Array.isArray(product?.variant_combination_prices) && product.variant_combination_prices.length > 0) {
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
-        .map(v => v.monthly_price || 0)
-        .filter(p => p > 0);
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
+        console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
+          console.log(`Using combination price: ${minPrice}`);
         }
       }
     }
     
     else if (product.variants && product.variants.length > 0) {
+      console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
+        console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
+          console.log(`Using variant price: ${minPrice}`);
         }
       }
     }
@@ -146,6 +146,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   const countExistingVariants = (): number => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
       return product.variant_combination_prices.length;
     }
     
@@ -167,6 +168,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
       (product.variants && product.variants.length > 0);
     
+    console.log(`Product ${product.name}: hasVariants = ${result}`);
+    console.log(`- is_parent: ${product.is_parent}`);
+    console.log(`- has variant_combination_prices: ${product.variant_combination_prices?.length > 0}`);
+    console.log(`- has variation_attributes: ${product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0}`);
+    console.log(`- has variants: ${product.variants?.length > 0}`);
+    
     return result;
   };
   
@@ -183,24 +190,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    
-    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
-      setRetryCount(prev => prev + 1);
-    }
+    console.error(`Failed to load product image for ${product.name}: ${imageUrl}`);
   };
 
   const addTimestamp = (url: string): string => {
     if (!url || url === "/placeholder.svg") return "/placeholder.svg";
     
-    // Clean any existing timestamp
-    let cleanUrl = url;
-    if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
-      cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
-    }
-    
-    // Add new timestamp
-    const separator = cleanUrl.includes('?') ? '&' : '?';
-    return `${cleanUrl}${separator}t=${Date.now()}&r=${retryCount}`;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${new Date().getTime()}`;
   };
 
   return (
@@ -215,16 +212,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           </div>
         )}
         
-        {!hasError && (
-          <img 
-            src={addTimestamp(imageUrl)} 
-            alt={product.name} 
-            className="absolute inset-0 object-contain w-full h-full p-5"
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            loading="lazy"
-          />
-        )}
+        <img 
+          src={addTimestamp(imageUrl)} 
+          alt={product.name} 
+          className="absolute inset-0 object-contain w-full h-full p-5"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          style={{ display: hasError ? 'none' : 'block' }}
+        />
         
         {hasError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
