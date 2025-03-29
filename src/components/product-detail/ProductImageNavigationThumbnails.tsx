@@ -33,7 +33,6 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   }
   
   const handleImageError = (index: number) => {
-    console.error(`ProductImageNavigationThumbnails: Thumbnail ${index} failed to load:`, images[index]);
     setImageErrors(prev => ({
       ...prev,
       [index]: true
@@ -59,7 +58,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
         
         return (
           <button
-            key={`thumb-${index}-${imageUrl}`}
+            key={`thumb-${index}-${index}`}
             className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
               ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
               overflow-hidden flex-shrink-0`}
@@ -77,6 +76,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
               className="w-full h-full object-cover object-center"
               onError={() => handleImageError(index)}
               onLoad={() => handleImageLoad(index)}
+              loading="lazy"
             />
             
             {currentIndex === index && (

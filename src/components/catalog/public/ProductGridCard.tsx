@@ -36,37 +36,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   
   useEffect(() => {
     const url = getProductImage();
-    console.log(`ProductGridCard: Loading image for ${product.name}:`, url);
     
     setImageUrl(url);
     setIsLoading(true);
     setHasError(false);
     
-    // Précharger l'image
-    const img = new Image();
-    img.src = addTimestamp(url);
-    
-    img.onload = () => {
-      setIsLoading(false);
-      setHasError(false);
-    };
-    
-    img.onerror = () => {
-      console.error(`Failed to load product image for ${product.name}: ${url}`);
-      setIsLoading(false);
-      setHasError(true);
-      
-      if (retryCount < 3 && url !== "/placeholder.svg") {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 500);
-      }
-    };
-    
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
+    // Pas de préchargement d'image pour éviter les erreurs CORS
+    // Laisser l'élément img gérer le chargement directement
   }, [product, retryCount]);
   
   if (product.is_variation || product.parent_id) {
@@ -79,33 +55,27 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     let minPrice = product.monthly_price || 0;
     
     if (Array.isArray(product?.variant_combination_prices) && product.variant_combination_prices.length > 0) {
-      console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
         .map(v => v.monthly_price || 0)
         .filter(p => p > 0);
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
-        console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
-          console.log(`Using combination price: ${minPrice}`);
         }
       }
     }
     
     else if (product.variants && product.variants.length > 0) {
-      console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
-        console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
-          console.log(`Using variant price: ${minPrice}`);
         }
       }
     }
@@ -176,7 +146,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   const countExistingVariants = (): number => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
       return product.variant_combination_prices.length;
     }
     
@@ -214,9 +183,8 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    console.error(`Failed to load product image for ${product.name}: ${imageUrl}`);
     
-    if (retryCount < 3 && imageUrl !== "/placeholder.svg") {
+    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
       setRetryCount(prev => prev + 1);
     }
   };
@@ -232,7 +200,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     
     // Add new timestamp
     const separator = cleanUrl.includes('?') ? '&' : '?';
-    return `${cleanUrl}${separator}t=${new Date().getTime()}&r=${retryCount}`;
+    return `${cleanUrl}${separator}t=${Date.now()}&r=${retryCount}`;
   };
 
   return (
@@ -254,6 +222,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             className="absolute inset-0 object-contain w-full h-full p-5"
             onLoad={handleImageLoad}
             onError={handleImageError}
+            loading="lazy"
           />
         )}
         

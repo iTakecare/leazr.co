@@ -36,147 +36,59 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           return;
         }
         
-        // Ensure product-images bucket exists
-        try {
-          const { data: buckets } = await supabase.storage.listBuckets();
-          if (!buckets?.some(bucket => bucket.name === 'product-images')) {
-            console.log("Creating product-images bucket");
-            await supabase.storage.createBucket('product-images', { public: true });
-          }
-        } catch (err) {
-          console.warn("Error checking/creating product-images bucket:", err);
-          // Continue anyway, might work with existing images
-        }
-        
         // Vérifier d'abord si le produit a déjà une URL d'image définie
         if (product.image_url && typeof product.image_url === 'string' && 
             product.image_url !== "/placeholder.svg" && 
             !product.image_url.includes('undefined')) {
           
-          // Nettoyage des paramètres existants pour éviter les duplications
+          // Ajouter un timestamp unique
+          const timestamp = new Date().getTime();
           let cleanUrl = product.image_url;
+          
+          // Nettoyage des paramètres existants pour éviter les duplications
           if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
             cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
           }
           
-          // Ajouter un timestamp unique
-          const timestamp = new Date().getTime();
           const separator = cleanUrl.includes('?') ? '&' : '?';
           const url = `${cleanUrl}${separator}t=${timestamp}&r=${retryCount}`;
           
-          console.log(`Using product.image_url: ${url}`);
           setImageUrl(url);
           setIsLoading(false);
           loadingRef.current = false;
-          
-          // Précharger l'image pour vérifier qu'elle est valide
-          const img = new Image();
-          img.src = url;
-          img.onload = () => setHasError(false);
-          img.onerror = () => {
-            console.error(`Failed to load image from URL: ${url}`);
-            fallbackToStorageImage();
-          };
           return;
-        } else {
-          fallbackToStorageImage();
-        }
+        } 
         
-        async function fallbackToStorageImage() {
-          // Essayer de charger à partir du stockage
-          console.log(`Loading image for product ${product.id} from storage`);
-          try {
-            const { data: files, error } = await supabase
-              .storage
-              .from("product-images")
-              .list(product.id);
-              
-            if (!error && files && files.length > 0) {
-              const imageFiles = files.filter(file => 
-                !file.name.startsWith('.') && 
-                file.name !== '.emptyFolderPlaceholder' && 
-                !file.name.endsWith('/')
-              );
-              
-              if (imageFiles.length > 0) {
-                const { data } = supabase
-                  .storage
-                  .from("product-images")
-                  .getPublicUrl(`${product.id}/${imageFiles[0].name}`);
-                  
-                if (data?.publicUrl) {
-                  const timestamp = new Date().getTime();
-                  const url = `${data.publicUrl}?t=${timestamp}&r=${retryCount}`;
-                  console.log(`Using storage image: ${url}`);
-                  
-                  // Précharger l'image
-                  const img = new Image();
-                  img.src = url;
-                  img.onload = () => {
-                    setImageUrl(url);
-                    setIsLoading(false);
-                    setHasError(false);
-                    loadingRef.current = false;
-                  };
-                  img.onerror = () => {
-                    checkOtherImageSources();
-                  };
-                  return;
-                }
-              }
-            }
-            checkOtherImageSources();
-          } catch (err) {
-            console.error("Error loading from storage:", err);
-            checkOtherImageSources();
-          }
-        }
-        
-        function checkOtherImageSources() {
-          // Vérifier les autres URLs possibles
-          if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-            const validUrls = product.image_urls.filter(url => 
-              url && typeof url === 'string' && url.trim() !== '' && 
-              !url.includes('.emptyFolderPlaceholder') && !url.includes('undefined')
-            );
-            
-            if (validUrls.length > 0) {
-              let cleanUrl = validUrls[0];
-              if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
-                cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
-              }
-              
-              const timestamp = new Date().getTime();
-              const separator = cleanUrl.includes('?') ? '&' : '?';
-              const url = `${cleanUrl}${separator}t=${timestamp}&r=${retryCount}`;
-              
-              console.log(`Using product.image_urls[0]: ${url}`);
-              
-              const img = new Image();
-              img.src = url;
-              img.onload = () => {
-                setImageUrl(url);
-                setIsLoading(false);
-                setHasError(false);
-                loadingRef.current = false;
-              };
-              img.onerror = () => {
-                useDefaultPlaceholder();
-              };
-              return;
-            }
-          }
+        // Essayer d'utiliser les autres URLs d'image disponibles
+        if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+          const validUrls = product.image_urls.filter(url => 
+            url && typeof url === 'string' && url.trim() !== '' && 
+            !url.includes('.emptyFolderPlaceholder') && !url.includes('undefined')
+          );
           
-          useDefaultPlaceholder();
+          if (validUrls.length > 0) {
+            let cleanUrl = validUrls[0];
+            if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
+              cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
+            }
+            
+            const timestamp = new Date().getTime();
+            const separator = cleanUrl.includes('?') ? '&' : '?';
+            const url = `${cleanUrl}${separator}t=${timestamp}&r=${retryCount}`;
+            
+            setImageUrl(url);
+            setIsLoading(false);
+            setHasError(false);
+            loadingRef.current = false;
+            return;
+          }
         }
         
-        function useDefaultPlaceholder() {
-          console.log("No valid image found, using placeholder");
-          setImageUrl("/placeholder.svg");
-          setIsLoading(false);
-          setHasError(true);
-          loadingRef.current = false;
-        }
+        // Si aucune image n'est trouvée, utiliser le placeholder
+        setImageUrl("/placeholder.svg");
+        setIsLoading(false);
+        setHasError(true);
+        loadingRef.current = false;
         
       } catch (err) {
         console.error("Error in image loading process:", err);
@@ -195,21 +107,18 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   }, [product, retryCount]);
   
   const handleImageLoad = () => {
-    console.log(`Successfully loaded image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(false);
     loadingRef.current = false;
   };
   
   const handleImageError = () => {
-    console.error(`Failed to load image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(true);
     loadingRef.current = false;
     
     if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
       setTimeout(() => {
-        console.log(`Retrying image load (attempt ${retryCount + 1})`);
         setRetryCount(count => count + 1);
       }, 500);
     } else {

@@ -26,45 +26,35 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
       return;
     }
     
-    // Apply timestamp for cache busting
-    const timestampedUrl = addTimestamp(imageUrl);
-    setFinalImageUrl(timestampedUrl);
+    // Réinitialiser l'état lors du changement d'URL
     setIsLoading(true);
     setHasError(false);
     
-    // Preload the image
-    const img = new Image();
-    img.src = timestampedUrl;
+    // Apply timestamp for cache busting
+    const timestampedUrl = addTimestamp(imageUrl);
+    setFinalImageUrl(timestampedUrl);
     
-    const handleLoad = () => {
+    // Ne pas précharger l'image pour éviter les erreurs CORS
+    // Laisser l'élément img gérer le chargement directement
+  }, [imageUrl, addTimestamp]);
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+    setHasError(false);
+  };
+  
+  const handleImageError = () => {
+    // Si erreur après trop de tentatives, montrer le placeholder
+    if (retryCount >= 2) {
       setIsLoading(false);
-      setHasError(false);
-    };
-    
-    const handleError = () => {
-      console.error("ProductMainImage - Error loading image:", imageUrl);
-      
-      // Try again up to 3 times
-      if (retryCount < 3) {
-        setRetryCount(count => count + 1);
-        const newTimestampedUrl = `${timestampedUrl}&retry=${retryCount + 1}`;
-        img.src = newTimestampedUrl; 
-        setFinalImageUrl(newTimestampedUrl);
-      } else {
-        setIsLoading(false);
-        setHasError(true);
-        setFinalImageUrl("/placeholder.svg");
-      }
-    };
-    
-    img.onload = handleLoad;
-    img.onerror = handleError;
-    
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [imageUrl, addTimestamp, retryCount]);
+      setHasError(true);
+      setFinalImageUrl("/placeholder.svg");
+    } else {
+      // Sinon, réessayer avec un nouveau timestamp
+      setRetryCount(prev => prev + 1);
+      setFinalImageUrl(`${addTimestamp(imageUrl)}&retry=${retryCount + 1}`);
+    }
+  };
 
   return (
     <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
@@ -79,13 +69,9 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
         alt={altText}
         className={`max-w-full max-h-full object-contain transition-all duration-300 
           ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          console.error("Fallback error handler - Image failed to load:", imageUrl);
-          setIsLoading(false);
-          setHasError(true);
-          setFinalImageUrl("/placeholder.svg");
-        }}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        loading="lazy"
       />
       
       {hasError && (
