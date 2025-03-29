@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { uploadImage } from '@/utils/imageUtils';
+import { ensureStorageBucket } from '@/services/storageService';
 import { toast } from "sonner";
 
 interface AvatarUploaderProps {
@@ -33,12 +34,24 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
+      // First ensure the bucket exists and is public
+      const bucketExists = await ensureStorageBucket(bucketName);
+      if (!bucketExists) {
+        toast.error(`Le bucket ${bucketName} n'a pas pu être créé ou accédé`);
+        setIsUploading(false);
+        return;
+      }
+      
       // Use uploadImage from imageUtils
       const result = await uploadImage(file, bucketName, folderPath);
       
       if (result) {
         // Make sure URL doesn't have double slashes in path segments
         let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
+        
+        // Add cache-busting parameter to ensure the new image is displayed
+        cleanUrl = `${cleanUrl}?t=${Date.now()}`;
+        
         setImageUrl(cleanUrl);
         
         if (onImageUploaded) {
@@ -59,7 +72,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="w-24 h-24">
-        <AvatarImage src={imageUrl} />
+        <AvatarImage src={imageUrl} alt="Uploaded avatar" />
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
       </Avatar>
       

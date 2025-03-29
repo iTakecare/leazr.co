@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getImageUrlWithCacheBuster } from "@/services/storageService";
 
 interface LogoProps {
   className?: string;
@@ -41,6 +42,8 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           let cleanLogoUrl = null;
           if (data.logo_url) {
             cleanLogoUrl = data.logo_url.replace(/\/\/([^\/])/g, '/$1');
+            // Add cache-busting parameter to ensure fresh image
+            cleanLogoUrl = `${cleanLogoUrl}?t=${Date.now()}`;
           }
           
           setLogoUrl(cleanLogoUrl);
@@ -56,6 +59,23 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     };
     
     fetchSiteSettings();
+    
+    // Set up a subscription to site_settings changes
+    const siteSettingsSubscription = supabase
+      .channel('site_settings_changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'site_settings' },
+        () => {
+          console.log('Site settings updated, refreshing logo');
+          fetchSiteSettings();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(siteSettingsSubscription);
+    };
   }, []);
   
   // Generate user initials or use IT by default
