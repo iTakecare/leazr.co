@@ -118,7 +118,7 @@ const GeneralSettings = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Paramètres généraux</CardTitle>
+        <CardTitle>Configuration générale</CardTitle>
         <CardDescription>
           Configurez les informations générales de votre application
         </CardDescription>
@@ -215,7 +215,7 @@ const GeneralSettings = () => {
                 folderPath="logos"
               />
               <p className="text-xs text-muted-foreground mt-4 text-center">
-                Téléchargez une image au format PNG, JPG ou WebP pour votre logo.
+                Formats acceptés : PNG, JPG ou WebP
               </p>
             </div>
           </div>

@@ -34,9 +34,9 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
-      console.log(`Attempting to upload to bucket: ${bucketName}`);
+      console.log(`Tentative d'upload vers le bucket: ${bucketName}`);
       
-      // First ensure the bucket exists and is public
+      // S'assurer que le bucket existe et est public
       const bucketExists = await ensureStorageBucket(bucketName);
       if (!bucketExists) {
         toast.error(`Le bucket ${bucketName} n'a pas pu être créé ou accédé`);
@@ -44,17 +44,38 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         return;
       }
       
-      // Use uploadImage from imageUtils
-      const result = await uploadImage(file, bucketName, folderPath);
+      // Créer un nouveau File avec le bon type MIME
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+      let contentType = file.type;
+      
+      if (!contentType.startsWith('image/')) {
+        switch (fileExt) {
+          case 'png': contentType = 'image/png'; break;
+          case 'jpg':
+          case 'jpeg': contentType = 'image/jpeg'; break;
+          case 'gif': contentType = 'image/gif'; break;
+          case 'webp': contentType = 'image/webp'; break;
+          default: contentType = 'image/jpeg';
+        }
+      }
+      
+      // Créer un nouveau File avec le type MIME correct
+      const newFile = new File([file], file.name, {
+        type: contentType,
+        lastModified: file.lastModified
+      });
+      
+      // Upload l'image avec le bon type MIME
+      const result = await uploadImage(newFile, bucketName, folderPath);
       
       if (result) {
-        // Make sure URL doesn't have double slashes in path segments
+        // S'assurer que l'URL n'a pas de doubles slashes
         let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
         
-        // Add cache-busting parameter
+        // Ajouter le paramètre de cache-busting
         cleanUrl = `${cleanUrl}?t=${Date.now()}`;
         
-        console.log("Image uploaded successfully:", cleanUrl);
+        console.log("Image uploadée avec succès:", cleanUrl);
         setImageUrl(cleanUrl);
         
         if (onImageUploaded) {
@@ -78,8 +99,8 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         {imageUrl ? (
           <AvatarImage 
             src={imageUrl} 
-            alt="Uploaded avatar" 
-            onError={() => console.error("Error loading image:", imageUrl)} 
+            alt="Avatar téléchargé" 
+            onError={() => console.error("Erreur de chargement de l'image:", imageUrl)} 
           />
         ) : null}
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
