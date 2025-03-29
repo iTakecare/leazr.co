@@ -15,9 +15,16 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   addTimestamp
 }) => {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+  const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({}); 
   
-  // Reset errors when images change
+  // Reset errors and loading state when images change
   useEffect(() => {
+    const initialLoading = {};
+    images.forEach((_, index) => {
+      initialLoading[index] = true;
+    });
+    
+    setLoadingImages(initialLoading);
     setImageErrors({});
   }, [images]);
   
@@ -26,11 +33,22 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   }
   
   const handleImageError = (index: number) => {
+    console.error(`ProductImageNavigationThumbnails: Thumbnail ${index} failed to load:`, images[index]);
     setImageErrors(prev => ({
       ...prev,
       [index]: true
     }));
-    console.error(`Thumbnail ${index} failed to load:`, images[index]);
+    setLoadingImages(prev => ({
+      ...prev,
+      [index]: false
+    }));
+  };
+  
+  const handleImageLoad = (index: number) => {
+    setLoadingImages(prev => ({
+      ...prev,
+      [index]: false
+    }));
   };
   
   return (
@@ -41,21 +59,30 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
         
         return (
           <button
-            key={index}
+            key={`thumb-${index}-${imageUrl}`}
             className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
               ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
               overflow-hidden flex-shrink-0`}
             onClick={() => onThumbnailClick(url, index)}
           >
+            {loadingImages[index] && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+              </div>
+            )}
+            
             <img 
               src={imageUrl} 
               alt={`Thumbnail ${index + 1}`}
               className="w-full h-full object-cover object-center"
               onError={() => handleImageError(index)}
+              onLoad={() => handleImageLoad(index)}
             />
+            
             {currentIndex === index && (
               <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
             )}
+            
             {imageErrors[index] && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-xs text-gray-500">
                 Image non disponible

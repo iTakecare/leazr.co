@@ -36,12 +36,34 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           return;
         }
         
+        // Ensure product-images bucket exists
+        try {
+          const { data: buckets } = await supabase.storage.listBuckets();
+          if (!buckets?.some(bucket => bucket.name === 'product-images')) {
+            console.log("Creating product-images bucket");
+            await supabase.storage.createBucket('product-images', { public: true });
+          }
+        } catch (err) {
+          console.warn("Error checking/creating product-images bucket:", err);
+          // Continue anyway, might work with existing images
+        }
+        
         // Vérifier d'abord si le produit a déjà une URL d'image définie
         if (product.image_url && typeof product.image_url === 'string' && 
             product.image_url !== "/placeholder.svg" && 
             !product.image_url.includes('undefined')) {
+          
+          // Nettoyage des paramètres existants pour éviter les duplications
+          let cleanUrl = product.image_url;
+          if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
+            cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
+          }
+          
+          // Ajouter un timestamp unique
           const timestamp = new Date().getTime();
-          const url = `${product.image_url}?t=${timestamp}&r=${retryCount}`;
+          const separator = cleanUrl.includes('?') ? '&' : '?';
+          const url = `${cleanUrl}${separator}t=${timestamp}&r=${retryCount}`;
+          
           console.log(`Using product.image_url: ${url}`);
           setImageUrl(url);
           setIsLoading(false);
@@ -61,13 +83,6 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
         }
         
         async function fallbackToStorageImage() {
-          // Vérifier si le bucket existe et le créer si besoin
-          const { data: buckets } = await supabase.storage.listBuckets();
-          if (!buckets?.some(bucket => bucket.name === 'product-images')) {
-            console.log("Creating product-images bucket");
-            await supabase.storage.createBucket('product-images', { public: true });
-          }
-          
           // Essayer de charger à partir du stockage
           console.log(`Loading image for product ${product.id} from storage`);
           try {
@@ -126,9 +141,15 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
             );
             
             if (validUrls.length > 0) {
-              const firstUrl = validUrls[0];
+              let cleanUrl = validUrls[0];
+              if (cleanUrl.includes('?t=') || cleanUrl.includes('&t=')) {
+                cleanUrl = cleanUrl.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
+              }
+              
               const timestamp = new Date().getTime();
-              const url = `${firstUrl}?t=${timestamp}&r=${retryCount}`;
+              const separator = cleanUrl.includes('?') ? '&' : '?';
+              const url = `${cleanUrl}${separator}t=${timestamp}&r=${retryCount}`;
+              
               console.log(`Using product.image_urls[0]: ${url}`);
               
               const img = new Image();
@@ -174,6 +195,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   }, [product, retryCount]);
   
   const handleImageLoad = () => {
+    console.log(`Successfully loaded image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(false);
     loadingRef.current = false;
@@ -187,6 +209,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     
     if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
       setTimeout(() => {
+        console.log(`Retrying image load (attempt ${retryCount + 1})`);
         setRetryCount(count => count + 1);
       }, 500);
     } else {

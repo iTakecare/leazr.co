@@ -71,6 +71,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
     });
   }
   
+  console.log("Filtered valid images:", validUrls.length, "from", additionalUrls?.length || 0, "additional URLs");
   return validUrls;
 };
 
@@ -79,6 +80,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
+    console.log("Invalid image URL detected:", url);
     return "/placeholder.svg";
   }
   
@@ -88,10 +90,19 @@ export const addTimestamp = (url: string): string => {
       return url;
     }
     
+    // Strip any existing timestamp parameter
+    let cleanUrl = url;
+    if (url.includes('?t=') || url.includes('&t=')) {
+      cleanUrl = url.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
+    }
+    
     // Add a timestamp query parameter to prevent caching
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${Date.now()}`;
+    const separator = cleanUrl.includes('?') ? '&' : '?';
+    const timestampedUrl = `${cleanUrl}${separator}t=${Date.now()}`;
+    
+    return timestampedUrl;
   } catch (e) {
+    console.error("Error in addTimestamp:", e);
     return "/placeholder.svg";
   }
 };

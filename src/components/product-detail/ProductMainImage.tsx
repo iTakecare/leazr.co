@@ -16,6 +16,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [finalImageUrl, setFinalImageUrl] = useState("/placeholder.svg");
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!imageUrl || imageUrl === "/placeholder.svg") {
@@ -34,22 +35,36 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
     // Preload the image
     const img = new Image();
     img.src = timestampedUrl;
-    img.onload = () => {
+    
+    const handleLoad = () => {
       setIsLoading(false);
       setHasError(false);
     };
-    img.onerror = () => {
+    
+    const handleError = () => {
       console.error("ProductMainImage - Error loading image:", imageUrl);
-      setIsLoading(false);
-      setHasError(true);
-      setFinalImageUrl("/placeholder.svg");
+      
+      // Try again up to 3 times
+      if (retryCount < 3) {
+        setRetryCount(count => count + 1);
+        const newTimestampedUrl = `${timestampedUrl}&retry=${retryCount + 1}`;
+        img.src = newTimestampedUrl; 
+        setFinalImageUrl(newTimestampedUrl);
+      } else {
+        setIsLoading(false);
+        setHasError(true);
+        setFinalImageUrl("/placeholder.svg");
+      }
     };
+    
+    img.onload = handleLoad;
+    img.onerror = handleError;
     
     return () => {
       img.onload = null;
       img.onerror = null;
     };
-  }, [imageUrl, addTimestamp]);
+  }, [imageUrl, addTimestamp, retryCount]);
 
   return (
     <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
@@ -58,6 +73,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
           <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
         </div>
       )}
+      
       <img 
         src={finalImageUrl} 
         alt={altText}
@@ -71,18 +87,28 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
           setFinalImageUrl("/placeholder.svg");
         }}
       />
+      
       {hasError && (
-        <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
-          Image non disponible
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <img 
+            src="/placeholder.svg" 
+            alt={altText} 
+            className="max-w-[50%] max-h-[50%] opacity-40"
+          />
+          <div className="mt-4 bg-red-50 text-red-500 text-sm px-4 py-2 rounded">
+            Image non disponible
+          </div>
         </div>
       )}
       
       {/* Overlay zoom icon */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="bg-black bg-opacity-40 rounded-full p-2">
-          <ZoomIn className="h-6 w-6 text-white" />
+      {!hasError && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="bg-black bg-opacity-40 rounded-full p-2">
+            <ZoomIn className="h-6 w-6 text-white" />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

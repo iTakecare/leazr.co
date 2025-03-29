@@ -20,7 +20,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 }) => {
   // Filter and deduplicate all valid images
   const allImages = useMemo(() => {
-    console.log("ProductImageDisplay - Filtering valid images", { imageUrl, additionalImages: imageUrls });
+    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
     const validImages = filterValidImages(imageUrl, imageUrls);
     console.log("ProductImageDisplay - Valid images:", validImages);
     return validImages;
@@ -29,13 +29,17 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [bucketCreated, setBucketCreated] = useState(false);
   
   // Configure image bucket if needed
   useEffect(() => {
     const ensureImageBucketExists = async () => {
+      if (bucketCreated) return;
+      
+      setIsLoadingImages(true);
       try {
         // Check if bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets();
+        const { data: buckets, error } = await supabase.storage.listBuckets();
         const bucketExists = buckets?.some(bucket => bucket.name === 'product-images');
         
         if (!bucketExists) {
@@ -49,15 +53,21 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
             console.error("Failed to create product-images bucket:", error);
           } else {
             console.log("product-images bucket created successfully");
+            setBucketCreated(true);
           }
+        } else {
+          console.log("product-images bucket already exists");
+          setBucketCreated(true);
         }
       } catch (err) {
         console.error("Error checking/creating product-images bucket:", err);
+      } finally {
+        setIsLoadingImages(false);
       }
     };
     
     ensureImageBucketExists();
-  }, []);
+  }, [bucketCreated]);
   
   // Set the first image as the selected image on component mount or when images change
   useEffect(() => {
