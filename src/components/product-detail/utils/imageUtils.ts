@@ -4,7 +4,7 @@
  */
 
 /**
- * Checks if an image URL is valid - basic validation only
+ * Very simple check if an image URL is valid - basic validation only
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
   // If the URL is null, undefined or empty, it's not valid
@@ -14,15 +14,6 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
   
   // If it's the default placeholder image, it's not considered valid
   if (url === '/placeholder.svg') {
-    return false;
-  }
-  
-  // Exclude placeholders or hidden files
-  if (
-    url.includes('.emptyFolderPlaceholder') || 
-    url.includes('undefined') ||
-    url.endsWith('/')
-  ) {
     return false;
   }
   
@@ -58,7 +49,8 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 };
 
 /**
- * Simply adds a timestamp to URLs to prevent caching issues
+ * Add a unique timestamp to prevent caching issues
+ * But avoid adding one if URL already has one
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
@@ -70,13 +62,17 @@ export const addTimestamp = (url: string): string => {
     return url;
   }
   
+  // Don't add a timestamp if there's already one
+  if (url.includes('?t=') || url.includes('&t=')) {
+    return url;
+  }
+  
   try {
-    // Simply append a timestamp query parameter in the simplest way
+    // Simply append a timestamp query parameter
     const timestamp = Date.now();
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${timestamp}`;
   } catch (e) {
-    console.error("Error adding timestamp to URL:", url, e);
     return url; // Return original URL on error
   }
 };

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ZoomIn } from "lucide-react";
 
 interface ProductMainImageProps {
@@ -15,25 +15,11 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [finalImageUrl, setFinalImageUrl] = useState("/placeholder.svg");
-
-  useEffect(() => {
-    if (!imageUrl || imageUrl === "/placeholder.svg") {
-      setFinalImageUrl("/placeholder.svg");
-      setIsLoading(false);
-      setHasError(true);
-      return;
-    }
-    
-    // Reset state when image URL changes
-    setIsLoading(true);
-    setHasError(false);
-    
-    // Directly use the URL with timestamp
-    const timestampedUrl = addTimestamp(imageUrl);
-    setFinalImageUrl(timestampedUrl);
-  }, [imageUrl, addTimestamp]);
+  
+  // Directly use the URL without complex transformations
+  const finalImageUrl = imageUrl && imageUrl !== "/placeholder.svg" 
+    ? imageUrl 
+    : "/placeholder.svg";
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -41,17 +27,8 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   };
   
   const handleImageError = () => {
-    // After too many retries, show the placeholder
-    if (retryCount >= 2) {
-      setIsLoading(false);
-      setHasError(true);
-      setFinalImageUrl("/placeholder.svg");
-    } else {
-      // Try again with a new timestamp and retry counter
-      setRetryCount(prev => prev + 1);
-      const newUrl = `${addTimestamp(imageUrl)}&retry=${retryCount + 1}`;
-      setFinalImageUrl(newUrl);
-    }
+    setIsLoading(false);
+    setHasError(true);
   };
 
   return (

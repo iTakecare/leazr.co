@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 interface ProductImageNavigationThumbnailsProps {
   images: string[];
@@ -16,17 +16,6 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
 }) => {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
-  
-  // Reset errors and loading state when images change
-  useEffect(() => {
-    const initialLoading = {};
-    images.forEach((_, index) => {
-      initialLoading[index] = true;
-    });
-    
-    setLoadingImages(initialLoading);
-    setImageErrors({});
-  }, [images]);
   
   if (images.length <= 1) {
     return null;
@@ -53,12 +42,12 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   return (
     <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
       {images.map((url, index) => {
-        // Create a new timestamped URL for each image
-        const imageUrl = imageErrors[index] ? "/placeholder.svg" : addTimestamp(url);
+        // Use the original URL directly without transformation
+        const imageUrl = imageErrors[index] ? "/placeholder.svg" : url;
         
         return (
           <button
-            key={`thumb-${index}-${imageUrl}`}
+            key={`thumb-${index}-${url}`}
             className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
               ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
               overflow-hidden flex-shrink-0`}

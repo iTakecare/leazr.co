@@ -37,14 +37,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         if (data) {
           console.log("Site settings loaded for logo:", data);
-          // Add timestamp to URL to prevent caching issues
-          let logoUrlWithTimestamp = data.logo_url;
-          if (logoUrlWithTimestamp) {
-            const timestamp = Date.now();
-            const separator = logoUrlWithTimestamp.includes('?') ? '&' : '?';
-            logoUrlWithTimestamp = `${logoUrlWithTimestamp}${separator}t=${timestamp}`;
-          }
-          setLogoUrl(logoUrlWithTimestamp);
+          setLogoUrl(data.logo_url || null);
           setSiteInfo({
             siteName: data.site_name || "iTakecare"
           });
