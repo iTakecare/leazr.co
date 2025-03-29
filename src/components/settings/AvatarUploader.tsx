@@ -44,7 +44,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         return;
       }
       
-      // Créer un nouveau File avec le bon type MIME
+      // Déterminer le type MIME correct
       const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
       let contentType = file.type;
       
@@ -59,11 +59,17 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         }
       }
       
+      // Créer un nouveau Blob avec le type MIME explicite pour assurer le bon format
+      const fileArrayBuffer = await file.arrayBuffer();
+      const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
+      
       // Créer un nouveau File avec le type MIME correct
-      const newFile = new File([file], file.name, {
+      const newFile = new File([fileBlob], file.name, {
         type: contentType,
         lastModified: file.lastModified
       });
+      
+      console.log(`Uploading file avec type: ${newFile.type}, taille: ${newFile.size} bytes`);
       
       // Upload l'image avec le bon type MIME
       const result = await uploadImage(newFile, bucketName, folderPath);
