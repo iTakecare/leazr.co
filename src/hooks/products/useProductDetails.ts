@@ -1,308 +1,177 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Product, ProductVariationAttributes } from '@/types/catalog';
-import { getProductById } from '@/services/catalogService';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useMemo } from 'react';
+import { useProductById } from './useProductById';
+import { Product } from '@/types/catalog';
 
-export function useProductDetails(productId: string | null) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
-  const [hasVariants, setHasVariants] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+export const useProductDetails = (productId: string | undefined) => {
+  const { product, isLoading, error } = useProductById(productId);
   const [quantity, setQuantity] = useState(1);
+  const [duration, setDuration] = useState(24); // Default to 24 months instead of 36
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
-  const [duration] = useState(24); // Default lease duration in months
-  const [productImages, setProductImages] = useState<string[]>([]);
-  const imagesLoadedRef = useRef(false);
-  
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['product', productId],
-    queryFn: () => productId ? getProductById(productId) : null,
-    enabled: !!productId,
-  });
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [currentImage, setCurrentImage] = useState<string | undefined>(undefined);
 
-  const loadProductImages = useCallback(async (id: string): Promise<string[]> => {
-    try {
-      console.log(`Loading images for product ${id} from product-images bucket`);
-      
-      // Check if the folder exists
-      const { data: files, error } = await supabase
-        .storage
-        .from("product-images")
-        .list(id, {
-          sortBy: { column: 'name', order: 'asc' }
-        });
-      
-      if (error) {
-        console.error("Error loading product images from storage:", error);
-        return [];
-      }
-      
-      const imageFiles = files.filter(file => 
-        !file.name.startsWith('.') && 
-        !file.name.endsWith('/') &&
-        file.name !== '.emptyFolderPlaceholder'
-      );
-      
-      if (imageFiles.length === 0) {
-        console.log("No images found for product in storage bucket");
-        return [];
-      }
-      
-      // Generate direct public URLs
-      const imageUrls = imageFiles.map(file => {
-        const { data } = supabase
-          .storage
-          .from("product-images")
-          .getPublicUrl(`${id}/${file.name}`);
-        
-        if (!data || !data.publicUrl) {
-          console.error(`Failed to get public URL for ${file.name}`);
-          return null;
-        }
-        
-        const url = data.publicUrl;
-        console.log(`Generated image URL: ${url}`);
-        return url;
-      }).filter(Boolean) as string[];
-      
-      console.log("Loaded product images from storage:", imageUrls);
-      return imageUrls;
-    } catch (err) {
-      console.error("Error in loadProductImages:", err);
-      return [];
-    }
-  }, []);
+  // Available durations for contract length
+  const availableDurations = [12, 24, 36, 48, 60];
 
-  const getValidImages = useCallback(async (prod: Product | null): Promise<string[]> => {
-    if (!prod || !productId) return [];
-    
-    // If we already loaded images, don't reload them
-    if (productImages.length > 0 && imagesLoadedRef.current) {
-      console.log("Using cached product images:", productImages);
-      return productImages;
-    }
-    
-    // Try to load images from Supabase storage first
-    const storageImages = await loadProductImages(productId);
-    if (storageImages.length > 0) {
-      console.log("Using images from storage:", storageImages);
-      setProductImages(storageImages);
-      imagesLoadedRef.current = true;
-      return storageImages;
-    }
-    
-    console.log("No storage images found, falling back to product object images");
-    
-    // Fall back to images in the product object
-    const validImages: string[] = [];
-    const seenUrls = new Set<string>();
-    
-    const isValidImage = (url: string): boolean => {
-      if (!url || 
-          typeof url !== 'string' || 
-          url.trim() === '' || 
-          url.includes('.emptyFolderPlaceholder') || 
-          url.includes('undefined') ||
-          url === '/placeholder.svg' ||
-          url.endsWith('/')) {
-        return false;
-      }
-      
-      return true;
-    };
-    
-    // Check all possible image locations in the product object
-    if (isValidImage(prod.image_url as string)) {
-      validImages.push(prod.image_url as string);
-      seenUrls.add(prod.image_url as string);
-    }
-    
-    if (isValidImage(prod.imageUrl as string) && !seenUrls.has(prod.imageUrl as string)) {
-      validImages.push(prod.imageUrl as string);
-      seenUrls.add(prod.imageUrl as string);
-    }
-    
-    // Check image arrays
-    const checkAndAddImages = (images: any[] | undefined) => {
-      if (!images || !Array.isArray(images)) return;
-      
-      images.forEach(img => {
-        const imgUrl = typeof img === 'string' ? img : (img?.src || '');
-        if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
-          validImages.push(imgUrl);
-          seenUrls.add(imgUrl);
-        }
-      });
-    };
-    
-    checkAndAddImages(prod.image_urls as any[]);
-    checkAndAddImages(prod.imageUrls as any[]);
-    checkAndAddImages(prod.images as any[]);
-    
-    console.log("Found valid images from product object:", validImages);
-    setProductImages(validImages);
-    imagesLoadedRef.current = true;
-    return validImages;
-  }, [productId, loadProductImages, productImages]);
-
+  // Set initial image when product loads
   useEffect(() => {
-    if (isLoading) {
-      setLoading(true);
-      return;
+    if (product) {
+      setCurrentImage(product.image_url);
     }
+  }, [product]);
 
-    if (isError) {
-      setLoading(false);
-      setError('Failed to fetch product data');
-      return;
-    }
-
-    if (!data) {
-      setLoading(false);
-      setError('Product not found');
-      return;
-    }
-
-    setProduct(data);
-    setLoading(false);
-    setError(null);
-    
-    // Reset ref when product changes
-    if (productId) {
-      imagesLoadedRef.current = false;
-    }
-    
-    const loadImages = async () => {
-      const validImages = await getValidImages(data);
+  // Set initial options when product loads
+  useEffect(() => {
+    if (product && product.variation_attributes) {
+      const initialOptions: Record<string, string> = {};
       
-      if (validImages.length > 0 && !currentImage) {
-        setCurrentImage(validImages[0]);
-        console.log("Setting current image to:", validImages[0]);
-      } else if (validImages.length === 0) {
-        setCurrentImage(null);
-        console.log("No valid images found for product");
-      }
-    };
-    
-    loadImages();
-
-    const hasVariationAttrs = data.variation_attributes && 
-      Object.keys(data.variation_attributes).length > 0;
-    
-    const hasVariantPrices = Array.isArray(data.variant_combination_prices) && 
-      data.variant_combination_prices.length > 0;
-    
-    setHasVariants(hasVariationAttrs || hasVariantPrices);
-
-    const extractedAttributes: ProductVariationAttributes = {};
-    
-    const variantPrices = Array.isArray(data.variant_combination_prices) 
-      ? data.variant_combination_prices 
-      : [];
-      
-    variantPrices.forEach(price => {
-      if (price.attributes) {
-        Object.entries(price.attributes).forEach(([key, value]) => {
-          if (!extractedAttributes[key]) {
-            extractedAttributes[key] = [];
-          }
-          
-          const stringValue = String(value);
-          
-          if (!extractedAttributes[key].includes(stringValue)) {
-            extractedAttributes[key].push(stringValue);
-          }
-        });
-      }
-    });
-
-    if (data.variation_attributes && Object.keys(data.variation_attributes).length > 0) {
-      setVariationAttributes(data.variation_attributes);
-      
-      const defaultOptions: Record<string, string> = {};
-      Object.entries(data.variation_attributes).forEach(([key, values]) => {
-        if (Array.isArray(values) && values.length > 0) {
-          defaultOptions[key] = values[0];
+      Object.entries(product.variation_attributes).forEach(([key, values]) => {
+        if (values && values.length > 0) {
+          initialOptions[key] = values[0];
         }
       });
-      setSelectedOptions(defaultOptions);
-    } 
-    else if (Object.keys(extractedAttributes).length > 0) {
-      setVariationAttributes(extractedAttributes);
       
-      const defaultOptions: Record<string, string> = {};
-      Object.entries(extractedAttributes).forEach(([key, values]) => {
-        if (Array.isArray(values) && values.length > 0) {
-          defaultOptions[key] = values[0];
-        }
-      });
-      setSelectedOptions(defaultOptions);
+      setSelectedOptions(initialOptions);
     }
-  }, [data, isLoading, isError, productId, getValidImages, currentImage]);
-  
-  const handleOptionChange = (attributeName: string, value: string) => {
+  }, [product]);
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1) {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleOptionChange = (optionName: string, value: string) => {
     setSelectedOptions(prev => ({
       ...prev,
-      [attributeName]: value
+      [optionName]: value
     }));
   };
-  
-  const isOptionAvailable = () => true;
-  
-  const handleQuantityChange = (newQuantity: number) => {
-    setQuantity(Math.max(1, newQuantity));
-  };
-  
-  const getOptionsForAttribute = (attributeName: string): string[] => {
-    return variationAttributes[attributeName] || [];
-  };
-  
-  const hasAttributeOptions = (attributeName: string): boolean => {
-    return !!variationAttributes[attributeName] && 
-           Array.isArray(variationAttributes[attributeName]) && 
-           variationAttributes[attributeName].length > 0;
-  };
-  
-  const currentPrice = selectedVariant?.price || product?.price || 0;
-  
-  const specifications = product?.specifications || {};
-  
-  const hasOptions = Object.keys(variationAttributes).length > 0;
-  
-  const calculateMinMonthlyPrice = (): number => {
-    if (product?.monthly_price) {
-      return product.monthly_price;
+
+  // Find matching variant based on selected options
+  const selectedVariant = useMemo(() => {
+    if (!product || !product.variants || product.variants.length === 0) {
+      return null;
+    }
+
+    return product.variants.find(variant => {
+      if (!variant.selected_attributes) return false;
+      
+      // Check if all selected options match this variant
+      return Object.entries(selectedOptions).every(([key, value]) => {
+        return variant.selected_attributes?.[key] === value;
+      });
+    }) || null;
+  }, [product, selectedOptions]);
+
+  // Calculate current price based on selected variant or base product
+  const currentPrice = useMemo(() => {
+    if (selectedVariant && selectedVariant.monthly_price) {
+      return selectedVariant.monthly_price;
     }
     
-    if (Array.isArray(product?.variant_combination_prices) && product.variant_combination_prices.length > 0) {
-      const monthlyPrices = product.variant_combination_prices
-        .map(v => v.monthly_price || 0)
-        .filter(p => p > 0);
+    // If no variant is selected but we have a parent with variant combination prices
+    if (product && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      // Try to find a price that matches the selected options
+      const matchingPrice = product.variant_combination_prices.find(combo => {
+        if (!combo.attributes) return false;
         
-      if (monthlyPrices.length > 0) {
-        return Math.min(...monthlyPrices);
+        return Object.entries(selectedOptions).every(([key, value]) => 
+          combo.attributes[key] === value
+        );
+      });
+      
+      if (matchingPrice) {
+        return matchingPrice.monthly_price || 0;
       }
     }
     
-    return currentPrice / duration;
+    return product?.monthly_price || 0;
+  }, [product, selectedVariant, selectedOptions]);
+
+  // Calculate the minimum monthly price for display
+  const minMonthlyPrice = useMemo(() => {
+    if (!product) return 0;
+    
+    if (product.variants && product.variants.length > 0) {
+      const prices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+    
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      const prices = product.variant_combination_prices
+        .map(combo => combo.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+    
+    return product.monthly_price || 0;
+  }, [product]);
+
+  // Calculate total price based on quantity and duration
+  const totalPrice = useMemo(() => {
+    // Apply a discount based on duration if needed
+    let durationFactor = 1;
+    if (duration > 36) {
+      durationFactor = 0.9; // 10% discount for longer durations
+    } else if (duration < 24) {
+      durationFactor = 1.1; // 10% surcharge for shorter durations
+    }
+    
+    return currentPrice * quantity * durationFactor;
+  }, [currentPrice, quantity, duration]);
+
+  const specifications = useMemo(() => {
+    return product?.specifications || {};
+  }, [product]);
+
+  const variationAttributes = useMemo(() => {
+    return product?.variation_attributes || {};
+  }, [product]);
+
+  const hasVariants = useMemo(() => {
+    return !!(
+      product?.is_parent || 
+      (product?.variant_combination_prices && product?.variant_combination_prices.length > 0) ||
+      (product?.variants && product?.variants.length > 0)
+    );
+  }, [product]);
+
+  const hasOptions = useMemo(() => {
+    if (!product?.variation_attributes) return false;
+    return Object.keys(product.variation_attributes).length > 0;
+  }, [product]);
+
+  const isOptionAvailable = (optionName: string, value: string) => {
+    // Simple implementation - all options are available
+    return true;
   };
-  
-  const minMonthlyPrice = calculateMinMonthlyPrice();
-  
-  const totalPrice = (selectedVariant?.monthly_price || product?.monthly_price || ((selectedVariant?.price || product?.price || 0) / duration)) * quantity;
+
+  const hasAttributeOptions = (attributeName: string) => {
+    return !!(variationAttributes[attributeName] && variationAttributes[attributeName].length > 0);
+  };
+
+  const getOptionsForAttribute = (attributeName: string) => {
+    return variationAttributes[attributeName] || [];
+  };
 
   return {
     product,
-    loading,
+    isLoading,
     error,
-    variationAttributes,
-    hasVariants,
+    quantity,
+    handleQuantityChange,
+    isRequestFormOpen,
+    setIsRequestFormOpen,
     selectedOptions,
     handleOptionChange,
     isOptionAvailable,
@@ -310,19 +179,15 @@ export function useProductDetails(productId: string | null) {
     currentPrice,
     selectedVariant,
     duration,
+    setDuration,
     totalPrice,
     minMonthlyPrice,
     specifications,
+    hasVariants,
     hasOptions,
+    variationAttributes,
     hasAttributeOptions,
     getOptionsForAttribute,
-    quantity,
-    handleQuantityChange,
-    isRequestFormOpen,
-    setIsRequestFormOpen,
-    isLoading: loading,
-    getValidImages,
-    loadProductImages,
-    productImages
+    availableDurations
   };
-}
+};

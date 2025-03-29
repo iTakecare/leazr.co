@@ -45,6 +45,7 @@ const ProductDetailPage = () => {
     currentPrice,
     selectedVariant,
     duration,
+    setDuration,
     totalPrice,
     minMonthlyPrice,
     specifications,
@@ -52,7 +53,8 @@ const ProductDetailPage = () => {
     hasOptions,
     variationAttributes,
     hasAttributeOptions,
-    getOptionsForAttribute
+    getOptionsForAttribute,
+    availableDurations
   } = useProductDetails(id);
   
   const handleBackToCatalog = () => {
@@ -101,10 +103,10 @@ const ProductDetailPage = () => {
     );
   }
   
-  const productName = product.name || "Produit";
-  const productCategory = product.category || "Autre";
-  const productBrand = product.brand || "";
-  const productDescription = product.description || "Aucune description disponible pour ce produit.";
+  const productName = product?.name || "Produit";
+  const productCategory = product?.category || "Autre";
+  const productBrand = product?.brand || "";
+  const productDescription = product?.description || "Aucune description disponible pour ce produit.";
   
   const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
     const hasOptions = hasAttributeOptions(attributeName);
@@ -278,7 +280,7 @@ const ProductDetailPage = () => {
           <div>
             <ProductImageDisplay 
               imageUrl={currentImage} 
-              altText={product.name} 
+              altText={product?.name} 
             />
             
             <div className="mt-8">
@@ -298,7 +300,7 @@ const ProductDetailPage = () => {
             
             <div className="mt-16">
               <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
-              <RelatedProducts category={productCategory} currentProductId={product.id} />
+              <RelatedProducts category={productCategory} currentProductId={product?.id} />
             </div>
             
             <div className="mt-16">
@@ -345,9 +347,21 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      <div className="bg-blue-50 rounded border border-blue-100 px-3 py-2">
-                        {duration} mois
-                      </div>
+                      <Select 
+                        value={String(duration)}
+                        onValueChange={(value) => setDuration(Number(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>{duration} mois</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableDurations.map((months) => (
+                            <SelectItem key={months} value={String(months)}>
+                              {months} mois
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div className="space-y-2">
