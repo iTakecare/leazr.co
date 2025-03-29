@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,19 +27,12 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
   
-  // Fonction pour ajouter un paramètre de timestamp aux URLs pour éviter la mise en cache
-  const getImageUrlWithTimestamp = (url: string, timestamp = Date.now()): string => {
-    try {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${timestamp}&rc=${retryCount}`;
-    } catch (e) {
-      return url;
-    }
+  const getUniqueImageUrl = (url: string, index: number): string => {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${Date.now()}&rc=${retryCount}&idx=${index}`;
   };
   
-  // Load the images when the component mounts or when retryCount changes
   useEffect(() => {
-    // Prevent loading if already in progress
     if (loadingRef.current) return;
     
     const loadImages = async () => {
@@ -51,7 +43,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       try {
         console.log(`Loading images for product ${productId} from product-images bucket`);
         
-        // Check if we can list the bucket contents
         const { data: files, error } = await supabase.storage
           .from("product-images")
           .list(productId, {
@@ -89,8 +80,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           return;
         }
         
-        // Filter for real files and create proper image URLs with absolute timestamps
-        const timestamp = Date.now();
         const imageFiles = files
           .filter(file => 
             !file.name.startsWith('.') && 
@@ -98,24 +87,20 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           )
           .map(file => {
             try {
-              // Get the public URL directly using supabase client
               const { data } = supabase.storage
                 .from("product-images")
                 .getPublicUrl(`${productId}/${file.name}`);
               
-              // Make sure we have a valid URL
               if (!data || !data.publicUrl) {
                 console.error(`Failed to get public URL for ${file.name}`);
                 return null;
               }
               
-              const urlWithParams = getImageUrlWithTimestamp(data.publicUrl, timestamp);
-              
-              console.log(`Generated URL for ${file.name}: ${urlWithParams}`);
+              const timestamp = Date.now();
               
               return {
                 name: file.name,
-                url: urlWithParams,
+                url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
                 originalUrl: data.publicUrl,
                 isMain: false
               };
@@ -124,7 +109,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
               return null;
             }
           })
-          .filter(Boolean); // Remove any null entries
+          .filter(Boolean);
         
         console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
         console.log("Images mises à jour:", imageFiles);
@@ -145,7 +130,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     
     loadImages();
     
-    // Cleanup
     return () => {
       loadingRef.current = false;
     };
@@ -180,7 +164,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       
       if (uploadedCount > 0) {
         toast.success(`${uploadedCount} image(s) téléchargée(s) avec succès`);
-        // Refresh the image list
         setRetryCount(prev => prev + 1);
       }
     } catch (error) {
@@ -189,7 +172,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     } finally {
       setIsUploading(false);
       
-      // Reset input field
       if (e.target) {
         e.target.value = '';
       }
@@ -212,7 +194,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       }
       
       toast.success("Image supprimée avec succès");
-      // Refresh the image list
       setRetryCount(prev => prev + 1);
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -221,7 +202,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   };
   
   const handleSetMainImage = (imageInfo: any) => {
-    // Utiliser l'URL originale pour l'image principale, pas celle avec les paramètres
     const originalUrl = imageInfo.originalUrl || imageInfo.url;
     if (onSetMainImage) {
       onSetMainImage(originalUrl);
@@ -229,7 +209,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     }
   };
   
-  // Handle the case where we couldn't access the storage bucket
   if (errorMessage) {
     return (
       <div className="p-6 border border-red-300 bg-red-50 rounded-md">
@@ -332,9 +311,8 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           {images.map((image, index) => (
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
-                {/* Image avec new Image() pour précharger et éviter les problèmes de cache */}
                 <img
-                  src={getImageUrlWithTimestamp(image.url, Date.now() + index)}
+                  src={getUniqueImageUrl(image.url, index)}
                   alt={`Produit ${index + 1}`}
                   className="object-cover w-full h-full"
                   loading="lazy"
@@ -351,7 +329,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                       onClick={() => handleSetMainImage(image)}
                       title="Définir comme image principale"
                     >
-                      <Check className="w-4 h-4" />
+                      <Check className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
@@ -359,7 +337,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                       onClick={() => handleDelete(image.name)}
                       title="Supprimer l'image"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
