@@ -1,6 +1,5 @@
-
 /**
- * Utility functions for product image handling
+ * Utility functions for product image handling - Simplified version
  */
 
 /**
@@ -50,7 +49,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 
 /**
  * Add a unique timestamp to prevent caching issues
- * But avoid adding one if URL already has one
+ * But only adds the timestamp parameter if needed
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
@@ -62,17 +61,7 @@ export const addTimestamp = (url: string): string => {
     return url;
   }
   
-  // Don't add a timestamp if there's already one
-  if (url.includes('?t=') || url.includes('&t=')) {
-    return url;
-  }
-  
-  try {
-    // Simply append a timestamp query parameter
-    const timestamp = Date.now();
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${timestamp}`;
-  } catch (e) {
-    return url; // Return original URL on error
-  }
+  // Pass the URL through unchanged - no timestamp
+  // This avoids CORS issues
+  return url;
 };

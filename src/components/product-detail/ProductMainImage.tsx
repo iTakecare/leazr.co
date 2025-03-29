@@ -16,7 +16,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Directly use the URL without complex transformations
+  // Use the imageUrl directly without transformation
   const finalImageUrl = imageUrl && imageUrl !== "/placeholder.svg" 
     ? imageUrl 
     : "/placeholder.svg";
@@ -27,6 +27,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   };
   
   const handleImageError = () => {
+    console.log("Image failed to load:", finalImageUrl);
     setIsLoading(false);
     setHasError(true);
   };

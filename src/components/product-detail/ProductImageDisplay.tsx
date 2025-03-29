@@ -5,7 +5,6 @@ import ProductMainImage from "./ProductMainImage";
 import ImageGalleryNavigation from "./ImageGalleryNavigation";
 import ProductPlaceholder from "./ProductPlaceholder";
 import { filterValidImages, addTimestamp } from "./utils/imageUtils";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -18,10 +17,10 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   altText,
   imageUrls = []
 }) => {
-  // Filter and deduplicate all valid images without complex transformations
+  // Filter and deduplicate all valid images
   const allImages = useMemo(() => {
     console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
-    // Use simple URL filtering without fetching from storage
+    // Simple filtering without complex transformations
     const validImages = [...new Set([imageUrl, ...imageUrls].filter(url => 
       url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg'
     ))];
