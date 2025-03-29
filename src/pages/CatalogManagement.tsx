@@ -12,13 +12,13 @@ import AttributeManager from "@/components/catalog/AttributeManager";
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
 import ProductsViewOptions from "@/components/catalog/management/ProductsViewOptions";
 import CatalogContent from "@/components/catalog/management/CatalogContent";
-import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
+import { useSafeCatalogManagement } from "@/hooks/catalog/useSafeCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CatalogManagement = () => {
   const isMobile = useIsMobile();
   
-  // Use catalog management hook
+  // Use safe catalog management hook
   const {
     products,
     isLoading,
@@ -34,7 +34,7 @@ const CatalogManagement = () => {
     handleProductDeleted,
     handleAddNewProduct,
     handleViewModeChange
-  } = useCatalogManagement();
+  } = useSafeCatalogManagement();
   
   return (
     <Container>

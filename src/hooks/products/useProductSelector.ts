@@ -4,13 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
+import { dbToAppProducts, jsonToStringArrayRecord } from "@/utils/typeMappers";
 
 export const useProductSelector = (isOpen: boolean) => {
   const fetchProducts = async (): Promise<Product[]> => {
     console.log("Fetching products from Supabase");
     
     try {
-      // Récupérer tous les produits actifs
+      // Fetch all active products
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
@@ -21,7 +22,7 @@ export const useProductSelector = (isOpen: boolean) => {
         throw productsError;
       }
       
-      console.log(`Retrieved ${productsData.length} products`);
+      console.log(`Retrieved ${productsData?.length} products`);
       
       // Fetch variant prices for all products
       const { data: variantPricesData, error: variantPricesError } = await supabase
@@ -33,11 +34,11 @@ export const useProductSelector = (isOpen: boolean) => {
         throw variantPricesError;
       }
       
-      console.log(`Retrieved ${variantPricesData.length} variant prices`);
+      console.log(`Retrieved ${variantPricesData?.length} variant prices`);
       
       // Organize variant prices by product ID for easier access
       const variantPricesByProductId: Record<string, any[]> = {};
-      variantPricesData.forEach(price => {
+      variantPricesData?.forEach(price => {
         if (!variantPricesByProductId[price.product_id]) {
           variantPricesByProductId[price.product_id] = [];
         }
@@ -45,7 +46,7 @@ export const useProductSelector = (isOpen: boolean) => {
       });
       
       // Process all products with their variants
-      const productsWithVariants = productsData.map(product => {
+      const productsWithVariants = productsData?.map(product => {
         // Get variant prices for this product
         const productVariantPrices = variantPricesByProductId[product.id] || [];
         
@@ -54,23 +55,24 @@ export const useProductSelector = (isOpen: boolean) => {
         
         // Extract variation attributes if needed
         let variationAttributes = product.variation_attributes;
-        if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0) && productVariantPrices.length > 0) {
+        if (isParent && (!variationAttributes || Object.keys(jsonToStringArrayRecord(variationAttributes)).length === 0) && productVariantPrices.length > 0) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
         }
         
         // If the product has variation_attributes but no is_parent flag, set is_parent to true
-        const hasVariationAttrs = variationAttributes && Object.keys(variationAttributes).length > 0;
+        const hasVariationAttrs = variationAttributes && Object.keys(jsonToStringArrayRecord(variationAttributes)).length > 0;
         const shouldBeParent = isParent || hasVariationAttrs;
         
+        // Convert database record to application Product type
         return {
           ...product,
           variant_combination_prices: productVariantPrices,
           is_parent: shouldBeParent,
-          variation_attributes: variationAttributes,
-          createdAt: product.created_at || new Date(),
-          updatedAt: product.updated_at || new Date()
-        };
-      });
+          variation_attributes: jsonToStringArrayRecord(variationAttributes),
+          createdAt: new Date(product.created_at || Date.now()),
+          updatedAt: new Date(product.updated_at || Date.now())
+        } as Product;
+      }) || [];
       
       // Find parent-child relationships
       const productsWithChildrenInfo = productsWithVariants.map(product => {
@@ -95,7 +97,7 @@ export const useProductSelector = (isOpen: boolean) => {
         
         // Check if the product has variants
         const hasVariants = variants.length > 0 || variantCombinationCount > 0 || 
-                           (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
+                           (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
         
         return {
           ...product,
@@ -103,19 +105,7 @@ export const useProductSelector = (isOpen: boolean) => {
           has_variants: hasVariants,
           variants_count: finalVariantsCount,
           has_child_variants: variants.length > 0
-        };
-      });
-      
-      // Log each product's variant information for debugging
-      productsWithChildrenInfo.forEach(product => {
-        if (product.has_variants || product.is_parent) {
-          console.log(`Product ${product.name} (${product.id}) variants info:`, {
-            variants_count: product.variants_count,
-            combinations: product.variant_combination_prices?.length || 0,
-            childVariants: product.variants?.length || 0,
-            variationAttributes: product.variation_attributes ? Object.keys(product.variation_attributes).length : 0
-          });
-        }
+        } as Product;
       });
       
       return productsWithChildrenInfo;
@@ -130,11 +120,16 @@ export const useProductSelector = (isOpen: boolean) => {
     
     variantPrices.forEach(price => {
       if (price.attributes) {
-        Object.entries(price.attributes).forEach(([key, value]) => {
+        const attrs = jsonToStringArrayRecord(price.attributes);
+        Object.entries(attrs).forEach(([key, value]) => {
           if (!attributes[key]) {
             attributes[key] = new Set();
           }
-          attributes[key].add(String(value));
+          if (Array.isArray(value)) {
+            value.forEach(v => attributes[key].add(String(v)));
+          } else {
+            attributes[key].add(String(value));
+          }
         });
       }
     });

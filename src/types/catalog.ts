@@ -9,6 +9,7 @@ export interface Product {
   price: number;
   monthly_price?: number;
   imageUrl?: string;
+  image_url?: string; // Database field name
   specifications?: Record<string, string | number>;
   tier?: string; // Silver, gold, or platinum
   createdAt: Date | string;
@@ -97,10 +98,13 @@ export interface Product {
   selected_attributes?: ProductAttributes;
   
   // Alternative property names used in Supabase
-  image_url?: string; // Alternative to imageUrl for DB compatibility
   image_urls?: string[]; // Additional images
   imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
+  
+  // Reference to original Supabase fields if needed
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Product attribute definition

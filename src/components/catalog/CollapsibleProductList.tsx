@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
+import { useProductMapper } from "@/hooks/products/useProductMapper";
 
 interface CollapsibleProductListProps {
   products?: Product[];
@@ -29,18 +30,25 @@ interface CollapsibleProductListProps {
 
 const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const { mapDatabaseProductsToAppProducts } = useProductMapper();
   
-  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
+  // Use provided products if available, otherwise fetch them
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+    enabled: !providedProducts, // Only fetch if products aren't provided
   });
 
-  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
+  // Update local products when provided or fetched products change
   useEffect(() => {
-    setLocalProducts(providedProducts || fetchedProducts);
-  }, [providedProducts, fetchedProducts]);
+    if (providedProducts) {
+      setLocalProducts(providedProducts);
+    } else if (fetchedProducts) {
+      // Ensure proper type mapping
+      const mappedProducts = mapDatabaseProductsToAppProducts(fetchedProducts);
+      setLocalProducts(mappedProducts);
+    }
+  }, [providedProducts, fetchedProducts, mapDatabaseProductsToAppProducts]);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -72,7 +80,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
     try {
       await onDeleteProduct(productId);
       
-      // Mise à jour des produits locaux après la suppression
+      // Update local products after deletion
       setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
       
       toast({
