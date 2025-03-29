@@ -48,107 +48,68 @@ export async function uploadImage(
     
     console.log(`Normalized filename: ${fileName}, detected MIME type: ${contentType}`);
     
-    try {
-      // Convert to ArrayBuffer and create a proper Blob with explicit type
-      const arrayBuffer = await file.arrayBuffer();
-      const fileBlob = new Blob([arrayBuffer], { 
-        type: contentType 
+    // Créer un objet Blob à partir du fichier avec le type MIME explicite
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([arrayBuffer], { type: contentType });
+    
+    console.log(`Uploading ${fileName} with explicit content-type: ${contentType}, Blob type: ${fileBlob.type}`);
+    
+    // Upload avec contentType explicite
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, fileBlob, {
+        contentType: contentType,
+        cacheControl: '3600',
+        upsert: true
       });
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      toast.error(`Erreur lors de l'upload: ${error.message}`);
       
-      // Verify the blob was created with the correct type
-      console.log(`Uploading ${fileName} with explicit content-type: ${contentType}, Blob type: ${fileBlob.type}`);
-      
-      // Upload with explicit content-type option
-      const { error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, fileBlob, {
-          contentType: contentType, // Critical: explicitly pass content type
-          cacheControl: '3600',
-          upsert: true  // Changed to true to overwrite if file exists
-        });
-      
-      if (error) {
-        console.error('Error uploading image:', error);
-        toast.error(`Erreur lors de l'upload: ${error.message}`);
+      // Si l'erreur est liée à un objet qui existe déjà, essayer avec un nom différent
+      if (error.message.includes('already exists')) {
+        const newFileName = `${timestamp}-${Math.floor(Math.random() * 10000)}-${fileName}`;
+        const newFilePath = folderPath ? `${folderPath}/${newFileName}` : newFileName;
         
-        // If the error is related to object already exists, try with a different name
-        if (error.message.includes('already exists')) {
-          const newFileName = `${timestamp}-${Math.floor(Math.random() * 10000)}-${fileName}`;
-          const newFilePath = folderPath ? `${folderPath}/${newFileName}` : newFileName;
-          
-          console.log(`Retrying with new filename: ${newFileName}`);
-          
-          const { error: retryError, data: retryData } = await supabase.storage
-            .from(bucketName)
-            .upload(newFilePath, fileBlob, {
-              contentType: contentType,
-              cacheControl: '3600',
-              upsert: false
-            });
-            
-          if (retryError) {
-            console.error('Error in retry upload:', retryError);
-            return null;
-          }
-          
-          // Get URL for the successful retry
-          const { data: retryUrlData } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(newFilePath);
-            
-          return retryUrlData?.publicUrl || null;
-        }
+        console.log(`Retrying with new filename: ${newFileName}`);
         
-        return null;
-      }
-      
-      // Generate public URL
-      const { data } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-      
-      if (!data || !data.publicUrl) {
-        console.error('Failed to get public URL');
-        return null;
-      }
-      
-      console.log(`Uploaded image: ${data.publicUrl}`);
-      return data.publicUrl;
-    } catch (blobError) {
-      console.error('Error processing file:', blobError);
-      
-      // Last resort fallback: direct upload with explicit contentType
-      console.log('Attempting direct upload as fallback...');
-      
-      // Create a new File object with the correct MIME type
-      try {
-        const fixedFile = new File([await file.arrayBuffer()], fileName, { 
-          type: contentType 
-        });
-        
-        const { error, data } = await supabase.storage
+        const { error: retryError } = await supabase.storage
           .from(bucketName)
-          .upload(filePath, fixedFile, {
+          .upload(newFilePath, fileBlob, {
             contentType: contentType,
             cacheControl: '3600',
-            upsert: true
+            upsert: false
           });
-        
-        if (error) {
-          console.error('Error in direct upload fallback:', error);
+          
+        if (retryError) {
+          console.error('Error in retry upload:', retryError);
           return null;
         }
         
-        const { data: urlData } = supabase.storage
+        // Get URL for the successful retry
+        const { data: retryUrlData } = supabase.storage
           .from(bucketName)
-          .getPublicUrl(filePath);
+          .getPublicUrl(newFilePath);
           
-        return urlData?.publicUrl || null;
-      } catch (finalError) {
-        console.error('Final fallback failed:', finalError);
-        return null;
+        return retryUrlData?.publicUrl || null;
       }
+      
+      return null;
     }
+    
+    // Generate public URL
+    const { data } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    if (!data || !data.publicUrl) {
+      console.error('Failed to get public URL');
+      return null;
+    }
+    
+    console.log(`Uploaded image: ${data.publicUrl}`);
+    return data.publicUrl;
   } catch (error) {
     console.error('Error in uploadImage:', error);
     toast.error("Erreur lors de l'upload de l'image");

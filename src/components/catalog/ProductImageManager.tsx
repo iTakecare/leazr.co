@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { uploadImage, getStorageImageUrl } from "@/utils/imageUtils";
+import { uploadImage } from "@/utils/imageUtils";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -27,6 +27,16 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
+  
+  // Fonction pour ajouter un paramètre de timestamp aux URLs pour éviter la mise en cache
+  const getImageUrlWithTimestamp = (url: string, timestamp = Date.now()): string => {
+    try {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}t=${timestamp}&rc=${retryCount}`;
+    } catch (e) {
+      return url;
+    }
+  };
   
   // Load the images when the component mounts or when retryCount changes
   useEffect(() => {
@@ -80,36 +90,33 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         }
         
         // Filter for real files and create proper image URLs with absolute timestamps
+        const timestamp = Date.now();
         const imageFiles = files
           .filter(file => 
             !file.name.startsWith('.') && 
             file.name !== '.emptyFolderPlaceholder'
           )
           .map(file => {
-            // Create a clean timestamp to avoid caching issues
-            const timestamp = Date.now();
-            
             try {
               // Get the public URL directly using supabase client
-              const publicUrl = supabase.storage
+              const { data } = supabase.storage
                 .from("product-images")
-                .getPublicUrl(`${productId}/${file.name}`).data.publicUrl;
+                .getPublicUrl(`${productId}/${file.name}`);
               
               // Make sure we have a valid URL
-              if (!publicUrl) {
+              if (!data || !data.publicUrl) {
                 console.error(`Failed to get public URL for ${file.name}`);
                 return null;
               }
               
-              // Add cache-busting parameters
-              const urlWithParams = new URL(publicUrl);
-              urlWithParams.searchParams.set('t', timestamp.toString());
+              const urlWithParams = getImageUrlWithTimestamp(data.publicUrl, timestamp);
               
-              console.log(`Generated URL for ${file.name}: ${urlWithParams.toString()}`);
+              console.log(`Generated URL for ${file.name}: ${urlWithParams}`);
               
               return {
                 name: file.name,
-                url: urlWithParams.toString(),
+                url: urlWithParams,
+                originalUrl: data.publicUrl,
                 isMain: false
               };
             } catch (e) {
@@ -213,9 +220,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     }
   };
   
-  const handleSetMainImage = (imageUrl: string) => {
+  const handleSetMainImage = (imageInfo: any) => {
+    // Utiliser l'URL originale pour l'image principale, pas celle avec les paramètres
+    const originalUrl = imageInfo.originalUrl || imageInfo.url;
     if (onSetMainImage) {
-      onSetMainImage(imageUrl);
+      onSetMainImage(originalUrl);
       toast.success("Image principale définie avec succès");
     }
   };
@@ -323,9 +332,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           {images.map((image, index) => (
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
-                {/* Direct image source with forced refresh */}
+                {/* Image avec new Image() pour précharger et éviter les problèmes de cache */}
                 <img
-                  src={image.url}
+                  src={getImageUrlWithTimestamp(image.url, Date.now() + index)}
                   alt={`Produit ${index + 1}`}
                   className="object-cover w-full h-full"
                   loading="lazy"
@@ -339,7 +348,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                     <Button
                       size="icon"
                       variant="secondary"
-                      onClick={() => handleSetMainImage(image.url)}
+                      onClick={() => handleSetMainImage(image)}
                       title="Définir comme image principale"
                     >
                       <Check className="w-4 h-4" />
