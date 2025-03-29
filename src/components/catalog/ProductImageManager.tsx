@@ -311,16 +311,18 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           {images.map((image, index) => (
             <Card key={`${image.name}-${index}`} className="overflow-hidden">
               <div className="relative aspect-square">
-                <img
-                  src={getUniqueImageUrl(image.url, index)}
-                  alt={`Produit ${index + 1}`}
-                  className="object-contain w-full h-full"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error(`Failed to load image: ${image.url}`);
-                    (e.target as HTMLImageElement).src = "/placeholder.svg";
-                  }}
-                />
+                <div className="w-full h-full flex items-center justify-center bg-gray-50 p-2">
+                  <img
+                    src={getUniqueImageUrl(image.url, index)}
+                    alt={`Produit ${index + 1}`}
+                    className="object-contain max-h-full max-w-full"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.error(`Failed to load image: ${image.url}`);
+                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    }}
+                  />
+                </div>
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 transition-opacity">
                   <div className="flex space-x-2">
                     <Button
