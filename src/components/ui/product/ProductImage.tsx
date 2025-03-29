@@ -37,7 +37,6 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     console.log("Product image failed to load:", imageUrl);
     setIsLoading(false);
     setHasError(true);
-    imageUrl = "/placeholder.svg";
   };
   
   return (

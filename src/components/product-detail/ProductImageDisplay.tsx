@@ -5,6 +5,13 @@ import ProductMainImage from "./ProductMainImage";
 import ImageGalleryNavigation from "./ImageGalleryNavigation";
 import ProductPlaceholder from "./ProductPlaceholder";
 import { filterValidImages, addTimestamp } from "./utils/imageUtils";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 
 interface ProductImageDisplayProps {
   imageUrl: string;

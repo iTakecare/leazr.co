@@ -22,7 +22,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   if (images.length <= 1) {
     return null;
   }
-  
+
   const handleImageError = (index: number) => {
     console.log("Thumbnail failed to load:", images[index]);
     setImageErrors(prev => ({
@@ -55,6 +55,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
               ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
               overflow-hidden flex-shrink-0`}
             onClick={() => onThumbnailClick(url, index)}
+            aria-label={`Voir image ${index + 1}`}
           >
             {loadingImages[index] && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">

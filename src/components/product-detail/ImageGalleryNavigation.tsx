@@ -21,21 +21,21 @@ const ImageGalleryNavigation: React.FC<ImageGalleryNavigationProps> = ({
     <>
       <button 
         onClick={() => onNavigate('prev')}
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 opacity-70 hover:opacity-100 transition-opacity"
+        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-3 opacity-70 hover:opacity-100 transition-opacity z-10"
         aria-label="Image précédente"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
       </button>
       <button 
         onClick={() => onNavigate('next')}
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full shadow p-2 opacity-70 hover:opacity-100 transition-opacity"
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-3 opacity-70 hover:opacity-100 transition-opacity z-10"
         aria-label="Image suivante"
       >
-        <ArrowRight className="h-4 w-4" />
+        <ArrowRight className="h-5 w-5" />
       </button>
       
       {/* Image counter */}
-      <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-full">
+      <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full">
         {currentIndex + 1} / {imagesCount}
       </div>
     </>

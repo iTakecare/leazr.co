@@ -66,7 +66,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
       {/* Overlay zoom icon */}
       {!hasError && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-black bg-opacity-40 rounded-full p-2">
+          <div className="bg-black/40 rounded-full p-3">
             <ZoomIn className="h-6 w-6 text-white" />
           </div>
         </div>
