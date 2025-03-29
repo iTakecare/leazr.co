@@ -68,7 +68,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = "/placeholder.svg";
+            console.log(`Fallback à l'image par défaut pour ${product.name || 'produit inconnu'}`);
           }}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
       </div>

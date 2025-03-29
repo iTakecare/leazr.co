@@ -10,18 +10,19 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // S'assurer d'utiliser l'image principale du produit
+  // Extraire l'URL de l'image avec une vérification plus robuste
   const imageUrl = product?.image_url || "/placeholder.svg";
   
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
+    console.log(`Image chargée avec succès: ${imageUrl}`);
   };
   
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    console.log(`Erreur de chargement d'image pour ${product?.name || 'produit'}: ${imageUrl}`);
+    console.error(`Erreur de chargement d'image pour ${product?.name || 'produit'}: ${imageUrl}`);
   };
   
   return (

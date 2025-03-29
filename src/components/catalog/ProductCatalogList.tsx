@@ -48,7 +48,9 @@ const ProductList: React.FC<ProductListProps> = ({
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = "/placeholder.svg";
+            console.log(`Erreur d'image dans la liste pour ${product.name || 'produit inconnu'}`);
           }}
+          loading="lazy"
         />
       </div>
       <div className="flex-1 min-w-0">
