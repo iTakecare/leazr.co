@@ -4,8 +4,7 @@
  */
 
 /**
- * Checks if an image URL is valid - simplified version that doesn't attempt to validate URLs
- * that could trigger CORS or storage permission issues
+ * Checks if an image URL is valid - basic validation only
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
   // If the URL is null, undefined or empty, it's not valid
@@ -21,14 +20,12 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
   // Exclude placeholders or hidden files
   if (
     url.includes('.emptyFolderPlaceholder') || 
-    url.split('/').pop()?.startsWith('.') ||
     url.includes('undefined') ||
     url.endsWith('/')
   ) {
     return false;
   }
   
-  // Simple format validation - accept anything that looks like a path or URL
   return true;
 };
 
@@ -61,8 +58,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 };
 
 /**
- * Add a timestamp to image URLs to prevent caching issues
- * Simplified version to avoid errors with storage permissions
+ * Simply adds a timestamp to URLs to prevent caching issues
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
@@ -75,14 +71,12 @@ export const addTimestamp = (url: string): string => {
   }
   
   try {
-    // Don't try to modify Supabase storage URLs in a way that might trigger validation or permission issues
-    // Just append a timestamp query parameter in the simplest way possible
+    // Simply append a timestamp query parameter in the simplest way
     const timestamp = Date.now();
     const separator = url.includes('?') ? '&' : '?';
-    
     return `${url}${separator}t=${timestamp}`;
   } catch (e) {
     console.error("Error adding timestamp to URL:", url, e);
-    return url; // Return original URL on error instead of placeholder
+    return url; // Return original URL on error
   }
 };

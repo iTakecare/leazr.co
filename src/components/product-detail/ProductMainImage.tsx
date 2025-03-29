@@ -30,8 +30,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
     setIsLoading(true);
     setHasError(false);
     
-    // Simply add timestamp and use the URL directly
-    // This avoids any pre-loading that might trigger storage access errors
+    // Directly use the URL with timestamp
     const timestampedUrl = addTimestamp(imageUrl);
     setFinalImageUrl(timestampedUrl);
   }, [imageUrl, addTimestamp]);
@@ -48,7 +47,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
       setHasError(true);
       setFinalImageUrl("/placeholder.svg");
     } else {
-      // Try again with a new timestamp
+      // Try again with a new timestamp and retry counter
       setRetryCount(prev => prev + 1);
       const newUrl = `${addTimestamp(imageUrl)}&retry=${retryCount + 1}`;
       setFinalImageUrl(newUrl);

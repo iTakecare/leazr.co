@@ -17,6 +17,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     siteName: "iTakecare"
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [logoError, setLogoError] = useState(false);
   
   // Fetch logo and site info on component mount
   useEffect(() => {
@@ -36,7 +37,14 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         if (data) {
           console.log("Site settings loaded for logo:", data);
-          setLogoUrl(data.logo_url || null);
+          // Add timestamp to URL to prevent caching issues
+          let logoUrlWithTimestamp = data.logo_url;
+          if (logoUrlWithTimestamp) {
+            const timestamp = Date.now();
+            const separator = logoUrlWithTimestamp.includes('?') ? '&' : '?';
+            logoUrlWithTimestamp = `${logoUrlWithTimestamp}${separator}t=${timestamp}`;
+          }
+          setLogoUrl(logoUrlWithTimestamp);
           setSiteInfo({
             siteName: data.site_name || "iTakecare"
           });
@@ -51,7 +59,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     fetchSiteSettings();
   }, []);
   
-  // Génère les initiales de l'utilisateur ou utilise IT par défaut
+  // Generate user initials or use IT by default
   const getUserInitials = () => {
     if (!user) return "IT";
     
@@ -63,43 +71,46 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     return "IT";
   };
 
+  const handleLogoError = () => {
+    console.error("Error loading logo image:", logoUrl);
+    setLogoError(true);
+  }
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
         <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
         <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
         
-        {/* Logo container avec image ou initiales */}
+        {/* Logo container with image or initials */}
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
-          {logoUrl ? (
+          {logoUrl && !logoError ? (
             <img 
               src={logoUrl} 
               alt={siteInfo.siteName}
               className="w-10 h-10 object-contain"
-              onError={(e) => {
-                console.error("Error loading logo image:", logoUrl);
-                // Si l'image ne charge pas, afficher les initiales à la place
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
-              }}
+              onError={handleLogoError}
             />
           ) : isLoading ? (
             <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
           ) : (
-            <img 
-              src="/site-favicon.ico" 
-              alt="iTakecare Logo"
-              className="w-7 h-7 object-contain"
-              onError={(e) => {
-                // Si l'image ne charge pas, afficher les initiales à la place
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
-              }}
-            />
+            <div className="relative w-full h-full">
+              <img 
+                src="/site-favicon.ico" 
+                alt="iTakecare Logo"
+                className="w-7 h-7 object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                onError={() => {
+                  // If favicon fails, show initials
+                  document.getElementById('logo-fallback-text')?.classList.remove('hidden');
+                  document.getElementById('logo-fallback-img')?.classList.add('hidden');
+                }}
+                id="logo-fallback-img"
+              />
+              <span id="logo-fallback-text" className="hidden font-bold text-primary text-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                {getUserInitials()}
+              </span>
+            </div>
           )}
-          <span id="logo-fallback" className={logoUrl ? "hidden" : "font-bold text-primary text-lg"}>
-            {getUserInitials()}
-          </span>
         </div>
       </div>
       
