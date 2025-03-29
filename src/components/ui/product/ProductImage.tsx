@@ -10,7 +10,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Utiliser une approche simple avec image_url comme source principale
+  // S'assurer d'utiliser l'image principale du produit
   const imageUrl = product?.image_url || "/placeholder.svg";
   
   const handleImageLoad = () => {
