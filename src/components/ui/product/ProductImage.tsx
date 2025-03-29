@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,37 +36,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           return;
         }
         
-        console.log(`Loading image for product ${product.id}`);
-        
-        const { data: files, error } = await supabase
-          .storage
-          .from("product-images")
-          .list(product.id);
-          
-        if (!error && files && files.length > 0) {
-          const imageFiles = files.filter(file => 
-            !file.name.startsWith('.') && 
-            file.name !== '.emptyFolderPlaceholder'
-          );
-          
-          if (imageFiles.length > 0) {
-            const { data } = supabase
-              .storage
-              .from("product-images")
-              .getPublicUrl(`${product.id}/${imageFiles[0].name}`);
-              
-            if (data?.publicUrl) {
-              const timestamp = new Date().getTime();
-              const url = `${data.publicUrl}?t=${timestamp}&r=${retryCount}`;
-              console.log(`Using storage image: ${url}`);
-              setImageUrl(url);
-              setIsLoading(false);
-              loadingRef.current = false;
-              return;
-            }
-          }
-        }
-        
+        // Utilisez image_url du produit directement s'il existe
         if (product.image_url && typeof product.image_url === 'string') {
           console.log(`Using product.image_url: ${product.image_url}`);
           setImageUrl(product.image_url);
@@ -74,6 +45,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           return;
         }
         
+        // Si pas d'image_url, utilisez le placeholder
         console.log("No valid image found, using placeholder");
         setImageUrl("/placeholder.svg");
         setIsLoading(false);
