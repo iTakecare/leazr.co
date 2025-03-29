@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Product } from "@/types/catalog";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProductImageProps {
   product: Product;
@@ -10,80 +9,25 @@ interface ProductImageProps {
 const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   const [retryCount, setRetryCount] = useState(0);
-  const loadingRef = useRef(false);
-  const initDoneRef = useRef(false);
-  const previousProductRef = useRef<string | null>(null);
   
-  useEffect(() => {
-    if (initDoneRef.current && product?.id === previousProductRef.current) return;
-    
-    setIsLoading(true);
-    setHasError(false);
-    initDoneRef.current = true;
-    previousProductRef.current = product?.id || null;
-    
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    
-    const loadImage = async () => {
-      try {
-        if (!product?.id) {
-          setImageUrl("/placeholder.svg");
-          setIsLoading(false);
-          loadingRef.current = false;
-          return;
-        }
-        
-        // Utilisez image_url du produit directement s'il existe
-        if (product.image_url && typeof product.image_url === 'string') {
-          console.log(`Using product.image_url: ${product.image_url}`);
-          setImageUrl(product.image_url);
-          setIsLoading(false);
-          loadingRef.current = false;
-          return;
-        }
-        
-        // Si pas d'image_url, utilisez le placeholder
-        console.log("No valid image found, using placeholder");
-        setImageUrl("/placeholder.svg");
-        setIsLoading(false);
-        loadingRef.current = false;
-      } catch (err) {
-        console.error("Error loading product image:", err);
-        setImageUrl("/placeholder.svg");
-        setIsLoading(false);
-        setHasError(true);
-        loadingRef.current = false;
-      }
-    };
-    
-    loadImage();
-    
-    return () => {
-      loadingRef.current = false;
-    };
-  }, [product, retryCount]);
+  // Use image_url from product directly if it exists
+  const imageUrl = product?.image_url || "/placeholder.svg";
   
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
-    loadingRef.current = false;
   };
   
   const handleImageError = () => {
     console.error(`Failed to load image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(true);
-    loadingRef.current = false;
     
     if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
       setTimeout(() => {
         setRetryCount(count => count + 1);
       }, 500);
-    } else {
-      setImageUrl("/placeholder.svg");
     }
   };
   
