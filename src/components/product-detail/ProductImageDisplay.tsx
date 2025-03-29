@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import ProductImageNavigationThumbnails from "./ProductImageNavigationThumbnails";
 import ProductMainImage from "./ProductMainImage";
 import ImageGalleryNavigation from "./ImageGalleryNavigation";
 import ProductPlaceholder from "./ProductPlaceholder";
 import { filterValidImages, addTimestamp } from "./utils/imageUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -17,20 +18,54 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   altText,
   imageUrls = []
 }) => {
-  // Use imageUrl as the default, then add any additional valid images from imageUrls
-  const allImages = filterValidImages(imageUrl, imageUrls);
+  // Filter and deduplicate all valid images
+  const allImages = useMemo(() => {
+    console.log("ProductImageDisplay - Filtering valid images", { imageUrl, additionalImages: imageUrls });
+    const validImages = filterValidImages(imageUrl, imageUrls);
+    console.log("ProductImageDisplay - Valid images:", validImages);
+    return validImages;
+  }, [imageUrl, imageUrls]);
   
-  const [selectedImage, setSelectedImage] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  
+  // Configure image bucket if needed
+  useEffect(() => {
+    const ensureImageBucketExists = async () => {
+      try {
+        // Check if bucket exists
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets?.some(bucket => bucket.name === 'product-images');
+        
+        if (!bucketExists) {
+          // Bucket doesn't exist, create it
+          console.log("Creating product-images bucket");
+          const { data, error } = await supabase.storage.createBucket('product-images', {
+            public: true
+          });
+          
+          if (error) {
+            console.error("Failed to create product-images bucket:", error);
+          } else {
+            console.log("product-images bucket created successfully");
+          }
+        }
+      } catch (err) {
+        console.error("Error checking/creating product-images bucket:", err);
+      }
+    };
+    
+    ensureImageBucketExists();
+  }, []);
   
   // Set the first image as the selected image on component mount or when images change
   useEffect(() => {
     if (allImages.length > 0) {
       setSelectedImage(allImages[0]);
       setCurrentIndex(0);
-      console.log("ProductImageDisplay - Setting initial image:", allImages[0]);
     } else {
-      setSelectedImage('/placeholder.svg');
+      setSelectedImage('');
     }
   }, [allImages]);
   

@@ -37,6 +37,24 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     setImageUrl(getProductImage());
     setIsLoading(true);
     setHasError(false);
+    
+    // Précharger l'image
+    const img = new Image();
+    img.src = addTimestamp(getProductImage());
+    img.onload = () => {
+      setIsLoading(false);
+      setHasError(false);
+    };
+    img.onerror = () => {
+      setIsLoading(false);
+      setHasError(true);
+      console.error(`Failed to load product image for ${product.name}: ${imageUrl}`);
+    };
+    
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [product]);
   
   if (product.is_variation || product.parent_id) {

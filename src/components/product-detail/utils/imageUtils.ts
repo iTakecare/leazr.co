@@ -25,12 +25,24 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
     return false;
   }
   
-  // Try to validate as URL
+  // URL validation with more permissive approach
   try {
+    // Check if it's a relative path starting with /
+    if (url.startsWith('/') && url !== '/placeholder.svg') {
+      return true;
+    }
+    
+    // Accept any URL that starts with http(s):// or data:
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return true;
+    }
+    
+    // Try to validate as URL with more lenient approach
     new URL(url);
     return true;
   } catch (e) {
-    return false;
+    // If it's not a valid URL but seems like a path, accept it
+    return url.includes('/') && !url.includes('undefined');
   }
 };
 
@@ -51,6 +63,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
   // Process additional images if valid
   if (Array.isArray(additionalUrls)) {
     additionalUrls.forEach(url => {
+      // Only add if it's valid and not already added
       if (isValidImageUrl(url) && !uniqueUrlsSet.has(url)) {
         uniqueUrlsSet.add(url);
         validUrls.push(url);
@@ -65,11 +78,16 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
  * Add a timestamp to image URLs to prevent caching issues
  */
 export const addTimestamp = (url: string): string => {
-  if (!url || url === '/placeholder.svg' || !isValidImageUrl(url)) {
+  if (!url || !isValidImageUrl(url)) {
     return "/placeholder.svg";
   }
   
   try {
+    // Check if it's already our placeholder
+    if (url === '/placeholder.svg') {
+      return url;
+    }
+    
     // Add a timestamp query parameter to prevent caching
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${Date.now()}`;
