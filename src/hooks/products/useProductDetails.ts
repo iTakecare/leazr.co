@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, ProductVariationAttributes } from '@/types/catalog';
@@ -18,8 +17,12 @@ export function useProductDetails(productId: string | null) {
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [duration] = useState(24); // Default lease duration in months
   const [productImages, setProductImages] = useState<string[]>([]);
-  const imagesLoadedRef = useRef(false);
   
+  const imagesLoadedRef = useRef(false);
+  const productIdRef = useRef<string | null>(null);
+  const imageLoadingRef = useRef(false);
+  const cachedImagesRef = useRef<Record<string, string[]>>({});
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => productId ? getProductById(productId) : null,
@@ -27,10 +30,20 @@ export function useProductDetails(productId: string | null) {
   });
 
   const loadProductImages = useCallback(async (id: string): Promise<string[]> => {
+    if (imageLoadingRef.current && id === productIdRef.current) {
+      return [];
+    }
+    
+    if (cachedImagesRef.current[id]?.length > 0) {
+      return cachedImagesRef.current[id];
+    }
+    
     try {
+      imageLoadingRef.current = true;
+      productIdRef.current = id;
+      
       console.log(`Loading images for product ${id} from product-images bucket`);
       
-      // Check if the folder exists
       const { data: files, error } = await supabase
         .storage
         .from("product-images")
@@ -40,6 +53,7 @@ export function useProductDetails(productId: string | null) {
       
       if (error) {
         console.error("Error loading product images from storage:", error);
+        imageLoadingRef.current = false;
         return [];
       }
       
@@ -51,10 +65,11 @@ export function useProductDetails(productId: string | null) {
       
       if (imageFiles.length === 0) {
         console.log("No images found for product in storage bucket");
+        imageLoadingRef.current = false;
         return [];
       }
       
-      // Generate direct public URLs
+      const timestamp = Date.now();
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
@@ -66,15 +81,17 @@ export function useProductDetails(productId: string | null) {
           return null;
         }
         
-        const url = data.publicUrl;
-        console.log(`Generated image URL: ${url}`);
+        const url = `${data.publicUrl}?t=${timestamp}`;
         return url;
       }).filter(Boolean) as string[];
       
-      console.log("Loaded product images from storage:", imageUrls);
+      cachedImagesRef.current[id] = imageUrls;
+      imageLoadingRef.current = false;
+      
       return imageUrls;
     } catch (err) {
       console.error("Error in loadProductImages:", err);
+      imageLoadingRef.current = false;
       return [];
     }
   }, []);
@@ -82,13 +99,10 @@ export function useProductDetails(productId: string | null) {
   const getValidImages = useCallback(async (prod: Product | null): Promise<string[]> => {
     if (!prod || !productId) return [];
     
-    // If we already loaded images, don't reload them
-    if (productImages.length > 0 && imagesLoadedRef.current) {
-      console.log("Using cached product images:", productImages);
+    if (productImages.length > 0 && imagesLoadedRef.current && productId === productIdRef.current) {
       return productImages;
     }
     
-    // Try to load images from Supabase storage first
     const storageImages = await loadProductImages(productId);
     if (storageImages.length > 0) {
       console.log("Using images from storage:", storageImages);
@@ -99,7 +113,6 @@ export function useProductDetails(productId: string | null) {
     
     console.log("No storage images found, falling back to product object images");
     
-    // Fall back to images in the product object
     const validImages: string[] = [];
     const seenUrls = new Set<string>();
     
@@ -117,7 +130,6 @@ export function useProductDetails(productId: string | null) {
       return true;
     };
     
-    // Check all possible image locations in the product object
     if (isValidImage(prod.image_url as string)) {
       validImages.push(prod.image_url as string);
       seenUrls.add(prod.image_url as string);
@@ -128,7 +140,6 @@ export function useProductDetails(productId: string | null) {
       seenUrls.add(prod.imageUrl as string);
     }
     
-    // Check image arrays
     const checkAndAddImages = (images: any[] | undefined) => {
       if (!images || !Array.isArray(images)) return;
       
@@ -173,9 +184,9 @@ export function useProductDetails(productId: string | null) {
     setLoading(false);
     setError(null);
     
-    // Reset ref when product changes
-    if (productId) {
+    if (productId !== productIdRef.current) {
       imagesLoadedRef.current = false;
+      productIdRef.current = productId;
     }
     
     const loadImages = async () => {
@@ -183,10 +194,8 @@ export function useProductDetails(productId: string | null) {
       
       if (validImages.length > 0 && !currentImage) {
         setCurrentImage(validImages[0]);
-        console.log("Setting current image to:", validImages[0]);
       } else if (validImages.length === 0) {
         setCurrentImage(null);
-        console.log("No valid images found for product");
       }
     };
     

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,33 +11,40 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
-  const [retryCount, setRetryCount] = useState(0);
+  
+  // Utiliser des références pour éviter les rendus en boucle
+  const mountedRef = useRef(true);
   const loadingRef = useRef(false);
-  const initDoneRef = useRef(false);
-  const previousProductRef = useRef<string | null>(null);
+  const productIdRef = useRef<string | null>(null);
+  const retryCountRef = useRef(0);
+  
+  // Utiliser un cache statique pour les URLs d'images
+  const staticImageCache = useRef<Map<string, string>>(new Map());
   
   useEffect(() => {
-    if (initDoneRef.current && product?.id === previousProductRef.current) return;
+    if (!product?.id || product.id === productIdRef.current) return;
     
     setIsLoading(true);
     setHasError(false);
-    initDoneRef.current = true;
-    previousProductRef.current = product?.id || null;
+    productIdRef.current = product.id;
+    retryCountRef.current = 0;
+    
+    // Vérifier si l'image est déjà en cache
+    if (staticImageCache.current.has(product.id)) {
+      const cachedUrl = staticImageCache.current.get(product.id);
+      if (cachedUrl) {
+        setImageUrl(addTimestamp(cachedUrl));
+        setIsLoading(false);
+        return;
+      }
+    }
     
     if (loadingRef.current) return;
     loadingRef.current = true;
     
     const loadImage = async () => {
       try {
-        if (!product?.id) {
-          setImageUrl("/placeholder.svg");
-          setIsLoading(false);
-          loadingRef.current = false;
-          return;
-        }
-        
-        console.log(`Loading image for product ${product.id}`);
-        
+        // Essayer d'abord de charger l'image depuis Supabase storage
         const { data: files, error } = await supabase
           .storage
           .from("product-images")
@@ -55,9 +63,10 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
               .getPublicUrl(`${product.id}/${imageFiles[0].name}`);
               
             if (data?.publicUrl) {
-              const timestamp = new Date().getTime();
-              const url = `${data.publicUrl}?t=${timestamp}&r=${retryCount}`;
-              console.log(`Using storage image: ${url}`);
+              // Mettre en cache l'URL pour les futurs rendus
+              staticImageCache.current.set(product.id, data.publicUrl);
+              
+              const url = addTimestamp(data.publicUrl);
               setImageUrl(url);
               setIsLoading(false);
               loadingRef.current = false;
@@ -66,15 +75,16 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           }
         }
         
+        // Sinon, utiliser l'image principale du produit si disponible
         if (product.image_url && typeof product.image_url === 'string') {
-          console.log(`Using product.image_url: ${product.image_url}`);
+          staticImageCache.current.set(product.id, product.image_url);
           setImageUrl(product.image_url);
           setIsLoading(false);
           loadingRef.current = false;
           return;
         }
         
-        console.log("No valid image found, using placeholder");
+        // Fallback sur le placeholder
         setImageUrl("/placeholder.svg");
         setIsLoading(false);
         loadingRef.current = false;
@@ -92,27 +102,48 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     return () => {
       loadingRef.current = false;
     };
-  }, [product, retryCount]);
+  }, [product]);
+  
+  // Nettoyage lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   
   const handleImageLoad = () => {
+    if (!mountedRef.current) return;
     setIsLoading(false);
     setHasError(false);
-    loadingRef.current = false;
   };
   
   const handleImageError = () => {
-    console.error(`Failed to load image: ${imageUrl}`);
+    if (!mountedRef.current) return;
+    
     setIsLoading(false);
     setHasError(true);
-    loadingRef.current = false;
     
-    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
+    // Limiter les tentatives de rechargement pour éviter les boucles infinies
+    if (retryCountRef.current < 1 && imageUrl !== "/placeholder.svg") {
+      retryCountRef.current++;
+      
       setTimeout(() => {
-        setRetryCount(count => count + 1);
+        if (mountedRef.current) {
+          const refreshedUrl = addTimestamp(imageUrl);
+          setImageUrl(refreshedUrl);
+        }
       }, 500);
     } else {
       setImageUrl("/placeholder.svg");
     }
+  };
+  
+  // Ajouter un timestamp pour contourner le cache du navigateur
+  const addTimestamp = (url: string): string => {
+    if (!url || url === "/placeholder.svg") return "/placeholder.svg";
+    
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${Date.now()}&r=${retryCountRef.current}`;
   };
   
   return (
@@ -124,6 +155,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       )}
       <div className="w-full h-full flex items-center justify-center">
         <img 
+          key={`img-${product.id}-${retryCountRef.current}`}
           src={imageUrl}
           alt={product?.name || "Produit"}
           className="object-contain max-h-full max-w-full"

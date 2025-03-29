@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowLeft, ArrowRight, ZoomIn } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -16,33 +18,15 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [allImages, setAllImages] = useState<string[]>([]);
-  const imageProcessedRef = useRef(true);
-  const initialRenderRef = useRef(true);
+  
+  // Références pour éviter les rendus en boucle
+  const mountedRef = useRef(true);
   const processingRef = useRef(false);
-  const imagesRef = useRef<string[]>([]);
+  const loadedImagesRef = useRef<Set<string>>(new Set());
   
-  const processImageUrl = useCallback((url: string): string => {
-    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
-    
-    try {
-      const baseUrl = url.split('?')[0];
-      
-      if (!baseUrl.includes('t=')) {
-        return `${baseUrl}?t=${Date.now()}`;
-      }
-      
-      return url;
-    } catch (e) {
-      return url || "/placeholder.svg";
-    }
-  }, []);
-  
-  useEffect(() => {
-    if (processingRef.current) return;
-    processingRef.current = true;
-    
-    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrlsLength: imageUrls?.length });
+  // Traitement et dédoublonnage des images en une seule fois
+  const allImages = useMemo(() => {
+    if (processingRef.current) return [];
     
     const isValidImageUrl = (url: string | null | undefined): boolean => {
       if (!url || typeof url !== 'string' || url.trim() === '') return false;
@@ -56,13 +40,16 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       );
     };
     
+    // Utiliser un Map pour dédoublonner les URLs par leur chemin de base
     const uniqueUrlsMap = new Map<string, string>();
     
+    // Traiter l'image principale si valide
     if (isValidImageUrl(imageUrl)) {
       const baseMainUrl = imageUrl.split('?')[0];
       uniqueUrlsMap.set(baseMainUrl, imageUrl);
     }
     
+    // Traiter les images secondaires si valides
     if (Array.isArray(imageUrls)) {
       imageUrls.forEach(url => {
         if (isValidImageUrl(url)) {
@@ -72,71 +59,110 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       });
     }
     
-    const validImages = Array.from(uniqueUrlsMap.values());
-    console.log("ProductImageDisplay - Available images:", validImages);
+    // Convertir le Map en tableau
+    return Array.from(uniqueUrlsMap.values());
+  }, [imageUrl, imageUrls]);
+  
+  // Fonction d'ajout de timestamp pour le cache-busting
+  const processImageUrl = (url: string): string => {
+    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
     
-    if (JSON.stringify(validImages) !== JSON.stringify(imagesRef.current)) {
-      imagesRef.current = validImages;
-      setAllImages(validImages);
-      
-      if (validImages.length > 0) {
-        const firstImage = processImageUrl(validImages[0]);
-        console.log("ProductImageDisplay - Setting initial image:", firstImage);
-        setSelectedImage(firstImage);
-        setCurrentIndex(0);
-        setIsLoading(true);
-      } else {
-        setSelectedImage('/placeholder.svg');
-        setIsLoading(false);
-        setHasError(true);
-      }
+    try {
+      const baseUrl = url.split('?')[0];
+      const timestamp = Date.now();
+      return `${baseUrl}?t=${timestamp}`;
+    } catch (e) {
+      return url || "/placeholder.svg";
+    }
+  };
+  
+  // Effet pour initialiser l'image sélectionnée
+  useEffect(() => {
+    if (allImages.length === 0) {
+      setSelectedImage('/placeholder.svg');
+      setIsLoading(false);
+      setHasError(true);
+      return;
     }
     
-    processingRef.current = false;
-  }, [imageUrl, imageUrls, processImageUrl]);
+    // Ne définir l'image que si c'est nécessaire pour éviter les rendus en boucle
+    if (!selectedImage || !allImages.includes(selectedImage.split('?')[0])) {
+      const processedUrl = processImageUrl(allImages[0]);
+      setSelectedImage(processedUrl);
+      setCurrentIndex(0);
+      setIsLoading(true);
+      setHasError(false);
+    }
+  }, [allImages, selectedImage]);
+  
+  // Nettoyage lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
+  // Gestionnaire de chargement d'image réussi
   const handleImageLoad = () => {
+    if (!mountedRef.current) return;
+    
     setIsLoading(false);
     setHasError(false);
-    console.log("ProductImageDisplay - Image loaded successfully:", selectedImage);
+    
+    // Ajouter l'URL à la liste des images chargées avec succès
+    if (selectedImage) {
+      loadedImagesRef.current.add(selectedImage.split('?')[0]);
+    }
   };
 
+  // Gestionnaire d'erreur de chargement d'image
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log("ProductImageDisplay - Error loading image:", selectedImage);
+    if (!mountedRef.current) return;
+    
     setIsLoading(false);
     setHasError(true);
     
     const imgElement = e.target as HTMLImageElement;
-    const baseUrl = imgElement.src.split('?')[0];
+    const currentSrc = imgElement.src;
     
-    if (imgElement.src !== '/placeholder.svg' && baseUrl !== '/placeholder.svg') {
-      setTimeout(() => {
-        if (mounted.current) {
-          imgElement.src = `${baseUrl}?t=${Date.now()}`;
-        }
-      }, 500);
+    // Éviter les tentatives infinies de rechargement
+    if (currentSrc.includes('/placeholder.svg')) {
+      return;
+    }
+
+    // Si l'image n'a pas déjà été tentée plusieurs fois, essayer de la recharger
+    const baseUrl = currentSrc.split('?')[0];
+    if (!baseUrl.includes('/placeholder.svg')) {
+      const attempts = (loadedImagesRef.current.has(baseUrl) ? 0 : 1);
+      
+      if (attempts < 2) {
+        // Délai pour éviter les boucles de rechargement
+        setTimeout(() => {
+          if (mountedRef.current) {
+            // Utiliser un nouveau timestamp pour éviter les problèmes de cache
+            imgElement.src = `${baseUrl}?t=${Date.now()}&retry=${attempts}`;
+          }
+        }, 800);
+      } else {
+        imgElement.src = '/placeholder.svg';
+      }
     } else {
       imgElement.src = '/placeholder.svg';
     }
   };
   
-  const mounted = useRef(true);
-  useEffect(() => {
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  
+  // Gestionnaire de clic sur une miniature
   const handleThumbnailClick = (url: string, index: number) => {
     if (currentIndex === index) return;
     
-    console.log("ProductImageDisplay - Thumbnail clicked:", url);
-    setSelectedImage(processImageUrl(url));
+    const processedUrl = processImageUrl(url);
+    setSelectedImage(processedUrl);
     setCurrentIndex(index);
     setIsLoading(true);
     setHasError(false);
   };
 
+  // Navigation entre les images
   const navigateImage = (direction: 'prev' | 'next') => {
     if (allImages.length <= 1) return;
     
@@ -150,13 +176,14 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     
     if (newIndex === currentIndex) return;
     
-    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}`);
+    const processedUrl = processImageUrl(allImages[newIndex]);
+    setSelectedImage(processedUrl);
     setCurrentIndex(newIndex);
-    setSelectedImage(processImageUrl(allImages[newIndex]));
     setIsLoading(true);
     setHasError(false);
   };
 
+  // Affichage en cas d'absence d'images
   if (allImages.length === 0) {
     return (
       <div className="flex flex-col-reverse md:flex-row md:gap-4">
@@ -183,13 +210,11 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       {allImages.length > 1 && (
         <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
           {allImages.map((url, index) => {
-            const urlParts = url.split('/');
-            const fileName = urlParts[urlParts.length - 1].split('?')[0];
-            const key = `thumb-${index}-${fileName}`;
+            const imageKey = `thumb-${index}-${url.split('/').pop()?.split('?')[0] || index}`;
             
             return (
               <button
-                key={key}
+                key={imageKey}
                 className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
                   ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
                   overflow-hidden flex-shrink-0`}
@@ -222,7 +247,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
             )}
             {selectedImage && (
               <img 
-                key={`main-${currentIndex}-${selectedImage}`}
+                key={`main-${currentIndex}-${selectedImage.split('?')[0]}`}
                 src={selectedImage} 
                 alt={altText}
                 className={`max-w-full max-h-full object-contain transition-all duration-300 
