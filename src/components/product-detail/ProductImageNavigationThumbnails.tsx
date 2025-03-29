@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { cleanImageUrl } from "./utils/imageUtils";
 
 interface ProductImageNavigationThumbnailsProps {
   images: string[];
@@ -42,23 +43,17 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
     }));
   };
   
-  // Clean up URLs to ensure they don't have double slashes
-  const cleanImageUrl = (url: string): string => {
-    // Fix URLs with double slashes (except after protocol)
-    return url.replace(/([^:])\/\/+/g, '$1/');
-  };
-  
   return (
     <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
       {images.map((url, index) => {
-        // Process URL to fix any issues - strip cache-busting params for thumbnails
-        const originalUrl = cleanImageUrl(url);
+        // Clean URL to prevent double slashes and other issues
+        const cleanedUrl = cleanImageUrl(url);
         // Use placeholder if error
-        const imageUrl = imageErrors[index] ? "/placeholder.svg" : originalUrl;
+        const imageUrl = imageErrors[index] ? "/placeholder.svg" : cleanedUrl;
         
         return (
           <button
-            key={`thumb-${index}`}
+            key={`thumb-${index}-${url}`}
             className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
               ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
               overflow-hidden flex-shrink-0`}

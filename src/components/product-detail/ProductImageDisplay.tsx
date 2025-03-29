@@ -4,14 +4,7 @@ import ProductImageNavigationThumbnails from "./ProductImageNavigationThumbnails
 import ProductMainImage from "./ProductMainImage";
 import ImageGalleryNavigation from "./ImageGalleryNavigation";
 import ProductPlaceholder from "./ProductPlaceholder";
-import { filterValidImages, addTimestamp } from "./utils/imageUtils";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from "@/components/ui/carousel";
+import { filterValidImages, cleanImageUrl } from "./utils/imageUtils";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -28,26 +21,11 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const allImages = useMemo(() => {
     console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
     
-    // Combine main image and image URLs to create a unified list
-    const combinedImages = [imageUrl, ...(imageUrls || [])];
+    // Filter and deduplicate images using utility function
+    const validImages = filterValidImages(imageUrl, imageUrls);
     
-    // Filter out invalid and duplicate images
-    const validImages = combinedImages.filter(url => 
-      url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg'
-    );
-    
-    // Remove duplicates using simple URL normalization (no query params)
-    const uniqueImages = Array.from(new Set(
-      validImages.map(url => url.replace(/([^:])\/\/+/g, '$1/').split('?')[0])
-    )).map(normalizedUrl => {
-      // Find the first original URL that matches this normalized URL
-      return validImages.find(url => 
-        url.replace(/([^:])\/\/+/g, '$1/').split('?')[0] === normalizedUrl
-      ) || '';
-    });
-    
-    console.log("ProductImageDisplay - Valid images:", uniqueImages);
-    return uniqueImages;
+    console.log("ProductImageDisplay - Valid images:", validImages);
+    return validImages;
   }, [imageUrl, imageUrls]);
   
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -64,7 +42,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   }, [allImages]);
   
   const handleThumbnailClick = (url: string, index: number) => {
-    setSelectedImage(url);
+    setSelectedImage(cleanImageUrl(url));
     setCurrentIndex(index);
   };
 
@@ -80,7 +58,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     }
     
     setCurrentIndex(newIndex);
-    setSelectedImage(allImages[newIndex]);
+    setSelectedImage(cleanImageUrl(allImages[newIndex]));
   };
 
   // If no valid images, show a placeholder
@@ -95,7 +73,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
         images={allImages}
         currentIndex={currentIndex}
         onThumbnailClick={handleThumbnailClick}
-        addTimestamp={addTimestamp}
+        addTimestamp={cleanImageUrl}
       />
       
       {/* Main image container */}
@@ -104,7 +82,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
           <ProductMainImage
             imageUrl={selectedImage}
             altText={altText}
-            addTimestamp={addTimestamp}
+            addTimestamp={cleanImageUrl}
           />
           
           {/* Navigation arrows and counter */}

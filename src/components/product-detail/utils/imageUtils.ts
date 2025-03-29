@@ -1,10 +1,10 @@
 
 /**
- * Utility functions for product image handling - Simplified version
+ * Utility functions for product image handling
  */
 
 /**
- * Very simple check if an image URL is valid - basic validation only
+ * Check if an image URL is valid
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
   // If the URL is null, undefined or empty, it's not valid
@@ -21,18 +21,24 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
 };
 
 /**
+ * Normalize a URL by removing double slashes and query parameters
+ * Used for URL comparison and deduplication
+ */
+export const normalizeUrl = (url: string): string => {
+  // First fix double slashes (except after protocol)
+  const fixedSlashes = url.replace(/([^:])\/\/+/g, '$1/');
+  
+  // Remove any query parameters
+  return fixedSlashes.split('?')[0];
+};
+
+/**
  * Filter and deduplicate valid image URLs
  */
 export const filterValidImages = (mainImageUrl: string, additionalUrls: string[] = []): string[] => {
-  // Create a set to deduplicate images based on URL without query parameters
+  // Create a set to deduplicate images based on normalized URL
   const uniqueUrlsSet = new Set<string>();
   const validUrls: string[] = [];
-  
-  // Helper function to normalize URLs for comparison
-  const normalizeUrl = (url: string): string => {
-    // Clean up double slashes and remove query parameters
-    return url.replace(/([^:])\/\/+/g, '$1/').split('?')[0];
-  };
   
   // Process the main image first if valid
   if (isValidImageUrl(mainImageUrl)) {
@@ -49,7 +55,7 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
         const normalizedUrl = normalizeUrl(url);
         if (!uniqueUrlsSet.has(normalizedUrl)) {
           uniqueUrlsSet.add(normalizedUrl);
-          validUrls.push(url);
+          validUrls.push(url.replace(/([^:])\/\/+/g, '$1/'));  // Fix double slashes in the URL
         }
       }
     });
@@ -60,9 +66,9 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 
 /**
  * Clean image URL to prevent issues
- * Returns original URL or placeholder if invalid
+ * Returns original URL with fixed slashes or placeholder if invalid
  */
-export const addTimestamp = (url: string): string => {
+export const cleanImageUrl = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
     return "/placeholder.svg";
   }
@@ -73,12 +79,12 @@ export const addTimestamp = (url: string): string => {
   }
   
   // Fix double slashes in URLs which can cause issues
-  // This is a common issue with storage URLs
-  const cleanedUrl = url.replace(/([^:])\/\/+/g, '$1/');
-  
-  // Remove any existing timestamp parameter
-  const urlWithoutTimestamp = cleanedUrl.split('?')[0];
-  
-  // Don't add timestamp parameters as they may break caching
-  return urlWithoutTimestamp;
+  return url.replace(/([^:])\/\/+/g, '$1/');
+};
+
+/**
+ * Legacy function kept for backward compatibility
+ */
+export const addTimestamp = (url: string): string => {
+  return cleanImageUrl(url);
 };
