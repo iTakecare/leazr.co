@@ -13,23 +13,25 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   onQuantityChange 
 }) => {
   return (
-    <div className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
-      <h4 className="block text-sm font-medium text-gray-700 capitalize mb-3">Quantité</h4>
-      <div className="flex items-center border rounded-md w-fit">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="rounded-r-none h-10"
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
+      <div className="flex items-center">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 rounded-r-none border-gray-200"
           onClick={() => onQuantityChange(quantity - 1)}
           disabled={quantity <= 1}
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <div className="px-4 py-2 font-medium border-x">{quantity}</div>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="rounded-l-none h-10"
+        <div className="h-10 px-4 flex items-center justify-center border-y border-gray-200">
+          {quantity}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 rounded-l-none border-gray-200"
           onClick={() => onQuantityChange(quantity + 1)}
         >
           <Plus className="h-4 w-4" />
