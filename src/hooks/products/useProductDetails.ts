@@ -4,6 +4,8 @@ import { Product, ProductVariationAttributes } from '@/types/catalog';
 import { getProductById } from '@/services/catalogService';
 import { supabase } from '@/integrations/supabase/client';
 
+const globalImageCache: Record<string, string[]> = {};
+
 export function useProductDetails(productId: string | null) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -15,13 +17,13 @@ export function useProductDetails(productId: string | null) {
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
-  const [duration] = useState(24); // Default lease duration in months
+  const [duration] = useState(24);
   const [productImages, setProductImages] = useState<string[]>([]);
-  
+
   const imagesLoadedRef = useRef(false);
   const productIdRef = useRef<string | null>(null);
   const imageLoadingRef = useRef(false);
-  const cachedImagesRef = useRef<Record<string, string[]>>({});
+  const requestCounterRef = useRef(0);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -34,15 +36,14 @@ export function useProductDetails(productId: string | null) {
       return [];
     }
     
-    if (cachedImagesRef.current[id]?.length > 0) {
-      return cachedImagesRef.current[id];
+    if (globalImageCache[id]?.length > 0) {
+      return globalImageCache[id];
     }
     
     try {
       imageLoadingRef.current = true;
       productIdRef.current = id;
-      
-      console.log(`Loading images for product ${id} from product-images bucket`);
+      requestCounterRef.current++;
       
       const { data: files, error } = await supabase
         .storage
@@ -64,7 +65,7 @@ export function useProductDetails(productId: string | null) {
       );
       
       if (imageFiles.length === 0) {
-        console.log("No images found for product in storage bucket");
+        console.log("No images found in storage for product", id);
         imageLoadingRef.current = false;
         return [];
       }
@@ -85,9 +86,10 @@ export function useProductDetails(productId: string | null) {
         return url;
       }).filter(Boolean) as string[];
       
-      cachedImagesRef.current[id] = imageUrls;
-      imageLoadingRef.current = false;
+      globalImageCache[id] = imageUrls;
       
+      console.log(`Generated ${imageUrls.length} image URLs for product ${id}`);
+      imageLoadingRef.current = false;
       return imageUrls;
     } catch (err) {
       console.error("Error in loadProductImages:", err);
@@ -102,6 +104,8 @@ export function useProductDetails(productId: string | null) {
     if (productImages.length > 0 && imagesLoadedRef.current && productId === productIdRef.current) {
       return productImages;
     }
+    
+    console.log("Loading images for product", productId, "from product-images bucket");
     
     const storageImages = await loadProductImages(productId);
     if (storageImages.length > 0) {
@@ -157,6 +161,7 @@ export function useProductDetails(productId: string | null) {
     checkAndAddImages(prod.images as any[]);
     
     console.log("Found valid images from product object:", validImages);
+    
     setProductImages(validImages);
     imagesLoadedRef.current = true;
     return validImages;
@@ -254,7 +259,7 @@ export function useProductDetails(productId: string | null) {
       setSelectedOptions(defaultOptions);
     }
   }, [data, isLoading, isError, productId, getValidImages, currentImage]);
-  
+
   const handleOptionChange = (attributeName: string, value: string) => {
     setSelectedOptions(prev => ({
       ...prev,

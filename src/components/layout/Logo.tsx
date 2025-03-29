@@ -17,12 +17,14 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     siteName: "iTakecare"
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [logoError, setLogoError] = useState(false);
   
   // Fetch logo and site info on component mount
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
         setIsLoading(true);
+        
         const { data, error } = await supabase
           .from('site_settings')
           .select('*')
@@ -31,16 +33,28 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         if (error) {
           console.error("Error fetching site settings:", error);
+          setLogoError(true);
           return;
         }
         
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Clean up logo URL if it contains double slashes
+          // Fix the logo URL by ensuring it has proper formatting
           let cleanLogoUrl = null;
           if (data.logo_url) {
-            cleanLogoUrl = data.logo_url.replace(/\/\/([^\/])/g, '/$1');
+            // Fix common URL formatting issues
+            cleanLogoUrl = data.logo_url
+              // Fix protocol-relative URLs
+              .replace(/^\/\//, 'https://')
+              // Fix missing protocol
+              .replace(/^(?!https?:\/\/)/, 'https://')
+              // Fix double slashes in path
+              .replace(/([^:]\/)\/+/g, '$1');
+              
+            // Add cache-busting parameter
+            const separator = cleanLogoUrl.includes('?') ? '&' : '?';
+            cleanLogoUrl = `${cleanLogoUrl}${separator}t=${Date.now()}`;
           }
           
           setLogoUrl(cleanLogoUrl);
@@ -50,6 +64,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         }
       } catch (error) {
         console.error("Error in Logo component:", error);
+        setLogoError(true);
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +85,11 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     return "IT";
   };
 
+  const handleLogoError = () => {
+    console.error("Error loading logo image:", logoUrl);
+    setLogoError(true);
+  };
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
@@ -78,17 +98,12 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         {/* Logo container with image or initials */}
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
-          {logoUrl ? (
+          {logoUrl && !logoError ? (
             <img 
               src={logoUrl} 
               alt={siteInfo.siteName}
               className="w-10 h-10 object-contain"
-              onError={(e) => {
-                console.error("Error loading logo image:", logoUrl);
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
-              }}
+              onError={handleLogoError}
             />
           ) : isLoading ? (
             <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
@@ -97,16 +112,17 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
               src="/site-favicon.ico" 
               alt="iTakecare Logo"
               className="w-7 h-7 object-contain"
-              onError={(e) => {
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
+              onError={() => {
+                // If default logo fails, display initials
+                setLogoError(true);
               }}
             />
           )}
-          <span id="logo-fallback" className={logoUrl ? "hidden" : "font-bold text-primary text-lg"}>
-            {getUserInitials()}
-          </span>
+          {logoError && (
+            <span className="font-bold text-primary text-lg">
+              {getUserInitials()}
+            </span>
+          )}
         </div>
       </div>
       

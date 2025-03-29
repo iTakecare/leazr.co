@@ -7,13 +7,16 @@ const SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw";
 const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTg3ODM4MiwiZXhwIjoyMDU3NDU0MzgyfQ.39wjC_Ld_qXnExyLgCawiip5hBDfCY6Hkb1rktomIxk";
 
-// Create a singleton instance to avoid multiple client issues
-let supabaseInstance = null;
-let adminSupabaseInstance = null;
+// Create singleton instances with proper window checking to avoid issues in SSR environments
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+let adminSupabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
-// Function to get supabase client
+// Function to get supabase client with singleton pattern
 export const getSupabaseClient = () => {
-  if (!supabaseInstance) {
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!supabaseInstance && isBrowser) {
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: true,
@@ -27,12 +30,14 @@ export const getSupabaseClient = () => {
       },
     });
   }
-  return supabaseInstance;
+  return supabaseInstance || createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 };
 
-// Function to get admin supabase client
+// Function to get admin supabase client with singleton pattern
 export const getAdminSupabaseClient = () => {
-  if (!adminSupabaseInstance) {
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!adminSupabaseInstance && isBrowser) {
     adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         persistSession: false,
@@ -44,7 +49,7 @@ export const getAdminSupabaseClient = () => {
       },
     });
   }
-  return adminSupabaseInstance;
+  return adminSupabaseInstance || createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY);
 };
 
 // For backwards compatibility
