@@ -62,8 +62,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       <div className="h-48 overflow-hidden bg-gray-100 relative">
         <img
-          src={getProductImage(product)}
-          alt={product.name}
+          src={getProductImage(product) || "/placeholder.svg"}
+          alt={product.name || "Produit"}
           className="w-full h-full object-contain p-4 transition-transform group-hover:scale-105"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -74,12 +74,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       </div>
       
       <div className="p-4">
-        <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-        <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{product.name}</h3>
+        <div className="text-xs text-gray-500 mb-1">{product.brand || "Brand"}</div>
+        <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+          {product.name || "Produit"}
+        </h3>
         
-        {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes).length > 0 && (
+        {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes || {}).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {Object.entries(product.selected_attributes).map(([key, value], idx) => (
+            {Object.entries(product.selected_attributes || {}).map(([key, value], idx) => (
               <span 
                 key={idx}
                 className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"

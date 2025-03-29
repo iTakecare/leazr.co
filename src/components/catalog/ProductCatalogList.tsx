@@ -40,10 +40,10 @@ const ProductList: React.FC<ProductListProps> = ({
       }`}
       onClick={() => onSelectProduct(product)}
     >
-      <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+      <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden relative">
         <img
-          src={getProductImage(product)}
-          alt={product.name}
+          src={getProductImage(product) || "/placeholder.svg"}
+          alt={product.name || "Produit"}
           className="w-full h-full object-contain p-2"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -55,18 +55,18 @@ const ProductList: React.FC<ProductListProps> = ({
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
-              <div className="text-xs text-gray-500">{product.brand}</div>
+              <div className="text-xs text-gray-500">{product.brand || "Brand"}</div>
               {product.parent_id && (
                 <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
                   Variante
                 </span>
               )}
             </div>
-            <h3 className="font-medium text-gray-900">{product.name}</h3>
+            <h3 className="font-medium text-gray-900">{product.name || "Produit"}</h3>
             
-            {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes).length > 0 && (
+            {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes || {}).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
-                {Object.entries(product.selected_attributes).map(([key, value], idx) => (
+                {Object.entries(product.selected_attributes || {}).map(([key, value], idx) => (
                   <span 
                     key={idx}
                     className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"

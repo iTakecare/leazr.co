@@ -10,7 +10,8 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Utiliser directement l'URL d'image du produit ou une image par défaut
+  // Use a simple approach that avoids direct Supabase storage access
+  // Just use the image URL from the product object or fallback to placeholder
   const imageUrl = product?.image_url || "/placeholder.svg";
   
   const handleImageLoad = () => {
