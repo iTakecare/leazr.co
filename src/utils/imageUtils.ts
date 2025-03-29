@@ -35,43 +35,72 @@ export async function uploadImage(
     else if (fileExt === 'svg') contentType = 'image/svg+xml';
     else if (['jpg', 'jpeg'].includes(fileExt)) contentType = 'image/jpeg';
     
-    // Use the file's reported MIME type if it seems valid
+    // Si le fichier a un type MIME valide, l'utiliser de préférence
     if (file.type.startsWith('image/')) {
       contentType = file.type;
     }
     
-    // Create a binary blob with the correct content type
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([arrayBuffer], { type: contentType });
+    console.log(`File type detected as ${contentType} for ${fileExt} extension`);
     
-    console.log(`Uploading ${fileName} as ${contentType}`);
-    
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, fileBlob, {
-        contentType: contentType,
-        cacheControl: '3600',
-        upsert: false
-      });
-    
-    if (error) {
-      console.error('Error uploading image:', error);
-      toast.error(`Erreur lors de l'upload: ${error.message}`);
-      return null;
+    try {
+      // Créer un blob avec le bon type MIME explicitement défini
+      const arrayBuffer = await file.arrayBuffer();
+      const fileBlob = new Blob([arrayBuffer], { type: contentType });
+      
+      console.log(`Uploading ${fileName} as ${contentType}, Blob type: ${fileBlob.type}`);
+      
+      // IMPORTANT: S'assurer que contentType est bien passé dans options
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, fileBlob, {
+          contentType: contentType, // Crucial de spécifier explicitement
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Error uploading image:', error);
+        toast.error(`Erreur lors de l'upload: ${error.message}`);
+        return null;
+      }
+      
+      // Generate public URL
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      
+      if (!data || !data.publicUrl) {
+        console.error('Failed to get public URL');
+        return null;
+      }
+      
+      console.log(`Uploaded image: ${data.publicUrl}`);
+      return data.publicUrl;
+    } catch (blobError) {
+      console.error('Error creating blob:', blobError);
+      
+      // Fallback: upload directly without blob conversion
+      console.log('Falling back to direct upload...');
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          contentType: contentType,
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Error in fallback upload:', error);
+        toast.error(`Erreur lors de l'upload: ${error.message}`);
+        return null;
+      }
+      
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+        
+      return data?.publicUrl || null;
     }
-    
-    // Generate public URL
-    const { data } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-    
-    if (!data || !data.publicUrl) {
-      console.error('Failed to get public URL');
-      return null;
-    }
-    
-    console.log(`Uploaded image: ${data.publicUrl}`);
-    return data.publicUrl;
   } catch (error) {
     console.error('Error in uploadImage:', error);
     toast.error("Erreur lors de l'upload de l'image");
