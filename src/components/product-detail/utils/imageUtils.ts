@@ -7,15 +7,17 @@
  * Checks if an image URL is valid
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
+  // Si l'URL est null, undefined ou une chaîne vide, elle n'est pas valide
   if (!url || typeof url !== 'string' || url.trim() === '') {
     return false;
   }
   
+  // Si c'est l'image placeholder par défaut, considérée comme non valide (pour forcer le chargement d'une vraie image)
   if (url === '/placeholder.svg') {
     return false;
   }
   
-  // Exclude placeholder or hidden files
+  // Exclure les placeholders ou fichiers cachés
   if (
     url.includes('.emptyFolderPlaceholder') || 
     url.split('/').pop()?.startsWith('.') ||
@@ -25,24 +27,29 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
     return false;
   }
   
-  // URL validation with more permissive approach
+  // Validation d'URL avec une approche plus permissive
   try {
-    // Check if it's a relative path starting with /
+    // Si c'est un chemin relatif commençant par /, c'est valide
     if (url.startsWith('/') && url !== '/placeholder.svg') {
+      console.log(`Accepting relative URL: ${url}`);
       return true;
     }
     
-    // Accept any URL that starts with http(s):// or data:
+    // Accepter toute URL commençant par http(s):// ou data:
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      console.log(`Accepting URL with protocol: ${url}`);
       return true;
     }
     
-    // Try to validate as URL with more lenient approach
+    // Essayer de valider comme URL avec une approche plus permissive
     new URL(url);
+    console.log(`URL validated successfully: ${url}`);
     return true;
   } catch (e) {
-    // If it's not a valid URL but seems like a path, accept it
-    return url.includes('/') && !url.includes('undefined');
+    // Si ce n'est pas une URL valide mais semble être un chemin, l'accepter
+    const seemsLikePath = url.includes('/') && !url.includes('undefined');
+    console.log(`URL validation failed for ${url}, seems like path: ${seemsLikePath}`);
+    return seemsLikePath;
   }
 };
 
@@ -100,6 +107,7 @@ export const addTimestamp = (url: string): string => {
     const separator = cleanUrl.includes('?') ? '&' : '?';
     const timestampedUrl = `${cleanUrl}${separator}t=${Date.now()}`;
     
+    console.log(`Added timestamp to URL: ${url} -> ${timestampedUrl}`);
     return timestampedUrl;
   } catch (e) {
     console.error("Error in addTimestamp:", e);
