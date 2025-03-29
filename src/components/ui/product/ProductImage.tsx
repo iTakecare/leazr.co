@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +117,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   };
   
   return (
-    <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative aspect-square">
+    <div className="aspect-square bg-gray-50 flex items-center justify-center p-4 relative">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
