@@ -16,9 +16,15 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Process URL to fix any issues
+  // Clean up URL to ensure it doesn't have double slashes
+  const cleanImageUrl = (url: string): string => {
+    // Fix URLs with double slashes (except after protocol)
+    return url.replace(/([^:])\/\/+/g, '$1/');
+  };
+  
+  // Process URL to fix any issues, without query params for better caching
   const finalImageUrl = imageUrl && imageUrl !== "/placeholder.svg" 
-    ? addTimestamp(imageUrl)
+    ? cleanImageUrl(imageUrl)
     : "/placeholder.svg";
 
   const handleImageLoad = () => {

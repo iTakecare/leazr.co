@@ -42,11 +42,19 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
     }));
   };
   
+  // Clean up URLs to ensure they don't have double slashes
+  const cleanImageUrl = (url: string): string => {
+    // Fix URLs with double slashes (except after protocol)
+    return url.replace(/([^:])\/\/+/g, '$1/');
+  };
+  
   return (
     <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
       {images.map((url, index) => {
-        // Process URL to fix any issues
-        const imageUrl = imageErrors[index] ? "/placeholder.svg" : addTimestamp(url);
+        // Process URL to fix any issues - strip cache-busting params for thumbnails
+        const originalUrl = cleanImageUrl(url);
+        // Use placeholder if error
+        const imageUrl = imageErrors[index] ? "/placeholder.svg" : originalUrl;
         
         return (
           <button

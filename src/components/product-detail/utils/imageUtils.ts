@@ -24,23 +24,33 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
  * Filter and deduplicate valid image URLs
  */
 export const filterValidImages = (mainImageUrl: string, additionalUrls: string[] = []): string[] => {
-  // Create a set to deduplicate images
+  // Create a set to deduplicate images based on URL without query parameters
   const uniqueUrlsSet = new Set<string>();
   const validUrls: string[] = [];
   
+  // Helper function to normalize URLs for comparison
+  const normalizeUrl = (url: string): string => {
+    // Clean up double slashes and remove query parameters
+    return url.replace(/([^:])\/\/+/g, '$1/').split('?')[0];
+  };
+  
   // Process the main image first if valid
   if (isValidImageUrl(mainImageUrl)) {
-    uniqueUrlsSet.add(mainImageUrl);
+    const normalizedMainUrl = normalizeUrl(mainImageUrl);
+    uniqueUrlsSet.add(normalizedMainUrl);
     validUrls.push(mainImageUrl);
   }
   
   // Process additional images if valid
   if (Array.isArray(additionalUrls)) {
     additionalUrls.forEach(url => {
-      // Only add if it's valid and not already added
-      if (isValidImageUrl(url) && !uniqueUrlsSet.has(url)) {
-        uniqueUrlsSet.add(url);
-        validUrls.push(url);
+      // Only add if it's valid and not already added (based on normalized URL)
+      if (isValidImageUrl(url)) {
+        const normalizedUrl = normalizeUrl(url);
+        if (!uniqueUrlsSet.has(normalizedUrl)) {
+          uniqueUrlsSet.add(normalizedUrl);
+          validUrls.push(url);
+        }
       }
     });
   }
@@ -66,5 +76,9 @@ export const addTimestamp = (url: string): string => {
   // This is a common issue with storage URLs
   const cleanedUrl = url.replace(/([^:])\/\/+/g, '$1/');
   
-  return cleanedUrl;
+  // Remove any existing timestamp parameter
+  const urlWithoutTimestamp = cleanedUrl.split('?')[0];
+  
+  // Don't add timestamp parameters as they may break caching
+  return urlWithoutTimestamp;
 };

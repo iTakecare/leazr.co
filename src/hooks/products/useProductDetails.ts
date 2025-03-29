@@ -106,15 +106,20 @@ export function useProductDetails(productId: string | null) {
       return true;
     };
     
+    // Clean up URL for comparison
+    const normalizeUrl = (url: string): string => {
+      return url.replace(/([^:])\/\/+/g, '$1/').split('?')[0];
+    };
+    
     // Check all possible image locations in the product object
     if (isValidImage(product.image_url as string)) {
       validImages.push(product.image_url as string);
-      seenUrls.add(product.image_url as string);
+      seenUrls.add(normalizeUrl(product.image_url as string));
     }
     
-    if (isValidImage(product.imageUrl as string) && !seenUrls.has(product.imageUrl as string)) {
+    if (isValidImage(product.imageUrl as string) && !seenUrls.has(normalizeUrl(product.imageUrl as string))) {
       validImages.push(product.imageUrl as string);
-      seenUrls.add(product.imageUrl as string);
+      seenUrls.add(normalizeUrl(product.imageUrl as string));
     }
     
     // Check image arrays
@@ -123,9 +128,9 @@ export function useProductDetails(productId: string | null) {
       
       images.forEach(img => {
         const imgUrl = typeof img === 'string' ? img : (img?.src || '');
-        if (isValidImage(imgUrl) && !seenUrls.has(imgUrl)) {
+        if (isValidImage(imgUrl) && !seenUrls.has(normalizeUrl(imgUrl))) {
           validImages.push(imgUrl);
-          seenUrls.add(imgUrl);
+          seenUrls.add(normalizeUrl(imgUrl));
         }
       });
     };

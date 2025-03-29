@@ -27,12 +27,27 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   // Filter and deduplicate all valid images
   const allImages = useMemo(() => {
     console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
-    // Simple filtering - retain only valid URLs
-    const validImages = [...new Set([imageUrl, ...imageUrls].filter(url => 
+    
+    // Combine main image and image URLs to create a unified list
+    const combinedImages = [imageUrl, ...(imageUrls || [])];
+    
+    // Filter out invalid and duplicate images
+    const validImages = combinedImages.filter(url => 
       url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg'
-    ))];
-    console.log("ProductImageDisplay - Valid images:", validImages);
-    return validImages;
+    );
+    
+    // Remove duplicates using simple URL normalization (no query params)
+    const uniqueImages = Array.from(new Set(
+      validImages.map(url => url.replace(/([^:])\/\/+/g, '$1/').split('?')[0])
+    )).map(normalizedUrl => {
+      // Find the first original URL that matches this normalized URL
+      return validImages.find(url => 
+        url.replace(/([^:])\/\/+/g, '$1/').split('?')[0] === normalizedUrl
+      ) || '';
+    });
+    
+    console.log("ProductImageDisplay - Valid images:", uniqueImages);
+    return uniqueImages;
   }, [imageUrl, imageUrls]);
   
   const [selectedImage, setSelectedImage] = useState<string>('');
