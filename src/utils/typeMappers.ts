@@ -1,10 +1,17 @@
 
-import { Json } from '@supabase/supabase-js';
-
 /**
  * Type guards and conversion utilities to handle the mismatch between 
  * Supabase database types and our application types.
  */
+
+// Define the Json type since it's missing
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 /**
  * Safely converts Json type (from Supabase) to a strongly typed Record

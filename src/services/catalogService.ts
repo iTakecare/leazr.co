@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { dbToAppProduct, dbToAppProducts, jsonToProductAttributes, jsonToSpecifications, jsonToStringArrayRecord } from '@/utils/typeMappers';
 
@@ -271,6 +272,285 @@ export const bulkUpdateProducts = async (products: any[]) => {
     return data ? dbToAppProducts(data) : [];
   } catch (error) {
     console.error('Failed to bulk update products:', error);
+    throw error;
+  }
+};
+
+/**
+ * Trouver une variante par ses attributs
+ */
+export const findVariantByAttributes = async (productId: string, attributes: Record<string, any>) => {
+  try {
+    // First get all variant combination prices for this parent product
+    const { data: combinations, error } = await supabase
+      .from('variant_combination_prices')
+      .select('*')
+      .eq('product_id', productId);
+    
+    if (error) {
+      console.error('Error fetching variant combinations:', error);
+      throw error;
+    }
+    
+    // Now find the matching variant by comparing attributes
+    const matchingVariant = combinations.find((combo: any) => {
+      const comboAttributes = combo.attributes || {};
+      // Check if all requested attributes match
+      return Object.entries(attributes).every(([key, value]) => 
+        comboAttributes[key] === value
+      );
+    });
+    
+    return matchingVariant || null;
+  } catch (error) {
+    console.error('Failed to find variant by attributes:', error);
+    return null;
+  }
+};
+
+/**
+ * Create a new product
+ */
+export const createProduct = async (productData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        ...productData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    }
+    
+    return dbToAppProduct(data);
+  } catch (error) {
+    console.error('Failed to create product:', error);
+    throw error;
+  }
+};
+
+// CATEGORY MANAGEMENT FUNCTIONS
+
+/**
+ * Get all product categories
+ */
+export const getCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+    return [];
+  }
+};
+
+/**
+ * Add a new category
+ */
+export const addCategory = async ({ name, translation }: { name: string, translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        name,
+        translation,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding category:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to add category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a category
+ */
+export const updateCategory = async ({ 
+  originalName, 
+  name, 
+  translation 
+}: { 
+  originalName: string, 
+  name: string, 
+  translation: string 
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name,
+        translation,
+        updated_at: new Date().toISOString()
+      })
+      .eq('name', originalName)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating category:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to update category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a category
+ */
+export const deleteCategory = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+
+    if (error) {
+      console.error('Error deleting category:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete category:', error);
+    throw error;
+  }
+};
+
+// BRAND MANAGEMENT FUNCTIONS
+
+/**
+ * Get all product brands
+ */
+export const getBrands = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching brands:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch brands:', error);
+    return [];
+  }
+};
+
+/**
+ * Add a new brand
+ */
+export const addBrand = async ({ name, translation }: { name: string, translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .insert({
+        name,
+        translation,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding brand:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to add brand:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a brand
+ */
+export const updateBrand = async ({ 
+  originalName, 
+  name, 
+  translation 
+}: { 
+  originalName: string, 
+  name: string, 
+  translation: string 
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .update({
+        name,
+        translation,
+        updated_at: new Date().toISOString()
+      })
+      .eq('name', originalName)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating brand:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to update brand:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a brand
+ */
+export const deleteBrand = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('brands')
+      .delete()
+      .eq('name', name);
+
+    if (error) {
+      console.error('Error deleting brand:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete brand:', error);
     throw error;
   }
 };

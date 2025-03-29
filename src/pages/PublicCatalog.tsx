@@ -1,210 +1,392 @@
 
-import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getProducts, getCategories, getBrands } from "@/services/catalogService";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, Cpu, Smartphone, Tablet, Monitor, LayoutGrid } from "lucide-react";
-import ProductGridCard from "@/components/catalog/public/ProductGridCard";
-import PublicHeader from "@/components/catalog/public/PublicHeader";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Product } from "@/types/catalog";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { getProducts, getCategories, getBrands } from '@/services/catalogService';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import Container from '@/components/layout/Container';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ProductGridCard from '@/components/catalog/public/ProductGridCard';
+import PublicHeader from '@/components/catalog/public/PublicHeader';
+import ProductRequestForm from '@/components/catalog/public/ProductRequestForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Search, Filter } from 'lucide-react';
+import { type Product } from '@/types/catalog';
+import { useProductMapper } from '@/hooks/products/useProductMapper';
 
 const PublicCatalog = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const { mapDatabaseProductsToAppProducts } = useProductMapper();
+
+  // Fetch data
+  const { data: productsData = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
+    queryKey: ['public-products'],
+    queryFn: getProducts
+  });
+
+  const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['public-categories'],
+    queryFn: getCategories
+  });
   
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: getProducts,
+  const { data: brandsData = [], isLoading: isLoadingBrands } = useQuery({
+    queryKey: ['public-brands'],
+    queryFn: getBrands
   });
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: getCategories,
-  });
+  // Process product data to handle variants
+  const products = React.useMemo(() => {
+    // Convert DB format to app format
+    const mappedProducts = mapDatabaseProductsToAppProducts(productsData);
+    
+    // Enhance products with price information
+    return mappedProducts.map(product => {
+      // Handle variant pricing if this is a parent product
+      if (product.is_parent) {
+        // For products with variants, find the minimum price from variant combination prices
+        const variantPrices = product.variant_combination_prices || [];
+        if (variantPrices.length > 0) {
+          const prices = variantPrices.map(v => v.price).filter(p => p !== null && p !== undefined);
+          if (prices.length > 0) {
+            const minPrice = Math.min(...prices);
+            return {
+              ...product,
+              min_price: minPrice,
+              price: product.price || minPrice // Fallback to min price if main price isn't set
+            };
+          }
+        }
+      }
+      return product;
+    });
+  }, [productsData, mapDatabaseProductsToAppProducts]);
 
-  // Debugging useEffect to log variant information
+  // Apply filters when inputs change
   useEffect(() => {
-    if (products && products.length > 0) {
-      console.log("Total products loaded:", products.length);
+    const applyFilters = () => {
+      let result = [...products];
       
-      // Compter les produits avec des variantes
-      const productsWithVariants = products.filter(p => 
-        p.variants && p.variants.length > 0 || 
-        p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
-        p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0
-      );
+      // Apply search term filter
+      if (searchTerm.trim() !== '') {
+        const searchLower = searchTerm.toLowerCase();
+        result = result.filter(product => 
+          product.name.toLowerCase().includes(searchLower) || 
+          product.description?.toLowerCase().includes(searchLower) ||
+          product.brand?.toLowerCase().includes(searchLower) ||
+          product.category?.toLowerCase().includes(searchLower)
+        );
+      }
       
-      console.log("Products with variants:", productsWithVariants.length);
+      // Apply category filter
+      if (selectedCategory) {
+        result = result.filter(product => product.category === selectedCategory);
+      }
       
-      // Log des informations détaillées sur chaque produit avec variantes
-      productsWithVariants.forEach(p => {
-        console.log(`Product "${p.name}" (${p.id}) variant info:`, {
-          has_variants: p.variants && p.variants.length > 0,
-          variants_count: p.variants?.length || 0,
-          has_variant_prices: p.variant_combination_prices && p.variant_combination_prices.length > 0,
-          variant_prices_count: p.variant_combination_prices?.length || 0,
-          has_variation_attributes: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
-          variation_attributes: p.variation_attributes,
-          monthly_price: p.monthly_price
-        });
-      });
-    }
+      // Apply brand filter
+      if (selectedBrand) {
+        result = result.filter(product => product.brand === selectedBrand);
+      }
+      
+      // Sort by name
+      result.sort((a, b) => a.name.localeCompare(b.name));
+      
+      setFilteredProducts(result);
+    };
+    
+    applyFilters();
+  }, [products, searchTerm, selectedCategory, selectedBrand]);
+  
+  // Create lists of unique categories and brands
+  const categories = React.useMemo(() => {
+    const allCategories = products
+      .map(product => product.category)
+      .filter((category, index, self) => 
+        category && self.indexOf(category) === index
+      )
+      .sort();
+    
+    return allCategories;
   }, [products]);
-
-  const groupedProducts = React.useMemo(() => {
-    // Filtrer pour n'obtenir que les produits parents (non-variantes)
-    const parentProducts = products.filter(p => 
-      !p.parent_id && !p.is_variation
+  
+  const brands = React.useMemo(() => {
+    const allBrands = products
+      .map(product => product.brand)
+      .filter((brand, index, self) => 
+        brand && self.indexOf(brand) === index
+      )
+      .sort();
+    
+    return allBrands;
+  }, [products]);
+  
+  // Get translations from the categoriesData
+  const getCategoryTranslation = (categoryName: string) => {
+    if (!categoriesData) return categoryName;
+    const category = categoriesData.find((c: any) => c.name === categoryName);
+    return category?.translation || categoryName;
+  };
+  
+  // Get translations from the brandsData
+  const getBrandTranslation = (brandName: string) => {
+    if (!brandsData) return brandName;
+    const brand = brandsData.find((b: any) => b.name === brandName);
+    return brand?.translation || brandName;
+  };
+  
+  if (isLoadingProducts || isLoadingCategories || isLoadingBrands) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-lg">Chargement du catalogue...</p>
+      </div>
     );
-    
-    // Créer une map pour stocker les variantes par produit parent
-    const variantMap = new Map<string, Product[]>();
-    
-    // Grouper les variantes par produit parent
-    products.forEach(product => {
-      if (product.parent_id) {
-        const variants = variantMap.get(product.parent_id) || [];
-        variants.push(product);
-        variantMap.set(product.parent_id, variants);
-      }
-    });
-    
-    // Attacher les variantes à leurs produits parents
-    parentProducts.forEach(parent => {
-      if (parent.id) {
-        const variants = variantMap.get(parent.id) || [];
-        parent.variants = variants;
-        parent.is_parent = variants.length > 0 || 
-                          (parent.variation_attributes && Object.keys(parent.variation_attributes).length > 0) ||
-                          (parent.variant_combination_prices && parent.variant_combination_prices.length > 0);
-      }
-    });
-    
-    return parentProducts;
-  }, [products]);
-
-  const filteredProducts = groupedProducts.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesCategory = !activeCategory || product.category === activeCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleProductClick = (product: Product) => {
-    navigate(`/produits/${product.id}`);
-  };
-
-  const categoryIcons: Record<string, React.ReactNode> = {
-    laptop: <Cpu className="h-5 w-5 mr-2" />,
-    smartphone: <Smartphone className="h-5 w-5 mr-2" />,
-    tablet: <Tablet className="h-5 w-5 mr-2" />,
-    monitor: <Monitor className="h-5 w-5 mr-2" />,
-    desktop: <LayoutGrid className="h-5 w-5 mr-2" />,
-  };
+  }
+  
+  if (productsError) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center">
+        <p className="text-lg text-red-500">Une erreur est survenue lors du chargement du catalogue.</p>
+        <Button 
+          className="mt-4" 
+          onClick={() => window.location.reload()}
+        >
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
       
-      <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-bold mb-4">Tous les appareils nécessaires au développement de votre entreprise</h1>
-            <p className="text-lg mb-8">Ne soyez plus jamais bloqués par les performances de votre équipement. Choisissez la sérénité avec le leasing d'appareils.</p>
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
-                Parler à un conseiller
-              </Button>
-              <Button size="lg" className="bg-[#da2959]/80 hover:bg-[#da2959] border-0">
-                Demander un devis
-              </Button>
-            </div>
+      <Container className="py-8">
+        <div className="flex flex-col md:flex-row gap-4 items-start">
+          {/* Sidebar filters */}
+          <div className="w-full md:w-64 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Filter className="w-5 h-5 mr-2" />
+                  Filtres
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                {/* Categories */}
+                <div className="space-y-2">
+                  <h3 className="font-medium">Catégories</h3>
+                  <div className="space-y-1">
+                    <Button
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      Toutes les catégories
+                    </Button>
+                    {categories.map((category) => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? "default" : "outline"}
+                        className="w-full justify-start"
+                        onClick={() => setSelectedCategory(category)}
+                      >
+                        {getCategoryTranslation(category)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Brands */}
+                <div className="space-y-2">
+                  <h3 className="font-medium">Marques</h3>
+                  <div className="space-y-1">
+                    <Button
+                      variant={selectedBrand === null ? "default" : "outline"}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedBrand(null)}
+                    >
+                      Toutes les marques
+                    </Button>
+                    {brands.map((brand) => (
+                      <Button
+                        key={brand}
+                        variant={selectedBrand === brand ? "default" : "outline"}
+                        className="w-full justify-start"
+                        onClick={() => setSelectedBrand(brand)}
+                      >
+                        {getBrandTranslation(brand)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedBrand(null);
+                    setSearchTerm('');
+                  }}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Vous ne trouvez pas ce que vous cherchez ?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Nous pouvons vous aider à trouver le matériel dont vous avez besoin, même s'il n'est pas dans notre catalogue.
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full" 
+                  onClick={() => setShowRequestDialog(true)}
+                >
+                  Faire une demande
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          
+          {/* Main content */}
+          <div className="flex-1">
+            <Tabs defaultValue="grid" className="w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">
+                  {selectedCategory 
+                    ? `Catégorie: ${getCategoryTranslation(selectedCategory)}` 
+                    : selectedBrand 
+                      ? `Marque: ${getBrandTranslation(selectedBrand)}` 
+                      : "Catalogue"}
+                </h2>
+                <TabsList>
+                  <TabsTrigger value="grid">Grille</TabsTrigger>
+                  <TabsTrigger value="list">Liste</TabsTrigger>
+                </TabsList>
+              </div>
+              
+              {/* Results count */}
+              <div className="mb-4">
+                <p className="text-muted-foreground">
+                  {filteredProducts.length} produits trouvés
+                </p>
+              </div>
+              
+              <TabsContent value="grid">
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p>Aucun produit trouvé. Veuillez modifier vos filtres ou faire une demande personnalisée.</p>
+                    <Button 
+                      className="mt-4" 
+                      onClick={() => setShowRequestDialog(true)}
+                    >
+                      Faire une demande
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredProducts.map((product) => (
+                      <ProductGridCard 
+                        key={product.id}
+                        product={product} 
+                      />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="list">
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p>Aucun produit trouvé. Veuillez modifier vos filtres ou faire une demande personnalisée.</p>
+                    <Button 
+                      className="mt-4" 
+                      onClick={() => setShowRequestDialog(true)}
+                    >
+                      Faire une demande
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredProducts.map((product) => (
+                      <Card key={product.id}>
+                        <CardContent className="p-0">
+                          <div className="flex flex-col md:flex-row">
+                            <div className="w-full md:w-48 h-48 bg-gray-100">
+                              {product.image_url ? (
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <p className="text-gray-400">No image</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-4 flex-1">
+                              <h3 className="text-lg font-bold mb-2">{product.name}</h3>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {product.brand && `${getBrandTranslation(product.brand)} | `}
+                                {product.category && getCategoryTranslation(product.category)}
+                              </p>
+                              <p className="text-sm line-clamp-2">{product.description}</p>
+                              <div className="mt-4 flex justify-between items-center">
+                                <div>
+                                  <p className="font-bold text-lg">{product.price ? `${product.price.toFixed(2)}€` : 'Prix sur demande'}</p>
+                                </div>
+                                <Link to={`/products/${product.id}`}>
+                                  <Button>Voir le détail</Button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
-      </div>
+      </Container>
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {categories.map((category) => (
-            <Button
-              key={category.name}
-              variant={activeCategory === category.name ? "default" : "outline"}
-              className={activeCategory === category.name 
-                ? "flex items-center justify-center h-20 bg-[#33638e] hover:bg-[#33638e]/90" 
-                : "flex items-center justify-center h-20 border-[#4ab6c4]/30 text-[#33638e]"}
-              onClick={() => setActiveCategory(activeCategory === category.name ? null : category.name)}
-            >
-              <div className="flex flex-col items-center">
-                <div className="mb-1">
-                  {categoryIcons[category.name] || <LayoutGrid className="h-5 w-5" />}
-                </div>
-                <span>{category.translation}</span>
-              </div>
-            </Button>
-          ))}
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Rechercher un produit..."
-              className="pl-10 border-[#4ab6c4]/30 focus-visible:ring-[#33638e]/50"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtrer
-            </Button>
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Trier
-            </Button>
-          </div>
-        </div>
-        
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow animate-pulse h-[280px]">
-                <div className="h-0 pb-[100%] bg-gray-200 rounded-t-lg"></div>
-                <div className="p-3 space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-4/5"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16">
-            <h3 className="text-lg font-medium">Aucun produit trouvé</h3>
-            <p className="text-gray-500 mt-2">
-              Essayez de modifier vos critères de recherche ou consultez toutes nos catégories.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredProducts.map((product) => (
-              <ProductGridCard 
-                key={product.id} 
-                product={product} 
-                onClick={() => handleProductClick(product)} 
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Demande de matériel personnalisée</DialogTitle>
+          </DialogHeader>
+          <ProductRequestForm onSubmitSuccess={() => setShowRequestDialog(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
