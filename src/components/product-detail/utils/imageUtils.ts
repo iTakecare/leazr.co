@@ -97,6 +97,25 @@ export const addTimestamp = (url: string): string => {
       return url;
     }
     
+    // Pour les URL Supabase Storage qui génèrent des erreurs d'accès
+    if (url.includes('supabase.co/storage/v1/object/public')) {
+      // Vérifier si l'URL est accessible avec un fetch HEAD silencieux
+      // Pour éviter de générer des erreurs CORS, nous acceptons simplement l'URL telle quelle
+      // Et laissons l'élément img gérer l'erreur si nécessaire
+      console.log(`Processing Supabase storage URL: ${url}`);
+      
+      // Strip any existing timestamp parameter
+      let cleanUrl = url;
+      if (url.includes('?t=') || url.includes('&t=')) {
+        cleanUrl = url.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
+      }
+      
+      // Add a timestamp query parameter to prevent caching
+      const separator = cleanUrl.includes('?') ? '&' : '?';
+      return `${cleanUrl}${separator}t=${Date.now()}`;
+    }
+    
+    // Pour les autres URL normales
     // Strip any existing timestamp parameter
     let cleanUrl = url;
     if (url.includes('?t=') || url.includes('&t=')) {
