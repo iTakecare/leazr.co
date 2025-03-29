@@ -131,7 +131,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   };
   
   return (
-    <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative">
+    <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative aspect-square">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
@@ -140,7 +140,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       <img 
         src={imageUrl}
         alt={product?.name || "Produit"}
-        className="object-contain w-full h-full max-h-24"
+        className="object-contain w-full h-full"
         onLoad={handleImageLoad}
         onError={handleImageError}
         loading="lazy"
