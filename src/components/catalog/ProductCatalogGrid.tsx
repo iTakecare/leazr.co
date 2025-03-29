@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   ChevronDown, 
@@ -62,7 +61,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       <div className="h-48 overflow-hidden bg-gray-100 relative">
         <img
-          src={getProductImage(product) || "/placeholder.svg"}
+          src={product.image_url || "/placeholder.svg"}
           alt={product.name || "Produit"}
           className="w-full h-full object-contain p-4 transition-transform group-hover:scale-105"
           onError={(e) => {
@@ -121,7 +120,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <div className="relative">
               {renderProductCard(product)}
               
-              {/* Variant toggle button */}
               {isParent && variantsCount > 0 && (
                 <button
                   className="absolute bottom-2 left-2 px-2 py-1 bg-white/90 rounded-full text-xs font-medium text-purple-700 flex items-center gap-1 shadow-sm hover:bg-purple-50"
@@ -138,7 +136,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               )}
             </div>
             
-            {/* Render variants if expanded */}
             {isParent && isVariantGroupExpanded(product.id || "") && variants.length > 0 && (
               <div className="pl-4 border-l-2 border-purple-200 space-y-2">
                 {variants.map(variant => (

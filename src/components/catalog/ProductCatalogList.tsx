@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   ChevronDown, 
@@ -42,7 +41,7 @@ const ProductList: React.FC<ProductListProps> = ({
     >
       <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden relative">
         <img
-          src={getProductImage(product) || "/placeholder.svg"}
+          src={product.image_url || "/placeholder.svg"}
           alt={product.name || "Produit"}
           className="w-full h-full object-contain p-2"
           onError={(e) => {
@@ -119,7 +118,6 @@ const ProductList: React.FC<ProductListProps> = ({
             <div className="relative">
               {renderProductRow(product)}
               
-              {/* Variant toggle button */}
               {isParent && variantsCount > 0 && (
                 <button
                   className="absolute top-1/2 -translate-y-1/2 right-16 px-2 py-1 bg-purple-100 rounded-full text-xs font-medium text-purple-700 flex items-center gap-1 hover:bg-purple-200"
@@ -137,7 +135,6 @@ const ProductList: React.FC<ProductListProps> = ({
               )}
             </div>
             
-            {/* Render variants if expanded */}
             {isParent && isVariantGroupExpanded(product.id || "") && variants.length > 0 && (
               <div className="pl-6 border-l-2 border-purple-200 ml-4">
                 {variants.map(variant => renderProductRow(variant, true))}

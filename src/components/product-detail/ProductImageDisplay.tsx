@@ -21,6 +21,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
+    console.log(`Erreur de chargement d'image: ${imageUrl}`);
   };
 
   return (
