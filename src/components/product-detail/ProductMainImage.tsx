@@ -15,22 +15,31 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [finalImageUrl, setFinalImageUrl] = useState("/placeholder.svg");
 
   useEffect(() => {
+    if (!imageUrl || imageUrl === "/placeholder.svg") {
+      setFinalImageUrl("/placeholder.svg");
+      setIsLoading(false);
+      setHasError(true);
+      return;
+    }
+    
+    setFinalImageUrl(addTimestamp(imageUrl));
     setIsLoading(true);
     setHasError(false);
-  }, [imageUrl]);
+  }, [imageUrl, addTimestamp]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const handleImageError = () => {
+    console.error("ProductMainImage - Error loading image:", imageUrl);
     setIsLoading(false);
     setHasError(true);
-    console.error("ProductImageDisplay - Error loading image:", imageUrl);
-    (e.target as HTMLImageElement).src = "/placeholder.svg";
+    setFinalImageUrl("/placeholder.svg");
   };
 
   return (
@@ -41,7 +50,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
         </div>
       )}
       <img 
-        src={addTimestamp(imageUrl)} 
+        src={finalImageUrl} 
         alt={altText}
         className={`max-w-full max-h-full object-contain transition-all duration-300 
           ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}

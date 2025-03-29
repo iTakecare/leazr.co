@@ -19,11 +19,9 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 }) => {
   // Use imageUrl as the default, then add any additional valid images from imageUrls
   const allImages = filterValidImages(imageUrl, imageUrls);
-
+  
   const [selectedImage, setSelectedImage] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
-  
-  console.log("ProductImageDisplay - Available images:", allImages);
   
   // Set the first image as the selected image on component mount or when images change
   useEffect(() => {
@@ -34,10 +32,9 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     } else {
       setSelectedImage('/placeholder.svg');
     }
-  }, [allImages, imageUrl, imageUrls]);
+  }, [allImages]);
   
   const handleThumbnailClick = (url: string, index: number) => {
-    console.log("ProductImageDisplay - Thumbnail clicked:", url);
     setSelectedImage(url);
     setCurrentIndex(index);
   };
@@ -53,7 +50,6 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       newIndex = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0;
     }
     
-    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}:`, allImages[newIndex]);
     setCurrentIndex(newIndex);
     setSelectedImage(allImages[newIndex]);
   };

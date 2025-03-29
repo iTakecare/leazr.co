@@ -31,86 +31,141 @@ export const useProductImages = ({ productId, onChange }: UseProductImagesProps)
       try {
         console.log(`Loading images for product ${productId} from product-images bucket`);
         
-        const { data: files, error } = await supabase.storage
-          .from("product-images")
-          .list(productId, {
-            sortBy: { column: 'name', order: 'asc' }
-          });
+        // Vérifier si le bucket existe
+        try {
+          const { data: buckets } = await supabase.storage.listBuckets();
+          const bucketExists = buckets?.some(bucket => bucket.name === 'product-images');
+          
+          if (!bucketExists) {
+            console.log('product-images bucket does not exist, trying to create it');
+            
+            try {
+              // Try to create the bucket via Edge Function
+              const response = await fetch('/api/create-storage-bucket', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ bucketName: 'product-images' }),
+              });
+              
+              if (!response.ok) {
+                throw new Error('Failed to create bucket via edge function');
+              }
+            } catch (edgeFnError) {
+              console.error('Error creating bucket via edge function:', edgeFnError);
+              setErrorMessage('Erreur lors de la création du bucket de stockage.');
+              setIsLoadingImages(false);
+              loadingRef.current = false;
+              return;
+            }
+          }
+        } catch (bucketError) {
+          console.error('Error checking buckets:', bucketError);
+        }
         
-        if (error) {
-          if (error.message.includes('does not exist') || error.message.includes('not found')) {
-            console.log(`No folder found for product ${productId}, this is normal for new products`);
+        // Check if the folder exists and create it if not
+        try {
+          const { data: files, error } = await supabase.storage
+            .from("product-images")
+            .list(productId, {
+              sortBy: { column: 'name', order: 'asc' }
+            });
+          
+          if (error) {
+            if (error.message.includes('does not exist') || error.message.includes('not found')) {
+              console.log(`No folder found for product ${productId}, creating one`);
+              
+              // Create an empty placeholder file to create the folder
+              const placeholderBytes = new Uint8Array(0);
+              const placeholderBlob = new Blob([placeholderBytes]);
+              const placeholderFile = new File([placeholderBlob], '.emptyFolderPlaceholder', {
+                type: 'application/octet-stream'
+              });
+              
+              await supabase.storage
+                .from("product-images")
+                .upload(`${productId}/.emptyFolderPlaceholder`, placeholderFile);
+                
+              setImages([]);
+              
+              if (onChange) {
+                onChange([]);
+              }
+              
+              setIsLoadingImages(false);
+              loadingRef.current = false;
+              return;
+            } else {
+              console.error(`Error loading images: ${error.message}`);
+              setErrorMessage(`Erreur lors du chargement des images: ${error.message}`);
+              setIsLoadingImages(false);
+              loadingRef.current = false;
+              return;
+            }
+          }
+          
+          if (!files || files.length === 0) {
+            console.log(`No images found for product ${productId}`);
             setImages([]);
+            setIsLoadingImages(false);
+            loadingRef.current = false;
             
             if (onChange) {
               onChange([]);
             }
-          } else {
-            console.error(`Error loading images: ${error.message}`);
-            setErrorMessage(`Erreur lors du chargement des images: ${error.message}`);
+            
+            return;
           }
           
-          setIsLoadingImages(false);
-          loadingRef.current = false;
-          return;
-        }
-        
-        if (!files || files.length === 0) {
-          console.log(`No images found for product ${productId}`);
-          setImages([]);
-          setIsLoadingImages(false);
-          loadingRef.current = false;
-          
-          if (onChange) {
-            onChange([]);
-          }
-          
-          return;
-        }
-        
-        const imageFiles = files
-          .filter(file => 
-            !file.name.startsWith('.') && 
-            file.name !== '.emptyFolderPlaceholder'
-          )
-          .map(file => {
-            try {
-              const { data } = supabase.storage
-                .from("product-images")
-                .getPublicUrl(`${productId}/${file.name}`);
-              
-              if (!data || !data.publicUrl) {
-                console.error(`Failed to get public URL for ${file.name}`);
+          const imageFiles = files
+            .filter(file => 
+              !file.name.startsWith('.') && 
+              file.name !== '.emptyFolderPlaceholder'
+            )
+            .map(file => {
+              try {
+                const { data } = supabase.storage
+                  .from("product-images")
+                  .getPublicUrl(`${productId}/${file.name}`);
+                
+                if (!data || !data.publicUrl) {
+                  console.error(`Failed to get public URL for ${file.name}`);
+                  return null;
+                }
+                
+                const timestamp = Date.now();
+                
+                return {
+                  name: file.name,
+                  url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
+                  originalUrl: data.publicUrl,
+                  isMain: false
+                };
+              } catch (e) {
+                console.error(`Error generating URL for ${file.name}:`, e);
                 return null;
               }
-              
-              const timestamp = Date.now();
-              
-              return {
-                name: file.name,
-                url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
-                originalUrl: data.publicUrl,
-                isMain: false
-              };
-            } catch (e) {
-              console.error(`Error generating URL for ${file.name}:`, e);
-              return null;
-            }
-          })
-          .filter(Boolean);
-        
-        console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
-        console.log("Images mises à jour:", imageFiles);
-        setImages(imageFiles);
-        
-        if (onChange) {
-          onChange(imageFiles);
+            })
+            .filter(Boolean);
+          
+          console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
+          setImages(imageFiles);
+          
+          if (onChange) {
+            onChange(imageFiles);
+          }
+        } catch (error) {
+          console.error("Error loading images:", error);
+          setErrorMessage(`Erreur lors du chargement des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+          setImages([]);
+        } finally {
+          setIsLoadingImages(false);
+          loadingRef.current = false;
         }
       } catch (error) {
-        console.error("Error loading images:", error);
+        console.error("Error in loadImages:", error);
         setErrorMessage(`Erreur lors du chargement des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-        setImages([]);
-      } finally {
         setIsLoadingImages(false);
         loadingRef.current = false;
       }
@@ -136,6 +191,34 @@ export const useProductImages = ({ productId, onChange }: UseProductImagesProps)
     let uploadedCount = 0;
     
     try {
+      // Ensure bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === 'product-images');
+      
+      if (!bucketExists) {
+        console.log('product-images bucket does not exist, trying to create it');
+        
+        try {
+          // Try to create the bucket via Edge Function
+          const response = await fetch('/api/create-storage-bucket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bucketName: 'product-images' }),
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to create bucket via edge function');
+          }
+        } catch (edgeFnError) {
+          console.error('Error creating bucket via edge function:', edgeFnError);
+          toast.error("Erreur lors de la création du bucket de stockage.");
+          setIsUploading(false);
+          return;
+        }
+      }
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
@@ -235,60 +318,34 @@ const uploadImage = async (
     fileName = `${timestamp}-${fileName}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    // Use FormData for correct content-type handling
-    const formData = new FormData();
-    formData.append('file', file);
+    // Determine proper MIME type using the proper extension
+    let contentType = 'application/octet-stream'; // default fallback
+      
+    if (extension === 'png') contentType = 'image/png';
+    else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+    else if (extension === 'gif') contentType = 'image/gif';
+    else if (extension === 'webp') contentType = 'image/webp';
+    else if (extension === 'svg') contentType = 'image/svg+xml';
+    else if (file.type.startsWith('image/')) contentType = file.type;
     
-    // Using direct Fetch API for better control over content-type
-    const fetchResponse = await fetch(
-      `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: formData
-      }
-    );
+    // Create a new File object with the correct MIME type
+    const newFile = new File([await file.arrayBuffer()], fileName, {
+      type: contentType
+    });
     
-    if (!fetchResponse.ok) {
-      const errorText = await fetchResponse.text();
-      console.error('Error uploading using fetch:', errorText);
-      
-      // Fall back to traditional supabase upload method as backup
-      console.log('Falling back to traditional upload method');
-      
-      // Determine proper MIME type using the proper extension
-      let contentType = 'application/octet-stream'; // default fallback
-      
-      if (extension === 'png') contentType = 'image/png';
-      else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
-      else if (extension === 'gif') contentType = 'image/gif';
-      else if (extension === 'webp') contentType = 'image/webp';
-      else if (extension === 'svg') contentType = 'image/svg+xml';
-      else if (file.type.startsWith('image/')) contentType = file.type;
-      
-      // Create a new File object with the correct MIME type
-      const newFile = new File([await file.arrayBuffer()], fileName, {
-        type: contentType
+    console.log(`Using explicit File with content-type: ${newFile.type}`);
+    
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, newFile, {
+        contentType: contentType,
+        upsert: true
       });
       
-      console.log(`Using explicit File with content-type: ${newFile.type}`);
-      
-      const { error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, newFile, {
-          contentType: contentType,
-          upsert: true
-        });
-        
-      if (error) {
-        console.error('Error in fallback upload:', error);
-        toast.error(`Erreur lors de l'upload: ${error.message}`);
-        return null;
-      }
-    } else {
-      console.log('Upload successful using fetch API');
+    if (error) {
+      console.error('Error in upload:', error);
+      toast.error(`Erreur lors de l'upload: ${error.message}`);
+      return null;
     }
     
     // Generate public URL

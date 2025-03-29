@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,18 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           return;
         }
         
+        // Vérifier d'abord si le produit a déjà une URL d'image définie
+        if (product.image_url && typeof product.image_url === 'string' && product.image_url !== "/placeholder.svg") {
+          const timestamp = new Date().getTime();
+          const url = `${product.image_url}?t=${timestamp}&r=${retryCount}`;
+          console.log(`Using product.image_url: ${url}`);
+          setImageUrl(url);
+          setIsLoading(false);
+          loadingRef.current = false;
+          return;
+        }
+        
+        // Si non, essayer de charger à partir du stockage
         console.log(`Loading image for product ${product.id}`);
         
         const { data: files, error } = await supabase
@@ -66,12 +79,18 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           }
         }
         
-        if (product.image_url && typeof product.image_url === 'string') {
-          console.log(`Using product.image_url: ${product.image_url}`);
-          setImageUrl(product.image_url);
-          setIsLoading(false);
-          loadingRef.current = false;
-          return;
+        // Vérifier les autres URLs possibles
+        if (product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+          const firstUrl = product.image_urls[0];
+          if (firstUrl && typeof firstUrl === 'string') {
+            const timestamp = new Date().getTime();
+            const url = `${firstUrl}?t=${timestamp}&r=${retryCount}`;
+            console.log(`Using product.image_urls[0]: ${url}`);
+            setImageUrl(url);
+            setIsLoading(false);
+            loadingRef.current = false;
+            return;
+          }
         }
         
         console.log("No valid image found, using placeholder");

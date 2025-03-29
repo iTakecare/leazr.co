@@ -30,7 +30,6 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
     new URL(url);
     return true;
   } catch (e) {
-    console.error(`Invalid URL: ${url}`);
     return false;
   }
 };
@@ -41,35 +40,39 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
 export const filterValidImages = (mainImageUrl: string, additionalUrls: string[] = []): string[] => {
   // Create a set to deduplicate images
   const uniqueUrlsSet = new Set<string>();
+  const validUrls: string[] = [];
   
-  // Add main image if valid
+  // Process the main image first if valid
   if (isValidImageUrl(mainImageUrl)) {
     uniqueUrlsSet.add(mainImageUrl);
+    validUrls.push(mainImageUrl);
   }
   
-  // Add additional images if valid
+  // Process additional images if valid
   if (Array.isArray(additionalUrls)) {
     additionalUrls.forEach(url => {
-      if (isValidImageUrl(url)) {
+      if (isValidImageUrl(url) && !uniqueUrlsSet.has(url)) {
         uniqueUrlsSet.add(url);
+        validUrls.push(url);
       }
     });
   }
   
-  // Convert set back to array
-  return Array.from(uniqueUrlsSet);
+  return validUrls;
 };
 
 /**
  * Add a timestamp to image URLs to prevent caching issues
  */
 export const addTimestamp = (url: string): string => {
-  if (!url || url === '/placeholder.svg') return "/placeholder.svg";
+  if (!url || url === '/placeholder.svg' || !isValidImageUrl(url)) {
+    return "/placeholder.svg";
+  }
   
   try {
     // Add a timestamp query parameter to prevent caching
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${new Date().getTime()}`;
+    return `${url}${separator}t=${Date.now()}`;
   } catch (e) {
     return "/placeholder.svg";
   }
