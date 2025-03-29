@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for product image handling
  */
@@ -110,3 +109,115 @@ export const cleanImageUrl = (url: string): string => {
 export const addTimestamp = (url: string): string => {
   return cleanImageUrl(url);
 };
+
+/**
+ * Uploads an image to Supabase storage
+ */
+export async function uploadImage(
+  file: File,
+  bucketName: string,
+  folderPath: string = ""
+): Promise<{ url: string } | null> {
+  try {
+    console.log(`Uploading image to ${bucketName}/${folderPath}`);
+    
+    // Verify file size
+    if (file.size > 5 * 1024 * 1024) {
+      console.error("Image is too large (max 5MB)");
+      return null;
+    }
+    
+    // Normalize filename to prevent extension confusion
+    const timestamp = Date.now();
+    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
+    
+    // Extract proper extension - only keep the last extension if multiple exist
+    let fileName = originalName;
+    const extensionMatch = originalName.match(/\.([^.]+)$/);
+    const extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+    
+    // If the filename has multiple extensions (like .png.webp), normalize it
+    if (originalName.match(/\.[^.]+\.[^.]+$/)) {
+      fileName = originalName.replace(/\.[^.]+\.[^.]+$/, `.${extension}`);
+    }
+    
+    // Ensure we have a timestamp prefix for uniqueness
+    fileName = `${timestamp}-${fileName}`;
+    const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+    
+    // Determine proper MIME type using the proper extension
+    let contentType = 'application/octet-stream'; // default fallback
+    
+    if (extension === 'png') contentType = 'image/png';
+    else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+    else if (extension === 'gif') contentType = 'image/gif';
+    else if (extension === 'webp') contentType = 'image/webp';
+    else if (extension === 'svg') contentType = 'image/svg+xml';
+    else if (file.type.startsWith('image/')) contentType = file.type;
+    
+    console.log(`Normalized filename: ${fileName}, detected MIME type: ${contentType}`);
+    
+    // Create a Blob from the file with explicit MIME type
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([arrayBuffer], { type: contentType });
+    
+    console.log(`Uploading ${fileName} with explicit content-type: ${contentType}, Blob type: ${fileBlob.type}`);
+    
+    // Upload with explicit contentType
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, fileBlob, {
+        contentType: contentType,
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      
+      // If error is about an object that already exists, try with a different name
+      if (error.message.includes('already exists')) {
+        const newFileName = `${timestamp}-${Math.floor(Math.random() * 10000)}-${fileName}`;
+        const newFilePath = folderPath ? `${folderPath}/${newFileName}` : newFileName;
+        
+        console.log(`Retrying with new filename: ${newFileName}`);
+        
+        const { error: retryError } = await supabase.storage
+          .from(bucketName)
+          .upload(newFilePath, fileBlob, {
+            contentType: contentType,
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (retryError) {
+          console.error('Error in retry upload:', retryError);
+          return null;
+        }
+        
+        // Get URL for the successful retry
+        const { data: retryUrlData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(newFilePath);
+          
+        return { url: retryUrlData?.publicUrl || '' };
+      }
+      
+      return null;
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    return { url: urlData?.publicUrl || '' };
+  } catch (error) {
+    console.error('Error in uploadImage:', error);
+    return null;
+  }
+}
+
+// Import statement at the top of the file (required but may be added by Lovable)
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
