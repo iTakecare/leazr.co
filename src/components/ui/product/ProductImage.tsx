@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,131 +10,109 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
-  
-  // Use refs to manage component lifecycle and prevent memory leaks
-  const isMounted = useRef(true);
-  const productIdRef = useRef<string | null>(null);
-  
-  // Static cache for image URLs to avoid repeated storage requests
-  const staticImageCache = useRef<Map<string, string>>(new Map());
+  const [retryCount, setRetryCount] = useState(0);
+  const loadingRef = useRef(false);
+  const initDoneRef = useRef(false);
+  const previousProductRef = useRef<string | null>(null);
   
   useEffect(() => {
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  
-  useEffect(() => {
-    if (!product?.id || product.id === productIdRef.current) return;
+    if (initDoneRef.current && product?.id === previousProductRef.current) return;
     
-    const loadProductImage = async () => {
-      if (!isMounted.current) return;
-      
-      setIsLoading(true);
-      setHasError(false);
-      productIdRef.current = product.id;
-      
+    setIsLoading(true);
+    setHasError(false);
+    initDoneRef.current = true;
+    previousProductRef.current = product?.id || null;
+    
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    
+    const loadImage = async () => {
       try {
-        // Check cache first
-        if (staticImageCache.current.has(product.id)) {
-          const cachedUrl = staticImageCache.current.get(product.id);
-          if (cachedUrl) {
-            setImageUrl(addCacheBuster(cachedUrl));
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // Try to load from Supabase storage first
-        let foundImage = false;
-        
-        try {
-          const { data: files, error } = await supabase
-            .storage
-            .from("product-images")
-            .list(product.id);
-            
-          if (!error && files && files.length > 0) {
-            const imageFiles = files.filter(file => 
-              !file.name.startsWith('.') && 
-              file.name !== '.emptyFolderPlaceholder'
-            );
-            
-            if (imageFiles.length > 0) {
-              const { data } = supabase
-                .storage
-                .from("product-images")
-                .getPublicUrl(`${product.id}/${imageFiles[0].name}`);
-                
-              if (data?.publicUrl) {
-                // Cache the URL
-                staticImageCache.current.set(product.id, data.publicUrl);
-                
-                if (isMounted.current) {
-                  setImageUrl(addCacheBuster(data.publicUrl));
-                  setIsLoading(false);
-                  foundImage = true;
-                }
-              }
-            }
-          }
-        } catch (storageError) {
-          console.error("Storage error:", storageError);
-          // Continue to fallback options
-        }
-        
-        // Fallback to product's image_url if storage failed
-        if (!foundImage && product.image_url && typeof product.image_url === 'string') {
-          staticImageCache.current.set(product.id, product.image_url);
-          
-          if (isMounted.current) {
-            setImageUrl(product.image_url);
-            setIsLoading(false);
-          }
-        } else if (!foundImage) {
-          // Final fallback to placeholder
-          if (isMounted.current) {
-            setImageUrl("/placeholder.svg");
-            setIsLoading(false);
-            setHasError(true);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading product image:", err);
-        
-        if (isMounted.current) {
+        if (!product?.id) {
           setImageUrl("/placeholder.svg");
           setIsLoading(false);
-          setHasError(true);
+          loadingRef.current = false;
+          return;
         }
+        
+        console.log(`Loading image for product ${product.id}`);
+        
+        const { data: files, error } = await supabase
+          .storage
+          .from("product-images")
+          .list(product.id);
+          
+        if (!error && files && files.length > 0) {
+          const imageFiles = files.filter(file => 
+            !file.name.startsWith('.') && 
+            file.name !== '.emptyFolderPlaceholder'
+          );
+          
+          if (imageFiles.length > 0) {
+            const { data } = supabase
+              .storage
+              .from("product-images")
+              .getPublicUrl(`${product.id}/${imageFiles[0].name}`);
+              
+            if (data?.publicUrl) {
+              const timestamp = new Date().getTime();
+              const url = `${data.publicUrl}?t=${timestamp}&r=${retryCount}`;
+              console.log(`Using storage image: ${url}`);
+              setImageUrl(url);
+              setIsLoading(false);
+              loadingRef.current = false;
+              return;
+            }
+          }
+        }
+        
+        if (product.image_url && typeof product.image_url === 'string') {
+          console.log(`Using product.image_url: ${product.image_url}`);
+          setImageUrl(product.image_url);
+          setIsLoading(false);
+          loadingRef.current = false;
+          return;
+        }
+        
+        console.log("No valid image found, using placeholder");
+        setImageUrl("/placeholder.svg");
+        setIsLoading(false);
+        loadingRef.current = false;
+      } catch (err) {
+        console.error("Error loading product image:", err);
+        setImageUrl("/placeholder.svg");
+        setIsLoading(false);
+        setHasError(true);
+        loadingRef.current = false;
       }
     };
     
-    loadProductImage();
-  }, [product]);
+    loadImage();
+    
+    return () => {
+      loadingRef.current = false;
+    };
+  }, [product, retryCount]);
   
   const handleImageLoad = () => {
-    if (isMounted.current) {
-      setIsLoading(false);
-      setHasError(false);
-    }
+    setIsLoading(false);
+    setHasError(false);
+    loadingRef.current = false;
   };
   
   const handleImageError = () => {
-    if (!isMounted.current) return;
-    
+    console.error(`Failed to load image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(true);
-    setImageUrl("/placeholder.svg");
-  };
-  
-  // Add cache buster to prevent stale images
-  const addCacheBuster = (url: string): string => {
-    if (!url || url === "/placeholder.svg") return "/placeholder.svg";
+    loadingRef.current = false;
     
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${Date.now()}`;
+    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
+      setTimeout(() => {
+        setRetryCount(count => count + 1);
+      }, 500);
+    } else {
+      setImageUrl("/placeholder.svg");
+    }
   };
   
   return (
@@ -147,7 +124,6 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       )}
       <div className="w-full h-full flex items-center justify-center">
         <img 
-          key={`img-${product.id}-${imageUrl}`}
           src={imageUrl}
           alt={product?.name || "Produit"}
           className="object-contain max-h-full max-w-full"
@@ -156,7 +132,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
           loading="lazy"
         />
       </div>
-      {hasError && imageUrl === "/placeholder.svg" && (
+      {hasError && (
         <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded">
           Image non disponible
         </div>

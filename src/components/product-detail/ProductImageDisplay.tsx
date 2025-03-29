@@ -1,7 +1,5 @@
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, ArrowRight, ZoomIn } from "lucide-react";
-import { toast } from "sonner";
 
 interface ProductImageDisplayProps {
   imageUrl: string;
@@ -19,156 +17,127 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const [hasError, setHasError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [allImages, setAllImages] = useState<string[]>([]);
+  const imageProcessedRef = useRef(true);
+  const initialRenderRef = useRef(true);
+  const processingRef = useRef(false);
+  const imagesRef = useRef<string[]>([]);
   
-  // References for component lifecycle
-  const isMounted = useRef(true);
-  const loadedImages = useRef<Set<string>>(new Set());
-  const initializingRef = useRef(false);
-  const lastLoadingTime = useRef<number>(0);
-
-  // Process and deduplicate images
-  useEffect(() => {
-    if (initializingRef.current) return;
-    initializingRef.current = true;
-    
-    try {
-      const validImages: string[] = [];
-      const seenUrls = new Set<string>();
-      
-      const isValidImageUrl = (url: string | null | undefined): boolean => {
-        if (!url || typeof url !== 'string' || url.trim() === '') return false;
-        if (url === '/placeholder.svg') return false;
-        
-        return !(
-          url.includes('.emptyFolderPlaceholder') || 
-          url.split('/').pop()?.startsWith('.') ||
-          url.includes('undefined') ||
-          url.endsWith('/')
-        );
-      };
-      
-      // Process main image first
-      if (isValidImageUrl(imageUrl)) {
-        const baseUrl = imageUrl.split('?')[0];
-        seenUrls.add(baseUrl);
-        validImages.push(imageUrl);
-      }
-      
-      // Process other images
-      if (Array.isArray(imageUrls)) {
-        imageUrls.forEach(url => {
-          if (isValidImageUrl(url)) {
-            const baseUrl = url.split('?')[0];
-            if (!seenUrls.has(baseUrl)) {
-              seenUrls.add(baseUrl);
-              validImages.push(url);
-            }
-          }
-        });
-      }
-      
-      setAllImages(validImages);
-      initializingRef.current = false;
-    } catch (err) {
-      console.error("Error processing images:", err);
-      initializingRef.current = false;
-    }
-  }, [imageUrl, imageUrls]);
-  
-  // Set initial image once allImages is populated
-  useEffect(() => {
-    if (allImages.length === 0) {
-      setSelectedImage('/placeholder.svg');
-      setIsLoading(false);
-      setHasError(true);
-      return;
-    }
-    
-    const initialImage = allImages[0];
-    setSelectedImage(addCacheBuster(initialImage));
-    setCurrentIndex(0);
-    setIsLoading(true);
-    lastLoadingTime.current = Date.now();
-  }, [allImages]);
-  
-  // Cleanup function
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  
-  // Add cache buster to URLs
-  const addCacheBuster = useCallback((url: string): string => {
-    if (!url || url === '/placeholder.svg') return '/placeholder.svg';
+  const processImageUrl = useCallback((url: string): string => {
+    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
     
     try {
       const baseUrl = url.split('?')[0];
-      const timestamp = Date.now();
-      return `${baseUrl}?t=${timestamp}`;
+      
+      if (!baseUrl.includes('t=')) {
+        return `${baseUrl}?t=${Date.now()}`;
+      }
+      
+      return url;
     } catch (e) {
-      return url || '/placeholder.svg';
+      return url || "/placeholder.svg";
     }
   }, []);
+  
+  useEffect(() => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    
+    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrlsLength: imageUrls?.length });
+    
+    const isValidImageUrl = (url: string | null | undefined): boolean => {
+      if (!url || typeof url !== 'string' || url.trim() === '') return false;
+      if (url === '/placeholder.svg') return false;
+      
+      return !(
+        url.includes('.emptyFolderPlaceholder') || 
+        url.split('/').pop()?.startsWith('.') ||
+        url.includes('undefined') ||
+        url.endsWith('/')
+      );
+    };
+    
+    const uniqueUrlsMap = new Map<string, string>();
+    
+    if (isValidImageUrl(imageUrl)) {
+      const baseMainUrl = imageUrl.split('?')[0];
+      uniqueUrlsMap.set(baseMainUrl, imageUrl);
+    }
+    
+    if (Array.isArray(imageUrls)) {
+      imageUrls.forEach(url => {
+        if (isValidImageUrl(url)) {
+          const baseUrl = url.split('?')[0];
+          uniqueUrlsMap.set(baseUrl, url);
+        }
+      });
+    }
+    
+    const validImages = Array.from(uniqueUrlsMap.values());
+    console.log("ProductImageDisplay - Available images:", validImages);
+    
+    if (JSON.stringify(validImages) !== JSON.stringify(imagesRef.current)) {
+      imagesRef.current = validImages;
+      setAllImages(validImages);
+      
+      if (validImages.length > 0) {
+        const firstImage = processImageUrl(validImages[0]);
+        console.log("ProductImageDisplay - Setting initial image:", firstImage);
+        setSelectedImage(firstImage);
+        setCurrentIndex(0);
+        setIsLoading(true);
+      } else {
+        setSelectedImage('/placeholder.svg');
+        setIsLoading(false);
+        setHasError(true);
+      }
+    }
+    
+    processingRef.current = false;
+  }, [imageUrl, imageUrls, processImageUrl]);
 
-  // Handle successful image load
-  const handleImageLoad = useCallback(() => {
-    if (!isMounted.current) return;
-    
-    const loadTime = Date.now() - lastLoadingTime.current;
-    console.log(`Image loaded in ${loadTime}ms`);
-    
+  const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
-    
-    if (selectedImage) {
-      const baseUrl = selectedImage.split('?')[0];
-      loadedImages.current.add(baseUrl);
-    }
-  }, [selectedImage]);
+    console.log("ProductImageDisplay - Image loaded successfully:", selectedImage);
+  };
 
-  // Handle image loading error
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    if (!isMounted.current) return;
-    
-    console.error("Error loading image:", (e.target as HTMLImageElement).src);
-    
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.log("ProductImageDisplay - Error loading image:", selectedImage);
     setIsLoading(false);
     setHasError(true);
     
-    // Don't try reload placeholder
-    if (selectedImage === '/placeholder.svg') return;
+    const imgElement = e.target as HTMLImageElement;
+    const baseUrl = imgElement.src.split('?')[0];
     
-    const baseUrl = selectedImage?.split('?')[0] || '';
-    
-    // Only retry once
-    if (!loadedImages.current.has(baseUrl)) {
+    if (imgElement.src !== '/placeholder.svg' && baseUrl !== '/placeholder.svg') {
       setTimeout(() => {
-        if (isMounted.current) {
-          const refreshedUrl = addCacheBuster(baseUrl);
-          setSelectedImage(refreshedUrl);
-          setIsLoading(true);
-          lastLoadingTime.current = Date.now();
+        if (mounted.current) {
+          imgElement.src = `${baseUrl}?t=${Date.now()}`;
         }
-      }, 1000);
+      }, 500);
     } else {
-      setSelectedImage('/placeholder.svg');
+      imgElement.src = '/placeholder.svg';
     }
-  }, [selectedImage, addCacheBuster]);
+  };
   
-  // Handle thumbnail click
-  const handleThumbnailClick = useCallback((url: string, index: number) => {
+  const mounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  
+  const handleThumbnailClick = (url: string, index: number) => {
     if (currentIndex === index) return;
     
-    setSelectedImage(addCacheBuster(url));
+    console.log("ProductImageDisplay - Thumbnail clicked:", url);
+    setSelectedImage(processImageUrl(url));
     setCurrentIndex(index);
     setIsLoading(true);
     setHasError(false);
-    lastLoadingTime.current = Date.now();
-  }, [currentIndex, addCacheBuster]);
+  };
 
-  // Navigation between images
-  const navigateImage = useCallback((direction: 'prev' | 'next') => {
+  const navigateImage = (direction: 'prev' | 'next') => {
     if (allImages.length <= 1) return;
     
     let newIndex = currentIndex;
@@ -181,14 +150,13 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     
     if (newIndex === currentIndex) return;
     
-    setSelectedImage(addCacheBuster(allImages[newIndex]));
+    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}`);
     setCurrentIndex(newIndex);
+    setSelectedImage(processImageUrl(allImages[newIndex]));
     setIsLoading(true);
     setHasError(false);
-    lastLoadingTime.current = Date.now();
-  }, [allImages, currentIndex, addCacheBuster]);
+  };
 
-  // Display fallback if no images
   if (allImages.length === 0) {
     return (
       <div className="flex flex-col-reverse md:flex-row md:gap-4">
@@ -215,25 +183,25 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       {allImages.length > 1 && (
         <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
           {allImages.map((url, index) => {
-            const thumbKey = `thumb-${index}-${url.split('/').pop()?.split('?')[0]}`;
+            const urlParts = url.split('/');
+            const fileName = urlParts[urlParts.length - 1].split('?')[0];
+            const key = `thumb-${index}-${fileName}`;
             
             return (
               <button
-                key={thumbKey}
+                key={key}
                 className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
                   ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
                   overflow-hidden flex-shrink-0`}
                 onClick={() => handleThumbnailClick(url, index)}
-                aria-label={`Image ${index + 1} de ${altText}`}
               >
                 <img 
-                  src={addCacheBuster(url)} 
+                  src={processImageUrl(url)} 
                   alt={`${altText} - image ${index + 1}`}
                   className="w-full h-full object-cover object-center"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/placeholder.svg";
                   }}
-                  loading="lazy"
                 />
                 {currentIndex === index && (
                   <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
@@ -257,18 +225,23 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
                 key={`main-${currentIndex}-${selectedImage}`}
                 src={selectedImage} 
                 alt={altText}
-                className="max-w-full max-h-full object-contain transition-opacity duration-300"
-                style={{ opacity: isLoading ? 0 : 1 }}
+                className={`max-w-full max-h-full object-contain transition-all duration-300 
+                  ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                loading={currentIndex === 0 ? "eager" : "lazy"}
               />
             )}
-            {hasError && selectedImage === '/placeholder.svg' && (
+            {hasError && (
               <div className="absolute bottom-2 left-2 bg-red-50 text-red-500 text-xs px-2 py-1 rounded z-20">
                 Image non disponible
               </div>
             )}
+            
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="bg-black bg-opacity-40 rounded-full p-2">
+                <ZoomIn className="h-6 w-6 text-white" />
+              </div>
+            </div>
           </div>
           
           {allImages.length > 1 && (

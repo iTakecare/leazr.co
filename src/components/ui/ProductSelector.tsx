@@ -11,9 +11,32 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Info } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
-import { useProductMapper } from "@/hooks/products/useProductMapper";
-import { jsonToStringArrayRecord } from "@/utils/typeMappers";
+
+interface ProductVariant {
+  id: string;
+  price: number;
+  monthly_price?: number;
+  attributes: Record<string, any>;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  description?: string;
+  price: number;
+  monthly_price?: number;
+  image_url?: string;
+  active: boolean;
+  variants?: ProductVariant[];
+  is_parent?: boolean;
+  variation_attributes?: Record<string, string[]>;
+  attributes?: Record<string, any>;
+  variant_combination_prices?: any[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
 
 interface ProductSelectorProps {
   isOpen: boolean;
@@ -36,8 +59,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
   
-  const { mapDatabaseProductsToAppProducts } = useProductMapper();
-  
   const fetchProducts = async (): Promise<Product[]> => {
     console.log("Fetching products from Supabase");
     
@@ -52,7 +73,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         throw productsError;
       }
       
-      console.log(`Retrieved ${productsData?.length} products`);
+      console.log(`Retrieved ${productsData.length} products`);
       
       const { data: variantPricesData, error: variantPricesError } = await supabase
         .from("product_variant_prices")
@@ -63,17 +84,58 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         throw variantPricesError;
       }
       
-      console.log(`Retrieved ${variantPricesData?.length} variant prices`);
+      console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
-      // Map products from DB format to app format
-      const mappedProducts = mapDatabaseProductsToAppProducts(productsData || []);
+      const productsWithVariants = productsData.map(product => {
+        const productVariantPrices = variantPricesData.filter(price => 
+          price.product_id === product.id
+        );
+        
+        const isParent = productVariantPrices.length > 0;
+        
+        let variationAttributes = product.variation_attributes;
+        if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
+          variationAttributes = extractVariationAttributes(productVariantPrices);
+        }
+        
+        return {
+          ...product,
+          variant_combination_prices: productVariantPrices,
+          is_parent: isParent || product.is_parent,
+          variation_attributes: variationAttributes,
+          createdAt: product.created_at || new Date(),
+          updatedAt: product.updated_at || new Date()
+        };
+      });
       
-      console.log("Processed products with variants:", mappedProducts.length);
-      return mappedProducts;
+      console.log("Processed products with variants:", productsWithVariants.length);
+      return productsWithVariants;
     } catch (error) {
       console.error("Failed to fetch products:", error);
       throw error;
     }
+  };
+  
+  const extractVariationAttributes = (variantPrices: any[]): Record<string, string[]> => {
+    const attributes: Record<string, Set<string>> = {};
+    
+    variantPrices.forEach(price => {
+      if (price.attributes) {
+        Object.entries(price.attributes).forEach(([key, value]) => {
+          if (!attributes[key]) {
+            attributes[key] = new Set();
+          }
+          attributes[key].add(String(value));
+        });
+      }
+    });
+    
+    const result: Record<string, string[]> = {};
+    Object.entries(attributes).forEach(([key, values]) => {
+      result[key] = Array.from(values);
+    });
+    
+    return result;
   };
 
   const { data: products = [], isLoading, error } = useQuery({
@@ -118,110 +180,125 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         (product.variant_combination_prices && product.variant_combination_prices.length > 0)
       );
     } else if (selectedTab === "variantes") {
-      filtered = filtered.filter(product => product.is_variation);
+      filtered = filtered.filter(product => 
+        product.variation_attributes && 
+        Object.keys(product.variation_attributes).length > 0
+      );
+    } else if (selectedTab === "individuels") {
+      filtered = filtered.filter(product => 
+        !product.is_parent && 
+        (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) &&
+        (!product.variant_combination_prices || product.variant_combination_prices.length === 0)
+      );
     }
     
     return filtered;
   };
 
+  const filteredProducts = getFilteredProducts();
+  
+  const handleProductSelect = (product: Product) => {
+    console.log("Selected product:", product);
+    onSelectProduct(product);
+  };
+  
+  useEffect(() => {
+    if (isOpen) {
+      setSearchQuery("");
+      setSelectedCategory("all");
+      setSelectedTab("tous");
+    }
+  }, [isOpen]);
+
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0">
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
-        
-        <div className="p-4 border-b">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Rechercher un produit..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden">
+        <div className="flex flex-col h-full">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
+          </SheetHeader>
+          
+          <div className="p-4 border-b">
+            <div className="flex gap-2 items-center">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un produit..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <SheetClose asChild>
+                <Button variant="outline" onClick={onClose}>Fermer</Button>
+              </SheetClose>
             </div>
-            <SheetClose asChild>
-              <Button variant="outline">Fermer</Button>
-            </SheetClose>
           </div>
-        </div>
-        
-        <div className="p-4 border-b">
-          <Tabs
-            value={selectedCategory}
+
+          <Tabs 
+            value={selectedCategory} 
             onValueChange={setSelectedCategory}
-            className="w-full"
+            className="flex-1 flex flex-col"
           >
-            <TabsList className="w-full flex-wrap h-auto">
-              <TabsTrigger value="all" className="mb-1">
-                Toutes catégories
-              </TabsTrigger>
-              {categories.map((category) => (
-                <TabsTrigger key={category} value={category} className="mb-1">
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-        
-        <div className="p-4 border-b">
-          <Tabs
-            value={selectedTab}
-            onValueChange={setSelectedTab}
-            className="w-full"
-          >
-            <TabsList className="w-full">
-              <TabsTrigger value="tous">Tous les produits</TabsTrigger>
-              <TabsTrigger value="parents">Modèles</TabsTrigger>
-              <TabsTrigger value="variantes">Variantes</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-        
-        <ScrollArea className="flex-1 h-[calc(100%-16rem)]">
-          <div className="p-4">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center h-40 text-center">
-                <Info className="h-10 w-10 text-destructive mb-2" />
-                <p className="text-muted-foreground">
-                  Erreur lors du chargement des produits.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => window.location.reload()}
-                >
-                  Actualiser
-                </Button>
-              </div>
-            ) : getFilteredProducts().length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground">
-                Aucun produit trouvé.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {getFilteredProducts().map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onClick={() => onSelectProduct(product)}
-                    onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
-                  />
+            <div className="px-4 py-2 border-b overflow-x-auto">
+              <TabsList className="w-auto inline-flex">
+                <TabsTrigger value="all">Tous</TabsTrigger>
+                {categories.map(category => (
+                  <TabsTrigger key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </TabsTrigger>
                 ))}
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+              </TabsList>
+            </div>
+            
+            <div className="px-4 py-2 border-b">
+              <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="tous" className="flex-1">Tous</TabsTrigger>
+                  <TabsTrigger value="parents" className="flex-1">Parents</TabsTrigger>
+                  <TabsTrigger value="variantes" className="flex-1">Variantes</TabsTrigger>
+                  <TabsTrigger value="individuels" className="flex-1">Individuels</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <ScrollArea className="flex-1 p-4">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Chargement des produits...</span>
+                </div>
+              ) : error ? (
+                <div className="text-center p-8 text-red-500">
+                  <p>Une erreur est survenue lors du chargement des produits.</p>
+                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                    Réessayer
+                  </Button>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center p-8 text-gray-500 flex flex-col items-center">
+                  <Info className="h-12 w-12 text-gray-400 mb-2" />
+                  <p className="text-lg font-medium">Aucun produit trouvé</p>
+                  <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
+                      <ProductCard 
+                        product={product as any} 
+                        onClick={() => handleProductSelect(product)}
+                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </Tabs>
+        </div>
       </SheetContent>
     </Sheet>
   );
