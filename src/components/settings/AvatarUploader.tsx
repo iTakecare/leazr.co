@@ -44,48 +44,19 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         return;
       }
       
-      // Déterminer le type MIME correct
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      let contentType = file.type;
+      // Upload l'image en utilisant directement la fonction uploadImage depuis imageUtils
+      // qui gère correctement le type MIME
+      const uploadUrl = await uploadImage(file, bucketName, folderPath);
       
-      if (!contentType.startsWith('image/')) {
-        switch (fileExt) {
-          case 'png': contentType = 'image/png'; break;
-          case 'jpg':
-          case 'jpeg': contentType = 'image/jpeg'; break;
-          case 'gif': contentType = 'image/gif'; break;
-          case 'webp': contentType = 'image/webp'; break;
-          default: contentType = 'image/jpeg';
-        }
-      }
-      
-      // Créer un nouveau Blob avec le type MIME explicite pour assurer le bon format
-      const fileArrayBuffer = await file.arrayBuffer();
-      const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
-      
-      // Créer un nouveau File avec le type MIME correct
-      const newFile = new File([fileBlob], file.name, {
-        type: contentType,
-        lastModified: file.lastModified
-      });
-      
-      console.log(`Uploading file avec type: ${newFile.type}, taille: ${newFile.size} bytes`);
-      
-      // Upload l'image avec le bon type MIME
-      const result = await uploadImage(newFile, bucketName, folderPath);
-      
-      if (result) {
-        // S'assurer que l'URL n'a pas de doubles slashes
-        let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
-        
+      if (uploadUrl) {
         // Ajouter le paramètre de cache-busting
-        cleanUrl = `${cleanUrl}?t=${Date.now()}`;
+        const cacheBustUrl = `${uploadUrl}?t=${Date.now()}`;
         
-        console.log("Image uploadée avec succès:", cleanUrl);
-        setImageUrl(cleanUrl);
+        console.log("Image uploadée avec succès:", cacheBustUrl);
+        setImageUrl(cacheBustUrl);
         
         if (onImageUploaded) {
-          onImageUploaded(cleanUrl);
+          onImageUploaded(uploadUrl);
         }
         toast.success("Image téléchargée avec succès");
       } else {

@@ -2,12 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,8 +71,11 @@ const GeneralSettings = () => {
       
       const success = await updateSiteSettings(updated);
       
-      if (!success) {
+      if (success) {
+        toast.success("Paramètres enregistrés avec succès");
+      } else {
         setError("Erreur lors de l'enregistrement des paramètres");
+        toast.error("Erreur lors de l'enregistrement des paramètres");
       }
     } catch (err) {
       console.error("Erreur lors de l'enregistrement des paramètres:", err);
@@ -98,20 +97,16 @@ const GeneralSettings = () => {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-1/3 mb-2" />
-          <Skeleton className="h-4 w-1/2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/3 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ))}
+      </div>
     );
   }
 
