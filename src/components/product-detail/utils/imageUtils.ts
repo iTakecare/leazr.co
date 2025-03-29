@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for product image handling - Simplified version
  */
@@ -48,8 +49,8 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 };
 
 /**
- * Add a unique timestamp to prevent caching issues
- * But only adds the timestamp parameter if needed
+ * Clean image URL to prevent issues
+ * Returns original URL or placeholder if invalid
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
@@ -61,7 +62,9 @@ export const addTimestamp = (url: string): string => {
     return url;
   }
   
-  // Pass the URL through unchanged - no timestamp
-  // This avoids CORS issues
-  return url;
+  // Fix double slashes in URLs which can cause issues
+  // This is a common issue with storage URLs
+  const cleanedUrl = url.replace(/([^:])\/\/+/g, '$1/');
+  
+  return cleanedUrl;
 };

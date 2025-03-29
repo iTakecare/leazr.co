@@ -20,7 +20,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   // Filter and deduplicate all valid images
   const allImages = useMemo(() => {
     console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
-    // Simple filtering without complex transformations
+    // Simple filtering - retain only valid URLs
     const validImages = [...new Set([imageUrl, ...imageUrls].filter(url => 
       url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg'
     ))];

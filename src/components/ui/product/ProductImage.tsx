@@ -25,6 +25,9 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     }
   }
   
+  // Clean up URLs with double slashes (except after protocol)
+  imageUrl = imageUrl.replace(/([^:])\/\/+/g, '$1/');
+  
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);

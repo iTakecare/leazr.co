@@ -16,9 +16,9 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Use the imageUrl directly without transformation
+  // Process URL to fix any issues
   const finalImageUrl = imageUrl && imageUrl !== "/placeholder.svg" 
-    ? imageUrl 
+    ? addTimestamp(imageUrl)
     : "/placeholder.svg";
 
   const handleImageLoad = () => {

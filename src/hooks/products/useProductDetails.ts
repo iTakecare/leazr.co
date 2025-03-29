@@ -51,8 +51,7 @@ export function useProductDetails(productId: string | null) {
         return [];
       }
       
-      // Generate direct public URLs with cache-busting parameters
-      const timestamp = new Date().getTime();
+      // Generate direct public URLs without cache-busting parameters
       const imageUrls = imageFiles.map(file => {
         const { data } = supabase
           .storage
@@ -64,8 +63,7 @@ export function useProductDetails(productId: string | null) {
           return null;
         }
         
-        // Add cache-busting parameter
-        const url = `${data.publicUrl}?t=${timestamp}`;
+        const url = data.publicUrl;
         console.log(`Generated image URL: ${url}`);
         return url;
       }).filter(Boolean) as string[];
@@ -105,13 +103,7 @@ export function useProductDetails(productId: string | null) {
         return false;
       }
       
-      try {
-        new URL(url);
-        return true;
-      } catch (e) {
-        console.error(`Invalid image URL: ${url}`);
-        return false;
-      }
+      return true;
     };
     
     // Check all possible image locations in the product object
