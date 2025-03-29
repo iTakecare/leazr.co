@@ -134,7 +134,7 @@ const ProductDetailPage = () => {
                 <SelectItem 
                   key={option} 
                   value={option}
-                  disabled={!isOptionAvailable()}
+                  disabled={!isOptionAvailable(attributeName, option)}
                 >
                   {option}
                 </SelectItem>

@@ -27,7 +27,7 @@ export const useProductDetails = (productId: string | undefined) => {
       const initialOptions: Record<string, string> = {};
       
       Object.entries(product.variation_attributes).forEach(([key, values]) => {
-        if (values && values.length > 0) {
+        if (Array.isArray(values) && values.length > 0) {
           initialOptions[key] = values[0];
         }
       });
