@@ -17,6 +17,13 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
     return false;
   }
   
+  // Check for invalid patterns that commonly indicate problematic URLs
+  if (url.includes('.emptyFolderPlaceholder') || 
+      url.includes('undefined') ||
+      url.endsWith('/')) {
+    return false;
+  }
+  
   return true;
 };
 
@@ -25,11 +32,20 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
  * Used for URL comparison and deduplication
  */
 export const normalizeUrl = (url: string): string => {
-  // First fix double slashes (except after protocol)
-  const fixedSlashes = url.replace(/([^:])\/\/+/g, '$1/');
+  if (!url) return '';
   
-  // Remove any query parameters
-  return fixedSlashes.split('?')[0];
+  try {
+    // First fix double slashes (except after protocol)
+    let fixedSlashes = url.replace(/([^:])\/\/+/g, '$1/');
+    
+    // Remove any query parameters and hash fragments
+    fixedSlashes = fixedSlashes.split('?')[0].split('#')[0];
+    
+    return fixedSlashes;
+  } catch (err) {
+    console.error("Error normalizing URL:", err);
+    return url;
+  }
 };
 
 /**
@@ -53,9 +69,10 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
       // Only add if it's valid and not already added (based on normalized URL)
       if (isValidImageUrl(url)) {
         const normalizedUrl = normalizeUrl(url);
-        if (!uniqueUrlsSet.has(normalizedUrl)) {
+        if (normalizedUrl && !uniqueUrlsSet.has(normalizedUrl)) {
           uniqueUrlsSet.add(normalizedUrl);
-          validUrls.push(url.replace(/([^:])\/\/+/g, '$1/'));  // Fix double slashes in the URL
+          // Fix URL before adding
+          validUrls.push(cleanImageUrl(url));
         }
       }
     });
@@ -79,7 +96,12 @@ export const cleanImageUrl = (url: string): string => {
   }
   
   // Fix double slashes in URLs which can cause issues
-  return url.replace(/([^:])\/\/+/g, '$1/');
+  const cleanedUrl = url.replace(/([^:])\/\/+/g, '$1/');
+  
+  // Remove any timestamp parameters as they can cause caching issues
+  const urlWithoutTimestamp = cleanedUrl.split('?')[0];
+  
+  return urlWithoutTimestamp;
 };
 
 /**

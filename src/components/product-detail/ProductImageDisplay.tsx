@@ -24,6 +24,7 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     // Filter and deduplicate images using utility function
     const validImages = filterValidImages(imageUrl, imageUrls);
     
+    // Log our results
     console.log("ProductImageDisplay - Valid images:", validImages);
     return validImages;
   }, [imageUrl, imageUrls]);

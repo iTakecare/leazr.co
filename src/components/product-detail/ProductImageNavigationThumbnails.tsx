@@ -15,32 +15,41 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
   onThumbnailClick,
   addTimestamp
 }) => {
-  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
-  const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>(
-    images.reduce((acc, _, index) => ({ ...acc, [index]: true }), {})
-  );
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   
   if (images.length <= 1) {
     return null;
   }
 
-  const handleImageError = (index: number) => {
-    console.log("Thumbnail failed to load:", images[index]);
+  const handleImageError = (url: string) => {
+    console.log("Thumbnail failed to load:", url);
     setImageErrors(prev => ({
       ...prev,
-      [index]: true
+      [url]: true
     }));
     setLoadingImages(prev => ({
       ...prev,
-      [index]: false
+      [url]: false
     }));
   };
   
-  const handleImageLoad = (index: number) => {
+  const handleImageLoad = (url: string) => {
     setLoadingImages(prev => ({
       ...prev,
-      [index]: false
+      [url]: false
     }));
+  };
+  
+  // Function to mark image as loading when it starts loading
+  const setImageLoading = (url: string) => {
+    if (loadingImages[url] === undefined) {
+      setLoadingImages(prev => ({
+        ...prev,
+        [url]: true
+      }));
+    }
+    return url;
   };
   
   return (
@@ -48,8 +57,10 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
       {images.map((url, index) => {
         // Clean URL to prevent double slashes and other issues
         const cleanedUrl = cleanImageUrl(url);
+        // Mark the image as loading
+        setImageLoading(cleanedUrl);
         // Use placeholder if error
-        const imageUrl = imageErrors[index] ? "/placeholder.svg" : cleanedUrl;
+        const imageUrl = imageErrors[cleanedUrl] ? "/placeholder.svg" : cleanedUrl;
         
         return (
           <button
@@ -60,7 +71,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
             onClick={() => onThumbnailClick(url, index)}
             aria-label={`Voir image ${index + 1}`}
           >
-            {loadingImages[index] && (
+            {loadingImages[cleanedUrl] && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                 <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
               </div>
@@ -70,8 +81,8 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
               src={imageUrl} 
               alt={`Thumbnail ${index + 1}`}
               className="w-full h-full object-cover object-center"
-              onError={() => handleImageError(index)}
-              onLoad={() => handleImageLoad(index)}
+              onError={() => handleImageError(cleanedUrl)}
+              onLoad={() => handleImageLoad(cleanedUrl)}
               loading="lazy"
             />
             
@@ -79,7 +90,7 @@ const ProductImageNavigationThumbnails: React.FC<ProductImageNavigationThumbnail
               <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
             )}
             
-            {imageErrors[index] && (
+            {imageErrors[cleanedUrl] && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-xs text-gray-500">
                 Image non disponible
               </div>

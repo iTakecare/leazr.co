@@ -16,10 +16,11 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
+  // Use a safer approach to determine if we need a placeholder
+  const shouldUsePlaceholder = !imageUrl || imageUrl === "/placeholder.svg" || hasError;
+  
   // Process URL to fix any issues, using the clean function
-  const finalImageUrl = imageUrl && imageUrl !== "/placeholder.svg" 
-    ? addTimestamp(imageUrl)
-    : "/placeholder.svg";
+  const finalImageUrl = shouldUsePlaceholder ? "/placeholder.svg" : addTimestamp(imageUrl);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -40,17 +41,19 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
         </div>
       )}
       
-      <img 
-        src={finalImageUrl} 
-        alt={altText}
-        className={`max-w-full max-h-full object-contain transition-all duration-300 
-          ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-        loading="lazy"
-      />
+      {!shouldUsePlaceholder && (
+        <img 
+          src={finalImageUrl} 
+          alt={altText}
+          className={`max-w-full max-h-full object-contain transition-all duration-300 
+            ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          loading="lazy"
+        />
+      )}
       
-      {hasError && (
+      {shouldUsePlaceholder && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <img 
             src="/placeholder.svg" 
@@ -64,7 +67,7 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
       )}
       
       {/* Overlay zoom icon */}
-      {!hasError && !isLoading && (
+      {!shouldUsePlaceholder && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="bg-black/40 rounded-full p-3">
             <ZoomIn className="h-6 w-6 text-white" />
