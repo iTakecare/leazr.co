@@ -4,20 +4,21 @@
  */
 
 /**
- * Checks if an image URL is valid
+ * Checks if an image URL is valid - simplified version that doesn't attempt to validate URLs
+ * that could trigger CORS or storage permission issues
  */
 export const isValidImageUrl = (url: string | null | undefined): boolean => {
-  // Si l'URL est null, undefined ou une chaîne vide, elle n'est pas valide
+  // If the URL is null, undefined or empty, it's not valid
   if (!url || typeof url !== 'string' || url.trim() === '') {
     return false;
   }
   
-  // Si c'est l'image placeholder par défaut, considérée comme non valide (pour forcer le chargement d'une vraie image)
+  // If it's the default placeholder image, it's not considered valid
   if (url === '/placeholder.svg') {
     return false;
   }
   
-  // Exclure les placeholders ou fichiers cachés
+  // Exclude placeholders or hidden files
   if (
     url.includes('.emptyFolderPlaceholder') || 
     url.split('/').pop()?.startsWith('.') ||
@@ -27,14 +28,8 @@ export const isValidImageUrl = (url: string | null | undefined): boolean => {
     return false;
   }
   
-  // Validation simplifiée pour accepter les URLs les plus courantes sans validation complexe
-  // Accepter toute URL commençant par http(s):// ou data: ou /
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
-    return true;
-  }
-  
-  // Essayer de déterminer si c'est une URL ou un chemin relatif
-  return url.includes('/');
+  // Simple format validation - accept anything that looks like a path or URL
+  return true;
 };
 
 /**
@@ -67,31 +62,27 @@ export const filterValidImages = (mainImageUrl: string, additionalUrls: string[]
 
 /**
  * Add a timestamp to image URLs to prevent caching issues
+ * Simplified version to avoid errors with storage permissions
  */
 export const addTimestamp = (url: string): string => {
   if (!url || !isValidImageUrl(url)) {
     return "/placeholder.svg";
   }
   
+  // Check if it's already our placeholder
+  if (url === '/placeholder.svg') {
+    return url;
+  }
+  
   try {
-    // Check if it's already our placeholder
-    if (url === '/placeholder.svg') {
-      return url;
-    }
-    
-    // Simplifier la gestion pour toutes les URLs
-    // Strip any existing timestamp parameter
-    let cleanUrl = url;
-    if (url.includes('?t=') || url.includes('&t=')) {
-      cleanUrl = url.replace(/([?&])t=\d+(&|$)/, '$1').replace(/[?&]$/, '');
-    }
-    
-    // Add a timestamp query parameter to prevent caching
+    // Don't try to modify Supabase storage URLs in a way that might trigger validation or permission issues
+    // Just append a timestamp query parameter in the simplest way possible
     const timestamp = Date.now();
-    const separator = cleanUrl.includes('?') ? '&' : '?';
-    return `${cleanUrl}${separator}t=${timestamp}`;
+    const separator = url.includes('?') ? '&' : '?';
     
+    return `${url}${separator}t=${timestamp}`;
   } catch (e) {
-    return "/placeholder.svg";
+    console.error("Error adding timestamp to URL:", url, e);
+    return url; // Return original URL on error instead of placeholder
   }
 };

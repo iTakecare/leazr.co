@@ -15,8 +15,8 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [finalImageUrl, setFinalImageUrl] = useState("/placeholder.svg");
   const [retryCount, setRetryCount] = useState(0);
+  const [finalImageUrl, setFinalImageUrl] = useState("/placeholder.svg");
 
   useEffect(() => {
     if (!imageUrl || imageUrl === "/placeholder.svg") {
@@ -26,16 +26,14 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
       return;
     }
     
-    // Réinitialiser l'état lors du changement d'URL
+    // Reset state when image URL changes
     setIsLoading(true);
     setHasError(false);
     
-    // Apply timestamp for cache busting
+    // Simply add timestamp and use the URL directly
+    // This avoids any pre-loading that might trigger storage access errors
     const timestampedUrl = addTimestamp(imageUrl);
     setFinalImageUrl(timestampedUrl);
-    
-    // Ne pas précharger l'image pour éviter les erreurs CORS
-    // Laisser l'élément img gérer le chargement directement
   }, [imageUrl, addTimestamp]);
 
   const handleImageLoad = () => {
@@ -44,15 +42,16 @@ const ProductMainImage: React.FC<ProductMainImageProps> = ({
   };
   
   const handleImageError = () => {
-    // Si erreur après trop de tentatives, montrer le placeholder
+    // After too many retries, show the placeholder
     if (retryCount >= 2) {
       setIsLoading(false);
       setHasError(true);
       setFinalImageUrl("/placeholder.svg");
     } else {
-      // Sinon, réessayer avec un nouveau timestamp
+      // Try again with a new timestamp
       setRetryCount(prev => prev + 1);
-      setFinalImageUrl(`${addTimestamp(imageUrl)}&retry=${retryCount + 1}`);
+      const newUrl = `${addTimestamp(imageUrl)}&retry=${retryCount + 1}`;
+      setFinalImageUrl(newUrl);
     }
   };
 
