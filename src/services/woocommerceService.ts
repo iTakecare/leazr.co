@@ -200,8 +200,7 @@ function generateUuidFromId(numericId: number | string): string {
     return idStr;
   }
   
-  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-  return `woo-${idStr}-${uuidv4().substring(8)}`;
+  return `woo-${idStr}-${uuidv4().substr(9)}`;
 }
 
 export async function importWooCommerceProducts(
@@ -243,6 +242,8 @@ export async function importWooCommerceProducts(
         };
         
         const generatedUuid = generateUuidFromId(product.id);
+        
+        console.log(`Generated UUID for product ${product.id}: ${generatedUuid}`);
         
         const mappedProduct: Record<string, any> = {
           id: generatedUuid,
@@ -347,6 +348,7 @@ export async function importWooCommerceProducts(
               const variation = await variationResponse.json();
               
               const variationUuid = generateUuidFromId(`${product.id}-${variation.id}`);
+              console.log(`Generated UUID for variation ${variationId}: ${variationUuid}`);
               
               const mappedVariation: Record<string, any> = {
                 id: variationUuid,
