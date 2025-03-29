@@ -19,7 +19,6 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       
       if (bucketError) {
         console.error(`Erreur lors de la vérification des buckets:`, bucketError);
-        // Ne pas afficher de toast ici, continuer avec les autres méthodes
       } else {
         const bucketExists = existingBuckets?.some(bucket => bucket.name === bucketName);
         
@@ -30,10 +29,26 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       }
     } catch (e) {
       console.warn(`Exception lors de la vérification des buckets: ${e}`);
-      // Continuer avec les autres méthodes
     }
     
-    // 2. Essayer via l'edge function create-storage-bucket
+    // 2. Essayer via la fonction RPC create_storage_bucket
+    try {
+      console.log(`Tentative de création via la fonction RPC create_storage_bucket`);
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_storage_bucket', { 
+        bucket_name: bucketName 
+      });
+      
+      if (!rpcError) {
+        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
+        return true;
+      } else {
+        console.error(`Erreur lors de l'appel à la fonction RPC:`, rpcError);
+      }
+    } catch (rpcCallError) {
+      console.warn(`Exception lors de l'appel à la fonction RPC: ${rpcCallError}`);
+    }
+    
+    // 3. Essayer via l'edge function create-storage-bucket
     try {
       console.log(`Tentative de création via l'edge function create-storage-bucket`);
       const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
@@ -53,7 +68,7 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
       console.warn(`Exception lors de l'appel à l'edge function: ${functionError}`);
     }
     
-    // 3. Dernière tentative: création directe via l'API Supabase
+    // 4. Dernière tentative: création directe via l'API Supabase
     try {
       console.log(`Tentative de création directe du bucket ${bucketName}`);
       
@@ -69,6 +84,27 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         }
         
         console.error(`Échec de la création directe du bucket ${bucketName}: ${createError.message}`);
+        
+        // Try with adminSupabase as a last resort
+        try {
+          const { adminSupabase } = await import('@/integrations/supabase/client');
+          const { error: adminError } = await adminSupabase.storage.createBucket(bucketName, {
+            public: true
+          });
+          
+          if (!adminError) {
+            console.log(`Bucket ${bucketName} créé avec succès via admin API`);
+            return true;
+          } else if (adminError.message?.includes('already exists')) {
+            console.log(`Le bucket ${bucketName} existe déjà (via admin API)`);
+            return true;
+          } else {
+            console.error(`Échec de la création via admin API: ${adminError.message}`);
+          }
+        } catch (adminError) {
+          console.error(`Exception lors de la création via admin API: ${adminError}`);
+        }
+        
         return false;
       }
       

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
-import { uploadImage } from '@/services/fileUploadService';
+import { uploadImage } from '@/utils/imageUtils';
 import { toast } from "sonner";
 
 interface AvatarUploaderProps {
@@ -33,12 +33,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
+      // Use uploadImage from imageUtils
       const result = await uploadImage(file, bucketName, folderPath);
       
       if (result) {
-        setImageUrl(result.url);
+        // Make sure URL doesn't have double slashes in path segments
+        let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
+        setImageUrl(cleanUrl);
+        
         if (onImageUploaded) {
-          onImageUploaded(result.url);
+          onImageUploaded(cleanUrl);
         }
         toast.success("Image téléchargée avec succès");
       } else {
