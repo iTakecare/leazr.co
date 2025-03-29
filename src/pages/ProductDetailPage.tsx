@@ -279,7 +279,6 @@ const ProductDetailPage = () => {
             <ProductImageDisplay 
               imageUrl={currentImage} 
               altText={product.name} 
-              imageUrls={product.image_urls || []}
             />
             
             <div className="mt-8">
