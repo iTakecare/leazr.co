@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getImageUrlWithCacheBuster } from "@/services/storageService";
+import { getSiteSettings } from "@/services/settingsService";
 
 interface LogoProps {
   className?: string;
@@ -19,34 +19,21 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   
-  // Fetch logo and site info on component mount
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('site_settings')
-          .select('*')
-          .limit(1)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching site settings:", error);
-          return;
-        }
+        const data = await getSiteSettings();
         
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Clean up logo URL if it contains double slashes
-          let cleanLogoUrl = null;
           if (data.logo_url) {
-            cleanLogoUrl = data.logo_url.replace(/\/\/([^\/])/g, '/$1');
-            // Add cache-busting parameter to ensure fresh image
-            cleanLogoUrl = `${cleanLogoUrl}?t=${Date.now()}`;
+            // Add cache-busting parameter
+            const cacheBuster = `?t=${Date.now()}`;
+            setLogoUrl(`${data.logo_url}${cacheBuster}`);
           }
           
-          setLogoUrl(cleanLogoUrl);
           setSiteInfo({
             siteName: data.site_name || "iTakecare"
           });
@@ -61,8 +48,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     fetchSiteSettings();
     
     // Set up a subscription to site_settings changes
-    const siteSettingsSubscription = supabase
-      .channel('site_settings_changes')
+    const channel = supabase.channel('site_settings_changes')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'site_settings' },
@@ -74,11 +60,10 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
       .subscribe();
       
     return () => {
-      supabase.removeChannel(siteSettingsSubscription);
+      supabase.removeChannel(channel);
     };
   }, []);
-  
-  // Generate user initials or use IT by default
+
   const getUserInitials = () => {
     if (!user) return "IT";
     
@@ -90,13 +75,14 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     return "IT";
   };
 
+  console.log("Current logo URL:", logoUrl); // Debug log
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
         <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
         <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
         
-        {/* Logo container with image or initials */}
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
           {logoUrl ? (
             <img 
@@ -105,28 +91,20 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
               className="w-10 h-10 object-contain"
               onError={(e) => {
                 console.error("Error loading logo image:", logoUrl);
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
+                e.currentTarget.style.display = 'none';
+                const fallback = document.getElementById('logo-fallback');
+                if (fallback) fallback.classList.remove('hidden');
               }}
             />
           ) : isLoading ? (
             <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
           ) : (
-            <img 
-              src="/site-favicon.ico" 
-              alt="iTakecare Logo"
-              className="w-7 h-7 object-contain"
-              onError={(e) => {
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
-              }}
-            />
+            <div className="w-7 h-7 flex items-center justify-center">
+              <span id="logo-fallback" className="font-bold text-primary text-lg">
+                {getUserInitials()}
+              </span>
+            </div>
           )}
-          <span id="logo-fallback" className={logoUrl ? "hidden" : "font-bold text-primary text-lg"}>
-            {getUserInitials()}
-          </span>
         </div>
       </div>
       

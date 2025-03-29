@@ -34,6 +34,8 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
+      console.log(`Attempting to upload to bucket: ${bucketName}`);
+      
       // First ensure the bucket exists and is public
       const bucketExists = await ensureStorageBucket(bucketName);
       if (!bucketExists) {
@@ -49,9 +51,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         // Make sure URL doesn't have double slashes in path segments
         let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
         
-        // Add cache-busting parameter to ensure the new image is displayed
+        // Add cache-busting parameter
         cleanUrl = `${cleanUrl}?t=${Date.now()}`;
         
+        console.log("Image uploaded successfully:", cleanUrl);
         setImageUrl(cleanUrl);
         
         if (onImageUploaded) {
@@ -72,7 +75,13 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="w-24 h-24">
-        <AvatarImage src={imageUrl} alt="Uploaded avatar" />
+        {imageUrl ? (
+          <AvatarImage 
+            src={imageUrl} 
+            alt="Uploaded avatar" 
+            onError={() => console.error("Error loading image:", imageUrl)} 
+          />
+        ) : null}
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
       </Avatar>
       
