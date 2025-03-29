@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, ArrowRight, ZoomIn } from "lucide-react";
 
 interface ProductImageDisplayProps {
@@ -18,80 +17,83 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   const [hasError, setHasError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [allImages, setAllImages] = useState<string[]>([]);
-  const imageProcessedRef = useRef(false);
+  const imageProcessedRef = useRef(true);
   const initialRenderRef = useRef(true);
+  const processingRef = useRef(false);
+  const imagesRef = useRef<string[]>([]);
   
-  // Filter valid images and deduplicate them
-  useEffect(() => {
-    // Skip if we've already processed the images with the same inputs
-    if (imageProcessedRef.current && !initialRenderRef.current) {
-      return;
+  const processImageUrl = useCallback((url: string): string => {
+    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
+    
+    try {
+      const baseUrl = url.split('?')[0];
+      
+      if (!baseUrl.includes('t=')) {
+        return `${baseUrl}?t=${Date.now()}`;
+      }
+      
+      return url;
+    } catch (e) {
+      return url || "/placeholder.svg";
     }
+  }, []);
+  
+  useEffect(() => {
+    if (processingRef.current) return;
+    processingRef.current = true;
     
-    initialRenderRef.current = false;
-    imageProcessedRef.current = true;
+    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrlsLength: imageUrls?.length });
     
-    console.log("ProductImageDisplay - Processing images", { imageUrl, imageUrls });
-    
-    // Helper function to check if an image URL is valid
     const isValidImageUrl = (url: string | null | undefined): boolean => {
-      if (!url || typeof url !== 'string' || url.trim() === '') {
-        return false;
-      }
+      if (!url || typeof url !== 'string' || url.trim() === '') return false;
+      if (url === '/placeholder.svg') return false;
       
-      if (url === '/placeholder.svg') {
-        return false;
-      }
-      
-      // Exclude placeholder or hidden files
-      if (
+      return !(
         url.includes('.emptyFolderPlaceholder') || 
         url.split('/').pop()?.startsWith('.') ||
         url.includes('undefined') ||
         url.endsWith('/')
-      ) {
-        return false;
-      }
-      
-      return true;
+      );
     };
     
-    // Create a set to deduplicate images
-    const uniqueUrlsSet = new Set<string>();
+    const uniqueUrlsMap = new Map<string, string>();
     
-    // Add main image if valid
     if (isValidImageUrl(imageUrl)) {
-      uniqueUrlsSet.add(imageUrl);
+      const baseMainUrl = imageUrl.split('?')[0];
+      uniqueUrlsMap.set(baseMainUrl, imageUrl);
     }
     
-    // Add additional images if valid
     if (Array.isArray(imageUrls)) {
       imageUrls.forEach(url => {
         if (isValidImageUrl(url)) {
-          // Remove any existing timestamp parameters to avoid duplicates
           const baseUrl = url.split('?')[0];
-          uniqueUrlsSet.add(baseUrl);
+          uniqueUrlsMap.set(baseUrl, url);
         }
       });
     }
     
-    // Convert set back to array
-    const validImages = Array.from(uniqueUrlsSet);
-    console.log("ProductImageDisplay - Valid images:", validImages);
+    const validImages = Array.from(uniqueUrlsMap.values());
+    console.log("ProductImageDisplay - Available images:", validImages);
     
-    setAllImages(validImages);
-    
-    // If we have images, set the first one as selected
-    if (validImages.length > 0) {
-      setSelectedImage(validImages[0]);
-      setCurrentIndex(0);
-      setIsLoading(true);
-    } else {
-      setSelectedImage('/placeholder.svg');
-      setIsLoading(false);
-      setHasError(true);
+    if (JSON.stringify(validImages) !== JSON.stringify(imagesRef.current)) {
+      imagesRef.current = validImages;
+      setAllImages(validImages);
+      
+      if (validImages.length > 0) {
+        const firstImage = processImageUrl(validImages[0]);
+        console.log("ProductImageDisplay - Setting initial image:", firstImage);
+        setSelectedImage(firstImage);
+        setCurrentIndex(0);
+        setIsLoading(true);
+      } else {
+        setSelectedImage('/placeholder.svg');
+        setIsLoading(false);
+        setHasError(true);
+      }
     }
-  }, [imageUrl, imageUrls]);
+    
+    processingRef.current = false;
+  }, [imageUrl, imageUrls, processImageUrl]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -99,15 +101,37 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
     console.log("ProductImageDisplay - Image loaded successfully:", selectedImage);
   };
 
-  const handleImageError = () => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.log("ProductImageDisplay - Error loading image:", selectedImage);
     setIsLoading(false);
     setHasError(true);
-    console.error("ProductImageDisplay - Error loading image:", selectedImage);
+    
+    const imgElement = e.target as HTMLImageElement;
+    const baseUrl = imgElement.src.split('?')[0];
+    
+    if (imgElement.src !== '/placeholder.svg' && baseUrl !== '/placeholder.svg') {
+      setTimeout(() => {
+        if (mounted.current) {
+          imgElement.src = `${baseUrl}?t=${Date.now()}`;
+        }
+      }, 500);
+    } else {
+      imgElement.src = '/placeholder.svg';
+    }
   };
   
+  const mounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  
   const handleThumbnailClick = (url: string, index: number) => {
+    if (currentIndex === index) return;
+    
     console.log("ProductImageDisplay - Thumbnail clicked:", url);
-    setSelectedImage(url);
+    setSelectedImage(processImageUrl(url));
     setCurrentIndex(index);
     setIsLoading(true);
     setHasError(false);
@@ -124,27 +148,15 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
       newIndex = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0;
     }
     
-    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}:`, allImages[newIndex]);
+    if (newIndex === currentIndex) return;
+    
+    console.log(`ProductImageDisplay - Navigating ${direction} to image at index ${newIndex}`);
     setCurrentIndex(newIndex);
-    setSelectedImage(allImages[newIndex]);
+    setSelectedImage(processImageUrl(allImages[newIndex]));
     setIsLoading(true);
     setHasError(false);
   };
 
-  // Add a timestamp to image URLs to prevent caching issues
-  const addTimestamp = (url: string): string => {
-    if (!url || url === '/placeholder.svg') return "/placeholder.svg";
-    
-    try {
-      // Add a timestamp query parameter to prevent caching
-      const baseUrl = url.split('?')[0]; // Remove any existing query params
-      return `${baseUrl}?t=${new Date().getTime()}`;
-    } catch (e) {
-      return "/placeholder.svg";
-    }
-  };
-
-  // If no valid images, show a placeholder
   if (allImages.length === 0) {
     return (
       <div className="flex flex-col-reverse md:flex-row md:gap-4">
@@ -168,34 +180,38 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
 
   return (
     <div className="flex flex-col-reverse md:flex-row md:gap-4">
-      {/* Side thumbnails (vertical on medium screens and up) */}
       {allImages.length > 1 && (
         <div className="flex overflow-x-auto md:overflow-y-auto md:flex-col md:h-[400px] gap-2 mt-4 md:mt-0 md:w-24 md:min-w-24 pb-2 md:pb-0">
-          {allImages.map((url, index) => (
-            <button
-              key={`thumb-${index}-${url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))}`}
-              className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
-                ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
-                overflow-hidden flex-shrink-0`}
-              onClick={() => handleThumbnailClick(url, index)}
-            >
-              <img 
-                src={addTimestamp(url)} 
-                alt={`${altText} - image ${index + 1}`}
-                className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
-              />
-              {currentIndex === index && (
-                <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
-              )}
-            </button>
-          ))}
+          {allImages.map((url, index) => {
+            const urlParts = url.split('/');
+            const fileName = urlParts[urlParts.length - 1].split('?')[0];
+            const key = `thumb-${index}-${fileName}`;
+            
+            return (
+              <button
+                key={key}
+                className={`relative min-w-16 h-16 border-2 rounded-lg transition-all 
+                  ${currentIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}
+                  overflow-hidden flex-shrink-0`}
+                onClick={() => handleThumbnailClick(url, index)}
+              >
+                <img 
+                  src={processImageUrl(url)} 
+                  alt={`${altText} - image ${index + 1}`}
+                  className="w-full h-full object-cover object-center"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/placeholder.svg";
+                  }}
+                />
+                {currentIndex === index && (
+                  <div className="absolute inset-0 bg-indigo-500 bg-opacity-10"></div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
       
-      {/* Main image container */}
       <div className="flex-1 relative">
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden transition-all hover:shadow-md relative group">
           <div className="relative w-full aspect-square sm:aspect-[4/3] md:aspect-[3/2] flex items-center justify-center p-4">
@@ -206,7 +222,8 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
             )}
             {selectedImage && (
               <img 
-                src={addTimestamp(selectedImage)} 
+                key={`main-${currentIndex}-${selectedImage}`}
+                src={selectedImage} 
                 alt={altText}
                 className={`max-w-full max-h-full object-contain transition-all duration-300 
                   ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
@@ -220,7 +237,6 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
               </div>
             )}
             
-            {/* Overlay zoom icon */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="bg-black bg-opacity-40 rounded-full p-2">
                 <ZoomIn className="h-6 w-6 text-white" />
@@ -228,7 +244,6 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
             </div>
           </div>
           
-          {/* Navigation arrows for multiple images */}
           {allImages.length > 1 && (
             <>
               <button 
@@ -249,7 +264,6 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
           )}
         </div>
         
-        {/* Image counter */}
         {allImages.length > 1 && (
           <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-full">
             {currentIndex + 1} / {allImages.length}
