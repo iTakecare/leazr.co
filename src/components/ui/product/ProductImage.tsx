@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,7 +140,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       <img 
         src={imageUrl}
         alt={product?.name || "Produit"}
-        className="object-contain max-h-24 max-w-full"
+        className="object-contain w-full h-full max-h-24"
         onLoad={handleImageLoad}
         onError={handleImageError}
         loading="lazy"

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -314,7 +315,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                 <img
                   src={getUniqueImageUrl(image.url, index)}
                   alt={`Produit ${index + 1}`}
-                  className="object-cover w-full h-full"
+                  className="object-contain w-full h-full"
                   loading="lazy"
                   onError={(e) => {
                     console.error(`Failed to load image: ${image.url}`);
