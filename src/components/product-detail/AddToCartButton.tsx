@@ -39,7 +39,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     
     // Log the product and its price for debugging
     console.log("Adding to cart with validated price:", { 
-      product: productWithValidPrice, 
+      product: productWithValidPrice.name,
       price: productWithValidPrice.monthly_price,
       quantity, 
       duration, 
@@ -47,8 +47,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     });
     
     // Ensure the product has a valid price before adding to cart
-    if (typeof productWithValidPrice.monthly_price !== 'number' || productWithValidPrice.monthly_price === 0) {
-      console.warn("Warning: Product has no monthly price", product);
+    if (typeof productWithValidPrice.monthly_price !== 'number' || isNaN(productWithValidPrice.monthly_price) || productWithValidPrice.monthly_price === 0) {
+      console.warn("Warning: Product has no valid monthly price", product);
     }
     
     addToCart({

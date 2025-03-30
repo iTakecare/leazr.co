@@ -20,13 +20,23 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCart();
   const { product, quantity } = item;
   
-  // Make sure we're getting a valid number for the monthly_price
   // Debug the price to see what's happening
-  console.log(`CartItem: product ${product.name} raw price:`, product.monthly_price);
+  console.log(`CartItem: product ${product.name} (${product.id}) raw price:`, product.monthly_price, typeof product.monthly_price);
   
   // Extract the monthly price, ensuring it's a valid number
-  const price = typeof product.monthly_price === 'number' ? product.monthly_price : 
-               (typeof product.monthly_price === 'string' ? parseFloat(product.monthly_price) : 0);
+  let price: number;
+  if (typeof product.monthly_price === 'number') {
+    price = product.monthly_price;
+  } else if (typeof product.monthly_price === 'string') {
+    price = parseFloat(product.monthly_price);
+    if (isNaN(price)) {
+      console.warn(`Invalid string price: "${product.monthly_price}" converted to 0`);
+      price = 0;
+    }
+  } else {
+    console.warn(`Price missing or invalid for ${product.name}`, product.monthly_price);
+    price = 0;
+  }
   
   // Calculate the item total price
   const itemTotal = price * quantity;
