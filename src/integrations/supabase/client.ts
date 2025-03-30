@@ -30,7 +30,7 @@ export const getSupabaseClient = () => {
   return supabaseInstance;
 };
 
-// Function to get admin supabase client
+// Function to get admin supabase client with proper configuration
 export const getAdminSupabaseClient = () => {
   if (!adminSupabaseInstance) {
     adminSupabaseInstance = createClient<Database>(

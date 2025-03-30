@@ -1,6 +1,6 @@
 
-import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 export interface ProductRequestData {
   client_name: string;
@@ -29,7 +29,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
-    // Get admin client with proper configuration
+    // Get a fresh adminSupabase client each time - ensuring it has proper headers
     const adminSupabase = getAdminSupabaseClient();
     
     // First step: Check for existing client by email
@@ -60,23 +60,24 @@ export const createProductRequest = async (data: ProductRequestData) => {
       console.log("Creating new client");
       
       try {
+        const clientData = {
+          name: data.client_name,
+          email: data.client_email,
+          company: data.client_company,
+          vat_number: data.client_company, // Temporary use of company as VAT
+          status: 'lead'
+        };
+        
         const { data: newClient, error: clientCreateError } = await adminSupabase
           .from('clients')
-          .insert([{
-            name: data.client_name,
-            email: data.client_email,
-            company: data.client_company,
-            vat_number: data.client_company, // Temporary use of company as VAT
-            status: 'lead'
-          }])
-          .select()
-          .single();
+          .insert([clientData])
+          .select();
         
         if (clientCreateError) {
           console.error("Error creating new client:", clientCreateError);
           // Don't throw here, we'll still try to create the offer
-        } else if (newClient) {
-          clientId = newClient.id;
+        } else if (newClient && newClient.length > 0) {
+          clientId = newClient[0].id;
           console.log("New client created with ID:", clientId);
         }
       } catch (error) {
@@ -99,25 +100,29 @@ export const createProductRequest = async (data: ProductRequestData) => {
       commission: 0,  // Will be calculated by admin
       status: 'pending',
       workflow_status: 'requested',
-      type: 'client_request'
+      type: 'client_request',
+      user_id: null // Explicitly set to null for public requests
     };
     
     const { data: offer, error: offerError } = await adminSupabase
       .from('offers')
       .insert([offerData])
-      .select()
-      .single();
+      .select();
 
     if (offerError) {
       console.error("Error creating offer:", offerError);
       throw new Error("Impossible de créer la demande");
     }
 
+    if (!offer || offer.length === 0) {
+      throw new Error("Aucune offre n'a été créée");
+    }
+
     // Third step: Add additional information as a note if provided
-    if (data.message && offer) {
+    if (data.message && offer[0]) {
       try {
         const noteData = {
-          offer_id: offer.id,
+          offer_id: offer[0].id,
           content: `Message du client: ${data.message}\n\nInformations supplémentaires:\nEntreprise: ${data.client_company}\nQuantité: ${data.quantity}\nDurée: ${data.duration} mois`,
           type: 'client_note'
         };
@@ -135,8 +140,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
       }
     }
 
-    console.log("Product request created successfully:", offer);
-    return offer;
+    console.log("Product request created successfully:", offer[0]);
+    return offer[0];
   } catch (error: any) {
     console.error("Error in product request service:", error);
     toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");

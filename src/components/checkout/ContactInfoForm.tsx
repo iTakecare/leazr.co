@@ -25,18 +25,18 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Validate form
-    if (!formData.name.trim()) {
-      toast.error("Veuillez entrer votre nom complet");
+    // Enhanced validation
+    if (!formData.name || formData.name.trim().length < 2) {
+      toast.error("Veuillez entrer un nom complet valide (minimum 2 caractères)");
       return;
     }
     
-    if (!formData.email.trim()) {
+    if (!formData.email || !formData.email.trim()) {
       toast.error("Veuillez entrer votre adresse email");
       return;
     }
     
-    // Basic email validation
+    // More comprehensive email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast.error("Veuillez entrer une adresse email valide");
