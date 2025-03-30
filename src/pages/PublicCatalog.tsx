@@ -207,11 +207,11 @@ const PublicCatalog = () => {
                           <div className="space-y-2">
                             {categories.map((category) => (
                               <div
-                                key={category}
-                                className={`flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${selectedCategory === category ? 'bg-blue-50 text-[#33638e] font-medium' : ''}`}
-                                onClick={() => setSelectedCategory(category)}
+                                key={category.name}
+                                className={`flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${selectedCategory === category.name ? 'bg-blue-50 text-[#33638e] font-medium' : ''}`}
+                                onClick={() => setSelectedCategory(category.name)}
                               >
-                                <span>{category}</span>
+                                <span>{category.translation}</span>
                               </div>
                             ))}
                           </div>
@@ -343,7 +343,7 @@ const PublicCatalog = () => {
                 <div className="flex flex-wrap gap-2">
                   {selectedCategory && (
                     <Badge variant="secondary" className="flex gap-1 items-center">
-                      {selectedCategory}
+                      {categories.find(c => c.name === selectedCategory)?.translation || selectedCategory}
                       <Button 
                         variant="ghost" 
                         size="icon" 

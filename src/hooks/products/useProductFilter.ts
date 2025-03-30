@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
+import { useQuery } from "@tanstack/react-query";
+import { getCategories } from "@/services/catalogService";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -9,6 +11,20 @@ export const useProductFilter = (products: Product[] = []) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
+  
+  // Fetch categories with translations from the database
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories
+  });
+  
+  // Create a map of category names to their translations
+  const categoryTranslations = new Map<string, string>();
+  categoriesData.forEach(category => {
+    if (category.name && category.translation) {
+      categoryTranslations.set(category.name, category.translation);
+    }
+  });
   
   // Reset price range when products change
   useEffect(() => {
@@ -98,17 +114,23 @@ export const useProductFilter = (products: Product[] = []) => {
     return filtered;
   };
 
-  // Get unique categories from products
-  const getCategories = (): string[] => {
+  // Get unique categories from products with translations
+  const getCategories = (): {name: string, translation: string}[] => {
     if (!products || products.length === 0) return [];
     
-    const categories = products
-      .map(product => product.category)
-      .filter((category): category is string => 
-        category !== undefined && category !== null && category !== ''
-      );
+    const categoriesSet = new Set<string>();
     
-    return [...new Set(categories)].sort();
+    products.forEach(product => {
+      if (product.category && product.category !== '') {
+        categoriesSet.add(product.category);
+      }
+    });
+    
+    // Convert to array and sort by the French translation if available, otherwise by name
+    return Array.from(categoriesSet).map(categoryName => {
+      const translation = categoryTranslations.get(categoryName) || categoryName;
+      return { name: categoryName, translation };
+    }).sort((a, b) => a.translation.localeCompare(b.translation));
   };
   
   // Get unique brands from products
