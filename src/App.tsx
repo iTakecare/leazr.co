@@ -2,7 +2,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "./components/providers/theme-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import Login from "@/pages/Login";
@@ -20,10 +20,10 @@ export default function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="light" attribute="class">
-          <CartProvider>
-            <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider defaultTheme="light" attribute="class">
+            <CartProvider>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
@@ -35,10 +35,10 @@ export default function App() {
                 <Route path="/panier" element={<Cart />} />
                 <Route path="/signup-business" element={<SignupBusiness />} />
               </Routes>
-            </BrowserRouter>
-          </CartProvider>
-        </ThemeProvider>
-      </AuthProvider>
+            </CartProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
