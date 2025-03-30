@@ -69,6 +69,7 @@ export const useProductDetails = (productId: string | undefined) => {
   // Calculate current price based on selected variant or base product
   const currentPrice = useMemo(() => {
     if (selectedVariant && selectedVariant.monthly_price) {
+      console.log(`Using selected variant price: ${selectedVariant.monthly_price}`);
       return selectedVariant.monthly_price;
     }
     
@@ -83,12 +84,19 @@ export const useProductDetails = (productId: string | undefined) => {
         );
       });
       
-      if (matchingPrice) {
-        return matchingPrice.monthly_price || 0;
+      if (matchingPrice && matchingPrice.monthly_price) {
+        console.log(`Using matching combination price: ${matchingPrice.monthly_price}`);
+        return matchingPrice.monthly_price;
       }
     }
     
-    return product?.monthly_price || 0;
+    if (product?.monthly_price) {
+      console.log(`Using product base monthly price: ${product.monthly_price}`);
+      return product.monthly_price;
+    }
+    
+    console.log('No valid monthly price found, defaulting to 0');
+    return 0;
   }, [product, selectedVariant, selectedOptions]);
 
   // Calculate the minimum monthly price for display
@@ -101,7 +109,9 @@ export const useProductDetails = (productId: string | undefined) => {
         .filter(price => price > 0);
       
       if (prices.length > 0) {
-        return Math.min(...prices);
+        const min = Math.min(...prices);
+        console.log(`Minimum variant price: ${min}`);
+        return min;
       }
     }
     
@@ -111,16 +121,26 @@ export const useProductDetails = (productId: string | undefined) => {
         .filter(price => price > 0);
       
       if (prices.length > 0) {
-        return Math.min(...prices);
+        const min = Math.min(...prices);
+        console.log(`Minimum combination price: ${min}`);
+        return min;
       }
     }
     
-    return product.monthly_price || 0;
+    if (product.monthly_price && product.monthly_price > 0) {
+      console.log(`Using base monthly price: ${product.monthly_price}`);
+      return product.monthly_price;
+    }
+    
+    console.log('No valid minimum monthly price found, defaulting to 0');
+    return 0;
   }, [product]);
 
   // Calculate total price based on quantity and duration (duration is now fixed)
   const totalPrice = useMemo(() => {
-    return currentPrice * quantity;
+    const total = currentPrice * quantity;
+    console.log(`Total price calculation: ${currentPrice} x ${quantity} = ${total}`);
+    return total;
   }, [currentPrice, quantity]);
 
   const specifications = useMemo(() => {

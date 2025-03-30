@@ -1,22 +1,20 @@
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Product } from "@/types/catalog";
-import { createProductRequest } from "@/services/requestInfoService";
-import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react"; // Updated import to use lucide-react instead
+import { createClientRequest } from "@/services/offers/clientRequests";
+import { formatCurrency } from "@/utils/formatters";
 
 interface ProductRequestFormProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Product | null;
+  product: Product;
   quantity: number;
   selectedOptions: Record<string, string>;
   duration: number;
@@ -33,213 +31,165 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
   monthlyPrice
 }) => {
   const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [comments, setComments] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    message: ""
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
+    
+    if (!name || !email) {
+      toast.error("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+    
     try {
-      // Construire la description de l'équipement à partir des options sélectionnées
-      const optionsDescription = Object.entries(selectedOptions)
+      setIsSubmitting(true);
+      
+      // Formater les options sélectionnées pour le descriptif de l'équipement
+      const optionsText = Object.entries(selectedOptions)
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
-
-      const equipmentDescription = `${product.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
-
-      await createProductRequest({
-        client_name: formData.name,
-        client_email: formData.email,
-        client_company: formData.company,
-        client_contact_email: formData.email,
-        equipment_description: equipmentDescription,
-        message: formData.message,
-        amount: (product.price || 0) * quantity,
-        monthly_payment: monthlyPrice,
+      
+      // Préparer la description complète de l'équipement avec les données JSON
+      const equipmentData = [{
+        name: product.name,
+        brand: product.brand || "Non spécifié",
+        description: product.description || "",
+        specifications: selectedOptions,
         quantity: quantity,
-        duration: duration
+        purchasePrice: product.price || 0,
+        monthlyPayment: monthlyPrice / quantity, // Prix mensuel par unité
+        totalMonthly: monthlyPrice, // Prix mensuel total
+      }];
+      
+      // Convertir l'équipement en format JSON pour le stockage
+      const equipmentDescription = JSON.stringify(equipmentData);
+      
+      console.log("Creating client request for product:", {
+        product: product.name,
+        monthlyPrice,
+        quantity,
+        equipmentDescription
       });
-
-      toast.success("Votre demande a été envoyée avec succès");
+      
+      const { data, error } = await createClientRequest({
+        client_name: name,
+        client_email: email,
+        equipment_description: equipmentDescription,
+        amount: product.price * quantity || 0,
+        monthly_payment: monthlyPrice,
+        coefficient: 0, // Sera calculé côté serveur si nécessaire
+        remarks: `Demande pour ${product.name} (${optionsText}) - ${comments}\nSociété: ${company}`,
+        type: "client_request",
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Votre demande a été envoyée avec succès!");
       onClose();
       navigate("/demande-envoyee");
     } catch (error) {
       console.error("Erreur lors de l'envoi de la demande:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande");
+      toast.error("Une erreur s'est produite lors de l'envoi de votre demande.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Demande d&apos;offre</DialogTitle>
-          <DialogDescription>
-            Remplissez ce formulaire pour recevoir une offre personnalisée
-          </DialogDescription>
+          <DialogTitle>Faire une demande pour {product.name}</DialogTitle>
         </DialogHeader>
         
-        {product && (
-          <div className="mb-4">
-            <div className="flex items-start gap-4">
-              <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                {product.image_url ? (
-                  <img 
-                    src={product.image_url} 
-                    alt={product.name} 
-                    className="object-contain max-h-full max-w-full"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg";
-                    }}
-                  />
-                ) : (
-                  <div className="text-gray-400">
-                    <ImageIcon className="h-10 w-10" />
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <h4 className="font-bold text-lg">{product.name}</h4>
-                <p className="text-sm text-gray-500">
-                  {product.brand} - {quantity} {quantity > 1 ? "unités" : "unité"} - {duration} mois
-                </p>
-                
-                {Object.keys(selectedOptions).length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {Object.entries(selectedOptions).map(([key, value]) => (
-                      <Badge key={key} variant="secondary" className="text-xs">
-                        {key}: {value}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                
-                <div className="mt-2 text-primary font-semibold">
-                  {formatCurrency(monthlyPrice)} HT / mois
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom complet *</Label>
-              <Input
+              <Label htmlFor="name">Nom <span className="text-red-500">*</span></Label>
+              <Input 
                 id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Votre nom"
                 required
               />
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="email">Email professionnel *</Label>
+              <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
               <Input
                 id="email"
-                name="email"
                 type="email"
-                value={formData.email}
-                onChange={handleChange}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Votre email"
                 required
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="company">Entreprise *</Label>
-              <Input
-                id="company"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
-              <Textarea
-                id="message"
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Précisez ici toute information complémentaire concernant votre demande..."
-                rows={3}
-              />
-            </div>
           </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg border">
-            <h4 className="font-medium mb-2">Récapitulatif de votre demande</h4>
-            <div className="text-sm space-y-1">
-              <div className="flex justify-between">
-                <span>Produit:</span>
-                <span className="font-medium">{product.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Quantité:</span>
-                <span>{quantity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Durée:</span>
-                <span>{duration} mois</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Options:</span>
-                <span>
-                  {Object.entries(selectedOptions).length > 0 
-                    ? Object.entries(selectedOptions).map(([key, value]) => (
-                      <div key={key} className="text-right">
-                        {key}: <span className="font-medium">{value}</span>
-                      </div>
-                    ))
-                    : "Configuration standard"
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t mt-2">
-                <span>Mensualité estimée:</span>
-                <span className="font-bold text-indigo-700">{formatCurrency(monthlyPrice)} HT / mois</span>
+          
+          <div className="space-y-2">
+            <Label htmlFor="company">Entreprise</Label>
+            <Input
+              id="company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Nom de votre entreprise"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="summary">Résumé de votre demande</Label>
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+              <p className="font-medium text-gray-800">{product.name}</p>
+              <p className="text-gray-600">Quantité: {quantity}</p>
+              
+              {Object.entries(selectedOptions).length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-700">Configuration:</p>
+                  <ul className="text-sm text-gray-600 ml-4">
+                    {Object.entries(selectedOptions).map(([key, value]) => (
+                      <li key={key}>{key}: {value}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between">
+                <span className="font-medium">Mensualité:</span>
+                <span className="font-bold text-indigo-600">{formatCurrency(monthlyPrice)}/mois</span>
               </div>
             </div>
           </div>
-
+          
+          <div className="space-y-2">
+            <Label htmlFor="comments">Commentaires additionnels</Label>
+            <Textarea
+              id="comments"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="Information supplémentaires pour votre demande"
+              rows={4}
+            />
+          </div>
+          
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Annuler
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Envoi en cours..." : "Envoyer ma demande"}
+              {isSubmitting ? "Envoi en cours..." : "Envoyer la demande"}
             </Button>
           </DialogFooter>
         </form>
