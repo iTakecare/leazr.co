@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -5,7 +6,10 @@ export const formatCurrency = (value: number | string): string => {
   // First, ensure we have a number
   let numValue: number;
   
-  if (typeof value === 'number') {
+  if (value === null || value === undefined) {
+    console.warn("formatCurrency received null or undefined:", value);
+    numValue = 0;
+  } else if (typeof value === 'number') {
     numValue = value;
   } else if (typeof value === 'string') {
     numValue = parseFloat(value);

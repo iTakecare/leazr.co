@@ -11,7 +11,7 @@ interface AddToCartButtonProps {
   product: Product;
   quantity: number;
   duration: number;
-  currentPrice?: number;  // Added explicit currentPrice prop
+  currentPrice?: number;
   selectedOptions?: Record<string, string>;
   navigateToCart?: boolean;
 }
@@ -22,33 +22,35 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   duration,
   currentPrice,
   selectedOptions = {},
-  navigateToCart = true // Default to true to always navigate to cart page
+  navigateToCart = true
 }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent the default behavior
-    e.stopPropagation(); // Stop event propagation
+    e.preventDefault();
+    e.stopPropagation();
     
     // Make a deep copy of the product to avoid any reference issues
     const productClone = JSON.parse(JSON.stringify(product));
     
-    // Add the current price from the product details page if available
-    if (currentPrice && !isNaN(currentPrice) && currentPrice > 0) {
+    // Always set the current price explicitly if provided
+    if (currentPrice !== undefined && currentPrice !== null && !isNaN(currentPrice)) {
+      console.log(`AddToCartButton: Setting currentPrice to ${currentPrice} for ${productClone.name}`);
       productClone.currentPrice = currentPrice;
       
-      // Also set monthly_price directly if it's not already set
-      if (!productClone.monthly_price || productClone.monthly_price <= 0) {
-        productClone.monthly_price = currentPrice;
-      }
+      // Also set monthly_price directly to ensure consistency
+      productClone.monthly_price = currentPrice;
+    } else {
+      console.warn(`AddToCartButton: Missing or invalid currentPrice for ${productClone.name}`);
     }
     
     // Log the product and its price for debugging
     console.log("AddToCartButton: Adding product to cart:", { 
-      product: productClone.name,
+      productName: productClone.name,
       originalPrice: productClone.monthly_price,
       currentPrice: currentPrice,
+      finalCurrentPrice: productClone.currentPrice,
       priceType: typeof productClone.monthly_price,
       quantity, 
       duration, 
@@ -64,7 +66,6 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     
     toast.success(`${product.name} ajouté au panier`);
     
-    // Always navigate to the cart page if navigateToCart is true
     if (navigateToCart) {
       navigate('/panier');
     }

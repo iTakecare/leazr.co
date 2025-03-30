@@ -19,29 +19,34 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCart();
   const { product, quantity } = item;
   
-  // Ensure we have a valid price (always a number)
+  // Use currentPrice as primary price source if available
   let price: number;
   
-  if (typeof product.monthly_price === 'number' && !isNaN(product.monthly_price) && product.monthly_price > 0) {
+  if (typeof product.currentPrice === 'number' && !isNaN(product.currentPrice) && product.currentPrice > 0) {
+    price = product.currentPrice;
+    console.log(`CartItem: Using currentPrice for ${product.name}: ${price}`);
+  } else if (typeof product.monthly_price === 'number' && !isNaN(product.monthly_price) && product.monthly_price > 0) {
     price = product.monthly_price;
+    console.log(`CartItem: Using monthly_price for ${product.name}: ${price}`);
   } else if (typeof product.monthly_price === 'string') {
     price = parseFloat(product.monthly_price);
+    console.log(`CartItem: Parsed monthly_price string for ${product.name}: ${price}`);
+    
     if (isNaN(price) || price <= 0) {
-      // Try to get price from currentPrice if available
-      if (product.currentPrice && !isNaN(product.currentPrice) && product.currentPrice > 0) {
-        price = product.currentPrice;
-      } else if (typeof product.price === 'number' && product.price > 0) {
+      if (typeof product.price === 'number' && product.price > 0) {
         price = product.price;
+        console.log(`CartItem: Falling back to price for ${product.name}: ${price}`);
       } else {
         price = 0;
+        console.warn(`CartItem: No valid price found for ${product.name}`);
       }
     }
-  } else if (product.currentPrice && !isNaN(product.currentPrice) && product.currentPrice > 0) {
-    price = product.currentPrice;
   } else if (typeof product.price === 'number' && product.price > 0) {
     price = product.price;
+    console.log(`CartItem: Using regular price for ${product.name}: ${price}`);
   } else {
     price = 0;
+    console.warn(`CartItem: No price value found for ${product.name}`);
   }
   
   // If we still don't have a valid price, set a default for debugging
@@ -50,9 +55,11 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
     price = 39.99; // Default price for testing
   }
   
-  console.log(`CartItem: product ${product.name} raw price:`, product.monthly_price, typeof product.monthly_price);
-  console.log(`CartItem: product ${product.name} currentPrice:`, product.currentPrice, typeof product.currentPrice);
-  console.log(`CartItem rendering for ${product.name} with price ${price}, quantity ${quantity}, total ${price * quantity}`);
+  console.log(`CartItem: Final price for ${product.name}: ${price}, product details:`, {
+    currentPrice: product.currentPrice,
+    monthlyPrice: product.monthly_price,
+    regularPrice: product.price
+  });
   
   // Calculate the item total price
   const itemTotal = price * quantity;
@@ -105,15 +112,7 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
           Durée: {item.duration} mois
         </div>
         
-        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-          <div className="text-xs text-gray-500 mt-1">
-            {Object.entries(item.selectedOptions).map(([key, value]) => (
-              <div key={key}>
-                <span className="font-medium">{key}:</span> {value}
-              </div>
-            ))}
-          </div>
-        )}
+        {getSelectedOptionsDisplay()}
         
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center">
