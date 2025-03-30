@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,6 +16,7 @@ import SignupBusiness from "@/pages/SignupBusiness";
 import Home from "@/pages/Home";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
+import ClientRoutes from "@/components/layout/ClientRoutes";
 
 export default function App() {
   const queryClient = new QueryClient();
@@ -28,11 +28,17 @@ export default function App() {
           <AuthProvider>
             <CartProvider>
               <Routes>
+                {/* Admin routes */}
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
+                
+                {/* Client portal routes */}
+                <Route path="/client/*" element={<ClientRoutes />} />
+                
+                {/* Other routes */}
                 <Route path="/home" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
