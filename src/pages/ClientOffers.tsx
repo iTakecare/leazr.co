@@ -54,7 +54,7 @@ const ClientOffers = () => {
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">Offre #{offer.id.substring(0, 8)}</CardTitle>
                     <Badge variant={
-                      offer.status === 'accepted' ? "success" : 
+                      offer.status === 'accepted' ? "secondary" : 
                       offer.status === 'rejected' ? "destructive" : "default"
                     }>
                       {offer.status === 'accepted' ? 'Acceptée' : 
