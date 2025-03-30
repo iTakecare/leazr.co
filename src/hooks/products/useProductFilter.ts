@@ -7,19 +7,17 @@ export const useProductFilter = (products: Product[] = []) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
 
-  // Extract unique categories from products
+  // Extract unique categories from products, ensuring they are strings
   const categories = useMemo(() => {
     if (!products || products.length === 0) return [];
     
-    // Extraire les catégories et s'assurer qu'elles sont des strings
-    const extractedCategories = products
-      .map(product => product.category)
-      .filter((category): category is string => Boolean(category));
+    // Extract category names as strings only
+    const categoryNames = products
+      .map(product => typeof product.category === 'string' ? product.category : '')
+      .filter(Boolean);
     
-    // Créer un Set pour éliminer les doublons puis reconvertir en array
-    const uniqueCategories = [...new Set(extractedCategories)];
-    
-    return uniqueCategories;
+    // Create a Set to eliminate duplicates, then convert back to array
+    return [...new Set(categoryNames)];
   }, [products]);
 
   // Filter products based on search query and selected category
