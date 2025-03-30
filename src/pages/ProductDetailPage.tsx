@@ -45,6 +45,7 @@ const ProductDetailPage = () => {
     currentPrice,
     selectedVariant,
     duration,
+    setDuration,
     totalPrice,
     minMonthlyPrice,
     specifications,
@@ -52,7 +53,8 @@ const ProductDetailPage = () => {
     hasOptions,
     variationAttributes,
     hasAttributeOptions,
-    getOptionsForAttribute
+    getOptionsForAttribute,
+    availableDurations
   } = useProductDetails(id);
   
   const handleBackToCatalog = () => {
@@ -101,20 +103,14 @@ const ProductDetailPage = () => {
     );
   }
   
-  const productName = product.name || "Produit";
-  const productCategory = product.category || "Autre";
-  const productBrand = product.brand || "";
-  const productDescription = product.description || "Aucune description disponible pour ce produit.";
+  const productName = product?.name || "Produit";
+  const productCategory = product?.category || "Autre";
+  const productBrand = product?.brand || "";
+  const productDescription = product?.description || "Aucune description disponible pour ce produit.";
   
   const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
     const hasOptions = hasAttributeOptions(attributeName);
     const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
-    
-    console.log(`Rendering field ${attributeName} (${displayName}):`, {
-      hasOptions,
-      options,
-      currentValue
-    });
     
     return (
       <div className="space-y-2">
@@ -132,7 +128,7 @@ const ProductDetailPage = () => {
                 <SelectItem 
                   key={option} 
                   value={option}
-                  disabled={!isOptionAvailable()}
+                  disabled={!isOptionAvailable(attributeName, option)}
                 >
                   {option}
                 </SelectItem>
@@ -278,8 +274,7 @@ const ProductDetailPage = () => {
           <div>
             <ProductImageDisplay 
               imageUrl={currentImage} 
-              altText={product.name} 
-              imageUrls={product.image_urls || []}
+              altText={product?.name} 
             />
             
             <div className="mt-8">
@@ -299,7 +294,7 @@ const ProductDetailPage = () => {
             
             <div className="mt-16">
               <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
-              <RelatedProducts category={productCategory} currentProductId={product.id} />
+              <RelatedProducts category={productCategory} currentProductId={product?.id} />
             </div>
             
             <div className="mt-16">
@@ -330,7 +325,7 @@ const ProductDetailPage = () => {
                 <Separator className="my-4" />
                 
                 <div className="mb-6">
-                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale.</h3>
+                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale</h3>
                   
                   <div className="grid grid-cols-2 gap-4">
                     {configAttributes.map(attribute => {
@@ -346,9 +341,21 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      <div className="bg-blue-50 rounded border border-blue-100 px-3 py-2">
-                        {duration} mois
-                      </div>
+                      <Select 
+                        value={String(duration)}
+                        onValueChange={(value) => setDuration(Number(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>{duration} mois</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableDurations.map((months) => (
+                            <SelectItem key={months} value={String(months)}>
+                              {months} mois
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div className="space-y-2">
@@ -390,7 +397,7 @@ const ProductDetailPage = () => {
                 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-700 font-medium">Votre sélection pour</span>
+                    <span className="text-gray-700 font-medium">Votre sélection pour {duration} mois</span>
                     <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   

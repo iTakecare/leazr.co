@@ -62,24 +62,28 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       <div className="h-48 overflow-hidden bg-gray-100 relative">
         <img
-          src={getProductImage(product)}
-          alt={product.name}
+          src={product.image_url || "/placeholder.svg"}
+          alt={product.name || "Produit"}
           className="w-full h-full object-contain p-4 transition-transform group-hover:scale-105"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = "/placeholder.svg";
+            console.log(`Fallback à l'image par défaut pour ${product.name || 'produit inconnu'}`);
           }}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
       </div>
       
       <div className="p-4">
-        <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-        <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{product.name}</h3>
+        <div className="text-xs text-gray-500 mb-1">{product.brand || "Brand"}</div>
+        <h3 className="font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+          {product.name || "Produit"}
+        </h3>
         
-        {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes).length > 0 && (
+        {hasVariantSupport && product.parent_id && product.selected_attributes && Object.keys(product.selected_attributes || {}).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {Object.entries(product.selected_attributes).map(([key, value], idx) => (
+            {Object.entries(product.selected_attributes || {}).map(([key, value], idx) => (
               <span 
                 key={idx}
                 className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"
@@ -119,7 +123,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <div className="relative">
               {renderProductCard(product)}
               
-              {/* Variant toggle button */}
               {isParent && variantsCount > 0 && (
                 <button
                   className="absolute bottom-2 left-2 px-2 py-1 bg-white/90 rounded-full text-xs font-medium text-purple-700 flex items-center gap-1 shadow-sm hover:bg-purple-50"
@@ -136,7 +139,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               )}
             </div>
             
-            {/* Render variants if expanded */}
             {isParent && isVariantGroupExpanded(product.id || "") && variants.length > 0 && (
               <div className="pl-4 border-l-2 border-purple-200 space-y-2">
                 {variants.map(variant => (

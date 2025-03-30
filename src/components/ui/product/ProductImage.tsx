@@ -9,26 +9,20 @@ interface ProductImageProps {
 const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   
-  // Use image_url from product directly if it exists
+  // Extraire l'URL de l'image avec une vérification plus robuste
   const imageUrl = product?.image_url || "/placeholder.svg";
   
   const handleImageLoad = () => {
     setIsLoading(false);
     setHasError(false);
+    console.log(`Image chargée avec succès: ${imageUrl}`);
   };
   
   const handleImageError = () => {
-    console.error(`Failed to load image: ${imageUrl}`);
     setIsLoading(false);
     setHasError(true);
-    
-    if (retryCount < 2 && imageUrl !== "/placeholder.svg") {
-      setTimeout(() => {
-        setRetryCount(count => count + 1);
-      }, 500);
-    }
+    console.error(`Erreur de chargement d'image pour ${product?.name || 'produit'}: ${imageUrl}`);
   };
   
   return (
