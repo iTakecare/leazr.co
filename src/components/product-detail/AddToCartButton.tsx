@@ -29,30 +29,34 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.preventDefault(); // Prevent the default behavior
     e.stopPropagation(); // Stop event propagation
     
-    // Get a clean product object with a validated price
-    const productWithValidPrice = {
-      ...product,
-      // Ensure the monthly_price is a valid number
-      monthly_price: typeof product.monthly_price === 'number' ? product.monthly_price : 
-                    (typeof product.monthly_price === 'string' ? parseFloat(product.monthly_price) : 0)
-    };
+    // Make a deep copy of the product to avoid any reference issues
+    const productClone = JSON.parse(JSON.stringify(product));
+    
+    // Ensure the monthly_price is a valid number
+    if (typeof productClone.monthly_price === 'string') {
+      productClone.monthly_price = parseFloat(productClone.monthly_price);
+    } else if (productClone.monthly_price === undefined || productClone.monthly_price === null) {
+      productClone.monthly_price = 0;
+    }
     
     // Log the product and its price for debugging
-    console.log("Adding to cart with validated price:", { 
-      product: productWithValidPrice.name,
-      price: productWithValidPrice.monthly_price,
+    console.log("AddToCartButton: Adding product to cart:", { 
+      product: productClone.name,
+      price: productClone.monthly_price,
+      priceType: typeof productClone.monthly_price,
       quantity, 
       duration, 
       selectedOptions
     });
     
     // Ensure the product has a valid price before adding to cart
-    if (typeof productWithValidPrice.monthly_price !== 'number' || isNaN(productWithValidPrice.monthly_price) || productWithValidPrice.monthly_price === 0) {
-      console.warn("Warning: Product has no valid monthly price", product);
+    if (typeof productClone.monthly_price !== 'number' || isNaN(productClone.monthly_price)) {
+      console.warn("Warning: Product has no valid monthly price", productClone);
+      productClone.monthly_price = 0;
     }
     
     addToCart({
-      product: productWithValidPrice,
+      product: productClone,
       quantity,
       duration,
       selectedOptions

@@ -4,11 +4,19 @@ import { fr } from "date-fns/locale";
 
 export const formatCurrency = (value: number | string): string => {
   // First, ensure we have a number
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  let numValue: number;
+  
+  if (typeof value === 'number') {
+    numValue = value;
+  } else if (typeof value === 'string') {
+    numValue = parseFloat(value);
+  } else {
+    numValue = 0;
+  }
   
   if (isNaN(numValue)) {
     console.warn("formatCurrency received an invalid value:", value);
-    return '0,00 €';
+    numValue = 0;
   }
   
   return new Intl.NumberFormat('fr-FR', {
