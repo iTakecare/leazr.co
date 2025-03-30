@@ -175,6 +175,21 @@ const PublicCatalog = () => {
     return parentProducts;
   }, [products]);
   
+  // Get all available subcategories for the active category
+  const availableSubcategories = React.useMemo(() => {
+    if (!activeCategory) return [];
+    
+    // Extract model property (which will serve as our subcategory)
+    const subcategories = new Set<string>();
+    groupedProducts.forEach(product => {
+      if (product.category === activeCategory && product.model) {
+        subcategories.add(product.model);
+      }
+    });
+    
+    return Array.from(subcategories);
+  }, [groupedProducts, activeCategory]);
+  
   // Filter and sort products
   const sortedAndFilteredProducts = React.useMemo(() => {
     const filteredProducts = groupedProducts.filter((product: Product) => {
@@ -187,9 +202,9 @@ const PublicCatalog = () => {
       // Match category
       const matchesCategory = !activeCategory || product.category === activeCategory;
       
-      // Match subcategory if applicable
+      // Match subcategory if applicable (using model field as subcategory)
       const matchesSubcategory = activeSubcategories.length === 0 || 
-                               (product.subcategory && activeSubcategories.includes(product.subcategory));
+                               (product.model && activeSubcategories.includes(product.model));
       
       // Match price range
       const productPrice = product.monthly_price || 0;
@@ -228,20 +243,6 @@ const PublicCatalog = () => {
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
   };
-  
-  // Get all available subcategories for the active category
-  const availableSubcategories = React.useMemo(() => {
-    if (!activeCategory) return [];
-    
-    const subcategories = new Set<string>();
-    groupedProducts.forEach(product => {
-      if (product.category === activeCategory && product.subcategory) {
-        subcategories.add(product.subcategory);
-      }
-    });
-    
-    return Array.from(subcategories);
-  }, [groupedProducts, activeCategory]);
   
   // Get all available brands
   const availableBrands = React.useMemo(() => {
