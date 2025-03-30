@@ -6,7 +6,7 @@ import { Product } from '@/types/catalog';
 export const useProductDetails = (productId: string | undefined) => {
   const { product, isLoading, error } = useProductById(productId);
   const [quantity, setQuantity] = useState(1);
-  const [duration, setDuration] = useState(24); // Default to 24 months
+  const [duration, setDuration] = useState(24); // Default to 24 months instead of 36
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [currentImage, setCurrentImage] = useState<string | undefined>(undefined);
@@ -27,7 +27,7 @@ export const useProductDetails = (productId: string | undefined) => {
       const initialOptions: Record<string, string> = {};
       
       Object.entries(product.variation_attributes).forEach(([key, values]) => {
-        if (Array.isArray(values) && values.length > 0) {
+        if (values && values.length > 0) {
           initialOptions[key] = values[0];
         }
       });
@@ -121,12 +121,10 @@ export const useProductDetails = (productId: string | undefined) => {
   const totalPrice = useMemo(() => {
     // Apply a discount based on duration if needed
     let durationFactor = 1;
-    if (duration >= 48) {
-      durationFactor = 0.9; // 10% discount for longer durations (48+ months)
-    } else if (duration >= 36) {
-      durationFactor = 0.95; // 5% discount for medium durations (36 months)
+    if (duration > 36) {
+      durationFactor = 0.9; // 10% discount for longer durations
     } else if (duration < 24) {
-      durationFactor = 1.1; // 10% surcharge for shorter durations (12 months)
+      durationFactor = 1.1; // 10% surcharge for shorter durations
     }
     
     return currentPrice * quantity * durationFactor;
