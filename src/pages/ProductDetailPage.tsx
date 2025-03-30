@@ -81,7 +81,7 @@ const ProductDetailPage = () => {
         <div className="py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div>
-              <ProductImageDisplay imageUrl={currentImage} alt={product.name} />
+              <ProductImageDisplay imageUrl={currentImage} altText={product.name} />
             </div>
             <div>
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
@@ -134,7 +134,10 @@ const ProductDetailPage = () => {
           </div>
 
           <div className="mt-12">
-            <ProductDescription description={product.description || ''} />
+            <ProductDescription 
+              title="Description du produit"
+              description={product.description || ''} 
+            />
           </div>
 
           {Object.keys(specifications).length > 0 && (
