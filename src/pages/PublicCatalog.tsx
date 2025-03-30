@@ -1,20 +1,36 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, Cpu, Smartphone, Tablet, Monitor, LayoutGrid } from "lucide-react";
+import { Search, ArrowUpDown, Cpu, Smartphone, Tablet, Monitor, LayoutGrid, ChevronDown } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+type SortOption = {
+  label: string;
+  value: string;
+  direction: "asc" | "desc";
+};
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -25,6 +41,18 @@ const PublicCatalog = () => {
     queryKey: ["categories"],
     queryFn: getCategories,
   });
+
+  const sortOptions: SortOption[] = [
+    { label: "Nom", value: "name", direction: "asc" },
+    { label: "Prix (croissant)", value: "price", direction: "asc" },
+    { label: "Prix (décroissant)", value: "price", direction: "desc" },
+    { label: "Catégorie", value: "category", direction: "asc" }
+  ];
+
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option.value);
+    setSortDirection(option.direction);
+  };
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -80,15 +108,38 @@ const PublicCatalog = () => {
     return parentProducts;
   }, [products]);
 
-  const filteredProducts = groupedProducts.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
+  const sortedAndFilteredProducts = React.useMemo(() => {
+    const filteredProducts = groupedProducts.filter((product: Product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesCategory = !activeCategory || product.category === activeCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
     
-    const matchesCategory = !activeCategory || product.category === activeCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+    return filteredProducts.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return sortDirection === "asc" 
+            ? a.name.localeCompare(b.name) 
+            : b.name.localeCompare(a.name);
+        case "price":
+          const priceA = a.monthly_price || 0;
+          const priceB = b.monthly_price || 0;
+          return sortDirection === "asc" ? priceA - priceB : priceB - priceA;
+        case "category":
+          const catA = a.category || "";
+          const catB = b.category || "";
+          return sortDirection === "asc" 
+            ? catA.localeCompare(catB) 
+            : catB.localeCompare(catA);
+        default:
+          return 0;
+      }
+    });
+  }, [groupedProducts, searchTerm, activeCategory, sortBy, sortDirection]);
 
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
@@ -135,27 +186,46 @@ const PublicCatalog = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {categories.map((category) => (
-            <Button
-              key={category.name}
-              variant={activeCategory === category.name ? "default" : "outline"}
-              className={activeCategory === category.name 
-                ? "flex items-center justify-center h-20 bg-[#33638e] hover:bg-[#33638e]/90" 
-                : "flex items-center justify-center h-20 border-[#4ab6c4]/30 text-[#33638e]"}
-              onClick={() => setActiveCategory(activeCategory === category.name ? null : category.name)}
-            >
-              <div className="flex flex-col items-center">
-                <div className="mb-1">
-                  {categoryIcons[category.name] || <LayoutGrid className="h-5 w-5" />}
-                </div>
-                <span>{category.translation}</span>
-              </div>
-            </Button>
-          ))}
-        </div>
+        <ScrollArea className="w-full mb-8">
+          <ToggleGroup type="single" value={activeCategory || ""} onValueChange={(value) => setActiveCategory(value || null)} className="flex flex-nowrap">
+            <ToggleGroupItem value="" className="whitespace-nowrap">
+              Tous les produits
+            </ToggleGroupItem>
+            {categories.map((category) => (
+              <ToggleGroupItem key={category.name} value={category.name} className="whitespace-nowrap">
+                {categoryIcons[category.name]}
+                {category.translation}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </ScrollArea>
         
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          <div className="flex-shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="border-[#4ab6c4]/30 text-[#33638e]">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  {sortOptions.find(opt => opt.value === sortBy && opt.direction === sortDirection)?.label || "Trier"}
+                  <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel>Trier par</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {sortOptions.map((option) => (
+                  <DropdownMenuItem 
+                    key={`${option.value}-${option.direction}`} 
+                    className="cursor-pointer"
+                    onClick={() => handleSortChange(option)}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
@@ -164,16 +234,6 @@ const PublicCatalog = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtrer
-            </Button>
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Trier
-            </Button>
           </div>
         </div>
         
@@ -190,7 +250,7 @@ const PublicCatalog = () => {
               </div>
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : sortedAndFilteredProducts.length === 0 ? (
           <div className="text-center py-16">
             <h3 className="text-lg font-medium">Aucun produit trouvé</h3>
             <p className="text-gray-500 mt-2">
@@ -199,7 +259,7 @@ const PublicCatalog = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredProducts.map((product) => (
+            {sortedAndFilteredProducts.map((product) => (
               <ProductGridCard 
                 key={product.id} 
                 product={product} 
