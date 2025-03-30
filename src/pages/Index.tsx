@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -30,13 +31,13 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
       <Container className="flex-1 flex flex-col">
         <div className="py-12 md:py-20 lg:py-28 relative overflow-hidden">
-          {/* Background image */}
+          {/* Background image with improved gradient */}
           <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5 hidden md:block">
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-50 dark:to-blue-950 z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-blue-50/80 to-blue-50 dark:via-blue-950/80 dark:to-blue-950 z-10"></div>
             <img 
-              src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d" 
-              alt="Professionnel heureux utilisant un MacBook" 
-              className="h-full w-full object-cover object-center opacity-40"
+              src="/lovable-uploads/e3c85b46-0f2e-4316-9fe1-647586b28021.png" 
+              alt="Groupe de personnes heureuses utilisant des produits Apple" 
+              className="h-full w-full object-cover object-center opacity-70"
             />
           </div>
           
