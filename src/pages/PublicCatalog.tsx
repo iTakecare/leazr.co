@@ -106,12 +106,22 @@ const PublicCatalog = () => {
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
       
-      <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16">
-        <div className="container mx-auto px-4">
+      <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16 relative overflow-hidden">
+        {/* Background image - happy person using Apple device */}
+        <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5">
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#33638e] z-10"></div>
+          <img 
+            src="/lovable-uploads/053c0a35-e7c1-46d8-bd25-229c1a9dbabd.png" 
+            alt="Professionnel heureux utilisant un MacBook" 
+            className="h-full w-full object-cover object-left opacity-30 md:opacity-40"
+          />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-20">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="max-w-xl">
-              <h1 className="text-4xl font-bold mb-4">Matériel informatique premium pour propulser votre activité</h1>
-              <p className="text-lg mb-8">Optez pour des solutions informatiques reconditionnées de qualité supérieure qui allient performance, économie et démarche éco-responsable pour votre entreprise.</p>
+              <h1 className="text-4xl font-bold mb-4">Équipement premium reconditionné pour des équipes performantes</h1>
+              <p className="text-lg mb-8">Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, à l'impact environnemental réduit.</p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
                   Parler à un conseiller
@@ -121,13 +131,9 @@ const PublicCatalog = () => {
                 </Button>
               </div>
             </div>
-            <div className="hidden md:block relative">
-              <img 
-                src="/lovable-uploads/85af1f29-e390-4013-b6d8-5a87656a62a8.png" 
-                alt="Professionnel utilisant un MacBook" 
-                className="rounded-lg shadow-lg max-w-md object-cover"
-              />
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3">
+            
+            <div className="md:ml-auto relative">
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 z-20">
                 <span className="text-sm font-medium text-green-600">Jusqu'à 70% d'économies de CO2</span>
               </div>
             </div>

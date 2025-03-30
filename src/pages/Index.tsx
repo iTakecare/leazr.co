@@ -30,22 +30,32 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
       <Container className="flex-1 flex flex-col">
-        <div className="py-12 md:py-20 lg:py-28 flex flex-col items-center text-center px-4 md:px-0">
+        <div className="py-12 md:py-20 lg:py-28 relative overflow-hidden">
+          {/* Background image */}
+          <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5 hidden md:block">
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-50 dark:to-blue-950 z-10"></div>
+            <img 
+              src="/lovable-uploads/053c0a35-e7c1-46d8-bd25-229c1a9dbabd.png" 
+              alt="Professionnel heureux utilisant un MacBook" 
+              className="h-full w-full object-cover object-left opacity-30"
+            />
+          </div>
+          
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="max-w-3xl mx-auto"
+            className="max-w-3xl mx-auto px-4 md:px-0 relative z-20"
           >
             <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 md:mb-8 shadow-sm">
               Innovation durable pour entreprises modernes
             </div>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight mb-6 md:mb-8 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              La technologie premium 
-              <span className="block mt-2">à l'impact positif</span>
+              Équipement premium 
+              <span className="block mt-2">pour équipes performantes</span>
             </h1>
-            <p className="text-base md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-2xl mx-auto">
-              Découvrez comment iTakecare transforme l'équipement informatique d'entreprise avec du matériel reconditionné haut de gamme, alliant performance, économies et engagement environnemental.
+            <p className="text-base md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-2xl">
+              Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, sans compromettre votre budget ni l'environnement.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
               <Button 
