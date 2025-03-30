@@ -35,9 +35,9 @@ const Index = () => {
           <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5 hidden md:block">
             <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-50 dark:to-blue-950 z-10"></div>
             <img 
-              src="/lovable-uploads/053c0a35-e7c1-46d8-bd25-229c1a9dbabd.png" 
+              src="/lovable-uploads/6694998c-4ddf-4fc5-b235-72841191dfa3.png" 
               alt="Professionnel heureux utilisant un MacBook" 
-              className="h-full w-full object-cover object-left opacity-30"
+              className="h-full w-full object-cover object-center opacity-40"
             />
           </div>
           
