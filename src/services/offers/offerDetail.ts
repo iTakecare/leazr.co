@@ -1,99 +1,56 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { OfferData } from "./types";
 
-export const getOfferById = async (offerId: string) => {
+export const getOfferDetail = async (offerId: string): Promise<OfferData | null> => {
   try {
-    const { data, error } = await supabase
-      .from('offers')
-      .select(`
-        *,
-        clients:client_id (
-          id, 
-          name, 
-          email, 
-          company
-        )
-      `)
-      .eq('id', offerId)
-      .single();
+    console.log(`Fetching details for offer ${offerId}`);
+    
+    const { data: offer, error } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("id", offerId)
+      .maybeSingle(); // Using maybeSingle instead of single to avoid errors if no record is found
 
     if (error) {
-      console.error('Error fetching offer:', error);
+      console.error("Error fetching offer details:", error);
+      toast.error("Impossible de récupérer les détails de l'offre");
       return null;
     }
 
-    if (data && data.equipment_description) {
-      try {
-        // Better parsing of equipment data with explicit type conversion
-        const equipmentData = JSON.parse(data.equipment_description);
-        console.log("Parsed equipment data:", equipmentData);
-        
-        // Ensure all numeric values are properly parsed as numbers
-        if (Array.isArray(equipmentData)) {
-          data.equipment_data = equipmentData.map(item => ({
-            ...item,
-            purchasePrice: parseFloat(item.purchasePrice) || 0,
-            quantity: parseInt(item.quantity, 10) || 1,
-            margin: parseFloat(item.margin) || 20,
-            monthlyPayment: parseFloat(item.monthlyPayment || 0)
-          }));
-        } else {
-          data.equipment_data = equipmentData;
-        }
-        
-        console.log("Processed equipment data with preserved values:", data.equipment_data);
-      } catch (e) {
-        console.log("Equipment description is not valid JSON:", data.equipment_description);
-      }
+    if (!offer) {
+      console.warn(`No offer found with ID ${offerId}`);
+      return null;
     }
 
-    return data;
+    console.log("Offer details retrieved:", offer);
+    return offer;
   } catch (error) {
-    console.error('Error fetching offer:', error);
+    console.error("Exception in getOfferDetail:", error);
+    toast.error("Une erreur est survenue lors de la récupération des détails de l'offre");
     return null;
   }
 };
 
-export const updateOffer = async (offerId: string, offerData: any) => {
+export const getOfferNotes = async (offerId: string) => {
   try {
-    // Create a clean data object with only valid columns
-    const dataToSend = { 
-      client_id: offerData.client_id,
-      client_name: offerData.client_name,
-      client_email: offerData.client_email,
-      equipment_description: offerData.equipment_description,
-      amount: offerData.amount,
-      coefficient: offerData.coefficient,
-      monthly_payment: offerData.monthly_payment,
-      commission: offerData.commission,
-      workflow_status: offerData.workflow_status,
-      status: offerData.status,
-      remarks: offerData.remarks,
-      type: offerData.type,
-      user_id: offerData.user_id,
-      converted_to_contract: offerData.converted_to_contract
-    };
+    console.log(`Fetching notes for offer ${offerId}`);
     
-    // Remove undefined fields
-    Object.keys(dataToSend).forEach(key => 
-      dataToSend[key] === undefined && delete dataToSend[key]
-    );
-    
-    console.log("Updating offer with cleaned data:", dataToSend);
-    
-    const { data, error } = await supabase
-      .from('offers')
-      .update(dataToSend)
-      .eq('id', offerId);
+    const { data: notes, error } = await supabase
+      .from("offer_notes")
+      .select("*")
+      .eq("offer_id", offerId)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error updating offer:', error);
-      throw error;
+      console.error("Error fetching offer notes:", error);
+      return [];
     }
 
-    return offerId;
+    console.log(`Retrieved ${notes.length} notes for offer ${offerId}`);
+    return notes;
   } catch (error) {
-    console.error('Error updating offer:', error);
-    return null;
+    console.error("Exception in getOfferNotes:", error);
+    return [];
   }
 };
