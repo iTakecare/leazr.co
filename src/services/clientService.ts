@@ -255,9 +255,13 @@ export const verifyVatNumber = async (vatNumber: string) => {
 
 // Client service object with various methods
 export const clientService = {
-  verifyVatNumber: async (vatNumber: string) => {
-    return verifyVatNumber(vatNumber);
-  },
-  
-  // Add other client service methods here
+  verifyVatNumber,
+  getClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient,
+  addCollaborator,
+  createAccountForClient,
+  resetPassword
 };

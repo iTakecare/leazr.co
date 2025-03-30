@@ -36,6 +36,7 @@ export const getAdminSupabaseClient = () => {
     adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         persistSession: false,
+        autoRefreshToken: false
       },
       global: {
         headers: {

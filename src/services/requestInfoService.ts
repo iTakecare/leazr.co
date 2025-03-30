@@ -29,10 +29,10 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
-    // Always use admin client for public requests to bypass RLS
+    // Get admin client
     const adminSupabase = getAdminSupabaseClient();
     
-    // First step: Check for existing client or create a new one
+    // First step: Check for existing client by email
     let clientId: string | null = null;
     
     if (data.client_email) {
@@ -56,6 +56,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
     // If no client exists, create a new one
     if (!clientId) {
       console.log("Creating new client");
+      
       const { data: newClient, error: clientCreateError } = await adminSupabase
         .from('clients')
         .insert([{
@@ -67,10 +68,10 @@ export const createProductRequest = async (data: ProductRequestData) => {
         }])
         .select()
         .single();
-        
+      
       if (clientCreateError) {
         console.error("Error creating new client:", clientCreateError);
-        // Even if client creation fails, we'll still try to create the offer
+        // Don't throw here, we'll still try to create the offer
       } else if (newClient) {
         clientId = newClient.id;
         console.log("New client created with ID:", clientId);
