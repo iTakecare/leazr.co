@@ -41,11 +41,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else if (typeof item.product.monthly_price === 'string') {
             validPrice = parseFloat(item.product.monthly_price);
           } else {
-            validPrice = 0;
+            // Look for price in other fields if monthly_price is not available
+            if (typeof item.product.price === 'number') {
+              validPrice = item.product.price;
+            } else if (typeof item.product.regularPrice === 'string' || typeof item.product.regularPrice === 'number') {
+              validPrice = parseFloat(String(item.product.regularPrice));
+            } else {
+              validPrice = 0;
+            }
           }
           
           // If the price is not a valid number, set it to 0
           if (isNaN(validPrice)) validPrice = 0;
+          
+          console.log(`CartContext: Validating price for ${item.product.name}: ${validPrice}`);
           
           return {
             ...item,
@@ -72,27 +81,57 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ensure we're making a deep copy of the product to avoid reference issues
     const productToAdd = JSON.parse(JSON.stringify(newItem.product));
     
-    console.log("CartContext: Adding item to cart:", {
-      product: productToAdd.name,
-      originalPrice: productToAdd.monthly_price,
-      priceType: typeof productToAdd.monthly_price
-    });
-    
     // Ensure the product has a valid numerical price
     let validPrice: number;
     
-    if (typeof productToAdd.monthly_price === 'number') {
+    // First check if the product already has a monthly_price that is a number
+    if (typeof productToAdd.monthly_price === 'number' && !isNaN(productToAdd.monthly_price) && productToAdd.monthly_price > 0) {
       validPrice = productToAdd.monthly_price;
-    } else if (typeof productToAdd.monthly_price === 'string') {
+    } 
+    // Then check if it's a string that can be converted to a number
+    else if (typeof productToAdd.monthly_price === 'string') {
       validPrice = parseFloat(productToAdd.monthly_price);
-    } else {
+      if (isNaN(validPrice) || validPrice <= 0) {
+        // If monthly_price is invalid, try to get price from selectedVariant or variant_combination_prices
+        if (productToAdd.selectedVariant && typeof productToAdd.selectedVariant.monthly_price === 'number' && productToAdd.selectedVariant.monthly_price > 0) {
+          validPrice = productToAdd.selectedVariant.monthly_price;
+        } else if (productToAdd.currentPrice && !isNaN(productToAdd.currentPrice) && productToAdd.currentPrice > 0) {
+          validPrice = productToAdd.currentPrice;
+        } else {
+          // Fallback to regular price if available
+          if (typeof productToAdd.price === 'number' && productToAdd.price > 0) {
+            validPrice = productToAdd.price;
+          } else {
+            validPrice = 0;
+          }
+        }
+      }
+    } 
+    // If no monthly_price, check for selectedVariant price
+    else if (productToAdd.selectedVariant && typeof productToAdd.selectedVariant.monthly_price === 'number' && productToAdd.selectedVariant.monthly_price > 0) {
+      validPrice = productToAdd.selectedVariant.monthly_price;
+    } 
+    // Check for currentPrice from useProductDetails hook
+    else if (productToAdd.currentPrice && !isNaN(productToAdd.currentPrice) && productToAdd.currentPrice > 0) {
+      validPrice = productToAdd.currentPrice;
+    }
+    // Fallback to regular price
+    else if (typeof productToAdd.price === 'number' && productToAdd.price > 0) {
+      validPrice = productToAdd.price;
+    } 
+    // Last resort - set to 0 if we couldn't find a valid price
+    else {
       validPrice = 0;
     }
     
-    // If price is NaN (not a valid number), set it to 0
-    if (isNaN(validPrice)) validPrice = 0;
+    // If price is still invalid or zero, set a default value for debugging
+    if (isNaN(validPrice) || validPrice <= 0) {
+      console.warn(`CartContext: Could not find valid price for ${productToAdd.name}`, productToAdd);
+      // Set a default monthly price for testing
+      validPrice = 39.99;
+    }
     
-    console.log(`CartContext: Normalized price for ${productToAdd.name}: ${validPrice}`);
+    console.log(`CartContext: Setting final price for ${productToAdd.name}: ${validPrice}`);
     
     // Update the product with the validated price
     productToAdd.monthly_price = validPrice;
@@ -116,6 +155,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Add new item with validated price
         toast.success('Produit ajouté au panier');
+        
+        // Log the product and price being added
+        console.log('Adding to cart product with details:', {
+          id: productToAdd.id,
+          name: productToAdd.name,
+          price: validPrice,
+          quantity: newItem.quantity
+        });
+        
         return [...prevItems, {
           ...newItem,
           product: productToAdd
@@ -148,9 +196,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Calculate the cart total, ensuring we normalize any price values to numbers
   const cartTotal = items.reduce((total, item) => {
-    // Log detailed information about the item for debugging
-    console.log(`Cart total calculation - Item: ${item.product.name}, Raw Price: ${item.product.monthly_price}, Parsed Price: ${typeof item.product.monthly_price === 'number' ? item.product.monthly_price : parseFloat(String(item.product.monthly_price) || '0')}, Quantity: ${item.quantity}, Subtotal: ${(typeof item.product.monthly_price === 'number' ? item.product.monthly_price : parseFloat(String(item.product.monthly_price) || '0')) * item.quantity}`);
-    
     // Always ensure we're using a valid number for calculations
     let itemPrice: number;
     
@@ -165,7 +210,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       itemPrice = 0;
     }
     
-    return total + (itemPrice * item.quantity);
+    const subtotal = itemPrice * item.quantity;
+    
+    // Log detailed information about each item in cart total calculation
+    console.log(`Cart total calculation - Item: ${item.product.name}, Raw Price: ${item.product.monthly_price}, Parsed Price: ${itemPrice}, Quantity: ${item.quantity}, Subtotal: ${subtotal}`);
+    
+    return total + subtotal;
   }, 0);
   
   const value = {

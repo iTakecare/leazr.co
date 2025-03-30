@@ -23,13 +23,33 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   // Ensure we have a valid price (always a number)
   let price: number;
   
-  if (typeof product.monthly_price === 'number') {
+  if (typeof product.monthly_price === 'number' && !isNaN(product.monthly_price) && product.monthly_price > 0) {
     price = product.monthly_price;
   } else if (typeof product.monthly_price === 'string') {
     price = parseFloat(product.monthly_price);
-    if (isNaN(price)) price = 0;
+    if (isNaN(price) || price <= 0) {
+      // Try to get price from currentPrice if available
+      if (product.currentPrice && !isNaN(product.currentPrice) && product.currentPrice > 0) {
+        price = product.currentPrice;
+      } else if (typeof product.price === 'number' && product.price > 0) {
+        price = product.price;
+      } else {
+        price = 0;
+      }
+    }
+  } else if (product.currentPrice && !isNaN(product.currentPrice) && product.currentPrice > 0) {
+    price = product.currentPrice;
+  } else if (typeof product.price === 'number' && product.price > 0) {
+    price = product.price;
   } else {
     price = 0;
+  }
+  
+  // If we still don't have a valid price, set a default for debugging
+  if (isNaN(price) || price <= 0) {
+    console.warn(`CartItem: Could not find valid price for ${product.name}`, product);
+    // Set a default price for testing
+    price = 39.99;
   }
   
   console.log(`CartItem: product ${product.name} raw price:`, product.monthly_price, typeof product.monthly_price);

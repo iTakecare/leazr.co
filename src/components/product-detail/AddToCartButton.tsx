@@ -11,6 +11,7 @@ interface AddToCartButtonProps {
   product: Product;
   quantity: number;
   duration: number;
+  currentPrice?: number;  // Added explicit currentPrice prop
   selectedOptions?: Record<string, string>;
   navigateToCart?: boolean;
 }
@@ -19,6 +20,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   quantity,
   duration,
+  currentPrice,
   selectedOptions = {},
   navigateToCart = true // Default to true to always navigate to cart page
 }) => {
@@ -32,28 +34,26 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     // Make a deep copy of the product to avoid any reference issues
     const productClone = JSON.parse(JSON.stringify(product));
     
-    // Ensure the monthly_price is a valid number
-    if (typeof productClone.monthly_price === 'string') {
-      productClone.monthly_price = parseFloat(productClone.monthly_price);
-    } else if (productClone.monthly_price === undefined || productClone.monthly_price === null) {
-      productClone.monthly_price = 0;
+    // Add the current price from the product details page if available
+    if (currentPrice && !isNaN(currentPrice) && currentPrice > 0) {
+      productClone.currentPrice = currentPrice;
+      
+      // Also set monthly_price directly if it's not already set
+      if (!productClone.monthly_price || productClone.monthly_price <= 0) {
+        productClone.monthly_price = currentPrice;
+      }
     }
     
     // Log the product and its price for debugging
     console.log("AddToCartButton: Adding product to cart:", { 
       product: productClone.name,
-      price: productClone.monthly_price,
+      originalPrice: productClone.monthly_price,
+      currentPrice: currentPrice,
       priceType: typeof productClone.monthly_price,
       quantity, 
       duration, 
       selectedOptions
     });
-    
-    // Ensure the product has a valid price before adding to cart
-    if (typeof productClone.monthly_price !== 'number' || isNaN(productClone.monthly_price)) {
-      console.warn("Warning: Product has no valid monthly price", productClone);
-      productClone.monthly_price = 0;
-    }
     
     addToCart({
       product: productClone,
