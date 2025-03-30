@@ -39,6 +39,7 @@ const CategoryManager = () => {
   const [newCategory, setNewCategory] = useState({ name: "", translation: "" });
   const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -86,6 +87,9 @@ const CategoryManager = () => {
       toast.success("Catégorie supprimée avec succès");
       setIsDeleteModalOpen(false);
       setSelectedCategory(null);
+      if (activeCategory === selectedCategory?.name) {
+        setActiveCategory(null);
+      }
     },
     onError: (error) => {
       console.error("Error deleting category:", error);
@@ -135,10 +139,16 @@ const CategoryManager = () => {
     setIsDeleteModalOpen(true);
   };
 
+  // Handle category selection
+  const handleCategorySelect = (category: Category) => {
+    setActiveCategory(category.name);
+    // Here you could trigger a filter or other actions when a category is selected
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <Card className="flex-1">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <Card className="flex-1 border-none shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between py-2">
           <CardTitle className="text-lg font-medium">Catégories</CardTitle>
           <Button 
             variant="ghost" 
@@ -150,7 +160,7 @@ const CategoryManager = () => {
             <span className="sr-only">Ajouter une catégorie</span>
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -162,22 +172,31 @@ const CategoryManager = () => {
           ) : (
             <ul className="space-y-1">
               {categories.map((category) => (
-                <li key={category.id || category.name} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
-                  <div className="flex items-center space-x-2">
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    <span>{category.name}</span>
+                <li 
+                  key={category.id || category.name} 
+                  className={`flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                    activeCategory === category.name ? "bg-gray-100 font-medium" : ""
+                  }`}
+                  onClick={() => handleCategorySelect(category)}
+                >
+                  <div className="flex items-center space-x-2 truncate">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="truncate">{category.name}</span>
                     {category.translation && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground truncate">
                         ({category.translation})
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1 flex-shrink-0 opacity-0 group-hover:opacity-100">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => openEditModal(category)}
-                      className="h-7 w-7 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(category);
+                      }}
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
                     >
                       <Edit className="h-3.5 w-3.5" />
                       <span className="sr-only">Modifier</span>
@@ -185,8 +204,11 @@ const CategoryManager = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => openDeleteModal(category)}
-                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteModal(category);
+                      }}
+                      className="h-7 w-7 p-0 text-destructive opacity-0 group-hover:opacity-100 hover:opacity-100 hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span className="sr-only">Supprimer</span>

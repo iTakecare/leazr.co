@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("tous");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   const getFilteredProducts = () => {
     if (!products) return [];
@@ -40,6 +41,13 @@ export const useProductFilter = (products: Product[] = []) => {
       );
     }
     
+    // Filter by selected category
+    if (selectedCategory) {
+      filtered = filtered.filter(product => 
+        product.category === selectedCategory
+      );
+    }
+    
     return filtered;
   };
   
@@ -48,10 +56,13 @@ export const useProductFilter = (products: Product[] = []) => {
     setSearchQuery,
     selectedTab,
     setSelectedTab,
+    selectedCategory,
+    setSelectedCategory,
     filteredProducts: getFilteredProducts(),
     resetFilters: () => {
       setSearchQuery("");
       setSelectedTab("tous");
+      setSelectedCategory(null);
     }
   };
 };

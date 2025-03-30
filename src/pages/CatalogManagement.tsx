@@ -58,8 +58,8 @@ const CatalogManagement = () => {
           {/* Tab content */}
           <TabsContent value="catalog">
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Category sidebar */}
-              <div className="md:w-64 lg:w-72 flex-shrink-0 md:border-r pr-4">
+              {/* Category sidebar - now as a vertical list on the left */}
+              <div className="md:w-64 lg:w-72 flex-shrink-0 md:border-r pr-4 overflow-auto">
                 <CategoryManager />
               </div>
               
