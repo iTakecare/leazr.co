@@ -29,7 +29,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
-    // Get admin client - using adminSupabase directly to prevent multiple instances
+    // Get admin client
     const adminSupabase = getAdminSupabaseClient();
     
     // First step: Check for existing client by email
@@ -71,7 +71,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       if (clientCreateError) {
         console.error("Error creating new client:", clientCreateError);
-        // Continue anyway, we'll create the offer without a client ID
+        // Don't throw here, we'll still try to create the offer
       } else if (newClient) {
         clientId = newClient.id;
         console.log("New client created with ID:", clientId);
