@@ -14,23 +14,13 @@ export const useProductFilter = (products: Product[] = []) => {
     const categorySet = new Set<string>();
     
     products.forEach(product => {
-      // Safely get category value as string
-      const categoryValue = getCategoryValue(product.category);
-      if (categoryValue) {
-        categorySet.add(categoryValue);
+      if (typeof product.category === 'string' && product.category) {
+        categorySet.add(product.category);
       }
     });
     
     return Array.from(categorySet);
   }, [products]);
-
-  // Helper function to safely get category value
-  const getCategoryValue = (category: any): string => {
-    if (!category) return "";
-    if (typeof category === 'string') return category;
-    if (category.name && typeof category.name === 'string') return category.name;
-    return "";
-  };
 
   // Filter products based on search query, category and type
   const filteredProducts = useMemo(() => {
@@ -43,7 +33,7 @@ export const useProductFilter = (products: Product[] = []) => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(product => 
         (product.name?.toLowerCase().includes(query)) || 
-        (product.brand?.toLowerCase().includes(query)) ||
+        (product.brand?.toLowerCase().includes(query)) || 
         (product.description?.toLowerCase().includes(query)) ||
         (product.model?.toLowerCase().includes(query))
       );
@@ -51,7 +41,10 @@ export const useProductFilter = (products: Product[] = []) => {
     
     // Filter by category
     if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => getCategoryValue(product.category) === selectedCategory);
+      filtered = filtered.filter(product => 
+        typeof product.category === 'string' && 
+        product.category === selectedCategory
+      );
     }
     
     // Filter by product type
