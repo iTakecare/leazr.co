@@ -25,6 +25,7 @@ import ProductIncludedServices from "@/components/product-detail/ProductIncluded
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import CustomerReviews from "@/components/product-detail/CustomerReviews";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
+import AddToCartButton from "@/components/product-detail/AddToCartButton";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
