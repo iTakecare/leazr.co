@@ -10,11 +10,13 @@ import { createProductRequest } from "@/services/requestInfoService";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { ImageIcon } from "lucide-react"; // Updated import to use lucide-react instead
 
 interface ProductRequestFormProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Product;
+  product: Product | null;
   quantity: number;
   selectedOptions: Record<string, string>;
   duration: number;
@@ -85,15 +87,59 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Demande de devis</DialogTitle>
+          <DialogTitle>Demande d&apos;offre</DialogTitle>
           <DialogDescription>
-            Complétez le formulaire ci-dessous pour recevoir un devis personnalisé pour {product.name}.
+            Remplissez ce formulaire pour recevoir une offre personnalisée
           </DialogDescription>
         </DialogHeader>
-
+        
+        {product && (
+          <div className="mb-4">
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+                {product.image_url ? (
+                  <img 
+                    src={product.image_url} 
+                    alt={product.name} 
+                    className="object-contain max-h-full max-w-full"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg";
+                    }}
+                  />
+                ) : (
+                  <div className="text-gray-400">
+                    <ImageIcon className="h-10 w-10" />
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-lg">{product.name}</h4>
+                <p className="text-sm text-gray-500">
+                  {product.brand} - {quantity} {quantity > 1 ? "unités" : "unité"} - {duration} mois
+                </p>
+                
+                {Object.keys(selectedOptions).length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {Object.entries(selectedOptions).map(([key, value]) => (
+                      <Badge key={key} variant="secondary" className="text-xs">
+                        {key}: {value}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="mt-2 text-primary font-semibold">
+                  {formatCurrency(monthlyPrice)} HT / mois
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">

@@ -1,17 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getProductById } from '@/services/catalogService';
 import { Product } from '@/types/catalog';
 
-interface UseProductByIdResult {
-  product: Product | null;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-export const useProductById = (productId: string | undefined): UseProductByIdResult => {
+export const useProductById = (productId: string | undefined) => {
   const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -23,14 +17,11 @@ export const useProductById = (productId: string | undefined): UseProductByIdRes
 
       try {
         setIsLoading(true);
-        setError(null);
-
         const productData = await getProductById(productId);
-        console.log('Product fetched:', productData);
-        
         setProduct(productData);
+        console.log('Product loaded:', productData);
       } catch (err) {
-        console.error('Error fetching product:', err);
+        console.error('Error fetching product by ID:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch product'));
       } finally {
         setIsLoading(false);
