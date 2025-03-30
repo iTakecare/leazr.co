@@ -14,7 +14,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
   categories 
 }) => {
   return (
-    <TabsList className="w-auto inline-flex">
+    <TabsList className="w-full flex flex-wrap overflow-x-auto">
       <TabsTrigger 
         value="all" 
         onClick={() => setSelectedCategory("all")}
@@ -22,6 +22,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
       >
         Tous
       </TabsTrigger>
+      
       {categories.map((category) => (
         <TabsTrigger 
           key={category} 
@@ -29,7 +30,9 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
           onClick={() => setSelectedCategory(category)}
           className={selectedCategory === category ? "data-[state=active]" : ""}
         >
-          {category.charAt(0).toUpperCase() + category.slice(1)}
+          {typeof category === 'string' ? 
+            category.charAt(0).toUpperCase() + category.slice(1) : 
+            'Catégorie'}
         </TabsTrigger>
       ))}
     </TabsList>

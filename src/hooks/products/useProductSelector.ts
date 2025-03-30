@@ -47,6 +47,11 @@ export const useProductSelector = (isOpen: boolean) => {
         if (isParent && (!variationAttributes || Object.keys(variationAttributes).length === 0)) {
           variationAttributes = extractVariationAttributes(productVariantPrices);
         }
+
+        // Ensure category is a string
+        const categoryValue = typeof product.category === 'string' 
+          ? product.category 
+          : product.category?.name || 'other';
         
         return {
           ...product,
@@ -55,8 +60,7 @@ export const useProductSelector = (isOpen: boolean) => {
           variation_attributes: variationAttributes,
           createdAt: product.created_at || new Date(),
           updatedAt: product.updated_at || new Date(),
-          // Ensure category is a string
-          category: typeof product.category === 'string' ? product.category : 'other'
+          category: categoryValue
         };
       });
       
