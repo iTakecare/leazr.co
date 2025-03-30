@@ -7,28 +7,38 @@ export const useProductFilter = (products: Product[] = []) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
 
-  // Extrait les catégories uniques des produits (uniquement les chaînes de caractères)
+  // Extract unique categories from products
   const categories = useMemo(() => {
     if (!products || products.length === 0) return [];
     
     const categorySet = new Set<string>();
     
     products.forEach(product => {
-      if (product.category && typeof product.category === 'string') {
-        categorySet.add(product.category);
+      // Safely get category value as string
+      const categoryValue = getCategoryValue(product.category);
+      if (categoryValue) {
+        categorySet.add(categoryValue);
       }
     });
     
     return Array.from(categorySet);
   }, [products]);
 
-  // Filtre les produits selon la recherche, la catégorie et le type
+  // Helper function to safely get category value
+  const getCategoryValue = (category: any): string => {
+    if (!category) return "";
+    if (typeof category === 'string') return category;
+    if (category.name && typeof category.name === 'string') return category.name;
+    return "";
+  };
+
+  // Filter products based on search query, category and type
   const filteredProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
     
     let filtered = [...products];
     
-    // Filtre par recherche
+    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(product => 
@@ -39,14 +49,12 @@ export const useProductFilter = (products: Product[] = []) => {
       );
     }
     
-    // Filtre par catégorie
+    // Filter by category
     if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => 
-        typeof product.category === 'string' && product.category === selectedCategory
-      );
+      filtered = filtered.filter(product => getCategoryValue(product.category) === selectedCategory);
     }
     
-    // Filtre par type de produit
+    // Filter by product type
     if (selectedTab === "parents") {
       filtered = filtered.filter(product => 
         product.is_parent || 
@@ -68,7 +76,7 @@ export const useProductFilter = (products: Product[] = []) => {
     return filtered;
   }, [products, searchQuery, selectedCategory, selectedTab]);
 
-  // Réinitialise tous les filtres
+  // Reset all filters
   const resetFilters = useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("all");

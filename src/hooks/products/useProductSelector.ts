@@ -48,10 +48,19 @@ export const useProductSelector = (isOpen: boolean) => {
           variationAttributes = extractVariationAttributes(productVariantPrices);
         }
 
-        // Ensure category is a string
-        const categoryValue = typeof product.category === 'string' 
-          ? product.category 
-          : product.category?.name || 'other';
+        // Extract category as string
+        let categoryValue: string;
+        
+        if (!product.category) {
+          categoryValue = 'other';
+        } else if (typeof product.category === 'string') {
+          categoryValue = product.category;
+        } else if (typeof product.category === 'object' && product.category !== null) {
+          // Handle category object
+          categoryValue = product.category.name || 'other';
+        } else {
+          categoryValue = 'other';
+        }
         
         return {
           ...product,
