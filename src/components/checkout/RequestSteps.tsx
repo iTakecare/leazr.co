@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useCart } from '@/context/CartContext';
 import CompanyInfoForm from './CompanyInfoForm';
 import ContactInfoForm from './ContactInfoForm';
@@ -27,7 +27,6 @@ const RequestSteps: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { items, cartTotal, clearCart } = useCart();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const updateFormData = (data: Partial<typeof formData>) => {
@@ -47,11 +46,7 @@ const RequestSteps: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) {
-      toast({
-        title: "Panier vide",
-        description: "Veuillez ajouter des produits à votre panier avant de soumettre votre demande.",
-        variant: "destructive"
-      });
+      toast.error("Veuillez ajouter des produits à votre panier avant de soumettre votre demande.");
       return;
     }
 
@@ -62,6 +57,18 @@ const RequestSteps: React.FC = () => {
       const equipmentDescription = items.map(item => 
         `${item.quantity}x ${item.product.name} (${formatCurrency(item.product.monthly_price)}/mois)`
       ).join('\n');
+
+      console.log("Submitting request with data:", {
+        client_name: formData.name,
+        client_email: formData.email,
+        client_company: formData.company,
+        equipment_description: equipmentDescription,
+        message: formData.message,
+        amount: cartTotal,
+        monthly_payment: cartTotal,
+        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        duration: 36
+      });
 
       // Submit the request
       await createProductRequest({
@@ -89,11 +96,7 @@ const RequestSteps: React.FC = () => {
 
     } catch (error) {
       console.error("Error submitting request:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.",
-        variant: "destructive"
-      });
+      toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }

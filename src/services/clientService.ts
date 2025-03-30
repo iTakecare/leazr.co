@@ -2,8 +2,6 @@
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, Collaborator, CreateClientData } from "@/types/client";
 import { toast } from "sonner";
-import { sendWelcomeEmail } from "./emailService";
-import { createUserAccount, resetPassword } from "./accountService";
 
 // Fonction de mapping pour convertir un enregistrement de la base de données en objet Client
 const mapDbClientToClient = (record: any): Client => {
@@ -327,6 +325,72 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
   }
 };
 
+// Fonction pour créer un compte utilisateur pour un client
+export const createUserAccount = async (email: string, password: string, clientId: string): Promise<boolean> => {
+  try {
+    // Vérifier si l'utilisateur existe déjà
+    const { data: existingUser, error: checkError } = await adminSupabase
+      .rpc('check_user_exists_by_email', { user_email: email });
+    
+    if (checkError) throw checkError;
+    
+    if (existingUser) {
+      toast.error("Un utilisateur avec cette adresse email existe déjà");
+      return false;
+    }
+    
+    // Créer le nouvel utilisateur
+    const { data, error } = await adminSupabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    });
+    
+    if (error) throw error;
+    
+    if (data?.user) {
+      // Lier l'utilisateur au client
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({
+          user_id: data.user.id,
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString()
+        })
+        .eq('id', clientId);
+      
+      if (updateError) throw updateError;
+      
+      toast.success("Compte utilisateur créé avec succès");
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Error creating user account:", error);
+    toast.error("Erreur lors de la création du compte utilisateur");
+    return false;
+  }
+};
+
+// Fonction pour réinitialiser le mot de passe d'un client
+export const resetPassword = async (email: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    });
+    
+    if (error) throw error;
+    
+    toast.success("Un lien de réinitialisation a été envoyé à l'adresse email");
+    return true;
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    toast.error("Erreur lors de la réinitialisation du mot de passe");
+    return false;
+  }
+};
+
 // Export de la fonction verifyVatNumber pour permettre son utilisation depuis d'autres modules
 export const clientService = {
   getClients,
@@ -337,7 +401,6 @@ export const clientService = {
   verifyVatNumber,
   addCollaborator,
   removeCollaborator,
-  // Fix: Correctly reference the imported functions
   createAccountForClient: createUserAccount,
   resetClientPassword: resetPassword,
 };

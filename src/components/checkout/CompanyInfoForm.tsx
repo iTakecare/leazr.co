@@ -36,6 +36,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     setVerifying(true);
     try {
       // Attempt to verify the VAT number
+      console.log("Verifying VAT number:", formData.vat_number);
       const result = await clientService.verifyVatNumber(formData.vat_number);
       
       if (result.valid) {

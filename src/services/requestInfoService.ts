@@ -29,6 +29,44 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
+    // Obtenir les informations sur le client si elles existent déjà
+    let clientId: string | null = null;
+    if (data.client_email) {
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('email', data.client_email)
+        .single();
+      
+      if (existingClient) {
+        clientId = existingClient.id;
+      }
+    }
+    
+    // Si le client n'existe pas, le créer
+    if (!clientId) {
+      const { data: newClient, error: clientError } = await supabase
+        .from('clients')
+        .insert([
+          {
+            name: data.client_name,
+            email: data.client_email,
+            company: data.client_company,
+            vat_number: data.client_company, // Utiliser le nom d'entreprise comme TVA temporairement
+            status: 'lead'
+          }
+        ])
+        .select()
+        .single();
+        
+      if (clientError) {
+        console.error("Erreur lors de la création du client:", clientError);
+        // Continuer même si la création du client échoue - nous créerons l'offre sans lien client
+      } else if (newClient) {
+        clientId = newClient.id;
+      }
+    }
+
     // Créer une offre/demande dans la table offers
     const { data: offer, error } = await supabase
       .from('offers')
@@ -36,6 +74,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         {
           client_name: data.client_name,
           client_email: data.client_email,
+          client_id: clientId, // Lier au client si créé/trouvé
           equipment_description: data.equipment_description,
           amount: data.amount * data.quantity,
           monthly_payment: data.monthly_payment,
@@ -54,38 +93,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
       throw new Error("Impossible de créer la demande");
     }
 
-    // Créer un nouveau client à partir des informations fournies
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .insert([
-        {
-          name: data.client_name,
-          email: data.client_email,
-          company: data.client_company,
-          vat_number: data.client_company, // Utiliser le numéro de TVA comme identifiant de l'entreprise
-          status: 'lead'
-        }
-      ])
-      .select()
-      .single();
-      
-    if (clientError) {
-      console.error("Erreur lors de la création du client:", clientError);
-      // On continue même si la création du client échoue, ce n'est pas bloquant
-    } else if (client && offer) {
-      // Lier l'offre au client si les deux ont été créés avec succès
-      const { error: updateError } = await supabase
-        .from('offers')
-        .update({ client_id: client.id })
-        .eq('id', offer.id);
-        
-      if (updateError) {
-        console.error("Erreur lors de la liaison de l'offre au client:", updateError);
-      }
-    }
-
-    // Ajouter des informations supplémentaires dans un commentaire ou une autre table si nécessaire
-    if (data.message) {
+    // Ajouter des informations supplémentaires dans un commentaire si nécessaire
+    if (data.message && offer) {
       const { error: noteError } = await supabase
         .from('offer_notes')
         .insert([
