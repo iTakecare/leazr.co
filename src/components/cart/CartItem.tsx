@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/utils/formatters";
@@ -48,11 +47,11 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   // If we still don't have a valid price, set a default for debugging
   if (isNaN(price) || price <= 0) {
     console.warn(`CartItem: Could not find valid price for ${product.name}`, product);
-    // Set a default price for testing
-    price = 39.99;
+    price = 39.99; // Default price for testing
   }
   
   console.log(`CartItem: product ${product.name} raw price:`, product.monthly_price, typeof product.monthly_price);
+  console.log(`CartItem: product ${product.name} currentPrice:`, product.currentPrice, typeof product.currentPrice);
   console.log(`CartItem rendering for ${product.name} with price ${price}, quantity ${quantity}, total ${price * quantity}`);
   
   // Calculate the item total price
@@ -106,7 +105,15 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
           Durée: {item.duration} mois
         </div>
         
-        {getSelectedOptionsDisplay()}
+        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+          <div className="text-xs text-gray-500 mt-1">
+            {Object.entries(item.selectedOptions).map(([key, value]) => (
+              <div key={key}>
+                <span className="font-medium">{key}:</span> {value}
+              </div>
+            ))}
+          </div>
+        )}
         
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center">

@@ -393,6 +393,7 @@ const ProductDetailPage = () => {
                       product={product}
                       quantity={quantity}
                       duration={duration}
+                      currentPrice={currentPrice}
                       selectedOptions={selectedOptions}
                     />
                     <Button 

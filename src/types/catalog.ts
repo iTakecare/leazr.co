@@ -8,6 +8,7 @@ export interface Product {
   description: string;
   price: number;
   monthly_price?: number;
+  currentPrice?: number; // Ajout de currentPrice au type Product
   imageUrl?: string;
   specifications?: Record<string, string | number>;
   tier?: string; // Silver, gold, or platinum
