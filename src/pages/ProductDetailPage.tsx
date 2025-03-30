@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -340,7 +339,6 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      {/* Remplacement du Select par un affichage statique */}
                       <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
                         36 mois
                       </div>
@@ -390,12 +388,12 @@ const ProductDetailPage = () => {
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                    <Button 
-                      className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
-                      onClick={handleRequestProduct}
-                    >
-                      Ajouter
-                    </Button>
+                    <AddToCartButton 
+                      product={product}
+                      quantity={quantity}
+                      duration={duration}
+                      selectedOptions={selectedOptions}
+                    />
                     <Button 
                       variant="outline" 
                       className="w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
