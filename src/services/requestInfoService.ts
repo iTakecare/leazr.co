@@ -6,7 +6,7 @@ export interface ProductRequestData {
   client_name: string;
   client_email: string;
   client_company: string;
-  client_contact_email: string;
+  client_contact_email?: string;
   equipment_description: string;
   message?: string;
   amount: number;
