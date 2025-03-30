@@ -10,11 +10,14 @@ export const createClientRequest = async (requestData: OfferData) => {
       requestData.monthly_payment : parseFloat(requestData.monthly_payment || '0');
     const coefficient = typeof requestData.coefficient === 'number' ? 
       requestData.coefficient : parseFloat(requestData.coefficient || '0');
+    const commission = typeof requestData.commission === 'number' ?
+      requestData.commission : parseFloat(requestData.commission || '0');
     
     console.log("Preparing client request with validated data:", {
       amount,
       monthlyPayment,
       coefficient,
+      commission,
       equipment: requestData.equipment_description
     });
     
@@ -27,11 +30,11 @@ export const createClientRequest = async (requestData: OfferData) => {
       amount: amount,
       coefficient: coefficient,
       monthly_payment: monthlyPayment,
-      commission: requestData.commission,
+      commission: commission,
       type: 'client_request',
       status: 'pending',
       workflow_status: 'client_waiting',
-      user_id: requestData.user_id === 'user-123' ? 
+      user_id: requestData.user_id === 'user-123' || requestData.user_id === 'anonymous' ? 
         '00000000-0000-0000-0000-000000000000' : requestData.user_id,
       remarks: requestData.remarks
     };

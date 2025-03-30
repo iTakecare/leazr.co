@@ -75,6 +75,9 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         equipmentDescription
       });
       
+      // Calculer la commission (10% du prix mensuel)
+      const commission = monthlyPrice * 0.1;
+      
       const { data, error } = await createClientRequest({
         client_name: name,
         client_email: email,
@@ -82,6 +85,8 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         amount: product.price * quantity || 0,
         monthly_payment: monthlyPrice,
         coefficient: 0, // Sera calculé côté serveur si nécessaire
+        commission: commission, // Ajout de la commission manquante
+        user_id: "anonymous", // Ajout d'un user_id par défaut pour les requêtes publiques
         remarks: `Demande pour ${product.name} (${optionsText}) - ${comments}\nSociété: ${company}`,
         type: "client_request",
       });
