@@ -4,20 +4,32 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, Filter, TagIcon } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useProductFilter } from "@/hooks/products/useProductFilter";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
   });
+
+  // Utilisation du hook useProductFilter pour la filtration
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    filteredProducts,
+    categories
+  } = useProductFilter(products);
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -30,29 +42,19 @@ const PublicCatalog = () => {
       );
       
       console.log("Products with variants:", productsWithVariants.length);
-      
-      productsWithVariants.forEach(p => {
-        console.log(`Product "${p.name}" (${p.id}) variant info:`, {
-          has_variants: p.variants && p.variants.length > 0,
-          variants_count: p.variants?.length || 0,
-          has_variant_prices: p.variant_combination_prices && p.variant_combination_prices.length > 0,
-          variant_prices_count: p.variant_combination_prices?.length || 0,
-          has_variation_attributes: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
-          variation_attributes: p.variation_attributes,
-          monthly_price: p.monthly_price
-        });
-      });
     }
   }, [products]);
 
   const groupedProducts = React.useMemo(() => {
-    const parentProducts = products.filter(p => 
+    if (!filteredProducts) return [];
+    
+    const parentProducts = filteredProducts.filter(p => 
       !p.parent_id && !p.is_variation
     );
     
     const variantMap = new Map<string, Product[]>();
     
-    products.forEach(product => {
+    filteredProducts.forEach(product => {
       if (product.parent_id) {
         const variants = variantMap.get(product.parent_id) || [];
         variants.push(product);
@@ -71,15 +73,7 @@ const PublicCatalog = () => {
     });
     
     return parentProducts;
-  }, [products]);
-
-  const filteredProducts = groupedProducts.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    return matchesSearch;
-  });
+  }, [filteredProducts]);
 
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
@@ -118,24 +112,53 @@ const PublicCatalog = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Rechercher un produit..."
-              className="pl-10 border-[#4ab6c4]/30 focus-visible:ring-[#33638e]/50"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {/* Filtrage et recherche */}
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Rechercher un produit..."
+                className="pl-10 border-[#4ab6c4]/30 focus-visible:ring-[#33638e]/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                Trier
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Trier
-            </Button>
-          </div>
+          
+          {/* Catégories filtres */}
+          {categories.length > 0 && (
+            <ScrollArea className="w-full">
+              <div className="flex items-center gap-2 pb-2">
+                <Badge 
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  className={`cursor-pointer px-3 py-1 ${selectedCategory === null ? 'bg-[#33638e]' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  Toutes les catégories
+                </Badge>
+                {categories.map((category) => (
+                  <Badge
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-1 whitespace-nowrap ${selectedCategory === category ? 'bg-[#33638e]' : 'hover:bg-gray-100'}`}
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category}
+                  </Badge>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </div>
         
+        {/* Affichage des produits */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(10)].map((_, i) => (
@@ -149,7 +172,7 @@ const PublicCatalog = () => {
               </div>
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : groupedProducts.length === 0 ? (
           <div className="text-center py-16">
             <h3 className="text-lg font-medium">Aucun produit trouvé</h3>
             <p className="text-gray-500 mt-2">
@@ -158,7 +181,7 @@ const PublicCatalog = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredProducts.map((product) => (
+            {groupedProducts.map((product) => (
               <ProductGridCard 
                 key={product.id} 
                 product={product} 

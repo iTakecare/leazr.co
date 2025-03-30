@@ -50,6 +50,19 @@ export const useProductFilter = (products: Product[] = []) => {
     
     return filtered;
   };
+
+  // Get unique categories from products
+  const getCategories = (): string[] => {
+    if (!products) return [];
+    
+    const categories = products
+      .map(product => product.category)
+      .filter((category): category is string => 
+        category !== undefined && category !== null && category !== ''
+      );
+    
+    return [...new Set(categories)].sort();
+  };
   
   return {
     searchQuery,
@@ -59,6 +72,7 @@ export const useProductFilter = (products: Product[] = []) => {
     selectedCategory,
     setSelectedCategory,
     filteredProducts: getFilteredProducts(),
+    categories: getCategories(),
     resetFilters: () => {
       setSearchQuery("");
       setSelectedTab("tous");
