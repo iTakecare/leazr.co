@@ -21,6 +21,9 @@ import ConfirmationPage from "./pages/ConfirmationPage";
 import CatalogManagement from "./pages/CatalogManagement";
 import ITakecarePage from "./pages/ITakecarePage";
 import CreateOffer from "./pages/CreateOffer";
+import PartnersListPage from "./pages/PartnersList";
+import AmbassadorsListPage from "./pages/AmbassadorsList";
+import ProductDetail from "./pages/ProductDetail";
 
 const App = () => {
   const navigate = useNavigate();
@@ -70,8 +73,9 @@ const App = () => {
           <Route path="itakecare" element={<ITakecarePage />} />
           <Route path="i-take-care" element={<ITakecarePage />} /> {/* Route alternative pour i-take-care */}
           <Route path="create-offer" element={<CreateOffer />} />
-          <Route path="partners/*" element={<PartnersList />} /> {/* Route pour les partenaires */}
-          <Route path="ambassadors/*" element={<AmbassadorsList />} /> {/* Route pour les ambassadeurs */}
+          <Route path="partners/*" element={<PartnersListPage />} />
+          <Route path="ambassadors/*" element={<AmbassadorsListPage />} />
+          <Route path="products/:id" element={<ProductDetail />} />
         </Route>
 
         {/* Routes Client */}
