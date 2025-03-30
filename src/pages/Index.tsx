@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, PackageCheck, CreditCard, Shield } from "lucide-react";
+import { ArrowRight, BarChart3, PackageCheck, CreditCard, Shield, Leaf } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,30 +38,31 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 md:mb-8 shadow-sm">
-              Leasing informatique éco-responsable
+              Technologie responsable pour entreprises ambitieuses
             </div>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight mb-6 md:mb-8 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              Transformez votre infrastructure IT avec 
-              <span className="block mt-2">Hub iTakecare</span>
+              Équipez votre équipe avec 
+              <span className="block mt-2">le meilleur du reconditionné</span>
             </h1>
             <p className="text-base md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-2xl mx-auto">
-              Créez des offres de leasing pour du matériel informatique reconditionné, calculez vos commissions et gérez vos opportunités en toute simplicité.
+              Avec iTakecare, louez du matériel informatique premium reconditionné, réduisez vos coûts et votre empreinte écologique tout en maintenant des performances optimales.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
               <Button 
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/catalogue")}
                 className="w-full sm:w-auto justify-center modern-button text-base py-6 px-8"
                 size={isMobile ? "lg" : "default"}
               >
-                Commencer
+                Découvrir notre catalogue
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <Button 
                 variant="outline" 
                 className="w-full sm:w-auto justify-center bg-white/80 backdrop-blur-sm border-secondary shadow-sm hover:shadow-md text-base py-6 px-8"
                 size={isMobile ? "lg" : "default"}
+                onClick={() => navigate("/login")}
               >
-                En savoir plus
+                Se connecter
               </Button>
             </div>
           </motion.div>
@@ -78,10 +79,10 @@ const Index = () => {
               <PackageCheck className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Configurez vos offres
+              Matériel premium
             </h3>
             <p className="text-muted-foreground">
-              Sélectionnez des équipements reconditionnés, personnalisez les options et créez des offres de leasing en quelques clics.
+              Des équipements reconditionnés de qualité, testés et certifiés pour garantir une expérience utilisateur optimale.
             </p>
           </div>
           <div className="rounded-xl p-6 md:p-8 glass hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -89,21 +90,21 @@ const Index = () => {
               <CreditCard className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Calculez votre commission
+              Leasing flexible
             </h3>
             <p className="text-muted-foreground">
-              Visualisez en temps réel vos commissions et les loyers mensuels pour vos clients.
+              Des formules de location adaptées à vos besoins avec maintenance incluse et renouvellement sans tracas.
             </p>
           </div>
           <div className="rounded-xl p-6 md:p-8 glass hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center mb-5 shadow-md">
-              <BarChart3 className="h-7 w-7 text-primary" />
+              <Leaf className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Suivez vos performances
+              Impact écologique réduit
             </h3>
             <p className="text-muted-foreground">
-              Analysez vos résultats et optimisez votre approche commerciale grâce à des statistiques détaillées.
+              Jusqu'à 70% d'économies de CO2 par appareil comparé au neuf, pour une démarche RSE concrète.
             </p>
           </div>
         </motion.div>
@@ -116,14 +117,14 @@ const Index = () => {
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">Optez pour une solution responsable</h2>
-              <p className="text-muted-foreground max-w-lg">Réduisez votre empreinte écologique tout en optimisant votre budget informatique avec des équipements reconditionnés de qualité.</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Technologie durable, performance maximale</h2>
+              <p className="text-muted-foreground max-w-lg">Offrez à vos équipes le meilleur matériel reconditionné tout en réduisant votre budget IT et votre empreinte carbone.</p>
             </div>
             <Button 
               className="modern-button text-base px-6 py-6 min-w-36"
-              onClick={() => navigate("/signup")}
+              onClick={() => navigate("/catalogue")}
             >
-              S'inscrire
+              Voir le catalogue
               <Shield className="ml-2 h-5 w-5" />
             </Button>
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -26,12 +25,10 @@ const PublicCatalog = () => {
     queryFn: getCategories,
   });
 
-  // Debugging useEffect to log variant information
   useEffect(() => {
     if (products && products.length > 0) {
       console.log("Total products loaded:", products.length);
       
-      // Compter les produits avec des variantes
       const productsWithVariants = products.filter(p => 
         p.variants && p.variants.length > 0 || 
         p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
@@ -40,7 +37,6 @@ const PublicCatalog = () => {
       
       console.log("Products with variants:", productsWithVariants.length);
       
-      // Log des informations détaillées sur chaque produit avec variantes
       productsWithVariants.forEach(p => {
         console.log(`Product "${p.name}" (${p.id}) variant info:`, {
           has_variants: p.variants && p.variants.length > 0,
@@ -56,15 +52,12 @@ const PublicCatalog = () => {
   }, [products]);
 
   const groupedProducts = React.useMemo(() => {
-    // Filtrer pour n'obtenir que les produits parents (non-variantes)
     const parentProducts = products.filter(p => 
       !p.parent_id && !p.is_variation
     );
     
-    // Créer une map pour stocker les variantes par produit parent
     const variantMap = new Map<string, Product[]>();
     
-    // Grouper les variantes par produit parent
     products.forEach(product => {
       if (product.parent_id) {
         const variants = variantMap.get(product.parent_id) || [];
@@ -73,7 +66,6 @@ const PublicCatalog = () => {
       }
     });
     
-    // Attacher les variantes à leurs produits parents
     parentProducts.forEach(parent => {
       if (parent.id) {
         const variants = variantMap.get(parent.id) || [];
@@ -115,16 +107,28 @@ const PublicCatalog = () => {
       
       <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-bold mb-4">Tous les appareils nécessaires au développement de votre entreprise</h1>
-            <p className="text-lg mb-8">Ne soyez plus jamais bloqués par les performances de votre équipement. Choisissez la sérénité avec le leasing d'appareils.</p>
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
-                Parler à un conseiller
-              </Button>
-              <Button size="lg" className="bg-[#da2959]/80 hover:bg-[#da2959] border-0">
-                Demander un devis
-              </Button>
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="max-w-xl">
+              <h1 className="text-4xl font-bold mb-4">Équipement premium reconditionné pour des équipes performantes</h1>
+              <p className="text-lg mb-8">Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, à l'impact environnemental réduit.</p>
+              <div className="flex flex-wrap gap-4">
+                <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
+                  Parler à un conseiller
+                </Button>
+                <Button size="lg" className="bg-[#da2959]/80 hover:bg-[#da2959] border-0">
+                  Demander un devis
+                </Button>
+              </div>
+            </div>
+            <div className="hidden md:block relative">
+              <img 
+                src="/public/lovable-uploads/abb2e12d-641a-46c5-9353-bfb04427dde7.png" 
+                alt="Personne heureuse utilisant du matériel Apple" 
+                className="rounded-lg shadow-lg max-w-md object-cover"
+              />
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3">
+                <span className="text-sm font-medium text-green-600">Jusqu'à 70% d'économies de CO2</span>
+              </div>
             </div>
           </div>
         </div>
