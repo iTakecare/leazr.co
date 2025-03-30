@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
@@ -6,12 +5,8 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
-import { useCart } from "@/context/CartContext";
 
 const PublicHeader = () => {
-  const { getTotalItems, showAnimation } = useCart();
-  const itemCount = getTotalItems();
-  
   return (
     <header className="bg-white border-b shadow-sm">
       <div className="container mx-auto px-4">
@@ -70,11 +65,8 @@ const PublicHeader = () => {
           <div className="flex items-center space-x-4">
             <Link to="/panier" className="relative">
               <ShoppingCart className="h-6 w-6 text-gray-700" />
-              <span className={cn(
-                "absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center",
-                showAnimation && "animate-[pulse_1s_ease-in-out_2]"
-              )}>
-                {itemCount}
+              <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                0
               </span>
             </Link>
             <div className="hidden md:block">

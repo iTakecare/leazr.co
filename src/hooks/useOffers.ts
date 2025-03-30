@@ -2,7 +2,6 @@
 import { useFetchOffers } from "./offers/useFetchOffers";
 import { useOfferFilters } from "./offers/useOfferFilters";
 import { useOfferActions } from "./offers/useOfferActions";
-import { useCallback } from "react";
 
 export const useOffers = () => {
   const { 
@@ -37,12 +36,6 @@ export const useOffers = () => {
     handleProcessInfoResponse
   } = useOfferActions(offers, setOffers);
 
-  // Fonction pour rafraîchir manuellement les offres
-  const refreshOffers = useCallback(() => {
-    console.log("Manually refreshing offers");
-    return fetchOffers();
-  }, [fetchOffers]);
-
   return {
     offers,
     filteredOffers,
@@ -60,7 +53,6 @@ export const useOffers = () => {
     includeConverted,
     setIncludeConverted,
     fetchOffers,
-    refreshOffers, // Nouvelle fonction pour rafraîchir manuellement
     handleDeleteOffer,
     handleResendOffer,
     handleDownloadPdf,

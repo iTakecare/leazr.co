@@ -1,5 +1,5 @@
 
-// Export all functions from offer services
+// Exporter toutes les fonctions de services des offres
 export * from './createOffer';
 export * from './getOffers';
 export * from './offerDetail';
@@ -7,10 +7,20 @@ export * from './offerStatus';
 export * from './offerWorkflow';
 export * from './clientRequests';
 
-// Export specific named exports to avoid ambiguity
-export { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
-export { isOfferSigned, saveOfferSignature, generateSignatureLink } from './offerSignature';
+// Exportations spécifiques pour éviter l'ambiguïté
+import { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
+import { isOfferSigned, saveOfferSignature, generateSignatureLink } from './offerSignature';
 
-// Export types and enums
+// Ré-exporter explicitement pour résoudre l'ambiguïté
+export {
+  generateAndDownloadOfferPdf,
+  getOfferDataForPdf,
+  generateSamplePdf,
+  isOfferSigned,
+  saveOfferSignature,
+  generateSignatureLink
+};
+
+// Exporter les types et enums
 export { OfferStatus, WorkflowStatus } from './types';
 export type { OfferData, Equipment } from './types';

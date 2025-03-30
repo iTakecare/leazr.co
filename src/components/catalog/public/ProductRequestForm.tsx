@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,12 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Product } from "@/types/catalog";
 import { createProductRequest } from "@/services/requestInfoService";
-import { createProductRequestOffer } from "@/services/offers/clientRequests";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react"; // Updated import to use lucide-react instead
 
 interface ProductRequestFormProps {
   isOpen: boolean;
@@ -55,13 +55,14 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Construire la description de l'équipement à partir des options sélectionnées
       const optionsDescription = Object.entries(selectedOptions)
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
 
-      const equipmentDescription = `${product.name} (${quantity} unité(s)) - ${optionsDescription}`;
+      const equipmentDescription = `${product.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
 
-      const result = await createProductRequestOffer({
+      await createProductRequest({
         client_name: formData.name,
         client_email: formData.email,
         client_company: formData.company,
@@ -74,13 +75,9 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         duration: duration
       });
 
-      if (result.success) {
-        toast.success("Votre demande a été envoyée avec succès");
-        onClose();
-        navigate("/confirmation");
-      } else {
-        throw new Error("Échec de l'envoi de la demande");
-      }
+      toast.success("Votre demande a été envoyée avec succès");
+      onClose();
+      navigate("/demande-envoyee");
     } catch (error) {
       console.error("Erreur lors de l'envoi de la demande:", error);
       toast.error("Une erreur est survenue lors de l'envoi de votre demande");

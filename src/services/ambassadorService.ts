@@ -48,25 +48,18 @@ export interface Ambassador {
   user_id?: string;
 }
 
-// Récupérer tous les ambassadeurs - Assurons-nous que cette fonction gère correctement les erreurs
+// Récupérer tous les ambassadeurs
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
-    console.log("Fetching ambassadors");
     const { data, error } = await supabase
       .from("ambassadors")
       .select("*")
       .order("name");
 
-    if (error) {
-      console.error("Error fetching ambassadors:", error);
-      throw error;
-    }
-    
-    console.log(`Retrieved ${data?.length || 0} ambassadors`);
+    if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error("Error in getAmbassadors:", error);
-    // Renvoyer un tableau vide en cas d'erreur pour éviter les plantages
+    console.error("Error fetching ambassadors:", error);
     return [];
   }
 };
