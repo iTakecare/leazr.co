@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useProductById } from './useProductById';
 import { Product } from '@/types/catalog';
