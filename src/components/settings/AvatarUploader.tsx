@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { uploadImage } from '@/utils/imageUtils';
-import { ensureStorageBucket } from '@/services/storageService';
 import { toast } from "sonner";
 
 interface AvatarUploaderProps {
@@ -34,29 +33,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
-      console.log(`Tentative d'upload vers le bucket: ${bucketName}`);
+      // Use uploadImage from imageUtils
+      const result = await uploadImage(file, bucketName, folderPath);
       
-      // S'assurer que le bucket existe et est public
-      const bucketExists = await ensureStorageBucket(bucketName);
-      if (!bucketExists) {
-        toast.error(`Le bucket ${bucketName} n'a pas pu être créé ou accédé`);
-        setIsUploading(false);
-        return;
-      }
-      
-      // Upload l'image en utilisant directement la fonction uploadImage depuis imageUtils
-      // qui gère correctement le type MIME
-      const uploadUrl = await uploadImage(file, bucketName, folderPath);
-      
-      if (uploadUrl) {
-        // Ajouter le paramètre de cache-busting
-        const cacheBustUrl = `${uploadUrl}?t=${Date.now()}`;
-        
-        console.log("Image uploadée avec succès:", cacheBustUrl);
-        setImageUrl(cacheBustUrl);
+      if (result) {
+        // Make sure URL doesn't have double slashes in path segments
+        let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
+        setImageUrl(cleanUrl);
         
         if (onImageUploaded) {
-          onImageUploaded(uploadUrl);
+          onImageUploaded(cleanUrl);
         }
         toast.success("Image téléchargée avec succès");
       } else {
@@ -73,13 +59,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="w-24 h-24">
-        {imageUrl ? (
-          <AvatarImage 
-            src={imageUrl} 
-            alt="Avatar téléchargé" 
-            onError={() => console.error("Erreur de chargement de l'image:", imageUrl)} 
-          />
-        ) : null}
+        <AvatarImage src={imageUrl} />
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
       </Avatar>
       

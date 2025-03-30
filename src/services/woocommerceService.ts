@@ -1,8 +1,7 @@
-
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
-import { ensureStorageBucket } from "@/services/storageService";
+import { ensureStorageBucket, downloadAndStoreImage } from "@/services/storageService";
 import { v4 as uuidv4 } from 'uuid';
 
 export const mapDbProductToProduct = (dbProduct: any): Product => {
@@ -197,23 +196,12 @@ async function checkColumnExists(tableName: string, columnName: string): Promise
 
 function generateUuidFromId(numericId: number | string): string {
   const idStr = String(numericId);
-  
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idStr)) {
     return idStr;
   }
   
-  // Generate a standard UUID
-  const uuid = uuidv4();
-  
-  // Create a prefix using the product ID but ensure it's not too long
-  const prefix = `woo${idStr.substring(0, 6)}`;
-  
-  // Extract parts of the UUID to ensure the final format is valid
-  const parts = uuid.split('-');
-  
-  // Construct a valid UUID by replacing the first segment with our prefix
-  // But ensure the overall format is maintained as per UUID standard
-  return `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}-${parts[4]}`;
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+  return `woo-${idStr}-${uuidv4().substring(8)}`;
 }
 
 export async function importWooCommerceProducts(
@@ -245,12 +233,6 @@ export async function importWooCommerceProducts(
       console.log(`Column '${column}' exists: ${columnStatus[column]}`);
     }
     
-    try {
-      await ensureStorageBucket('product-images');
-    } catch (error) {
-      console.error('Error ensuring product-images bucket exists:', error);
-    }
-    
     for (const product of products) {
       try {
         const categoryString = product.categories?.map(c => c.name).join(', ') || '';
@@ -260,10 +242,7 @@ export async function importWooCommerceProducts(
           categories: product.categories?.map(c => c.name) || []
         };
         
-        // Generate valid UUID
         const generatedUuid = generateUuidFromId(product.id);
-        
-        console.log(`Generated UUID for product ${product.id}: ${generatedUuid}`);
         
         const mappedProduct: Record<string, any> = {
           id: generatedUuid,
@@ -368,7 +347,6 @@ export async function importWooCommerceProducts(
               const variation = await variationResponse.json();
               
               const variationUuid = generateUuidFromId(`${product.id}-${variation.id}`);
-              console.log(`Generated UUID for variation ${variationId}: ${variationUuid}`);
               
               const mappedVariation: Record<string, any> = {
                 id: variationUuid,

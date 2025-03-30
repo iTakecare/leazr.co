@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -94,6 +95,8 @@ const WooCommerceImporter = () => {
   });
 
   useEffect(() => {
+    // Nous n'utilisons plus getWooCommerceConfig car la fonction edge n'existe pas
+    // Au lieu de cela, utilisons localStorage pour stocker temporairement la configuration
     try {
       const savedConfig = localStorage.getItem('woocommerce_config');
       if (savedConfig) {
@@ -322,30 +325,21 @@ const WooCommerceImporter = () => {
       
       console.log(`Starting import with overwriteExisting: ${importOptions.overwriteExisting}`);
       
+      // Assurez-vous que le bucket existe avant l'importation
       try {
-        const bucketCreated = await ensureStorageBucket('product-images');
-        console.log("Product images bucket status:", bucketCreated ? "created/exists" : "failed to create");
+        await ensureStorageBucket('product-images');
       } catch (storageError) {
         console.error("Error ensuring storage bucket exists, continuing anyway:", storageError);
+        // Continuer même en cas d'erreur car nous utilisons les URL d'origine
       }
       
-      const enhancedProducts = selectedProductsToImport.map(product => {
-        const productWithCredentials = {
-          ...product,
-          siteUrl: form.getValues().siteUrl,
-          consumerKey: form.getValues().consumerKey,
-          consumerSecret: form.getValues().consumerSecret
-        };
-        
-        if (product.images && product.images.length > 0) {
-          console.log(`Product ${product.id} has ${product.images.length} images:`, 
-            product.images.map(img => `${img.src?.substring(0, 30)}...`));
-        }
-        
-        return productWithCredentials;
-      });
-      
-      setImportStage("Importation des produits...");
+      // Ajoutons des propriétés nécessaires aux produits avant importation
+      const enhancedProducts = selectedProductsToImport.map(product => ({
+        ...product,
+        siteUrl: form.getValues().siteUrl,
+        consumerKey: form.getValues().consumerKey,
+        consumerSecret: form.getValues().consumerSecret
+      }));
       
       const result = await importWooCommerceProducts(
         enhancedProducts,
@@ -999,6 +993,7 @@ const WooCommerceImporter = () => {
                     variant="outline"
                     onClick={() => {
                       setImportDialogOpen(false);
+                      // Rediriger vers le catalogue
                       window.location.href = "/catalog";
                     }}
                   >

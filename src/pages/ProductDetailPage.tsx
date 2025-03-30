@@ -112,6 +112,12 @@ const ProductDetailPage = () => {
     const hasOptions = hasAttributeOptions(attributeName);
     const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
     
+    console.log(`Rendering field ${attributeName} (${displayName}):`, {
+      hasOptions,
+      options,
+      currentValue
+    });
+    
     return (
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">{displayName}</label>
@@ -128,7 +134,7 @@ const ProductDetailPage = () => {
                 <SelectItem 
                   key={option} 
                   value={option}
-                  disabled={!isOptionAvailable(attributeName, option)}
+                  disabled={!isOptionAvailable()}
                 >
                   {option}
                 </SelectItem>
@@ -325,7 +331,7 @@ const ProductDetailPage = () => {
                 <Separator className="my-4" />
                 
                 <div className="mb-6">
-                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale</h3>
+                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale.</h3>
                   
                   <div className="grid grid-cols-2 gap-4">
                     {configAttributes.map(attribute => {
@@ -397,7 +403,7 @@ const ProductDetailPage = () => {
                 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-700 font-medium">Votre sélection pour {duration} mois</span>
+                    <span className="text-gray-700 font-medium">Votre sélection pour</span>
                     <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   

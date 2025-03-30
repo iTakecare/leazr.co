@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -122,7 +123,6 @@ serve(async (req) => {
           const credentials = btoa(`${consumerKey}:${consumerSecret}`);
           const headers = new Headers();
           headers.append("Authorization", `Basic ${credentials}`);
-          headers.append("Accept", "application/json");
           
           // Make the request
           console.log(`Making request to: ${apiUrl}`);
@@ -142,21 +142,17 @@ serve(async (req) => {
           } else {
             const products = await response.json();
             
-            // Ensure all image sources are properly handled
-            const productsWithFixedImages = products.map(product => ({
+            // Add credentials to products for later use
+            const productsWithCredentials = products.map(product => ({
               ...product,
-              images: product.images?.map(img => ({
-                ...img,
-                src: img.src || ''
-              })) || [],
               siteUrl: url,
               consumerKey,
               consumerSecret
             }));
             
-            console.log(`Retrieved ${productsWithFixedImages?.length || 0} products`);
+            console.log(`Retrieved ${products?.length || 0} products`);
             result = {
-              products: productsWithFixedImages || [],
+              products: productsWithCredentials || [],
             };
           }
         } catch (error) {
@@ -169,6 +165,7 @@ serve(async (req) => {
         break;
         
       case "getVariations":
+        // Fetch variations for a specific product
         try {
           const { productId } = requestData;
           if (!productId) {
