@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag, Award } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import AttributeManager from "@/components/catalog/AttributeManager";
+import CategoryManager from "@/components/catalog/CategoryManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -56,23 +57,33 @@ const CatalogManagement = () => {
           
           {/* Tab content */}
           <TabsContent value="catalog">
-            {/* View options */}
-            <ProductsViewOptions 
-              groupingOption={groupingOption}
-              onGroupingChange={setGroupingOption}
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-            />
-            
-            {/* Catalog content */}
-            <CatalogContent 
-              products={products}
-              isLoading={isLoading}
-              error={error}
-              viewMode={viewMode}
-              groupingOption={groupingOption}
-              onProductDeleted={handleProductDeleted}
-            />
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Category sidebar */}
+              <div className="md:w-64 lg:w-72 flex-shrink-0 md:border-r pr-4">
+                <CategoryManager />
+              </div>
+              
+              {/* Main content */}
+              <div className="flex-1">
+                {/* View options */}
+                <ProductsViewOptions 
+                  groupingOption={groupingOption}
+                  onGroupingChange={setGroupingOption}
+                  viewMode={viewMode}
+                  onViewModeChange={handleViewModeChange}
+                />
+                
+                {/* Catalog content */}
+                <CatalogContent 
+                  products={products}
+                  isLoading={isLoading}
+                  error={error}
+                  viewMode={viewMode}
+                  groupingOption={groupingOption}
+                  onProductDeleted={handleProductDeleted}
+                />
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="brands">
