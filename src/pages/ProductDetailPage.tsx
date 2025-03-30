@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,10 +25,12 @@ import ProductIncludedServices from "@/components/product-detail/ProductIncluded
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import CustomerReviews from "@/components/product-detail/CustomerReviews";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
+import { useCart } from "@/context/CartContext";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   
   const {
     product,
@@ -62,6 +63,18 @@ const ProductDetailPage = () => {
   
   const handleRequestProduct = () => {
     setIsRequestFormOpen(true);
+  };
+
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart({
+        product: selectedVariant || product,
+        quantity,
+        selectedOptions,
+        duration
+      });
+      toast.success(`${product.name} ajouté au panier`);
+    }
   };
   
   if (isLoading) {
@@ -340,7 +353,6 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      {/* Remplacement du Select par un affichage statique */}
                       <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
                         36 mois
                       </div>
@@ -392,7 +404,7 @@ const ProductDetailPage = () => {
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <Button 
                       className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
-                      onClick={handleRequestProduct}
+                      onClick={handleAddToCart}
                     >
                       Ajouter
                     </Button>
