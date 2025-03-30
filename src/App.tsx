@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import Index from "./pages/Index";
@@ -7,7 +7,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ClientRoutes from "@/components/layout/ClientRoutes";
 import NotFound from "./pages/NotFound";
-import Layout from "@/components/layout/Layout";
+import { Layout } from "@/components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Clients from "./pages/Clients";
