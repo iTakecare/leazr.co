@@ -215,13 +215,16 @@ const ProductEditPage = () => {
       
       toast.dismiss();
       toast.success("Image principale définie avec succès");
-    } catch (error) {
+      
+      // Forcer le rafraîchissement des données du produit après mise à jour
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+    } catch (error: any) {
       toast.dismiss();
       console.error("Error setting main image:", error);
-      toast.error("Erreur lors de la définition de l'image principale");
+      toast.error(`Erreur: ${error.message || "Erreur lors de la définition de l'image principale"}`);
     }
   };
-
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">

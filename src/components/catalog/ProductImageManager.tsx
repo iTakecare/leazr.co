@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -207,10 +208,18 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       if (onSetMainImage) {
         console.log(`Setting main image to: ${originalUrl}`);
         
+        // Afficher un toast de chargement
+        toast.loading("Définition de l'image principale...");
+        
         await onSetMainImage(originalUrl);
+        
+        // Fermer le toast de chargement avant d'afficher le succès
+        toast.dismiss();
         toast.success("Image principale définie avec succès");
       }
     } catch (error) {
+      // Fermer le toast de chargement en cas d'erreur
+      toast.dismiss();
       console.error("Error setting main image:", error);
       toast.error("Erreur lors de la définition de l'image principale");
     }

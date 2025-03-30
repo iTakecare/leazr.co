@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -428,15 +429,20 @@ export const updateProduct = async (id: string, product: Partial<Product>) => {
       .from('products')
       .update(product)
       .eq('id', id)
-      .select('*')
-      .single();
+      .select('*');
     
     if (error) {
       console.error('Error updating product:', error);
       throw new Error(error.message);
     }
     
-    return data;
+    // Ne pas utiliser .single() qui échoue s'il n'y a pas exactement 1 résultat
+    // Vérifier qu'on a bien des données en retour
+    if (!data || data.length === 0) {
+      throw new Error('No data returned after update');
+    }
+    
+    return data[0];
   } catch (error) {
     console.error('Error in updateProduct:', error);
     throw error;
