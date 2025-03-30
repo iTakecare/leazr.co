@@ -9,16 +9,22 @@ export const useProductFilter = (products: Product[] = []) => {
 
   // Extract unique categories from products
   const categories = useMemo(() => {
-    if (!products) return [];
-    const uniqueCategories = [...new Set(products
+    if (!products || products.length === 0) return [];
+    
+    // Extraire les catégories et s'assurer qu'elles sont des strings
+    const extractedCategories = products
       .map(product => product.category)
-      .filter((category): category is string => Boolean(category)))];
+      .filter((category): category is string => Boolean(category));
+    
+    // Créer un Set pour éliminer les doublons puis reconvertir en array
+    const uniqueCategories = [...new Set(extractedCategories)];
+    
     return uniqueCategories;
   }, [products]);
 
   // Filter products based on search query and selected category
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
+    if (!products || products.length === 0) return [];
     
     let filtered = [...products];
     
