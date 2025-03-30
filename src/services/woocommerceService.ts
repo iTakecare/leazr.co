@@ -196,11 +196,14 @@ async function checkColumnExists(tableName: string, columnName: string): Promise
 
 function generateUuidFromId(numericId: number | string): string {
   const idStr = String(numericId);
+  
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idStr)) {
     return idStr;
   }
   
-  return `woo-${idStr}-${uuidv4().substr(9)}`;
+  const uuid = uuidv4();
+  
+  return `woo${idStr}_${uuid.substr(5)}`;
 }
 
 export async function importWooCommerceProducts(
@@ -230,6 +233,12 @@ export async function importWooCommerceProducts(
     for (const column of columnsToCheck) {
       columnStatus[column] = await checkColumnExists('products', column);
       console.log(`Column '${column}' exists: ${columnStatus[column]}`);
+    }
+    
+    try {
+      await ensureStorageBucket('product-images');
+    } catch (error) {
+      console.error('Error ensuring product-images bucket exists:', error);
     }
     
     for (const product of products) {
