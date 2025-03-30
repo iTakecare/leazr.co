@@ -1,55 +1,41 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User } from 'lucide-react';
+
+interface ContactFormData {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
 
 interface ContactInfoFormProps {
-  formData: {
-    name: string;
-    email: string;
-    phone: string;
-    message: string;
-  };
-  updateFormData: (data: Partial<{ name: string; email: string; phone: string; message: string; }>) => void;
+  formData: ContactFormData;
+  updateFormData: (data: Partial<ContactFormData>) => void;
   onPrev: () => void;
   onNext: () => void;
 }
 
-const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ 
-  formData, 
-  updateFormData, 
-  onPrev, 
-  onNext 
-}) => {
-  const { toast } = useToast();
-
-  const handleSubmit = (e: React.FormEvent) => {
+const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormData, onPrev, onNext }) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Simple validation
-    if (!formData.name.trim()) {
-      toast({
-        title: "Champ obligatoire",
-        description: "Veuillez entrer votre nom",
-        variant: "destructive"
-      });
+    // Validate form
+    if (!formData.name.trim() || !formData.email.trim()) {
+      alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
-
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      toast({
-        title: "Email invalide",
-        description: "Veuillez entrer une adresse email valide",
-        variant: "destructive"
-      });
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Veuillez entrer une adresse email valide');
       return;
     }
-
-    // All good, move to next step
+    
     onNext();
   };
 

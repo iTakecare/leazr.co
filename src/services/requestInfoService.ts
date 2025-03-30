@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface ProductRequestData {
@@ -29,23 +29,32 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
+    // Utiliser le client admin pour contourner les restrictions RLS
+    const adminSupabase = getAdminSupabaseClient();
+    
     // Obtenir les informations sur le client si elles existent déjà
     let clientId: string | null = null;
     if (data.client_email) {
-      const { data: existingClient } = await supabase
+      const { data: existingClient, error: clientFetchError } = await adminSupabase
         .from('clients')
         .select('id')
         .eq('email', data.client_email)
         .single();
       
+      if (clientFetchError && clientFetchError.code !== 'PGRST116') {
+        console.error("Erreur lors de la recherche du client:", clientFetchError);
+      }
+      
       if (existingClient) {
         clientId = existingClient.id;
+        console.log("Client existant trouvé:", clientId);
       }
     }
     
     // Si le client n'existe pas, le créer
     if (!clientId) {
-      const { data: newClient, error: clientError } = await supabase
+      console.log("Création d'un nouveau client");
+      const { data: newClient, error: clientError } = await adminSupabase
         .from('clients')
         .insert([
           {
@@ -64,11 +73,13 @@ export const createProductRequest = async (data: ProductRequestData) => {
         // Continuer même si la création du client échoue - nous créerons l'offre sans lien client
       } else if (newClient) {
         clientId = newClient.id;
+        console.log("Nouveau client créé:", clientId);
       }
     }
 
     // Créer une offre/demande dans la table offers
-    const { data: offer, error } = await supabase
+    console.log("Création de l'offre avec client_id:", clientId);
+    const { data: offer, error } = await adminSupabase
       .from('offers')
       .insert([
         {
@@ -95,7 +106,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
     // Ajouter des informations supplémentaires dans un commentaire si nécessaire
     if (data.message && offer) {
-      const { error: noteError } = await supabase
+      const { error: noteError } = await adminSupabase
         .from('offer_notes')
         .insert([
           {

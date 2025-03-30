@@ -7,13 +7,15 @@ import { useToast } from '@/components/ui/use-toast';
 import { Building, Loader2 } from 'lucide-react';
 import { clientService } from '@/services/clientService';
 
+interface CompanyFormData {
+  company: string;
+  vat_number: string;
+  company_verified: boolean;
+}
+
 interface CompanyInfoFormProps {
-  formData: {
-    company: string;
-    vat_number: string;
-    company_verified: boolean;
-  };
-  updateFormData: (data: Partial<{ company: string; vat_number: string; company_verified: boolean; }>) => void;
+  formData: CompanyFormData;
+  updateFormData: (data: Partial<CompanyFormData>) => void;
   onNext: () => void;
 }
 
