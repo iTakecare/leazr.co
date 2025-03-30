@@ -13,6 +13,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const CartDrawer: React.FC = () => {
   const { items, isCartOpen, setIsCartOpen, cartTotal, clearCart, cartCount } = useCart();
   
+  // Close the drawer when component mounts - this helps prevent it from automatically showing
+  React.useEffect(() => {
+    setIsCartOpen(false);
+  }, [setIsCartOpen]);
+  
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
       <SheetContent className="w-full sm:max-w-md md:max-w-lg flex flex-col h-full p-0">

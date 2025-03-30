@@ -72,8 +72,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
     
-    // Open the cart drawer when adding items
-    setIsCartOpen(true);
+    // We won't automatically open the cart drawer anymore since we're prioritizing full page
   };
   
   const removeFromCart = (productId: string) => {
@@ -98,12 +97,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const cartCount = items.reduce((total, item) => total + item.quantity, 0);
   
-  // Assurons-nous d'utiliser le bon prix du produit
+  // Fix the cartTotal calculation to ensure we're getting the proper monthly price
   const cartTotal = items.reduce((total, item) => {
-    // Utilisons le monthly_price du produit et multiplions-le par la quantité
-    const itemPrice = item.product.monthly_price ? (item.product.monthly_price * item.quantity) : 0;
-    console.log(`Item ${item.product.name} price: ${item.product.monthly_price} × ${item.quantity} = ${itemPrice}`);
-    return total + itemPrice;
+    const price = typeof item.product.monthly_price === 'number' ? item.product.monthly_price : 0;
+    const itemTotal = price * item.quantity;
+    console.log(`Item ${item.product.name} price calculation: ${price} × ${item.quantity} = ${itemTotal}`);
+    return total + itemTotal;
   }, 0);
   
   const value = {

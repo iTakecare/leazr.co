@@ -20,8 +20,13 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCart();
   const { product, quantity } = item;
   
+  // Ensure we're getting a number for price calculation
+  const price = typeof product.monthly_price === 'number' ? product.monthly_price : 0;
+  
   // Calculate the item total price
-  const itemTotal = (product.monthly_price || 0) * quantity;
+  const itemTotal = price * quantity;
+  
+  console.log(`CartItem rendering for ${product.name} with price ${price}, quantity ${quantity}, total ${itemTotal}`);
   
   // Get a display-friendly list of selected options
   const getSelectedOptionsDisplay = () => {

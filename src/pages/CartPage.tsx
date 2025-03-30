@@ -5,12 +5,26 @@ import { Button } from "@/components/ui/button";
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, X, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import CartItem from '@/components/cart/CartItem';
 import PublicHeader from '@/components/catalog/public/PublicHeader';
 
 const CartPage: React.FC = () => {
   const { items, cartTotal, clearCart, cartCount } = useCart();
+  
+  // Log cart details for debugging
+  React.useEffect(() => {
+    console.log("CartPage rendered with:", { 
+      itemCount: items.length, 
+      cartTotal, 
+      items: items.map(item => ({
+        name: item.product.name,
+        price: item.product.monthly_price,
+        quantity: item.quantity,
+        total: (item.product.monthly_price || 0) * item.quantity
+      }))
+    });
+  }, [items, cartTotal]);
   
   return (
     <div className="min-h-screen bg-gray-50">

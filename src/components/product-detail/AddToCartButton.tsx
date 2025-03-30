@@ -20,7 +20,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   quantity,
   duration,
   selectedOptions = {},
-  navigateToCart = false
+  navigateToCart = true // Changed default to true
 }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     
     toast.success(`${product.name} ajouté au panier`);
     
-    // Si navigateToCart est true, rediriger vers la page du panier
+    // Always navigate to the cart page
     if (navigateToCart) {
       navigate('/panier');
     }
