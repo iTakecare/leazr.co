@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -109,9 +110,9 @@ const PublicCatalog = () => {
         <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5">
           <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#33638e]/70 to-[#33638e] z-10"></div>
           <img 
-            src="/lovable-uploads/e3c85b46-0f2e-4316-9fe1-647586b28021.png" 
-            alt="Groupe de personnes heureuses utilisant des produits Apple" 
-            className="h-full w-full object-cover object-center opacity-70"
+            src="https://images.unsplash.com/photo-1628258334105-2a0b3d6efee1?q=80&w=1974&auto=format&fit=crop" 
+            alt="Groupe de personnes utilisant des ordinateurs portables sur une échelle" 
+            className="h-full w-full object-cover object-center opacity-80"
           />
         </div>
         
