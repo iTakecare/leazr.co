@@ -1,3 +1,4 @@
+
 import { Product } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
@@ -201,9 +202,18 @@ function generateUuidFromId(numericId: number | string): string {
     return idStr;
   }
   
+  // Generate a standard UUID
   const uuid = uuidv4();
   
-  return `woo${idStr}_${uuid.substr(5)}`;
+  // Create a prefix using the product ID but ensure it's not too long
+  const prefix = `woo${idStr.substring(0, 6)}`;
+  
+  // Extract parts of the UUID to ensure the final format is valid
+  const parts = uuid.split('-');
+  
+  // Construct a valid UUID by replacing the first segment with our prefix
+  // But ensure the overall format is maintained as per UUID standard
+  return `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}-${parts[4]}`;
 }
 
 export async function importWooCommerceProducts(
@@ -250,6 +260,7 @@ export async function importWooCommerceProducts(
           categories: product.categories?.map(c => c.name) || []
         };
         
+        // Generate valid UUID
         const generatedUuid = generateUuidFromId(product.id);
         
         console.log(`Generated UUID for product ${product.id}: ${generatedUuid}`);

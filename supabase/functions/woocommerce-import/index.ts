@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -170,7 +169,6 @@ serve(async (req) => {
         break;
         
       case "getVariations":
-        // Fetch variations for a specific product
         try {
           const { productId } = requestData;
           if (!productId) {
