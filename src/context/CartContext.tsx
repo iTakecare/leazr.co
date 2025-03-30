@@ -46,6 +46,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [items]);
   
   const addToCart = (newItem: CartItem) => {
+    console.log("CartContext: Adding item to cart:", newItem);
+    
     setItems(prevItems => {
       // Check if this product is already in the cart
       const existingItemIndex = prevItems.findIndex(
