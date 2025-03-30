@@ -6,13 +6,14 @@ import { Product } from '@/types/catalog';
 export const useProductDetails = (productId: string | undefined) => {
   const { product, isLoading, error } = useProductById(productId);
   const [quantity, setQuantity] = useState(1);
-  const [duration, setDuration] = useState(24); // Default to 24 months
+  // Durée fixée à 36 mois
+  const [duration] = useState(36);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [currentImage, setCurrentImage] = useState<string | undefined>(undefined);
 
-  // Available durations for contract length
-  const availableDurations = [12, 24, 36, 48, 60];
+  // On garde cette valeur pour l'affichage statique
+  const availableDurations = [36]; // Contrat uniquement de 36 mois
 
   // Set initial image when product loads
   useEffect(() => {
@@ -117,20 +118,10 @@ export const useProductDetails = (productId: string | undefined) => {
     return product.monthly_price || 0;
   }, [product]);
 
-  // Calculate total price based on quantity and duration
+  // Calculate total price based on quantity and duration (duration is now fixed)
   const totalPrice = useMemo(() => {
-    // Apply a discount based on duration if needed
-    let durationFactor = 1;
-    if (duration >= 48) {
-      durationFactor = 0.9; // 10% discount for longer durations (48+ months)
-    } else if (duration >= 36) {
-      durationFactor = 0.95; // 5% discount for medium durations (36 months)
-    } else if (duration < 24) {
-      durationFactor = 1.1; // 10% surcharge for shorter durations (12 months)
-    }
-    
-    return currentPrice * quantity * durationFactor;
-  }, [currentPrice, quantity, duration]);
+    return currentPrice * quantity;
+  }, [currentPrice, quantity]);
 
   const specifications = useMemo(() => {
     return product?.specifications || {};
@@ -181,7 +172,6 @@ export const useProductDetails = (productId: string | undefined) => {
     currentPrice,
     selectedVariant,
     duration,
-    setDuration,
     totalPrice,
     minMonthlyPrice,
     specifications,

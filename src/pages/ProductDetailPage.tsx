@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,6 @@ const ProductDetailPage = () => {
     currentPrice,
     selectedVariant,
     duration,
-    setDuration,
     totalPrice,
     minMonthlyPrice,
     specifications,
@@ -53,8 +53,7 @@ const ProductDetailPage = () => {
     hasOptions,
     variationAttributes,
     hasAttributeOptions,
-    getOptionsForAttribute,
-    availableDurations
+    getOptionsForAttribute
   } = useProductDetails(id);
   
   const handleBackToCatalog = () => {
@@ -341,21 +340,10 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Durée</label>
-                      <Select 
-                        value={String(duration)}
-                        onValueChange={(value) => setDuration(Number(value))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue>{duration} mois</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDurations.map((months) => (
-                            <SelectItem key={months} value={String(months)}>
-                              {months} mois
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {/* Remplacement du Select par un affichage statique */}
+                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+                        36 mois
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -397,7 +385,7 @@ const ProductDetailPage = () => {
                 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-700 font-medium">Votre sélection pour {duration} mois</span>
+                    <span className="text-gray-700 font-medium">Votre sélection pour 36 mois</span>
                     <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
