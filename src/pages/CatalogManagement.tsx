@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Award } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import AttributeManager from "@/components/catalog/AttributeManager";
-import CategoryManager from "@/components/catalog/CategoryManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -59,14 +58,9 @@ const CatalogManagement = () => {
               <CatalogHeader onAddNewProduct={handleAddNewProduct} />
             </div>
             
-            <div className="flex flex-col md:flex-row gap-6 mt-6">
-              {/* Category sidebar - now as a vertical list on the left */}
-              <div className="md:w-64 lg:w-72 flex-shrink-0 md:border-r pr-4 overflow-auto">
-                <CategoryManager />
-              </div>
-              
-              {/* Main content */}
-              <div className="flex-1">
+            <div className="mt-6">
+              {/* Main content - removing the sidebar layout */}
+              <div className="w-full">
                 {/* View options */}
                 <ProductsViewOptions 
                   groupingOption={groupingOption}
