@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import Logo from "@/components/layout/Logo";
 import { useCart } from "@/context/CartContext";
 
 const PublicHeader = () => {
-  const { cartCount, setIsCartOpen } = useCart();
+  const { cartCount } = useCart();
+  const navigate = useNavigate();
   
   return (
     <header className="bg-white border-b shadow-sm">
@@ -69,8 +70,8 @@ const PublicHeader = () => {
           <div className="flex items-center space-x-4">
             <button 
               className="relative" 
-              onClick={() => setIsCartOpen(true)}
-              aria-label="Ouvrir le panier"
+              onClick={() => navigate('/panier')}
+              aria-label="Voir le panier"
             >
               <ShoppingCart className="h-6 w-6 text-gray-700" />
               <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
