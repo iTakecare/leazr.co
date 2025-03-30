@@ -50,6 +50,7 @@ import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
 import AmbassadorOfferDetail from "./pages/AmbassadorPages/AmbassadorOfferDetail";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import CartPage from "./pages/CartPage";
+import ClientRoutes from "@/components/layout/ClientRoutes";
 
 function App() {
   return (
@@ -102,6 +103,7 @@ function App() {
             <Route path="/amb/offers" element={<AmbassadorOffersPage />} />
             <Route path="/amb/offer/:id" element={<AmbassadorOfferDetail />} />
             <Route path="/amb/catalog" element={<AmbassadorCatalog />} />
+            <Route path="/client/*" element={<ClientRoutes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster position="top-right" />

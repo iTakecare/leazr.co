@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Info } from "lucide-react";
 
-interface VariantSelectorProps {
+export interface VariantSelectorProps {
   attributeName: string;
   options: string[];
   selectedValue: string;
