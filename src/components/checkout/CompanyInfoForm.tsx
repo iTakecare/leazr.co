@@ -13,7 +13,7 @@ interface CompanyInfoFormProps {
     vat_number: string;
     company_verified: boolean;
   };
-  updateFormData: (data: Partial<typeof formData>) => void;
+  updateFormData: (data: Partial<{ company: string; vat_number: string; company_verified: boolean; }>) => void;
   onNext: () => void;
 }
 

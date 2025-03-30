@@ -14,7 +14,7 @@ interface ContactInfoFormProps {
     phone: string;
     message: string;
   };
-  updateFormData: (data: Partial<typeof formData>) => void;
+  updateFormData: (data: Partial<{ name: string; email: string; phone: string; message: string; }>) => void;
   onPrev: () => void;
   onNext: () => void;
 }
