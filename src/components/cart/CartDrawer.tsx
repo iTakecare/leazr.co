@@ -18,6 +18,22 @@ const CartDrawer: React.FC = () => {
     setIsCartOpen(false);
   }, [setIsCartOpen]);
   
+  // Log cart details for debugging
+  React.useEffect(() => {
+    if (isCartOpen) {
+      console.log("CartDrawer opened with:", { 
+        itemCount: items.length, 
+        cartTotal,
+        items: items.map(item => ({
+          name: item.product.name,
+          price: item.product.monthly_price,
+          quantity: item.quantity,
+          total: (item.product.monthly_price || 0) * item.quantity
+        }))
+      });
+    }
+  }, [items, cartTotal, isCartOpen]);
+  
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
       <SheetContent className="w-full sm:max-w-md md:max-w-lg flex flex-col h-full p-0">

@@ -47,7 +47,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const addToCart = (newItem: CartItem) => {
     console.log("CartContext: Adding item to cart:", newItem);
-    console.log("Product price:", newItem.product.monthly_price);
+    
+    // Ensure the product has a price
+    if (typeof newItem.product.monthly_price !== 'number' || newItem.product.monthly_price === 0) {
+      console.warn("Warning: Adding product with no price to cart", newItem.product);
+    }
     
     setItems(prevItems => {
       // Check if this product is already in the cart
@@ -99,9 +103,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Fix the cartTotal calculation to ensure we're getting the proper monthly price
   const cartTotal = items.reduce((total, item) => {
-    const price = typeof item.product.monthly_price === 'number' ? item.product.monthly_price : 0;
-    const itemTotal = price * item.quantity;
-    console.log(`Item ${item.product.name} price calculation: ${price} × ${item.quantity} = ${itemTotal}`);
+    // Ensure we're getting a valid number for the monthly_price
+    const itemPrice = typeof item.product.monthly_price === 'number' ? item.product.monthly_price : 0;
+    const itemTotal = itemPrice * item.quantity;
+    console.log(`Cart total calculation - Item: ${item.product.name}, Price: ${itemPrice}, Quantity: ${item.quantity}, Subtotal: ${itemTotal}`);
     return total + itemTotal;
   }, 0);
   

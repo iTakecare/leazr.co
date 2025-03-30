@@ -26,8 +26,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Empêche la navigation ou l'ouverture d'une modale
-    e.stopPropagation(); // Arrête la propagation de l'événement
+    e.preventDefault(); // Prevent the default behavior
+    e.stopPropagation(); // Stop event propagation
+    
+    // Ensure the product has a valid price before adding to cart
+    if (typeof product.monthly_price !== 'number' || product.monthly_price === 0) {
+      console.warn("Warning: Product has no monthly price", product);
+    }
     
     console.log("Adding to cart:", { 
       product, 
@@ -46,7 +51,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     
     toast.success(`${product.name} ajouté au panier`);
     
-    // Always navigate to the cart page
+    // Always navigate to the cart page if navigateToCart is true
     if (navigateToCart) {
       navigate('/panier');
     }

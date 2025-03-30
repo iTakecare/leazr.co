@@ -16,7 +16,7 @@ const CartPage: React.FC = () => {
   React.useEffect(() => {
     console.log("CartPage rendered with:", { 
       itemCount: items.length, 
-      cartTotal, 
+      cartTotal,
       items: items.map(item => ({
         name: item.product.name,
         price: item.product.monthly_price,
