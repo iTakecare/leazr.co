@@ -72,7 +72,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
     
-    // We won't automatically open the cart drawer anymore since we're prioritizing full page
+    // We don't open the cart drawer automatically anymore
   };
   
   const removeFromCart = (productId: string) => {

@@ -20,7 +20,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   quantity,
   duration,
   selectedOptions = {},
-  navigateToCart = true // Changed default to true
+  navigateToCart = true // Default to true to always navigate to cart page
 }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();

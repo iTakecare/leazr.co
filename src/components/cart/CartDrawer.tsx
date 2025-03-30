@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, X, ShoppingBag, Plus, Minus, ExternalLink } from 'lucide-react';
+import { Trash2, X, ShoppingBag, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CartItem from './CartItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
