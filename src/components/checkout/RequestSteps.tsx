@@ -78,32 +78,22 @@ const RequestSteps: React.FC = () => {
 
       console.log("Submitting request with data:", requestData);
 
-      // Submit the request - avec un délai suffisant pour s'assurer que tout se charge correctement
-      try {
-        const result = await createProductRequest(requestData);
-        
-        if (!result) {
-          throw new Error("Erreur lors de la création de la demande");
-        }
-        
-        // Success! Clear cart and redirect
-        clearCart();
-        navigate('/demande-envoyee', { 
-          state: { 
-            success: true, 
-            companyName: formData.company,
-            name: formData.name
-          } 
-        });
-      } catch (innerError) {
-        console.error("Error in submit:", innerError);
-        toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
-        setLoading(false);
-      }
-
+      const result = await createProductRequest(requestData);
+      
+      // Success! Clear cart and redirect
+      clearCart();
+      navigate('/demande-envoyee', { 
+        state: { 
+          success: true, 
+          companyName: formData.company,
+          name: formData.name
+        } 
+      });
+      
     } catch (error) {
       console.error("Error submitting request:", error);
       toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
+    } finally {
       setLoading(false);
     }
   };

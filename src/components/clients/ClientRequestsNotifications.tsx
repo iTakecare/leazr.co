@@ -3,56 +3,47 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink } from "lucide-react";
+import { Bell, CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDistanceToNow } from "@/utils/formatters";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StoredRequest {
+  id: string;
+  client_name: string;
+  client_email: string;
+  client_company: string;
+  equipment_description: string;
+  amount: number;
+  monthly_payment: number;
+  quantity?: number;
+  duration?: number;
+  status: string;
+  workflow_status: string;
+  type: string;
+  created_at: string;
+  message?: string;
+}
 
 const ClientRequestsNotifications = () => {
-  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState<StoredRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchPendingRequests = async () => {
+  // Fonction pour charger les demandes client depuis localStorage
+  const fetchPendingRequests = () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Requête pour récupérer uniquement les demandes clients en attente
-      const { data, error } = await supabase
-        .from('offers')
-        .select(`
-          id,
-          client_name,
-          client_email,
-          client_id,
-          amount,
-          monthly_payment,
-          equipment_description,
-          status,
-          workflow_status,
-          created_at,
-          type,
-          clients (
-            id,
-            name,
-            email,
-            company
-          )
-        `)
-        .eq('status', 'pending')
-        .eq('type', 'client_request')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      
-      setPendingRequests(data || []);
-      console.log("Client requests loaded:", data);
-    } catch (err) {
+      // Récupérer les demandes stockées localement
+      const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+      setPendingRequests(storedRequests);
+      console.log("Local client requests loaded:", storedRequests);
+    } catch (err: any) {
       console.error("Erreur lors du chargement des demandes en attente:", err);
-      setError("Impossible de charger les demandes en attente");
+      setError(err.message || "Impossible de charger les demandes en attente");
     } finally {
       setLoading(false);
     }
@@ -61,51 +52,21 @@ const ClientRequestsNotifications = () => {
   useEffect(() => {
     fetchPendingRequests();
     
-    // S'abonner aux nouvelles demandes en temps réel
-    const channel = supabase
-      .channel('admin-pending-requests')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'offers',
-        filter: `status=eq.pending AND type=eq.client_request`,
-      }, (payload) => {
-        console.log('Nouvelle demande client reçue:', payload);
-        
-        // Récupérer les données complètes
-        fetchPendingRequests();
-        
-        // Afficher une notification
-        toast.info("Nouvelle demande client reçue", {
-          description: `De: ${payload.new.client_name}`,
-          action: {
-            label: "Voir",
-            onClick: () => window.location.href = `/offers/${payload.new.id}`
-          }
-        });
-      })
-      .subscribe();
-
-    // Nettoyage lors du démontage
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Vérifier périodiquement s'il y a de nouvelles demandes
+    const checkInterval = setInterval(fetchPendingRequests, 30000);
+    return () => clearInterval(checkInterval);
   }, []);
 
-  const handleUpdateStatus = async (offerId, newStatus) => {
+  // Simuler la mise à jour du statut d'une demande
+  const handleUpdateStatus = (requestId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('offers')
-        .update({ status: newStatus })
-        .eq('id', offerId);
+      const updatedRequests = pendingRequests.filter(req => req.id !== requestId);
+      localStorage.setItem('pendingRequests', JSON.stringify(updatedRequests));
       
-      if (error) throw error;
-      
-      // Mettre à jour localement
-      setPendingRequests(prev => prev.filter(req => req.id !== offerId));
+      setPendingRequests(updatedRequests);
       
       toast.success(`Demande ${newStatus === 'accepted' ? 'acceptée' : 'refusée'} avec succès`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors de la mise à jour du statut:", err);
       toast.error("Impossible de mettre à jour le statut de la demande");
     }
@@ -167,8 +128,8 @@ const ClientRequestsNotifications = () => {
         </div>
         <CardDescription>
           {pendingRequests.length > 0 
-            ? "Demandes clients nécessitant votre intervention" 
-            : "Aucune demande client en attente de traitement"}
+            ? "Mode hors-ligne: Demandes clients stockées localement" 
+            : "Aucune demande stockée localement"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -188,11 +149,11 @@ const ClientRequestsNotifications = () => {
                   <div>
                     <p className="font-medium">{request.client_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {request.clients?.company || 'Entreprise non spécifiée'} • 
+                      {request.client_company || 'Entreprise non spécifiée'} • 
                       {request.created_at ? ` Il y a ${formatDistanceToNow(new Date(request.created_at))}` : ''}
                     </p>
                   </div>
-                  <Badge className="bg-yellow-500/80">En attente</Badge>
+                  <Badge className="bg-blue-500/80 text-white">Mode hors-ligne</Badge>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-2">
@@ -205,36 +166,29 @@ const ClientRequestsNotifications = () => {
                     <p className="font-medium text-primary">{formatCurrency(request.monthly_payment)}</p>
                   </div>
                 </div>
+
+                <div className="mb-2">
+                  <p className="text-xs text-muted-foreground mb-1">Équipement</p>
+                  <p className="text-sm line-clamp-2">{request.equipment_description}</p>
+                </div>
                 
                 <div className="flex gap-2 mt-2">
                   <Button 
                     size="sm" 
                     variant="outline" 
                     className="flex-1"
-                    asChild
                   >
-                    <Link to={`/offers/${request.id}`}>
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Détails
-                    </Link>
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Stockée localement
                   </Button>
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="flex-1 text-green-600 hover:bg-green-100 hover:text-green-700"
-                    onClick={() => handleUpdateStatus(request.id, 'accepted')}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Accepter
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
                     className="flex-1 text-red-600 hover:bg-red-100 hover:text-red-700"
                     onClick={() => handleUpdateStatus(request.id, 'rejected')}
                   >
                     <XCircle className="h-4 w-4 mr-1" />
-                    Refuser
+                    Supprimer
                   </Button>
                 </div>
               </div>
@@ -243,11 +197,9 @@ const ClientRequestsNotifications = () => {
         )}
       </CardContent>
       <CardFooter className="pt-2">
-        <Button variant="outline" size="sm" className="w-full" asChild>
-          <Link to="/offers?status=pending&type=client_request">
-            Voir toutes les demandes
-          </Link>
-        </Button>
+        <div className="w-full text-center text-sm text-muted-foreground p-1 rounded bg-yellow-50">
+          Mode hors-ligne: Les demandes sont stockées localement en raison des problèmes d'API
+        </div>
       </CardFooter>
     </Card>
   );
