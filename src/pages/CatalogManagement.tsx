@@ -54,8 +54,10 @@ const CatalogManagement = () => {
           
           {/* Tab content */}
           <TabsContent value="catalog">
-            {/* Header - moved inside the TabsContent */}
-            <CatalogHeader onAddNewProduct={handleAddNewProduct} />
+            {/* Container for the header with limited width */}
+            <div className="max-w-4xl mx-auto">
+              <CatalogHeader onAddNewProduct={handleAddNewProduct} />
+            </div>
             
             <div className="flex flex-col md:flex-row gap-6 mt-6">
               {/* Category sidebar - now as a vertical list on the left */}
