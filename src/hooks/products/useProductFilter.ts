@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
 import { useQuery } from "@tanstack/react-query";
-import { getCategories } from "@/services/catalogService";
+import { getCategories as fetchCategories } from "@/services/catalogService";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,7 +15,7 @@ export const useProductFilter = (products: Product[] = []) => {
   // Fetch categories with translations from the database
   const { data: categoriesData = [] } = useQuery({
     queryKey: ["categories"],
-    queryFn: getCategories
+    queryFn: fetchCategories
   });
   
   // Create a map of category names to their translations
@@ -115,7 +115,7 @@ export const useProductFilter = (products: Product[] = []) => {
   };
 
   // Get unique categories from products with translations
-  const getCategories = (): {name: string, translation: string}[] => {
+  const getCategoriesFromProducts = (): {name: string, translation: string}[] => {
     if (!products || products.length === 0) return [];
     
     const categoriesSet = new Set<string>();
@@ -177,7 +177,7 @@ export const useProductFilter = (products: Product[] = []) => {
     showInStock,
     setShowInStock,
     filteredProducts: getFilteredProducts(),
-    categories: getCategories(),
+    categories: getCategoriesFromProducts(),
     brands: getBrands(),
     priceRangeLimits: getPriceRange(),
     resetFilters: () => {
