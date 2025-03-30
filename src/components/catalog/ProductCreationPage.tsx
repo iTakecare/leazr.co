@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import { supabase } from "@/integrations/supabase/client";
 
 // Liste des catégories de produits
 const productCategories = [
@@ -61,32 +60,30 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Fetch brands from database
-const useBrands = () => {
-  return useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("brands").select("*");
-      if (error) throw error;
-      return data;
-    },
-    meta: {
-      onError: (err: Error) => {
-        console.error("Failed to load brands:", err);
-        toast.error("Erreur lors du chargement des marques");
-      }
-    }
-  });
-};
+// Liste des marques populaires
+const popularBrands = [
+  "Apple",
+  "Samsung",
+  "HP",
+  "Dell",
+  "Lenovo",
+  "Asus",
+  "Acer",
+  "Microsoft",
+  "Sony",
+  "LG",
+  "Huawei",
+  "Canon",
+  "Xerox",
+  "Logitech",
+  "Brother",
+  "Autre"
+];
 
 const ProductCreationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("details");
-  const { data: brandsData = [] } = useBrands();
-  
-  // Extract just the brand names from the brands data
-  const popularBrands = brandsData.map(brand => brand.name);
   
   const [formData, setFormData] = useState<Partial<Product>>({
     name: "",
@@ -98,7 +95,6 @@ const ProductCreationPage = () => {
     stock: 0,
     active: true,
     is_parent: false,
-    model: "", // Make sure model is initialized
     variation_attributes: {}
   });
   
@@ -269,17 +265,6 @@ const ProductCreationPage = () => {
                       step="0.01"
                       value={formData.monthly_price || 0}
                       onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Modèle/Sous-catégorie</Label>
-                    <Input
-                      id="model"
-                      name="model"
-                      value={formData.model || ""}
-                      onChange={handleChange}
-                      placeholder="Ex: Série XPS, iPhone 15, etc."
                     />
                   </div>
                   
