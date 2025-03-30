@@ -18,6 +18,9 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import ConfirmationPage from "./pages/ConfirmationPage";
+import CatalogManagement from "./pages/CatalogManagement";
+import ITakecarePage from "./pages/ITakecarePage";
+import CreateOffer from "./pages/CreateOffer";
 
 const App = () => {
   const navigate = useNavigate();
@@ -63,6 +66,9 @@ const App = () => {
           <Route path="clients/*" element={<Clients />} />
           <Route path="offers/*" element={<Offers />} />
           <Route path="contracts/*" element={<Contracts />} />
+          <Route path="catalog" element={<CatalogManagement />} />
+          <Route path="itakecare" element={<ITakecarePage />} />
+          <Route path="create-offer" element={<CreateOffer />} />
         </Route>
 
         {/* Routes Client */}
