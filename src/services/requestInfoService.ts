@@ -1,6 +1,10 @@
 
 import { toast } from "sonner";
-import { getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
+
+// Import des constantes depuis le client
+import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/integrations/supabase/client";
 
 export interface ProductRequestData {
   client_name: string;
@@ -29,15 +33,32 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
-    // Get a fresh adminSupabase client each time - ensuring it has proper headers
-    const adminSupabase = getAdminSupabaseClient();
+    // Créer une nouvelle instance du client Supabase avec la clé de service pour s'assurer que les en-têtes sont correctement définis
+    const adminSupabase = createClient<Database>(
+      SUPABASE_URL,
+      SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        },
+        global: {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+          },
+        },
+      }
+    );
     
-    // First step: Check for existing client by email
+    // Première étape: Vérifier si un client existe déjà avec cet email
     let clientId: string | null = null;
     
     if (data.client_email) {
       try {
-        // Try to find existing client by email
+        // Rechercher un client existant par email
         const { data: existingClient, error: clientFetchError } = await adminSupabase
           .from('clients')
           .select('id')
@@ -55,7 +76,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       }
     }
     
-    // If no client exists, create a new one
+    // Si aucun client n'existe, en créer un nouveau
     if (!clientId) {
       console.log("Creating new client");
       
@@ -64,7 +85,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
           name: data.client_name,
           email: data.client_email,
           company: data.client_company,
-          vat_number: data.client_company, // Temporary use of company as VAT
+          vat_number: data.client_company, // Utilisation temporaire de l'entreprise comme TVA
           status: 'lead'
         };
         
@@ -75,7 +96,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         
         if (clientCreateError) {
           console.error("Error creating new client:", clientCreateError);
-          // Don't throw here, we'll still try to create the offer
+          // Ne pas lever d'erreur ici, nous allons quand même essayer de créer l'offre
         } else if (newClient && newClient.length > 0) {
           clientId = newClient[0].id;
           console.log("New client created with ID:", clientId);
@@ -85,25 +106,26 @@ export const createProductRequest = async (data: ProductRequestData) => {
       }
     }
 
-    // Second step: Create the offer/request
+    // Seconde étape: Créer l'offre/demande sans dépendre de la création du client
     console.log("Creating offer with client_id:", clientId);
     
-    // Prepare the offer data
+    // Préparer les données de l'offre
     const offerData = {
       client_name: data.client_name,
       client_email: data.client_email,
-      client_id: clientId, // Link to client if created/found
+      client_id: clientId, // Lier au client si créé/trouvé
       equipment_description: data.equipment_description,
       amount: data.amount,
       monthly_payment: data.monthly_payment,
-      coefficient: 0, // Will be calculated by admin
-      commission: 0,  // Will be calculated by admin
+      coefficient: 0, // Sera calculé par l'admin
+      commission: 0,  // Sera calculé par l'admin
       status: 'pending',
       workflow_status: 'requested',
       type: 'client_request',
-      user_id: null // Explicitly set to null for public requests
+      user_id: null // Explicitement défini à null pour les demandes publiques
     };
     
+    // Utiliser directement l'instance adminSupabase pour éviter les problèmes d'authentification
     const { data: offer, error: offerError } = await adminSupabase
       .from('offers')
       .insert([offerData])
@@ -118,7 +140,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       throw new Error("Aucune offre n'a été créée");
     }
 
-    // Third step: Add additional information as a note if provided
+    // Troisième étape: Ajouter des informations supplémentaires sous forme de note si fournies
     if (data.message && offer[0]) {
       try {
         const noteData = {
@@ -133,7 +155,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
         if (noteError) {
           console.error("Error adding note to offer:", noteError);
-          // We don't throw here, as the offer was already created successfully
+          // Nous ne levons pas d'erreur ici, car l'offre a déjà été créée avec succès
         }
       } catch (error) {
         console.error("Exception when adding note:", error);

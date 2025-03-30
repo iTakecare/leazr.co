@@ -62,26 +62,34 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
 
       const equipmentDescription = `${product.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
 
-      await createProductRequest({
-        client_name: formData.name,
-        client_email: formData.email,
-        client_company: formData.company,
-        client_contact_email: formData.email,
-        equipment_description: equipmentDescription,
-        message: formData.message,
-        amount: (product.price || 0) * quantity,
-        monthly_payment: monthlyPrice,
-        quantity: quantity,
-        duration: duration
-      });
-
-      toast.success("Votre demande a été envoyée avec succès");
-      onClose();
-      navigate("/demande-envoyee");
+      // Retarder légèrement pour éviter les problèmes d'authentification
+      setTimeout(async () => {
+        try {
+          await createProductRequest({
+            client_name: formData.name,
+            client_email: formData.email,
+            client_company: formData.company,
+            client_contact_email: formData.email,
+            equipment_description: equipmentDescription,
+            message: formData.message,
+            amount: (product.price || 0) * quantity,
+            monthly_payment: monthlyPrice,
+            quantity: quantity,
+            duration: duration
+          });
+    
+          toast.success("Votre demande a été envoyée avec succès");
+          onClose();
+          navigate("/demande-envoyee");
+        } catch (error) {
+          console.error("Erreur lors de l'envoi de la demande:", error);
+          toast.error("Une erreur est survenue lors de l'envoi de votre demande");
+          setIsSubmitting(false);
+        }
+      }, 500);
     } catch (error) {
-      console.error("Erreur lors de l'envoi de la demande:", error);
+      console.error("Erreur lors de la préparation de la demande:", error);
       toast.error("Une erreur est survenue lors de l'envoi de votre demande");
-    } finally {
       setIsSubmitting(false);
     }
   };

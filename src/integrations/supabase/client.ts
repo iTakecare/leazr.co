@@ -32,27 +32,25 @@ export const getSupabaseClient = () => {
 
 // Function to get admin supabase client with proper configuration
 export const getAdminSupabaseClient = () => {
-  if (!adminSupabaseInstance) {
-    adminSupabaseInstance = createClient<Database>(
-      SUPABASE_URL,
-      SERVICE_ROLE_KEY,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false
+  // Always create a new admin instance to ensure fresh headers
+  return createClient<Database>(
+    SUPABASE_URL,
+    SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
         },
-        global: {
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
-          },
-        },
-      }
-    );
-  }
-  return adminSupabaseInstance;
+      },
+    }
+  );
 };
 
 // For backwards compatibility
@@ -62,3 +60,6 @@ export const adminSupabase = getAdminSupabaseClient();
 // Export storage URL and key properly as constants instead of properties
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;
 export const SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY;
+
+// Export constants for use in other modules
+export { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SERVICE_ROLE_KEY };
