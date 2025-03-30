@@ -14,7 +14,7 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ onAddNewProduct }) => {
   const navigate = useNavigate();
   
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 max-w-3xl">
       <h1 className="text-2xl sm:text-3xl font-bold">Gestion Catalogue</h1>
       <div className="flex gap-2">
         <Button onClick={() => navigate("/catalog/create-product")} className="flex-1 sm:flex-initial">
