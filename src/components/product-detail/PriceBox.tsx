@@ -8,23 +8,14 @@ import { toast } from "sonner";
 interface PriceBoxProps {
   totalPrice: number;
   onRequestOffer: () => void;
-  duration?: number;
 }
 
-const PriceBox: React.FC<PriceBoxProps> = ({ 
-  totalPrice, 
-  onRequestOffer, 
-  duration = 24 
-}) => {
+const PriceBox: React.FC<PriceBoxProps> = ({ totalPrice, onRequestOffer }) => {
   return (
     <div className="bg-white p-6 rounded-lg border border-gray-100 mb-6 shadow-md">
       <div className="flex justify-between items-center mb-4">
         <span className="text-gray-700 font-medium">Total mensuel (HT)</span>
         <span className="text-2xl font-bold text-[#4ab6c4]">{formatCurrency(totalPrice)} / mois</span>
-      </div>
-      
-      <div className="text-sm text-gray-600 mb-4">
-        <span>Durée du contrat: {duration} mois</span>
       </div>
       
       <div className="flex flex-col sm:flex-row gap-3">

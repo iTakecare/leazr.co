@@ -67,7 +67,7 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         client_contact_email: formData.email,
         equipment_description: equipmentDescription,
         message: formData.message,
-        amount: (product.price || 0) * quantity,
+        amount: product.price || 0,
         monthly_payment: monthlyPrice,
         quantity: quantity,
         duration: duration

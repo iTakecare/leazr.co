@@ -207,24 +207,17 @@ const ProductEditPage = () => {
     if (!id) return;
     
     try {
-      toast.loading("Définition de l'image principale...");
-      
       await updateMutation.mutateAsync({
         image_url: imageUrl
       });
       
-      toast.dismiss();
       toast.success("Image principale définie avec succès");
-      
-      // Forcer le rafraîchissement des données du produit après mise à jour
-      queryClient.invalidateQueries({ queryKey: ["product", id] });
-    } catch (error: any) {
-      toast.dismiss();
+    } catch (error) {
       console.error("Error setting main image:", error);
-      toast.error(`Erreur: ${error.message || "Erreur lors de la définition de l'image principale"}`);
+      toast.error("Erreur lors de la définition de l'image principale");
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 interface ProductImageDisplayProps {
   imageUrl: string;
   altText: string;
+  imageUrls?: string[];
 }
 
 const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({ 
@@ -19,9 +20,9 @@ const ProductImageDisplay: React.FC<ProductImageDisplayProps> = ({
   };
 
   const handleImageError = () => {
+    console.log("ProductImageDisplay - Error loading image");
     setIsLoading(false);
     setHasError(true);
-    console.log(`Erreur de chargement d'image: ${imageUrl}`);
   };
 
   return (
