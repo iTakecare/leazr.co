@@ -7,10 +7,7 @@ interface ProductDescriptionProps {
   description: string;
 }
 
-const ProductDescription: React.FC<ProductDescriptionProps> = ({ 
-  title = "Description du produit", // Default title if none provided
-  description 
-}) => {
+const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, description }) => {
   const [expanded, setExpanded] = useState(false);
   const [showExpandButton, setShowExpandButton] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);

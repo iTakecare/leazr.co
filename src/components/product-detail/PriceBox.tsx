@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ShoppingCart } from "lucide-react";
+import { Check } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 
@@ -9,67 +9,13 @@ interface PriceBoxProps {
   totalPrice: number;
   duration: number;
   onRequestOffer: () => void;
-  product: any;
-  quantity: number;
-  selectedOptions: Record<string, string>;
 }
 
 const PriceBox: React.FC<PriceBoxProps> = ({ 
   totalPrice, 
   duration,
-  onRequestOffer,
-  product,
-  quantity,
-  selectedOptions
+  onRequestOffer 
 }) => {
-  const handleAddToCart = () => {
-    // Récupérer le panier existant du stockage local
-    const existingCartJSON = localStorage.getItem('itakecare-cart') || '[]';
-    let cart = [];
-    
-    try {
-      cart = JSON.parse(existingCartJSON);
-    } catch (error) {
-      console.error("Erreur lors de la lecture du panier:", error);
-      cart = [];
-    }
-    
-    // Créer l'objet à ajouter au panier
-    const cartItem = {
-      id: crypto.randomUUID(),
-      productId: product.id,
-      name: product.name,
-      image: product.image_url,
-      price: product.price,
-      monthlyPrice: totalPrice / quantity, // Prix mensuel unitaire
-      totalMonthlyPrice: totalPrice, // Prix mensuel total
-      quantity: quantity,
-      selectedOptions: selectedOptions,
-      addedAt: new Date().toISOString()
-    };
-    
-    // Ajouter le nouvel article au panier
-    cart.push(cartItem);
-    
-    // Enregistrer le panier mis à jour
-    localStorage.setItem('itakecare-cart', JSON.stringify(cart));
-    
-    // Afficher un toast de confirmation
-    toast.success(
-      <div>
-        <p className="font-semibold">{product.name} ajouté au panier</p>
-        <p className="text-sm">Quantité: {quantity}</p>
-      </div>,
-      {
-        action: {
-          label: "Voir le panier",
-          onClick: () => window.location.href = "/panier"
-        },
-        duration: 5000
-      }
-    );
-  };
-
   return (
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
       <div className="flex justify-between items-center mb-2">
@@ -79,11 +25,10 @@ const PriceBox: React.FC<PriceBoxProps> = ({
       
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <Button 
-          className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599] flex items-center gap-2"
-          onClick={handleAddToCart}
+          className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
+          onClick={onRequestOffer}
         >
-          <ShoppingCart className="h-4 w-4" />
-          Ajouter au panier
+          Ajouter
         </Button>
         <Button 
           variant="outline" 

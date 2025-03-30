@@ -20,7 +20,6 @@ const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants })
           
         if (variantPrices.length > 0) {
           const minPrice = Math.min(...variantPrices);
-          console.log(`Variant combination min price: ${minPrice}`);
           productMonthlyPrice = formatCurrency(minPrice);
         }
       } else if (product.variants && product.variants.length > 0) {
@@ -30,12 +29,10 @@ const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants })
           
         if (variantPrices.length > 0) {
           const minPrice = Math.min(...variantPrices);
-          console.log(`Variant min price: ${minPrice}`);
           productMonthlyPrice = formatCurrency(minPrice);
         }
       }
     } else if (product?.monthly_price) {
-      console.log(`Base monthly price: ${product.monthly_price}`);
       productMonthlyPrice = formatCurrency(product.monthly_price);
     }
     
