@@ -105,7 +105,7 @@ const CartPage: React.FC = () => {
                       className="w-full bg-[#2d618f] hover:bg-[#347599]"
                       asChild
                     >
-                      <Link to="/demande-devis">
+                      <Link to="/demande">
                         Faire ma demande
                       </Link>
                     </Button>

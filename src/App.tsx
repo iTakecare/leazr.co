@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -52,6 +53,8 @@ import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
 import ProductEditPage from "./pages/ProductEditPage";
 import CartPage from './pages/CartPage';
+import RequestPage from './pages/RequestPage';
+import RequestSentPage from './pages/RequestSentPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +81,8 @@ const App = () => {
                   
                   <Route path="/catalogue" element={<PublicCatalog />} />
                   <Route path="/panier" element={<CartPage />} />
+                  <Route path="/demande" element={<RequestPage />} />
+                  <Route path="/demande-envoyee" element={<RequestSentPage />} />
                   
                   <Route path="/products/:id" element={<ProductDetailPage />} />
                   <Route path="/produits/:id" element={<ProductDetailPage />} />

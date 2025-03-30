@@ -328,3 +328,17 @@ export const removeCollaborator = async (clientId: string, collaboratorId: strin
 };
 
 export { createUserAccount as createAccountForClient, resetPassword as resetClientPassword };
+
+// Export de la fonction verifyVatNumber pour permettre son utilisation depuis d'autres modules
+export const clientService = {
+  getClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient,
+  verifyVatNumber,
+  addCollaborator,
+  removeCollaborator,
+  createAccountForClient,
+  resetClientPassword,
+};

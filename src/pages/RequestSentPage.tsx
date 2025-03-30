@@ -1,67 +1,46 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowLeft } from "lucide-react";
-import PublicHeader from "@/components/catalog/public/PublicHeader";
+import React from 'react';
+import { Link, useLocation, Navigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, ShoppingBag } from 'lucide-react';
+import PublicHeader from '@/components/catalog/public/PublicHeader';
 
-const RequestSentPage = () => {
-  const navigate = useNavigate();
-
+const RequestSentPage: React.FC = () => {
+  const location = useLocation();
+  const { success, companyName, name } = location.state || {};
+  
+  // If accessed directly without success state, redirect to home
+  if (!success) {
+    return <Navigate to="/catalogue" replace />;
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicHeader />
       
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto text-center">
-          <div className="mb-6 flex justify-center">
-            <CheckCircle className="h-16 w-16 text-green-500" />
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm text-center">
+          <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
           
           <h1 className="text-2xl font-bold mb-4">Demande envoyée avec succès !</h1>
           
-          <p className="text-gray-600 mb-8">
-            Merci pour votre demande. Notre équipe l'examinera dans les plus brefs délais 
-            et vous contactera sous 24 heures ouvrées.
+          <p className="text-gray-700 mb-6">
+            Merci {name} pour votre demande.
+            <br /><br />
+            Notre équipe va étudier votre demande dans les plus brefs délais et vous contactera à l'adresse email que vous avez fournie.
+            <br /><br />
+            Un récapitulatif de votre demande a été envoyé à votre adresse email.
           </p>
           
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-6 text-left">
-              <h3 className="font-medium mb-4">Fonctionnement de la demande</h3>
-              
-              <ol className="space-y-4">
-                <li className="flex">
-                  <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">1</span>
-                  <span>Pour identifier votre entreprise, nous allons vous demander votre numéro d'entreprise (BCE) et votre adresse email professionnelle.</span>
-                </li>
-                <li className="flex">
-                  <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">2</span>
-                  <span>Une fois vos informations rentrées, votre sélection faite et votre adresse de livraison indiquée, nous procéderons à l'étude de votre dossier en moins de 24 heures.</span>
-                </li>
-                <li className="flex">
-                  <span className="flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-800 h-6 w-6 rounded-full mr-3 text-sm font-medium">3</span>
-                  <span>Si votre dossier est accepté, votre carte d'identité vous sera demandée pour la signature du contrat en ligne.</span>
-                </li>
-              </ol>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                className="w-full sm:w-auto" 
-                onClick={() => navigate("/catalogue")}
-                variant="outline"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Retour au catalogue
-              </Button>
-              
-              <Button 
-                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700" 
-                onClick={() => navigate("/")}
-              >
-                Découvrir nos solutions
-              </Button>
-            </div>
+            <Button asChild size="lg" className="w-full">
+              <Link to="/catalogue">
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                Continuer mes achats
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

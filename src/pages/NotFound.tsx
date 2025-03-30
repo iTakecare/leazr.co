@@ -1,6 +1,7 @@
+
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator } from "lucide-react";
+import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -23,6 +24,8 @@ const NotFound = () => {
   const isPartnerAttempt = location.pathname.includes('/partners/');
   const isAmbassadorDashboardAttempt = location.pathname.includes('/ambassador/') && !location.pathname.includes('/ambassador/dashboard');
   const isCalculatorAttempt = location.pathname.includes('/calculator');
+  const isCartAttempt = location.pathname.includes('/panier');
+  const isDemandeAttempt = location.pathname.includes('/demande');
   
   const clientId = isClientEditAttempt ? 
     location.pathname.split('/clients/edit/')[1] : null;
@@ -149,6 +152,32 @@ const NotFound = () => {
             </div>
           )}
           
+          {isCartAttempt && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous cherchez votre panier, utilisez le lien ci-dessous:
+              </p>
+              <Link to="/panier">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <ShoppingBag className="h-4 w-4" /> Voir mon panier
+                </Button>
+              </Link>
+            </div>
+          )}
+          
+          {isDemandeAttempt && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-amber-700 text-sm mb-4">
+                Si vous souhaitez faire une demande, utilisez le lien ci-dessous:
+              </p>
+              <Link to="/demande">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <ShoppingBag className="h-4 w-4" /> Faire ma demande
+                </Button>
+              </Link>
+            </div>
+          )}
+          
           {productOrCatalogId && (isProductDetailAttempt || isCatalogDetailAttempt) && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-700 text-sm mb-4">
@@ -177,21 +206,21 @@ const NotFound = () => {
               asChild
               className="flex items-center gap-2 w-full"
             >
-              <Link to="/">
-                <Home className="h-4 w-4" /> 
-                Tableau de bord
+              <Link to="/catalogue">
+                <Package className="h-4 w-4" /> 
+                Catalogue
               </Link>
             </Button>
             
-            <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               <Button 
                 variant="outline" 
                 asChild
                 className="flex items-center gap-2"
               >
-                <Link to="/clients">
-                  <Users className="h-4 w-4" /> 
-                  Clients
+                <Link to="/panier">
+                  <ShoppingBag className="h-4 w-4" /> 
+                  Panier
                 </Link>
               </Button>
               
@@ -200,20 +229,9 @@ const NotFound = () => {
                 asChild
                 className="flex items-center gap-2"
               >
-                <Link to="/ambassadors">
-                  <HeartHandshake className="h-4 w-4" /> 
-                  Ambassadeurs
-                </Link>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2"
-              >
-                <Link to="/partners">
-                  <BadgePercent className="h-4 w-4" /> 
-                  Partenaires
+                <Link to="/demande">
+                  <Calculator className="h-4 w-4" /> 
+                  Demande
                 </Link>
               </Button>
             </div>
