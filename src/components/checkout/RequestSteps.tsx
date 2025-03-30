@@ -45,6 +45,7 @@ const RequestSteps: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (items.length === 0) {
       toast.error("Veuillez ajouter des produits à votre panier avant de soumettre votre demande.");
       return;
@@ -58,20 +59,7 @@ const RequestSteps: React.FC = () => {
         `${item.quantity}x ${item.product.name} (${formatCurrency(item.product.monthly_price)}/mois)`
       ).join('\n');
 
-      console.log("Submitting request with data:", {
-        client_name: formData.name,
-        client_email: formData.email,
-        client_company: formData.company,
-        equipment_description: equipmentDescription,
-        message: formData.message,
-        amount: cartTotal,
-        monthly_payment: cartTotal,
-        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
-        duration: 36
-      });
-
-      // Submit the request
-      await createProductRequest({
+      const requestData = {
         client_name: formData.name,
         client_email: formData.email,
         client_company: formData.company,
@@ -82,7 +70,16 @@ const RequestSteps: React.FC = () => {
         monthly_payment: cartTotal,
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         duration: 36 // Default duration in months
-      });
+      };
+
+      console.log("Submitting request with data:", requestData);
+
+      // Submit the request
+      const result = await createProductRequest(requestData);
+
+      if (!result) {
+        throw new Error("Erreur lors de la création de la demande");
+      }
 
       // Success! Clear cart and redirect
       clearCart();

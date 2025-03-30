@@ -8,6 +8,7 @@ import { formatCurrency } from '@/utils/formatters';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { CartItem as CartItemType } from '@/types/cart';
+import { toast } from 'sonner';
 
 interface RequestSummaryProps {
   formData: {
@@ -22,7 +23,7 @@ interface RequestSummaryProps {
   cartTotal: number;
   loading: boolean;
   onPrev: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
 const RequestSummary: React.FC<RequestSummaryProps> = ({
@@ -33,6 +34,17 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({
   onPrev,
   onSubmit
 }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await onSubmit(e);
+    } catch (error) {
+      console.error("Error during submission:", error);
+      toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
@@ -105,10 +117,9 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({
           <Textarea
             id="finalMessage"
             value={formData.message}
-            onChange={(e) => {}}
+            readOnly
             placeholder="Aucun message"
             rows={3}
-            readOnly
             className="bg-gray-50"
           />
         </div>
@@ -126,7 +137,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({
         </Button>
         
         <Button 
-          onClick={onSubmit} 
+          onClick={handleSubmit} 
           disabled={loading}
           className="min-w-[180px]"
         >

@@ -58,7 +58,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       } else {
         toast({
           title: "TVA invalide",
-          description: "Le numéro de TVA n'a pas pu être vérifié. Veuillez vérifier et réessayer.",
+          description: result.error || "Le numéro de TVA n'a pas pu être vérifié. Veuillez vérifier et réessayer.",
           variant: "destructive"
         });
       }
