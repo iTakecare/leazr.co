@@ -47,6 +47,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const addToCart = (newItem: CartItem) => {
     console.log("CartContext: Adding item to cart:", newItem);
+    console.log("Product price:", newItem.product.monthly_price);
     
     setItems(prevItems => {
       // Check if this product is already in the cart
@@ -97,8 +98,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const cartCount = items.reduce((total, item) => total + item.quantity, 0);
   
+  // Assurons-nous d'utiliser le bon prix du produit
   const cartTotal = items.reduce((total, item) => {
-    const itemPrice = (item.product.monthly_price || 0) * item.quantity;
+    // Utilisons le monthly_price du produit et multiplions-le par la quantité
+    const itemPrice = item.product.monthly_price ? (item.product.monthly_price * item.quantity) : 0;
+    console.log(`Item ${item.product.name} price: ${item.product.monthly_price} × ${item.quantity} = ${itemPrice}`);
     return total + itemPrice;
   }, 0);
   

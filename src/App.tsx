@@ -51,6 +51,7 @@ import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
 import ProductEditPage from "./pages/ProductEditPage";
 import CartDrawer from './components/cart/CartDrawer';
+import CartPage from './pages/CartPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/signup" element={<Signup />} />
                 
                 <Route path="/catalogue" element={<PublicCatalog />} />
+                <Route path="/panier" element={<CartPage />} />
                 
                 <Route path="/products/:id" element={<ProductDetailPage />} />
                 <Route path="/produits/:id" element={<ProductDetailPage />} />

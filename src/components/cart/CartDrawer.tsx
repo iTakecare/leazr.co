@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, X, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { Trash2, X, ShoppingBag, Plus, Minus, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CartItem from './CartItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -36,6 +36,15 @@ const CartDrawer: React.FC = () => {
               </Button>
             </SheetClose>
           </div>
+          
+          <Link 
+            to="/panier"
+            className="text-[#2d618f] text-sm flex items-center hover:underline mt-2"
+            onClick={() => setIsCartOpen(false)}
+          >
+            <ExternalLink className="h-3 w-3 mr-1" /> 
+            Voir en plein écran
+          </Link>
         </div>
         
         {items.length === 0 ? (
@@ -85,8 +94,8 @@ const CartDrawer: React.FC = () => {
                     onClick={() => setIsCartOpen(false)}
                     asChild
                   >
-                    <Link to="/demande-devis">
-                      Demander un devis
+                    <Link to="/panier">
+                      Voir le panier
                     </Link>
                   </Button>
                   

@@ -5,27 +5,37 @@ import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface AddToCartButtonProps {
   product: Product;
   quantity: number;
   duration: number;
   selectedOptions?: Record<string, string>;
+  navigateToCart?: boolean;
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   quantity,
   duration,
-  selectedOptions = {}
+  selectedOptions = {},
+  navigateToCart = false
 }) => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Empêche la navigation ou l'ouverture d'une modale
     e.stopPropagation(); // Arrête la propagation de l'événement
     
-    console.log("Adding to cart:", { product, quantity, duration, selectedOptions });
+    console.log("Adding to cart:", { 
+      product, 
+      quantity, 
+      duration, 
+      selectedOptions,
+      price: product.monthly_price 
+    });
     
     addToCart({
       product,
@@ -35,6 +45,11 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     });
     
     toast.success(`${product.name} ajouté au panier`);
+    
+    // Si navigateToCart est true, rediriger vers la page du panier
+    if (navigateToCart) {
+      navigate('/panier');
+    }
   };
   
   return (
