@@ -4,7 +4,6 @@ import Container from "@/components/layout/Container";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag, Award } from "lucide-react";
-import CategoryManager from "@/components/catalog/CategoryManager";
 import BrandManager from "@/components/catalog/BrandManager";
 import AttributeManager from "@/components/catalog/AttributeManager";
 
@@ -46,10 +45,6 @@ const CatalogManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4 w-full justify-start mobile-tabs-full">
             <TabsTrigger value="catalog">Catalogue</TabsTrigger>
-            <TabsTrigger value="categories">
-              <Tag className={isMobile ? "" : "mr-2 h-4 w-4"} />
-              {isMobile ? "Catégories" : <span>Catégories</span>}
-            </TabsTrigger>
             <TabsTrigger value="brands">
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
@@ -78,10 +73,6 @@ const CatalogManagement = () => {
               groupingOption={groupingOption}
               onProductDeleted={handleProductDeleted}
             />
-          </TabsContent>
-          
-          <TabsContent value="categories">
-            <CategoryManager />
           </TabsContent>
           
           <TabsContent value="brands">
