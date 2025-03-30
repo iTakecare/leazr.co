@@ -50,6 +50,7 @@ import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClient
 import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
 import ProductEditPage from "./pages/ProductEditPage";
+import CartDrawer from './components/cart/CartDrawer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,98 +61,101 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+const App = () => {
   const location = useLocation();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="itakecareapp-theme">
-        <AuthProvider>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              
-              <Route path="/catalogue" element={<PublicCatalog />} />
-              
-              <Route path="/products/:id" element={<ProductDetailPage />} />
-              <Route path="/produits/:id" element={<ProductDetailPage />} />
-              
-              <Route path="/client/sign-offer/:id" element={<SignOffer />} />
-              
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="clients" element={<Clients />} />
-                <Route path="clients/new" element={<ClientForm />} />
-                <Route path="clients/create" element={<ClientForm />} />
-                <Route path="clients/:id" element={<ClientDetail />} />
-                <Route path="clients/edit/:id" element={<ClientForm />} />
-                <Route path="clients/:id/create-offer" element={<CreateOffer />} />
-                <Route path="catalog" element={<CatalogManagement />} />
-                <Route path="catalog/create-product" element={<ProductCreationPage />} />
-                <Route path="catalog/edit/:id" element={<ProductEditPage />} />
-                <Route path="products/:id" element={<ProductDetail />} />
-                <Route path="offers" element={<Offers />} />
-                <Route path="offers/:id" element={<OfferDetail />} />
-                <Route path="contracts" element={<Contracts />} />
-                <Route path="contracts/:id" element={<ContractDetail />} />
-                <Route path="i-take-care" element={<ITakecarePage />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="create-offer" element={<CreateOffer />} />
+    <div>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" storageKey="itakecareapp-theme">
+          <AuthProvider>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
                 
-                <Route path="ambassadors" element={<AmbassadorsList />} />
-                <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
-                <Route path="ambassadors/:id" element={<AmbassadorDetail />} />
-                <Route path="ambassadors/:id/edit" element={<AmbassadorEditPage />} />
-                <Route path="ambassadors/:id/dashboard" element={<AmbassadorDashboard />} />
-                <Route path="ambassadors/:id/create-offer/:clientId" element={<AmbassadorCreateOffer />} />
+                <Route path="/catalogue" element={<PublicCatalog />} />
                 
-                <Route path="partners" element={<PartnersList />} />
-                <Route path="partners/create" element={<PartnerCreatePage />} />
-                <Route path="partners/:id" element={<PartnerDetail />} />
-                <Route path="partners/:id/edit" element={<PartnerEditPage />} />
-                <Route path="partners/:id/dashboard" element={<PartnerDashboard />} />
-                <Route path="partners/:id/create-offer/:clientId" element={<PartnerCreateOffer />} />
-                <Route path="partners/:id/offers/:offerId" element={<PartnerOfferDetail />} />
+                <Route path="/products/:id" element={<ProductDetailPage />} />
+                <Route path="/produits/:id" element={<ProductDetailPage />} />
                 
-                <Route path="create-test-users" element={<CreateTestUsers />} />
-              </Route>
-              
-              <Route path="/client/*" element={<ClientRoutes />} />
-              
-              <Route path="/ambassador" element={<AmbassadorLayout />}>
-                <Route index element={<AmbassadorDashboardPage />} />
-                <Route path="dashboard" element={<AmbassadorDashboardPage />} />
-                <Route path="offers" element={<AmbassadorOffersPage />} />
-                <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
-                <Route path="clients" element={<AmbassadorClientsPage />} />
-                <Route path="clients/new" element={<ClientForm isAmbassador={true} />} />
-                <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
-                <Route path="clients/:id" element={<ClientDetail />} />
-                <Route path="clients/edit/:id" element={<ClientForm isAmbassador={true} />} />
-                <Route path="create-offer" element={<AmbassadorCreateOffer />} />
-                <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
-                <Route path="catalog" element={<AmbassadorCatalog />} />
-              </Route>
-              
-              <Route path="/partner/dashboard" element={<PartnerDashboard />} />
-              <Route path="/partner/offers" element={<Offers />} />
-              <Route path="/partner/clients" element={<Clients />} />
-              <Route path="/partner" element={<PartnerDashboard />} />
-              
-              <Route path="/create-offer" element={<CreateOffer />} />
-              <Route path="/calculator" element={<CreateOffer />} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatePresence>
-          
-          <Toaster richColors position="top-right" />
-          <ShadcnToaster />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+                <Route path="/client/sign-offer/:id" element={<SignOffer />} />
+                
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="clients" element={<Clients />} />
+                  <Route path="clients/new" element={<ClientForm />} />
+                  <Route path="clients/create" element={<ClientForm />} />
+                  <Route path="clients/:id" element={<ClientDetail />} />
+                  <Route path="clients/edit/:id" element={<ClientForm />} />
+                  <Route path="clients/:id/create-offer" element={<CreateOffer />} />
+                  <Route path="catalog" element={<CatalogManagement />} />
+                  <Route path="catalog/create-product" element={<ProductCreationPage />} />
+                  <Route path="catalog/edit/:id" element={<ProductEditPage />} />
+                  <Route path="products/:id" element={<ProductDetail />} />
+                  <Route path="offers" element={<Offers />} />
+                  <Route path="offers/:id" element={<OfferDetail />} />
+                  <Route path="contracts" element={<Contracts />} />
+                  <Route path="contracts/:id" element={<ContractDetail />} />
+                  <Route path="i-take-care" element={<ITakecarePage />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="create-offer" element={<CreateOffer />} />
+                  
+                  <Route path="ambassadors" element={<AmbassadorsList />} />
+                  <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
+                  <Route path="ambassadors/:id" element={<AmbassadorDetail />} />
+                  <Route path="ambassadors/:id/edit" element={<AmbassadorEditPage />} />
+                  <Route path="ambassadors/:id/dashboard" element={<AmbassadorDashboard />} />
+                  <Route path="ambassadors/:id/create-offer/:clientId" element={<AmbassadorCreateOffer />} />
+                  
+                  <Route path="partners" element={<PartnersList />} />
+                  <Route path="partners/create" element={<PartnerCreatePage />} />
+                  <Route path="partners/:id" element={<PartnerDetail />} />
+                  <Route path="partners/:id/edit" element={<PartnerEditPage />} />
+                  <Route path="partners/:id/dashboard" element={<PartnerDashboard />} />
+                  <Route path="partners/:id/create-offer/:clientId" element={<PartnerCreateOffer />} />
+                  <Route path="partners/:id/offers/:offerId" element={<PartnerOfferDetail />} />
+                  
+                  <Route path="create-test-users" element={<CreateTestUsers />} />
+                </Route>
+                
+                <Route path="/client/*" element={<ClientRoutes />} />
+                
+                <Route path="/ambassador" element={<AmbassadorLayout />}>
+                  <Route index element={<AmbassadorDashboardPage />} />
+                  <Route path="dashboard" element={<AmbassadorDashboardPage />} />
+                  <Route path="offers" element={<AmbassadorOffersPage />} />
+                  <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
+                  <Route path="clients" element={<AmbassadorClientsPage />} />
+                  <Route path="clients/new" element={<ClientForm isAmbassador={true} />} />
+                  <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
+                  <Route path="clients/:id" element={<ClientDetail />} />
+                  <Route path="clients/edit/:id" element={<ClientForm isAmbassador={true} />} />
+                  <Route path="create-offer" element={<AmbassadorCreateOffer />} />
+                  <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
+                  <Route path="catalog" element={<AmbassadorCatalog />} />
+                </Route>
+                
+                <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+                <Route path="/partner/offers" element={<Offers />} />
+                <Route path="/partner/clients" element={<Clients />} />
+                <Route path="/partner" element={<PartnerDashboard />} />
+                
+                <Route path="/create-offer" element={<CreateOffer />} />
+                <Route path="/calculator" element={<CreateOffer />} />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AnimatePresence>
+            
+            <Toaster richColors position="top-right" />
+            <ShadcnToaster />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+      <CartDrawer />
+    </div>
   );
-}
+};
 
 export default App;

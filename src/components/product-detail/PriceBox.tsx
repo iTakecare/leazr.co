@@ -4,17 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
+import AddToCartButton from "./AddToCartButton";
 
 interface PriceBoxProps {
   totalPrice: number;
   duration: number;
   onRequestOffer: () => void;
+  product?: any;
+  quantity?: number;
+  selectedOptions?: Record<string, string>;
 }
 
 const PriceBox: React.FC<PriceBoxProps> = ({ 
   totalPrice, 
   duration,
-  onRequestOffer 
+  onRequestOffer,
+  product,
+  quantity = 1,
+  selectedOptions = {}
 }) => {
   return (
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
@@ -24,12 +31,22 @@ const PriceBox: React.FC<PriceBoxProps> = ({
       </div>
       
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <Button 
-          className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
-          onClick={onRequestOffer}
-        >
-          Ajouter
-        </Button>
+        {product ? (
+          <AddToCartButton 
+            product={product}
+            quantity={quantity}
+            duration={duration}
+            selectedOptions={selectedOptions}
+          />
+        ) : (
+          <Button 
+            className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
+            onClick={onRequestOffer}
+          >
+            Ajouter
+          </Button>
+        )}
+        
         <Button 
           variant="outline" 
           className="w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
