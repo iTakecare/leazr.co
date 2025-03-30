@@ -95,6 +95,7 @@ const ProductCreationPage = () => {
     stock: 0,
     active: true,
     is_parent: false,
+    model: "", // Make sure model is initialized
     variation_attributes: {}
   });
   
