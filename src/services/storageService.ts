@@ -1,8 +1,11 @@
+
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
  * S'assure qu'un bucket de stockage existe et est configuré correctement
+ * @param bucketName Le nom du bucket à vérifier/créer
+ * @returns Promise<boolean> Vrai si le bucket existe ou a été créé avec succès
  */
 export async function ensureStorageBucket(bucketName: string): Promise<boolean> {
   try {
@@ -194,6 +197,10 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
 
 /**
  * Méthode simplifiée pour télécharger et stocker une image
+ * @param imageUrl URL de l'image à télécharger
+ * @param bucketName Nom du bucket Supabase
+ * @param folder Dossier optionnel dans le bucket
+ * @returns URL de l'image stockée ou null en cas d'erreur
  */
 export async function downloadAndStoreImage(imageUrl: string, bucketName: string, folder: string = ''): Promise<string | null> {
   try {
@@ -300,14 +307,6 @@ export function getImageUrlWithCacheBuster(url: string | null): string {
   if (!url) return "/placeholder.svg";
   
   try {
-    // Fix incomplete URLs
-    if (url.startsWith('https:/')) {
-      url = url.replace('https:/', 'https://');
-    }
-    
-    // Clean up any double slashes (except after protocol)
-    url = url.replace(/([^:])\/\/+/g, '$1/');
-    
     // Nettoyer l'URL en supprimant les paramètres existants
     const baseUrl = url.split('?')[0];
     

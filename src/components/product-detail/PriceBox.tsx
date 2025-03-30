@@ -4,36 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
-import { useCart } from "@/context/CartContext";
-import { Product } from "@/types/catalog";
 
 interface PriceBoxProps {
   totalPrice: number;
   duration: number;
   onRequestOffer: () => void;
-  product?: Product;
-  selectedAttributes?: Record<string, string>;
-  quantity?: number;
 }
 
 const PriceBox: React.FC<PriceBoxProps> = ({ 
   totalPrice, 
   duration,
-  onRequestOffer,
-  product,
-  selectedAttributes,
-  quantity = 1
+  onRequestOffer 
 }) => {
-  const { addToCart } = useCart();
-
-  const handleAddToCart = () => {
-    if (product) {
-      addToCart(product, quantity, selectedAttributes);
-    } else {
-      onRequestOffer();
-    }
-  };
-
   return (
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
       <div className="flex justify-between items-center mb-2">
@@ -44,9 +26,9 @@ const PriceBox: React.FC<PriceBoxProps> = ({
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <Button 
           className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
-          onClick={handleAddToCart}
+          onClick={onRequestOffer}
         >
-          {product ? "Ajouter au panier" : "Ajouter"}
+          Ajouter
         </Button>
         <Button 
           variant="outline" 
