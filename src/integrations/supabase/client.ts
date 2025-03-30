@@ -23,7 +23,6 @@ export const getSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
       },
     });
@@ -41,7 +40,6 @@ export const getAdminSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
       },
     });

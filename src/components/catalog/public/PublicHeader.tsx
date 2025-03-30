@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
@@ -6,12 +5,8 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
-import { useCart } from "@/context/CartContext";
-import { motion } from "framer-motion";
 
 const PublicHeader = () => {
-  const { totalItems, isCartAnimating } = useCart();
-  
   return (
     <header className="bg-white border-b shadow-sm">
       <div className="container mx-auto px-4">
@@ -69,30 +64,14 @@ const PublicHeader = () => {
           
           <div className="flex items-center space-x-4">
             <Link to="/panier" className="relative">
-              <motion.div
-                animate={isCartAnimating ? { scale: [1, 1.3, 1] } : {}}
-                transition={{ duration: 0.5 }}
-              >
-                <ShoppingCart className="h-6 w-6 text-gray-700" />
-                {totalItems > 0 && (
-                  <motion.span 
-                    key={totalItems}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                  >
-                    {totalItems}
-                  </motion.span>
-                )}
-              </motion.div>
+              <ShoppingCart className="h-6 w-6 text-gray-700" />
+              <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                0
+              </span>
             </Link>
             <div className="hidden md:block">
-              <Button variant="outline" className="mr-2" asChild>
-                <Link to="/login">Connexion</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/signup">S'inscrire</Link>
-              </Button>
+              <Button variant="outline" className="mr-2">Connexion</Button>
+              <Button>S'inscrire</Button>
             </div>
           </div>
         </div>

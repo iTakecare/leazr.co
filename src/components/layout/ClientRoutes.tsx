@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -104,12 +103,12 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
       }
     };
     
-    if (user && !isLoading && userRoleChecked) {
+    if (user && !isLoading) {
       checkClientAssociation();
     } else {
       setCheckingClient(false);
     }
-  }, [user, isLoading, retryCount, location, navigate, userRoleChecked]);
+  }, [user, isLoading, retryCount, location, navigate]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
