@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,12 +14,14 @@ interface ProductImageManagerProps {
   productId: string;
   onChange?: (images: any[]) => void;
   onSetMainImage?: (imageUrl: string) => void;
+  currentMainImage?: string;
 }
 
 const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   productId,
   onChange,
-  onSetMainImage
+  onSetMainImage,
+  currentMainImage
 }) => {
   const [images, setImages] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -97,12 +100,13 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
               }
               
               const timestamp = Date.now();
+              const isMain = currentMainImage && data.publicUrl === currentMainImage;
               
               return {
                 name: file.name,
                 url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
                 originalUrl: data.publicUrl,
-                isMain: false
+                isMain: isMain
               };
             } catch (e) {
               console.error(`Error generating URL for ${file.name}:`, e);
@@ -133,7 +137,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     return () => {
       loadingRef.current = false;
     };
-  }, [productId, onChange, retryCount]);
+  }, [productId, onChange, retryCount, currentMainImage]);
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -204,8 +208,14 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const handleSetMainImage = (imageInfo: any) => {
     const originalUrl = imageInfo.originalUrl || imageInfo.url;
     if (onSetMainImage) {
-      onSetMainImage(originalUrl);
-      toast.success("Image principale définie avec succès");
+      try {
+        onSetMainImage(originalUrl);
+        // We don't show success toast here because it will be shown by the parent component
+        // after the operation is actually complete
+      } catch (error) {
+        console.error("Error setting main image:", error);
+        toast.error("Erreur lors de la définition de l'image principale");
+      }
     }
   };
   
@@ -309,7 +319,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {images.map((image, index) => (
-            <Card key={`${image.name}-${index}`} className="overflow-hidden">
+            <Card key={`${image.name}-${index}`} className={`overflow-hidden ${image.isMain ? 'border-primary' : ''}`}>
               <div className="relative aspect-square">
                 <div className="w-full h-full flex items-center justify-center bg-gray-50 p-2">
                   <img
@@ -322,6 +332,11 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                       (e.target as HTMLImageElement).src = "/placeholder.svg";
                     }}
                   />
+                  {image.isMain && (
+                    <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                      Image principale
+                    </div>
+                  )}
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 transition-opacity">
                   <div className="flex space-x-2">
@@ -330,6 +345,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                       variant="secondary"
                       onClick={() => handleSetMainImage(image)}
                       title="Définir comme image principale"
+                      disabled={image.isMain}
                     >
                       <Check className="h-4 w-4" />
                     </Button>

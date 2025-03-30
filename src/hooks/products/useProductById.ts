@@ -17,6 +17,7 @@ export const useProductById = (productId: string | undefined) => {
 
       try {
         setIsLoading(true);
+        setError(null);
         const productData = await getProductById(productId);
         setProduct(productData);
         console.log('Product loaded:', productData);
@@ -31,5 +32,15 @@ export const useProductById = (productId: string | undefined) => {
     fetchProduct();
   }, [productId]);
 
-  return { product, isLoading, error };
+  // Function to update product data locally after changes
+  const updateLocalProduct = (updatedData: Partial<Product>) => {
+    if (product) {
+      setProduct({
+        ...product,
+        ...updatedData
+      });
+    }
+  };
+
+  return { product, isLoading, error, updateLocalProduct };
 };

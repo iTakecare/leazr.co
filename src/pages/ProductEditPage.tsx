@@ -107,12 +107,9 @@ const ProductEditPage = () => {
   });
   
   const [activeTab, setActiveTab] = useState("details");
+  const [updatingMainImage, setUpdatingMainImage] = useState(false);
   
-  const { data: product, isLoading, isError, error } = useQuery({
-    queryKey: ["product", id],
-    queryFn: () => getProductById(id || ""),
-    enabled: !!id
-  });
+  const { product, isLoading, error, updateLocalProduct } = useProductById(id || "");
   
   useEffect(() => {
     if (product) {
@@ -134,13 +131,18 @@ const ProductEditPage = () => {
   
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
-    onSuccess: () => {
+    onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      // Update local product data to reflect changes immediately
+      if (updatedProduct) {
+        updateLocalProduct(updatedProduct);
+      }
       toast.success("Produit mis à jour avec succès");
     },
     onError: (error: any) => {
-      toast.error(`Erreur lors de la mise à jour: ${error.message}`);
+      console.error("Error in updateProduct:", error);
+      toast.error(`Erreur lors de la mise à jour: ${error.message || "Erreur inconnue"}`);
     }
   });
   
@@ -207,14 +209,24 @@ const ProductEditPage = () => {
     if (!id) return;
     
     try {
-      await updateMutation.mutateAsync({
+      setUpdatingMainImage(true);
+      toast.loading("Mise à jour de l'image principale...");
+      
+      const result = await updateMutation.mutateAsync({
         image_url: imageUrl
       });
       
+      // Update local state immediately to show the change
+      updateLocalProduct({ image_url: imageUrl });
+      
+      toast.dismiss();
       toast.success("Image principale définie avec succès");
     } catch (error) {
       console.error("Error setting main image:", error);
+      toast.dismiss();
       toast.error("Erreur lors de la définition de l'image principale");
+    } finally {
+      setUpdatingMainImage(false);
     }
   };
 
@@ -226,7 +238,7 @@ const ProductEditPage = () => {
     );
   }
   
-  if (isError) {
+  if (error) {
     return (
       <div className="p-4 text-red-500">
         Erreur: {(error as Error).message}
@@ -267,6 +279,7 @@ const ProductEditPage = () => {
           </TabsTrigger>
         </TabsList>
           
+        
         <TabsContent value="details">
           <Card>
             <CardHeader>
@@ -423,7 +436,7 @@ const ProductEditPage = () => {
             <CardHeader>
               <CardTitle>Images du produit</CardTitle>
               <CardDescription>
-                Gérez les images du produit. La première image sera utilisée comme image principale.
+                Gérez les images du produit. Définissez une image principale en cliquant sur le bouton ✓.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -432,6 +445,7 @@ const ProductEditPage = () => {
                   productId={id}
                   onChange={handleImageChange}
                   onSetMainImage={handleSetMainImage}
+                  currentMainImage={product?.image_url}
                 />
               )}
             </CardContent>
