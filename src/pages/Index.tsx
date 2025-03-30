@@ -38,14 +38,14 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6 md:mb-8 shadow-sm">
-              Technologie responsable pour entreprises ambitieuses
+              Innovation durable pour entreprises modernes
             </div>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight mb-6 md:mb-8 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              Équipez votre équipe avec 
-              <span className="block mt-2">le meilleur du reconditionné</span>
+              La technologie premium 
+              <span className="block mt-2">à l'impact positif</span>
             </h1>
             <p className="text-base md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-2xl mx-auto">
-              Avec iTakecare, louez du matériel informatique premium reconditionné, réduisez vos coûts et votre empreinte écologique tout en maintenant des performances optimales.
+              Découvrez comment iTakecare transforme l'équipement informatique d'entreprise avec du matériel reconditionné haut de gamme, alliant performance, économies et engagement environnemental.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center w-full">
               <Button 
@@ -53,7 +53,7 @@ const Index = () => {
                 className="w-full sm:w-auto justify-center modern-button text-base py-6 px-8"
                 size={isMobile ? "lg" : "default"}
               >
-                Découvrir notre catalogue
+                Explorer notre catalogue
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <Button 
@@ -79,10 +79,10 @@ const Index = () => {
               <PackageCheck className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Matériel premium
+              Qualité certifiée
             </h3>
             <p className="text-muted-foreground">
-              Des équipements reconditionnés de qualité, testés et certifiés pour garantir une expérience utilisateur optimale.
+              Chaque appareil reconditionné est soumis à des tests rigoureux et bénéficie d'une garantie complète pour une expérience premium.
             </p>
           </div>
           <div className="rounded-xl p-6 md:p-8 glass hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -90,10 +90,10 @@ const Index = () => {
               <CreditCard className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Leasing flexible
+              Formules adaptées
             </h3>
             <p className="text-muted-foreground">
-              Des formules de location adaptées à vos besoins avec maintenance incluse et renouvellement sans tracas.
+              Des solutions de leasing sur-mesure avec services inclus pour optimiser votre trésorerie et faciliter la gestion de votre parc informatique.
             </p>
           </div>
           <div className="rounded-xl p-6 md:p-8 glass hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -101,10 +101,10 @@ const Index = () => {
               <Leaf className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-3">
-              Impact écologique réduit
+              Empreinte réduite
             </h3>
             <p className="text-muted-foreground">
-              Jusqu'à 70% d'économies de CO2 par appareil comparé au neuf, pour une démarche RSE concrète.
+              Réduction significative de votre empreinte carbone grâce à l'économie circulaire et des pratiques respectueuses de l'environnement.
             </p>
           </div>
         </motion.div>
@@ -117,14 +117,14 @@ const Index = () => {
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">Technologie durable, performance maximale</h2>
-              <p className="text-muted-foreground max-w-lg">Offrez à vos équipes le meilleur matériel reconditionné tout en réduisant votre budget IT et votre empreinte carbone.</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Technologie responsable, résultats exceptionnels</h2>
+              <p className="text-muted-foreground max-w-lg">Réduisez vos coûts informatiques et votre impact environnemental sans compromettre sur la qualité et les performances de vos équipements.</p>
             </div>
             <Button 
               className="modern-button text-base px-6 py-6 min-w-36"
               onClick={() => navigate("/catalogue")}
             >
-              Voir le catalogue
+              Découvrir nos produits
               <Shield className="ml-2 h-5 w-5" />
             </Button>
           </div>

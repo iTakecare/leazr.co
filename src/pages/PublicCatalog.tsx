@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts, getCategories, getBrands } from "@/services/catalogService";
@@ -109,8 +110,8 @@ const PublicCatalog = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="max-w-xl">
-              <h1 className="text-4xl font-bold mb-4">Équipement premium reconditionné pour des équipes performantes</h1>
-              <p className="text-lg mb-8">Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, à l'impact environnemental réduit.</p>
+              <h1 className="text-4xl font-bold mb-4">Matériel informatique premium pour propulser votre activité</h1>
+              <p className="text-lg mb-8">Optez pour des solutions informatiques reconditionnées de qualité supérieure qui allient performance, économie et démarche éco-responsable pour votre entreprise.</p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
                   Parler à un conseiller
@@ -122,8 +123,8 @@ const PublicCatalog = () => {
             </div>
             <div className="hidden md:block relative">
               <img 
-                src="/public/lovable-uploads/abb2e12d-641a-46c5-9353-bfb04427dde7.png" 
-                alt="Personne heureuse utilisant du matériel Apple" 
+                src="/lovable-uploads/85af1f29-e390-4013-b6d8-5a87656a62a8.png" 
+                alt="Professionnel utilisant un MacBook" 
                 className="rounded-lg shadow-lg max-w-md object-cover"
               />
               <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3">
