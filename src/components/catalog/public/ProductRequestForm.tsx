@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react"; // Updated import to use lucide-react instead
+import { ImageIcon } from "lucide-react";
 
 interface ProductRequestFormProps {
   isOpen: boolean;
@@ -52,6 +51,13 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.name || !formData.email || !formData.company) {
+      toast.error("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -60,33 +66,38 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
 
-      const equipmentDescription = `${product.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
+      const equipmentDescription = `${product?.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
 
-      // Retarder légèrement pour éviter les problèmes d'authentification
-      setTimeout(async () => {
-        try {
-          await createProductRequest({
-            client_name: formData.name,
-            client_email: formData.email,
-            client_company: formData.company,
-            client_contact_email: formData.email,
-            equipment_description: equipmentDescription,
-            message: formData.message,
-            amount: (product.price || 0) * quantity,
-            monthly_payment: monthlyPrice,
-            quantity: quantity,
-            duration: duration
-          });
-    
-          toast.success("Votre demande a été envoyée avec succès");
-          onClose();
-          navigate("/demande-envoyee");
-        } catch (error) {
-          console.error("Erreur lors de l'envoi de la demande:", error);
-          toast.error("Une erreur est survenue lors de l'envoi de votre demande");
-          setIsSubmitting(false);
-        }
-      }, 500);
+      const requestData = {
+        client_name: formData.name,
+        client_email: formData.email,
+        client_company: formData.company,
+        client_contact_email: formData.email,
+        equipment_description: equipmentDescription,
+        message: formData.message,
+        amount: ((product?.price || 0) * quantity),
+        monthly_payment: monthlyPrice,
+        quantity: quantity,
+        duration: duration
+      };
+      
+      try {
+        const result = await createProductRequest(requestData);
+        
+        toast.success("Votre demande a été envoyée avec succès");
+        onClose();
+        navigate("/demande-envoyee", {
+          state: { 
+            success: true, 
+            companyName: formData.company,
+            name: formData.name
+          }
+        });
+      } catch (error) {
+        console.error("Erreur lors de l'envoi de la demande:", error);
+        toast.error("Une erreur est survenue lors de l'envoi de votre demande");
+        setIsSubmitting(false);
+      }
     } catch (error) {
       console.error("Erreur lors de la préparation de la demande:", error);
       toast.error("Une erreur est survenue lors de l'envoi de votre demande");
@@ -212,7 +223,7 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
             <div className="text-sm space-y-1">
               <div className="flex justify-between">
                 <span>Produit:</span>
-                <span className="font-medium">{product.name}</span>
+                <span className="font-medium">{product?.name}</span>
               </div>
               <div className="flex justify-between">
                 <span>Quantité:</span>

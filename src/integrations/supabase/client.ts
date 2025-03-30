@@ -7,11 +7,10 @@ const SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw";
 const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTg3ODM4MiwiZXhwIjoyMDU3NDU0MzgyfQ.39wjC_Ld_qXnExyLgCawiip5hBDfCY6Hkb1rktomIxk";
 
-// Create a singleton instance to avoid multiple client issues
+// Create a singleton instance for the public client
 let supabaseInstance = null;
-let adminSupabaseInstance = null;
 
-// Function to get supabase client
+// Function to get supabase client with anon key
 export const getSupabaseClient = () => {
   if (!supabaseInstance) {
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -30,9 +29,9 @@ export const getSupabaseClient = () => {
   return supabaseInstance;
 };
 
-// Function to get admin supabase client with proper configuration
+// Function to get admin supabase client with service role key
+// Always returns a fresh instance to avoid conflicts with auth state
 export const getAdminSupabaseClient = () => {
-  // Always create a new admin instance to ensure fresh headers
   return createClient<Database>(
     SUPABASE_URL,
     SERVICE_ROLE_KEY,

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronRight } from 'lucide-react';
@@ -51,6 +50,11 @@ const RequestSteps: React.FC = () => {
       return;
     }
 
+    if (!formData.name || !formData.email || !formData.company) {
+      toast.error("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -74,30 +78,28 @@ const RequestSteps: React.FC = () => {
 
       console.log("Submitting request with data:", requestData);
 
-      // Submit the request - avec un délai pour éviter les erreurs de limitation de débit
-      setTimeout(async () => {
-        try {
-          const result = await createProductRequest(requestData);
-          
-          if (!result) {
-            throw new Error("Erreur lors de la création de la demande");
-          }
-          
-          // Success! Clear cart and redirect
-          clearCart();
-          navigate('/demande-envoyee', { 
-            state: { 
-              success: true, 
-              companyName: formData.company,
-              name: formData.name
-            } 
-          });
-        } catch (innerError) {
-          console.error("Error in delayed submit:", innerError);
-          toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
-          setLoading(false);
+      // Submit the request - avec un délai suffisant pour s'assurer que tout se charge correctement
+      try {
+        const result = await createProductRequest(requestData);
+        
+        if (!result) {
+          throw new Error("Erreur lors de la création de la demande");
         }
-      }, 500);
+        
+        // Success! Clear cart and redirect
+        clearCart();
+        navigate('/demande-envoyee', { 
+          state: { 
+            success: true, 
+            companyName: formData.company,
+            name: formData.name
+          } 
+        });
+      } catch (innerError) {
+        console.error("Error in submit:", innerError);
+        toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
+        setLoading(false);
+      }
 
     } catch (error) {
       console.error("Error submitting request:", error);
