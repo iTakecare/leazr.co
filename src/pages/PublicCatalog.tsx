@@ -106,11 +106,10 @@ const PublicCatalog = () => {
       <PublicHeader />
       
       <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16 relative overflow-hidden">
-        {/* Background image - happy person using Apple device */}
         <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5">
           <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#33638e] z-10"></div>
           <img 
-            src="/lovable-uploads/6694998c-4ddf-4fc5-b235-72841191dfa3.png" 
+            src="/lovable-uploads/95b23886-6036-4673-a2d8-fcee08de89b1.png" 
             alt="Professionnel heureux utilisant un MacBook" 
             className="h-full w-full object-cover object-center opacity-40 md:opacity-60"
           />
@@ -128,12 +127,6 @@ const PublicCatalog = () => {
                 <Button size="lg" className="bg-[#da2959]/80 hover:bg-[#da2959] border-0">
                   Demander un devis
                 </Button>
-              </div>
-            </div>
-            
-            <div className="md:ml-auto relative">
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 z-20">
-                <span className="text-sm font-medium text-green-600">Jusqu'à 70% d'économies de CO2</span>
               </div>
             </div>
           </div>
