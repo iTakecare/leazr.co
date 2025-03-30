@@ -5,13 +5,11 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface CategoryTabsProps {
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
-  categories: string[];
 }
 
 const CategoryTabs: React.FC<CategoryTabsProps> = ({ 
   selectedCategory, 
-  setSelectedCategory, 
-  categories 
+  setSelectedCategory
 }) => {
   return (
     <TabsList className="w-full flex flex-wrap overflow-x-auto">
@@ -20,19 +18,8 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
         onClick={() => setSelectedCategory("all")}
         className={selectedCategory === "all" ? "data-[state=active]" : ""}
       >
-        Tous
+        Tous les produits
       </TabsTrigger>
-      
-      {categories.map((category) => (
-        <TabsTrigger 
-          key={category} 
-          value={category} 
-          onClick={() => setSelectedCategory(category)}
-          className={selectedCategory === category ? "data-[state=active]" : ""}
-        >
-          {category.charAt(0).toUpperCase() + category.slice(1)}
-        </TabsTrigger>
-      ))}
     </TabsList>
   );
 };

@@ -4,25 +4,14 @@ import { Product } from "@/types/catalog";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
+  
+  // Always set to "all" and never change it
+  const selectedCategory = "all";
+  const setSelectedCategory = () => {}; // No-op function
+  const categories: string[] = []; // Empty array of categories
 
-  // Extract unique categories from products
-  const categories = useMemo(() => {
-    if (!products || products.length === 0) return [];
-    
-    const categorySet = new Set<string>();
-    
-    products.forEach(product => {
-      if (typeof product.category === 'string' && product.category) {
-        categorySet.add(product.category);
-      }
-    });
-    
-    return Array.from(categorySet);
-  }, [products]);
-
-  // Filter products based on search query, category and type
+  // Filter products based on search query and type only (no category filtering)
   const filteredProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
     
@@ -36,14 +25,6 @@ export const useProductFilter = (products: Product[] = []) => {
         (product.brand?.toLowerCase().includes(query)) || 
         (product.description?.toLowerCase().includes(query)) ||
         (product.model?.toLowerCase().includes(query))
-      );
-    }
-    
-    // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => 
-        typeof product.category === 'string' && 
-        product.category === selectedCategory
       );
     }
     
@@ -67,12 +48,11 @@ export const useProductFilter = (products: Product[] = []) => {
     }
     
     return filtered;
-  }, [products, searchQuery, selectedCategory, selectedTab]);
+  }, [products, searchQuery, selectedTab]);
 
   // Reset all filters
   const resetFilters = useCallback(() => {
     setSearchQuery("");
-    setSelectedCategory("all");
     setSelectedTab("tous");
   }, []);
 
