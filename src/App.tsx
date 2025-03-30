@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
@@ -50,7 +51,6 @@ import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClient
 import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
 import ProductEditPage from "./pages/ProductEditPage";
-import CartDrawer from './components/cart/CartDrawer';
 import CartPage from './pages/CartPage';
 
 const queryClient = new QueryClient({
@@ -155,7 +155,6 @@ const App = () => {
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
-      <CartDrawer />
     </div>
   );
 };
