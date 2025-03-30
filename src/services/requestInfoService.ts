@@ -29,27 +29,29 @@ export const createProductRequest = async (data: ProductRequestData) => {
   try {
     console.log("Creating product request with data:", data);
     
-    // Get admin client
+    // Get admin client with proper configuration
     const adminSupabase = getAdminSupabaseClient();
     
     // First step: Check for existing client by email
     let clientId: string | null = null;
     
     if (data.client_email) {
-      // Try to find existing client by email
-      const { data: existingClient, error: clientFetchError } = await adminSupabase
-        .from('clients')
-        .select('id')
-        .eq('email', data.client_email)
-        .maybeSingle();
-      
-      if (clientFetchError) {
-        console.error("Error searching for existing client:", clientFetchError);
-      }
-      
-      if (existingClient) {
-        clientId = existingClient.id;
-        console.log("Existing client found:", clientId);
+      try {
+        // Try to find existing client by email
+        const { data: existingClient, error: clientFetchError } = await adminSupabase
+          .from('clients')
+          .select('id')
+          .eq('email', data.client_email)
+          .maybeSingle();
+        
+        if (clientFetchError) {
+          console.error("Error searching for existing client:", clientFetchError);
+        } else if (existingClient) {
+          clientId = existingClient.id;
+          console.log("Existing client found:", clientId);
+        }
+      } catch (error) {
+        console.error("Exception when searching for client:", error);
       }
     }
     
@@ -57,24 +59,28 @@ export const createProductRequest = async (data: ProductRequestData) => {
     if (!clientId) {
       console.log("Creating new client");
       
-      const { data: newClient, error: clientCreateError } = await adminSupabase
-        .from('clients')
-        .insert([{
-          name: data.client_name,
-          email: data.client_email,
-          company: data.client_company,
-          vat_number: data.client_company, // Temporary use of company as VAT
-          status: 'lead'
-        }])
-        .select()
-        .single();
-      
-      if (clientCreateError) {
-        console.error("Error creating new client:", clientCreateError);
-        // Don't throw here, we'll still try to create the offer
-      } else if (newClient) {
-        clientId = newClient.id;
-        console.log("New client created with ID:", clientId);
+      try {
+        const { data: newClient, error: clientCreateError } = await adminSupabase
+          .from('clients')
+          .insert([{
+            name: data.client_name,
+            email: data.client_email,
+            company: data.client_company,
+            vat_number: data.client_company, // Temporary use of company as VAT
+            status: 'lead'
+          }])
+          .select()
+          .single();
+        
+        if (clientCreateError) {
+          console.error("Error creating new client:", clientCreateError);
+          // Don't throw here, we'll still try to create the offer
+        } else if (newClient) {
+          clientId = newClient.id;
+          console.log("New client created with ID:", clientId);
+        }
+      } catch (error) {
+        console.error("Exception when creating client:", error);
       }
     }
 
@@ -109,19 +115,23 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
     // Third step: Add additional information as a note if provided
     if (data.message && offer) {
-      const noteData = {
-        offer_id: offer.id,
-        content: `Message du client: ${data.message}\n\nInformations supplémentaires:\nEntreprise: ${data.client_company}\nQuantité: ${data.quantity}\nDurée: ${data.duration} mois`,
-        type: 'client_note'
-      };
-      
-      const { error: noteError } = await adminSupabase
-        .from('offer_notes')
-        .insert([noteData]);
+      try {
+        const noteData = {
+          offer_id: offer.id,
+          content: `Message du client: ${data.message}\n\nInformations supplémentaires:\nEntreprise: ${data.client_company}\nQuantité: ${data.quantity}\nDurée: ${data.duration} mois`,
+          type: 'client_note'
+        };
+        
+        const { error: noteError } = await adminSupabase
+          .from('offer_notes')
+          .insert([noteData]);
 
-      if (noteError) {
-        console.error("Error adding note to offer:", noteError);
-        // We don't throw here, as the offer was already created successfully
+        if (noteError) {
+          console.error("Error adding note to offer:", noteError);
+          // We don't throw here, as the offer was already created successfully
+        }
+      } catch (error) {
+        console.error("Exception when adding note:", error);
       }
     }
 

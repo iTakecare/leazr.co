@@ -33,17 +33,24 @@ export const getSupabaseClient = () => {
 // Function to get admin supabase client
 export const getAdminSupabaseClient = () => {
   if (!adminSupabaseInstance) {
-    adminSupabaseInstance = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      },
-      global: {
-        headers: {
-          'Content-Type': 'application/json',
+    adminSupabaseInstance = createClient<Database>(
+      SUPABASE_URL,
+      SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
         },
-      },
-    });
+        global: {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+          },
+        },
+      }
+    );
   }
   return adminSupabaseInstance;
 };
