@@ -14,6 +14,8 @@ import ProductDetailPage from "@/pages/ProductDetailPage";
 import Cart from "@/pages/Cart";
 import SignupBusiness from "@/pages/SignupBusiness";
 import Home from "@/pages/Home";
+import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings";
 
 export default function App() {
   const queryClient = new QueryClient();
@@ -21,11 +23,14 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <ThemeProvider defaultTheme="light" attribute="class">
+        <ThemeProvider defaultTheme="light" attribute="class">
+          <AuthProvider>
             <CartProvider>
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/home" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/catalogue-management" element={<CatalogManagement />} />
@@ -36,8 +41,8 @@ export default function App() {
                 <Route path="/signup-business" element={<SignupBusiness />} />
               </Routes>
             </CartProvider>
-          </ThemeProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

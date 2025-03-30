@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Extend the User type to include the missing properties
 type ExtendedUser = User & {
@@ -53,69 +54,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       setIsLoading(true);
       try {
-        const { data } = await supabase.auth.getSession();
+        console.log("Checking auth session...");
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session error:", error);
+          setIsLoading(false);
+          return;
+        }
+        
         setSession(data.session);
         
         if (data.session?.user) {
-          // Get user profile data from profiles table if needed
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, company, role')
-            .eq('id', data.session.user.id)
-            .single();
-            
-          if (profileError && profileError.code !== 'PGRST116') {
-            console.error("Error fetching profile data:", profileError);
-          }
-          
-          // Vérifier si l'utilisateur est lié à un partenaire
-          const { data: partnerData, error: partnerError } = await supabase
-            .from('partners')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .maybeSingle();
-            
-          if (partnerError && partnerError.code !== 'PGRST116') {
-            console.error("Error fetching partner data:", partnerError);
-          }
-            
-          // Vérifier si l'utilisateur est lié à un ambassadeur  
-          const { data: ambassadorData, error: ambassadorError } = await supabase
-            .from('ambassadors')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .maybeSingle();
-            
-          if (ambassadorError && ambassadorError.code !== 'PGRST116') {
-            console.error("Error fetching ambassador data:", ambassadorError);
-          }
-            
-          // Vérifier si l'utilisateur est lié à un client
-          const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .maybeSingle();
-            
-          if (clientError && clientError.code !== 'PGRST116') {
-            console.error("Error fetching client data:", clientError);
-          }
-            
-          // Merge user data with profile data and entity info
-          const extendedUser: ExtendedUser = {
-            ...data.session.user,
-            first_name: profileData?.first_name || '',
-            last_name: profileData?.last_name || '',
-            company: profileData?.company || '',
-            role: profileData?.role || 'client',
-            partner_id: partnerData?.id || null,
-            ambassador_id: ambassadorData?.id || null,
-            client_id: clientData?.id || null
-          };
-          
-          setUser(extendedUser);
+          console.log("User found in session, fetching profile data...");
+          await fetchAndSetUserData(data.session.user);
           setUserRoleChecked(true);
         } else {
+          console.log("No active session found");
           setUser(null);
           setUserRoleChecked(true);
         }
@@ -123,71 +78,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Set up auth state listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (_event, session) => {
+            console.log("Auth state changed:", _event);
             setSession(session);
             
             if (session?.user) {
-              // Get user profile data from profiles table if needed
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('first_name, last_name, company, role')
-                .eq('id', session.user.id)
-                .single();
-                
-              if (profileError && profileError.code !== 'PGRST116') {
-                console.error("Error fetching profile data:", profileError);
-              }
-                
-              // Vérifier si l'utilisateur est lié à un partenaire
-              const { data: partnerData, error: partnerError } = await supabase
-                .from('partners')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-                
-              if (partnerError && partnerError.code !== 'PGRST116') {
-                console.error("Error fetching partner data:", partnerError);
-              }
-                
-              // Vérifier si l'utilisateur est lié à un ambassadeur  
-              const { data: ambassadorData, error: ambassadorError } = await supabase
-                .from('ambassadors')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-                
-              if (ambassadorError && ambassadorError.code !== 'PGRST116') {
-                console.error("Error fetching ambassador data:", ambassadorError);
-              }
-                
-              // Vérifier si l'utilisateur est lié à un client
-              const { data: clientData, error: clientError } = await supabase
-                .from('clients')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-                
-              if (clientError && clientError.code !== 'PGRST116') {
-                console.error("Error fetching client data:", clientError);
-              }
-                
-              // Merge user data with profile data and entity info
-              const extendedUser: ExtendedUser = {
-                ...session.user,
-                first_name: profileData?.first_name || '',
-                last_name: profileData?.last_name || '',
-                company: profileData?.company || '',
-                role: profileData?.role || 'client',
-                partner_id: partnerData?.id || null,
-                ambassador_id: ambassadorData?.id || null,
-                client_id: clientData?.id || null
-              };
-              
-              setUser(extendedUser);
-              setUserRoleChecked(true);
+              await fetchAndSetUserData(session.user);
             } else {
               setUser(null);
-              setUserRoleChecked(true);
             }
+            setUserRoleChecked(true);
           }
         );
 
@@ -204,6 +103,82 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
   }, []);
+
+  const fetchAndSetUserData = async (authUser: User) => {
+    try {
+      // Get user profile data from profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, company, role')
+        .eq('id', authUser.id)
+        .single();
+        
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error("Error fetching profile data:", profileError);
+        toast.error("Erreur lors de la récupération des données du profil");
+      }
+      
+      // Rechercher l'association avec un partenaire
+      const { data: partnerData, error: partnerError } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+        
+      if (partnerError) {
+        console.error("Error fetching partner data:", partnerError);
+      }
+        
+      // Rechercher l'association avec un ambassadeur
+      const { data: ambassadorData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+        
+      if (ambassadorError) {
+        console.error("Error fetching ambassador data:", ambassadorError);
+      }
+        
+      // Rechercher l'association avec un client
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+        
+      if (clientError) {
+        console.error("Error fetching client data:", clientError);
+      }
+        
+      // Fusionner les données utilisateur avec les données de profil
+      const extendedUser: ExtendedUser = {
+        ...authUser,
+        first_name: profileData?.first_name || '',
+        last_name: profileData?.last_name || '',
+        company: profileData?.company || '',
+        role: profileData?.role || 'client',
+        partner_id: partnerData?.id || null,
+        ambassador_id: ambassadorData?.id || null,
+        client_id: clientData?.id || null
+      };
+      
+      console.log("User data fetched and merged:", {
+        first_name: extendedUser.first_name,
+        last_name: extendedUser.last_name,
+        role: extendedUser.role,
+        partner_id: extendedUser.partner_id,
+        ambassador_id: extendedUser.ambassador_id,
+        client_id: extendedUser.client_id
+      });
+      
+      setUser(extendedUser);
+      
+    } catch (error) {
+      console.error("Error in fetchAndSetUserData:", error);
+      toast.error("Erreur lors de la récupération des données utilisateur");
+    }
+  };
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -240,26 +215,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
       });
       
+      if (error) {
+        console.error("Signin error:", error);
+        return { user: null, session: null, error };
+      }
+      
       let extendedUser = null;
       
       if (data.user) {
-        // Get user profile data from profiles table if needed
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, company')
-          .eq('id', data.user.id)
-          .single();
-          
-        // Merge user data with profile data
-        extendedUser = {
-          ...data.user,
-          first_name: profileData?.first_name || '',
-          last_name: profileData?.last_name || '',
-          company: profileData?.company || ''
-        };
+        await fetchAndSetUserData(data.user);
+        extendedUser = user;
       }
       
-      return { user: extendedUser, session: data.session, error };
+      return { user: extendedUser, session: data.session, error: null };
     } catch (error: any) {
       console.error("Signin error", error);
       return { user: null, session: null, error: error.message };
@@ -272,9 +240,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
       navigate("/login");
     } catch (error: any) {
       console.error("Signout error", error);
+      toast.error("Erreur lors de la déconnexion");
     } finally {
       setIsLoading(false);
     }
