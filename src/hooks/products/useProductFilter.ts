@@ -10,10 +10,26 @@ export const useProductFilter = (products: Product[] = []) => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
   
+  // Reset price range when products change
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setPriceRange(getPriceRange());
+    }
+  }, [products]);
+  
   const getFilteredProducts = () => {
-    if (!products) return [];
+    if (!products || products.length === 0) return [];
     
-    let filtered = products;
+    let filtered = [...products];
+    
+    console.log(`Filtering ${filtered.length} products with:`, {
+      searchQuery,
+      selectedTab,
+      selectedCategory,
+      priceRange,
+      selectedBrands,
+      showInStock
+    });
     
     // Filter by search query
     if (searchQuery) {
@@ -23,6 +39,7 @@ export const useProductFilter = (products: Product[] = []) => {
         (product.brand?.toLowerCase().includes(query)) ||
         (product.description?.toLowerCase().includes(query))
       );
+      console.log(`After search query filter: ${filtered.length} products`);
     }
     
     // Filter by product type
@@ -31,17 +48,20 @@ export const useProductFilter = (products: Product[] = []) => {
         product.is_parent || 
         (product.variant_combination_prices && product.variant_combination_prices.length > 0)
       );
+      console.log(`After product type filter (parents): ${filtered.length} products`);
     } else if (selectedTab === "variantes") {
       filtered = filtered.filter(product => 
         product.variation_attributes && 
         Object.keys(product.variation_attributes).length > 0
       );
+      console.log(`After product type filter (variantes): ${filtered.length} products`);
     } else if (selectedTab === "individuels") {
       filtered = filtered.filter(product => 
         !product.is_parent && 
         (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) &&
         (!product.variant_combination_prices || product.variant_combination_prices.length === 0)
       );
+      console.log(`After product type filter (individuels): ${filtered.length} products`);
     }
     
     // Filter by selected category
@@ -49,6 +69,7 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         product.category === selectedCategory
       );
+      console.log(`After category filter (${selectedCategory}): ${filtered.length} products`);
     }
     
     // Filter by price range
@@ -56,12 +77,14 @@ export const useProductFilter = (products: Product[] = []) => {
       const price = product.price ? parseFloat(product.price.toString()) : 0;
       return price >= priceRange[0] && price <= priceRange[1];
     });
+    console.log(`After price range filter: ${filtered.length} products`);
     
     // Filter by brand
     if (selectedBrands.length > 0) {
       filtered = filtered.filter(product => 
         product.brand && selectedBrands.includes(product.brand)
       );
+      console.log(`After brand filter: ${filtered.length} products`);
     }
     
     // Filter by stock status
@@ -69,6 +92,7 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         showInStock ? (product.stock && product.stock > 0) : (product.stock === 0 || !product.stock)
       );
+      console.log(`After stock filter: ${filtered.length} products`);
     }
     
     return filtered;
@@ -76,7 +100,7 @@ export const useProductFilter = (products: Product[] = []) => {
 
   // Get unique categories from products
   const getCategories = (): string[] => {
-    if (!products) return [];
+    if (!products || products.length === 0) return [];
     
     const categories = products
       .map(product => product.category)
@@ -89,7 +113,7 @@ export const useProductFilter = (products: Product[] = []) => {
   
   // Get unique brands from products
   const getBrands = (): string[] => {
-    if (!products) return [];
+    if (!products || products.length === 0) return [];
     
     const brands = products
       .map(product => product.brand)
@@ -113,6 +137,7 @@ export const useProductFilter = (products: Product[] = []) => {
     const min = Math.floor(Math.min(...prices));
     const max = Math.ceil(Math.max(...prices));
     
+    console.log(`Price range: ${min} - ${max}`);
     return [min, max];
   };
   
