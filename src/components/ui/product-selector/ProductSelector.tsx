@@ -3,7 +3,6 @@ import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import SearchBar from "./SearchBar";
-import CategoryTabs from "./CategoryTabs";
 import ProductTypeTabs from "./ProductTypeTabs";
 import ProductList from "./ProductList";
 import { useProductSelector } from "@/hooks/products/useProductSelector";
@@ -34,11 +33,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const {
     searchQuery,
     setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
     selectedTab,
     setSelectedTab,
-    categories,
     filteredProducts,
     resetFilters
   } = useProductFilter(products);
@@ -73,15 +69,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 <Button variant="outline" onClick={onClose}>Fermer</Button>
               </SheetClose>
             </div>
-          </div>
-
-          {/* Category tabs */}
-          <div className="px-4 py-2 border-b overflow-x-auto">
-            <CategoryTabs 
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              categories={categories}
-            />
           </div>
           
           {/* Product type tabs */}

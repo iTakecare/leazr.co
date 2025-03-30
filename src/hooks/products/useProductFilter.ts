@@ -1,16 +1,10 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Product } from "@/types/catalog";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
-  
-  // Extract unique categories from products
-  const categories: string[] = products 
-    ? [...new Set(products.map(product => product.category))]
-        .filter((category): category is string => Boolean(category))
-    : [];
   
   const getFilteredProducts = () => {
     if (!products) return [];
@@ -25,11 +19,6 @@ export const useProductFilter = (products: Product[] = []) => {
         (product.brand?.toLowerCase().includes(query)) ||
         (product.description?.toLowerCase().includes(query))
       );
-    }
-    
-    // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => product.category === selectedCategory);
     }
     
     // Filter by product type
@@ -53,26 +42,15 @@ export const useProductFilter = (products: Product[] = []) => {
     
     return filtered;
   };
-
-  // Reset filters when products change
-  useEffect(() => {
-    if (products && products.length > 0) {
-      // Keep filters as they are
-    }
-  }, [products]);
   
   return {
     searchQuery,
     setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
     selectedTab,
     setSelectedTab,
-    categories,
     filteredProducts: getFilteredProducts(),
     resetFilters: () => {
       setSearchQuery("");
-      setSelectedCategory("all");
       setSelectedTab("tous");
     }
   };

@@ -1,28 +1,22 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts, getCategories, getBrands } from "@/services/catalogService";
+import { getProducts } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, Cpu, Smartphone, Tablet, Monitor, LayoutGrid } from "lucide-react";
+import { Search, ArrowUpDown } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import PublicHeader from "@/components/catalog/public/PublicHeader";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
-  });
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: getCategories,
   });
 
   useEffect(() => {
@@ -84,21 +78,11 @@ const PublicCatalog = () => {
                          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesCategory = !activeCategory || product.category === activeCategory;
-    
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
-  };
-
-  const categoryIcons: Record<string, React.ReactNode> = {
-    laptop: <Cpu className="h-5 w-5 mr-2" />,
-    smartphone: <Smartphone className="h-5 w-5 mr-2" />,
-    tablet: <Tablet className="h-5 w-5 mr-2" />,
-    monitor: <Monitor className="h-5 w-5 mr-2" />,
-    desktop: <LayoutGrid className="h-5 w-5 mr-2" />,
   };
 
   return (
@@ -134,26 +118,6 @@ const PublicCatalog = () => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {categories.map((category) => (
-            <Button
-              key={category.name}
-              variant={activeCategory === category.name ? "default" : "outline"}
-              className={activeCategory === category.name 
-                ? "flex items-center justify-center h-20 bg-[#33638e] hover:bg-[#33638e]/90" 
-                : "flex items-center justify-center h-20 border-[#4ab6c4]/30 text-[#33638e]"}
-              onClick={() => setActiveCategory(activeCategory === category.name ? null : category.name)}
-            >
-              <div className="flex flex-col items-center">
-                <div className="mb-1">
-                  {categoryIcons[category.name] || <LayoutGrid className="h-5 w-5" />}
-                </div>
-                <span>{category.translation}</span>
-              </div>
-            </Button>
-          ))}
-        </div>
-        
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -165,10 +129,6 @@ const PublicCatalog = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtrer
-            </Button>
             <Button variant="outline" className="flex items-center border-[#4ab6c4]/30 text-[#33638e]">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               Trier
@@ -193,7 +153,7 @@ const PublicCatalog = () => {
           <div className="text-center py-16">
             <h3 className="text-lg font-medium">Aucun produit trouvé</h3>
             <p className="text-gray-500 mt-2">
-              Essayez de modifier vos critères de recherche ou consultez toutes nos catégories.
+              Essayez de modifier vos critères de recherche.
             </p>
           </div>
         ) : (
