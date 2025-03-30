@@ -69,7 +69,12 @@ export const useProductDetails = (productId: string | undefined) => {
   // Calculate current price based on selected variant or base product
   const currentPrice = useMemo(() => {
     if (selectedVariant && selectedVariant.monthly_price) {
-      return selectedVariant.monthly_price;
+      const price = typeof selectedVariant.monthly_price === 'number' ? 
+                     selectedVariant.monthly_price : 
+                     parseFloat(String(selectedVariant.monthly_price) || '0');
+      
+      console.log(`useProductDetails: Selected variant price for ${selectedVariant.name}:`, price);
+      return price;
     }
     
     // If no variant is selected but we have a parent with variant combination prices
@@ -83,12 +88,24 @@ export const useProductDetails = (productId: string | undefined) => {
         );
       });
       
-      if (matchingPrice) {
-        return matchingPrice.monthly_price || 0;
+      if (matchingPrice && matchingPrice.monthly_price) {
+        const price = typeof matchingPrice.monthly_price === 'number' ? 
+                       matchingPrice.monthly_price : 
+                       parseFloat(String(matchingPrice.monthly_price) || '0');
+        
+        console.log(`useProductDetails: Matching combination price:`, price);
+        return price;
       }
     }
     
-    return product?.monthly_price || 0;
+    // Fallback to product's base price
+    const basePrice = product?.monthly_price ? 
+                     (typeof product.monthly_price === 'number' ? 
+                      product.monthly_price : 
+                      parseFloat(String(product.monthly_price) || '0')) : 0;
+    
+    console.log(`useProductDetails: Using base product price for ${product?.name}:`, basePrice);
+    return basePrice;
   }, [product, selectedVariant, selectedOptions]);
 
   // Calculate the minimum monthly price for display
@@ -97,7 +114,10 @@ export const useProductDetails = (productId: string | undefined) => {
     
     if (product.variants && product.variants.length > 0) {
       const prices = product.variants
-        .map(variant => variant.monthly_price || 0)
+        .map(variant => {
+          const price = variant.monthly_price || 0;
+          return typeof price === 'number' ? price : parseFloat(String(price) || '0');
+        })
         .filter(price => price > 0);
       
       if (prices.length > 0) {
@@ -107,7 +127,10 @@ export const useProductDetails = (productId: string | undefined) => {
     
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       const prices = product.variant_combination_prices
-        .map(combo => combo.monthly_price || 0)
+        .map(combo => {
+          const price = combo.monthly_price || 0;
+          return typeof price === 'number' ? price : parseFloat(String(price) || '0');
+        })
         .filter(price => price > 0);
       
       if (prices.length > 0) {
@@ -115,11 +138,13 @@ export const useProductDetails = (productId: string | undefined) => {
       }
     }
     
-    return product.monthly_price || 0;
+    const basePrice = product.monthly_price || 0;
+    return typeof basePrice === 'number' ? basePrice : parseFloat(String(basePrice) || '0');
   }, [product]);
 
   // Calculate total price based on quantity and duration (duration is now fixed)
   const totalPrice = useMemo(() => {
+    console.log(`useProductDetails: Calculating total price, currentPrice=${currentPrice}, quantity=${quantity}`);
     return currentPrice * quantity;
   }, [currentPrice, quantity]);
 

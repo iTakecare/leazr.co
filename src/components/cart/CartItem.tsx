@@ -21,7 +21,12 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const { product, quantity } = item;
   
   // Make sure we're getting a valid number for the monthly_price
-  const price = typeof product.monthly_price === 'number' ? product.monthly_price : 0;
+  // Debug the price to see what's happening
+  console.log(`CartItem: product ${product.name} raw price:`, product.monthly_price);
+  
+  // Extract the monthly price, ensuring it's a valid number
+  const price = typeof product.monthly_price === 'number' ? product.monthly_price : 
+               (typeof product.monthly_price === 'string' ? parseFloat(product.monthly_price) : 0);
   
   // Calculate the item total price
   const itemTotal = price * quantity;

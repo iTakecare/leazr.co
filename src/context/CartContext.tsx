@@ -48,6 +48,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addToCart = (newItem: CartItem) => {
     console.log("CartContext: Adding item to cart:", newItem);
     
+    // Debug the price in the product being added
+    console.log(`CartContext: Adding product ${newItem.product.name} with price:`, newItem.product.monthly_price);
+    
     // Ensure the product has a price
     if (typeof newItem.product.monthly_price !== 'number' || newItem.product.monthly_price === 0) {
       console.warn("Warning: Adding product with no price to cart", newItem.product);
@@ -72,7 +75,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Add new item
         toast.success('Produit ajouté au panier');
-        return [...prevItems, newItem];
+        return [...prevItems, {
+          ...newItem,
+          product: {
+            ...newItem.product,
+            // Ensure we have a valid numerical price
+            monthly_price: typeof newItem.product.monthly_price === 'number' ? 
+                           newItem.product.monthly_price : 
+                           (typeof newItem.product.monthly_price === 'string' ? 
+                            parseFloat(newItem.product.monthly_price) : 0)
+          }
+        }];
       }
     });
     
@@ -101,12 +114,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const cartCount = items.reduce((total, item) => total + item.quantity, 0);
   
-  // Fix the cartTotal calculation to ensure we're getting the proper monthly price
+  // Calculate the cart total, ensuring we normalize any price values to numbers
   const cartTotal = items.reduce((total, item) => {
     // Ensure we're getting a valid number for the monthly_price
-    const itemPrice = typeof item.product.monthly_price === 'number' ? item.product.monthly_price : 0;
+    const rawPrice = item.product.monthly_price;
+    const itemPrice = typeof rawPrice === 'number' ? rawPrice : 
+                     (typeof rawPrice === 'string' ? parseFloat(rawPrice) : 0);
+    
     const itemTotal = itemPrice * item.quantity;
-    console.log(`Cart total calculation - Item: ${item.product.name}, Price: ${itemPrice}, Quantity: ${item.quantity}, Subtotal: ${itemTotal}`);
+    
+    console.log(`Cart total calculation - Item: ${item.product.name}, Raw Price: ${rawPrice}, Parsed Price: ${itemPrice}, Quantity: ${item.quantity}, Subtotal: ${itemTotal}`);
+    
     return total + itemTotal;
   }, 0);
   

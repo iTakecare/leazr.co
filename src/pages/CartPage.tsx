@@ -19,9 +19,12 @@ const CartPage: React.FC = () => {
       cartTotal,
       items: items.map(item => ({
         name: item.product.name,
-        price: item.product.monthly_price,
+        rawMonthlyPrice: item.product.monthly_price,
+        priceType: typeof item.product.monthly_price,
         quantity: item.quantity,
-        total: (item.product.monthly_price || 0) * item.quantity
+        total: (typeof item.product.monthly_price === 'number' ? 
+                item.product.monthly_price : 
+                parseFloat(String(item.product.monthly_price) || '0')) * item.quantity
       }))
     });
   }, [items, cartTotal]);
