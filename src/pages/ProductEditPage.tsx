@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
+import { useProductById } from "@/hooks/products/useProductById";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,7 +135,6 @@ const ProductEditPage = () => {
     onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      // Update local product data to reflect changes immediately
       if (updatedProduct) {
         updateLocalProduct(updatedProduct);
       }
@@ -202,7 +202,6 @@ const ProductEditPage = () => {
   
   const handleImageChange = (images: any[]) => {
     console.log("Images mises à jour:", images);
-    // Les images sont gérées directement par le composant ProductImageManager
   };
   
   const handleSetMainImage = async (imageUrl: string) => {
@@ -216,7 +215,6 @@ const ProductEditPage = () => {
         image_url: imageUrl
       });
       
-      // Update local state immediately to show the change
       updateLocalProduct({ image_url: imageUrl });
       
       toast.dismiss();
@@ -278,7 +276,6 @@ const ProductEditPage = () => {
             Variantes
           </TabsTrigger>
         </TabsList>
-          
         
         <TabsContent value="details">
           <Card>
