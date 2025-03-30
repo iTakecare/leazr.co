@@ -268,6 +268,17 @@ const ProductCreationPage = () => {
                     />
                   </div>
                   
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Modèle/Sous-catégorie</Label>
+                    <Input
+                      id="model"
+                      name="model"
+                      value={formData.model || ""}
+                      onChange={handleChange}
+                      placeholder="Ex: Série XPS, iPhone 15, etc."
+                    />
+                  </div>
+                  
                   <div className="col-span-2 pt-4 border-t">
                     <div className="flex items-center space-x-2">
                       <input
