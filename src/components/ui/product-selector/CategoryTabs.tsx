@@ -1,10 +1,6 @@
 
 import React from "react";
-import { 
-  Tabs, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CategoryTabsProps {
   selectedCategory: string;
@@ -18,16 +14,20 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
   categories 
 }) => {
   return (
-    <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-      <TabsList className="w-auto inline-flex">
-        <TabsTrigger value="all">Tous</TabsTrigger>
-        {categories.map(category => (
-          <TabsTrigger key={category} value={category}>
-            {category.charAt(0).toUpperCase() + category.slice(1)}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <TabsList className="w-auto inline-flex">
+      <TabsTrigger value="all" onClick={() => setSelectedCategory("all")}>
+        Tous
+      </TabsTrigger>
+      {categories.map((category) => (
+        <TabsTrigger 
+          key={category} 
+          value={category} 
+          onClick={() => setSelectedCategory(category)}
+        >
+          {category.charAt(0).toUpperCase() + category.slice(1)}
+        </TabsTrigger>
+      ))}
+    </TabsList>
   );
 };
 

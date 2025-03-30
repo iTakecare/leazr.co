@@ -1,21 +1,26 @@
-import { useState, useEffect } from "react";
+
+import { useState, useCallback, useMemo } from "react";
 import { Product } from "@/types/catalog";
 
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
-  
+
   // Extract unique categories from products
-  const categories: string[] = products 
-    ? [...new Set(products.map(product => product.category))]
-        .filter((category): category is string => Boolean(category))
-    : [];
-  
-  const getFilteredProducts = () => {
+  const categories = useMemo(() => {
+    if (!products) return [];
+    const uniqueCategories = [...new Set(products
+      .map(product => product.category)
+      .filter((category): category is string => Boolean(category)))];
+    return uniqueCategories;
+  }, [products]);
+
+  // Filter products based on search query and selected category
+  const filteredProducts = useMemo(() => {
     if (!products) return [];
     
-    let filtered = products;
+    let filtered = [...products];
     
     // Filter by search query
     if (searchQuery) {
@@ -23,7 +28,8 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         (product.name?.toLowerCase().includes(query)) || 
         (product.brand?.toLowerCase().includes(query)) ||
-        (product.description?.toLowerCase().includes(query))
+        (product.description?.toLowerCase().includes(query)) ||
+        (product.model?.toLowerCase().includes(query))
       );
     }
     
@@ -36,7 +42,7 @@ export const useProductFilter = (products: Product[] = []) => {
     if (selectedTab === "parents") {
       filtered = filtered.filter(product => 
         product.is_parent || 
-        (product.variant_combination_prices && product.variant_combination_prices.length > 0)
+        (product.variation_attributes && Object.keys(product.variation_attributes).length > 0)
       );
     } else if (selectedTab === "variantes") {
       filtered = filtered.filter(product => 
@@ -52,15 +58,15 @@ export const useProductFilter = (products: Product[] = []) => {
     }
     
     return filtered;
-  };
+  }, [products, searchQuery, selectedCategory, selectedTab]);
 
-  // Reset filters when products change
-  useEffect(() => {
-    if (products && products.length > 0) {
-      // Keep filters as they are
-    }
-  }, [products]);
-  
+  // Reset all filters
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedTab("tous");
+  }, []);
+
   return {
     searchQuery,
     setSearchQuery,
@@ -69,11 +75,7 @@ export const useProductFilter = (products: Product[] = []) => {
     selectedTab,
     setSelectedTab,
     categories,
-    filteredProducts: getFilteredProducts(),
-    resetFilters: () => {
-      setSearchQuery("");
-      setSelectedCategory("all");
-      setSelectedTab("tous");
-    }
+    filteredProducts,
+    resetFilters
   };
 };
