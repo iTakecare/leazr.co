@@ -106,9 +106,11 @@ const CartPage: React.FC = () => {
                       asChild
                     >
                       <Link to="/demande-devis">
-                        Demander un devis
+                        Faire ma demande
                       </Link>
                     </Button>
+                    
+                    <p className="text-center text-sm text-gray-500">Sans engagement</p>
                     
                     <Button 
                       variant="outline" 
