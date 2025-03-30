@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react"; // Updated import to use lucide-react instead
+import { ImageIcon } from "@/components/ui/image-icon";
 
 interface ProductRequestFormProps {
   isOpen: boolean;
