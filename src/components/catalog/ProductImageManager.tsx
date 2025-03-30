@@ -201,11 +201,18 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     }
   };
   
-  const handleSetMainImage = (imageInfo: any) => {
-    const originalUrl = imageInfo.originalUrl || imageInfo.url;
-    if (onSetMainImage) {
-      onSetMainImage(originalUrl);
-      toast.success("Image principale définie avec succès");
+  const handleSetMainImage = async (imageInfo: any) => {
+    try {
+      const originalUrl = imageInfo.originalUrl || imageInfo.url;
+      if (onSetMainImage) {
+        console.log(`Setting main image to: ${originalUrl}`);
+        
+        await onSetMainImage(originalUrl);
+        toast.success("Image principale définie avec succès");
+      }
+    } catch (error) {
+      console.error("Error setting main image:", error);
+      toast.error("Erreur lors de la définition de l'image principale");
     }
   };
   

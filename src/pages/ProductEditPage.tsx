@@ -207,12 +207,16 @@ const ProductEditPage = () => {
     if (!id) return;
     
     try {
+      toast.loading("Définition de l'image principale...");
+      
       await updateMutation.mutateAsync({
         image_url: imageUrl
       });
       
+      toast.dismiss();
       toast.success("Image principale définie avec succès");
     } catch (error) {
+      toast.dismiss();
       console.error("Error setting main image:", error);
       toast.error("Erreur lors de la définition de l'image principale");
     }

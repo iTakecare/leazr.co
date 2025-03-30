@@ -406,6 +406,24 @@ export const createProduct = async (productData: Partial<Product>): Promise<Prod
  */
 export const updateProduct = async (id: string, product: Partial<Product>) => {
   try {
+    // Vérifier d'abord si le produit existe
+    const { data: existingProduct, error: checkError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking product existence:', checkError);
+      throw new Error(checkError.message);
+    }
+    
+    if (!existingProduct) {
+      console.error(`Product with ID ${id} not found`);
+      throw new Error(`Product with ID ${id} not found`);
+    }
+    
+    // Maintenant mettre à jour le produit
     const { data, error } = await supabase
       .from('products')
       .update(product)
