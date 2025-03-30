@@ -96,11 +96,14 @@ const ProductDetailPage = () => {
         {/* Product Images */}
         <div className="relative">
           <ProductImageDisplay 
-            mainImage={currentImage || product.image_url} 
-            additionalImages={product.image_urls || []} 
+            imageUrl={currentImage || product.image_url || ''} 
+            altText={product.name || 'Product image'} 
           />
           <div className="absolute top-4 left-4">
-            <ProductBadges product={product} />
+            <ProductBadges 
+              category={product.category} 
+              brand={product.brand} 
+            />
           </div>
         </div>
 
@@ -120,11 +123,12 @@ const ProductDetailPage = () => {
                 hasAttributeOptions(attribute) && (
                   <VariantSelector
                     key={attribute}
-                    attributeName={attribute}
-                    options={getOptionsForAttribute(attribute)}
-                    selectedValue={selectedOptions[attribute] || ''}
-                    onSelect={(value) => handleOptionChange(attribute, value)}
-                    isAvailable={(value) => isOptionAvailable(attribute, value)}
+                    variationAttributes={variationAttributes}
+                    selectedOptions={selectedOptions}
+                    onOptionChange={handleOptionChange}
+                    isOptionAvailable={isOptionAvailable}
+                    hasVariants={hasVariants}
+                    hasOptions={hasOptions}
                   />
                 )
               ))}
@@ -133,10 +137,8 @@ const ProductDetailPage = () => {
 
           {/* Price Section */}
           <ProductPriceDisplay 
-            price={currentPrice} 
-            totalPrice={totalPrice}
-            hasVariants={hasVariants}
-            minPrice={minMonthlyPrice}
+            currentPrice={currentPrice} 
+            minimumPrice={minMonthlyPrice}
           />
           
           {/* Duration selector */}
@@ -163,8 +165,7 @@ const ProductDetailPage = () => {
           <div className="flex items-center gap-4">
             <QuantitySelector 
               quantity={quantity} 
-              onChange={handleQuantityChange}
-              max={10}
+              onQuantityChange={handleQuantityChange}
             />
             
             <Button 
@@ -179,12 +180,13 @@ const ProductDetailPage = () => {
           {/* Request Form Modal */}
           {isRequestFormOpen && product && (
             <ProductRequestForm
+              isOpen={isRequestFormOpen}
+              onClose={() => setIsRequestFormOpen(false)}
               product={product}
               quantity={quantity}
+              selectedOptions={selectedOptions}
               duration={duration}
-              options={selectedOptions}
-              totalPrice={totalPrice}
-              onClose={() => setIsRequestFormOpen(false)}
+              monthlyPrice={totalPrice}
             />
           )}
 
@@ -215,7 +217,10 @@ const ProductDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
         <div className="lg:col-span-2 space-y-8">
           {/* Description */}
-          <ProductDescription description={product.description} />
+          <ProductDescription
+            title="Description du produit"
+            description={product.description} 
+          />
           
           {/* Specifications */}
           <ProductSpecificationsTable specifications={specifications} />
@@ -229,7 +234,10 @@ const ProductDetailPage = () => {
           <ProductIncludedServices />
           
           {/* CO2 Savings Calculator */}
-          <CO2SavingsCalculator />
+          <CO2SavingsCalculator 
+            category={product.category || ''} 
+            quantity={quantity} 
+          />
         </div>
       </div>
 
@@ -240,10 +248,9 @@ const ProductDetailPage = () => {
       <RelatedProducts category={product.category} currentProductId={product.id} />
       
       {/* Customer Reviews */}
-      <CustomerReviews productId={product.id} />
+      <CustomerReviews />
     </div>
   );
 };
 
 export default ProductDetailPage;
-
