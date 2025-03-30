@@ -53,9 +53,9 @@ import CartPage from "./pages/CartPage";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
-      <AuthProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -104,10 +104,10 @@ function App() {
             <Route path="/amb/catalog" element={<AmbassadorCatalog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-        <Toaster position="top-right" />
-      </AuthProvider>
-    </ThemeProvider>
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 

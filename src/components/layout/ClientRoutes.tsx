@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -133,7 +132,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return <>{children}</>;
+  return <ClientLayout>{children}</ClientLayout>;
 };
 
 const ClientRoutes = () => {
