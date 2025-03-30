@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
+import { getImageUrlWithCacheBuster } from "@/services/storageService";
 
 interface ProductImageProps {
   product: Product;
@@ -62,13 +63,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
     }
   };
 
-  // Add timestamp to image URL to prevent caching issues
-  const getImageWithTimestamp = () => {
-    if (imageUrl === "/placeholder.svg") return imageUrl;
-    
-    const separator = imageUrl.includes('?') ? '&' : '?';
-    return `${imageUrl}${separator}t=${Date.now()}`;
-  };
+  const processedImageUrl = getImageUrlWithCacheBuster(imageUrl);
   
   return (
     <div className="md:w-1/3 bg-gray-50 flex items-center justify-center p-4 relative aspect-square">
@@ -79,7 +74,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       )}
       <div className="w-full h-full flex items-center justify-center">
         <img 
-          src={getImageWithTimestamp()}
+          src={processedImageUrl}
           alt={product?.name || "Produit"}
           className="object-contain max-h-full max-w-full"
           onLoad={handleImageLoad}

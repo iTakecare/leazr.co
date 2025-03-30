@@ -37,10 +37,13 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Clean up logo URL if it contains double slashes
+          // Clean up logo URL if it contains double slashes or is malformed
           let cleanLogoUrl = null;
           if (data.logo_url) {
-            cleanLogoUrl = data.logo_url.replace(/\/\/([^\/])/g, '/$1');
+            // Fix the missing / after https:
+            cleanLogoUrl = data.logo_url.replace('https:/', 'https://');
+            // Clean up any double slashes (except after protocol)
+            cleanLogoUrl = cleanLogoUrl.replace(/([^:])\/\/+/g, '$1/');
           }
           
           setLogoUrl(cleanLogoUrl);
