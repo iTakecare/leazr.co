@@ -3,9 +3,6 @@ import { useState, useEffect } from 'react';
 import { getAllClients } from '@/services/clientService';
 import type { Client as ClientType } from '@/types/client';
 
-// Nous n'avons plus besoin de cette interface car nous utilisons celle de types/client
-// Interface supprimée pour éviter le conflit
-
 export const useClients = () => {
   const [clients, setClients] = useState<ClientType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,6 +15,9 @@ export const useClients = () => {
     const fetchClients = async () => {
       try {
         setIsLoading(true);
+        setError(null); // Reset error state before fetching
+        
+        console.log(`Fetching clients with ambassador filter: ${showAmbassadorClients}`);
         const clientsData = await getAllClients(showAmbassadorClients);
         
         if (clientsData && clientsData.length > 0) {
@@ -35,11 +35,9 @@ export const useClients = () => {
           console.log('Aucun client trouvé');
           setClients([]);
         }
-        
-        setError(null);
       } catch (err) {
         console.error("Erreur lors de la récupération des clients:", err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch clients'));
+        setError(err instanceof Error ? err : new Error('Erreur lors de la récupération des clients'));
       } finally {
         setIsLoading(false);
       }

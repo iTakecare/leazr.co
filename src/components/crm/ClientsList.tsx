@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Client } from '@/types/client'; // Correction: importer depuis types/client
+import { Client } from '@/types/client';
 import ClientList from '@/components/clients/ClientList';
 import ClientsLoading from '@/components/clients/ClientsLoading';
 import ClientsError from '@/components/clients/ClientsError';
@@ -51,8 +51,10 @@ const ClientsList: React.FC<ClientsListProps> = ({
   }
 
   if (error) {
-    // Corriger l'erreur en passant la propriété errorMessage au lieu de error
-    return <ClientsError errorMessage={error.message} onRetry={() => window.location.reload()} />;
+    return <ClientsError 
+      errorMessage={error.message} 
+      onRetry={() => onToggleAmbassadorClients(!showAmbassadorClients)} 
+    />;
   }
 
   return (
@@ -63,7 +65,9 @@ const ClientsList: React.FC<ClientsListProps> = ({
           checked={showAmbassadorClients}
           onCheckedChange={onToggleAmbassadorClients}
         />
-        <Label htmlFor="show-ambassador-clients">Afficher les clients des ambassadeurs</Label>
+        <Label htmlFor="show-ambassador-clients">
+          {showAmbassadorClients ? "Afficher les clients standard" : "Afficher les clients des ambassadeurs"}
+        </Label>
       </div>
       
       <ClientList

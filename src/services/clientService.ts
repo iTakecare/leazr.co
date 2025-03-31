@@ -8,23 +8,42 @@ import type { Client, Collaborator } from '@/types/client';
  */
 export const getAllClients = async (showAmbassadorClients: boolean = false): Promise<Client[]> => {
   try {
-    let query = supabase
-      .from('clients')
-      .select('*')
-      .order('created_at', { ascending: false });
-
     if (showAmbassadorClients) {
-      query = query.not('ambassador_id', 'is', null);
+      // When we want to show ambassador clients, use the junction table
+      const { data, error } = await supabase
+        .from('ambassador_clients')
+        .select(`
+          client_id,
+          clients:client_id (*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors de la récupération des clients des ambassadeurs:", error);
+        throw error;
+      }
+
+      // Extract the actual client objects from the nested response
+      const ambassadorClients = data?.map(item => ({
+        ...item.clients,
+        is_ambassador_client: true
+      })) || [];
+      
+      return ambassadorClients;
+    } else {
+      // Standard client query for non-ambassador clients
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors de la récupération des clients:", error);
+        throw error;
+      }
+
+      return data || [];
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Erreur lors de la récupération des clients:", error);
-      throw error;
-    }
-
-    return data || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
     throw error;
