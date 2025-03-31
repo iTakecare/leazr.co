@@ -1,4 +1,6 @@
-import { getAdminSupabaseClient } from '@/integrations/supabase/client';
+
+import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
+import { Client } from '@/types/client';
 
 /**
  * Crée un nouveau client
