@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,9 @@ import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSele
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
+import LeaserSelector from "@/components/ui/LeaserSelector";
+import LeaserButton from "@/components/offer/LeaserButton";
+import { getLeasers } from "@/services/leaserService";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -32,6 +34,7 @@ const AmbassadorCreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
+  const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -59,6 +62,23 @@ const AmbassadorCreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
+  
+  useEffect(() => {
+    const fetchLeasers = async () => {
+      try {
+        const fetchedLeasers = await getLeasers();
+        
+        if (fetchedLeasers && fetchedLeasers.length > 0) {
+          setSelectedLeaser(fetchedLeasers[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching leasers:", error);
+        toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      }
+    };
+    
+    fetchLeasers();
+  }, []);
   
   useEffect(() => {
     if (clientId) {
@@ -126,6 +146,15 @@ const AmbassadorCreateOffer = () => {
       created_at: new Date(),
       updated_at: new Date()
     });
+  };
+  
+  const handleOpenLeaserSelector = () => {
+    setLeaserSelectorOpen(true);
+  };
+  
+  const handleLeaserSelect = (leaser: Leaser) => {
+    setSelectedLeaser(leaser);
+    setLeaserSelectorOpen(false);
   };
   
   const handleOpenCatalog = () => {
@@ -249,6 +278,13 @@ const AmbassadorCreateOffer = () => {
           onClientSelect={() => {}}
         />
         
+        <LeaserSelector
+          isOpen={leaserSelectorOpen}
+          onClose={() => setLeaserSelectorOpen(false)}
+          onSelect={handleLeaserSelect}
+          selectedLeaser={selectedLeaser}
+        />
+        
         <div className="py-12 px-4">
           <div className="max-w-[90rem] mx-auto">
             <div className="flex justify-between items-center mb-8">
@@ -277,6 +313,12 @@ const AmbassadorCreateOffer = () => {
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
+                    <div className="mb-4">
+                      <LeaserButton 
+                        selectedLeaser={selectedLeaser} 
+                        onOpen={handleOpenLeaserSelector} 
+                      />
+                    </div>
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}
