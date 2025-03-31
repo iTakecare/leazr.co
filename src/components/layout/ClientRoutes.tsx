@@ -28,7 +28,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -150,50 +150,49 @@ const ClientRoutes = () => {
     }
     
     if (!isLoading && userRoleChecked && user) {
+      // Vérification du rôle client
       if (!isClient()) {
         console.log("L'utilisateur n'est pas un client", user);
         
+        // Redirection basée sur le rôle
         if (isPartner()) {
           console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
-          return;
-        }
-        
-        if (isAmbassador()) {
+        } else if (isAmbassador()) {
           console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
-          return;
-        }
-        
-        if (!isClient()) {
-          console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+        } else {
+          console.log("Redirection vers le tableau de bord administrateur");
           toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
           navigate('/dashboard', { replace: true });
-          return;
         }
       }
+    } else if (!isLoading && userRoleChecked && !user) {
+      // L'utilisateur n'est pas connecté
+      console.log("L'utilisateur n'est pas connecté, redirection vers login");
+      navigate('/login', { replace: true });
     }
   }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
 
-  if (location.hash && location.hash.includes('type=recovery')) {
-    return null;
-  }
-
-  if (isLoading) {
+  // Si on est en cours de chargement ou de vérification des rôles, ou si on est dans le flux de récupération de mot de passe
+  if (isLoading || !userRoleChecked || (location.hash && location.hash.includes('type=recovery'))) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;
   }
 
+  // Si l'utilisateur n'est pas connecté
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // Si l'utilisateur n'est pas un client
   if (!isClient()) {
     console.log("Utilisateur non client tentant d'accéder à la route client");
-    return <Navigate to="/" replace />;
+    return null; // On retourne null car la redirection est gérée dans l'useEffect
   }
 
+  // L'utilisateur est un client, on affiche les routes client
   return (
     <ClientCheck>
       <Routes>
