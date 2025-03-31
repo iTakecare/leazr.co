@@ -14,12 +14,16 @@ const RequestSteps = () => {
     company_verified: false,
     is_vat_exempt: false,
     country: 'BE',
-    email: ''
+    email: '',
+    address: '',
+    city: '',
+    postal_code: ''
   });
   
   const [contactFormData, setContactFormData] = useState({
     name: '',
     phone: '',
+    email: '',
     has_client_account: false,
     address: '',
     city: '',
@@ -41,6 +45,18 @@ const RequestSteps = () => {
   };
   
   const handleNextStep = () => {
+    if (step === 1) {
+      // When moving from company to contact step, pre-fill the address fields in contactFormData
+      // if they were populated from VIES
+      if (companyFormData.address || companyFormData.city || companyFormData.postal_code) {
+        handleContactDataUpdate({
+          address: companyFormData.address,
+          city: companyFormData.city,
+          postal_code: companyFormData.postal_code,
+          country: companyFormData.country
+        });
+      }
+    }
     setStep(prev => prev + 1);
   };
   

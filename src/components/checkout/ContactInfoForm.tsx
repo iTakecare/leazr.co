@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,7 @@ interface ContactInfoFormProps {
 }
 
 const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormData, onNext, onBack, initialEmail }) => {
-  React.useEffect(() => {
+  useEffect(() => {
     // If email is not set in contactFormData but we have an initialEmail, set it
     if (!formData.email && initialEmail) {
       updateFormData({ email: initialEmail });
@@ -99,6 +99,9 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
 
         <div className="border-t pt-4 mt-4">
           <h3 className="font-medium mb-3">Adresse de facturation</h3>
+          <p className="text-sm text-gray-500 mb-3">
+            Récupérée automatiquement depuis les informations de l'entreprise
+          </p>
           
           <div className="space-y-2">
             <Label htmlFor="address">Adresse</Label>

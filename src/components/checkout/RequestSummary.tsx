@@ -27,6 +27,7 @@ interface RequestSummaryProps {
     shipping_city?: string;
     shipping_postal_code?: string;
     shipping_country?: string;
+    email?: string;
   };
   onBack: () => void;
 }

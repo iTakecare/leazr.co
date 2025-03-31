@@ -22,6 +22,9 @@ interface CompanyFormData {
   is_vat_exempt: boolean;
   country: string;
   email?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
 }
 
 interface CompanyInfoFormProps {
@@ -64,6 +67,35 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     }
   };
 
+  const parseAddressFromVIES = (addressString?: string) => {
+    if (!addressString) return { address: '', city: '', postal_code: '' };
+
+    // Try to parse a typical address format from VIES 
+    // Example: "Avenue Général Michel 1/E\n6000 Charleroi\nBelgium"
+    const lines = addressString.split('\n');
+    let address = '', city = '', postal_code = '';
+
+    // First line is typically the street address
+    if (lines.length > 0) {
+      address = lines[0].trim();
+    }
+
+    // Second line typically contains postal code and city
+    if (lines.length > 1) {
+      const cityLine = lines[1].trim();
+      const postalMatch = cityLine.match(/^(\d+)\s+(.+)/);
+      
+      if (postalMatch) {
+        postal_code = postalMatch[1];
+        city = postalMatch[2];
+      } else {
+        city = cityLine;
+      }
+    }
+
+    return { address, city, postal_code };
+  };
+
   const handleSearchCompany = async () => {
     // Vérifier que le numéro d'entreprise est renseigné
     if (!formData.vat_number.trim()) {
@@ -82,10 +114,16 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       const result = await verifyVatNumber(formData.vat_number, country);
       
       if (result.valid) {
+        // Extraire l'adresse de l'entreprise
+        const addressData = parseAddressFromVIES(result.address);
+        
         // Mettre à jour les informations de l'entreprise avec les données de VIES
         updateFormData({
           company_verified: true,
-          company: result.companyName || formData.company
+          company: result.companyName || formData.company,
+          address: addressData.address,
+          city: addressData.city,
+          postal_code: addressData.postal_code
         });
         
         toast({
@@ -159,9 +197,15 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       const result = await verifyVatNumber(formData.vat_number, country);
       
       if (result.valid) {
+        // Extraire l'adresse de l'entreprise
+        const addressData = parseAddressFromVIES(result.address);
+        
         updateFormData({
           company_verified: true,
-          company: result.companyName || formData.company
+          company: result.companyName || formData.company,
+          address: addressData.address,
+          city: addressData.city,
+          postal_code: addressData.postal_code
         });
         
         toast({
