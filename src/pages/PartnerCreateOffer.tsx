@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +12,9 @@ import { createOffer, getOfferById, updateOffer } from "@/services/offerService"
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
+import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import PageTransition from "@/components/layout/PageTransition";
+import Container from "@/components/layout/Container";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
