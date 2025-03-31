@@ -155,11 +155,11 @@ const ClientRoutes = () => {
         console.log("L'utilisateur n'est pas un client", user);
         
         // Redirection basée sur le rôle
-        if (isPartner && isPartner()) {
+        if (typeof isPartner === 'function' && isPartner()) {
           console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
-        } else if (isAmbassador && isAmbassador()) {
+        } else if (typeof isAmbassador === 'function' && isAmbassador()) {
           console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
@@ -187,7 +187,7 @@ const ClientRoutes = () => {
   }
 
   // Si l'utilisateur n'est pas un client
-  if (isClient && !isClient()) {
+  if (typeof isClient === 'function' && !isClient()) {
     console.log("Utilisateur non client tentant d'accéder à la route client");
     return null; // On retourne null car la redirection est gérée dans l'useEffect
   }
