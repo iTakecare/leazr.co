@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -11,6 +12,7 @@ import ClientsError from "@/components/clients/ClientsError";
 import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { supabase } from "@/integrations/supabase/client";
 import CreateOffer from "@/pages/CreateOffer";
+import { toast } from "sonner";
 
 const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
 const ClientCatalog = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Catalogue</h1><p>Catalogue en cours d'implémentation.</p></div>;
@@ -149,21 +151,29 @@ const ClientRoutes = () => {
     }
     
     if (!isLoading && userRoleChecked && user) {
-      if (isPartner()) {
-        console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
-        navigate('/partner/dashboard', { replace: true });
-        return;
-      }
-      
-      if (isAmbassador()) {
-        console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
-        navigate('/ambassador/dashboard', { replace: true });
-        return;
-      }
-      
       if (!isClient()) {
-        console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
-        navigate('/dashboard', { replace: true });
+        console.log("L'utilisateur n'est pas un client", user);
+        
+        if (isPartner()) {
+          console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
+          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
+          navigate('/partner/dashboard', { replace: true });
+          return;
+        }
+        
+        if (isAmbassador()) {
+          console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
+          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
+          navigate('/ambassador/dashboard', { replace: true });
+          return;
+        }
+        
+        if (!isClient()) {
+          console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+          toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
+          navigate('/dashboard', { replace: true });
+          return;
+        }
       }
     }
   }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
@@ -178,6 +188,12 @@ const ClientRoutes = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Added strict check for client role
+  if (!isClient()) {
+    console.log("Utilisateur non client tentant d'accéder à la route client");
+    return <Navigate to="/" replace />;
   }
 
   return (

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -98,6 +99,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           setUser(extendedUser);
           setUserRoleChecked(true);
+          
+          // Redirect based on role
+          handleRoleBasedRedirection(extendedUser);
         } else {
           setUser(null);
           setUserRoleChecked(true);
@@ -151,6 +155,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               
               setUser(extendedUser);
               setUserRoleChecked(true);
+              
+              // Also handle redirection on auth state change
+              handleRoleBasedRedirection(extendedUser);
             } else {
               setUser(null);
               setUserRoleChecked(true);
@@ -171,6 +178,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
   }, []);
+  
+  // Helper function to handle role-based redirections
+  const handleRoleBasedRedirection = (user: ExtendedUser) => {
+    if (!user) return;
+    
+    // Get current path to avoid unnecessary redirections
+    const currentPath = window.location.pathname;
+    
+    // Only redirect if at root or on incorrect dashboard
+    const shouldRedirect = currentPath === "/" || 
+                          (isClient() && !currentPath.startsWith("/client")) ||
+                          (isPartner() && !currentPath.startsWith("/partner")) ||
+                          (isAmbassador() && !currentPath.startsWith("/ambassador")) ||
+                          (isAdmin() && (!currentPath.startsWith("/dashboard") && !currentPath.startsWith("/clients") && 
+                                         !currentPath.startsWith("/offers") && !currentPath.startsWith("/contracts") &&
+                                         !currentPath.startsWith("/catalog") && !currentPath.startsWith("/settings") &&
+                                         !currentPath.startsWith("/i-take-care") && !currentPath.startsWith("/create-offer")));
+    
+    if (shouldRedirect) {
+      console.log("Redirecting user based on role", user.role, "client_id:", user.client_id);
+      
+      // Give priority to entity associations over role
+      if (user.client_id) {
+        console.log("User is a client, redirecting to client dashboard");
+        setTimeout(() => navigate("/client/dashboard"), 0);
+      } else if (user.partner_id) {
+        console.log("User is a partner, redirecting to partner dashboard");
+        setTimeout(() => navigate("/partner/dashboard"), 0);
+      } else if (user.ambassador_id) {
+        console.log("User is an ambassador, redirecting to ambassador dashboard");
+        setTimeout(() => navigate("/ambassador/dashboard"), 0);
+      } else if (isAdmin()) {
+        console.log("User is an admin, redirecting to admin dashboard");
+        setTimeout(() => navigate("/dashboard"), 0);
+      } else {
+        // Default fallback to client dashboard if no specific role match
+        console.log("No specific role match, defaulting to client dashboard");
+        setTimeout(() => navigate("/client/dashboard"), 0);
+      }
+    }
+  };
 
   const signUp = async (email: string, password: string) => {
     try {

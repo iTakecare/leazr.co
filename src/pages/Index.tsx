@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,28 +9,29 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isPartner, isAdmin, isAmbassador, userRoleChecked } = useAuth();
+  const { user, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user && userRoleChecked) {
-      if (isAdmin()) {
-        navigate("/dashboard");
+      if (isClient()) {
+        navigate("/client/dashboard");
       } else if (isPartner()) {
         navigate("/partner/dashboard");
       } else if (isAmbassador()) {
         navigate("/ambassador/dashboard");
+      } else if (isAdmin()) {
+        navigate("/dashboard");
       } else {
         navigate("/client/dashboard");
       }
     }
-  }, [user, navigate, isPartner, isAdmin, isAmbassador, userRoleChecked]);
+  }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-gray-900">
       <Container className="flex-1 flex flex-col">
         <div className="py-12 md:py-20 lg:py-28 relative overflow-hidden">
-          {/* Background image with improved gradient */}
           <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5 hidden md:block">
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-blue-50/80 to-blue-50 dark:via-blue-950/80 dark:to-blue-950 z-10"></div>
             <img 

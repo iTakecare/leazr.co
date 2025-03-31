@@ -52,11 +52,11 @@ export const generateAccountCreationLink = async (
   email: string
 ): Promise<string> => {
   try {
-    // Utiliser l'API de Supabase pour générer un lien d'inscription
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'signup',
-      email: email,
-      options: {
+    // Use available auth admin generateLink function
+    const { data, error } = await supabase.functions.invoke('generate-auth-link', {
+      body: {
+        type: 'signup',
+        email: email,
         redirectTo: `${window.location.origin}/auth/callback`
       }
     });
@@ -67,7 +67,11 @@ export const generateAccountCreationLink = async (
       return `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
     }
     
-    return data.properties?.action_link || `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
+    if (data?.link) {
+      return data.link;
+    }
+    
+    return `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
   } catch (error) {
     console.error("Exception lors de la génération du lien de création de compte:", error);
     return `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
@@ -231,13 +235,44 @@ export const sendDocumentsRequestEmail = async (
   try {
     console.log(`Envoi de la demande de documents à ${clientEmail}`);
     
+    // Récupérer le modèle d'email s'il existe
+    const template = await getEmailTemplate("document_request");
+    
+    let subject = `Demande de documents complémentaires pour votre offre`;
+    let docsList = requestedDocs.map(doc => `<li>${doc}</li>`).join('');
+    
+    let htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Documents complémentaires requis</h2>
+        <p>Bonjour ${clientName},</p>
+        <p>Pour finaliser le traitement de votre offre, nous avons besoin des documents suivants:</p>
+        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+          ${docsList}
+        </ul>
+        ${customMessage ? `<p>${customMessage}</p>` : ''}
+        <p>Merci de nous transmettre ces documents dès que possible en répondant à cet email ou via votre espace client.</p>
+        <p style="margin-top: 30px;">Cordialement,<br>L'équipe iTakecare</p>
+      </div>
+    `;
+    
+    if (template) {
+      subject = template.subject.replace("{{client_name}}", clientName);
+      
+      htmlContent = template.html_content
+        .replace(/{{client_name}}/g, clientName)
+        .replace(/{{documents_list}}/g, docsList)
+        .replace(/{{custom_message}}/g, customMessage || '');
+    }
+    
     const { data, error } = await supabase.functions.invoke('send-document-request', {
       body: {
         offerId,
         clientEmail,
         clientName,
         requestedDocs,
-        customMessage
+        customMessage,
+        subject,
+        htmlContent
       }
     });
     
@@ -248,13 +283,16 @@ export const sendDocumentsRequestEmail = async (
     
     if (data && data.success) {
       console.log("Demande de documents envoyée avec succès");
+      toast.success("Demande de documents envoyée avec succès");
       return true;
     } else {
       console.error("Échec de l'envoi de la demande de documents:", data?.message || "Raison inconnue");
+      toast.error("Échec de l'envoi de la demande de documents");
       return false;
     }
   } catch (error) {
     console.error("Exception lors de l'envoi de la demande de documents:", error);
+    toast.error("Erreur lors de l'envoi de la demande de documents");
     return false;
   }
 };
@@ -274,12 +312,15 @@ export const sendPasswordResetEmail = async (
     
     if (error) {
       console.error("Erreur lors de l'envoi de l'email de réinitialisation:", error);
+      toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
       return false;
     }
     
+    toast.success("Email de réinitialisation envoyé avec succès");
     return true;
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email de réinitialisation:", error);
+    toast.error("Erreur lors de l'envoi de l'email de réinitialisation");
     return false;
   }
 };
