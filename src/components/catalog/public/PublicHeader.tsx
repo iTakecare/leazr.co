@@ -74,9 +74,14 @@ const PublicHeader = () => {
               aria-label="Voir le panier"
             >
               <ShoppingCart className="h-6 w-6 text-gray-700" />
-              <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {cartCount}
-              </span>
+              {cartCount > 0 && (
+                <span className={cn(
+                  "absolute -top-2 -right-2 bg-[#2d618f] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center",
+                  cartCount > 0 && "animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"
+                )}>
+                  {cartCount}
+                </span>
+              )}
             </button>
             <div className="hidden md:block">
               <Button variant="outline" className="mr-2">Connexion</Button>
