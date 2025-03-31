@@ -1,368 +1,131 @@
 
-import React, { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard,
-  FileText,
-  Laptop,
-  Clock,
-  Package,
-  LogOut,
-  ShieldCheck,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Settings,
-  HelpCircle
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
-import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import Logo from "./Logo";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import SidebarUserSection from "./SidebarUserSection";
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Laptop, 
+  Inbox,
+  MessageSquare,
+  Settings,
+  Search
+} from "lucide-react";
 
-interface SidebarProps {
-  className?: string;
-  onLinkClick?: () => void;
-}
-
-interface MenuItem {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-  badge?: string;
-  isNew?: boolean;
-}
-
-const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
+const ClientSidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = React.useState(false);
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchAvatar = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Erreur lors de la récupération de l'avatar:", error);
-          return;
-        }
-        
-        if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'avatar:", err);
-      }
-    };
-    
-    fetchAvatar();
-  }, [user]);
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
-
-  const sidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
-    { label: "Contrats", icon: FileText, href: "/client/contracts" },
-    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
-    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
-    { label: "Catalogue", icon: Package, href: "/client/catalog" },
-    { label: "Support", icon: HelpCircle, href: "/client/support" },
-    { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
-    { label: "Paramètres", icon: Settings, href: "/client/settings" },
+  // Navigation items for client sidebar
+  const navigationItems = [
+    {
+      name: "Tableau de bord",
+      href: "/client/dashboard",
+      icon: LayoutDashboard,
+      current: location.pathname === "/client/dashboard",
+    },
+    {
+      name: "Contrats",
+      href: "/client/contracts",
+      icon: FileText,
+      current: location.pathname === "/client/contracts",
+    },
+    {
+      name: "Équipements",
+      href: "/client/equipment",
+      icon: Laptop,
+      current: location.pathname === "/client/equipment",
+    },
+    {
+      name: "Demandes",
+      href: "/client/requests",
+      icon: Inbox,
+      current: location.pathname === "/client/requests",
+    },
+    {
+      name: "Catalogue",
+      href: "/client/catalog",
+      icon: Search,
+      current: location.pathname === "/client/catalog",
+    },
+    {
+      name: "Support",
+      href: "/client/support",
+      icon: MessageSquare,
+      current: location.pathname === "/client/support",
+    },
+    {
+      name: "Paramètres",
+      href: "/client/settings",
+      icon: Settings,
+      current: location.pathname === "/client/settings",
+    },
   ];
 
-  const isActive = (path: string) => {
-    return location.pathname.startsWith(path);
-  };
-
-  if (isMobile) {
-    return (
-      <>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 z-50 md:hidden bg-background/90 backdrop-blur-sm shadow-lg rounded-full hover:bg-primary/20 transition-all"
-          aria-label="Menu"
-        >
-          <Menu className="h-5 w-5 text-primary" />
-          <span className="sr-only">Menu</span>
-        </Button>
-        
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-4 border-b">
-                <Logo />
-                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-              
-              <nav className="flex-1 px-2 py-4">
-                <ul className="space-y-1">
-                  {sidebarItems.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        onClick={() => {
-                          onLinkClick?.();
-                          setMobileOpen(false);
-                        }}
-                        className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                        <span className="flex-1">{item.label}</span>
-                        {item.badge && (
-                          <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                            {item.badge}
-                          </Badge>
-                        )}
-                        {item.isNew && !item.badge && (
-                          <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                            New
-                          </Badge>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-              
-              {user && (
-                <div className="p-4 border-t mt-auto">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar>
-                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                      <AvatarFallback className="bg-primary/20 text-primary">
-                        {user.email?.substring(0, 2).toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-medium truncate">
-                        {user.first_name && user.last_name 
-                          ? `${user.first_name} ${user.last_name}` 
-                          : user.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Client</p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Déconnexion
-                  </Button>
-                </div>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
-  
   return (
-    <aside
-      className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
-        className
-      )}
-    >
-      <div className="flex flex-col h-full">
-        <div className={cn(
-          "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-between"
-        )}>
-          <Logo showText={!collapsed} />
-          
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
+    <div className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 z-[80] bg-card border-r">
+      <div className="flex flex-col flex-grow pt-5 overflow-y-auto">
+        {/* Logo and branding */}
+        <div className="flex items-center flex-shrink-0 px-4 mb-5">
+          <Link to="/client/dashboard" className="flex items-center gap-2">
+            <img
+              className="h-8 w-auto"
+              src="/logo.svg"
+              alt="iTakecare"
+            />
+            <span className="text-xl font-bold">iTakecare</span>
+          </Link>
         </div>
-        
-        <nav className="flex-1 px-2 py-4">
-          <TooltipProvider delayDuration={200}>
-            <ul className="space-y-1">
-              {sidebarItems.map((item) => (
-                <li key={item.href}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        onClick={onLinkClick}
-                        className={cn(
-                          "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                          collapsed ? "justify-center px-2" : "px-3",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon 
-                          className={cn(
-                            "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "relative" : "mr-3",
-                            isActive(item.href) && "stroke-[2.5px]"
-                          )} 
-                        />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1">{item.label}</span>
-                            {item.badge && (
-                              <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                                {item.badge}
-                              </Badge>
-                            )}
-                            {item.isNew && !item.badge && (
-                              <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                                New
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                        {collapsed && item.badge && (
-                          <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </Link>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
-          </TooltipProvider>
-        </nav>
-        
-        {user && (
-          <div className={cn(
-            "transition-all duration-300 mt-auto border-t border-t-primary/10 pt-4",
-            collapsed ? "p-2" : "p-4 mx-2 mb-2"
-          )}>
-            {!collapsed ? (
-              <>
-                <div className="flex items-center gap-3 mb-4">
-                  <Avatar>
-                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      {user.email?.substring(0, 2).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-medium truncate">
-                      {user.first_name && user.last_name 
-                        ? `${user.first_name} ${user.last_name}` 
-                        : user.email}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Client</p>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Déconnexion
-                </Button>
-              </>
-            ) : (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={handleLogout}
-                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span className="sr-only">Déconnexion</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>Déconnexion</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        )}
-        
-        {collapsed && (
-          <div className="p-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(false)} 
-              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
+
+        {/* User section */}
+        <div className="px-3 mb-6">
+          <SidebarUserSection />
+        </div>
+
+        {/* Navigation */}
+        <ScrollArea className="flex-1 px-3">
+          <nav className="space-y-1">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md group transition-colors ${
+                  item.current
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <item.icon
+                  className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                    item.current 
+                      ? "text-primary-foreground" 
+                      : "text-muted-foreground group-hover:text-accent-foreground"
+                  }`}
+                  aria-hidden="true"
+                />
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        </ScrollArea>
       </div>
-    </aside>
+      
+      {/* Logout button */}
+      <div className="flex-shrink-0 flex border-t p-4">
+        <div className="flex-shrink-0 w-full group block">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => window.location.href = "/logout"}
+          >
+            Déconnexion
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 
