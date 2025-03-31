@@ -52,6 +52,11 @@ const formSchema = z.object({
   postal_code: z.string().optional().or(z.literal("")),
   country: z.string().optional().or(z.literal("")),
   status: z.enum(["active", "inactive", "lead"]).optional(),
+  has_different_shipping_address: z.boolean().optional(),
+  shipping_address: z.string().optional().or(z.literal("")),
+  shipping_city: z.string().optional().or(z.literal("")),
+  shipping_postal_code: z.string().optional().or(z.literal("")),
+  shipping_country: z.string().optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -66,6 +71,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
+  const [showShippingAddress, setShowShippingAddress] = useState(false);
   const clientId = params.id;
 
   const form = useForm<FormValues>({
@@ -82,6 +88,11 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
       postal_code: "",
       country: "",
       status: "active",
+      has_different_shipping_address: false,
+      shipping_address: "",
+      shipping_city: "",
+      shipping_postal_code: "",
+      shipping_country: "",
     },
   });
 
@@ -102,8 +113,15 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
             city: client.city || "",
             postal_code: client.postal_code || "",
             country: client.country || "",
-            status: client.status || "active"
+            status: client.status || "active",
+            has_different_shipping_address: client.has_different_shipping_address || false,
+            shipping_address: client.shipping_address || "",
+            shipping_city: client.shipping_city || "",
+            shipping_postal_code: client.shipping_postal_code || "",
+            shipping_country: client.shipping_country || "",
           });
+          
+          setShowShippingAddress(client.has_different_shipping_address || false);
         } else {
           toast.error("Client introuvable");
           navigateBack();
@@ -217,6 +235,15 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
     }
   };
 
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'has_different_shipping_address') {
+        setShowShippingAddress(value.has_different_shipping_address || false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
@@ -233,7 +260,12 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
         country: data.country || undefined,
         status: data.status || "active",
         user_id: null,
-        has_user_account: false
+        has_user_account: false,
+        has_different_shipping_address: data.has_different_shipping_address,
+        shipping_address: data.has_different_shipping_address ? data.shipping_address : undefined,
+        shipping_city: data.has_different_shipping_address ? data.shipping_city : undefined,
+        shipping_postal_code: data.has_different_shipping_address ? data.shipping_postal_code : undefined,
+        shipping_country: data.has_different_shipping_address ? data.shipping_country : undefined,
       };
       
       let result;
@@ -391,6 +423,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
                       </div>
 
                       <div className="mt-4">
+                        <h4 className="text-md font-medium mb-2">Adresse de facturation</h4>
                         <FormField
                           control={form.control}
                           name="address"
@@ -449,6 +482,90 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
                           )}
                         />
                       </div>
+
+                      <div className="mt-6 flex items-center space-x-2">
+                        <FormField
+                          control={form.control}
+                          name="has_different_shipping_address"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  id="has_different_shipping_address"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm cursor-pointer" htmlFor="has_different_shipping_address">
+                                Adresse de livraison différente
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {showShippingAddress && (
+                        <div className="mt-4 border p-4 rounded-md bg-muted/10">
+                          <h4 className="text-md font-medium mb-3">Adresse de livraison</h4>
+                          <FormField
+                            control={form.control}
+                            name="shipping_address"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Adresse de livraison</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Adresse de livraison" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                            <FormField
+                              control={form.control}
+                              name="shipping_city"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Ville</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ville" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="shipping_postal_code"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Code postal</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Code postal" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="shipping_country"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Pays</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Pays" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div>

@@ -200,12 +200,14 @@ export default function ClientDetail() {
                   </div>
                 </div>
               )}
-              
+            </div>
+            
+            <div className="mt-6">
+              <h3 className="text-sm font-medium mb-3">Adresse de facturation</h3>
               {client.address && (
-                <div className="flex items-start space-x-3 md:col-span-2 bg-muted/20 p-3 rounded-md">
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
                   <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium">Adresse</h3>
                     <p className="text-sm">
                       {client.address}
                       {(client.postal_code || client.city) && (
@@ -216,7 +218,27 @@ export default function ClientDetail() {
                   </div>
                 </div>
               )}
-              
+            </div>
+            
+            {client.has_different_shipping_address && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium mb-3">Adresse de livraison</h3>
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-sm">
+                      {client.shipping_address}
+                      {(client.shipping_postal_code || client.shipping_city) && (
+                        <>, {client.shipping_postal_code} {client.shipping_city}</>
+                      )}
+                      {client.shipping_country && <>, {client.shipping_country}</>}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
                 <Clock className="h-5 w-5 text-primary mt-0.5" />
                 <div>

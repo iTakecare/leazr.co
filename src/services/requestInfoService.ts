@@ -16,6 +16,14 @@ export interface ProductRequestData {
   monthly_payment: number;
   quantity: number;
   duration: number;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  has_different_shipping_address?: boolean;
+  shipping_address?: string;
+  shipping_city?: string;
+  shipping_postal_code?: string;
+  shipping_country?: string;
 }
 
 export interface RequestInfoData {
@@ -54,7 +62,15 @@ export const createProductRequest = async (data: ProductRequestData) => {
       status: 'pending',
       workflow_status: 'requested',
       type: 'client_request',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      address: data.address,
+      city: data.city,
+      postal_code: data.postal_code,
+      has_different_shipping_address: data.has_different_shipping_address,
+      shipping_address: data.shipping_address,
+      shipping_city: data.shipping_city,
+      shipping_postal_code: data.shipping_postal_code,
+      shipping_country: data.shipping_country
     };
     
     // Stocker l'offre dans localStorage

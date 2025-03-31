@@ -18,7 +18,15 @@ interface RequestSummaryProps {
     name: string;
     phone: string;
     has_client_account: boolean;
-    email?: string;
+    address?: string;
+    city?: string;
+    postal_code?: string;
+    country?: string;
+    has_different_shipping_address?: boolean;
+    shipping_address?: string;
+    shipping_city?: string;
+    shipping_postal_code?: string;
+    shipping_country?: string;
   };
   onBack: () => void;
 }
@@ -66,7 +74,29 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       default: return 'Numéro d\'identification';
     }
   };
-  
+
+  // Fonction pour formater une adresse
+  const formatAddress = (
+    address?: string,
+    city?: string,
+    postal_code?: string,
+    country?: string
+  ) => {
+    if (!address && !city && !postal_code && !country) return "Non spécifiée";
+    
+    const parts = [];
+    if (address) parts.push(address);
+    
+    const cityPart = [];
+    if (postal_code) cityPart.push(postal_code);
+    if (city) cityPart.push(city);
+    if (cityPart.length > 0) parts.push(cityPart.join(' '));
+    
+    if (country) parts.push(country);
+    
+    return parts.join(', ');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
@@ -93,6 +123,22 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
             {contactData.phone && (
               <p><span className="text-gray-500">Téléphone:</span> {contactData.phone}</p>
             )}
+            <p><span className="text-gray-500">Adresse de facturation:</span> {formatAddress(
+              contactData.address,
+              contactData.city,
+              contactData.postal_code,
+              contactData.country
+            )}</p>
+            
+            {contactData.has_different_shipping_address && (
+              <p><span className="text-gray-500">Adresse de livraison:</span> {formatAddress(
+                contactData.shipping_address,
+                contactData.shipping_city,
+                contactData.shipping_postal_code,
+                contactData.shipping_country
+              )}</p>
+            )}
+            
             <p><span className="text-gray-500">Compte client:</span> {contactData.has_client_account ? 'Oui' : 'Non'}</p>
           </div>
         </div>

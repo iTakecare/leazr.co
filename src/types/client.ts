@@ -31,6 +31,11 @@ export interface Client {
   createdAt?: string;
   totalValue?: number;
   ambassador_client_id?: string;
+  shipping_address?: string;
+  shipping_city?: string;
+  shipping_postal_code?: string;
+  shipping_country?: string;
+  has_different_shipping_address?: boolean;
 }
 
 export interface CreateClientData {
@@ -48,4 +53,9 @@ export interface CreateClientData {
   country?: string;
   collaborators?: Collaborator[];
   is_ambassador_client?: boolean;
+  shipping_address?: string;
+  shipping_city?: string;
+  shipping_postal_code?: string;
+  shipping_country?: string;
+  has_different_shipping_address?: boolean;
 }

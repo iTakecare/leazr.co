@@ -20,7 +20,16 @@ const RequestSteps = () => {
   const [contactFormData, setContactFormData] = useState({
     name: '',
     phone: '',
-    has_client_account: false
+    has_client_account: false,
+    address: '',
+    city: '',
+    postal_code: '',
+    country: '',
+    has_different_shipping_address: false,
+    shipping_address: '',
+    shipping_city: '',
+    shipping_postal_code: '',
+    shipping_country: ''
   });
   
   const handleCompanyDataUpdate = (data: Partial<typeof companyFormData>) => {
