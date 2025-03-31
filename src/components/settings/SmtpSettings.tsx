@@ -27,6 +27,7 @@ const ResendSettings = () => {
   });
   const [resendApiKey, setResendApiKey] = useState<string>("");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [keyStatus, setKeyStatus] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     try {
@@ -67,21 +68,31 @@ const ResendSettings = () => {
   
   const fetchResendApiKey = async () => {
     try {
-      console.log("Fetching Resend API key...");
+      console.log("Fetching Resend API key from Supabase secrets...");
+      setKeyStatus("loading");
+      
       const { data: secretData, error: secretError } = await supabase.functions.invoke('get-secret-value', {
         body: { secret_name: 'RESEND_API_KEY' }
       });
       
       if (secretError) {
         console.error("Error fetching Resend API key:", secretError);
-      } else if (secretData) {
-        console.log("Resend API key retrieved successfully");
+        setKeyStatus("error");
+        return;
+      } 
+      
+      if (secretData) {
+        console.log("Resend API key retrieved successfully from secrets");
         setResendApiKey(secretData);
+        setKeyStatus("loaded");
       } else {
-        console.log("No Resend API key found or it's empty");
+        console.log("No Resend API key found in Supabase secrets");
+        setKeyStatus("not_found");
+        setResendApiKey("");
       }
     } catch (err) {
       console.error("Exception while fetching Resend API key:", err);
+      setKeyStatus("error");
     }
   };
 
@@ -113,9 +124,9 @@ const ResendSettings = () => {
         throw error;
       }
       
-      // Enregistrer la clé API Resend
+      // Enregistrer la clé API Resend dans les secrets Supabase (pas dans la base de données)
       if (resendApiKey) {
-        console.log("Saving Resend API key...");
+        console.log("Saving Resend API key to Supabase secrets...");
         const { data: secretData, error: secretError } = await supabase.functions.invoke('set-secret', {
           body: { key: 'RESEND_API_KEY', value: resendApiKey }
         });
@@ -132,10 +143,14 @@ const ResendSettings = () => {
           throw new Error(`Échec de l'enregistrement de la clé Resend: ${secretData.message || 'Erreur inconnue'}`);
         }
         
-        console.log("Resend API key saved successfully:", secretData);
+        console.log("Resend API key saved successfully to Supabase secrets:", secretData);
         
         // Vérification immédiate que la clé a bien été enregistrée
         await fetchResendApiKey();
+        
+        if (keyStatus === "error" || keyStatus === "not_found") {
+          toast.warning("La clé API a été enregistrée mais n'est pas disponible immédiatement dans l'environnement. Veuillez également configurer ce secret dans l'interface Supabase.");
+        }
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");
@@ -239,7 +254,10 @@ const ResendSettings = () => {
         </Alert>
         
         <div className="space-y-2">
-          <Label htmlFor="resend-api-key">Clé API Resend</Label>
+          <Label htmlFor="resend-api-key">
+            Clé API Resend 
+            {keyStatus === "loaded" && <span className="ml-2 text-xs text-green-600">(Chargée depuis les secrets Supabase)</span>}
+          </Label>
           <Input
             id="resend-api-key"
             placeholder="re_..."
@@ -248,7 +266,8 @@ const ResendSettings = () => {
             type="password"
           />
           <p className="text-sm text-gray-500 mt-1">
-            Créez une clé API sur <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com/api-keys</a>
+            Créez une clé API sur <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com/api-keys</a>. 
+            <strong className="block mt-1">Note:</strong> La clé API est stockée dans les secrets Supabase, pas dans la base de données.
           </p>
         </div>
         
