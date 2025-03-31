@@ -147,8 +147,188 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
   }
 };
 
+/**
+ * Ajoute un nouveau leaser
+ * Cette fonction est un alias de createLeaser pour maintenir la compatibilité
+ */
+export const addLeaser = createLeaser;
+
+/**
+ * Met à jour un leaser existant
+ * @param id ID du leaser à mettre à jour
+ * @param leaser Nouvelles données du leaser
+ * @returns true si la mise à jour a réussi, false sinon
+ */
+export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Promise<boolean> => {
+  try {
+    // Mettre à jour les informations de base du leaser
+    const { error } = await supabase
+      .from('leasers')
+      .update({
+        name: leaser.name,
+        logo_url: leaser.logo_url || null
+      })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Erreur lors de la mise à jour du leaser:', error);
+      toast.error("Erreur lors de la mise à jour du leaser");
+      return false;
+    }
+    
+    // Supprimer les anciennes tranches
+    const { error: deleteError } = await supabase
+      .from('leaser_ranges')
+      .delete()
+      .eq('leaser_id', id);
+    
+    if (deleteError) {
+      console.error('Erreur lors de la suppression des anciennes tranches:', deleteError);
+      toast.error("Erreur lors de la mise à jour des tranches");
+      return false;
+    }
+    
+    // Ajouter les nouvelles tranches
+    if (leaser.ranges && leaser.ranges.length > 0) {
+      const rangesToInsert = leaser.ranges.map(range => ({
+        leaser_id: id,
+        min: range.min,
+        max: range.max,
+        coefficient: range.coefficient
+      }));
+      
+      const { error: rangeError } = await supabase
+        .from('leaser_ranges')
+        .insert(rangesToInsert);
+        
+      if (rangeError) {
+        console.error('Erreur lors de l\'ajout des nouvelles tranches:', rangeError);
+        toast.error("Les informations du leaser ont été mises à jour, mais pas les tranches");
+        return false;
+      }
+    }
+    
+    toast.success("Leaser mis à jour avec succès");
+    return true;
+  } catch (error) {
+    console.error('Exception lors de la mise à jour du leaser:', error);
+    toast.error("Erreur lors de la mise à jour du leaser");
+    return false;
+  }
+};
+
+/**
+ * Supprime un leaser
+ * @param id ID du leaser à supprimer
+ * @returns true si la suppression a réussi, false sinon
+ */
+export const deleteLeaser = async (id: string): Promise<boolean> => {
+  try {
+    // Supprimer d'abord les tranches associées
+    const { error: rangeError } = await supabase
+      .from('leaser_ranges')
+      .delete()
+      .eq('leaser_id', id);
+    
+    if (rangeError) {
+      console.error('Erreur lors de la suppression des tranches:', rangeError);
+      toast.error("Erreur lors de la suppression des tranches");
+      return false;
+    }
+    
+    // Supprimer ensuite le leaser
+    const { error } = await supabase
+      .from('leasers')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Erreur lors de la suppression du leaser:', error);
+      toast.error("Erreur lors de la suppression du leaser");
+      return false;
+    }
+    
+    toast.success("Leaser supprimé avec succès");
+    return true;
+  } catch (error) {
+    console.error('Exception lors de la suppression du leaser:', error);
+    toast.error("Erreur lors de la suppression du leaser");
+    return false;
+  }
+};
+
+/**
+ * Insère les leasers par défaut si la table est vide
+ * @returns true si l'opération a réussi, false sinon
+ */
+export const insertDefaultLeasers = async (): Promise<boolean> => {
+  try {
+    // Vérifier si des leasers existent déjà
+    const { count, error: countError } = await supabase
+      .from('leasers')
+      .select('*', { count: 'exact', head: true });
+    
+    if (countError) {
+      console.error('Erreur lors de la vérification des leasers existants:', countError);
+      return false;
+    }
+    
+    // Si des leasers existent déjà, ne pas insérer les leasers par défaut
+    if (count && count > 0) {
+      console.log('Des leasers existent déjà, pas d\'insertion des leasers par défaut');
+      return true;
+    }
+    
+    // Insérer les leasers par défaut
+    for (const leaser of defaultLeasers) {
+      const { data, error } = await supabase
+        .from('leasers')
+        .insert({
+          id: leaser.id,  // Conserver l'ID d'origine pour garantir la cohérence
+          name: leaser.name,
+          logo_url: leaser.logo_url || null
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erreur lors de l\'insertion d\'un leaser par défaut:', error);
+        continue;
+      }
+      
+      // Insérer les tranches pour ce leaser
+      if (leaser.ranges && leaser.ranges.length > 0) {
+        const rangesToInsert = leaser.ranges.map(range => ({
+          leaser_id: data.id,
+          min: range.min,
+          max: range.max,
+          coefficient: range.coefficient
+        }));
+        
+        const { error: rangeError } = await supabase
+          .from('leaser_ranges')
+          .insert(rangesToInsert);
+          
+        if (rangeError) {
+          console.error('Erreur lors de l\'insertion des tranches pour un leaser par défaut:', rangeError);
+        }
+      }
+    }
+    
+    console.log('Leasers par défaut insérés avec succès');
+    return true;
+  } catch (error) {
+    console.error('Exception lors de l\'insertion des leasers par défaut:', error);
+    return false;
+  }
+};
+
 export default {
   getLeasers,
   getLeaserById,
-  createLeaser
+  createLeaser,
+  addLeaser,
+  updateLeaser,
+  deleteLeaser,
+  insertDefaultLeasers
 };
