@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Client } from '@/types/client';
+import type { Client, Collaborator } from '@/types/client';
 
 /**
  * Récupère tous les clients
@@ -178,4 +178,40 @@ export const verifyVatNumber = async (vatNumber: string, country: string = 'BE')
       error: 'Erreur lors de la vérification du numéro de TVA'
     };
   }
-}
+};
+
+/**
+ * Ajoute un collaborateur à un client
+ * @param clientId ID du client auquel ajouter le collaborateur
+ * @param collaborator Données du collaborateur à ajouter
+ * @returns Le collaborateur ajouté ou null en cas d'erreur
+ */
+export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
+  try {
+    // Add client_id to collaborator data
+    const collaboratorData = {
+      ...collaborator,
+      client_id: clientId
+    };
+
+    console.log("Adding collaborator:", collaboratorData);
+
+    // Insert the collaborator into the database
+    const { data, error } = await supabase
+      .from('collaborators')
+      .insert([collaboratorData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding collaborator:", error);
+      return null;
+    }
+
+    console.log("Collaborator added successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Exception while adding collaborator:", error);
+    return null;
+  }
+};
