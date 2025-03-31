@@ -33,25 +33,17 @@ export const getSupabaseClient = () => {
 let adminSupabaseInstance = null;
 
 export const getAdminSupabaseClient = () => {
-  console.log("Creating admin client with service role key");
-  
   if (!adminSupabaseInstance) {
-    // Create a new instance with the service role key
     adminSupabaseInstance = createClient<Database>(
       SUPABASE_URL, 
       SERVICE_ROLE_KEY,
       {
         auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false
+          persistSession: false
         }
       }
     );
-    
-    console.log("Admin client created with service role key");
   }
-  
   return adminSupabaseInstance;
 };
 

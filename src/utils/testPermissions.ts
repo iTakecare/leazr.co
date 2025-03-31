@@ -30,7 +30,6 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     };
     
     console.log("En train de créer un client test avec le client administrateur...");
-    console.log("Client admin instance:", adminClient ? "Disponible" : "Non disponible");
     
     // Essai de création d'un client test
     const { data, error } = await adminClient
@@ -82,7 +81,6 @@ export const testOfferCreationPermission = async (clientId?: string | null): Pro
     
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
-    console.log("Client admin pour offre:", adminClient ? "Disponible" : "Non disponible");
     
     const testOfferData = {
       id: testId,
@@ -148,9 +146,6 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     
     // Récupération du client admin
     const adminClient = getAdminSupabaseClient();
-    if (!adminClient) {
-      return { success: false, message: "Échec de la création du client admin Supabase" };
-    }
     
     // Analyse de la configuration du client
     console.log("Client admin créé avec succès");

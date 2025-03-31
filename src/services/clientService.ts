@@ -1,6 +1,23 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
-import { Client } from '@/types/client';
+
+// Define types
+interface Client {
+  id: string;
+  name: string;
+  email?: string;
+  company?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  vat_number?: string;
+  status: 'active' | 'inactive' | 'lead';
+  created_at?: Date;
+  updated_at?: Date;
+  collaborators?: Collaborator[];
+}
 
 /**
  * Crée un nouveau client
@@ -13,7 +30,7 @@ export const createClient = async (clientData: any) => {
     
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
-    console.log("Client admin pour createClient:", adminClient ? "Disponible" : "Non disponible");
+    console.log("Client admin pour createClient disponible");
     
     const { data, error } = await adminClient
       .from('clients')

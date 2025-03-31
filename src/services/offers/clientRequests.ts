@@ -12,7 +12,7 @@ export const createClientRequest = async (data: any) => {
     const adminClient = getAdminSupabaseClient();
     
     // Vérification du client administrateur
-    console.log("Client admin pour createClientRequest:", adminClient ? "Disponible" : "Non disponible");
+    console.log("Client admin pour createClientRequest disponible");
     
     const { data: result, error } = await adminClient
       .from('offers')
