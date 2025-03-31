@@ -8,7 +8,7 @@ interface EmailTemplate {
 }
 
 /**
- * Envoie un email en utilisant la méthode configurée (SMTP ou Resend)
+ * Envoie un email en utilisant Resend
  */
 export const sendEmail = async (
   to: string,
@@ -19,118 +19,64 @@ export const sendEmail = async (
   try {
     console.log(`Tentative d'envoi d'email à ${to} avec sujet "${subject}"`);
     
-    // Récupérer les paramètres SMTP
-    const { data: smtpSettings, error: settingsError } = await supabase
+    // Récupérer les paramètres de configuration
+    const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
       .select('*')
       .eq('id', 1)
       .single();
       
     if (settingsError) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      console.error("Erreur lors de la récupération des paramètres:", settingsError);
       return false;
     }
     
-    if (!smtpSettings) {
-      console.error("Aucun paramètre SMTP trouvé.");
+    if (!settings) {
+      console.error("Aucun paramètre d'envoi d'email trouvé.");
       return false;
     }
     
     console.log("Paramètres récupérés:", { 
-      use_resend: smtpSettings.use_resend, 
-      enabled: smtpSettings.enabled,
-      from_email: smtpSettings.from_email,
-      from_name: smtpSettings.from_name
+      use_resend: settings.use_resend, 
+      from_email: settings.from_email,
+      from_name: settings.from_name
     });
     
-    // Vérifier si Resend est activé ou si SMTP est activé
-    if (!smtpSettings.use_resend && !smtpSettings.enabled) {
-      console.error("Aucune méthode d'envoi d'email n'est activée");
+    // Vérifier si Resend est activé
+    if (!settings.use_resend) {
+      console.error("Resend n'est pas activé");
       return false;
     }
 
-    // Si Resend est activé, utiliser Resend
-    if (smtpSettings.use_resend) {
-      console.log("Utilisation de Resend pour l'envoi d'email");
-      
-      // Appeler la fonction Supabase pour envoyer l'email via Resend
-      const { data, error } = await supabase.functions.invoke('send-resend-email', {
-        body: {
-          to,
-          subject,
-          html: htmlContent,
-          text: textContent || stripHtml(htmlContent),
-          from: {
-            email: smtpSettings.from_email,
-            name: smtpSettings.from_name
-          }
+    console.log("Utilisation de Resend pour l'envoi d'email");
+    
+    // Appeler la fonction Supabase pour envoyer l'email via Resend
+    const { data, error } = await supabase.functions.invoke('send-resend-email', {
+      body: {
+        to,
+        subject,
+        html: htmlContent,
+        text: textContent || stripHtml(htmlContent),
+        from: {
+          email: settings.from_email,
+          name: settings.from_name
         }
-      });
+      }
+    });
 
-      if (error) {
-        console.error("Erreur lors de l'appel à la fonction d'envoi d'email Resend:", error);
-        return false;
-      }
-      
-      // Vérifier la réponse
-      if (data && data.success) {
-        console.log("Email envoyé avec succès via Resend à:", to);
-        return true;
-      } else {
-        console.error("Échec de l'envoi d'email via Resend:", data?.error || "Raison inconnue");
-        return false;
-      }
-    } 
-    // Sinon utiliser SMTP
-    else if (smtpSettings.enabled) {
-      console.log("Utilisation de SMTP pour l'envoi d'email");
-      
-      // Vérification des paramètres SMTP requis
-      if (!smtpSettings.host || !smtpSettings.username || !smtpSettings.password) {
-        console.error("Paramètres SMTP incomplets");
-        return false;
-      }
-      
-      // Configuration SMTP pour l'appel à la fonction
-      const smtpConfig = {
-        host: smtpSettings.host,
-        port: parseInt(smtpSettings.port),
-        username: smtpSettings.username,
-        password: smtpSettings.password,
-        secure: smtpSettings.secure
-      };
-      
-      // Appeler la fonction Supabase pour envoyer l'email via SMTP
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to,
-          subject,
-          html: htmlContent,
-          text: textContent || stripHtml(htmlContent),
-          from: {
-            email: smtpSettings.from_email,
-            name: smtpSettings.from_name
-          },
-          smtp: smtpConfig
-        }
-      });
-
-      if (error) {
-        console.error("Erreur lors de l'appel à la fonction d'envoi d'email SMTP:", error);
-        return false;
-      }
-      
-      // Vérifier la réponse
-      if (data && data.success) {
-        console.log("Email envoyé avec succès via SMTP à:", to);
-        return true;
-      } else {
-        console.error("Échec de l'envoi d'email via SMTP:", data?.error || "Raison inconnue");
-        return false;
-      }
+    if (error) {
+      console.error("Erreur lors de l'appel à la fonction d'envoi d'email Resend:", error);
+      return false;
     }
     
-    return false;
+    // Vérifier la réponse
+    if (data && data.success) {
+      console.log("Email envoyé avec succès via Resend à:", to);
+      return true;
+    } else {
+      console.error("Échec de l'envoi d'email via Resend:", data?.error || "Raison inconnue");
+      return false;
+    }
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email:", error);
     return false;
