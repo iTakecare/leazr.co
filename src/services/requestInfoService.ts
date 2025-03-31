@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createClientRequest } from "@/services/offers/clientRequests";
 import { createClient } from "@/services/clientService";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 
 export interface ProductRequestData {
   client_name: string;
@@ -53,8 +53,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
     try {
       // Préparer les données du client pour l'insertion
       const clientData = {
-        id: clientId, // Utiliser l'ID généré pour assurer la correspondance
-        name: data.client_company, // Nom de l'entreprise comme nom principal du client
+        id: clientId, 
+        name: data.client_company, 
         email: data.client_email,
         company: data.client_company,
         phone: data.phone || '',
@@ -64,12 +64,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         postal_code: data.postal_code || '',
         country: data.country || 'BE',
         status: 'active' as 'active' | 'inactive' | 'lead',
-        has_different_shipping_address: data.has_different_shipping_address || false,
-        shipping_address: data.shipping_address || '',
-        shipping_city: data.shipping_city || '',
-        shipping_postal_code: data.shipping_postal_code || '',
-        shipping_country: data.shipping_country || '',
-        contact_name: data.client_name // Store contact name separately
+        contact_name: data.client_name
       };
 
       console.log("Attempting to create client:", clientData);
@@ -81,11 +76,9 @@ export const createProductRequest = async (data: ProductRequestData) => {
         console.log("Client created successfully with ID:", client.id);
       } else {
         console.error("Failed to create client, but will continue with offer creation");
-        // Here we'll continue with the provided clientId even if client creation failed
       }
     } catch (error) {
       console.error("Error creating client:", error);
-      // Continuer avec la création de l'offre même si la création du client a échoué
     }
     
     // Créer l'offre liée au client
@@ -114,9 +107,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer in Supabase:", offerData);
       
-      // For public requests, we need to use the ANON role directly
-      // This bypasses RLS policies that might be restricting to authenticated users
-      const { data: insertedOffer, error } = await supabase
+      // For public requests, we need to use the Admin client directly
+      const { data: insertedOffer, error } = await adminSupabase
         .from('offers')
         .insert(offerData)
         .select();

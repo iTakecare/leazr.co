@@ -1,63 +1,53 @@
 
-// If this file doesn't exist yet, we'll create it
 export interface OfferData {
+  id?: string;
   client_id: string;
   client_name: string;
   client_email?: string;
   equipment_description?: string;
   amount: number;
-  monthly_payment: number;
   coefficient: number;
+  monthly_payment: number;
   commission?: number;
-  user_id?: string | null;
   type?: string;
-  status?: string;
   workflow_status?: string;
+  status?: string;
   remarks?: string;
-  id?: string;
-  created_at?: string;
-  updated_at?: string;
-  client_company?: string; // Make it optional since it's not in the DB
+  user_id?: string;
+  client_company?: string; // Optional field, used only for display/session storage, not sent to DB
 }
 
-export interface Equipment {
-  id: string;
-  title: string;
-  purchasePrice: number;
-  quantity: number;
-  margin: number;
-  monthlyPayment?: number;
-}
-
-export interface RequestInfoData {
-  offerId: string;
-  previousStatus: string;
-  requestedDocs: string[];
-  message?: string;
-  customMessage?: string; // Added for backward compatibility
-}
-
-// Enum for different offer statuses
 export enum OfferStatus {
-  DRAFT = "draft",
-  SENT = "sent",
-  APPROVED = "approved",
-  REJECTED = "rejected",
-  INFO_REQUESTED = "info_requested",
-  VALID_ITC = "valid_itc",
-  LEASER_REVIEW = "leaser_review",
-  FINANCED = "financed",
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  EXPIRED = 'expired'
 }
 
-// Enum for workflow statuses
-export enum WorkflowStatus {
-  DRAFT = "draft",
-  SENT = "sent",
-  CLIENT_WAITING = "client_waiting",
-  INFO_REQUESTED = "info_requested",
-  LEASER_REVIEW = "leaser_review",
-  APPROVED = "approved",
-  REJECTED = "rejected",
-  FINANCED = "financed",
-  REQUESTED = "requested",
+export enum OfferWorkflowStatus {
+  DRAFT = 'draft',
+  SENT = 'sent',
+  REQUESTED_INFO = 'requested_info',
+  CLIENT_WAITING = 'client_waiting',
+  SIGNED = 'signed',
+  ARCHIVED = 'archived',
+  REJECTED = 'rejected'
+}
+
+export interface OfferWorkflowStatusUpdate {
+  offerId: string;
+  newStatus: OfferWorkflowStatus;
+  previousStatus: string;
+  reason?: string;
+}
+
+export interface OfferStatusCounts {
+  draft: number;
+  sent: number;
+  requested_info: number;
+  client_waiting: number;
+  signed: number;
+  archived: number;
+  rejected: number;
+  total: number;
 }

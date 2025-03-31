@@ -9,6 +9,7 @@ const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 // Create a singleton instance for the public client
 let supabaseInstance = null;
+let adminSupabaseInstance = null;
 
 // Function to get supabase client with anon key
 export const getSupabaseClient = () => {
@@ -32,24 +33,27 @@ export const getSupabaseClient = () => {
 // Function to get admin supabase client with service role key
 // Always returns a fresh instance to avoid conflicts with auth state
 export const getAdminSupabaseClient = () => {
-  return createClient<Database>(
-    SUPABASE_URL,
-    SERVICE_ROLE_KEY,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      },
-      global: {
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+  if (!adminSupabaseInstance) {
+    adminSupabaseInstance = createClient<Database>(
+      SUPABASE_URL,
+      SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
         },
-      },
-    }
-  );
+        global: {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+          },
+        },
+      }
+    );
+  }
+  return adminSupabaseInstance;
 };
 
 // For backwards compatibility

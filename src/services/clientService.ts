@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData } from "@/types/client"; // Import the needed type
 
@@ -125,11 +126,18 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
     // Remove any fields that don't exist in the clients table
     const clientData: any = { ...data };
     
-    // Remove contact_name from the insertion data since it's not a column in the database
-    // We're storing the contact name in the 'name' field for consistency
+    // Remove fields that might not be in the database schema
     if (clientData.contact_name) {
       delete clientData.contact_name;
     }
+    
+    // Remove shipping address fields if they are not in the schema
+    // Check schema before submission to match database columns
+    delete clientData.has_different_shipping_address;
+    delete clientData.shipping_address;
+    delete clientData.shipping_city;
+    delete clientData.shipping_postal_code;
+    delete clientData.shipping_country;
 
     console.log("Creating client with data:", clientData);
     

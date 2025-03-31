@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 
 export const createOffer = async (offerData: OfferData) => {
@@ -21,13 +21,15 @@ export const createOffer = async (offerData: OfferData) => {
       type: offerData.type || 'admin_offer',
       workflow_status: offerData.workflow_status,
       status: offerData.workflow_status === 'draft' ? 'pending' : 'pending',
-      remarks: offerData.remarks // Now we can directly include the remarks field
-      // Removed client_company as it's not in the database schema
+      remarks: offerData.remarks 
     };
     
     console.log("Sending data to database:", dataToSend);
     
-    const { data, error } = await supabase
+    // Use adminSupabase for public client requests to bypass RLS
+    const client = offerData.type === 'client_request' ? adminSupabase : supabase;
+    
+    const { data, error } = await client
       .from('offers')
       .insert(dataToSend)
       .select();

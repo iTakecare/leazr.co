@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 
 export const createClientRequest = async (requestData: OfferData) => {
@@ -20,12 +20,12 @@ export const createClientRequest = async (requestData: OfferData) => {
       user_id: requestData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : requestData.user_id,
       remarks: requestData.remarks
-      // Removed client_company as it's not in the database schema
     };
     
     console.log("Creating client request with data:", validData);
     
-    const { data, error } = await supabase
+    // Use adminSupabase to bypass RLS for public client requests
+    const { data, error } = await adminSupabase
       .from('offers')
       .insert(validData)
       .select();
