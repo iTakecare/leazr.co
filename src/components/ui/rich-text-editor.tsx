@@ -23,7 +23,7 @@ const RichTextEditor = ({
   return (
     <div className={cn("rounded-md border border-input", className)}>
       <Editor
-        apiKey="qagffr3pkuv17a8on1afax661irst1hbr4e6tbv888sz91jc"
+        apiKey="7brhs4b679mgzy88ps7dwcxqjqlsqmi34i8yqnl1p9u800hy"
         onInit={(evt, editor) => editorRef.current = editor}
         value={value}
         onEditorChange={(newValue) => onChange(newValue)}

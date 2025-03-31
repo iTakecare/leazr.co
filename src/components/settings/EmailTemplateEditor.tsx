@@ -169,7 +169,7 @@ const EmailTemplateEditor: React.FC = () => {
               <Card>
                 <CardContent className="pt-6">
                   <Editor
-                    apiKey="no-api-key"
+                    apiKey="7brhs4b679mgzy88ps7dwcxqjqlsqmi34i8yqnl1p9u800hy"
                     initialValue={currentTemplate.html_content}
                     onEditorChange={handleEditorChange}
                     init={{
