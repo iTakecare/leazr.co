@@ -14,7 +14,7 @@ export const createClientRequest = async (requestData: OfferData) => {
       coefficient: requestData.coefficient,
       monthly_payment: requestData.monthly_payment,
       commission: requestData.commission,
-      type: 'client_request',
+      type: requestData.type || 'client_request',
       status: requestData.status || 'pending',
       workflow_status: requestData.workflow_status || 'client_waiting',
       user_id: requestData.user_id === 'user-123' ? 

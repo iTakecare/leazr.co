@@ -121,23 +121,30 @@ export const getClientById = async (id: string): Promise<Client | null> => {
  * @param client Les données du client à créer
  * @returns Le client créé
  */
-export const createClient = async (client: Omit<Client, 'created_at' | 'updated_at'>): Promise<Client | null> => {
+export const createClient = async (client: CreateClientData): Promise<Client | null> => {
   try {
-    // Si un ID a été fourni, l'utiliser; sinon laisser Supabase en générer un
-    const clientData = { ...client };
+    // Remove any fields that don't exist in the clients table
+    const clientData: any = { ...client };
+    
+    // Remove contact_name from the insertion data since it's not a column in the database
+    // We're storing the contact name in the 'name' field for consistency
+    if (clientData.contact_name) {
+      delete clientData.contact_name;
+    }
+
+    console.log("Creating client with data:", clientData);
     
     const { data, error } = await supabase
       .from('clients')
       .insert([clientData])
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error("Erreur lors de la création du client:", error);
       return null;
     }
 
-    return data || null;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error("Erreur lors de la création du client:", error);
     return null;

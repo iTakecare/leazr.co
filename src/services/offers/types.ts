@@ -1,53 +1,20 @@
 
-export interface EquipmentItem {
-  id: string;
-  title: string;
-  purchasePrice: number;
-  quantity: number;
-  margin: number;
-}
-
+// If this file doesn't exist yet, we'll create it
 export interface OfferData {
+  client_id: string;
   client_name: string;
-  client_email: string;
-  client_id?: string;
+  client_email?: string;
   equipment_description?: string;
   amount: number;
-  coefficient: number;
   monthly_payment: number;
-  commission: number;
-  user_id: string;
+  coefficient: number;
+  commission?: number;
+  user_id?: string | null;
   type?: string;
-  remarks?: string;
+  status?: string;
   workflow_status?: string;
-}
-
-export interface RequestInfoData {
-  offerId: string;
-  requestedDocs: string[];
-  customMessage: string;
-  previousStatus: string;
-}
-
-// Add these missing types
-export type Equipment = EquipmentItem;
-
-export enum OfferStatus {
-  DRAFT = 'draft',
-  SENT = 'sent',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  INFO_REQUESTED = 'info_requested',
-  LEASER_REVIEW = 'leaser_review',
-  CONVERTED = 'converted'
-}
-
-export enum WorkflowStatus {
-  DRAFT = 'draft',
-  SENT = 'sent',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  INFO_REQUESTED = 'info_requested',
-  LEASER_REVIEW = 'leaser_review',
-  CONVERTED = 'converted'
+  remarks?: string;
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
 }

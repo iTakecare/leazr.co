@@ -40,6 +40,7 @@ export interface Client {
 }
 
 export interface CreateClientData {
+  id?: string;
   name: string;
   email?: string;
   company?: string;
