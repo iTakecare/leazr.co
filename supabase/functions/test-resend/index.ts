@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  apiKey?: string;
+  apiKey: string;
 }
 
 serve(async (req) => {

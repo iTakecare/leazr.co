@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,21 @@ interface SmtpTestData {
 }
 
 interface ResendTestData {
-  apiKey?: string;
+  apiKey: string;
+}
+
+interface SmtpSettingsData {
+  id: number;
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+  from_email: string;
+  from_name: string;
+  secure: boolean;
+  enabled: boolean;
+  use_resend?: boolean;
+  updated_at?: string;
 }
 
 const SmtpSettings = () => {
@@ -33,7 +48,7 @@ const SmtpSettings = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [testing, setTesting] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("smtp"); 
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<SmtpSettingsData>({
     id: 1,
     host: "",
     port: "587",
