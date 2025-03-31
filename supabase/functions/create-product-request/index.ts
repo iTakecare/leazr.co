@@ -126,12 +126,29 @@ serve(async (req) => {
         console.error("Erreur lors de la récupération des paramètres email:", settingsError);
       }
 
-      // Récupérer la clé API Resend directement
-      const resendApiKey = Deno.env.get('RESEND_API_KEY');
-      console.log("Clé API Resend récupérée:", resendApiKey ? "Présente" : "Absente");
+      // Récupérer directement la clé API Resend depuis les secrets Supabase
+      const { data: secretData, error: secretError } = await supabaseAdmin.rpc('get_secret_value', { 
+        secret_name: 'RESEND_API_KEY' 
+      });
+      
+      let resendApiKey;
+      if (secretError) {
+        console.error("Erreur lors de la récupération du secret Resend:", secretError);
+      } else if (secretData) {
+        resendApiKey = secretData;
+        console.log("Clé API Resend récupérée avec succès");
+      } else {
+        console.log("Clé API Resend non trouvée dans les secrets");
+      }
+
+      // Si aucune clé n'a été trouvée avec la fonction RPC, essayons avec les variables d'environnement
+      if (!resendApiKey) {
+        resendApiKey = Deno.env.get('RESEND_API_KEY');
+        console.log("Clé API Resend récupérée depuis les variables d'environnement:", resendApiKey ? "Présente" : "Absente");
+      }
 
       if (!resendApiKey) {
-        console.error("Erreur: Clé API Resend non configurée dans les variables d'environnement");
+        console.error("Erreur: Aucune clé API Resend trouvée");
         // On continue l'exécution même sans email
       } else {
         const resend = new Resend(resendApiKey);
@@ -189,6 +206,8 @@ L'équipe iTakecare`;
             text,
           });
 
+          console.log("Résultat de l'envoi d'email:", emailResult);
+          
           if (emailResult.error) {
             console.error("Erreur renvoyée par Resend lors de l'envoi de l'email:", emailResult.error);
           } else {
