@@ -61,7 +61,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         return `${item.product.name} (${formatCurrency(item.product.monthly_price || 0)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
       
-      // Create request data
+      // Create request data - ensure any client_company related data is properly handled
       const requestData = {
         client_name: contactData.name,
         client_email: contactData.email || companyData.email,

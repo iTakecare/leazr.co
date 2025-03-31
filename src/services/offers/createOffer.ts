@@ -6,7 +6,7 @@ export const createOffer = async (offerData: OfferData) => {
   try {
     console.log("Creating offer with data:", offerData);
     
-    // Create a clean object with only the columns that exist in the database
+    // Création d'un objet propre avec uniquement les colonnes qui existent dans la base de données
     const dataToSend = {
       client_id: offerData.client_id,
       client_name: offerData.client_name,

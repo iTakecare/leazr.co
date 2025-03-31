@@ -93,8 +93,10 @@ export const createProductRequest = async (data: ProductRequestData) => {
       // Prepare the data for insertion into the offers table
       // Generate a new request ID for this offer
       const requestId = uuidv4();
+      
+      // Create a clean object without client_company
       const offerData = {
-        id: requestId, // Use the generated ID
+        id: requestId,
         client_id: clientId,
         client_name: data.client_name,
         client_email: data.client_email,
@@ -103,12 +105,11 @@ export const createProductRequest = async (data: ProductRequestData) => {
         monthly_payment: data.monthly_payment,
         coefficient: 1.0,
         commission: 0,
-        type: 'client_request', // Make sure type is part of the schema
+        type: 'client_request',
         workflow_status: 'requested',
-        status: 'pending', // Ensure status is defined in the offers table
+        status: 'pending',
         remarks: data.message || '',
-        user_id: null // No user is associated with public requests
-        // Removed client_company
+        user_id: null
       };
       
       console.log("Attempting to create offer in Supabase:", offerData);
@@ -129,20 +130,24 @@ export const createProductRequest = async (data: ProductRequestData) => {
         console.log("Offer created successfully:", insertedOffer);
       }
       
-      // Store the request data regardless of the supabase result
-      // This ensures the confirmation page works even if the DB operation failed
-      const requestData = {
+      // Prepare data for session storage without client_company
+      const requestDataForStorage = {
         id: requestId,
         client_id: clientId,
-        ...data,
+        client_name: data.client_name,
+        client_email: data.client_email,
+        client_company: data.client_company, // Keep this for display purposes in session storage only
+        equipment_description: data.equipment_description,
+        amount: data.amount,
+        monthly_payment: data.monthly_payment,
         created_at: new Date().toISOString()
       };
       
-      sessionStorage.setItem('lastSubmittedRequest', JSON.stringify(requestData));
+      sessionStorage.setItem('lastSubmittedRequest', JSON.stringify(requestDataForStorage));
       sessionStorage.setItem('lastSubmittedOfferId', requestId);
       
-      console.log("Request stored successfully:", requestData);
-      return requestData;
+      console.log("Request stored successfully:", requestDataForStorage);
+      return requestDataForStorage;
       
     } catch (error) {
       console.error("Error creating offer:", error);
@@ -150,7 +155,12 @@ export const createProductRequest = async (data: ProductRequestData) => {
       const fallbackRequestData = {
         id: uuidv4(),
         client_id: clientId,
-        ...data,
+        client_name: data.client_name,
+        client_email: data.client_email,
+        client_company: data.client_company, // For display purposes only
+        equipment_description: data.equipment_description,
+        amount: data.amount,
+        monthly_payment: data.monthly_payment,
         created_at: new Date().toISOString()
       };
       sessionStorage.setItem('lastSubmittedRequest', JSON.stringify(fallbackRequestData));
