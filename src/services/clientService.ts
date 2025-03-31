@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { Client, Collaborator } from '@/types/client';
 
@@ -37,18 +38,40 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
  */
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    const { data, error } = await supabase
+    // First, fetch the client details
+    const { data: clientData, error: clientError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error) {
-      console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, error);
+    if (clientError) {
+      console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, clientError);
       return null;
     }
 
-    return data || null;
+    if (!clientData) {
+      return null;
+    }
+
+    // Next, fetch the collaborators for this client
+    const { data: collaboratorsData, error: collaboratorsError } = await supabase
+      .from('collaborators')
+      .select('*')
+      .eq('client_id', id);
+
+    if (collaboratorsError) {
+      console.error(`Erreur lors de la récupération des collaborateurs pour le client ${id}:`, collaboratorsError);
+      // Continue with the client data even if collaborators couldn't be fetched
+    }
+
+    // Combine the client data with collaborators
+    const client: Client = {
+      ...clientData,
+      collaborators: collaboratorsData || []
+    };
+
+    return client;
   } catch (error) {
     console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, error);
     return null;
@@ -213,5 +236,30 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
   } catch (error) {
     console.error("Exception while adding collaborator:", error);
     return null;
+  }
+};
+
+/**
+ * Récupère les collaborateurs d'un client
+ * @param clientId ID du client
+ * @returns Liste des collaborateurs
+ */
+export const getCollaboratorsByClientId = async (clientId: string): Promise<Collaborator[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('collaborators')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(`Erreur lors de la récupération des collaborateurs pour le client ${clientId}:`, error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des collaborateurs:`, error);
+    return [];
   }
 };

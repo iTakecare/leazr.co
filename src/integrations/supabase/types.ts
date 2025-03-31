@@ -297,6 +297,50 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborators: {
+        Row: {
+          client_id: string
+          created_at: string
+          department: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborators_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_levels: {
         Row: {
           created_at: string

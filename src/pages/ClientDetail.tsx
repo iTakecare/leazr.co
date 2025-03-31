@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
+import CollaboratorsList from "@/components/clients/CollaboratorsList";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
 import { resetPassword, createUserAccount } from "@/services/accountService";
@@ -25,7 +25,6 @@ export default function ClientDetail() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-  // Fonction pour charger les données du client
   const fetchClient = async () => {
     if (!id) return;
     
@@ -87,7 +86,6 @@ export default function ClientDetail() {
     try {
       const success = await createUserAccount(client, "client");
       if (success) {
-        // Recharger les données du client pour afficher les changements
         await fetchClient();
         toast.success("Compte utilisateur créé et emails de configuration envoyés");
       }
@@ -97,6 +95,11 @@ export default function ClientDetail() {
     } finally {
       setIsCreatingAccount(false);
     }
+  };
+
+  const handleCollaboratorAdded = () => {
+    fetchClient();
+    toast.success("Collaborateur ajouté avec succès");
   };
 
   const formatDate = (date: Date | string | undefined) => {
@@ -128,7 +131,6 @@ export default function ClientDetail() {
     );
   }
 
-  // Afficher les informations de débogage complètes
   console.log("Client account status debug:", { 
     client_id: client.id,
     has_user_account: client.has_user_account,
@@ -136,7 +138,6 @@ export default function ClientDetail() {
     user_account_created_at: client.user_account_created_at
   });
 
-  // Un compte est considéré comme actif uniquement si has_user_account est true
   const hasUserAccount = Boolean(client.has_user_account);
 
   return (
@@ -312,7 +313,12 @@ export default function ClientDetail() {
             <CardDescription>Personnes à contacter chez ce client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <CollaboratorForm clientId={id!} />
+            <CollaboratorForm clientId={id!} onSuccess={handleCollaboratorAdded} />
+            <CollaboratorsList 
+              clientId={id!} 
+              initialCollaborators={client.collaborators}
+              onRefreshNeeded={fetchClient}
+            />
           </CardContent>
         </Card>
       </div>
