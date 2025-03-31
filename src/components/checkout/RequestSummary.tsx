@@ -83,7 +83,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         shipping_address: contactData.shipping_address,
         shipping_city: contactData.shipping_city,
         shipping_postal_code: contactData.shipping_postal_code,
-        shipping_country: contactData.shipping_country
+        shipping_country: contactData.shipping_country,
+        phone: contactData.phone
       };
 
       console.log("Submitting request with data:", requestData);

@@ -121,11 +121,14 @@ export const getClientById = async (id: string): Promise<Client | null> => {
  * @param client Les données du client à créer
  * @returns Le client créé
  */
-export const createClient = async (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<Client | null> => {
+export const createClient = async (client: Omit<Client, 'created_at' | 'updated_at'>): Promise<Client | null> => {
   try {
+    // Si un ID a été fourni, l'utiliser; sinon laisser Supabase en générer un
+    const clientData = { ...client };
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert([client])
+      .insert([clientData])
       .select()
       .single();
 

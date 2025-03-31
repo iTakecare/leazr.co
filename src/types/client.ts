@@ -36,6 +36,7 @@ export interface Client {
   shipping_postal_code?: string;
   shipping_country?: string;
   has_different_shipping_address?: boolean;
+  contact_name?: string;
 }
 
 export interface CreateClientData {
@@ -58,4 +59,5 @@ export interface CreateClientData {
   shipping_postal_code?: string;
   shipping_country?: string;
   has_different_shipping_address?: boolean;
+  contact_name?: string;
 }

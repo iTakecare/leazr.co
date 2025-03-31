@@ -15,11 +15,11 @@ export const createClientRequest = async (requestData: OfferData) => {
       monthly_payment: requestData.monthly_payment,
       commission: requestData.commission,
       type: 'client_request',
-      status: 'pending',
-      workflow_status: 'client_waiting',
+      status: requestData.status || 'pending',
+      workflow_status: requestData.workflow_status || 'client_waiting',
       user_id: requestData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : requestData.user_id,
-      remarks: requestData.remarks // Ajout direct du champ remarks
+      remarks: requestData.remarks
     };
     
     console.log("Creating client request with data:", validData);

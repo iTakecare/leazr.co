@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,8 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         amount: ((product?.price || 0) * quantity),
         monthly_payment: monthlyPrice,
         quantity: quantity,
-        duration: duration
+        duration: duration,
+        phone: formData.phone
       };
       
       try {
