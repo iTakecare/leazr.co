@@ -13,7 +13,6 @@ export const createClientRequest = async (data: any) => {
     
     // Vérification du client administrateur
     console.log("Client admin pour createClientRequest:", adminClient ? "Disponible" : "Non disponible");
-    console.log("CLIENT ADMIN AUTH HEADERS:", adminClient?.auth?.headers);
     
     const { data: result, error } = await adminClient
       .from('offers')

@@ -31,7 +31,6 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     
     console.log("En train de créer un client test avec le client administrateur...");
     console.log("Client admin instance:", adminClient ? "Disponible" : "Non disponible");
-    console.log("CLIENT ADMIN AUTH HEADERS:", adminClient?.auth?.headers);
     
     const { data, error } = await adminClient
       .from('clients')
@@ -83,7 +82,6 @@ export const testOfferCreationPermission = async (clientId?: string | null): Pro
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
     console.log("Client admin pour offre:", adminClient ? "Disponible" : "Non disponible");
-    console.log("CLIENT ADMIN AUTH HEADERS OFFRE:", adminClient?.auth?.headers);
     
     const testOfferData = {
       id: testId,

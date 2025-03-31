@@ -1,5 +1,36 @@
-import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
-import { Client, CreateClientData } from "@/types/client"; 
+import { getAdminSupabaseClient } from '@/integrations/supabase/client';
+
+/**
+ * Crée un nouveau client
+ * @param data Les données du client à créer
+ * @returns Le client créé
+ */
+export const createClient = async (clientData: any) => {
+  try {
+    console.log("Creating client:", clientData);
+    
+    // Utiliser le client admin pour contourner les restrictions RLS
+    const adminClient = getAdminSupabaseClient();
+    console.log("Client admin pour createClient:", adminClient ? "Disponible" : "Non disponible");
+    
+    const { data, error } = await adminClient
+      .from('clients')
+      .insert(clientData)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error("Error creating client:", error);
+      throw error;
+    }
+    
+    console.log("Client created successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Exception in createClient:", error);
+    throw error;
+  }
+};
 
 /**
  * Récupère tous les clients
@@ -111,62 +142,6 @@ export const getClientById = async (id: string): Promise<Client | null> => {
     return client;
   } catch (error) {
     console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, error);
-    return null;
-  }
-};
-
-/**
- * Crée un nouveau client
- * @param data Les données du client à créer
- * @returns Le client créé
- */
-export const createClient = async (data: CreateClientData): Promise<Client | null> => {
-  try {
-    // Remove any fields that don't exist in the clients table
-    const clientData: any = { ...data };
-    
-    // Remove fields that might not be in the database schema
-    if (clientData.contact_name) {
-      delete clientData.contact_name;
-    }
-    
-    // Remove shipping address fields if they are not in the schema
-    // Check schema before submission to match database columns
-    delete clientData.has_different_shipping_address;
-    delete clientData.shipping_address;
-    delete clientData.shipping_city;
-    delete clientData.shipping_postal_code;
-    delete clientData.shipping_country;
-
-    console.log("Creating client with data:", clientData);
-    
-    // Utiliser le client admin pour contourner les restrictions RLS
-    const adminClient = getAdminSupabaseClient();
-    
-    const { data: result, error } = await adminClient
-      .from('clients')
-      .insert([clientData])
-      .select();
-    
-    if (error) {
-      console.error("Error creating client:", error);
-      return null;
-    }
-    
-    // Convert date strings to Date objects
-    if (result && result.length > 0) {
-      const client = result[0];
-      return {
-        ...client,
-        created_at: new Date(client.created_at),
-        updated_at: new Date(client.updated_at)
-      } as Client;
-    }
-    
-    return null;
-    
-  } catch (error) {
-    console.error("Error creating client:", error);
     return null;
   }
 };
