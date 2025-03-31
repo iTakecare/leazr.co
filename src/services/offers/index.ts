@@ -6,6 +6,7 @@ export * from './offerDetail';
 export * from './offerStatus';
 export * from './offerWorkflow';
 export * from './clientRequests';
+export * from './types';
 
 // Exportations spécifiques pour éviter l'ambiguïté
 import { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
@@ -20,7 +21,3 @@ export {
   saveOfferSignature,
   generateSignatureLink
 };
-
-// Exporter les types et enums
-export { OfferStatus, WorkflowStatus } from './types';
-export type { OfferData, Equipment } from './types';

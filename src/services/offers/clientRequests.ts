@@ -19,7 +19,8 @@ export const createClientRequest = async (requestData: OfferData) => {
       workflow_status: requestData.workflow_status || 'client_waiting',
       user_id: requestData.user_id === 'user-123' ? 
         '00000000-0000-0000-0000-000000000000' : requestData.user_id,
-      remarks: requestData.remarks
+      remarks: requestData.remarks,
+      client_company: requestData.client_company
     };
     
     console.log("Creating client request with data:", validData);
