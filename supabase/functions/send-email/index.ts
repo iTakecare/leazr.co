@@ -33,96 +33,6 @@ interface EmailRequest {
   smtp: SMTPConfig;
 }
 
-// Configurations prédéfinies pour différents serveurs SMTP courants
-const getServerConfigurations = (smtpHost: string, port: number, secure: boolean) => {
-  if (smtpHost.includes('gmail.com')) {
-    return [
-      {
-        tls: true,
-        description: "Gmail avec TLS (recommandé)",
-        tlsOptions: null
-      },
-      {
-        tls: true, 
-        description: "Gmail avec TLS version explicite",
-        tlsOptions: { minVersion: "TLSv1.2", maxVersion: "TLSv1.2" }
-      },
-      {
-        tls: false,
-        description: "Gmail sans TLS (non recommandé)",
-        tlsOptions: null
-      }
-    ];
-  }
-  
-  return [
-    { 
-      tls: secure,
-      description: "Configuration par défaut basée sur les paramètres fournis",
-      tlsOptions: null
-    },
-    {
-      tls: !secure,
-      description: "Configuration inverse des paramètres fournis",
-      tlsOptions: null
-    }
-  ];
-};
-
-// Fonction pour envoyer un email avec une configuration donnée
-const tryToSendEmail = async (
-  reqData: EmailRequest,
-  config: { tls: boolean; description: string; tlsOptions: any | null }
-) => {
-  try {
-    console.log(`Tentative #${config.description} d'envoi d'email en cours...`);
-    
-    const smtpConfig = {
-      connection: {
-        hostname: reqData.smtp.host,
-        port: reqData.smtp.port,
-        tls: config.tls,
-        auth: {
-          username: reqData.smtp.username,
-          password: reqData.smtp.password
-        },
-        ...(config.tlsOptions ? { tlsOptions: config.tlsOptions } : {})
-      },
-      debug: true
-    };
-    
-    console.log(`Configuration client:`, JSON.stringify(smtpConfig, null, 2));
-    
-    const client = new SMTPClient(smtpConfig);
-    
-    await client.send({
-      from: `${reqData.from.name} <${reqData.from.email}>`,
-      to: reqData.to,
-      subject: reqData.subject,
-      content: reqData.text || "",
-      html: reqData.html,
-    });
-    
-    await client.close();
-    return { success: true };
-  } catch (error) {
-    console.error(`Échec de la tentative: ${error.message}`);
-    console.error(`Détails de l'erreur:`, error);
-    
-    // Traitement spécifique pour certaines erreurs
-    if (error.name === "BadResource" || error.name === "InvalidData") {
-      const errorDetails = {
-        errorName: error.name,
-        message: error.message,
-        stack: error.stack
-      };
-      console.error(`Erreur ${error.name} détectée. Détails:`, errorDetails);
-    }
-    
-    return { success: false, error };
-  }
-};
-
 serve(async (req) => {
   // Gestion des requêtes OPTIONS (CORS)
   if (req.method === 'OPTIONS') {
@@ -146,46 +56,113 @@ serve(async (req) => {
       smtp_host: reqData.smtp.host
     });
 
-    // Détection du type de serveur SMTP
-    const isSecure = reqData.smtp.secure;
-    console.log(`Serveur détecté: ${reqData.smtp.host.includes('gmail.com') ? 'Gmail' : reqData.smtp.host}, Port: ${reqData.smtp.port}, Sécurisé: ${isSecure}`);
-    
-    // Récupérer les configurations à essayer pour ce serveur
-    const configurations = getServerConfigurations(
-      reqData.smtp.host,
-      reqData.smtp.port,
-      isSecure
-    );
-    
-    // Essayer chaque configuration jusqu'à ce qu'une réussisse
-    for (let i = 0; i < configurations.length; i++) {
-      const config = configurations[i];
-      console.log(`Tentative #${i+1} - Configuration:`, config);
+    // Essayer d'envoyer directement avec un seul ensemble de paramètres simplifiés
+    try {
+      console.log("Tentative d'envoi d'email avec configuration simplifiée");
       
-      const result = await tryToSendEmail(reqData, {
-        ...config,
-        description: `${i+1}`
+      const client = new SMTPClient({
+        connection: {
+          hostname: reqData.smtp.host,
+          port: reqData.smtp.port,
+          tls: reqData.smtp.secure,
+          auth: {
+            username: reqData.smtp.username,
+            password: reqData.smtp.password
+          }
+        }
+      });
+
+      // Format RFC-compliant pour le champ From
+      const fromField = `${reqData.from.name} <${reqData.from.email}>`;
+      
+      await client.send({
+        from: fromField,
+        to: reqData.to,
+        subject: reqData.subject,
+        content: reqData.text || "",
+        html: reqData.html
       });
       
-      if (result.success) {
-        return new Response(JSON.stringify({ success: true }), {
+      await client.close();
+      console.log("Email envoyé avec succès à", reqData.to);
+      
+      return new Response(
+        JSON.stringify({ success: true }),
+        {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
-        });
-      }
+        }
+      );
+    } catch (emailError) {
+      console.error("Échec de l'envoi d'email:", emailError);
       
-      console.log("Erreur détectée, essai avec la configuration suivante...");
+      // Fallback: essayer avec une autre configuration en cas d'erreur
+      try {
+        console.log("Tentative de secours avec une configuration alternative");
+        
+        const fallbackClient = new SMTPClient({
+          connection: {
+            hostname: reqData.smtp.host,
+            port: reqData.smtp.port,
+            tls: false, // Essayer sans TLS
+            auth: {
+              username: reqData.smtp.username,
+              password: reqData.smtp.password
+            }
+          }
+        });
+        
+        // Format RFC-compliant pour le champ From
+        const fromField = `${reqData.from.name} <${reqData.from.email}>`;
+        
+        await fallbackClient.send({
+          from: fromField,
+          to: reqData.to,
+          subject: reqData.subject,
+          content: "text/plain; charset=utf-8", // Format explicite
+          text: reqData.text || reqData.html.replace(/<[^>]*>?/gm, ''),
+          html: reqData.html
+        });
+        
+        await fallbackClient.close();
+        console.log("Email envoyé avec succès (configuration alternative) à", reqData.to);
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      } catch (fallbackError) {
+        console.error("Échec de la tentative de secours:", fallbackError);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Configuration email incorrecte ou serveur inaccessible",
+            details: String(fallbackError)
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 // Retourner 200 même en cas d'erreur pour éviter les erreurs HTTP
+          }
+        );
+      }
     }
-    
-    // Si toutes les tentatives échouent
-    throw new Error(`Toutes les tentatives (${configurations.length}) ont échoué.`);
-    
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email:", error);
+    console.error("Erreur lors du traitement de la requête:", error);
     
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: String(error),
+        message: "Erreur de traitement de la requête d'envoi d'email"
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 // Retourner 200 même en cas d'erreur pour éviter les erreurs HTTP
+      }
+    );
   }
 });

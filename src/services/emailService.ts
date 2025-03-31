@@ -16,6 +16,8 @@ export const sendEmail = async (
   textContent?: string
 ): Promise<boolean> => {
   try {
+    console.log(`Tentative d'envoi d'email à ${to} avec sujet "${subject}"`);
+    
     // Récupérer les paramètres SMTP
     const { data: smtpSettings, error: settingsError } = await supabase
       .from('smtp_settings')
@@ -50,14 +52,20 @@ export const sendEmail = async (
     });
 
     if (error) {
-      console.error("Erreur lors de l'envoi de l'email:", error);
+      console.error("Erreur lors de l'appel à la fonction d'envoi d'email:", error);
       return false;
     }
     
-    console.log("Email envoyé avec succès:", data);
-    return true;
+    // Vérifier la réponse
+    if (data && data.success) {
+      console.log("Email envoyé avec succès à:", to);
+      return true;
+    } else {
+      console.error("Échec de l'envoi d'email:", data?.error || "Raison inconnue");
+      return false;
+    }
   } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email:", error);
+    console.error("Exception lors de l'envoi de l'email:", error);
     return false;
   }
 };
@@ -71,6 +79,8 @@ export const sendWelcomeEmail = async (
   userType: "partner" | "ambassador" | "client"
 ): Promise<boolean> => {
   try {
+    console.log(`Préparation de l'email de bienvenue pour ${email} (${userType})`);
+    
     const typeDisplay = 
       userType === "partner" ? "partenaire" : 
       userType === "ambassador" ? "ambassadeur" : 
@@ -79,12 +89,12 @@ export const sendWelcomeEmail = async (
     const subject = `Bienvenue sur votre compte ${typeDisplay} iTakecare`;
     
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Bienvenue ${name},</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${name},</h2>
         <p>Votre compte ${typeDisplay} a été créé avec succès sur la plateforme iTakecare.</p>
         <p>Vous recevrez un email séparé pour définir votre mot de passe et accéder à votre espace ${typeDisplay}.</p>
         <p>Une fois connecté, vous pourrez :</p>
-        <ul>
+        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
           ${userType === "partner" ? `
             <li>Créer et gérer des offres de leasing</li>
             <li>Suivre vos commissions</li>
@@ -100,11 +110,11 @@ export const sendWelcomeEmail = async (
           `}
         </ul>
         <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-        <p>Cordialement,<br>L'équipe iTakecare</p>
+        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
       </div>
     `;
     
-    console.log("Tentative d'envoi d'email de bienvenue à:", email);
+    console.log(`Tentative d'envoi d'email de bienvenue à: ${email}`);
     
     const success = await sendEmail(
       email,
@@ -114,10 +124,10 @@ export const sendWelcomeEmail = async (
     
     if (success) {
       toast.success("Email de bienvenue envoyé avec succès");
-      console.log("Email de bienvenue envoyé avec succès à:", email);
+      console.log(`Email de bienvenue envoyé avec succès à: ${email}`);
     } else {
-      toast.error("Impossible d'envoyer l'email de bienvenue");
-      console.error("Échec de l'envoi de l'email de bienvenue à:", email);
+      // Notification utilisateur masquée pour éviter de perturber l'expérience utilisateur
+      console.error(`Échec de l'envoi de l'email de bienvenue à: ${email}`);
     }
     
     return success;

@@ -70,13 +70,17 @@ export const createProductRequest = async (data: ProductRequestData) => {
     // Envoyer un email de bienvenue si un client a été créé
     if (responseData.client_email) {
       try {
-        await sendWelcomeEmail(
+        // On envoie l'email mais on n'attend pas la réponse pour ne pas bloquer le processus
+        // si l'envoi d'email échoue
+        sendWelcomeEmail(
           responseData.client_email,
           responseData.client_name,
           "client"
-        );
+        ).catch(emailError => {
+          console.error("Erreur lors de l'envoi de l'email de bienvenue (asynchrone):", emailError);
+        });
       } catch (emailError) {
-        console.error("Erreur lors de l'envoi de l'email de bienvenue:", emailError);
+        console.error("Erreur lors de l'envoi de l'email de bienvenue (bloc try/catch):", emailError);
         // On ne bloque pas le processus si l'email échoue
       }
     }
