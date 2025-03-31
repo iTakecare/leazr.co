@@ -13,9 +13,9 @@ import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { supabase } from "@/integrations/supabase/client";
 import CreateOffer from "@/pages/CreateOffer";
 import { toast } from "sonner";
-
-const ClientEquipment = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Mes Équipements</h1><p>Gestion des équipements en cours d'implémentation.</p></div>;
-const ClientCatalog = () => <div className="w-full"><h1 className="text-3xl font-bold mb-6">Catalogue</h1><p>Catalogue en cours d'implémentation.</p></div>;
+import PublicCatalog from "@/pages/PublicCatalog";
+import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
+import ClientSupportPage from "@/pages/ClientSupportPage";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -201,9 +201,10 @@ const ClientRoutes = () => {
       <Routes>
         <Route path="dashboard" element={<ClientLayout><ClientDashboard /></ClientLayout>} />
         <Route path="contracts" element={<ClientLayout><ClientContractsPage /></ClientLayout>} />
-        <Route path="equipment" element={<ClientLayout><ClientEquipment /></ClientLayout>} />
+        <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
-        <Route path="catalog" element={<ClientLayout><ClientCatalog /></ClientLayout>} />
+        <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
+        <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="calculator" element={<ClientLayout><CreateOffer /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />

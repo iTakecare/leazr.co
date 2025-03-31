@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,6 +15,7 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
+      // Redirect user based on their role
       if (isClient()) {
         navigate("/client/dashboard");
       } else if (isPartner()) {
@@ -23,6 +25,7 @@ const Index = () => {
       } else if (isAdmin()) {
         navigate("/dashboard");
       } else {
+        // Default to client dashboard if no specific role is found
         navigate("/client/dashboard");
       }
     }
