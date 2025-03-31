@@ -9,235 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const defaultTemplates = [
-  {
-    type: "welcome",
-    name: "Email de bienvenue",
-    subject: "Bienvenue sur iTakecare {{client_name}} !",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue {{client_name}},</h2>
-        <p>Votre compte a été créé avec succès sur la plateforme iTakecare.</p>
-        <p>Vous pouvez dès maintenant vous connecter à votre espace personnel pour :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Consulter vos contrats</li>
-          <li>Suivre vos équipements</li>
-          <li>Effectuer de nouvelles demandes</li>
-        </ul>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon compte</a>
-        </div>
-        <p>Si vous avez des questions ou besoin d'assistance, n'hésitez pas à contacter notre équipe support.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "product_request",
-    name: "Confirmation de demande de produit",
-    subject: "Bienvenue sur iTakecare - Confirmation de votre demande",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-        <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-        <p>Voici un récapitulatif de votre demande :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Montant total : {{amount}} €</li>
-          <li>Paiement mensuel estimé : {{monthly_payment}} €/mois</li>
-        </ul>
-        <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-        <p>Pour suivre l'avancement de votre demande et accéder à toutes les fonctionnalités de notre plateforme, vous pouvez créer un compte client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Créer mon compte</a>
-        </div>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "offer_accepted",
-    name: "Offre acceptée",
-    subject: "iTakecare - Votre offre a été acceptée",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Félicitations {{client_name}} !</h2>
-        <p>Nous avons le plaisir de vous informer que votre offre a été acceptée.</p>
-        <p>Détails de l'offre :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Montant total : {{amount}} €</li>
-          <li>Paiement mensuel : {{monthly_payment}} €/mois</li>
-        </ul>
-        <p>Les prochaines étapes :</p>
-        <ol style="margin-left: 20px;">
-          <li>Notre équipe va vous contacter pour finaliser le contrat</li>
-          <li>Préparation de votre équipement</li>
-          <li>Livraison selon les modalités convenues</li>
-        </ol>
-        <p>Suivez l'avancement de votre commande directement depuis votre espace client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon espace client</a>
-        </div>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "contract_signed",
-    name: "Contrat signé",
-    subject: "iTakecare - Confirmation de signature de contrat",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Merci {{client_name}} !</h2>
-        <p>Nous vous confirmons la bonne réception de votre contrat signé pour :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Montant total : {{amount}} €</li>
-          <li>Paiement mensuel : {{monthly_payment}} €/mois</li>
-        </ul>
-        <p>Votre contrat est maintenant en cours de traitement. Voici les prochaines étapes :</p>
-        <ol style="margin-left: 20px;">
-          <li>Validation finale par notre service administratif</li>
-          <li>Préparation de votre commande</li>
-          <li>Livraison et installation</li>
-        </ol>
-        <p>Vous pouvez suivre l'avancement du processus dans votre espace client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon espace client</a>
-        </div>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "delivery_scheduled",
-    name: "Livraison programmée",
-    subject: "iTakecare - Votre livraison est programmée",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-        <p>Bonne nouvelle ! Votre équipement est prêt à être livré.</p>
-        <p>Détails de la livraison :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Date de livraison prévue : {{date}}</li>
-          <li>Contact logistique : Notre équipe vous appellera pour confirmer l'heure exacte</li>
-        </ul>
-        <p>Rappel de votre contrat :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Montant total : {{amount}} €</li>
-          <li>Paiement mensuel : {{monthly_payment}} €/mois</li>
-        </ul>
-        <p>Pour toute question concernant votre livraison, n'hésitez pas à nous contacter ou à consulter votre espace client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon espace client</a>
-        </div>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "password_reset",
-    name: "Réinitialisation de mot de passe",
-    subject: "iTakecare - Réinitialisation de votre mot de passe",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-        <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
-        <p>Pour définir un nouveau mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Réinitialiser mon mot de passe</a>
-        </div>
-        <p>Ce lien est valable pendant 24 heures. Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet email.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "payment_reminder",
-    name: "Rappel de paiement",
-    subject: "iTakecare - Rappel de paiement",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-        <p>Nous vous rappelons que le paiement mensuel de votre équipement est attendu prochainement :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Montant à payer : {{monthly_payment}} €</li>
-          <li>Date d'échéance : {{date}}</li>
-        </ul>
-        <p>Pour effectuer votre paiement ou consulter les détails de votre contrat, connectez-vous à votre espace client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon espace client</a>
-        </div>
-        <p>Si vous avez déjà effectué ce paiement, veuillez ignorer cet email.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "contract_completed",
-    name: "Contrat terminé",
-    subject: "iTakecare - Votre contrat est arrivé à terme",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Félicitations {{client_name}} !</h2>
-        <p>Nous avons le plaisir de vous informer que votre contrat de leasing est arrivé à son terme.</p>
-        <p>Détails du contrat :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Montant total payé : {{amount}} €</li>
-        </ul>
-        <p>Vous disposez maintenant des options suivantes :</p>
-        <ol style="margin-left: 20px;">
-          <li>Garder votre équipement (aucune action requise de votre part)</li>
-          <li>Renouveler avec un nouvel équipement</li>
-          <li>Retourner l'équipement (si prévu dans votre contrat)</li>
-        </ol>
-        <p>Notre équipe commerciale se tient à votre disposition pour vous conseiller sur les nouvelles offres disponibles :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Découvrir les nouvelles offres</a>
-        </div>
-        <p>Nous vous remercions pour votre confiance et espérons vous compter parmi nos clients pour longtemps.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  },
-  {
-    type: "maintenance_scheduled",
-    name: "Maintenance programmée",
-    subject: "iTakecare - Maintenance programmée pour votre équipement",
-    html_content: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-        <p>Dans le cadre de votre contrat de maintenance, nous vous informons qu'une intervention est programmée pour votre équipement.</p>
-        <p>Détails de la maintenance :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement : {{equipment_description}}</li>
-          <li>Date prévue : {{date}}</li>
-          <li>Type d'intervention : Maintenance préventive</li>
-        </ul>
-        <p>Un technicien vous contactera prochainement pour confirmer l'heure exacte de l'intervention.</p>
-        <p>Pour toute question ou pour modifier ce rendez-vous, connectez-vous à votre espace client :</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Accéder à mon espace client</a>
-        </div>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `,
-    active: true
-  }
-];
-
 serve(async (req) => {
   // Gestion des requêtes OPTIONS pour CORS
   if (req.method === 'OPTIONS') {
@@ -251,64 +22,277 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
       { auth: { persistSession: false } }
     );
-
-    // Vérifier si les modèles existent déjà
-    const { data: existingTemplates, error: checkError } = await supabaseAdmin
-      .from('email_templates')
-      .select('type')
-      .order('type');
-
-    if (checkError) {
-      console.error("Erreur lors de la vérification des modèles:", checkError);
-      throw checkError;
-    }
-
-    const existingTypes = new Set(existingTemplates?.map(t => t.type) || []);
-    const templatesToInsert = defaultTemplates.filter(template => !existingTypes.has(template.type));
-
-    let insertResult = { data: null, error: null };
     
-    if (templatesToInsert.length > 0) {
-      console.log(`Insertion de ${templatesToInsert.length} nouveaux modèles d'email...`);
-      insertResult = await supabaseAdmin
-        .from('email_templates')
-        .insert(templatesToInsert)
-        .select();
-      
-      if (insertResult.error) {
-        console.error("Erreur lors de l'insertion des modèles:", insertResult.error);
-        throw insertResult.error;
+    // Modèles d'email à initialiser
+    const templates = [
+      {
+        type: 'welcome',
+        name: 'Email de bienvenue',
+        subject: 'Bienvenue sur iTakecare, {{client_name}} !',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue sur iTakecare !</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Nous sommes ravis de vous accueillir sur la plateforme iTakecare.</p>
+          <p>Votre compte a été créé avec succès. Vous recevrez prochainement un email pour définir votre mot de passe.</p>
+          <p>Une fois connecté, vous pourrez suivre vos demandes de financement, consulter vos équipements et gérer vos contrats.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'password_reset',
+        name: 'Réinitialisation du mot de passe',
+        subject: 'Réinitialisation de votre mot de passe iTakecare',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Réinitialisation de mot de passe</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte iTakecare.</p>
+          <p>Veuillez cliquer sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{reset_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Réinitialiser mon mot de passe</a>
+          </div>
+          <p>Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
+          <p>Ce lien est valable pour une durée de 24 heures.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'new_account',
+        name: 'Création de compte',
+        subject: 'Votre compte iTakecare a été créé',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre compte iTakecare est prêt !</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Nous sommes heureux de vous informer que votre compte iTakecare a été créé avec succès.</p>
+          <p>Pour définir votre mot de passe et accéder à votre espace personnel, veuillez cliquer sur le bouton ci-dessous :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{account_creation_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Activer mon compte</a>
+          </div>
+          <p>Une fois connecté, vous pourrez suivre vos demandes de financement et gérer vos équipements en leasing.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'offer_ready',
+        name: 'Offre prête à consulter',
+        subject: 'Votre offre de financement est prête - iTakecare',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre offre de financement est prête</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Nous avons le plaisir de vous informer que votre offre de financement pour <strong>{{equipment_description}}</strong> est maintenant prête à être consultée.</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin-top: 0;"><strong>Récapitulatif de l'offre :</strong></p>
+            <p>- Équipement : {{equipment_description}}</p>
+            <p>- Montant total : {{amount}} €</p>
+            <p>- Paiement mensuel : {{monthly_payment}} €</p>
+          </div>
+          
+          <p>Pour consulter les détails complets de votre offre et la valider, veuillez cliquer sur le bouton ci-dessous :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{offer_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Consulter mon offre</a>
+          </div>
+          <p>Si vous avez des questions concernant cette offre, n'hésitez pas à nous contacter.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'document_request',
+        name: 'Demande de documents',
+        subject: 'Documents requis pour finaliser votre offre iTakecare',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Documents complémentaires requis</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Afin de finaliser l'analyse de votre dossier pour le financement de <strong>{{equipment_description}}</strong>, nous avons besoin des documents suivants :</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin-top: 0;"><strong>Documents à fournir :</strong></p>
+            <ul style="padding-left: 20px;">
+              {{requested_documents}}
+            </ul>
+          </div>
+          
+          <p>{{custom_message}}</p>
+          
+          <p>Vous pouvez nous transmettre ces documents en répondant directement à cet email ou en les téléchargeant dans votre espace client.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{client_portal_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accéder à mon espace client</a>
+          </div>
+          <p>Nous vous remercions pour votre coopération et restons à votre disposition pour toute question.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'offer_accepted',
+        name: 'Offre acceptée',
+        subject: 'Confirmation - Votre offre iTakecare a été acceptée',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre offre a été acceptée !</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Nous avons le plaisir de vous informer que votre offre de financement pour <strong>{{equipment_description}}</strong> a été acceptée par notre équipe.</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin-top: 0;"><strong>Détails de l'offre :</strong></p>
+            <p>- Équipement : {{equipment_description}}</p>
+            <p>- Montant total : {{amount}} €</p>
+            <p>- Paiement mensuel : {{monthly_payment}} €</p>
+            <p>- Date d'acceptation : {{date}}</p>
+          </div>
+          
+          <p>Les prochaines étapes pour finaliser votre contrat vous seront communiquées très prochainement.</p>
+          <p>Vous pouvez suivre l'avancement de votre dossier dans votre espace client :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{client_portal_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accéder à mon espace client</a>
+          </div>
+          <p>Nous vous remercions pour votre confiance et restons à votre disposition pour toute question.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'offer_rejected',
+        name: 'Offre refusée',
+        subject: 'Information concernant votre demande de financement iTakecare',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Statut de votre demande de financement</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Suite à l'étude de votre dossier pour le financement de <strong>{{equipment_description}}</strong>, nous regrettons de vous informer que nous ne sommes pas en mesure de donner une suite favorable à votre demande actuelle.</p>
+          <p>Nos conseillers restent à votre disposition pour discuter des alternatives possibles ou pour étudier une nouvelle demande avec des conditions différentes.</p>
+          <p>N'hésitez pas à nous contacter pour plus d'informations.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
+      },
+      {
+        type: 'contract_ready',
+        name: 'Contrat prêt à signer',
+        subject: 'Votre contrat de financement est prêt à signer - iTakecare',
+        html_content: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre contrat est prêt à signer</h2>
+          <p>Bonjour {{client_name}},</p>
+          <p>Nous avons le plaisir de vous informer que votre contrat de financement pour <strong>{{equipment_description}}</strong> est maintenant prêt à être signé.</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin-top: 0;"><strong>Récapitulatif du contrat :</strong></p>
+            <p>- Équipement : {{equipment_description}}</p>
+            <p>- Montant total : {{amount}} €</p>
+            <p>- Paiement mensuel : {{monthly_payment}} €</p>
+          </div>
+          
+          <p>Pour consulter et signer votre contrat, veuillez cliquer sur le bouton ci-dessous :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{contract_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Consulter et signer mon contrat</a>
+          </div>
+          <p>Si vous avez des questions concernant ce contrat, n'hésitez pas à nous contacter.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+        `,
+        active: true
       }
-    } else {
-      console.log("Aucun nouveau modèle à insérer.");
+    ];
+    
+    console.log(`Tentative d'initialisation de ${templates.length} modèles d'email...`);
+    
+    // Vérifier quels modèles existent déjà
+    let insertedCount = 0;
+    let totalCount = 0;
+    
+    for (const template of templates) {
+      // Vérifier si le modèle existe déjà
+      const { data: existingTemplate, error: checkError } = await supabaseAdmin
+        .from('email_templates')
+        .select('id')
+        .eq('type', template.type)
+        .single();
+        
+      if (checkError && checkError.code !== 'PGRST116') {  // PGRST116 = not found
+        console.error(`Erreur lors de la vérification du modèle ${template.type}:`, checkError);
+        continue;
+      }
+      
+      if (existingTemplate) {
+        console.log(`Le modèle ${template.type} existe déjà. Mise à jour...`);
+        totalCount++;
+        
+        // Mettre à jour le modèle existant
+        const { error: updateError } = await supabaseAdmin
+          .from('email_templates')
+          .update({
+            name: template.name,
+            subject: template.subject,
+            html_content: template.html_content,
+            active: template.active,
+            updated_at: new Date()
+          })
+          .eq('id', existingTemplate.id);
+          
+        if (updateError) {
+          console.error(`Erreur lors de la mise à jour du modèle ${template.type}:`, updateError);
+        } else {
+          console.log(`Modèle ${template.type} mis à jour avec succès`);
+        }
+      } else {
+        console.log(`Le modèle ${template.type} n'existe pas. Création...`);
+        
+        // Créer le nouveau modèle
+        const { error: insertError } = await supabaseAdmin
+          .from('email_templates')
+          .insert({
+            type: template.type,
+            name: template.name,
+            subject: template.subject,
+            html_content: template.html_content,
+            active: template.active,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+          
+        if (insertError) {
+          console.error(`Erreur lors de la création du modèle ${template.type}:`, insertError);
+        } else {
+          console.log(`Modèle ${template.type} créé avec succès`);
+          insertedCount++;
+          totalCount++;
+        }
+      }
     }
-
-    // Obtenir tous les modèles après l'insertion
-    const { data: allTemplates, error: getAllError } = await supabaseAdmin
-      .from('email_templates')
-      .select('*')
-      .order('name');
-
-    if (getAllError) {
-      console.error("Erreur lors de la récupération de tous les modèles:", getAllError);
-      throw getAllError;
-    }
-
+    
+    console.log(`Initialisation des modèles d'email terminée. ${insertedCount} nouveaux modèles ajoutés sur un total de ${totalCount}`);
+    
     return new Response(
       JSON.stringify({
         success: true,
-        inserted: templatesToInsert.length,
-        total: allTemplates?.length || 0,
-        templates: allTemplates
+        inserted: insertedCount,
+        total: totalCount
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
-    console.error("Erreur dans la fonction Edge:", error);
+    console.error("Erreur lors de l'initialisation des modèles d'email:", error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: `Une erreur est survenue: ${error.message}` 
+      JSON.stringify({
+        success: false,
+        error: String(error)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
