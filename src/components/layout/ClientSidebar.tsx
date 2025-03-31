@@ -3,100 +3,75 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import SidebarUserSection from "./SidebarUserSection";
 import { 
   LayoutDashboard, 
   FileText, 
   Laptop, 
   Inbox,
+  Search,
   MessageSquare,
   Settings,
-  Search
+  LogOut
 } from "lucide-react";
 
 const ClientSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
 
-  // Navigation items for client sidebar
+  // Get user information
+  const userEmail = user?.email || '';
+  const firstName = user?.user_metadata?.first_name || '';
+  const lastName = user?.user_metadata?.last_name || '';
+  const displayName = firstName && lastName 
+    ? `${firstName} ${lastName}` 
+    : userEmail.split('@')[0];
+
+  // Navigation items
   const navigationItems = [
     {
       name: "Tableau de bord",
       href: "/client/dashboard",
       icon: LayoutDashboard,
-      current: location.pathname === "/client/dashboard",
+      active: location.pathname === "/client/dashboard",
     },
     {
       name: "Contrats",
       href: "/client/contracts",
       icon: FileText,
-      current: location.pathname === "/client/contracts",
+      active: location.pathname === "/client/contracts",
     },
     {
       name: "Équipements",
       href: "/client/equipment",
       icon: Laptop,
-      current: location.pathname === "/client/equipment",
+      active: location.pathname === "/client/equipment" || location.pathname.startsWith("/client/equipment/"),
     },
     {
       name: "Demandes",
       href: "/client/requests",
       icon: Inbox,
-      current: location.pathname === "/client/requests",
+      active: location.pathname === "/client/requests",
     },
     {
       name: "Catalogue",
       href: "/client/catalog",
       icon: Search,
-      current: location.pathname === "/client/catalog",
+      active: location.pathname === "/client/catalog",
     },
     {
       name: "Support",
       href: "/client/support",
       icon: MessageSquare,
-      current: location.pathname === "/client/support",
+      active: location.pathname === "/client/support",
     },
     {
       name: "Paramètres",
       href: "/client/settings",
       icon: Settings,
-      current: location.pathname === "/client/settings",
+      active: location.pathname === "/client/settings",
     },
   ];
-
-  // User information and logout handling
-  const avatarUrl = user?.user_metadata?.avatar_url || null;
-  
-  const getUserInitials = () => {
-    const firstName = user?.user_metadata?.first_name || '';
-    const lastName = user?.user_metadata?.last_name || '';
-    
-    if (firstName && lastName) {
-      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    } else if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return "U";
-  };
-
-  const getUserDisplayName = () => {
-    const firstName = user?.user_metadata?.first_name || '';
-    const lastName = user?.user_metadata?.last_name || '';
-    
-    if (firstName && lastName) {
-      return `${firstName} ${lastName}`;
-    } else if (user?.email) {
-      return user.email;
-    }
-    return "Utilisateur";
-  };
-
-  const getUserRole = () => {
-    return "Client";
-  };
 
   const handleLogout = async () => {
     try {
@@ -108,10 +83,10 @@ const ClientSidebar = () => {
   };
 
   return (
-    <div className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 z-[80] bg-card border-r">
-      <div className="flex flex-col flex-grow pt-5 overflow-y-auto">
+    <div className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 z-[80] bg-white border-r">
+      <div className="flex flex-col h-full">
         {/* Logo and branding */}
-        <div className="flex items-center flex-shrink-0 px-4 mb-5">
+        <div className="flex items-center flex-shrink-0 px-5 py-6 border-b">
           <Link to="/client/dashboard" className="flex items-center gap-2">
             <img
               className="h-8 w-auto"
@@ -122,47 +97,56 @@ const ClientSidebar = () => {
           </Link>
         </div>
 
-        {/* User section */}
-        <div className="px-3 mb-6">
-          <SidebarUserSection 
-            collapsed={collapsed}
-            avatarUrl={avatarUrl}
-            getUserInitials={getUserInitials}
-            getUserDisplayName={getUserDisplayName}
-            getUserRole={getUserRole}
-            handleLogout={handleLogout}
-          />
+        {/* User info */}
+        <div className="px-5 py-4 border-b">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{displayName}</p>
+              <p className="text-xs text-gray-500">Client</p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="mt-3 w-full flex items-center justify-center gap-2 text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Déconnexion
+          </Button>
         </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 px-3">
+        <div className="flex-1 px-3 py-4 overflow-y-auto">
           <nav className="space-y-1">
             {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md group transition-colors ${
-                  item.current
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md group transition-colors ${
+                  item.active
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <item.icon
                   className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    item.current 
-                      ? "text-primary-foreground" 
-                      : "text-muted-foreground group-hover:text-accent-foreground"
+                    item.active 
+                      ? "text-blue-600" 
+                      : "text-gray-400 group-hover:text-gray-500"
                   }`}
-                  aria-hidden="true"
                 />
                 {item.name}
               </Link>
             ))}
           </nav>
-        </ScrollArea>
+        </div>
       </div>
-      
-      {/* Logout button at bottom is now handled by SidebarUserSection */}
     </div>
   );
 };

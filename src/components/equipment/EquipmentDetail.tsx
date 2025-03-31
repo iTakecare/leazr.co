@@ -1,237 +1,266 @@
 
 import React, { useState } from 'react';
 import { Equipment } from '@/types/equipment';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { CircleCheck, Pencil, Save, X } from 'lucide-react';
 
 interface EquipmentDetailProps {
   equipment: Equipment | null;
   onSave: (equipment: Equipment) => void;
 }
 
-const EquipmentDetail: React.FC<EquipmentDetailProps> = ({
-  equipment,
-  onSave
-}) => {
-  const [activeTab, setActiveTab] = useState("details");
-  const [formData, setFormData] = useState<Equipment | null>(equipment);
+const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, onSave }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const form = useForm({
+    defaultValues: equipment || {},
+  });
 
-  if (!equipment || !formData) {
+  if (!equipment) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Sélectionnez un équipement pour voir les détails</p>
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+        <Laptop className="h-16 w-16 text-muted-foreground/40 mb-4" />
+        <h3 className="font-medium text-lg mb-2">Aucun équipement sélectionné</h3>
+        <p className="text-muted-foreground">
+          Sélectionnez un équipement pour voir ses détails
+        </p>
       </div>
     );
   }
 
-  const handleInputChange = (field: keyof Equipment, value: any) => {
-    setFormData({ ...formData, [field]: value });
+  const handleSave = (data: any) => {
+    onSave({
+      ...equipment,
+      ...data,
+    });
+    setIsEditing(false);
   };
 
-  const handleStatusChange = (status: string) => {
-    setFormData({ ...formData, status });
-  };
-
-  const handleSave = () => {
-    if (formData) {
-      onSave(formData);
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'En service':
+        return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">En service</Badge>;
+      case 'En réserve':
+        return <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200">En réserve</Badge>;
+      case 'Remplacement':
+        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200">Remplacement</Badge>;
+      default:
+        return <Badge variant="outline">{status || 'Non défini'}</Badge>;
     }
   };
 
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-background p-4 border-b">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col">
-              <h2 className="text-2xl font-semibold">{equipment.title}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={equipment.status === 'En service' ? 'success' : equipment.status === 'En réserve' ? 'warning' : 'destructive'}>
-                  {equipment.status}
-                </Badge>
-                {equipment.location && (
-                  <Badge variant="outline">{equipment.location}</Badge>
-                )}
+      <div className="bg-white border-b p-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">{equipment.title}</h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span>{equipment.type || 'Non catégorisé'}</span>
+            {equipment.status && (
+              <>
+                <span className="text-gray-300">•</span>
+                {getStatusBadge(equipment.status)}
+              </>
+            )}
+          </div>
+        </div>
+        <Button 
+          variant={isEditing ? "outline" : "default"}
+          size="sm"
+          className="gap-1"
+          onClick={() => setIsEditing(!isEditing)}
+        >
+          {isEditing ? (
+            <>
+              <X className="h-4 w-4" /> Annuler
+            </>
+          ) : (
+            <>
+              <Pencil className="h-4 w-4" /> Modifier
+            </>
+          )}
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        {isEditing ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de l'équipement</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="serial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro de série</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Statut</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez un statut" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="En service">En service</SelectItem>
+                          <SelectItem value="En réserve">En réserve</SelectItem>
+                          <SelectItem value="Remplacement">Remplacement</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigné à</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Emplacement</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="supplier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fournisseur</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </div>
+              
+              <div className="flex justify-end pt-4">
+                <Button type="submit" className="gap-1">
+                  <Save className="h-4 w-4" /> Enregistrer les modifications
+                </Button>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+            <div>
+              <Label className="text-xs text-muted-foreground">Numéro de série</Label>
+              <p className="font-medium">{equipment.serial || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Type d'équipement</Label>
+              <p className="font-medium">{equipment.type || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Assigné à</Label>
+              <p className="font-medium">{equipment.assignedTo || 'Non assigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Date d'assignation</Label>
+              <p className="font-medium">{equipment.assignedDate || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Emplacement</Label>
+              <p className="font-medium">{equipment.location || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Fournisseur</Label>
+              <p className="font-medium">{equipment.supplier || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Début du contrat</Label>
+              <p className="font-medium">{equipment.contractStart || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Fin du contrat</Label>
+              <p className="font-medium">{equipment.contractEnd || 'Non renseigné'}</p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Prix d'achat</Label>
+              <p className="font-medium">
+                {equipment.purchasePrice 
+                  ? `${equipment.purchasePrice.toLocaleString('fr-FR')} €` 
+                  : 'Non renseigné'}
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-xs text-muted-foreground">Loyer mensuel</Label>
+              <p className="font-medium">
+                {equipment.monthlyRent 
+                  ? `${equipment.monthlyRent.toLocaleString('fr-FR')} €` 
+                  : 'Non renseigné'}
+              </p>
             </div>
           </div>
-          <Button onClick={handleSave}>Enregistrer</Button>
+        )}
+      </div>
+      
+      {!isEditing && (
+        <div className="bg-gray-50 p-3 border-t">
+          <div className="text-xs text-gray-500">
+            <p>Dernière mise à jour: 23/05/2023</p>
+          </div>
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
-            <TabsTrigger value="details">Détails</TabsTrigger>
-            <TabsTrigger value="specs">Caractéristiques</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="flex-grow overflow-auto p-4">
-        <TabsContent value="details" className="mt-0">
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Nom de l'appareil</label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Type</label>
-                    <Select 
-                      value={formData.type || ''} 
-                      onValueChange={(value) => handleInputChange('type', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="laptop">Ordinateur portable</SelectItem>
-                        <SelectItem value="smartphone">Smartphone</SelectItem>
-                        <SelectItem value="tablet">Tablette</SelectItem>
-                        <SelectItem value="monitor">Écran</SelectItem>
-                        <SelectItem value="accessory">Accessoire</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Fournisseur</label>
-                    <Input
-                      value={formData.supplier || ''}
-                      onChange={(e) => handleInputChange('supplier', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Début du contrat</label>
-                    <Input
-                      type="date"
-                      value={formData.contractStart || ''}
-                      onChange={(e) => handleInputChange('contractStart', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Fin du contrat</label>
-                    <Input
-                      type="date"
-                      value={formData.contractEnd || ''}
-                      onChange={(e) => handleInputChange('contractEnd', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Durée</label>
-                    <Input
-                      value={formData.contractDuration || ''}
-                      onChange={(e) => handleInputChange('contractDuration', e.target.value)}
-                      placeholder="ex: 36 mois"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Loyer</label>
-                    <Input
-                      type="number"
-                      value={formData.monthlyRent?.toString() || ''}
-                      onChange={(e) => handleInputChange('monthlyRent', parseFloat(e.target.value))}
-                      placeholder="ex: 49.90€"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">N° de contrat</label>
-                  <Input
-                    value={formData.contractNumber || ''}
-                    onChange={(e) => handleInputChange('contractNumber', e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Statut</label>
-                  <Select 
-                    value={formData.status || ''} 
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="En service">En service</SelectItem>
-                      <SelectItem value="En réserve">En réserve</SelectItem>
-                      <SelectItem value="Remplacement">Remplacement</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Assigné à</label>
-                  <Input
-                    value={formData.assignedTo || ''}
-                    onChange={(e) => handleInputChange('assignedTo', e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="specs" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Numéro de série</label>
-                  <Input
-                    value={formData.serial || ''}
-                    onChange={(e) => handleInputChange('serial', e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Emplacement</label>
-                    <Select 
-                      value={formData.location || ''} 
-                      onValueChange={(value) => handleInputChange('location', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un emplacement" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Marseille">Marseille</SelectItem>
-                        <SelectItem value="Paris">Paris</SelectItem>
-                        <SelectItem value="Lyon">Lyon</SelectItem>
-                        <SelectItem value="Bordeaux">Bordeaux</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </div>
+      )}
     </div>
   );
 };

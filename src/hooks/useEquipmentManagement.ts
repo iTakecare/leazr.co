@@ -1,282 +1,226 @@
 
 import { useState, useEffect } from 'react';
-import { Equipment, EquipmentStatus } from '@/types/equipment';
-import { getEquipmentByClientId, updateEquipment } from '@/services/equipmentService';
+import { Equipment } from '@/types/equipment';
+import { getEquipmentByClientId } from '@/services/equipmentService';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import { getClientIdForUser } from '@/utils/clientUserAssociation';
 
-export interface FilterOption {
-  id: string;
-  label: string;
-  checked: boolean;
-}
-
-export function useEquipmentManagement() {
+export const useEquipmentManagement = () => {
   const { user } = useAuth();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<string | null>(null);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Tabs
   const [activeTab, setActiveTab] = useState('vos-appareils');
-  
-  // Filters
-  const [statusFilters, setStatusFilters] = useState<FilterOption[]>([
-    { id: 'en-service', label: 'En service', checked: false },
-    { id: 'en-reserve', label: 'En réserve', checked: false },
-    { id: 'remplacement', label: 'Remplacement', checked: false },
-  ]);
 
-  const [locationFilters, setLocationFilters] = useState<FilterOption[]>([
-    { id: 'marseille', label: 'Marseille', checked: false },
-    { id: 'paris', label: 'Paris', checked: false },
-    { id: 'lyon', label: 'Lyon', checked: false },
-  ]);
+  // Filter states
+  const [statusFilters, setStatusFilters] = useState({
+    'En service': false,
+    'En réserve': false,
+    'Remplacement': false
+  });
+  const [locationFilters, setLocationFilters] = useState({
+    'Bureau': false,
+    'Télétravail': false,
+    'Client': false,
+    'Stock': false
+  });
 
-  // Calculate active filters count
-  const activeFiltersCount = [...statusFilters, ...locationFilters].filter(f => f.checked).length;
+  // Count active filters
+  const activeFiltersCount = 
+    Object.values(statusFilters).filter(Boolean).length + 
+    Object.values(locationFilters).filter(Boolean).length +
+    (searchQuery ? 1 : 0);
 
-  useEffect(() => {
-    const loadClientId = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const id = await getClientIdForUser(user.id, user.email || null);
-        if (id) {
-          setClientId(id);
-        } else {
-          setError("Impossible de trouver l'ID client associé à cet utilisateur");
-        }
-      } catch (err) {
-        console.error("Error fetching client ID:", err);
-        setError("Erreur lors de la récupération de l'ID client");
-      }
-    };
+  // Get client ID from user
+  const getClientId = () => {
+    if (!user) return null;
     
-    loadClientId();
-  }, [user]);
+    // Try to get client ID from localStorage first
+    const cachedClientId = user.id ? localStorage.getItem(`client_id_${user.id}`) : null;
+    if (cachedClientId) return cachedClientId;
+    
+    // Fallback to user metadata
+    return user.client_id || null;
+  };
 
+  // Fetch equipment data
   useEffect(() => {
     const fetchEquipment = async () => {
-      if (!clientId) return;
-      
-      setLoading(true);
       try {
-        // Let's use dummy data for now since we don't have an actual DB table yet
-        const mockEquipment: Equipment[] = [
-          {
-            id: "1",
-            title: "MacBook Air 13\" M3",
-            purchasePrice: 1299,
-            quantity: 1,
-            margin: 20,
-            assignedTo: "Mathieu Vergnes",
-            role: "Developer",
-            status: "En service",
-            serial: "C02G268KQ6L2",
-            image: "/lovable-uploads/2eb6c7df-ba32-4890-8b16-1e5934545637.png",
-            type: "laptop",
-            supplier: "Apple",
-            contractStart: "2022-12-01",
-            contractEnd: "2025-11-01",
-            contractDuration: "36 mois",
-            monthlyRent: 49.90,
-            contractNumber: "145142",
-            location: "Marseille"
-          },
-          {
-            id: "2",
-            title: "iPhone 15 Pro Max",
-            purchasePrice: 1199,
-            quantity: 1,
-            margin: 15,
-            assignedTo: "Valentin Vergnes",
-            status: "En service",
-            serial: "G0NP9LL/A",
-            type: "smartphone",
-            supplier: "Apple",
-            location: "Paris"
-          },
-          {
-            id: "3",
-            title: "Galaxy Tab S8",
-            purchasePrice: 699,
-            quantity: 1,
-            margin: 15,
-            assignedTo: "Benjamin Tollet",
-            status: "En service",
-            serial: "R92N20BD69M"
-          },
-          {
-            id: "4",
-            title: "AirPods Max",
-            purchasePrice: 549,
-            quantity: 1,
-            margin: 10,
-            assignedTo: "Marie-Sarah Denis",
-            status: "En service",
-            serial: "GU9L2LL/A"
-          },
-          {
-            id: "5",
-            title: "Dell SE2422HX",
-            purchasePrice: 149,
-            quantity: 1,
-            margin: 5,
-            status: "En réserve",
-            serial: "CN03J8R7"
-          },
-          {
-            id: "6",
-            title: "MacBook Pro 14\" M1 2022",
-            purchasePrice: 1999,
-            quantity: 1,
-            margin: 20,
-            assignedTo: "Thibaud Martin",
-            status: "Remplacement",
-            serial: "C02F268KQ6L2"
-          },
-          {
-            id: "7",
-            title: "Logitech MX Master 2S",
-            purchasePrice: 99,
-            quantity: 1,
-            margin: 5,
-            assignedTo: "Mathieu Vergnes",
-            status: "En service",
-            serial: "2012BG043781"
-          },
-          {
-            id: "8",
-            title: "Samsung Galaxy A55",
-            purchasePrice: 459,
-            quantity: 1,
-            margin: 10,
-            assignedTo: "Fabien Minet",
-            status: "En service",
-            serial: "R58N40MZ87V"
-          }
-        ];
+        const clientId = getClientId();
+        if (!clientId) {
+          setError("Identifiant client non disponible");
+          setLoading(false);
+          return;
+        }
 
-        // In a real implementation, fetch from DB:
-        // const data = await getEquipmentByClientId(clientId);
+        setLoading(true);
+        setError(null);
+        const data = await getEquipmentByClientId(clientId);
         
-        setEquipment(mockEquipment);
-        setFilteredEquipment(mockEquipment);
-      } catch (err) {
-        console.error("Error fetching equipment:", err);
-        setError("Erreur lors du chargement des équipements");
+        // If database is not accessible, use some demo data
+        if (!data || data.length === 0) {
+          console.log("Using demo equipment data");
+          const demoData: Equipment[] = [
+            {
+              id: '1',
+              title: 'MacBook Pro 16"',
+              type: 'Ordinateur portable',
+              status: 'En service',
+              assignedTo: 'John Smith',
+              assignedDate: '12/01/2023',
+              serial: 'C02G3KZGQ6WN',
+              supplier: 'Apple',
+              purchasePrice: 2800,
+              monthlyRent: 120,
+              location: 'Bureau',
+              contractStart: '01/01/2023',
+              contractEnd: '31/12/2025'
+            },
+            {
+              id: '2',
+              title: 'iPhone 15 Pro',
+              type: 'Smartphone',
+              status: 'En service',
+              assignedTo: 'Sarah Connor',
+              assignedDate: '15/02/2023',
+              serial: 'DNQRZKD9HK88',
+              supplier: 'Apple',
+              purchasePrice: 1200,
+              monthlyRent: 45,
+              location: 'Télétravail'
+            },
+            {
+              id: '3',
+              title: 'Dell XPS 15',
+              type: 'Ordinateur portable',
+              status: 'En réserve',
+              assignedTo: null,
+              serial: 'DL45KD983J',
+              supplier: 'Dell',
+              purchasePrice: 1850,
+              monthlyRent: 80,
+              location: 'Stock'
+            },
+            {
+              id: '4',
+              title: 'iPad Pro 12.9"',
+              type: 'Tablette',
+              status: 'Remplacement',
+              assignedTo: 'Mike Johnson',
+              assignedDate: '23/03/2022',
+              serial: 'F8NDJC03Y762',
+              supplier: 'Apple',
+              purchasePrice: 1100,
+              monthlyRent: 40,
+              location: 'Client'
+            },
+          ];
+          setEquipment(demoData);
+        } else {
+          setEquipment(data);
+        }
+
+        if (data && data.length > 0) {
+          setSelectedEquipmentId(data[0].id);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching equipment:', error);
+        setError("Une erreur s'est produite lors du chargement des équipements");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchEquipment();
-  }, [clientId]);
+  }, [user]);
 
-  // Apply filters whenever filter states change
-  useEffect(() => {
-    if (!equipment.length) return;
-
-    let filtered = [...equipment];
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(query) || 
-        item.assignedTo?.toLowerCase().includes(query) ||
-        item.serial?.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply status filters
-    const activeStatusFilters = statusFilters.filter(f => f.checked).map(f => f.label);
-    if (activeStatusFilters.length > 0) {
-      filtered = filtered.filter(item => {
-        // Map filter IDs to actual status values
-        const statusMap: Record<string, string> = {
-          'en-service': 'En service',
-          'en-reserve': 'En réserve',
-          'remplacement': 'Remplacement',
-        };
-        
-        // Find the corresponding status filter
-        const matchingFilter = statusFilters.find(f => f.checked && statusMap[f.id] === item.status);
-        return !!matchingFilter;
-      });
-    }
-    
-    // Apply location filters
-    const activeLocationFilters = locationFilters.filter(f => f.checked).map(f => f.label);
-    if (activeLocationFilters.length > 0) {
-      filtered = filtered.filter(item => activeLocationFilters.includes(item.location || ''));
-    }
-    
-    setFilteredEquipment(filtered);
-  }, [equipment, searchQuery, statusFilters, locationFilters]);
-
-  // When equipment is selected
-  useEffect(() => {
-    if (selectedEquipmentId) {
-      const selected = equipment.find(item => item.id === selectedEquipmentId) || null;
-      setSelectedEquipment(selected);
-    } else {
-      setSelectedEquipment(null);
-    }
-  }, [selectedEquipmentId, equipment]);
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleStatusFilterChange = (id: string) => {
-    setStatusFilters(prevFilters => prevFilters.map(filter => 
-      filter.id === id ? { ...filter, checked: !filter.checked } : filter
-    ));
-  };
-
-  const handleLocationFilterChange = (id: string) => {
-    setLocationFilters(prevFilters => prevFilters.map(filter => 
-      filter.id === id ? { ...filter, checked: !filter.checked } : filter
-    ));
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setStatusFilters(prevFilters => prevFilters.map(filter => ({ ...filter, checked: false })));
-    setLocationFilters(prevFilters => prevFilters.map(filter => ({ ...filter, checked: false })));
-  };
-
-  const selectEquipment = (equipment: Equipment) => {
-    setSelectedEquipmentId(equipment.id);
-  };
-
-  const saveEquipment = async (updatedEquipment: Equipment) => {
-    try {
-      // In a real implementation, save to DB:
-      // const savedEquipment = await updateEquipment(updatedEquipment);
-      
-      // For this mock, just update the local state
-      setEquipment(prevEquipment => 
-        prevEquipment.map(item => 
-          item.id === updatedEquipment.id ? updatedEquipment : item
-        )
-      );
-      
-      toast.success("Équipement mis à jour avec succès");
-      return true;
-    } catch (err) {
-      console.error("Error saving equipment:", err);
-      toast.error("Erreur lors de la sauvegarde de l'équipement");
+  // Filter equipment based on search and filters
+  const filteredEquipment = equipment.filter(item => {
+    // Search filter
+    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
+
+    // Status filters
+    const activeStatusFilters = Object.entries(statusFilters).filter(([_, isActive]) => isActive).map(([status]) => status);
+    if (activeStatusFilters.length > 0 && item.status && !activeStatusFilters.includes(item.status)) {
+      return false;
+    }
+
+    // Location filters
+    const activeLocationFilters = Object.entries(locationFilters).filter(([_, isActive]) => isActive).map(([location]) => location);
+    if (activeLocationFilters.length > 0 && item.location && !activeLocationFilters.includes(item.location)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Get selected equipment details
+  const selectedEquipment = equipment.find(item => item.id === selectedEquipmentId) || null;
+
+  // Select equipment
+  const selectEquipment = (item: Equipment) => {
+    setSelectedEquipmentId(item.id);
+  };
+
+  // Update equipment
+  const saveEquipment = async (updatedEquipment: Equipment) => {
+    try {
+      // Update the equipment in the local state
+      setEquipment(equipment.map(item => 
+        item.id === updatedEquipment.id ? updatedEquipment : item
+      ));
+      
+      // Here you would also update the equipment in the database
+      // For now, we just log the update
+      console.log('Equipment updated:', updatedEquipment);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      return false;
+    }
+  };
+
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (status: string, checked: boolean) => {
+    setStatusFilters(prev => ({
+      ...prev,
+      [status]: checked
+    }));
+  };
+
+  // Handle location filter change
+  const handleLocationFilterChange = (location: string, checked: boolean) => {
+    setLocationFilters(prev => ({
+      ...prev,
+      [location]: checked
+    }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilters({
+      'En service': false,
+      'En réserve': false,
+      'Remplacement': false
+    });
+    setLocationFilters({
+      'Bureau': false,
+      'Télétravail': false,
+      'Client': false,
+      'Stock': false
+    });
   };
 
   return {
@@ -298,4 +242,4 @@ export function useEquipmentManagement() {
     handleLocationFilterChange,
     clearFilters
   };
-}
+};
