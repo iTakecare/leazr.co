@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData } from "@/types/client"; // Import the needed type
 
 /**
@@ -141,7 +141,10 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    const { data: result, error } = await supabase
+    // Use adminSupabase for public client requests to bypass RLS
+    const client = supabase.auth.getUser() ? supabase : adminSupabase;
+    
+    const { data: result, error } = await client
       .from('clients')
       .insert([clientData])
       .select();

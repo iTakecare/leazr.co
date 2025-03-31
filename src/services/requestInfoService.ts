@@ -69,7 +69,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Créer le client
+      // Créer le client - utilisant adminSupabase si nécessaire pour les requêtes publiques
       const client = await createClient(clientData);
       
       if (client) {
@@ -83,7 +83,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     // Créer l'offre liée au client
     try {
-      // Prepare the data for insertion into the offers table
       // Generate a new request ID for this offer
       const requestId = uuidv4();
       
@@ -105,17 +104,16 @@ export const createProductRequest = async (data: ProductRequestData) => {
         user_id: null
       };
       
-      console.log("Attempting to create offer in Supabase:", offerData);
+      console.log("Attempting to create offer:", offerData);
       
-      // For public requests, we need to use the Admin client directly
+      // For public requests, always use the Admin client
       const { data: insertedOffer, error } = await adminSupabase
         .from('offers')
         .insert(offerData)
         .select();
         
       if (error) {
-        // Try direct insert method as fallback
-        console.error("Error creating offer with supabase client:", error);
+        console.error("Error creating offer with adminSupabase:", error);
         const result = await createClientRequest(offerData);
         console.log("Result from createClientRequest:", result);
       } else {

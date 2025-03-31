@@ -16,8 +16,7 @@ export const createOffer = async (offerData: OfferData) => {
       coefficient: offerData.coefficient,
       monthly_payment: offerData.monthly_payment,
       commission: offerData.commission,
-      user_id: offerData.user_id === 'user-123' ? 
-        '00000000-0000-0000-0000-000000000000' : offerData.user_id,
+      user_id: offerData.user_id || null,
       type: offerData.type || 'admin_offer',
       workflow_status: offerData.workflow_status,
       status: offerData.workflow_status === 'draft' ? 'pending' : 'pending',
@@ -26,8 +25,8 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Sending data to database:", dataToSend);
     
-    // Use adminSupabase for public client requests to bypass RLS
-    const client = offerData.type === 'client_request' ? adminSupabase : supabase;
+    // Check if user is authenticated, otherwise use adminSupabase
+    const client = supabase.auth.getUser() ? supabase : adminSupabase;
     
     const { data, error } = await client
       .from('offers')

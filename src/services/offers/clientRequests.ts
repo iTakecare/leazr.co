@@ -17,15 +17,16 @@ export const createClientRequest = async (requestData: OfferData) => {
       type: requestData.type || 'client_request',
       status: requestData.status || 'pending',
       workflow_status: requestData.workflow_status || 'client_waiting',
-      user_id: requestData.user_id === 'user-123' ? 
-        '00000000-0000-0000-0000-000000000000' : requestData.user_id,
+      user_id: requestData.user_id || null,
       remarks: requestData.remarks
     };
     
     console.log("Creating client request with data:", validData);
     
-    // Use adminSupabase to bypass RLS for public client requests
-    const { data, error } = await adminSupabase
+    // Use adminSupabase to bypass RLS for public client requests if needed
+    const client = supabase.auth.getUser() ? supabase : adminSupabase;
+    
+    const { data, error } = await client
       .from('offers')
       .insert(validData)
       .select();

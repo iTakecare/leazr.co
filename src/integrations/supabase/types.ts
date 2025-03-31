@@ -242,15 +242,21 @@ export type Database = {
           address: string | null
           city: string | null
           company: string | null
+          contact_name: string | null
           country: string | null
           created_at: string
           email: string | null
+          has_different_shipping_address: boolean | null
           has_user_account: boolean | null
           id: string
           name: string
           notes: string | null
           phone: string | null
           postal_code: string | null
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
           status: string | null
           updated_at: string
           user_account_created_at: string | null
@@ -261,15 +267,21 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
+          contact_name?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
+          has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
@@ -280,15 +292,21 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
+          contact_name?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
+          has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
