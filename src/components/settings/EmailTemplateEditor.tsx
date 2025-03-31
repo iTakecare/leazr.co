@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import EmailTemplateControls from "./EmailTemplateControls";
 
 interface EmailTemplate {
   id: number;
@@ -34,32 +35,33 @@ const EmailTemplateEditor: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Charger tous les templates disponibles
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('email_templates')
-          .select('*')
-          .order('type');
-        
-        if (error) throw error;
-        
-        setTemplates(data || []);
-        
-        // Si des modèles sont disponibles, sélectionner le premier par défaut
-        if (data && data.length > 0) {
-          setSelectedTemplateType(data[0].type);
-          setCurrentTemplate(data[0]);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des modèles:", error);
-        toast.error("Impossible de charger les modèles d'email");
-      } finally {
-        setIsLoading(false);
+  const loadTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      setTemplates(data || []);
+      
+      // Si des modèles sont disponibles, sélectionner le premier par défaut
+      if (data && data.length > 0) {
+        setSelectedTemplateType(data[0].type);
+        setCurrentTemplate(data[0]);
       }
-    };
-    
+    } catch (error) {
+      console.error("Erreur lors du chargement des modèles:", error);
+      toast.error("Impossible de charger les modèles d'email");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Charger les templates au chargement du composant
+  useEffect(() => {
     loadTemplates();
   }, []);
 
@@ -135,6 +137,8 @@ const EmailTemplateEditor: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <EmailTemplateControls onRefresh={loadTemplates} />
+      
       <div className="space-y-4">
         <div className="flex flex-col space-y-1.5">
           <Label htmlFor="templateType">Type de modèle</Label>
