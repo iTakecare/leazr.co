@@ -17,10 +17,6 @@ import {
 
 // Import and re-export from other offer service files
 export * from './offers';
-export * from './offers/offerDetail';
-
-// Re-export types
-export * from './offers/types';
 
 // Explicitly re-export named exports that might conflict with star exports
 export {

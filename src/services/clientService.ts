@@ -1,6 +1,5 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import type { Client, Collaborator } from '@/types/client';
+import { supabase } from "@/integrations/supabase/client";
+import { Client, CreateClientData } from "@/types/client"; // Import the needed type
 
 /**
  * Récupère tous les clients
@@ -121,10 +120,10 @@ export const getClientById = async (id: string): Promise<Client | null> => {
  * @param client Les données du client à créer
  * @returns Le client créé
  */
-export const createClient = async (client: CreateClientData): Promise<Client | null> => {
+export const createClient = async (data: CreateClientData): Promise<Client | null> => {
   try {
     // Remove any fields that don't exist in the clients table
-    const clientData: any = { ...client };
+    const clientData: any = { ...data };
     
     // Remove contact_name from the insertion data since it's not a column in the database
     // We're storing the contact name in the 'name' field for consistency
