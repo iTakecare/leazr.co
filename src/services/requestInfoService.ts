@@ -2,8 +2,7 @@
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createClientRequest } from "@/services/offers/clientRequests";
-import { createClient } from "@/services/clientService";
-import { getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ProductRequestData {
   client_name: string;
@@ -50,10 +49,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
     const clientId = uuidv4();
     const requestId = uuidv4();
     
-    // Utiliser le client admin pour contourner les restrictions RLS
-    const adminClient = getAdminSupabaseClient();
-    console.log("Client admin pour createProductRequest disponible");
-    
     // Créer le client dans le système
     try {
       // Préparer les données du client pour l'insertion
@@ -74,8 +69,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Insertion directe avec le client admin
-      const { data: clientResult, error } = await adminClient
+      // Utiliser le client standard au lieu du client admin
+      const { data: clientResult, error } = await supabase
         .from('clients')
         .insert(clientData)
         .select()
@@ -113,8 +108,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
-      // Insertion directe avec le client admin
-      const { data: offerResult, error } = await adminClient
+      // Utiliser le client standard au lieu du client admin
+      const { data: offerResult, error } = await supabase
         .from('offers')
         .insert(offerData)
         .select()

@@ -10,11 +10,9 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Utiliser le client admin pour contourner les restrictions RLS
-    const adminClient = getAdminSupabaseClient();
-    console.log("Client admin pour createClient disponible");
-    
-    const { data, error } = await adminClient
+    // Utiliser le client standard au lieu du client admin pour les opérations publiques
+    // Cela fonctionnera si les politiques RLS sont configurées correctement
+    const { data, error } = await supabase
       .from('clients')
       .insert(clientData)
       .select()
