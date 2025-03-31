@@ -46,7 +46,7 @@ serve(async (req) => {
     // Préparer les données du client
     const clientData = {
       id: clientId,
-      name: data.client_company,
+      name: data.client_name, // Utiliser le nom du client (pas le nom de l'entreprise)
       email: data.client_email,
       company: data.client_company,
       phone: data.phone || '',

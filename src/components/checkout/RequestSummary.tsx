@@ -58,6 +58,9 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         return `${item.product.name} (${formatCurrency(item.product.monthly_price || 0)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
       
+      let formattedPhone = contactData.phone || '';
+      formattedPhone = formattedPhone.replace(/^\+(\d+)\s0/, '+$1 ');
+      
       const requestData = {
         client_name: contactData.name,
         client_email: contactData.email || companyData.email,
@@ -80,7 +83,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         shipping_city: contactData.shipping_city,
         shipping_postal_code: contactData.shipping_postal_code,
         shipping_country: contactData.shipping_country,
-        phone: contactData.phone
+        phone: formattedPhone
       };
 
       console.log("Submitting request with data:", requestData);

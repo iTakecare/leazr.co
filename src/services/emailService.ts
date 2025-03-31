@@ -104,6 +104,8 @@ export const sendWelcomeEmail = async (
       </div>
     `;
     
+    console.log("Tentative d'envoi d'email de bienvenue à:", email);
+    
     const success = await sendEmail(
       email,
       subject,
@@ -112,8 +114,10 @@ export const sendWelcomeEmail = async (
     
     if (success) {
       toast.success("Email de bienvenue envoyé avec succès");
+      console.log("Email de bienvenue envoyé avec succès à:", email);
     } else {
       toast.error("Impossible d'envoyer l'email de bienvenue");
+      console.error("Échec de l'envoi de l'email de bienvenue à:", email);
     }
     
     return success;
