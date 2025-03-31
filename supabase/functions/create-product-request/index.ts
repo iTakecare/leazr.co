@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
 const corsHeaders = {
@@ -106,6 +107,92 @@ serve(async (req) => {
         JSON.stringify({ error: `Échec de création de l'offre: ${offerError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
+    }
+
+    // Envoyer un email de bienvenue au client
+    try {
+      // Récupérer les paramètres Resend configurés
+      const { data: smtpSettings, error: settingsError } = await supabaseAdmin
+        .from('smtp_settings')
+        .select('from_email, from_name')
+        .eq('id', 1)
+        .single();
+
+      if (settingsError) {
+        console.error("Erreur lors de la récupération des paramètres email:", settingsError);
+      }
+
+      // Récupérer la clé API Resend
+      const { data: secretData, error: secretError } = await supabaseAdmin.functions.invoke('get-secret', {
+        body: { key: 'RESEND_API_KEY' }
+      });
+
+      if (secretError || !secretData?.value) {
+        console.error("Erreur lors de la récupération de la clé Resend:", secretError || "Clé non trouvée");
+      } else {
+        const resendApiKey = secretData.value;
+        const resend = new Resend(resendApiKey);
+        
+        // Format d'expéditeur
+        const fromName = smtpSettings?.from_name || "iTakecare";
+        const fromEmail = smtpSettings?.from_email || "noreply@itakecare.app";
+        const from = `${fromName} <${fromEmail}>`;
+
+        // Préparer le template de l'email
+        const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+            <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+            <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+            <p>Voici un récapitulatif de votre demande :</p>
+            <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+              <li>Équipement : ${data.equipment_description}</li>
+              <li>Montant total : ${data.amount} €</li>
+              <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+            </ul>
+            <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+            <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+          </div>
+        `;
+
+        // Texte brut pour les clients qui ne peuvent pas afficher le HTML
+        const text = `Bienvenue ${data.client_name},
+        
+Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.
+
+Voici un récapitulatif de votre demande :
+- Équipement : ${data.equipment_description}
+- Montant total : ${data.amount} €
+- Paiement mensuel estimé : ${data.monthly_payment} €/mois
+
+Notre équipe va étudier votre demande et vous contactera rapidement.
+
+Si vous avez des questions, n'hésitez pas à nous contacter.
+
+Cordialement,
+L'équipe iTakecare`;
+
+        console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
+        
+        // Envoyer l'email avec Resend
+        const emailResult = await resend.emails.send({
+          from,
+          to: data.client_email,
+          subject,
+          html,
+          text,
+        });
+
+        if (emailResult.error) {
+          console.error("Erreur lors de l'envoi de l'email:", emailResult.error);
+        } else {
+          console.log("Email envoyé avec succès:", emailResult.data);
+        }
+      }
+    } catch (emailError) {
+      console.error("Exception lors de l'envoi de l'email:", emailError);
+      // On ne bloque pas le processus même si l'envoi d'email échoue
     }
 
     // Préparer les données de réponse
