@@ -33,6 +33,7 @@ export const getSupabaseClient = () => {
 // Function to get admin supabase client with service role key
 // Creates a fresh instance each time to avoid auth state conflicts
 export const getAdminSupabaseClient = () => {
+  // Always create a fresh instance with proper headers
   return createClient<Database>(
     SUPABASE_URL,
     SERVICE_ROLE_KEY,
@@ -55,7 +56,6 @@ export const getAdminSupabaseClient = () => {
 
 // For backwards compatibility
 export const supabase = getSupabaseClient();
-export const adminSupabase = getAdminSupabaseClient();
 
 // Export storage URL and key properly as constants instead of properties
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;

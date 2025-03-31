@@ -70,7 +70,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // With our new RLS policies, this should work now
+      // Use a new client instance for this request
       const client = await createClient(clientData);
       
       if (client) {
@@ -104,7 +104,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
-      // With our new RLS policies, this should work now
       const result = await createClientRequest(offerData);
       console.log("Result from createClientRequest:", result);
       

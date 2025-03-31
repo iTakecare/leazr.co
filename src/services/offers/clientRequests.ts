@@ -24,10 +24,11 @@ export const createClientRequest = async (requestData: OfferData) => {
     
     console.log("Creating client request with data:", validData);
     
-    // Always use a fresh instance of adminSupabase for public requests
-    const adminSupabase = getAdminSupabaseClient();
-    
     try {
+      // Use a completely new instance for each request to avoid auth conflicts
+      const adminSupabase = getAdminSupabaseClient();
+      
+      // Try with service role first (for public endpoints)
       const { data, error } = await adminSupabase
         .from('offers')
         .insert(validData)
@@ -36,7 +37,7 @@ export const createClientRequest = async (requestData: OfferData) => {
       if (error) {
         console.error("Error with adminSupabase:", error);
         
-        // If that fails, try with the standard client (for authenticated users)
+        // If service role fails, fall back to authenticated user
         const { data: standardData, error: standardError } = await supabase
           .from('offers')
           .insert(validData)

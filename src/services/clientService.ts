@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData } from "@/types/client"; 
 import { getAdminSupabaseClient } from "@/integrations/supabase/client";
@@ -142,10 +141,10 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    // Always use a fresh instance of adminSupabase for public requests
-    const adminSupabase = getAdminSupabaseClient();
-    
     try {
+      // Use a completely new instance for each request to avoid auth conflicts
+      const adminSupabase = getAdminSupabaseClient();
+      
       const { data: result, error } = await adminSupabase
         .from('clients')
         .insert([clientData])

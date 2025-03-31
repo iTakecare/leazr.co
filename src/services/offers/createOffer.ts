@@ -26,10 +26,10 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Sending data to database:", dataToSend);
     
-    // Always use a fresh instance of adminSupabase for public requests
-    const adminSupabase = getAdminSupabaseClient();
-    
     try {
+      // Use a completely new instance for each request to avoid auth conflicts
+      const adminSupabase = getAdminSupabaseClient();
+      
       const { data, error } = await adminSupabase
         .from('offers')
         .insert(dataToSend)
