@@ -3,7 +3,6 @@
 // This Edge Function connects to the official European Commission VIES service
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -26,6 +25,25 @@ const createViesRequestXML = (countryCode: string, vatNumber: string) => `
    </soapenv:Body>
 </soapenv:Envelope>
 `;
+
+// Simple XML parser function to extract values from SOAP response
+// This replaces the DOMParser which is causing the error
+const extractValueFromXml = (xml: string, tagName: string): string | null => {
+  const regex = new RegExp(`<${tagName}>(.*?)</${tagName}>`, 's');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : null;
+};
+
+// Function to check if the XML contains a fault
+const hasFault = (xml: string): boolean => {
+  return xml.includes('<faultstring>') || xml.includes('<faultcode>');
+};
+
+// Function to extract fault message
+const extractFaultMessage = (xml: string): string => {
+  const fault = extractValueFromXml(xml, 'faultstring');
+  return fault || "Unknown VIES service error";
+};
 
 serve(async (req: Request) => {
   console.log("VIES Verification Function invoked");
@@ -124,30 +142,10 @@ serve(async (req: Request) => {
         });
       }
       
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      
-      if (!xmlDoc) {
-        console.error("Failed to parse XML response");
-        return new Response(JSON.stringify({ 
-          valid: false,
-          error: "Failed to parse VIES response"
-        }), { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      
-      // Extract result elements
-      const validNode = xmlDoc.querySelector("valid");
-      const nameNode = xmlDoc.querySelector("name");
-      const addressNode = xmlDoc.querySelector("address");
-      
-      // Handle missing nodes
-      if (!validNode) {
-        console.error("Valid node not found in XML response");
-        const faultElement = xmlDoc.querySelector("faultstring");
-        const faultReason = faultElement ? faultElement.textContent : "Unknown error";
+      // Check if response contains a fault
+      if (hasFault(xmlText)) {
+        const faultReason = extractFaultMessage(xmlText);
+        console.error("VIES service returned a fault:", faultReason);
         
         return new Response(JSON.stringify({ 
           valid: false,
@@ -158,9 +156,10 @@ serve(async (req: Request) => {
         });
       }
       
-      const isValid = validNode.textContent === "true";
-      const companyName = nameNode?.textContent?.trim() || "";
-      const address = addressNode?.textContent?.trim() || "";
+      // Extract data using our simple XML parser
+      const isValid = extractValueFromXml(xmlText, 'valid') === 'true';
+      const companyName = extractValueFromXml(xmlText, 'name') || "";
+      const address = extractValueFromXml(xmlText, 'address') || "";
       
       console.log(`Validation result: valid=${isValid}, name=${companyName}, address=${address}`);
       
