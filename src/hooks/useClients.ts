@@ -53,7 +53,8 @@ export const useClients = () => {
     fetchClients();
   }, []);
 
-  const filteredClients = clients.filter((client) => {
+  // Make sure filteredClients is always initialized as an array
+  const filteredClients = clients ? clients.filter((client) => {
     const matchesSearch = 
       searchTerm === "" ||
       client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,7 +66,7 @@ export const useClients = () => {
       client.status === selectedStatus;
     
     return matchesSearch && matchesStatus;
-  });
+  }) : [];
 
   return {
     clients: filteredClients,

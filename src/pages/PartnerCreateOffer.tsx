@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
-import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Leaser } from "@/types/equipment";
 import ProductSelector from "@/components/ui/ProductSelector";
-import ClientSelector from "@/components/ui/ClientSelector";
+import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer, getOfferById, updateOffer } from "@/services/offerService";
 import { getLeasers } from "@/services/leaserService";
@@ -235,13 +232,7 @@ const PartnerCreateOffer = () => {
     setIsCatalogOpen(false);
   };
 
-  const handleClientSelect = (client: { 
-    id: string; 
-    name: string; 
-    email?: string; 
-    company?: string;
-    companyName?: string;
-  }) => {
+  const handleClientSelect = (client: ClientSelectorClient) => {
     setClientId(client.id);
     setClientName(client.name);
     setClientEmail(client.email || '');
