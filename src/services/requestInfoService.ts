@@ -52,6 +52,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
+    console.log("Client admin pour createProductRequest:", adminClient ? "Disponible" : "Non disponible");
+    console.log("CLIENT ADMIN AUTH HEADERS:", adminClient?.auth?.headers);
     
     // Créer le client dans le système
     try {

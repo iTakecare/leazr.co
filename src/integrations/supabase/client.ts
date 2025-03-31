@@ -30,8 +30,9 @@ export const getSupabaseClient = () => {
 };
 
 // Function to get admin supabase client with service role key
-// Uses direct headers to avoid authorization issues
+// Ensures all necessary headers are properly set for authentication
 export const getAdminSupabaseClient = () => {
+  console.log("Creating admin client with service role key");
   return createClient<Database>(
     SUPABASE_URL,
     SERVICE_ROLE_KEY,
