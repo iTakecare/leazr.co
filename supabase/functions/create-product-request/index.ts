@@ -113,72 +113,63 @@ serve(async (req) => {
     try {
       console.log("Début de la procédure d'envoi d'email...");
       
-      // Récupérer les paramètres Resend configurés
+      // Récupérer les paramètres Resend depuis la table smtp_settings
       const { data: smtpSettings, error: settingsError } = await supabaseAdmin
         .from('smtp_settings')
-        .select('from_email, from_name, use_resend')
+        .select('resend_api_key, from_email, from_name, use_resend')
         .eq('id', 1)
         .single();
 
-      console.log("Paramètres email récupérés:", smtpSettings);
-
       if (settingsError) {
-        console.error("Erreur lors de la récupération des paramètres email:", settingsError);
+        console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+        throw new Error(`Erreur lors de la récupération des paramètres SMTP: ${settingsError.message}`);
       }
 
-      // Récupérer directement la clé API Resend depuis les secrets Supabase
-      const { data: secretData, error: secretError } = await supabaseAdmin.rpc('get_secret_value', { 
-        secret_name: 'RESEND_API_KEY' 
+      if (!smtpSettings) {
+        console.error("Paramètres SMTP non trouvés");
+        throw new Error("Paramètres SMTP non trouvés");
+      }
+
+      console.log("Paramètres SMTP récupérés avec succès:", {
+        from_email: smtpSettings.from_email,
+        from_name: smtpSettings.from_name,
+        use_resend: smtpSettings.use_resend
       });
+
+      if (!smtpSettings.resend_api_key) {
+        console.error("Clé API Resend non configurée dans la base de données");
+        throw new Error("Clé API Resend non configurée dans la base de données");
+      }
+
+      // Initialiser Resend avec la clé API récupérée
+      const resend = new Resend(smtpSettings.resend_api_key);
       
-      let resendApiKey;
-      if (secretError) {
-        console.error("Erreur lors de la récupération du secret Resend:", secretError);
-      } else if (secretData) {
-        resendApiKey = secretData;
-        console.log("Clé API Resend récupérée avec succès");
-      } else {
-        console.log("Clé API Resend non trouvée dans les secrets");
-      }
+      // Format d'expéditeur
+      const fromName = smtpSettings.from_name || "iTakecare";
+      const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
+      const from = `${fromName} <${fromEmail}>`;
+      console.log("Expéditeur configuré:", from);
 
-      // Si aucune clé n'a été trouvée avec la fonction RPC, essayons avec les variables d'environnement
-      if (!resendApiKey) {
-        resendApiKey = Deno.env.get('RESEND_API_KEY');
-        console.log("Clé API Resend récupérée depuis les variables d'environnement:", resendApiKey ? "Présente" : "Absente");
-      }
+      // Préparer le template de l'email
+      const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+          <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+          <p>Voici un récapitulatif de votre demande :</p>
+          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+            <li>Équipement : ${data.equipment_description}</li>
+            <li>Montant total : ${data.amount} €</li>
+            <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+          </ul>
+          <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+      `;
 
-      if (!resendApiKey) {
-        console.error("Erreur: Aucune clé API Resend trouvée");
-        // On continue l'exécution même sans email
-      } else {
-        const resend = new Resend(resendApiKey);
-        
-        // Format d'expéditeur
-        const fromName = smtpSettings?.from_name || "iTakecare";
-        const fromEmail = smtpSettings?.from_email || "noreply@itakecare.app";
-        const from = `${fromName} <${fromEmail}>`;
-        console.log("Expéditeur configuré:", from);
-
-        // Préparer le template de l'email
-        const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
-        const html = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-            <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
-            <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-            <p>Voici un récapitulatif de votre demande :</p>
-            <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-              <li>Équipement : ${data.equipment_description}</li>
-              <li>Montant total : ${data.amount} €</li>
-              <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
-            </ul>
-            <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-            <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-          </div>
-        `;
-
-        // Texte brut pour les clients qui ne peuvent pas afficher le HTML
-        const text = `Bienvenue ${data.client_name},
+      // Texte brut pour les clients qui ne peuvent pas afficher le HTML
+      const text = `Bienvenue ${data.client_name},
         
 Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.
 
@@ -194,29 +185,23 @@ Si vous avez des questions, n'hésitez pas à nous contacter.
 Cordialement,
 L'équipe iTakecare`;
 
-        console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
-        
-        // Envoyer l'email avec Resend
-        try {
-          const emailResult = await resend.emails.send({
-            from,
-            to: data.client_email,
-            subject,
-            html,
-            text,
-          });
+      console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
+      
+      // Envoyer l'email avec Resend
+      const emailResult = await resend.emails.send({
+        from,
+        to: data.client_email,
+        subject,
+        html,
+        text,
+      });
 
-          console.log("Résultat de l'envoi d'email:", emailResult);
-          
-          if (emailResult.error) {
-            console.error("Erreur renvoyée par Resend lors de l'envoi de l'email:", emailResult.error);
-          } else {
-            console.log("Email envoyé avec succès via Resend:", emailResult.data);
-          }
-        } catch (resendError) {
-          console.error("Exception lors de l'appel à Resend.send:", resendError);
-        }
+      if (emailResult.error) {
+        console.error("Erreur lors de l'envoi de l'email via Resend:", emailResult.error);
+        throw new Error(`Erreur lors de l'envoi de l'email via Resend: ${emailResult.error.message}`);
       }
+      
+      console.log("Email envoyé avec succès via Resend:", emailResult.data);
     } catch (emailError) {
       console.error("Exception lors de la procédure d'envoi d'email:", emailError);
       // On ne bloque pas le processus même si l'envoi d'email échoue
