@@ -33,18 +33,18 @@ interface CompanyInfoFormProps {
 const idFormats = {
   BE: {
     label: "Numéro d'entreprise",
-    example: "BE0123456789",
-    format: "BE0123456789 (sans espaces)"
+    example: "0123456789",
+    format: "0123456789 (sans espaces)"
   },
   FR: {
     label: "Numéro SIREN/SIRET",
-    example: "FR12345678900012",
-    format: "FR + SIRET (14 chiffres) ou SIREN (9 chiffres)"
+    example: "12345678900012",
+    format: "SIRET (14 chiffres) ou SIREN (9 chiffres)"
   },
   LU: {
     label: "Numéro d'identification",
-    example: "LU12345678",
-    format: "LU + 8 chiffres"
+    example: "12345678",
+    format: "8 chiffres"
   }
 };
 
@@ -61,13 +61,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
   const handleVerifyVAT = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Si exempté de TVA et le nom de l'entreprise est renseigné, passer à l'étape suivante
-    if (formData.is_vat_exempt && formData.company.trim()) {
-      onNext();
-      return;
-    }
-
-    // Sinon, vérifier le numéro de TVA/entreprise
+    // Vérifier que le numéro d'entreprise est renseigné (obligatoire dans tous les cas)
     if (!formData.vat_number.trim()) {
       toast({
         title: "Champ obligatoire",
@@ -77,6 +71,23 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       return;
     }
 
+    // Si le nom de l'entreprise n'est pas renseigné
+    if (!formData.company.trim()) {
+      toast({
+        title: "Champ obligatoire",
+        description: "Veuillez entrer le nom de votre entreprise",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Pour les entreprises non-assujetties à la TVA, passer directement à l'étape suivante
+    if (formData.is_vat_exempt) {
+      onNext();
+      return;
+    }
+
+    // Sinon, vérifier le numéro de TVA/entreprise
     setVerifying(true);
     try {
       // Attempt to verify the VAT/business number
@@ -141,6 +152,20 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
           </Select>
         </div>
         
+        <div className="space-y-2">
+          <Label htmlFor="vat_number">{idFormats[country as keyof typeof idFormats].label} *</Label>
+          <Input
+            id="vat_number"
+            placeholder={idFormats[country as keyof typeof idFormats].example}
+            value={formData.vat_number}
+            onChange={(e) => updateFormData({ vat_number: e.target.value })}
+            required={true}
+          />
+          <p className="text-sm text-gray-500">
+            Format: {idFormats[country as keyof typeof idFormats].format}
+          </p>
+        </div>
+
         <div className="flex items-center space-x-2">
           <Checkbox 
             id="is_vat_exempt" 
@@ -153,26 +178,9 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
             Mon entreprise n'est pas assujettie à la TVA
           </Label>
         </div>
-
-        {!formData.is_vat_exempt && (
-          <div className="space-y-2">
-            <Label htmlFor="vat_number">{idFormats[country as keyof typeof idFormats].label} *</Label>
-            <Input
-              id="vat_number"
-              placeholder={idFormats[country as keyof typeof idFormats].example}
-              value={formData.vat_number}
-              onChange={(e) => updateFormData({ vat_number: e.target.value })}
-              required={!formData.is_vat_exempt}
-              disabled={formData.is_vat_exempt}
-            />
-            <p className="text-sm text-gray-500">
-              Format: {idFormats[country as keyof typeof idFormats].format}
-            </p>
-          </div>
-        )}
         
         <div className="space-y-2">
-          <Label htmlFor="company">Nom de l'entreprise {formData.is_vat_exempt && "*"}</Label>
+          <Label htmlFor="company">Nom de l'entreprise *</Label>
           <div className="relative">
             <Input
               id="company"
@@ -180,7 +188,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
               value={formData.company}
               onChange={(e) => updateFormData({ company: e.target.value })}
               className="pl-10"
-              required={formData.is_vat_exempt}
+              required={true}
             />
             <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
@@ -195,7 +203,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       <div className="flex justify-end pt-4">
         <Button 
           type="submit" 
-          disabled={verifying || (!formData.is_vat_exempt && !formData.vat_number.trim()) || (formData.is_vat_exempt && !formData.company.trim())}
+          disabled={verifying || !formData.vat_number.trim() || !formData.company.trim()}
           className="min-w-[120px]"
         >
           {verifying ? (

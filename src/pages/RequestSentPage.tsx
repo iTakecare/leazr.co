@@ -53,10 +53,6 @@ const RequestSentPage: React.FC = () => {
   const getCompanyIdLabel = () => {
     if (!requestData) return "Référence";
     
-    if (requestData.client_is_vat_exempt) {
-      return "Entreprise";
-    }
-    
     switch(requestData.client_country) {
       case 'FR': 
         return "SIRET/SIREN";
@@ -102,12 +98,10 @@ const RequestSentPage: React.FC = () => {
                 </div>
               </div>
               
-              {requestData.client_vat_number && !requestData.client_is_vat_exempt && (
-                <div>
-                  <p className="text-sm text-gray-500">{getCompanyIdLabel()}</p>
-                  <p className="font-medium">{requestData.client_vat_number}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-gray-500">{getCompanyIdLabel()}</p>
+                <p className="font-medium">{requestData.client_vat_number}</p>
+              </div>
               
               {requestData.client_is_vat_exempt && (
                 <div>
