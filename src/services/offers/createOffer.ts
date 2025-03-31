@@ -25,13 +25,34 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Sending data to database:", dataToSend);
     
-    // Check if user is authenticated, otherwise use adminSupabase
-    const client = supabase.auth.getUser() ? supabase : adminSupabase;
-    
-    const { data, error } = await client
+    // Essai avec supabase standard d'abord
+    let { data, error } = await supabase
       .from('offers')
       .insert(dataToSend)
       .select();
+    
+    // Si l'erreur est liée à la RLS, essayer avec adminSupabase
+    if (error && (error.code === '42501' || error.message.includes('violates row-level security policy'))) {
+      console.log("RLS error, trying with adminSupabase");
+      
+      try {
+        const { data: adminData, error: adminError } = await adminSupabase
+          .from('offers')
+          .insert(dataToSend)
+          .select();
+        
+        if (adminError) {
+          console.error("Error with adminSupabase:", adminError);
+          return { data: null, error: adminError };
+        }
+        
+        data = adminData;
+        error = null;
+      } catch (adminErr) {
+        console.error("Exception with adminSupabase:", adminErr);
+        return { data: null, error: adminErr };
+      }
+    }
     
     if (error) {
       console.error("Error creating offer:", error);

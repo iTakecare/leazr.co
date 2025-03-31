@@ -69,7 +69,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Créer le client - utilisant adminSupabase si nécessaire pour les requêtes publiques
+      // Essayer de créer le client directement avec la fonction révisée
       const client = await createClient(clientData);
       
       if (client) {
@@ -106,19 +106,9 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
-      // For public requests, always use the Admin client
-      const { data: insertedOffer, error } = await adminSupabase
-        .from('offers')
-        .insert(offerData)
-        .select();
-        
-      if (error) {
-        console.error("Error creating offer with adminSupabase:", error);
-        const result = await createClientRequest(offerData);
-        console.log("Result from createClientRequest:", result);
-      } else {
-        console.log("Offer created successfully:", insertedOffer);
-      }
+      // Utiliser directement la fonction createClientRequest modifiée
+      const result = await createClientRequest(offerData);
+      console.log("Result from createClientRequest:", result);
       
       // Prepare data for session storage without client_company
       const requestDataForStorage = {

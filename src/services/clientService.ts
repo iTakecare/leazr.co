@@ -1,4 +1,3 @@
-
 import { supabase, adminSupabase } from "@/integrations/supabase/client";
 import { Client, CreateClientData } from "@/types/client"; // Import the needed type
 
@@ -141,17 +140,32 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    // Use adminSupabase for public client requests to bypass RLS
-    const client = supabase.auth.getUser() ? supabase : adminSupabase;
-    
-    const { data: result, error } = await client
+    // Toujours utiliser l'API key avec le rôle de service pour les opérations publiques
+    const { data: result, error } = await supabase
       .from('clients')
       .insert([clientData])
       .select();
 
     if (error) {
       console.error("Erreur lors de la création du client:", error);
-      return null;
+      
+      // Tentative de fallback avec la clé de service si disponible
+      try {
+        const { data: serviceResult, error: serviceError } = await adminSupabase
+          .from('clients')
+          .insert([clientData])
+          .select();
+          
+        if (serviceError) {
+          console.error("Erreur lors de la création du client avec la clé de service:", serviceError);
+          return null;
+        }
+        
+        return serviceResult && serviceResult.length > 0 ? serviceResult[0] : null;
+      } catch (fallbackError) {
+        console.error("Erreur lors de la tentative de fallback:", fallbackError);
+        return null;
+      }
     }
 
     return result && result.length > 0 ? result[0] : null;
