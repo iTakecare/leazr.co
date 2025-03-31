@@ -76,7 +76,9 @@ export const useEquipmentManagement = () => {
               monthlyRent: 120,
               location: 'Bureau',
               contractStart: '01/01/2023',
-              contractEnd: '31/12/2025'
+              contractEnd: '31/12/2025',
+              quantity: 1,
+              margin: 15
             },
             {
               id: '2',
@@ -89,7 +91,9 @@ export const useEquipmentManagement = () => {
               supplier: 'Apple',
               purchasePrice: 1200,
               monthlyRent: 45,
-              location: 'Télétravail'
+              location: 'Télétravail',
+              quantity: 1,
+              margin: 10
             },
             {
               id: '3',
@@ -101,7 +105,9 @@ export const useEquipmentManagement = () => {
               supplier: 'Dell',
               purchasePrice: 1850,
               monthlyRent: 80,
-              location: 'Stock'
+              location: 'Stock',
+              quantity: 1,
+              margin: 12
             },
             {
               id: '4',
@@ -114,7 +120,9 @@ export const useEquipmentManagement = () => {
               supplier: 'Apple',
               purchasePrice: 1100,
               monthlyRent: 40,
-              location: 'Client'
+              location: 'Client',
+              quantity: 1,
+              margin: 8
             },
           ];
           setEquipment(demoData);

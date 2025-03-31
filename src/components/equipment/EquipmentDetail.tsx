@@ -1,266 +1,385 @@
 
 import React, { useState } from 'react';
 import { Equipment } from '@/types/equipment';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { CircleCheck, Pencil, Save, X } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Laptop as LaptopIcon, FileText, Calendar, User, Tag, MapPin, BadgeEuro, Truck } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface EquipmentDetailProps {
   equipment: Equipment | null;
-  onSave: (equipment: Equipment) => void;
+  onSave: (equipment: Equipment) => Promise<boolean>;
 }
 
 const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, onSave }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const form = useForm({
-    defaultValues: equipment || {},
-  });
+  const [editedEquipment, setEditedEquipment] = useState<Equipment | null>(equipment);
 
   if (!equipment) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <Laptop className="h-16 w-16 text-muted-foreground/40 mb-4" />
-        <h3 className="font-medium text-lg mb-2">Aucun équipement sélectionné</h3>
-        <p className="text-muted-foreground">
-          Sélectionnez un équipement pour voir ses détails
+      <div className="flex items-center justify-center h-full">
+        <p className="text-center text-gray-500">
+          Sélectionnez un équipement pour voir les détails
         </p>
       </div>
     );
   }
 
-  const handleSave = (data: any) => {
-    onSave({
-      ...equipment,
-      ...data,
-    });
-    setIsEditing(false);
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedEquipment({...equipment});
   };
 
-  const getStatusBadge = (status?: string) => {
-    switch (status) {
-      case 'En service':
-        return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">En service</Badge>;
-      case 'En réserve':
-        return <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200">En réserve</Badge>;
-      case 'Remplacement':
-        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200">Remplacement</Badge>;
-      default:
-        return <Badge variant="outline">{status || 'Non défini'}</Badge>;
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedEquipment(equipment);
+  };
+
+  const handleSave = async () => {
+    if (!editedEquipment) return;
+    
+    const success = await onSave(editedEquipment);
+    if (success) {
+      setIsEditing(false);
     }
   };
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="bg-white border-b p-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{equipment.title}</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>{equipment.type || 'Non catégorisé'}</span>
-            {equipment.status && (
-              <>
-                <span className="text-gray-300">•</span>
-                {getStatusBadge(equipment.status)}
-              </>
-            )}
-          </div>
-        </div>
-        <Button 
-          variant={isEditing ? "outline" : "default"}
-          size="sm"
-          className="gap-1"
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? (
-            <>
-              <X className="h-4 w-4" /> Annuler
-            </>
-          ) : (
-            <>
-              <Pencil className="h-4 w-4" /> Modifier
-            </>
-          )}
-        </Button>
-      </div>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (!editedEquipment) return;
+    
+    const { name, value } = e.target;
+    setEditedEquipment(prev => prev ? ({...prev, [name]: value}) : null);
+  };
 
-      <div className="flex-1 overflow-auto p-4">
-        {isEditing ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom de l'équipement</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="serial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Numéro de série</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Statut</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez un statut" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="En service">En service</SelectItem>
-                          <SelectItem value="En réserve">En réserve</SelectItem>
-                          <SelectItem value="Remplacement">Remplacement</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="assignedTo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Assigné à</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Emplacement</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="supplier"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fournisseur</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="flex justify-end pt-4">
-                <Button type="submit" className="gap-1">
-                  <Save className="h-4 w-4" /> Enregistrer les modifications
-                </Button>
-              </div>
-            </form>
-          </Form>
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">{equipment.title}</h2>
+        {!isEditing ? (
+          <Button onClick={handleEdit}>Modifier</Button>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-            <div>
-              <Label className="text-xs text-muted-foreground">Numéro de série</Label>
-              <p className="font-medium">{equipment.serial || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Type d'équipement</Label>
-              <p className="font-medium">{equipment.type || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Assigné à</Label>
-              <p className="font-medium">{equipment.assignedTo || 'Non assigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Date d'assignation</Label>
-              <p className="font-medium">{equipment.assignedDate || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Emplacement</Label>
-              <p className="font-medium">{equipment.location || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Fournisseur</Label>
-              <p className="font-medium">{equipment.supplier || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Début du contrat</Label>
-              <p className="font-medium">{equipment.contractStart || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Fin du contrat</Label>
-              <p className="font-medium">{equipment.contractEnd || 'Non renseigné'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Prix d'achat</Label>
-              <p className="font-medium">
-                {equipment.purchasePrice 
-                  ? `${equipment.purchasePrice.toLocaleString('fr-FR')} €` 
-                  : 'Non renseigné'}
-              </p>
-            </div>
-            
-            <div>
-              <Label className="text-xs text-muted-foreground">Loyer mensuel</Label>
-              <p className="font-medium">
-                {equipment.monthlyRent 
-                  ? `${equipment.monthlyRent.toLocaleString('fr-FR')} €` 
-                  : 'Non renseigné'}
-              </p>
-            </div>
+          <div className="space-x-2">
+            <Button variant="outline" onClick={handleCancel}>Annuler</Button>
+            <Button onClick={handleSave}>Enregistrer</Button>
           </div>
         )}
       </div>
-      
-      {!isEditing && (
-        <div className="bg-gray-50 p-3 border-t">
-          <div className="text-xs text-gray-500">
-            <p>Dernière mise à jour: 23/05/2023</p>
-          </div>
-        </div>
-      )}
+
+      <Tabs defaultValue="details" className="flex-1">
+        <TabsList>
+          <TabsTrigger value="details">Détails</TabsTrigger>
+          <TabsTrigger value="financial">Financier</TabsTrigger>
+          <TabsTrigger value="history">Historique</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Informations générales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Type</label>
+                    <select 
+                      name="type"
+                      value={editedEquipment?.type || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Ordinateur portable">Ordinateur portable</option>
+                      <option value="Ordinateur fixe">Ordinateur fixe</option>
+                      <option value="Smartphone">Smartphone</option>
+                      <option value="Tablette">Tablette</option>
+                      <option value="Accessoire">Accessoire</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Statut</label>
+                    <select 
+                      name="status"
+                      value={editedEquipment?.status || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="En service">En service</option>
+                      <option value="En réserve">En réserve</option>
+                      <option value="Remplacement">Remplacement</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">N° de série</label>
+                    <input 
+                      type="text" 
+                      name="serial"
+                      value={editedEquipment?.serial || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Fournisseur</label>
+                    <input 
+                      type="text" 
+                      name="supplier"
+                      value={editedEquipment?.supplier || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Emplacement</label>
+                    <select 
+                      name="location"
+                      value={editedEquipment?.location || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Bureau">Bureau</option>
+                      <option value="Télétravail">Télétravail</option>
+                      <option value="Client">Client</option>
+                      <option value="Stock">Stock</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                  <div className="flex items-center">
+                    <LaptopIcon className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Type</p>
+                      <p className="font-medium">{equipment.type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Tag className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Statut</p>
+                      <p className="font-medium">{equipment.status}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <FileText className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">N° de série</p>
+                      <p className="font-medium">{equipment.serial}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Truck className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Fournisseur</p>
+                      <p className="font-medium">{equipment.supplier}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Emplacement</p>
+                      <p className="font-medium">{equipment.location}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Attribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Attribué à</label>
+                    <input 
+                      type="text" 
+                      name="assignedTo"
+                      value={editedEquipment?.assignedTo || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Date d'attribution</label>
+                    <input 
+                      type="text" 
+                      name="assignedDate"
+                      value={editedEquipment?.assignedDate || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                  {equipment.assignedTo ? (
+                    <>
+                      <div className="flex items-center">
+                        <User className="mr-3 h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-500">Attribué à</p>
+                          <p className="font-medium">{equipment.assignedTo}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="mr-3 h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-500">Date d'attribution</p>
+                          <p className="font-medium">{equipment.assignedDate}</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Non attribué</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Informations financières</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Prix d'achat</label>
+                    <input 
+                      type="number" 
+                      name="purchasePrice"
+                      value={editedEquipment?.purchasePrice || 0}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Loyer mensuel</label>
+                    <input 
+                      type="number" 
+                      name="monthlyRent"
+                      value={editedEquipment?.monthlyRent || 0}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Quantité</label>
+                    <input 
+                      type="number" 
+                      name="quantity"
+                      value={editedEquipment?.quantity || 1}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Marge</label>
+                    <input 
+                      type="number" 
+                      name="margin"
+                      value={editedEquipment?.margin || 0}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                  <div className="flex items-center">
+                    <BadgeEuro className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Prix d'achat</p>
+                      <p className="font-medium">{formatCurrency(equipment.purchasePrice)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="mr-3 h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Loyer mensuel</p>
+                      <p className="font-medium">{formatCurrency(equipment.monthlyRent)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Contrat</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Début de contrat</label>
+                    <input 
+                      type="text" 
+                      name="contractStart"
+                      value={editedEquipment?.contractStart || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Fin de contrat</label>
+                    <input 
+                      type="text" 
+                      name="contractEnd"
+                      value={editedEquipment?.contractEnd || ""}
+                      onChange={handleChange}
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                  {equipment.contractStart ? (
+                    <>
+                      <div className="flex items-center">
+                        <Calendar className="mr-3 h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-500">Début de contrat</p>
+                          <p className="font-medium">{equipment.contractStart}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="mr-3 h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-500">Fin de contrat</p>
+                          <p className="font-medium">{equipment.contractEnd}</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Information de contrat non disponible</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Historique des modifications</CardTitle>
+              <CardDescription>Liste des actions effectuées sur cet équipement</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-500">Aucun historique disponible</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

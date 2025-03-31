@@ -11,13 +11,24 @@ import {
   Search,
   MessageSquare,
   Settings,
-  LogOut
+  LogOut,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 const ClientSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
 
   // Get user information
   const userEmail = user?.email || '';
@@ -82,70 +93,148 @@ const ClientSidebar = () => {
     }
   };
 
+  const getUserInitials = () => {
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    } else if (userEmail) {
+      return userEmail.substring(0, 2).toUpperCase();
+    }
+    return "CL";
+  };
+
   return (
-    <div className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 z-[80] bg-white border-r">
+    <div className={cn(
+      "hidden md:flex md:flex-col md:fixed md:inset-y-0 z-[80] bg-white border-r transition-all duration-300",
+      collapsed ? "md:w-[80px]" : "md:w-64"
+    )}>
       <div className="flex flex-col h-full">
         {/* Logo and branding */}
-        <div className="flex items-center flex-shrink-0 px-5 py-6 border-b">
+        <div className={cn(
+          "flex items-center flex-shrink-0 px-5 py-6 border-b",
+          collapsed ? "justify-center" : ""
+        )}>
           <Link to="/client/dashboard" className="flex items-center gap-2">
             <img
               className="h-8 w-auto"
               src="/logo.svg"
               alt="iTakecare"
             />
-            <span className="text-xl font-bold">iTakecare</span>
+            {!collapsed && <span className="text-xl font-bold">iTakecare</span>}
           </Link>
-        </div>
-
-        {/* User info */}
-        <div className="px-5 py-4 border-b">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{displayName}</p>
-              <p className="text-xs text-gray-500">Client</p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="mt-3 w-full flex items-center justify-center gap-2 text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Déconnexion
-          </Button>
+          
+          {!collapsed && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(true)} 
+              className="ml-auto rounded-full hover:bg-primary/10"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Navigation */}
         <div className="flex-1 px-3 py-4 overflow-y-auto">
           <nav className="space-y-1">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md group transition-colors ${
-                  item.active
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <item.icon
-                  className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    item.active 
-                      ? "text-blue-600" 
-                      : "text-gray-400 group-hover:text-gray-500"
-                  }`}
-                />
-                {item.name}
-              </Link>
-            ))}
+            <TooltipProvider delayDuration={200}>
+              {navigationItems.map((item) => (
+                <Tooltip key={item.name}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={item.href}
+                      className={cn(
+                        "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                        collapsed ? "justify-center px-2" : "px-3",
+                        item.active
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
+                          : "text-gray-700 hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          "h-5 w-5 flex-shrink-0", 
+                          collapsed ? "" : "mr-3",
+                          item.active && "stroke-[2.5px]"
+                        )}
+                      />
+                      {!collapsed && <span>{item.name}</span>}
+                    </Link>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium">
+                      <p>{item.name}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </nav>
         </div>
+
+        {/* User info */}
+        <div className={cn(
+          "p-4 transition-all duration-300 mt-auto mx-2 mb-4 border-t border-t-primary/10 pt-4",
+          collapsed ? "px-2" : ""
+        )}>
+          {!collapsed ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src="" alt="Avatar utilisateur" />
+                  <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{displayName}</p>
+                  <p className="text-xs text-muted-foreground">Client</p>
+                </div>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+              >
+                <LogOut className="h-4 w-4" />
+                Déconnexion
+              </Button>
+            </div>
+          ) : (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleLogout}
+                    className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="sr-only">Déconnexion</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Déconnexion</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+
+        {/* Button to expand sidebar */}
+        {collapsed && (
+          <div className="p-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(false)} 
+              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
