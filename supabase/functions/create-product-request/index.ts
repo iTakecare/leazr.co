@@ -113,43 +113,45 @@ serve(async (req) => {
     try {
       console.log("Début de la procédure d'envoi d'email...");
       
-      // Récupérer les paramètres Resend depuis la table smtp_settings
-      const { data: smtpSettings, error: settingsError } = await supabaseAdmin
+      // Récupérer les paramètres SMTP depuis la base de données
+      const { data: smtpSettings, error: smtpError } = await supabaseAdmin
         .from('smtp_settings')
         .select('resend_api_key, from_email, from_name, use_resend')
         .eq('id', 1)
         .single();
-
-      if (settingsError) {
-        console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
-        throw new Error(`Erreur lors de la récupération des paramètres SMTP: ${settingsError.message}`);
+      
+      if (smtpError) {
+        console.error("Erreur lors de la récupération des paramètres SMTP:", smtpError);
+        throw new Error(`Erreur de base de données: ${smtpError.message}`);
       }
-
+      
       if (!smtpSettings) {
         console.error("Paramètres SMTP non trouvés");
         throw new Error("Paramètres SMTP non trouvés");
       }
-
-      console.log("Paramètres SMTP récupérés avec succès:", {
-        from_email: smtpSettings.from_email,
+      
+      console.log("Paramètres email récupérés:", {
+        from_email: smtpSettings.from_email, 
         from_name: smtpSettings.from_name,
         use_resend: smtpSettings.use_resend
       });
-
+      
+      // Vérifier si une clé API Resend est disponible
       if (!smtpSettings.resend_api_key) {
         console.error("Clé API Resend non configurée dans la base de données");
-        throw new Error("Clé API Resend non configurée dans la base de données");
+        throw new Error("Clé API Resend non configurée");
       }
-
-      // Initialiser Resend avec la clé API récupérée
+      
+      // Initialiser Resend avec la clé API
       const resend = new Resend(smtpSettings.resend_api_key);
       
       // Format d'expéditeur
       const fromName = smtpSettings.from_name || "iTakecare";
       const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
       const from = `${fromName} <${fromEmail}>`;
-      console.log("Expéditeur configuré:", from);
-
+      
+      console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
+      
       // Préparer le template de l'email
       const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
       const html = `
@@ -167,7 +169,7 @@ serve(async (req) => {
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
         </div>
       `;
-
+      
       // Texte brut pour les clients qui ne peuvent pas afficher le HTML
       const text = `Bienvenue ${data.client_name},
         
@@ -184,8 +186,6 @@ Si vous avez des questions, n'hésitez pas à nous contacter.
 
 Cordialement,
 L'équipe iTakecare`;
-
-      console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
       
       // Envoyer l'email avec Resend
       const emailResult = await resend.emails.send({
@@ -195,7 +195,7 @@ L'équipe iTakecare`;
         html,
         text,
       });
-
+      
       if (emailResult.error) {
         console.error("Erreur lors de l'envoi de l'email via Resend:", emailResult.error);
         throw new Error(`Erreur lors de l'envoi de l'email via Resend: ${emailResult.error.message}`);
