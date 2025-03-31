@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, UserRound, Phone, Mail, Building, MapPin } from 'lucide-react';
+import { getCountryByCode, formatPhoneWithDialCode } from '@/utils/countryData';
 
 interface ContactFormData {
   name: string;
@@ -32,17 +33,41 @@ interface ContactInfoFormProps {
 }
 
 const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormData, onNext, onBack, initialEmail }) => {
+  const [phoneInput, setPhoneInput] = useState(formData.phone || '');
+  
   useEffect(() => {
     // If email is not set in contactFormData but we have an initialEmail, set it
     if (!formData.email && initialEmail) {
       updateFormData({ email: initialEmail });
     }
   }, [initialEmail, formData.email, updateFormData]);
+  
+  // Format phone number with country code when country changes or component mounts
+  useEffect(() => {
+    if (formData.country) {
+      const formattedPhone = formatPhoneWithDialCode(phoneInput, formData.country || 'BE');
+      updateFormData({ phone: formattedPhone });
+    }
+  }, [formData.country]);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setPhoneInput(newValue);
+    
+    // Format with dial code as user types
+    const formattedPhone = formatPhoneWithDialCode(newValue, formData.country || 'BE');
+    updateFormData({ phone: formattedPhone });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onNext();
   };
+
+  // Get country data for the current country
+  const countryData = formData.country 
+    ? getCountryByCode(formData.country) 
+    : getCountryByCode('BE');
 
   // Vérifie si les champs d'adresse ont des valeurs (remplis depuis VIES)
   const hasPrefilledAddress = Boolean(formData.address || formData.city || formData.postal_code || formData.country);
@@ -91,13 +116,19 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
           <div className="relative">
             <Input
               id="phone"
-              placeholder="+33 6 12 34 56 78"
-              value={formData.phone}
-              onChange={(e) => updateFormData({ phone: e.target.value })}
+              placeholder="Numéro de téléphone"
+              value={phoneInput}
+              onChange={handlePhoneChange}
               className="pl-10"
             />
-            <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <div className="absolute left-3 top-2.5 flex items-center gap-1 text-gray-500">
+              <span className="text-base">{countryData.flag}</span>
+            </div>
+            <div className="absolute right-3 top-2.5 text-xs text-gray-400">
+              {countryData.dialCode}
+            </div>
           </div>
+          <p className="text-xs text-gray-500">Format: {countryData.dialCode} suivi de votre numéro</p>
         </div>
 
         <div className="border-t pt-4 mt-4">
