@@ -16,8 +16,8 @@ export interface Client {
   phone?: string;
   address?: string;
   notes?: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date | string;
+  updated_at?: Date | string;
   status?: 'active' | 'inactive' | 'lead';
   vat_number?: string;
   city?: string;

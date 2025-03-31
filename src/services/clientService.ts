@@ -1,23 +1,5 @@
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
-
-// Define types
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  company?: string;
-  phone?: string;
-  address?: string;
-  notes?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  vat_number?: string;
-  status: 'active' | 'inactive' | 'lead';
-  created_at?: Date;
-  updated_at?: Date;
-  collaborators?: Collaborator[];
-}
+import { Client, CreateClientData } from '@/types/client';
 
 /**
  * Crée un nouveau client
