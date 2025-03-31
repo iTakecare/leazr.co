@@ -3,83 +3,71 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Mail, Phone, User } from 'lucide-react';
-import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowLeft, UserRound, Phone, Mail } from 'lucide-react';
 
 interface ContactFormData {
   name: string;
-  email: string;
   phone: string;
-  message: string;
+  email?: string;
+  has_client_account: boolean;
 }
 
 interface ContactInfoFormProps {
   formData: ContactFormData;
   updateFormData: (data: Partial<ContactFormData>) => void;
-  onPrev: () => void;
   onNext: () => void;
+  onBack: () => void;
+  initialEmail?: string;
 }
 
-const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormData, onPrev, onNext }) => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormData, onNext, onBack, initialEmail }) => {
+  React.useEffect(() => {
+    // If email is not set in contactFormData but we have an initialEmail, set it
+    if (!formData.email && initialEmail) {
+      updateFormData({ email: initialEmail });
+    }
+  }, [initialEmail, formData.email, updateFormData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Enhanced validation
-    if (!formData.name || formData.name.trim().length < 2) {
-      toast.error("Veuillez entrer un nom complet valide (minimum 2 caractères)");
-      return;
-    }
-    
-    if (!formData.email || !formData.email.trim()) {
-      toast.error("Veuillez entrer votre adresse email");
-      return;
-    }
-    
-    // More comprehensive email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Veuillez entrer une adresse email valide");
-      return;
-    }
-    
     onNext();
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Vos coordonnées</h2>
-        <p className="text-gray-600">Veuillez entrer vos informations de contact</p>
+        <h2 className="text-xl font-semibold mb-2">Informations de contact</h2>
+        <p className="text-gray-600">Veuillez compléter les informations ci-dessous pour continuer</p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Nom et prénom *</Label>
+          <Label htmlFor="name">Nom complet *</Label>
           <div className="relative">
             <Input
               id="name"
-              placeholder="Votre nom complet"
+              placeholder="Jean Dupont"
               value={formData.name}
               onChange={(e) => updateFormData({ name: e.target.value })}
-              required
               className="pl-10"
+              required
             />
-            <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="email">Email professionnel *</Label>
+          <Label htmlFor="email">Email *</Label>
           <div className="relative">
             <Input
               id="email"
               type="email"
-              placeholder="votre@email.com"
-              value={formData.email}
+              placeholder="nom@entreprise.com"
+              value={formData.email || ''}
               onChange={(e) => updateFormData({ email: e.target.value })}
-              required
               className="pl-10"
+              required
             />
             <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
@@ -90,8 +78,7 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
           <div className="relative">
             <Input
               id="phone"
-              type="tel"
-              placeholder="+32 123 45 67 89"
+              placeholder="+33 6 12 34 56 78"
               value={formData.phone}
               onChange={(e) => updateFormData({ phone: e.target.value })}
               className="pl-10"
@@ -100,32 +87,34 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
           </div>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="message">Message (optionnel)</Label>
-          <Textarea
-            id="message"
-            placeholder="Informations supplémentaires concernant votre demande..."
-            value={formData.message}
-            onChange={(e) => updateFormData({ message: e.target.value })}
-            rows={3}
+        <div className="flex items-center space-x-2 pt-2">
+          <Checkbox 
+            id="has_client_account"
+            checked={formData.has_client_account}
+            onCheckedChange={(checked) => {
+              updateFormData({ has_client_account: checked === true });
+            }}
           />
+          <Label htmlFor="has_client_account" className="text-sm">
+            Je souhaite créer un compte client pour suivre mes demandes
+          </Label>
         </div>
       </div>
-
+      
       <div className="flex justify-between pt-4">
         <Button 
           type="button" 
           variant="outline" 
-          onClick={onPrev}
+          onClick={onBack}
           className="flex items-center"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Retour
         </Button>
         
         <Button 
-          type="submit" 
-          disabled={!formData.name.trim() || !formData.email.trim()}
-          className="min-w-[120px]"
+          type="submit"
+          disabled={!formData.name || !formData.email}
         >
           Continuer
         </Button>

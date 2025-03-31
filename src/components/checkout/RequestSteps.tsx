@@ -1,169 +1,99 @@
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useCart } from '@/context/CartContext';
+import { ChevronRight, CircleCheck } from 'lucide-react';
 import CompanyInfoForm from './CompanyInfoForm';
 import ContactInfoForm from './ContactInfoForm';
 import RequestSummary from './RequestSummary';
-import { createProductRequest } from '@/services/requestInfoService';
-import { formatCurrency } from '@/utils/formatters';
 
-type Step = 'company' | 'contact' | 'summary';
-
-const RequestSteps: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<Step>('company');
-  const [formData, setFormData] = useState({
+const RequestSteps = () => {
+  const [step, setStep] = useState(1);
+  
+  const [companyFormData, setCompanyFormData] = useState({
     company: '',
     vat_number: '',
     company_verified: false,
     is_vat_exempt: false,
     country: 'BE',
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
+    email: ''
   });
-  const [loading, setLoading] = useState(false);
-
-  const { items, cartTotal, clearCart } = useCart();
-  const navigate = useNavigate();
-
-  const updateFormData = (data: Partial<typeof formData>) => {
-    setFormData(prev => ({ ...prev, ...data }));
+  
+  const [contactFormData, setContactFormData] = useState({
+    name: '',
+    phone: '',
+    has_client_account: false
+  });
+  
+  const handleCompanyDataUpdate = (data: Partial<typeof companyFormData>) => {
+    setCompanyFormData(prev => ({ ...prev, ...data }));
   };
-
-  const nextStep = () => {
-    if (currentStep === 'company') setCurrentStep('contact');
-    else if (currentStep === 'contact') setCurrentStep('summary');
+  
+  const handleContactDataUpdate = (data: Partial<typeof contactFormData>) => {
+    setContactFormData(prev => ({ ...prev, ...data }));
   };
-
-  const prevStep = () => {
-    if (currentStep === 'contact') setCurrentStep('company');
-    else if (currentStep === 'summary') setCurrentStep('contact');
+  
+  const handleNextStep = () => {
+    setStep(prev => prev + 1);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (items.length === 0) {
-      toast.error("Veuillez ajouter des produits à votre panier avant de soumettre votre demande.");
-      return;
-    }
-
-    if (!formData.name || !formData.email || !formData.company) {
-      toast.error("Veuillez remplir tous les champs obligatoires.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Create a description of the cart items
-      const equipmentDescription = items.map(item => 
-        `${item.quantity}x ${item.product.name} (${formatCurrency(item.product.monthly_price)}/mois)`
-      ).join('\n');
-
-      const requestData = {
-        client_name: formData.name,
-        client_email: formData.email,
-        client_company: formData.company,
-        client_contact_email: formData.email,
-        client_country: formData.country,
-        client_vat_number: formData.vat_number,
-        client_is_vat_exempt: formData.is_vat_exempt,
-        equipment_description: equipmentDescription,
-        message: formData.message,
-        amount: cartTotal,
-        monthly_payment: cartTotal,
-        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
-        duration: 36 // Default duration in months
-      };
-
-      console.log("Submitting request with data:", requestData);
-
-      const result = await createProductRequest(requestData);
-      
-      // Success! Clear cart and redirect
-      clearCart();
-      navigate('/demande-envoyee', { 
-        state: { 
-          success: true, 
-          companyName: formData.company,
-          name: formData.name
-        } 
-      });
-      
-    } catch (error) {
-      console.error("Error submitting request:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
-    } finally {
-      setLoading(false);
-    }
+  
+  const handlePrevStep = () => {
+    setStep(prev => prev - 1);
   };
-
+  
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Progress steps indicator */}
+    <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="mb-8">
-        <ol className="flex items-center w-full">
-          <li className={`flex items-center ${currentStep === 'company' ? 'text-blue-600 font-medium' : 'text-gray-500'} `}>
-            <span className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'company' ? 'bg-blue-100 text-blue-600' : currentStep === 'contact' || currentStep === 'summary' ? 'bg-green-100 text-green-600' : 'bg-gray-100'}`}>
-              {currentStep === 'contact' || currentStep === 'summary' ? <Check className="w-4 h-4" /> : '1'}
-            </span>
-            <span className="ml-2">Entreprise</span>
-            <div className="flex items-center ml-5 sm:ml-8">
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </div>
-          </li>
-          
-          <li className={`flex items-center ${currentStep === 'contact' ? 'text-blue-600 font-medium' : 'text-gray-500'} ml-5 sm:ml-8`}>
-            <span className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'contact' ? 'bg-blue-100 text-blue-600' : currentStep === 'summary' ? 'bg-green-100 text-green-600' : 'bg-gray-100'}`}>
-              {currentStep === 'summary' ? <Check className="w-4 h-4" /> : '2'}
-            </span>
-            <span className="ml-2">Contact</span>
-            <div className="flex items-center ml-5 sm:ml-8">
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </div>
-          </li>
-          
-          <li className={`flex items-center ${currentStep === 'summary' ? 'text-blue-600 font-medium' : 'text-gray-500'} ml-5 sm:ml-8`}>
-            <span className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'summary' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'}`}>
-              3
-            </span>
-            <span className="ml-2">Récapitulatif</span>
-          </li>
-        </ol>
+        <div className="flex items-center">
+          <div className={`flex items-center justify-center rounded-full w-8 h-8 ${step > 1 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+            {step > 1 ? (
+              <CircleCheck className="w-5 h-5" />
+            ) : (
+              <span className="text-sm font-medium">1</span>
+            )}
+          </div>
+          <div className={`h-0.5 flex-1 mx-2 ${step > 1 ? 'bg-green-400' : 'bg-gray-200'}`}></div>
+          <div className={`flex items-center justify-center rounded-full w-8 h-8 ${step > 2 ? 'bg-green-100 text-green-600' : step === 2 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+            {step > 2 ? (
+              <CircleCheck className="w-5 h-5" />
+            ) : (
+              <span className="text-sm font-medium">2</span>
+            )}
+          </div>
+          <div className={`h-0.5 flex-1 mx-2 ${step > 2 ? 'bg-green-400' : 'bg-gray-200'}`}></div>
+          <div className={`flex items-center justify-center rounded-full w-8 h-8 ${step === 3 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+            <span className="text-sm font-medium">3</span>
+          </div>
+        </div>
+        <div className="flex justify-between mt-2 text-sm">
+          <div className={`w-1/3 text-center ${step === 1 ? 'font-medium text-blue-600' : step > 1 ? 'text-green-600' : ''}`}>Entreprise</div>
+          <div className={`w-1/3 text-center ${step === 2 ? 'font-medium text-blue-600' : step > 2 ? 'text-green-600' : ''}`}>Contact</div>
+          <div className={`w-1/3 text-center ${step === 3 ? 'font-medium text-blue-600' : ''}`}>Récapitulatif</div>
+        </div>
       </div>
-
-      {/* Form steps */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        {currentStep === 'company' && (
+      
+      <div className="min-h-[400px]">
+        {step === 1 && (
           <CompanyInfoForm 
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={nextStep}
+            formData={companyFormData} 
+            updateFormData={handleCompanyDataUpdate}
+            onNext={handleNextStep}
           />
         )}
-
-        {currentStep === 'contact' && (
+        
+        {step === 2 && (
           <ContactInfoForm
-            formData={formData}
-            updateFormData={updateFormData}
-            onPrev={prevStep}
-            onNext={nextStep}
+            formData={contactFormData}
+            updateFormData={handleContactDataUpdate}
+            onNext={handleNextStep}
+            onBack={handlePrevStep}
+            initialEmail={companyFormData.email}
           />
         )}
-
-        {currentStep === 'summary' && (
+        
+        {step === 3 && (
           <RequestSummary
-            formData={formData}
-            cartItems={items}
-            cartTotal={cartTotal}
-            loading={loading}
-            onPrev={prevStep}
-            onSubmit={handleSubmit}
+            companyData={companyFormData}
+            contactData={contactFormData}
+            onBack={handlePrevStep}
           />
         )}
       </div>

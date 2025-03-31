@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Building, Loader2 } from 'lucide-react';
+import { Building, Loader2, Search, Mail } from 'lucide-react';
 import { clientService } from '@/services/clientService';
 import { 
   Select,
@@ -21,6 +21,7 @@ interface CompanyFormData {
   company_verified: boolean;
   is_vat_exempt: boolean;
   country: string;
+  email?: string;
 }
 
 interface CompanyInfoFormProps {
@@ -81,18 +82,28 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       return;
     }
 
-    // Pour les entreprises non-assujetties à la TVA, passer directement à l'étape suivante
-    if (formData.is_vat_exempt) {
+    // Vérifier l'email
+    if (!formData.email?.trim()) {
+      toast({
+        title: "Champ obligatoire",
+        description: "Veuillez entrer votre email professionnel",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Pour les entreprises non-assujetties à la TVA (seulement pour la Belgique)
+    if (country === 'BE' && formData.is_vat_exempt) {
       onNext();
       return;
     }
 
-    // Sinon, vérifier le numéro de TVA/entreprise
+    // Vérifier le numéro de TVA/entreprise
     setVerifying(true);
     try {
       // Attempt to verify the VAT/business number
-      console.log(`Verifying VAT number: ${formData.vat_number}`);
-      const result = await clientService.verifyVatNumber(formData.vat_number);
+      console.log(`Verifying company ID: ${formData.vat_number}`);
+      const result = await clientService.verifyVatNumber(formData.vat_number, country);
       
       if (result.valid) {
         updateFormData({
@@ -127,6 +138,9 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     }
   };
 
+  // Déterminer si on doit afficher l'option d'exemption TVA (uniquement pour la Belgique)
+  const showVatExemptOption = country === 'BE';
+
   return (
     <form onSubmit={handleVerifyVAT} className="space-y-6">
       <div className="mb-6">
@@ -154,30 +168,51 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
         
         <div className="space-y-2">
           <Label htmlFor="vat_number">{idFormats[country as keyof typeof idFormats].label} *</Label>
-          <Input
-            id="vat_number"
-            placeholder={idFormats[country as keyof typeof idFormats].example}
-            value={formData.vat_number}
-            onChange={(e) => updateFormData({ vat_number: e.target.value })}
-            required={true}
-          />
+          <div className="flex space-x-2">
+            <div className="relative flex-1">
+              <Input
+                id="vat_number"
+                placeholder={idFormats[country as keyof typeof idFormats].example}
+                value={formData.vat_number}
+                onChange={(e) => updateFormData({ vat_number: e.target.value })}
+                required={true}
+                className="pr-9"
+              />
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="flex-shrink-0 border-gray-300"
+              onClick={() => handleVerifyVAT}
+              disabled={verifying}
+            >
+              {verifying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
           <p className="text-sm text-gray-500">
             Format: {idFormats[country as keyof typeof idFormats].format}
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 pl-1">
-          <Checkbox 
-            id="is_vat_exempt" 
-            checked={formData.is_vat_exempt}
-            onCheckedChange={(checked) => {
-              updateFormData({ is_vat_exempt: checked === true });
-            }}
-          />
-          <Label htmlFor="is_vat_exempt" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Mon entreprise n'est pas assujettie à la TVA
-          </Label>
-        </div>
+        {showVatExemptOption && (
+          <div className="flex items-center space-x-2 pl-1">
+            <Checkbox 
+              id="is_vat_exempt" 
+              checked={formData.is_vat_exempt}
+              onCheckedChange={(checked) => {
+                updateFormData({ is_vat_exempt: checked === true });
+              }}
+            />
+            <Label htmlFor="is_vat_exempt" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Mon entreprise n'est pas assujettie à la TVA
+            </Label>
+          </div>
+        )}
         
         <div className="space-y-2">
           <Label htmlFor="company">Nom de l'entreprise *</Label>
@@ -192,18 +227,32 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
             />
             <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
-          {!formData.is_vat_exempt && (
-            <p className="text-sm text-gray-500">
-              Sera complété automatiquement après vérification
-            </p>
-          )}
+          <p className="text-sm text-gray-500">
+            Sera complété automatiquement après vérification
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email">Email professionnel *</Label>
+          <div className="relative">
+            <Input
+              id="email"
+              type="email"
+              placeholder="nom@entreprise.com"
+              value={formData.email || ''}
+              onChange={(e) => updateFormData({ email: e.target.value })}
+              className="pl-10"
+              required={true}
+            />
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
         </div>
       </div>
 
       <div className="flex justify-end pt-4">
         <Button 
           type="submit" 
-          disabled={verifying || !formData.vat_number.trim() || !formData.company.trim()}
+          disabled={verifying || !formData.vat_number.trim() || !formData.company.trim() || !formData.email?.trim()}
           className="min-w-[120px]"
         >
           {verifying ? (
