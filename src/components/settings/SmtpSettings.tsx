@@ -117,7 +117,8 @@ const SmtpSettings = () => {
       
       if (useResend) {
         testFunction = 'test-resend';
-        testData = { apiKey: resendApiKey };
+        // Correction : Passage de l'apiKey dans un objet compatible avec l'interface attendue
+        testData = { apiKey: resendApiKey }; 
       }
       
       toast.info("Test d'envoi d'email en cours...");

@@ -8,6 +8,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface RequestBody {
+  apiKey?: string;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -15,7 +19,8 @@ serve(async (req) => {
   }
 
   try {
-    const { apiKey } = await req.json();
+    const requestBody: RequestBody = await req.json();
+    const { apiKey } = requestBody;
     
     // Utiliser la clé API fournie ou celle stockée dans les variables d'environnement
     const key = apiKey || Deno.env.get("RESEND_API_KEY");
