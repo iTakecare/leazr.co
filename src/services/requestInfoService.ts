@@ -51,6 +51,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       data.phone = data.phone.replace(/^\+(\d+)\s0/, '+$1 ');
     }
     
+    console.log("Calling Edge function create-product-request");
     // Appeler la fonction Edge pour créer la demande de produit
     const { data: responseData, error } = await supabase.functions.invoke(
       'create-product-request',
@@ -61,6 +62,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     if (error) {
       console.error("Erreur lors de l'appel à la fonction Edge:", error);
+      toast.error("Échec de création de la demande: " + error.message);
       throw new Error(`Échec de création de la demande: ${error.message}`);
     }
     
@@ -71,6 +73,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
     sessionStorage.setItem('lastSubmittedOfferId', responseData.id);
     
     console.log("Request stored successfully:", responseData);
+    toast.success("Votre demande a été envoyée avec succès");
     return responseData;
     
   } catch (error: any) {

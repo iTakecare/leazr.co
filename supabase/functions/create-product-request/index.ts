@@ -111,32 +111,36 @@ serve(async (req) => {
 
     // Envoyer un email de bienvenue au client
     try {
+      console.log("Début de la procédure d'envoi d'email...");
+      
       // Récupérer les paramètres Resend configurés
       const { data: smtpSettings, error: settingsError } = await supabaseAdmin
         .from('smtp_settings')
-        .select('from_email, from_name')
+        .select('from_email, from_name, use_resend')
         .eq('id', 1)
         .single();
+
+      console.log("Paramètres email récupérés:", smtpSettings);
 
       if (settingsError) {
         console.error("Erreur lors de la récupération des paramètres email:", settingsError);
       }
 
-      // Récupérer la clé API Resend
-      const { data: secretData, error: secretError } = await supabaseAdmin.functions.invoke('get-secret', {
-        body: { key: 'RESEND_API_KEY' }
-      });
+      // Récupérer la clé API Resend directement
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      console.log("Clé API Resend récupérée:", resendApiKey ? "Présente" : "Absente");
 
-      if (secretError || !secretData?.value) {
-        console.error("Erreur lors de la récupération de la clé Resend:", secretError || "Clé non trouvée");
+      if (!resendApiKey) {
+        console.error("Erreur: Clé API Resend non configurée dans les variables d'environnement");
+        // On continue l'exécution même sans email
       } else {
-        const resendApiKey = secretData.value;
         const resend = new Resend(resendApiKey);
         
         // Format d'expéditeur
         const fromName = smtpSettings?.from_name || "iTakecare";
         const fromEmail = smtpSettings?.from_email || "noreply@itakecare.app";
         const from = `${fromName} <${fromEmail}>`;
+        console.log("Expéditeur configuré:", from);
 
         // Préparer le template de l'email
         const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
@@ -176,22 +180,26 @@ L'équipe iTakecare`;
         console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
         
         // Envoyer l'email avec Resend
-        const emailResult = await resend.emails.send({
-          from,
-          to: data.client_email,
-          subject,
-          html,
-          text,
-        });
+        try {
+          const emailResult = await resend.emails.send({
+            from,
+            to: data.client_email,
+            subject,
+            html,
+            text,
+          });
 
-        if (emailResult.error) {
-          console.error("Erreur lors de l'envoi de l'email:", emailResult.error);
-        } else {
-          console.log("Email envoyé avec succès:", emailResult.data);
+          if (emailResult.error) {
+            console.error("Erreur renvoyée par Resend lors de l'envoi de l'email:", emailResult.error);
+          } else {
+            console.log("Email envoyé avec succès via Resend:", emailResult.data);
+          }
+        } catch (resendError) {
+          console.error("Exception lors de l'appel à Resend.send:", resendError);
         }
       }
     } catch (emailError) {
-      console.error("Exception lors de l'envoi de l'email:", emailError);
+      console.error("Exception lors de la procédure d'envoi d'email:", emailError);
       // On ne bloque pas le processus même si l'envoi d'email échoue
     }
 
@@ -208,6 +216,8 @@ L'équipe iTakecare`;
       created_at: new Date().toISOString()
     };
 
+    console.log("Traitement réussi, retour de la réponse:", responseData);
+    
     return new Response(
       JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

@@ -11,7 +11,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Loader2 } from "lucide-react";
 
 interface ProductRequestFormProps {
   isOpen: boolean;
@@ -62,12 +62,14 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
     setIsSubmitting(true);
 
     try {
+      console.log("Préparation de la demande de produit...");
+      
       // Construire la description de l'équipement à partir des options sélectionnées
       const optionsDescription = Object.entries(selectedOptions)
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
 
-      const equipmentDescription = `${product?.name} (${quantity} unité(s)) - ${optionsDescription} - Durée: ${duration} mois`;
+      const equipmentDescription = `${product?.name} ${quantity > 1 ? `(${quantity} unités)` : ''} - ${optionsDescription ? `Options: ${optionsDescription}` : 'Configuration standard'} - Durée: ${duration} mois`;
 
       const requestData = {
         client_name: formData.name,
@@ -83,9 +85,12 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         phone: formData.phone
       };
       
+      console.log("Envoi de la demande de produit...", requestData);
+      
       try {
         const result = await createProductRequest(requestData);
         
+        console.log("Demande envoyée avec succès:", result);
         toast.success("Votre demande a été envoyée avec succès");
         onClose();
         navigate("/demande-envoyee", {
@@ -98,11 +103,11 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
       } catch (error) {
         console.error("Erreur lors de l'envoi de la demande:", error);
         toast.error("Une erreur est survenue lors de l'envoi de votre demande");
-        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Erreur lors de la préparation de la demande:", error);
       toast.error("Une erreur est survenue lors de l'envoi de votre demande");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -260,7 +265,14 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
               Annuler
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Envoi en cours..." : "Envoyer ma demande"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                "Envoyer ma demande"
+              )}
             </Button>
           </DialogFooter>
         </form>
