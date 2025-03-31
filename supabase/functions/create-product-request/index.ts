@@ -136,6 +136,52 @@ serve(async (req) => {
         use_resend: smtpSettings.use_resend
       });
       
+      // Récupérer le modèle d'email de demande de produit
+      const { data: emailTemplate, error: templateError } = await supabaseAdmin
+        .from('email_templates')
+        .select('subject, html_content')
+        .eq('type', 'product_request')
+        .eq('active', true)
+        .single();
+      
+      let subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
+      let htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+          <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+          <p>Voici un récapitulatif de votre demande :</p>
+          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+            <li>Équipement : ${data.equipment_description}</li>
+            <li>Montant total : ${data.amount} €</li>
+            <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+          </ul>
+          <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+        </div>
+      `;
+      
+      // Utiliser le modèle de la base de données s'il existe
+      if (emailTemplate && !templateError) {
+        console.log("Modèle d'email trouvé, utilisation du modèle personnalisé");
+        
+        subject = emailTemplate.subject.replace("{{client_name}}", data.client_name);
+        
+        // Remplacer les variables dans le contenu HTML
+        htmlContent = emailTemplate.html_content
+          .replace(/{{client_name}}/g, data.client_name)
+          .replace(/{{equipment_description}}/g, data.equipment_description)
+          .replace(/{{amount}}/g, data.amount)
+          .replace(/{{monthly_payment}}/g, data.monthly_payment);
+      } else if (templateError) {
+        console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
+      } else {
+        console.log("Aucun modèle d'email trouvé, utilisation du modèle par défaut");
+      }
+      
+      // Texte brut pour les clients qui ne peuvent pas afficher le HTML
+      const text = stripHtml(htmlContent);
+      
       // Vérifier si une clé API Resend est disponible
       if (!smtpSettings.resend_api_key) {
         console.error("Clé API Resend non configurée dans la base de données");
@@ -152,47 +198,12 @@ serve(async (req) => {
       
       console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
       
-      // Préparer le template de l'email
-      const subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
-          <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-          <p>Voici un récapitulatif de votre demande :</p>
-          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <li>Équipement : ${data.equipment_description}</li>
-            <li>Montant total : ${data.amount} €</li>
-            <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
-          </ul>
-          <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-      `;
-      
-      // Texte brut pour les clients qui ne peuvent pas afficher le HTML
-      const text = `Bienvenue ${data.client_name},
-        
-Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.
-
-Voici un récapitulatif de votre demande :
-- Équipement : ${data.equipment_description}
-- Montant total : ${data.amount} €
-- Paiement mensuel estimé : ${data.monthly_payment} €/mois
-
-Notre équipe va étudier votre demande et vous contactera rapidement.
-
-Si vous avez des questions, n'hésitez pas à nous contacter.
-
-Cordialement,
-L'équipe iTakecare`;
-      
       // Envoyer l'email avec Resend
       const emailResult = await resend.emails.send({
         from,
         to: data.client_email,
         subject,
-        html,
+        html: htmlContent,
         text,
       });
       
@@ -235,3 +246,8 @@ L'équipe iTakecare`;
     );
   }
 });
+
+// Utilitaire pour supprimer les balises HTML d'une chaîne
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>?/gm, '');
+}

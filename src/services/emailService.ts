@@ -7,6 +7,44 @@ interface EmailTemplate {
   body: string;
 }
 
+export interface EmailTemplateData {
+  id?: number;
+  type: string;
+  name: string;
+  subject: string;
+  html_content: string;
+  text_content?: string;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Récupère un modèle d'email par type
+ */
+export const getEmailTemplate = async (
+  type: string
+): Promise<EmailTemplateData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('type', type)
+      .eq('active', true)
+      .single();
+    
+    if (error) {
+      console.error("Erreur lors de la récupération du modèle d'email:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Exception lors de la récupération du modèle d'email:", error);
+    return null;
+  }
+};
+
 /**
  * Envoie un email en utilisant Resend
  */
@@ -87,14 +125,16 @@ export const sendWelcomeEmail = async (
   try {
     console.log(`Préparation de l'email de bienvenue pour ${email} (${userType})`);
     
+    // Récupérer le modèle d'email de bienvenue
+    const template = await getEmailTemplate("welcome");
+    
     const typeDisplay = 
       userType === "partner" ? "partenaire" : 
       userType === "ambassador" ? "ambassadeur" : 
       "client";
     
-    const subject = `Bienvenue sur votre compte ${typeDisplay} iTakecare`;
-    
-    const html = `
+    let subject = `Bienvenue sur votre compte ${typeDisplay} iTakecare`;
+    let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${name},</h2>
         <p>Votre compte ${typeDisplay} a été créé avec succès sur la plateforme iTakecare.</p>
@@ -120,12 +160,18 @@ export const sendWelcomeEmail = async (
       </div>
     `;
     
+    // Utiliser le modèle personnalisé s'il existe
+    if (template) {
+      subject = template.subject.replace("{{client_name}}", name);
+      htmlContent = template.html_content.replace(/{{client_name}}/g, name);
+    }
+    
     console.log(`Tentative d'envoi d'email de bienvenue à: ${email}`);
     
     const success = await sendEmail(
       email,
       subject,
-      html
+      htmlContent
     );
     
     if (success) {

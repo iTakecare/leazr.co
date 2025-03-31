@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LeaserManager from "@/components/settings/LeaserManager";
 import CommissionManager from "@/components/settings/CommissionManager";
-import SmtpSettings from "@/components/settings/SmtpSettings";
+import EmailSettings from "@/components/settings/EmailSettings";
 import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
@@ -49,7 +49,7 @@ const Settings = () => {
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
-          <TabsTrigger value="email">Configuration Email</TabsTrigger>
+          <TabsTrigger value="email">Emails</TabsTrigger>
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
@@ -117,11 +117,11 @@ const Settings = () => {
             <CardHeader>
               <CardTitle>Configuration Email</CardTitle>
               <CardDescription>
-                Configurez les paramètres SMTP pour l'envoi d'emails
+                Configurez les paramètres d'envoi d'emails et personnalisez les modèles
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SmtpSettings />
+              <EmailSettings />
             </CardContent>
           </Card>
         </TabsContent>
