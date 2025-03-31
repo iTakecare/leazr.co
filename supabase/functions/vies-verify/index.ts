@@ -26,17 +26,18 @@ const createViesRequestXML = (countryCode: string, vatNumber: string) => `
 </soapenv:Envelope>
 `;
 
-// Simple XML parser function to extract values from SOAP response
-// This replaces the DOMParser which is causing the error
+// Improved XML parser function to extract values from SOAP response
 const extractValueFromXml = (xml: string, tagName: string): string | null => {
-  const regex = new RegExp(`<${tagName}>(.*?)</${tagName}>`, 's');
-  const match = xml.match(regex);
+  // Use a more robust regex pattern that works better with namespaces
+  const pattern = new RegExp(`<(?:[^:>]+:)?${tagName}>([\\s\\S]*?)<\/(?:[^:>]+:)?${tagName}>`, 'i');
+  const match = xml.match(pattern);
   return match ? match[1].trim() : null;
 };
 
 // Function to check if the XML contains a fault
 const hasFault = (xml: string): boolean => {
-  return xml.includes('<faultstring>') || xml.includes('<faultcode>');
+  return xml.includes('<faultstring>') || xml.includes('<faultcode>') || 
+         xml.includes(':faultstring>') || xml.includes(':faultcode>');
 };
 
 // Function to extract fault message
@@ -101,7 +102,7 @@ serve(async (req: Request) => {
       
       const response = await fetch(VIES_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
+        headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' },
         body: soapRequest,
         signal: controller.signal
       });
@@ -128,7 +129,7 @@ serve(async (req: Request) => {
       
       // Parse XML response
       const xmlText = await response.text();
-      console.log("VIES response received, length:", xmlText.length);
+      console.log("VIES response received (sample):", xmlText.substring(0, 200) + "...");
       
       // Check if response is empty or invalid
       if (!xmlText || xmlText.length < 50) {
@@ -156,12 +157,13 @@ serve(async (req: Request) => {
         });
       }
       
-      // Extract data using our simple XML parser
-      const isValid = extractValueFromXml(xmlText, 'valid') === 'true';
+      // Extract data using our XML parser
+      // In SOAP responses, tags can be prefixed with namespaces like "ns2:valid"
+      const isValid = (extractValueFromXml(xmlText, 'valid')?.toLowerCase() === 'true');
       const companyName = extractValueFromXml(xmlText, 'name') || "";
       const address = extractValueFromXml(xmlText, 'address') || "";
       
-      console.log(`Validation result: valid=${isValid}, name=${companyName}, address=${address}`);
+      console.log(`VIES validation result: valid=${isValid}, name=${companyName}, address=${address}`);
       
       // Return the validation result
       return new Response(JSON.stringify({
@@ -173,7 +175,7 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (fetchError) {
-      console.error("Fetch error:", fetchError.message || fetchError);
+      console.error("VIES fetch error:", fetchError.message || fetchError);
       return new Response(JSON.stringify({ 
         valid: false,
         error: `Connection error: ${fetchError.message || "Failed to connect to VIES service"}`
