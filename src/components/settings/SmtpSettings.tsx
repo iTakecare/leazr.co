@@ -55,6 +55,18 @@ const ResendSettings = () => {
         });
       }
       
+      await fetchResendApiKey();
+      
+    } catch (err) {
+      console.error("Erreur lors de la récupération des paramètres:", err);
+      toast.error("Erreur lors du chargement des paramètres d'envoi d'email");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchResendApiKey = async () => {
+    try {
       console.log("Fetching Resend API key...");
       const { data: secretData, error: secretError } = await supabase.functions.invoke('get-secret-value', {
         body: { secret_name: 'RESEND_API_KEY' }
@@ -63,17 +75,13 @@ const ResendSettings = () => {
       if (secretError) {
         console.error("Error fetching Resend API key:", secretError);
       } else if (secretData) {
-        console.log("Resend API key retrieved");
+        console.log("Resend API key retrieved successfully");
         setResendApiKey(secretData);
       } else {
         console.log("No Resend API key found or it's empty");
       }
-      
     } catch (err) {
-      console.error("Erreur lors de la récupération des paramètres:", err);
-      toast.error("Erreur lors du chargement des paramètres d'envoi d'email");
-    } finally {
-      setLoading(false);
+      console.error("Exception while fetching Resend API key:", err);
     }
   };
 
@@ -125,6 +133,9 @@ const ResendSettings = () => {
         }
         
         console.log("Resend API key saved successfully:", secretData);
+        
+        // Vérification immédiate que la clé a bien été enregistrée
+        await fetchResendApiKey();
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");

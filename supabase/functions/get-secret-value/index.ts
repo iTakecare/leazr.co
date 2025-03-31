@@ -31,16 +31,20 @@ serve(async (req) => {
       );
     }
     
+    console.log(`Récupération du secret ${secret_name}...`);
+    
     // Récupérer la valeur du secret depuis les variables d'environnement
     const value = Deno.env.get(secret_name);
     
     if (!value) {
+      console.log(`Secret ${secret_name} non trouvé dans les variables d'environnement`);
       return new Response(
         JSON.stringify({ error: `Secret ${secret_name} non trouvé` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
     
+    console.log(`Secret ${secret_name} récupéré avec succès`);
     return new Response(
       JSON.stringify(value),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
