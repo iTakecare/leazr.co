@@ -1378,6 +1378,7 @@ export type Database = {
           id: number
           password: string | null
           port: string | null
+          resend_api_key: string | null
           secure: boolean | null
           updated_at: string
           use_resend: boolean | null
@@ -1392,6 +1393,7 @@ export type Database = {
           id: number
           password?: string | null
           port?: string | null
+          resend_api_key?: string | null
           secure?: boolean | null
           updated_at?: string
           use_resend?: boolean | null
@@ -1406,6 +1408,7 @@ export type Database = {
           id?: number
           password?: string | null
           port?: string | null
+          resend_api_key?: string | null
           secure?: boolean | null
           updated_at?: string
           use_resend?: boolean | null

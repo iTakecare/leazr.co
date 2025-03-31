@@ -13,6 +13,8 @@ interface ResendSettingsData {
   id: number;
   from_email: string;
   from_name: string;
+  resend_api_key?: string;
+  use_resend: boolean;
   updated_at?: string;
 }
 
@@ -23,11 +25,11 @@ const ResendSettings = () => {
   const [settings, setSettings] = useState<ResendSettingsData>({
     id: 1,
     from_email: "",
-    from_name: "iTakecare"
+    from_name: "iTakecare",
+    use_resend: true,
+    resend_api_key: ""
   });
-  const [resendApiKey, setResendApiKey] = useState<string>("");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [keyStatus, setKeyStatus] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     try {
@@ -37,7 +39,7 @@ const ResendSettings = () => {
       console.log("Fetching email settings...");
       const { data, error } = await supabase
         .from('smtp_settings')
-        .select('id, from_email, from_name')
+        .select('id, from_email, from_name, use_resend, resend_api_key')
         .eq('id', 1)
         .single();
 
@@ -48,52 +50,23 @@ const ResendSettings = () => {
       }
 
       if (data) {
-        console.log("Settings retrieved:", { ...data });
+        console.log("Settings retrieved:", { 
+          ...data, 
+          resend_api_key: data.resend_api_key ? "**********" : "" 
+        });
         setSettings({
           id: data.id || 1,
           from_email: data.from_email || "",
-          from_name: data.from_name || "iTakecare"
+          from_name: data.from_name || "iTakecare",
+          use_resend: data.use_resend || true,
+          resend_api_key: data.resend_api_key || ""
         });
       }
-      
-      await fetchResendApiKey();
-      
     } catch (err) {
       console.error("Erreur lors de la récupération des paramètres:", err);
       toast.error("Erreur lors du chargement des paramètres d'envoi d'email");
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const fetchResendApiKey = async () => {
-    try {
-      console.log("Fetching Resend API key from Supabase secrets...");
-      setKeyStatus("loading");
-      
-      // Modification ici: Utilisation du nom correct du secret "RESEND_API"
-      const { data: secretData, error: secretError } = await supabase.functions.invoke('get-secret-value', {
-        body: { secret_name: 'RESEND_API' }
-      });
-      
-      if (secretError) {
-        console.error("Error fetching Resend API key:", secretError);
-        setKeyStatus("error");
-        return;
-      } 
-      
-      if (secretData) {
-        console.log("Resend API key retrieved successfully from secrets");
-        setResendApiKey(secretData);
-        setKeyStatus("loaded");
-      } else {
-        console.log("No Resend API key found in Supabase secrets");
-        setKeyStatus("not_found");
-        setResendApiKey("");
-      }
-    } catch (err) {
-      console.error("Exception while fetching Resend API key:", err);
-      setKeyStatus("error");
     }
   };
 
@@ -112,7 +85,7 @@ const ResendSettings = () => {
         updated_at: new Date().toISOString()
       };
       
-      console.log("Saving email settings:", settingsToSave);
+      console.log("Saving email settings with Resend API key");
       
       // Enregistrement dans la table smtp_settings
       const { error } = await supabase
@@ -123,37 +96,6 @@ const ResendSettings = () => {
         console.error("Error updating email settings:", error);
         setSaveError(`Erreur base de données: ${error.message}`);
         throw error;
-      }
-      
-      // Enregistrer la clé API Resend dans les secrets Supabase (pas dans la base de données)
-      if (resendApiKey) {
-        console.log("Saving Resend API key to Supabase secrets...");
-        
-        // Modification ici: Utilisation du nom correct du secret "RESEND_API"
-        const { data: secretData, error: secretError } = await supabase.functions.invoke('set-secret', {
-          body: { key: 'RESEND_API', value: resendApiKey }
-        });
-        
-        if (secretError) {
-          console.error("Error saving Resend API key:", secretError);
-          setSaveError(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
-          throw new Error(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
-        }
-        
-        if (secretData && !secretData.success) {
-          console.error("Failed to save Resend API key:", secretData);
-          setSaveError(`Échec de l'enregistrement de la clé Resend: ${secretData.message || 'Erreur inconnue'}`);
-          throw new Error(`Échec de l'enregistrement de la clé Resend: ${secretData.message || 'Erreur inconnue'}`);
-        }
-        
-        console.log("Resend API key saved successfully to Supabase secrets:", secretData);
-        
-        // Vérification immédiate que la clé a bien été enregistrée
-        await fetchResendApiKey();
-        
-        if (keyStatus === "error" || keyStatus === "not_found") {
-          toast.warning("La clé API a été enregistrée mais n'est pas disponible immédiatement dans l'environnement. Veuillez également configurer ce secret dans l'interface Supabase.");
-        }
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");
@@ -176,7 +118,7 @@ const ResendSettings = () => {
       console.log("Testing Resend email sending");
       
       const { data, error } = await supabase.functions.invoke('test-resend', {
-        body: { apiKey: resendApiKey }
+        body: {}  // No need to send API key, it will be fetched from the database
       });
       
       console.log("Réponse du test:", data, error);
@@ -257,20 +199,20 @@ const ResendSettings = () => {
         </Alert>
         
         <div className="space-y-2">
-          <Label htmlFor="resend-api-key">
-            Clé API Resend 
-            {keyStatus === "loaded" && <span className="ml-2 text-xs text-green-600">(Chargée depuis les secrets Supabase)</span>}
+          <Label htmlFor="resend_api_key">
+            Clé API Resend
           </Label>
           <Input
-            id="resend-api-key"
+            id="resend_api_key"
+            name="resend_api_key"
             placeholder="re_..."
-            value={resendApiKey}
-            onChange={(e) => setResendApiKey(e.target.value)}
+            value={settings.resend_api_key || ""}
+            onChange={handleChange}
             type="password"
           />
           <p className="text-sm text-gray-500 mt-1">
             Créez une clé API sur <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com/api-keys</a>. 
-            <strong className="block mt-1">Note:</strong> La clé API est stockée dans les secrets Supabase, pas dans la base de données.
+            <strong className="block mt-1">Note:</strong> La clé API est stockée de manière sécurisée dans la base de données.
           </p>
         </div>
         
@@ -310,14 +252,14 @@ const ResendSettings = () => {
           <Button 
             variant="outline" 
             onClick={handleTest} 
-            disabled={testing || !resendApiKey}
+            disabled={testing || !settings.resend_api_key}
           >
             <Send className="mr-2 h-4 w-4" />
             {testing ? "Test en cours..." : "Tester la connexion"}
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={saving || !resendApiKey}
+            disabled={saving || !settings.resend_api_key}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
             {saving ? "Enregistrement..." : "Enregistrer"}

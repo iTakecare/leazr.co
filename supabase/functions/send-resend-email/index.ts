@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 // Configuration CORS
 const corsHeaders = {
@@ -42,19 +43,39 @@ serve(async (req) => {
       from: reqData.from?.email || "default-from@email.com"
     });
 
-    // Récupérer la clé API Resend directement depuis les variables d'environnement
-    const resendApiKey = Deno.env.get("RESEND_API");
-    if (!resendApiKey) {
-      console.error("Clé API Resend non configurée dans les variables d'environnement");
+    // Créer un client Supabase avec les variables d'environnement
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Variables d'environnement Supabase non configurées");
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Récupérer les paramètres SMTP depuis la base de données
+    const { data: smtpSettings, error: settingsError } = await supabase
+      .from('smtp_settings')
+      .select('resend_api_key, from_email, from_name')
+      .eq('id', 1)
+      .single();
+    
+    if (settingsError) {
+      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      throw new Error(`Erreur de base de données: ${settingsError.message}`);
+    }
+    
+    if (!smtpSettings || !smtpSettings.resend_api_key) {
+      console.error("Clé API Resend non configurée dans la base de données");
       throw new Error("Clé API Resend non configurée");
     }
 
     console.log("Clé API Resend récupérée avec succès");
-    const resend = new Resend(resendApiKey);
+    const resend = new Resend(smtpSettings.resend_api_key);
 
     // Format d'expéditeur par défaut si non fourni
-    const fromName = reqData.from?.name || "iTakecare";
-    const fromEmail = reqData.from?.email || "noreply@itakecare.app";
+    const fromName = reqData.from?.name || smtpSettings.from_name || "iTakecare";
+    const fromEmail = reqData.from?.email || smtpSettings.from_email || "noreply@itakecare.app";
     
     // Format de from pour resend
     const from = `${fromName} <${fromEmail}>`;
