@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, ChevronLeft } from 'lucide-react';
+import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -39,12 +39,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const totalMonthly = items.reduce((total, item) => {
     const price = item.product.currentPrice || item.product.monthly_price || 0;
     return total + (price * item.quantity);
-  }, 0);
-  
-  const totalValue = items.reduce((total, item) => {
-    const price = item.product.currentPrice || item.product.monthly_price || 0;
-    const months = item.duration || 36;
-    return total + (price * item.quantity * months);
   }, 0);
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -172,11 +166,15 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
               <span className="font-medium">Total mensuel:</span>
               <span className="font-bold text-blue-700">{formatCurrency(totalMonthly)} / mois</span>
             </div>
-            
-            <div className="pt-1 flex justify-between text-sm">
-              <span className="font-medium">Valeur totale (36 mois):</span>
-              <span>{formatCurrency(totalValue)}</span>
-            </div>
+          </div>
+        </div>
+
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg">
+          <div className="flex">
+            <InfoIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-sm">
+              Demande soumise à approbation d'un partenaire financier, nous reviendrons vers vous dans un délai de 24h (jours ouvrables, hors week-end) pour le suivi de votre demande.
+            </p>
           </div>
         </div>
       </div>
