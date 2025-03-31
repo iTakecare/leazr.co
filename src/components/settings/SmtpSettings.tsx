@@ -106,31 +106,44 @@ const SmtpSettings = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
+      console.log("Enregistrement des paramètres avec use_resend:", useResend);
       
+      // Création de l'objet à enregistrer dans la base de données
+      const settingsToSave = {
+        ...settings,
+        use_resend: useResend,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Enregistrement dans la table smtp_settings
       const { error } = await supabase
         .from('smtp_settings')
-        .upsert({
-          ...settings,
-          use_resend: useResend,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(settingsToSave);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de la mise à jour des paramètres SMTP:", error);
+        throw error;
+      }
       
+      // Si Resend est activé, enregistrer la clé API
       if (useResend && resendApiKey) {
-        const { error: secretError } = await supabase.functions.invoke('set-secret', {
+        console.log("Enregistrement de la clé API Resend...");
+        const { data: secretData, error: secretError } = await supabase.functions.invoke('set-secret', {
           body: { key: 'RESEND_API_KEY', value: resendApiKey }
         });
         
         if (secretError) {
+          console.error("Erreur lors de l'enregistrement de la clé Resend:", secretError);
           throw new Error(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
         }
+        
+        console.log("Clé API Resend enregistrée:", secretData);
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'enregistrement des paramètres:", error);
-      toast.error("Erreur lors de l'enregistrement des paramètres");
+      toast.error(`Erreur: ${error.message || "Problème lors de l'enregistrement"}`);
     } finally {
       setSaving(false);
     }
@@ -140,21 +153,26 @@ const SmtpSettings = () => {
     try {
       setTesting(true);
       
-      let testFunction = 'test-smtp-connection';
+      let testFunction: string;
       let testData: SmtpTestData | ResendTestData;
       
+      // Selon le mode sélectionné, préparer les données et choisir la fonction à appeler
       if (useResend) {
         testFunction = 'test-resend';
         testData = { apiKey: resendApiKey } as ResendTestData;
       } else {
+        testFunction = 'test-smtp-connection';
         testData = { config: settings } as SmtpTestData;
       }
       
       toast.info("Test d'envoi d'email en cours...");
+      console.log(`Test de la fonction ${testFunction} avec les données:`, testData);
       
       const { data, error } = await supabase.functions.invoke(testFunction, {
         body: testData
       });
+      
+      console.log("Réponse du test:", data, error);
       
       if (error) {
         console.error("Erreur lors du test:", error);
@@ -163,13 +181,13 @@ const SmtpSettings = () => {
       }
       
       if (data && data.success) {
-        toast.success(data.message);
+        toast.success(data.message || "Test d'envoi d'email réussi");
       } else {
-        toast.error(data.message || "Échec du test d'envoi d'email");
+        toast.error(data?.message || "Échec du test d'envoi d'email");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors du test:", error);
-      toast.error("Erreur lors du test d'envoi d'email");
+      toast.error(`Erreur: ${error.message || "Problème lors du test"}`);
     } finally {
       setTesting(false);
     }

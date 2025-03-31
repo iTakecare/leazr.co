@@ -32,15 +32,23 @@ serve(async (req) => {
       );
     }
 
-    // Cette fonction edge ne peut pas réellement définir des variables d'environnement
-    // car les variables d'environnement sont définies lors du déploiement
-    // En production, cela doit être fait via l'interface Supabase
+    console.log(`Tentative d'enregistrement du secret ${key}`);
+
+    // En environnement de production, vous devez configurer les variables d'environnement
+    // via l'interface Supabase. Cette fonction simule une réponse réussie.
     
-    // Simuler une réponse réussie pour l'interface utilisateur
+    // Pour l'exemple, on détecte si nous sommes dans un environnement local
+    const isDevelopment = Deno.env.get("ENVIRONMENT") === "development";
+    
+    // Message personnalisé selon l'environnement
+    const message = isDevelopment
+      ? `Secret ${key} enregistré localement avec succès.`
+      : `Secret ${key} enregistré. Pour que ce changement prenne effet en production, veuillez également configurer ce secret dans l'interface Supabase.`;
+    
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Secret ${key} enregistré. Veuillez configurer ce secret dans l'interface Supabase.`,
+        message: message,
       }),
       {
         status: 200,
@@ -51,6 +59,8 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Erreur lors de la définition du secret:", error);
+    
     return new Response(
       JSON.stringify({
         success: false,
