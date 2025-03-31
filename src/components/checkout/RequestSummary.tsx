@@ -46,6 +46,26 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   
   // Use the email from contactData if available, otherwise use the company email
   const contactEmail = contactData.email || companyData.email;
+
+  // Fonction pour traduire le code pays
+  const getCountryName = (countryCode: string): string => {
+    switch(countryCode) {
+      case 'BE': return 'Belgique';
+      case 'FR': return 'France';
+      case 'LU': return 'Luxembourg';
+      default: return countryCode;
+    }
+  };
+
+  // Fonction pour obtenir le label du numéro d'identification approprié
+  const getIdLabel = (countryCode: string): string => {
+    switch(countryCode) {
+      case 'BE': return 'Numéro TVA';
+      case 'FR': return 'SIRET';
+      case 'LU': return 'RCS';
+      default: return 'Numéro d\'identification';
+    }
+  };
   
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -59,8 +79,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
           <h3 className="font-medium mb-2">Informations entreprise</h3>
           <div className="space-y-1 text-sm">
             <p><span className="text-gray-500">Entreprise:</span> {companyData.company}</p>
-            <p><span className="text-gray-500">Numéro {companyData.country === 'FR' ? 'SIRET' : companyData.country === 'LU' ? 'RCS' : 'TVA'}:</span> {companyData.vat_number}</p>
-            <p><span className="text-gray-500">Pays:</span> {companyData.country === 'BE' ? 'Belgique' : companyData.country === 'FR' ? 'France' : 'Luxembourg'}</p>
+            <p><span className="text-gray-500">{getIdLabel(companyData.country)}:</span> {companyData.vat_number}</p>
+            <p><span className="text-gray-500">Pays:</span> {getCountryName(companyData.country)}</p>
             <p><span className="text-gray-500">Email:</span> {companyData.email}</p>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Building, Loader2, Search, Mail } from 'lucide-react';
-import { clientService } from '@/services/clientService';
+import { verifyVatNumber } from '@/services/clientService';
 import { 
   Select,
   SelectContent,
@@ -57,6 +57,59 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
   const handleCountryChange = (value: string) => {
     setCountry(value);
     updateFormData({ country: value });
+    
+    // Réinitialiser l'exemption de TVA si on change pour un pays autre que la Belgique
+    if (value !== 'BE' && formData.is_vat_exempt) {
+      updateFormData({ is_vat_exempt: false });
+    }
+  };
+
+  const handleSearchCompany = async () => {
+    // Vérifier que le numéro d'entreprise est renseigné
+    if (!formData.vat_number.trim()) {
+      toast({
+        title: "Champ obligatoire",
+        description: `Veuillez entrer votre ${idFormats[country as keyof typeof idFormats].label}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVerifying(true);
+    
+    try {
+      // Vérifier le numéro d'entreprise via VIES
+      const result = await verifyVatNumber(formData.vat_number, country);
+      
+      if (result.valid) {
+        // Mettre à jour les informations de l'entreprise avec les données de VIES
+        updateFormData({
+          company_verified: true,
+          company: result.companyName || formData.company
+        });
+        
+        toast({
+          title: "Entreprise trouvée",
+          description: `Informations récupérées pour ${result.companyName}`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Entreprise non trouvée",
+          description: result.error || `Le ${idFormats[country as keyof typeof idFormats].label} n'a pas pu être vérifié. Veuillez vérifier et réessayer.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying business ID:", error);
+      toast({
+        title: "Erreur de recherche",
+        description: `Une erreur est survenue lors de la vérification du ${idFormats[country as keyof typeof idFormats].label}.`,
+        variant: "destructive"
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleVerifyVAT = async (e: React.FormEvent) => {
@@ -103,7 +156,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     try {
       // Attempt to verify the VAT/business number
       console.log(`Verifying company ID: ${formData.vat_number}`);
-      const result = await clientService.verifyVatNumber(formData.vat_number, country);
+      const result = await verifyVatNumber(formData.vat_number, country);
       
       if (result.valid) {
         updateFormData({
@@ -184,8 +237,8 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
               size="icon"
               variant="outline"
               className="flex-shrink-0 border-gray-300"
-              onClick={() => handleVerifyVAT}
-              disabled={verifying}
+              onClick={handleSearchCompany}
+              disabled={verifying || !formData.vat_number.trim()}
             >
               {verifying ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

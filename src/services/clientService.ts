@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData, Collaborator } from '@/types/client';
 import { toast } from 'sonner';
@@ -14,7 +13,12 @@ export const clientService = {
 
       if (error) throw error;
 
-      return data as Client[];
+      // Transform client data to include companyName property expected by ClientSelector
+      return data.map(client => ({
+        ...client,
+        companyName: client.company || '',  // Add companyName for compatibility
+        companyId: client.id,               // Add companyId for compatibility
+      })) as Client[];
     } catch (error) {
       console.error('Error fetching clients:', error);
       throw error;
@@ -158,55 +162,30 @@ export const clientService = {
   // Verify VAT number using VIES API (via server endpoint)
   verifyVatNumber: async (vatNumber: string, country: string = 'BE'): Promise<{ valid: boolean; companyName?: string; address?: string; error?: string }> => {
     try {
-      // Simulate API call for now - in a production app would call a server endpoint to verify with VIES
       console.log(`Verifying VAT number: ${vatNumber} from country: ${country}`);
       
-      // Remove all spaces and special characters
-      const sanitizedVatNumber = vatNumber.replace(/[^a-zA-Z0-9]/g, '');
+      // Call the VIES Edge Function
+      const { data, error } = await supabase.functions.invoke('vies-verify', {
+        body: { vatNumber, country }
+      });
       
-      // Perform basic validation based on country
-      let isValid = false;
-      let companyName: string | undefined;
-      let address: string | undefined;
-      
-      if (country === 'BE') {
-        // Belgian VAT number format: 10 digits
-        isValid = /^\d{10}$/.test(sanitizedVatNumber);
-        if (isValid) {
-          companyName = 'Company BE Example';
-          address = '123 Sample Street, 1000 Brussels, Belgium';
-        }
-      } else if (country === 'FR') {
-        // French SIREN (9 digits) or SIRET (14 digits)
-        isValid = /^\d{9}$/.test(sanitizedVatNumber) || /^\d{14}$/.test(sanitizedVatNumber);
-        if (isValid) {
-          companyName = 'Entreprise Française Example';
-          address = '45 Rue de Paris, 75001 Paris, France';
-        }
-      } else if (country === 'LU') {
-        // Luxembourg VAT number format: 8 digits
-        isValid = /^\d{8}$/.test(sanitizedVatNumber);
-        if (isValid) {
-          companyName = 'Luxembourg Company Example';
-          address = '10 Avenue de la Liberté, 1930 Luxembourg';
-        }
-      }
-
-      // In a real scenario, this would be an actual API call to VIES
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-      
-      if (isValid) {
-        return {
-          valid: true,
-          companyName,
-          address
-        };
-      } else {
+      if (error) {
+        console.error('Error calling VIES verification service:', error);
         return {
           valid: false,
-          error: `Format de ${country === 'BE' ? "numéro d'entreprise" : country === 'FR' ? "SIRET/SIREN" : "numéro d'identification"} invalide`
+          error: `Service error: ${error.message || 'Erreur de connexion au service de vérification'}`
         };
       }
+      
+      console.log('VIES verification result:', data);
+      
+      // Return the result from the Edge Function
+      return {
+        valid: data.valid,
+        companyName: data.companyName,
+        address: data.address,
+        error: data.error
+      };
     } catch (error) {
       console.error('Error verifying VAT number:', error);
       return {
