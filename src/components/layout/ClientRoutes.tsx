@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -19,8 +20,8 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen overflow-hidden">
       <ClientSidebar />
-      <div className="flex-1 flex flex-col overflow-auto">
-        <main className="flex-1 overflow-auto p-8">{children}</main>
+      <div className="flex-1 flex flex-col overflow-auto ml-16">
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );
