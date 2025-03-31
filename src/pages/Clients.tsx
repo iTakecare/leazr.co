@@ -1,169 +1,217 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
-import { useClients } from "@/hooks/useClients";
-import { deleteClient } from "@/services/clientService";
-import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useClients } from "@/hooks/useClients";
+import ClientsList from "@/components/crm/ClientsList";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const ClientsPage = () => {
+const Clients = () => {
   const navigate = useNavigate();
-  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("clients");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const {
-    clients,
-    isLoading,
-    error,
-    searchTerm,
-    setSearchTerm,
-    selectedStatus,
-    setSelectedStatus
-  } = useClients();
+  const { clients, isLoading, error, searchTerm: clientSearchTerm, setSearchTerm: setClientSearchTerm, selectedStatus, setSelectedStatus } = useClients();
+  
+  useEffect(() => {
+    setClientSearchTerm(searchTerm);
+  }, [searchTerm, setClientSearchTerm]);
 
-  const handleDeleteClient = async () => {
-    if (deleteClientId) {
-      try {
-        await deleteClient(deleteClientId);
-        toast.success("Client supprimé avec succès");
-      } catch (error) {
-        console.error("Error deleting client:", error);
-        toast.error("Erreur lors de la suppression du client");
-      } finally {
-        setDeleteClientId(null);
-      }
+  useEffect(() => {
+    setSelectedStatus(statusFilter);
+  }, [statusFilter, setSelectedStatus]);
+  
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+  };
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Handle navigation based on tab selection
+    if (value === "clients") {
+      navigate("/clients");
+    } else if (value === "partners") {
+      navigate("/partners");
+    } else if (value === "ambassadors") {
+      navigate("/ambassadors");
+    }
+  };
+
+  const handleAddClient = () => {
+    navigate("/clients/create");
+  };
+
+  const getStatusFilterLabel = () => {
+    switch(statusFilter) {
+      case 'active': return 'Clients actifs';
+      case 'inactive': return 'Clients inactifs';
+      case 'lead': return 'Prospects';
+      default: return 'Tous les clients';
     }
   };
 
   return (
     <PageTransition>
       <Container>
-        <div className="container py-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">Clients</h1>
-            <Link to="/clients/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un client
-              </Button>
-            </Link>
-          </div>
-
-          <div className="flex items-center space-x-4 mb-4">
-            <Input
-              type="text"
-              placeholder="Rechercher un client..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="active">Actif</SelectItem>
-                <SelectItem value="inactive">Inactif</SelectItem>
-                <SelectItem value="lead">Prospect</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Chargement...
+        <motion.div
+          className="py-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold mb-1">CRM</h1>
+                <p className="text-muted-foreground">
+                  Gérez vos clients, ambassadeurs et partenaires
+                </p>
+              </div>
             </div>
-          ) : error ? (
-            <div className="text-red-500">Erreur: {error.message}</div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Société</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>{client.name}</TableCell>
-                      <TableCell>{client.email}</TableCell>
-                      <TableCell>{client.company || '-'}</TableCell>
-                      <TableCell>{client.status}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/clients/${client.id}`)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Modifier
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={() => setDeleteClientId(client.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Supprimer
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-2">
+                <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
+                  <TabsList className="grid grid-cols-3 mb-4">
+                    <TabsTrigger value="clients" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span className={isMobile ? "hidden" : ""}>Clients</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="ambassadors" className="flex items-center gap-2">
+                      <HeartHandshake className="h-4 w-4" />
+                      <span className={isMobile ? "hidden" : ""}>Ambassadeurs</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="partners" className="flex items-center gap-2">
+                      <BadgePercent className="h-4 w-4" />
+                      <span className={isMobile ? "hidden" : ""}>Partenaires</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="clients" className="mt-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-xl">Clients</CardTitle>
+                        <CardDescription>
+                          Gérez vos clients
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-auto gap-2">
+                              <Filter className="h-4 w-4" />
+                              <span className="truncate">{getStatusFilterLabel()}</span>
+                              <Badge variant="secondary" className="ml-1 text-xs">
+                                {clients.length}
+                              </Badge>
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Êtes-vous sûr(e) ?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Cette action est irréversible. Voulez-vous vraiment supprimer ce client ?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDeleteClient}>Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56">
+                            <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                                Tous les clients
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setStatusFilter('active')}>
+                                Clients actifs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+                                Clients inactifs
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setStatusFilter('lead')}>
+                                Prospects
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="relative flex-grow">
+                            <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Rechercher un client..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-9 w-full"
+                            />
+                          </div>
+                          <Button 
+                            onClick={handleAddClient} 
+                            variant="default" 
+                            size="sm" 
+                            className="sm:ml-2 gap-1"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span className={isMobile ? "" : ""}>Nouveau client</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="ambassadors" className="mt-0">
+                    <div>
+                      <CardTitle className="text-xl">Ambassadeurs</CardTitle>
+                      <CardDescription>
+                        Gérez vos ambassadeurs et suivez leurs performances
+                      </CardDescription>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="partners" className="mt-0">
+                    <div>
+                      <CardTitle className="text-xl">Partenaires</CardTitle>
+                      <CardDescription>
+                        Gérez vos relations partenaires
+                      </CardDescription>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardHeader>
+              <CardContent>
+                {activeTab === "clients" && <ClientsList clients={clients} isLoading={isLoading} error={error} />}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
       </Container>
     </PageTransition>
   );
 };
 
-export default ClientsPage;
+export default Clients;
