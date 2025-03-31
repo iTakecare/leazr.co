@@ -1,4 +1,3 @@
-
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -10,7 +9,7 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
   try {
     console.log("Test de création d'un client...");
     const testId = uuidv4();
-    const testEmail = `test-${testId.substring(0, 8)}@test.com`;
+    const testEmail = `test-${testId.substring(0, 8)}@test.com";
     
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
@@ -31,12 +30,6 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     
     console.log("En train de créer un client test avec le client administrateur...");
     console.log("Client admin instance:", adminClient ? "Disponible" : "Non disponible");
-    
-    // Test spécifique pour vérifier que les headers contiennent bien la clé de service
-    const headers = (adminClient as any)._headers;
-    console.log("Headers du client admin:", headers);
-    console.log("Auth Header:", headers?.Authorization?.substring(0, 30) + "...");
-    console.log("API Key Header:", headers?.apikey?.substring(0, 30) + "...");
     
     // Essai de création d'un client test
     const { data, error } = await adminClient
@@ -89,10 +82,6 @@ export const testOfferCreationPermission = async (clientId?: string | null): Pro
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
     console.log("Client admin pour offre:", adminClient ? "Disponible" : "Non disponible");
-    
-    // Test spécifique pour vérifier à nouveau les headers
-    const headers = (adminClient as any)._headers;
-    console.log("Headers pour la création d'offre:", headers);
     
     const testOfferData = {
       id: testId,
@@ -164,16 +153,6 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     
     // Analyse de la configuration du client
     console.log("Client admin créé avec succès");
-    
-    // Inspection des headers (sans les exposer complètement)
-    const headers = (adminClient as any).headers;
-    const auth = (adminClient as any).auth;
-    const opts = (adminClient as any).opts;
-    
-    console.log("Configuration du client admin:");
-    console.log("Headers disponibles:", headers ? "Oui" : "Non");
-    console.log("Auth configuré:", auth ? "Oui" : "Non");
-    console.log("Options configurées:", opts ? "Oui" : "Non");
     
     // Tentative d'appel à un endpoint simple
     const { data: testData, error: testError } = await adminClient

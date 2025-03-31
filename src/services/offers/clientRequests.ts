@@ -14,14 +14,6 @@ export const createClientRequest = async (data: any) => {
     // Vérification du client administrateur
     console.log("Client admin pour createClientRequest:", adminClient ? "Disponible" : "Non disponible");
     
-    // Vérification supplémentaire des headers pour diagnostiquer le problème
-    const headers = (adminClient as any).headers;
-    console.log("CLIENT ADMIN AUTH HEADERS:", {
-      Authorization: headers?.Authorization?.substring(0, 50) + '...',
-      apikey: headers?.apikey?.substring(0, 50) + '...',
-      'Content-Type': headers?.['Content-Type']
-    });
-    
     const { data: result, error } = await adminClient
       .from('offers')
       .insert(data)

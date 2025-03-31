@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createClientRequest } from "@/services/offers/clientRequests";
@@ -54,14 +53,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
     const adminClient = getAdminSupabaseClient();
     console.log("Client admin pour createProductRequest:", adminClient ? "Disponible" : "Non disponible");
     
-    // Diagnostic des headers pour identifier le problème d'authentification
-    const headers = (adminClient as any).headers;
-    console.log("CLIENT ADMIN AUTH HEADERS:", {
-      Authorization: headers?.Authorization?.substring(0, 50) + '...',
-      apikey: headers?.apikey?.substring(0, 50) + '...',
-      'Content-Type': headers?.['Content-Type']
-    });
-    
     // Créer le client dans le système
     try {
       // Préparer les données du client pour l'insertion
@@ -112,9 +103,9 @@ export const createProductRequest = async (data: ProductRequestData) => {
         monthly_payment: data.monthly_payment,
         coefficient: 1.0,
         commission: 0,
-        type: 'client_request',
-        workflow_status: 'requested',
-        status: 'pending',
+        type: "client_request",
+        workflow_status: "requested",
+        status: "pending",
         remarks: data.message || '',
         user_id: null
       };

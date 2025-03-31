@@ -30,37 +30,26 @@ export const getSupabaseClient = () => {
 };
 
 // Function to get admin supabase client with service role key
-// Problème résolu : Les headers doivent être définis au niveau global pour être pris en compte
 let adminSupabaseInstance = null;
 
 export const getAdminSupabaseClient = () => {
   console.log("Creating admin client with service role key");
   
   if (!adminSupabaseInstance) {
+    // Créer une nouvelle instance avec la clé de service directement sans modifier les en-têtes
     adminSupabaseInstance = createClient<Database>(
-      SUPABASE_URL,
+      SUPABASE_URL, 
       SERVICE_ROLE_KEY,
       {
         auth: {
-          persistSession: false, // Important: ne pas persister la session admin
-          autoRefreshToken: false, // Important: ne pas rafraichir automatiquement le token
-          detectSessionInUrl: false // Important: ne pas détecter le token dans l'URL
-        },
-        global: {
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
-          },
-        },
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        }
       }
     );
     
-    // Vérification supplémentaire des headers (seulement pour le diagnostic)
-    const headers = (adminSupabaseInstance as any).headers;
-    if (headers) {
-      console.log("Admin client headers initialized successfully");
-    }
+    console.log("Admin client created with service role key");
   }
   
   return adminSupabaseInstance;
