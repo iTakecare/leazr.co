@@ -22,7 +22,7 @@ export const sendEmail = async (
     // Récupérer les paramètres de configuration
     const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
-      .select('*')
+      .select('from_email, from_name')
       .eq('id', 1)
       .single();
       
@@ -37,17 +37,10 @@ export const sendEmail = async (
     }
     
     console.log("Paramètres récupérés:", { 
-      use_resend: settings.use_resend, 
       from_email: settings.from_email,
       from_name: settings.from_name
     });
     
-    // Vérifier si Resend est activé
-    if (!settings.use_resend) {
-      console.error("Resend n'est pas activé");
-      return false;
-    }
-
     console.log("Utilisation de Resend pour l'envoi d'email");
     
     // Appeler la fonction Supabase pour envoyer l'email via Resend

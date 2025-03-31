@@ -1374,42 +1374,42 @@ export type Database = {
           enabled: boolean
           from_email: string
           from_name: string
-          host: string
+          host: string | null
           id: number
-          password: string
-          port: string
-          secure: boolean
+          password: string | null
+          port: string | null
+          secure: boolean | null
           updated_at: string
           use_resend: boolean | null
-          username: string
+          username: string | null
         }
         Insert: {
           created_at?: string
           enabled?: boolean
           from_email: string
           from_name?: string
-          host: string
+          host?: string | null
           id: number
-          password: string
-          port?: string
-          secure?: boolean
+          password?: string | null
+          port?: string | null
+          secure?: boolean | null
           updated_at?: string
           use_resend?: boolean | null
-          username: string
+          username?: string | null
         }
         Update: {
           created_at?: string
           enabled?: boolean
           from_email?: string
           from_name?: string
-          host?: string
+          host?: string | null
           id?: number
-          password?: string
-          port?: string
-          secure?: boolean
+          password?: string | null
+          port?: string | null
+          secure?: boolean | null
           updated_at?: string
           use_resend?: boolean | null
-          username?: string
+          username?: string | null
         }
         Relationships: []
       }

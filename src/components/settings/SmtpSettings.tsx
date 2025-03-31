@@ -9,11 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Send, CheckCircle2, InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-interface SmtpSettingsData {
+interface ResendSettingsData {
   id: number;
   from_email: string;
   from_name: string;
-  use_resend: boolean;
   updated_at?: string;
 }
 
@@ -21,11 +20,10 @@ const ResendSettings = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [testing, setTesting] = useState<boolean>(false);
-  const [settings, setSettings] = useState<SmtpSettingsData>({
+  const [settings, setSettings] = useState<ResendSettingsData>({
     id: 1,
     from_email: "",
-    from_name: "iTakecare",
-    use_resend: true
+    from_name: "iTakecare"
   });
   const [resendApiKey, setResendApiKey] = useState<string>("");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -38,7 +36,7 @@ const ResendSettings = () => {
       console.log("Fetching email settings...");
       const { data, error } = await supabase
         .from('smtp_settings')
-        .select('*')
+        .select('id, from_email, from_name')
         .eq('id', 1)
         .single();
 
@@ -50,12 +48,10 @@ const ResendSettings = () => {
 
       if (data) {
         console.log("Settings retrieved:", { ...data });
-        // Toujours définir use_resend à true
         setSettings({
           id: data.id || 1,
           from_email: data.from_email || "",
-          from_name: data.from_name || "iTakecare",
-          use_resend: true
+          from_name: data.from_name || "iTakecare"
         });
       }
       
@@ -93,7 +89,6 @@ const ResendSettings = () => {
       // Création de l'objet à enregistrer dans la base de données
       const settingsToSave = {
         ...settings,
-        use_resend: true, // Toujours true
         updated_at: new Date().toISOString()
       };
       

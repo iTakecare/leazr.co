@@ -52,8 +52,8 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     // Format d'expéditeur par défaut si non fourni
-    const fromName = reqData.from ? reqData.from.name : "iTakecare";
-    const fromEmail = reqData.from ? reqData.from.email : "noreply@itakecare.app";
+    const fromName = reqData.from?.name || "iTakecare";
+    const fromEmail = reqData.from?.email || "noreply@itakecare.app";
     
     // Format de from pour resend
     const from = `${fromName} <${fromEmail}>`;
