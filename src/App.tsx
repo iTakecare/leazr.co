@@ -54,6 +54,7 @@ import ProductEditPage from "./pages/ProductEditPage";
 import CartPage from './pages/CartPage';
 import RequestPage from './pages/RequestPage';
 import RequestSentPage from './pages/RequestSentPage';
+import Index from './pages/Index';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,8 @@ const App = () => {
                   <Route path="/produits/:id" element={<ProductDetailPage />} />
                   
                   <Route path="/client/sign-offer/:id" element={<SignOffer />} />
+                  
+                  <Route path="/" element={<Index />} />
                   
                   <Route path="/" element={<Layout />}>
                     <Route index element={<Dashboard />} />
