@@ -1,409 +1,228 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Save, RefreshCcw, Eye } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import RichTextEditor from "@/components/ui/rich-text-editor";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Editor } from "@tinymce/tinymce-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { Loader2, Save } from "lucide-react";
 
-interface EmailTemplateData {
-  id?: number;
+interface EmailTemplate {
+  id: number;
   type: string;
   name: string;
   subject: string;
   html_content: string;
   text_content?: string;
   active: boolean;
-  created_at?: string;
-  updated_at?: string;
 }
 
-interface TemplatePreviewData {
-  client_name: string;
-  equipment_description: string;
-  amount: number;
-  monthly_payment: number;
-}
+const EmailTemplateEditor: React.FC = () => {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<string>("");
+  const [currentTemplate, setCurrentTemplate] = useState<EmailTemplate | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
-const EMAIL_TEMPLATE_TYPES = [
-  { value: "product_request", label: "Confirmation de demande de produit", description: "Envoyé au client après une demande de produit" },
-  { value: "welcome", label: "Email de bienvenue", description: "Envoyé aux nouveaux utilisateurs" }
-];
-
-const VARIABLE_DESCRIPTIONS = {
-  product_request: [
-    { variable: "{{client_name}}", description: "Nom du client" },
-    { variable: "{{equipment_description}}", description: "Description de l'équipement" },
-    { variable: "{{amount}}", description: "Montant total" },
-    { variable: "{{monthly_payment}}", description: "Paiement mensuel" }
-  ],
-  welcome: [
-    { variable: "{{client_name}}", description: "Nom du client" }
-  ]
-};
-
-const EmailTemplateEditor = () => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
-  const [activeType, setActiveType] = useState<string>("product_request");
-  const [template, setTemplate] = useState<EmailTemplateData>({
-    type: "product_request",
-    name: "Confirmation de demande de produit",
-    subject: "Bienvenue sur iTakecare - Confirmation de votre demande",
-    html_content: "",
-    active: true
-  });
-  const [previewData, setPreviewData] = useState<TemplatePreviewData>({
-    client_name: "Jean Dupont",
-    equipment_description: "MacBook Pro 16 M3 Pro / Max (87,95 €/mois) x 1 - Options: CPU: M3 Pro, Disque Dur: 512Go, Mémoire RAM: 18Go",
-    amount: 3166.20,
-    monthly_payment: 87.95
-  });
-
-  const [activeTab, setActiveTab] = useState("edit");
-
-  // Chargement du template
-  const fetchTemplate = async (type: string) => {
-    try {
-      setLoading(true);
-      
-      console.log("Chargement du template pour:", type);
-      const { data, error } = await supabase
-        .from('email_templates')
-        .select('*')
-        .eq('type', type)
-        .eq('active', true)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error("Erreur lors de la récupération du template:", error);
-        toast.error("Erreur lors du chargement du template d'email");
-        return;
-      }
-
-      if (data) {
-        console.log("Template récupéré:", data);
-        setTemplate(data);
-      } else {
-        // Utiliser un template par défaut si aucun n'existe
-        const defaultTemplate = createDefaultTemplate(type);
-        console.log("Utilisation du template par défaut:", defaultTemplate);
-        setTemplate(defaultTemplate);
-      }
-    } catch (err) {
-      console.error("Erreur lors du chargement du template:", err);
-      toast.error("Erreur lors du chargement du template d'email");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Créer un template par défaut selon le type
-  const createDefaultTemplate = (type: string): EmailTemplateData => {
-    const typeInfo = EMAIL_TEMPLATE_TYPES.find(t => t.value === type);
-    
-    if (type === "product_request") {
-      return {
-        type,
-        name: typeInfo?.label || "Confirmation de demande de produit",
-        subject: "Bienvenue sur iTakecare - Confirmation de votre demande",
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue {{client_name}},</h2>
-          <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-          <p>Voici un récapitulatif de votre demande :</p>
-          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <li>Équipement : {{equipment_description}}</li>
-            <li>Montant total : {{amount}} €</li>
-            <li>Paiement mensuel estimé : {{monthly_payment}} €/mois</li>
-          </ul>
-          <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      };
-    } else if (type === "welcome") {
-      return {
-        type,
-        name: typeInfo?.label || "Email de bienvenue",
-        subject: "Bienvenue sur iTakecare",
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue {{client_name}} !</h2>
-          <p>Nous sommes ravis de vous accueillir sur la plateforme iTakecare.</p>
-          <p>Vous pouvez dès maintenant accéder à votre espace personnel.</p>
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      };
-    } else {
-      // Template générique
-      return {
-        type,
-        name: typeInfo?.label || "Template d'email",
-        subject: "Message d'iTakecare",
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour {{client_name}},</h2>
-          <p>Contenu de l'email.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      };
-    }
-  };
-
-  // Chargement initial du template
+  // Charger tous les templates disponibles
   useEffect(() => {
-    fetchTemplate(activeType);
-  }, [activeType]);
+    const loadTemplates = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('email_templates')
+          .select('*')
+          .order('type');
+        
+        if (error) throw error;
+        
+        setTemplates(data || []);
+        
+        // Si des modèles sont disponibles, sélectionner le premier par défaut
+        if (data && data.length > 0) {
+          setSelectedTemplateType(data[0].type);
+          setCurrentTemplate(data[0]);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des modèles:", error);
+        toast.error("Impossible de charger les modèles d'email");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTemplates();
+  }, []);
 
-  // Mise à jour du champ de formulaire
-  const handleChange = (field: keyof EmailTemplateData, value: string | boolean) => {
-    setTemplate(prev => ({
-      ...prev,
-      [field]: value,
-      updated_at: new Date().toISOString()
-    }));
+  // Mettre à jour le modèle courant lorsque le type sélectionné change
+  useEffect(() => {
+    if (selectedTemplateType && templates.length > 0) {
+      const template = templates.find(t => t.type === selectedTemplateType);
+      if (template) {
+        setCurrentTemplate(template);
+      }
+    }
+  }, [selectedTemplateType, templates]);
+
+  // Gérer le changement de modèle
+  const handleTemplateChange = (type: string) => {
+    setSelectedTemplateType(type);
   };
 
-  // Enregistrement du template
-  const handleSave = async () => {
+  // Mettre à jour le sujet
+  const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (currentTemplate) {
+      setCurrentTemplate({
+        ...currentTemplate,
+        subject: e.target.value
+      });
+    }
+  };
+
+  // Mettre à jour le contenu HTML
+  const handleEditorChange = (content: string) => {
+    if (currentTemplate) {
+      setCurrentTemplate({
+        ...currentTemplate,
+        html_content: content
+      });
+    }
+  };
+
+  // Sauvegarder le modèle
+  const saveTemplate = async () => {
+    if (!currentTemplate) return;
+
     try {
-      setSaving(true);
+      setIsSaving(true);
       
       const { error } = await supabase
         .from('email_templates')
-        .upsert({
-          ...template,
-          updated_at: new Date().toISOString()
-        });
+        .update({
+          subject: currentTemplate.subject,
+          html_content: currentTemplate.html_content,
+          updated_at: new Date()
+        })
+        .eq('id', currentTemplate.id);
       
-      if (error) {
-        console.error("Erreur lors de l'enregistrement du template:", error);
-        toast.error(`Erreur: ${error.message}`);
-        return;
-      }
+      if (error) throw error;
       
-      toast.success("Template d'email enregistré avec succès");
-    } catch (error: any) {
-      console.error("Erreur lors de l'enregistrement du template:", error);
-      toast.error(`Erreur: ${error.message || "Erreur lors de l'enregistrement"}`);
+      toast.success("Modèle d'email sauvegardé avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde du modèle:", error);
+      toast.error("Impossible de sauvegarder le modèle d'email");
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-  // Réinitialisation du template
-  const handleReset = () => {
-    const defaultTemplate = createDefaultTemplate(activeType);
-    setTemplate(prev => ({
-      ...defaultTemplate,
-      id: prev.id
-    }));
-    toast.info("Template réinitialisé avec les valeurs par défaut");
-  };
-
-  // Génère un aperçu du template avec les données
-  const generatePreviewHtml = () => {
-    let previewHtml = template.html_content;
-    
-    // Remplacer les variables
-    previewHtml = previewHtml
-      .replace(/{{client_name}}/g, previewData.client_name)
-      .replace(/{{equipment_description}}/g, previewData.equipment_description)
-      .replace(/{{amount}}/g, previewData.amount.toString())
-      .replace(/{{monthly_payment}}/g, previewData.monthly_payment.toString());
-    
-    return previewHtml;
-  };
-
-  // Liste des variables disponibles selon le type
-  const getVariablesList = () => {
-    if (activeType in VARIABLE_DESCRIPTIONS) {
-      return VARIABLE_DESCRIPTIONS[activeType as keyof typeof VARIABLE_DESCRIPTIONS];
-    }
-    return [];
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Éditeur de modèles d'emails
-            </CardTitle>
-            <CardDescription>
-              Personnalisez les modèles d'emails envoyés aux clients
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-            >
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Réinitialiser
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={saving}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Enregistrement..." : "Enregistrer"}
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="templateType">Type de modèle</Label>
+          <Select value={selectedTemplateType} onValueChange={handleTemplateChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez un modèle" />
+            </SelectTrigger>
+            <SelectContent>
+              {templates.map((template) => (
+                <SelectItem key={template.id} value={template.type}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <Label>Type de modèle</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {EMAIL_TEMPLATE_TYPES.map((type) => (
-              <div
-                key={type.value}
-                className={`cursor-pointer border rounded-md p-4 transition-all ${
-                  activeType === type.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => setActiveType(type.value)}
-              >
-                <h3 className="font-medium">{type.label}</h3>
-                <p className="text-sm text-muted-foreground">{type.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="edit">Édition</TabsTrigger>
-            <TabsTrigger value="preview">
-              <Eye className="mr-2 h-4 w-4" />
-              Aperçu
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="edit" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="subject">Objet de l'email</Label>
-              <Input 
-                id="subject" 
-                value={template.subject} 
-                onChange={(e) => handleChange("subject", e.target.value)}
-                placeholder="Objet de l'email" 
+
+        {currentTemplate && (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="subject">Sujet de l'email</Label>
+              <Input
+                id="subject"
+                value={currentTemplate.subject}
+                onChange={handleSubjectChange}
+                placeholder="Sujet de l'email"
               />
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="html_content">Contenu de l'email</Label>
-                <span className="text-sm text-muted-foreground">Vous pouvez utiliser du HTML et les variables ci-dessous</span>
-              </div>
-              <RichTextEditor 
-                value={template.html_content} 
-                onChange={(value) => handleChange("html_content", value)}
-                height={400}
-              />
-            </div>
-            
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription>
-                <h4 className="font-medium mb-2">Variables disponibles pour ce modèle :</h4>
-                <ul className="list-disc space-y-1 pl-4">
-                  {getVariablesList().map((item, index) => (
-                    <li key={index}>
-                      <code className="bg-blue-100 p-1 rounded">{item.variable}</code> - {item.description}
-                    </li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          </TabsContent>
-          
-          <TabsContent value="preview" className="space-y-4">
-            <div className="space-y-4">
-              <h3 className="font-medium">Aperçu de l'email</h3>
-              <div className="border rounded-md p-4">
-                <p className="font-medium mb-2">Objet: {template.subject.replace("{{client_name}}", previewData.client_name)}</p>
-                <div className="border-t pt-4 mt-2">
-                  <div dangerouslySetInnerHTML={{ __html: generatePreviewHtml() }} />
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-medium">Données d'aperçu</h3>
-              <p className="text-sm text-muted-foreground">
-                Vous pouvez modifier ces valeurs pour voir comment l'email s'affichera avec différentes données.
-              </p>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="preview_name">Nom du client</Label>
-                  <Input 
-                    id="preview_name" 
-                    value={previewData.client_name} 
-                    onChange={(e) => setPreviewData({...previewData, client_name: e.target.value})}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="editor">Contenu de l'email</Label>
+              <Card>
+                <CardContent className="pt-6">
+                  <Editor
+                    apiKey="no-api-key"
+                    initialValue={currentTemplate.html_content}
+                    onEditorChange={handleEditorChange}
+                    init={{
+                      height: 500,
+                      menubar: true,
+                      plugins: [
+                        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                      ],
+                      toolbar:
+                        'undo redo | blocks | bold italic forecolor | alignleft aligncenter ' +
+                        'alignright alignjustify | bullist numlist outdent indent | ' +
+                        'removeformat | help',
+                      content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                    }}
                   />
-                </div>
-                
-                {activeType === "product_request" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="preview_equipment">Description de l'équipement</Label>
-                      <Input 
-                        id="preview_equipment" 
-                        value={previewData.equipment_description} 
-                        onChange={(e) => setPreviewData({...previewData, equipment_description: e.target.value})}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="preview_amount">Montant total</Label>
-                        <Input 
-                          id="preview_amount" 
-                          type="number"
-                          value={previewData.amount} 
-                          onChange={(e) => setPreviewData({...previewData, amount: parseFloat(e.target.value)})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="preview_monthly">Paiement mensuel</Label>
-                        <Input 
-                          id="preview_monthly" 
-                          type="number"
-                          value={previewData.monthly_payment} 
-                          onChange={(e) => setPreviewData({...previewData, monthly_payment: parseFloat(e.target.value)})}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="pt-4">
+              <h3 className="text-sm font-medium mb-2">Variables disponibles:</h3>
+              <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm">
+                <code className="block mb-1">{'{{client_name}}'} - Nom du client</code>
+                <code className="block mb-1">{'{{equipment_description}}'} - Description de l'équipement</code>
+                <code className="block mb-1">{'{{amount}}'} - Montant total</code>
+                <code className="block mb-1">{'{{monthly_payment}}'} - Paiement mensuel</code>
+                <code className="block">{'{{date}}'} - Date actuelle</code>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+
+            <Button 
+              className="mt-4 w-full sm:w-auto" 
+              onClick={saveTemplate}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Sauvegarder
+                </>
+              )}
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 

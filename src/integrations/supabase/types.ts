@@ -544,6 +544,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          html_content: string
+          id: number
+          name: string
+          subject: string
+          text_content: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          html_content: string
+          id?: number
+          name: string
+          subject: string
+          text_content?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          html_content?: string
+          id?: number
+          name?: string
+          subject?: string
+          text_content?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           created_at: string
