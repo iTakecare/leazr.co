@@ -71,8 +71,9 @@ const ResendSettings = () => {
       console.log("Fetching Resend API key from Supabase secrets...");
       setKeyStatus("loading");
       
+      // Modification ici: Utilisation du nom correct du secret "RESEND_API"
       const { data: secretData, error: secretError } = await supabase.functions.invoke('get-secret-value', {
-        body: { secret_name: 'RESEND_API_KEY' }
+        body: { secret_name: 'RESEND_API' }
       });
       
       if (secretError) {
@@ -127,8 +128,10 @@ const ResendSettings = () => {
       // Enregistrer la clé API Resend dans les secrets Supabase (pas dans la base de données)
       if (resendApiKey) {
         console.log("Saving Resend API key to Supabase secrets...");
+        
+        // Modification ici: Utilisation du nom correct du secret "RESEND_API"
         const { data: secretData, error: secretError } = await supabase.functions.invoke('set-secret', {
-          body: { key: 'RESEND_API_KEY', value: resendApiKey }
+          body: { key: 'RESEND_API', value: resendApiKey }
         });
         
         if (secretError) {

@@ -23,7 +23,8 @@ serve(async (req) => {
     const { apiKey } = requestBody;
     
     // Utiliser la clé API fournie ou celle stockée dans les variables d'environnement
-    const key = apiKey || Deno.env.get("RESEND_API_KEY");
+    // Modification ici: Utiliser le nom correct du secret "RESEND_API"
+    const key = apiKey || Deno.env.get("RESEND_API");
     
     if (!key) {
       return new Response(
