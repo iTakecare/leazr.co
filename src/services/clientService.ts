@@ -165,10 +165,28 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
           return null;
         }
         
-        return standardResult && standardResult.length > 0 ? standardResult[0] : null;
+        // Convert created_at from string to Date before returning
+        if (standardResult && standardResult.length > 0) {
+          const client = standardResult[0];
+          return {
+            ...client,
+            created_at: new Date(client.created_at),
+            updated_at: new Date(client.updated_at)
+          } as Client;
+        }
+        return null;
       }
       
-      return result && result.length > 0 ? result[0] : null;
+      // Convert created_at from string to Date before returning
+      if (result && result.length > 0) {
+        const client = result[0];
+        return {
+          ...client,
+          created_at: new Date(client.created_at),
+          updated_at: new Date(client.updated_at)
+        } as Client;
+      }
+      return null;
     } catch (fallbackError) {
       console.error("Erreur lors de la création du client:", fallbackError);
       return null;
@@ -199,7 +217,16 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
       return null;
     }
 
-    return data || null;
+    // Convert date strings to Date objects
+    if (data) {
+      return {
+        ...data,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at)
+      } as Client;
+    }
+    
+    return null;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
     return null;
