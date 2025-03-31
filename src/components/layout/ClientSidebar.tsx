@@ -1,6 +1,6 @@
 
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,7 +17,9 @@ import {
 
 const ClientSidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
 
   // Navigation items for client sidebar
   const navigationItems = [
@@ -65,6 +67,46 @@ const ClientSidebar = () => {
     },
   ];
 
+  // User information and logout handling
+  const avatarUrl = user?.user_metadata?.avatar_url || null;
+  
+  const getUserInitials = () => {
+    const firstName = user?.user_metadata?.first_name || '';
+    const lastName = user?.user_metadata?.last_name || '';
+    
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    } else if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  const getUserDisplayName = () => {
+    const firstName = user?.user_metadata?.first_name || '';
+    const lastName = user?.user_metadata?.last_name || '';
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (user?.email) {
+      return user.email;
+    }
+    return "Utilisateur";
+  };
+
+  const getUserRole = () => {
+    return "Client";
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+    }
+  };
+
   return (
     <div className="hidden md:flex md:flex-col md:w-64 md:fixed md:inset-y-0 z-[80] bg-card border-r">
       <div className="flex flex-col flex-grow pt-5 overflow-y-auto">
@@ -82,7 +124,14 @@ const ClientSidebar = () => {
 
         {/* User section */}
         <div className="px-3 mb-6">
-          <SidebarUserSection />
+          <SidebarUserSection 
+            collapsed={collapsed}
+            avatarUrl={avatarUrl}
+            getUserInitials={getUserInitials}
+            getUserDisplayName={getUserDisplayName}
+            getUserRole={getUserRole}
+            handleLogout={handleLogout}
+          />
         </div>
 
         {/* Navigation */}
@@ -113,18 +162,7 @@ const ClientSidebar = () => {
         </ScrollArea>
       </div>
       
-      {/* Logout button */}
-      <div className="flex-shrink-0 flex border-t p-4">
-        <div className="flex-shrink-0 w-full group block">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => window.location.href = "/logout"}
-          >
-            Déconnexion
-          </Button>
-        </div>
-      </div>
+      {/* Logout button at bottom is now handled by SidebarUserSection */}
     </div>
   );
 };
