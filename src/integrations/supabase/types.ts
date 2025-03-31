@@ -774,7 +774,7 @@ export type Database = {
           status: string
           type: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           workflow_status: string | null
         }
         Insert: {
@@ -797,7 +797,7 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           workflow_status?: string | null
         }
         Update: {
@@ -820,7 +820,7 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           workflow_status?: string | null
         }
         Relationships: [
@@ -1605,7 +1605,7 @@ export type Database = {
           status: string
           type: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           workflow_status: string | null
         }[]
       }
