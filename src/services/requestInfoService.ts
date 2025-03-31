@@ -69,47 +69,41 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Essayer d'abord avec le client standard (si les politiques RLS le permettent)
-      let clientResult;
-      let error;
+      let clientResult = null;
+      let error = null;
       
-      try {
-        const response = await supabase
+      // Essayer d'abord avec le client standard
+      const response = await supabase
+        .from('clients')
+        .insert(clientData)
+        .select()
+        .single();
+      
+      if (response.error) {
+        console.warn("Échec avec le client standard, tentative avec le client admin:", response.error);
+        
+        // En cas d'échec avec le client standard, essayer avec le client admin
+        const adminClient = getAdminSupabaseClient();
+        const adminResponse = await adminClient
           .from('clients')
           .insert(clientData)
           .select()
           .single();
-          
-        clientResult = response.data;
-        error = response.error;
         
-        if (error) {
-          console.warn("Échec avec le client standard, tentative avec le client admin:", error);
-          
-          // En cas d'échec avec le client standard, essayer avec le client admin
-          const adminClient = getAdminSupabaseClient();
-          const adminResponse = await adminClient
-            .from('clients')
-            .insert(clientData)
-            .select()
-            .single();
-            
-          clientResult = adminResponse.data;
-          error = adminResponse.error;
-        }
-      } catch (innerError) {
-        console.error("Erreur lors de l'insertion du client:", innerError);
-        error = innerError;
+        clientResult = adminResponse.data;
+        error = adminResponse.error;
+      } else {
+        clientResult = response.data;
+        error = null;
       }
       
       if (error) {
-        console.error("Erreur lors de la création du client:", error);
-        // Continuer avec la création de l'offre même si le client échoue
+        console.error("Erreur finale lors de la création du client:", error);
       } else if (clientResult) {
         console.log("Client created successfully with ID:", clientResult.id);
       }
     } catch (error) {
-      console.error("Error creating client:", error);
+      console.error("Exception during client creation:", error);
     }
     
     // Créer l'offre liée au client, même si la création du client a échoué
@@ -134,45 +128,41 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
-      // Essayer d'abord avec le client standard
-      let offerResult;
-      let error;
+      let offerResult = null;
+      let error = null;
       
-      try {
-        const response = await supabase
+      // Essayer d'abord avec le client standard
+      const response = await supabase
+        .from('offers')
+        .insert(offerData)
+        .select()
+        .single();
+      
+      if (response.error) {
+        console.warn("Échec de création d'offre avec le client standard, tentative avec le client admin:", response.error);
+        
+        // En cas d'échec avec le client standard, essayer avec le client admin
+        const adminClient = getAdminSupabaseClient();
+        const adminResponse = await adminClient
           .from('offers')
           .insert(offerData)
           .select()
           .single();
-          
-        offerResult = response.data;
-        error = response.error;
         
-        if (error) {
-          console.warn("Échec avec le client standard, tentative avec le client admin:", error);
-          
-          // En cas d'échec avec le client standard, essayer avec le client admin
-          const adminClient = getAdminSupabaseClient();
-          const adminResponse = await adminClient
-            .from('offers')
-            .insert(offerData)
-            .select()
-            .single();
-            
-          offerResult = adminResponse.data;
-          error = adminResponse.error;
-        }
-      } catch (innerError) {
-        console.error("Erreur lors de l'insertion de l'offre:", innerError);
-        error = innerError;
+        offerResult = adminResponse.data;
+        error = adminResponse.error;
+      } else {
+        offerResult = response.data;
+        error = null;
       }
       
       if (error) {
-        console.error("Error inserting offer:", error);
-        // Continuer quand même pour préserver l'expérience utilisateur
-      } else {
-        console.log("Offer created successfully:", offerResult);
+        console.error("Erreur finale lors de la création de l'offre:", error);
+        // Lever une exception pour informer l'appelant de l'échec
+        throw new Error(`Échec de création de l'offre: ${error.message}`);
       }
+      
+      console.log("Offer created successfully:", offerResult);
       
       // Prepare data for session storage without client_company
       const requestDataForStorage = {
@@ -208,7 +198,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         created_at: new Date().toISOString()
       };
       sessionStorage.setItem('lastSubmittedRequest', JSON.stringify(fallbackRequestData));
-      return fallbackRequestData;
+      throw error; // Rethrow to inform the caller
     }
     
   } catch (error: any) {

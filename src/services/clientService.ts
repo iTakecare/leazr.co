@@ -1,4 +1,3 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -12,39 +11,34 @@ export const createClient = async (clientData: any) => {
     console.log("Creating client:", clientData);
     
     // Essayer d'abord avec le client standard (si les politiques RLS le permettent)
-    try {
-      const { data, error } = await supabase
+    const { data, error } = await supabase
+      .from('clients')
+      .insert(clientData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
+      
+      // Si échec avec le client standard, essayer avec le client admin
+      const adminClient = getAdminSupabaseClient();
+      const adminResponse = await adminClient
         .from('clients')
         .insert(clientData)
         .select()
         .single();
-      
-      if (error) {
-        console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
         
-        // Si échec avec le client standard, essayer avec le client admin
-        const adminClient = getAdminSupabaseClient();
-        const adminResponse = await adminClient
-          .from('clients')
-          .insert(clientData)
-          .select()
-          .single();
-          
-        if (adminResponse.error) {
-          console.error("Erreur de création de client même avec le client admin:", adminResponse.error);
-          throw adminResponse.error;
-        }
-        
-        console.log("Client created successfully with admin client:", adminResponse.data);
-        return adminResponse.data;
+      if (adminResponse.error) {
+        console.error("Erreur de création de client même avec le client admin:", adminResponse.error);
+        throw adminResponse.error;
       }
       
-      console.log("Client created successfully with standard client:", data);
-      return data;
-    } catch (error) {
-      console.error("Exception during client creation:", error);
-      throw error;
+      console.log("Client created successfully with admin client:", adminResponse.data);
+      return adminResponse.data;
     }
+    
+    console.log("Client created successfully with standard client:", data);
+    return data;
   } catch (error) {
     console.error("Exception in createClient:", error);
     throw error;

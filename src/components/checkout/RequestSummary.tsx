@@ -89,8 +89,15 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
 
       console.log("Submitting request with data:", requestData);
       
-      // Send request to service
-      const result = await createProductRequest(requestData);
+      // Envoi de la requête avec un délai de 10 secondes avant timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("La requête a pris trop de temps")), 10000);
+      });
+      
+      const result = await Promise.race([
+        createProductRequest(requestData),
+        timeoutPromise
+      ]);
       
       // Clear cart after successful submission
       clearCart();
