@@ -70,6 +70,8 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
   const parseAddressFromVIES = (addressString?: string) => {
     if (!addressString) return { address: '', city: '', postal_code: '' };
 
+    console.log("Parsing address from VIES:", addressString);
+
     // Try to parse a typical address format from VIES 
     // Example: "Avenue Général Michel 1/E\n6000 Charleroi\nBelgium"
     const lines = addressString.split('\n');
@@ -93,6 +95,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
       }
     }
 
+    console.log("Parsed address:", { address, city, postal_code });
     return { address, city, postal_code };
   };
 

@@ -48,14 +48,12 @@ const RequestSteps = () => {
     if (step === 1) {
       // When moving from company to contact step, pre-fill the address fields in contactFormData
       // if they were populated from VIES
-      if (companyFormData.address || companyFormData.city || companyFormData.postal_code) {
-        handleContactDataUpdate({
-          address: companyFormData.address,
-          city: companyFormData.city,
-          postal_code: companyFormData.postal_code,
-          country: companyFormData.country
-        });
-      }
+      handleContactDataUpdate({
+        address: companyFormData.address || '',
+        city: companyFormData.city || '',
+        postal_code: companyFormData.postal_code || '',
+        country: companyFormData.country || ''
+      });
     }
     setStep(prev => prev + 1);
   };

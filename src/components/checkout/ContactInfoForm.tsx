@@ -44,6 +44,9 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
     onNext();
   };
 
+  // Vérifie si les champs d'adresse ont des valeurs (remplis depuis VIES)
+  const hasPrefilledAddress = Boolean(formData.address || formData.city || formData.postal_code || formData.country);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
@@ -99,9 +102,11 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
 
         <div className="border-t pt-4 mt-4">
           <h3 className="font-medium mb-3">Adresse de facturation</h3>
-          <p className="text-sm text-gray-500 mb-3">
-            Récupérée automatiquement depuis les informations de l'entreprise
-          </p>
+          {hasPrefilledAddress && (
+            <p className="text-sm text-gray-500 mb-3 bg-blue-50 p-2 rounded border border-blue-200">
+              Adresse récupérée automatiquement depuis les informations de l'entreprise
+            </p>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="address">Adresse</Label>
