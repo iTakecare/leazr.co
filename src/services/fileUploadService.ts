@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { supabase, adminSupabase } from '@/integrations/supabase/client';
+import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**

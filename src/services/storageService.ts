@@ -1,4 +1,3 @@
-
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -114,8 +113,9 @@ export async function ensureStorageBucket(bucketName: string): Promise<boolean> 
         
         // Try with adminSupabase as a last resort
         try {
-          const { adminSupabase } = await import('@/integrations/supabase/client');
-          const { error: adminError } = await adminSupabase.storage.createBucket(bucketName, {
+          const { getAdminSupabaseClient } = await import('@/integrations/supabase/client');
+          const adminClient = getAdminSupabaseClient();
+          const { error: adminError } = await adminClient.storage.createBucket(bucketName, {
             public: true
           });
           
