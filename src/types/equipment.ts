@@ -11,6 +11,15 @@ export interface Equipment {
   assignedDate?: string;
   status?: string;
   serial?: string;
+  image?: string;
+  type?: string;
+  supplier?: string;
+  contractStart?: string;
+  contractEnd?: string;
+  contractDuration?: string;
+  contractNumber?: string;
+  monthlyRent?: number;
+  location?: string;
 }
 
 export interface Leaser {
@@ -36,3 +45,5 @@ export interface GlobalMarginAdjustment {
   adaptMonthlyPayment: boolean;
   marginDifference: number;
 }
+
+export type EquipmentStatus = 'En service' | 'En réserve' | 'Remplacement';

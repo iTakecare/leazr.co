@@ -18,7 +18,7 @@ import {
 const ClientSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   // Navigation items for client sidebar
@@ -100,7 +100,7 @@ const ClientSidebar = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       navigate('/login');
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
