@@ -48,6 +48,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
     
     // Identifier pour lier l'offre au client
     const clientId = uuidv4();
+    const requestId = uuidv4();
     
     // Créer le client dans le système
     try {
@@ -69,7 +70,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Essayer de créer le client directement avec la fonction révisée
+      // Utiliser adminSupabase directement pour les requêtes publiques
       const client = await createClient(clientData);
       
       if (client) {
@@ -81,11 +82,8 @@ export const createProductRequest = async (data: ProductRequestData) => {
       console.error("Error creating client:", error);
     }
     
-    // Créer l'offre liée au client
+    // Créer l'offre liée au client, même si la création du client a échoué
     try {
-      // Generate a new request ID for this offer
-      const requestId = uuidv4();
-      
       // Create a clean object without client_company
       const offerData = {
         id: requestId,
@@ -106,7 +104,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
-      // Utiliser directement la fonction createClientRequest modifiée
       const result = await createClientRequest(offerData);
       console.log("Result from createClientRequest:", result);
       
@@ -133,7 +130,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       console.error("Error creating offer:", error);
       // Store the data even if the creation failed
       const fallbackRequestData = {
-        id: uuidv4(),
+        id: requestId,
         client_id: clientId,
         client_name: data.client_name,
         client_email: data.client_email,

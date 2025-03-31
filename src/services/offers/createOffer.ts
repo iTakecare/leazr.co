@@ -25,41 +25,36 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Sending data to database:", dataToSend);
     
-    // Essai avec supabase standard d'abord
-    let { data, error } = await supabase
-      .from('offers')
-      .insert(dataToSend)
-      .select();
-    
-    // Si l'erreur est liée à la RLS, essayer avec adminSupabase
-    if (error && (error.code === '42501' || error.message.includes('violates row-level security policy'))) {
-      console.log("RLS error, trying with adminSupabase");
+    // Toujours essayer d'abord avec adminSupabase pour les requêtes publiques
+    try {
+      const { data, error } = await adminSupabase
+        .from('offers')
+        .insert(dataToSend)
+        .select();
       
-      try {
-        const { data: adminData, error: adminError } = await adminSupabase
+      if (error) {
+        console.error("Error with adminSupabase:", error);
+        
+        // Si échec, tenter avec supabase standard (pour utilisateurs authentifiés)
+        const { data: standardData, error: standardError } = await supabase
           .from('offers')
           .insert(dataToSend)
           .select();
         
-        if (adminError) {
-          console.error("Error with adminSupabase:", adminError);
-          return { data: null, error: adminError };
+        if (standardError) {
+          console.error("Error with standard supabase:", standardError);
+          return { data: null, error: standardError };
         }
         
-        data = adminData;
-        error = null;
-      } catch (adminErr) {
-        console.error("Exception with adminSupabase:", adminErr);
-        return { data: null, error: adminErr };
+        return { data: standardData, error: null };
       }
-    }
-    
-    if (error) {
-      console.error("Error creating offer:", error);
+      
+      return { data, error: null };
+      
+    } catch (error) {
+      console.error("Exception during offer creation:", error);
       return { data: null, error };
     }
-    
-    return { data, error: null };
   } catch (error) {
     console.error("Error creating offer:", error);
     return { data: null, error };
