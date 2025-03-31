@@ -116,7 +116,7 @@ const AmbassadorCreateOffer = () => {
     setClientSelectorOpen(true);
   };
   
-  const handleSelectClient = (selectedClient: { id: string; name: string; email: string; company: string }) => {
+  const handleSelectClient = (selectedClient: ClientSelectorClient) => {
     setClient({
       id: selectedClient.id,
       name: selectedClient.name,
@@ -244,6 +244,8 @@ const AmbassadorCreateOffer = () => {
           isOpen={clientSelectorOpen} 
           onClose={() => setClientSelectorOpen(false)} 
           onSelectClient={handleSelectClient}
+          selectedClientId=""
+          onClientSelect={() => {}}
         />
         
         <div className="py-12 px-4">

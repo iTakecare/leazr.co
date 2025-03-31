@@ -425,8 +425,10 @@ const PartnerCreateOffer = () => {
           isOpen={isClientSelectorOpen}
           onClose={() => setIsClientSelectorOpen(false)}
           onSelectClient={handleClientSelect}
+          selectedClientId={clientId}
+          onClientSelect={() => {}}
         />
-
+        
         <LeaserSelector
           isOpen={isLeaserSelectorOpen}
           onClose={() => setIsLeaserSelectorOpen(false)}

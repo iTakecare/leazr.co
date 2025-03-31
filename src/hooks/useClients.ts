@@ -11,7 +11,7 @@ export interface Client {
   company?: string;
   companyName?: string;  // Added for compatibility with ClientSelector
   companyId?: string;    // Added for compatibility with ClientSelector
-  created_at?: string;
+  created_at?: string | Date;
   status?: string;
   vat_number?: string;
   city?: string;

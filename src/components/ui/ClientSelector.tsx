@@ -10,7 +10,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
 // Define a specific type for the client in this component
-interface ClientSelectorClient {
+export interface ClientSelectorClient {
   id: string;
   name: string;
   companyName: string;
@@ -19,8 +19,8 @@ interface ClientSelectorClient {
 }
 
 interface ClientSelectorProps {
-  selectedClientId: string | null;
-  onClientSelect: (clientId: string | null) => void;
+  selectedClientId?: string | null;
+  onClientSelect?: (clientId: string | null) => void;
   isOpen?: boolean;
   onClose?: () => void;
   onSelectClient?: (client: ClientSelectorClient) => void;
@@ -67,7 +67,9 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   
   const handleSelect = (client: ClientSelectorClient) => {
     const newSelectedId = client.id === selectedClientId ? null : client.id;
-    onClientSelect(newSelectedId);
+    if (onClientSelect) {
+      onClientSelect(newSelectedId);
+    }
     
     if (onSelectClient && client.id !== selectedClientId) {
       onSelectClient(client);
