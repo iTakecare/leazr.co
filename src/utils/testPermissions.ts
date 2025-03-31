@@ -32,6 +32,13 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     console.log("En train de créer un client test avec le client administrateur...");
     console.log("Client admin instance:", adminClient ? "Disponible" : "Non disponible");
     
+    // Test spécifique pour vérifier que les headers contiennent bien la clé de service
+    const headers = (adminClient as any)._headers;
+    console.log("Headers du client admin:", headers);
+    console.log("Auth Header:", headers?.Authorization?.substring(0, 30) + "...");
+    console.log("API Key Header:", headers?.apikey?.substring(0, 30) + "...");
+    
+    // Essai de création d'un client test
     const { data, error } = await adminClient
       .from('clients')
       .insert(testClientData)
@@ -82,6 +89,10 @@ export const testOfferCreationPermission = async (clientId?: string | null): Pro
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
     console.log("Client admin pour offre:", adminClient ? "Disponible" : "Non disponible");
+    
+    // Test spécifique pour vérifier à nouveau les headers
+    const headers = (adminClient as any)._headers;
+    console.log("Headers pour la création d'offre:", headers);
     
     const testOfferData = {
       id: testId,
@@ -139,14 +150,90 @@ export const testOfferCreationPermission = async (clientId?: string | null): Pro
 };
 
 /**
+ * Teste spécifiquement la configuration du client admin
+ */
+export const testAdminClientConfiguration = async (): Promise<{success: boolean; message: string}> => {
+  try {
+    console.log("Test de la configuration du client admin...");
+    
+    // Récupération du client admin
+    const adminClient = getAdminSupabaseClient();
+    if (!adminClient) {
+      return { success: false, message: "Échec de la création du client admin Supabase" };
+    }
+    
+    // Analyse de la configuration du client
+    console.log("Client admin créé avec succès");
+    
+    // Inspection des headers (sans les exposer complètement)
+    const headers = (adminClient as any).headers;
+    const auth = (adminClient as any).auth;
+    const opts = (adminClient as any).opts;
+    
+    console.log("Configuration du client admin:");
+    console.log("Headers disponibles:", headers ? "Oui" : "Non");
+    console.log("Auth configuré:", auth ? "Oui" : "Non");
+    console.log("Options configurées:", opts ? "Oui" : "Non");
+    
+    // Tentative d'appel à un endpoint simple
+    const { data: testData, error: testError } = await adminClient
+      .from('clients')
+      .select('count(*)')
+      .limit(1);
+    
+    if (testError) {
+      console.error("Échec du test simple avec le client admin:", testError);
+      return { 
+        success: false, 
+        message: `Le client admin ne peut pas effectuer d'opérations simples: ${testError.message}`
+      };
+    }
+    
+    console.log("Test simple avec le client admin réussi:", testData);
+    
+    // Test réussi
+    return { 
+      success: true, 
+      message: "La configuration du client admin semble correcte et peut effectuer des opérations"
+    };
+  } catch (error) {
+    console.error("Exception lors du test de configuration du client admin:", error);
+    return { 
+      success: false, 
+      message: `Exception lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+    };
+  }
+};
+
+/**
  * Exécute tous les tests de permissions
  */
 export const runAllPermissionsTests = async (): Promise<{
+  adminClientResult: {success: boolean; message: string},
   clientResult: {success: boolean; message: string},
   offerResult: {success: boolean; message: string}
 }> => {
   toast.info("Début des tests de permissions...");
   
+  // Test de la configuration du client admin
+  const adminClientResult = await testAdminClientConfiguration();
+  
+  // Si le client admin n'est pas correctement configuré, les autres tests échoueront
+  if (!adminClientResult.success) {
+    return {
+      adminClientResult,
+      clientResult: { 
+        success: false, 
+        message: "Test ignoré car la configuration du client admin a échoué" 
+      },
+      offerResult: { 
+        success: false, 
+        message: "Test ignoré car la configuration du client admin a échoué" 
+      }
+    };
+  }
+  
+  // Test de création de client
   const clientResult = await testClientCreationPermission();
   let clientTestResult = {
     success: clientResult.success,
@@ -177,13 +264,14 @@ export const runAllPermissionsTests = async (): Promise<{
     }
   }
   
-  if (clientResult.success && offerResult.success) {
+  if (adminClientResult.success && clientResult.success && offerResult.success) {
     toast.success("Tous les tests de permissions sont réussis");
   } else {
     toast.error("Certains tests de permissions ont échoué");
   }
   
   return {
+    adminClientResult,
     clientResult: clientTestResult,
     offerResult: offerTestResult
   };

@@ -54,6 +54,14 @@ export const createProductRequest = async (data: ProductRequestData) => {
     const adminClient = getAdminSupabaseClient();
     console.log("Client admin pour createProductRequest:", adminClient ? "Disponible" : "Non disponible");
     
+    // Diagnostic des headers pour identifier le problème d'authentification
+    const headers = (adminClient as any).headers;
+    console.log("CLIENT ADMIN AUTH HEADERS:", {
+      Authorization: headers?.Authorization?.substring(0, 50) + '...',
+      apikey: headers?.apikey?.substring(0, 50) + '...',
+      'Content-Type': headers?.['Content-Type']
+    });
+    
     // Créer le client dans le système
     try {
       // Préparer les données du client pour l'insertion

@@ -12,19 +12,38 @@ import {
 import { 
   testClientCreationPermission, 
   testOfferCreationPermission, 
+  testAdminClientConfiguration,
   runAllPermissionsTests 
 } from '@/utils/testPermissions';
-import { Shield, User, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Shield, User, FileText, CheckCircle2, XCircle, Settings } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const PermissionsTest = () => {
   const [isTestingClient, setIsTestingClient] = React.useState(false);
   const [isTestingOffer, setIsTestingOffer] = React.useState(false);
+  const [isTestingAdmin, setIsTestingAdmin] = React.useState(false);
   const [isTestingAll, setIsTestingAll] = React.useState(false);
+  const [adminTestResult, setAdminTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [clientTestResult, setClientTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [offerTestResult, setOfferTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [allTestsResult, setAllTestsResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [testClientId, setTestClientId] = React.useState<string | null>(null);
+
+  const handleTestAdminConfig = async () => {
+    setIsTestingAdmin(true);
+    setAdminTestResult(null);
+    try {
+      const result = await testAdminClientConfiguration();
+      setAdminTestResult(result);
+    } catch (error) {
+      setAdminTestResult({ 
+        success: false, 
+        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      });
+    } finally {
+      setIsTestingAdmin(false);
+    }
+  };
 
   const handleTestClientPermission = async () => {
     setIsTestingClient(true);
@@ -76,15 +95,17 @@ const PermissionsTest = () => {
   const handleTestAllPermissions = async () => {
     setIsTestingAll(true);
     setAllTestsResult(null);
+    setAdminTestResult(null);
     setClientTestResult(null);
     setOfferTestResult(null);
     setTestClientId(null);
     try {
       const results = await runAllPermissionsTests();
+      setAdminTestResult(results.adminClientResult);
       setClientTestResult(results.clientResult);
       setOfferTestResult(results.offerResult);
       setAllTestsResult({ 
-        success: results.clientResult.success && results.offerResult.success, 
+        success: results.adminClientResult.success && results.clientResult.success && results.offerResult.success, 
         message: "Tous les tests ont été exécutés."
       });
     } catch (error) {
@@ -131,6 +152,28 @@ const PermissionsTest = () => {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col space-y-4 w-full">
+        <div className="w-full">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            onClick={handleTestAdminConfig}
+            disabled={isTestingAdmin}
+          >
+            {isTestingAdmin ? (
+              <>
+                <Settings className="mr-2 h-4 w-4 animate-spin" />
+                Test en cours...
+              </>
+            ) : (
+              <>
+                <Settings className="mr-2 h-4 w-4" />
+                Tester la configuration du client admin
+              </>
+            )}
+          </Button>
+          {renderTestResult(adminTestResult)}
+        </div>
+
         <div className="w-full">
           <Button 
             variant="outline" 
