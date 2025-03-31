@@ -112,14 +112,14 @@ const ProductDetailPage = () => {
     const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
     
     return (
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">{displayName}</label>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-gray-700">{displayName}</label>
         {hasOptions && options.length > 0 ? (
           <Select
             value={currentValue}
             onValueChange={(value) => handleOptionChange(attributeName, value)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full h-7 text-xs py-0">
               <SelectValue placeholder="Sélectionner" />
             </SelectTrigger>
             <SelectContent>
@@ -128,6 +128,7 @@ const ProductDetailPage = () => {
                   key={option} 
                   value={option}
                   disabled={!isOptionAvailable(attributeName, option)}
+                  className="text-xs"
                 >
                   {option}
                 </SelectItem>
@@ -135,7 +136,7 @@ const ProductDetailPage = () => {
             </SelectContent>
           </Select>
         ) : (
-          <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+          <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1 text-xs">
             {currentValue || "Non spécifié"}
           </div>
         )}
@@ -268,8 +269,8 @@ const ProductDetailPage = () => {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <ProductImageDisplay 
               imageUrl={currentImage} 
@@ -302,31 +303,31 @@ const ProductDetailPage = () => {
           </div>
           
           <div>
-            <div className="sticky top-4 rounded-xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
+            <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
+              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/30">
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
                     {productCategory === "laptop" ? "Ordinateur" : productCategory}
                   </Badge>
-                  <span className="text-indigo-100 text-sm">{productBrand}</span>
+                  <span className="text-indigo-100 text-xs">{productBrand}</span>
                 </div>
                 
-                <h1 className="text-2xl font-bold text-white">
+                <h1 className="text-xl font-bold text-white">
                   Leasing {productName}
                 </h1>
                 
-                <div className="text-md text-indigo-100">
+                <div className="text-sm text-indigo-100">
                   à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
                 </div>
               </div>
               
-              <div className="bg-white p-4 border-x border-b border-gray-100">
-                <Separator className="my-3" />
+              <div className="bg-white p-3 border-x border-b border-gray-100">
+                <Separator className="my-2" />
                 
-                <div className="mb-4">
-                  <h3 className="text-md font-medium mb-3 text-gray-800">Configuration</h3>
+                <div className="mb-3">
+                  <h3 className="text-sm font-medium mb-2 text-gray-800">Configuration</h3>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {configAttributes.map(attribute => {
                       const displayName = getDisplayName(attribute);
                       const currentValue = getCurrentValue(attribute);
@@ -340,7 +341,7 @@ const ProductDetailPage = () => {
                     
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-gray-700">Durée</label>
-                      <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1.5 text-sm">
+                      <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1 text-xs">
                         36 mois
                       </div>
                     </div>
@@ -351,19 +352,19 @@ const ProductDetailPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 rounded-r-none border-gray-200"
+                          className="h-6 w-6 rounded-r-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity - 1)}
                           disabled={quantity <= 1}
                         >
                           <MinusIcon className="h-3 w-3" />
                         </Button>
-                        <div className="h-8 px-3 flex items-center justify-center border-y border-gray-200 text-sm">
+                        <div className="h-6 px-2 flex items-center justify-center border-y border-gray-200 text-xs">
                           {quantity}
                         </div>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 rounded-l-none border-gray-200"
+                          className="h-6 w-6 rounded-l-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity + 1)}
                         >
                           <PlusIcon className="h-3 w-3" />
@@ -375,20 +376,36 @@ const ProductDetailPage = () => {
                 
                 {productCategory && (
                   <div className="mb-3">
-                    <CO2SavingsCalculator 
-                      category={productCategory}
-                      quantity={quantity}
-                    />
+                    <div className="bg-blue-50 rounded-md p-2 border border-blue-100">
+                      <div className="flex items-center gap-1 mb-1 text-blue-700 text-xs font-medium">
+                        <Info className="h-3 w-3" />
+                        Impact environnemental positif
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-xs">
+                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
+                          <span className="font-bold text-green-600">170 kg</span>
+                          <span className="text-gray-500 text-[10px]">CO2</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
+                          <span className="font-bold text-blue-600">1020 km</span>
+                          <span className="text-gray-500 text-[10px]">en voiture</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
+                          <span className="font-bold text-amber-600">9 mois</span>
+                          <span className="text-gray-500 text-[10px]">d'un arbre</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-700">Pour 36 mois</span>
-                    <span className="text-xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
+                <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Pour 36 mois</span>
+                    <span className="text-lg font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                  <div className="flex flex-col sm:flex-row gap-1 mt-2 mb-1">
                     <AddToCartButton 
                       product={product}
                       quantity={quantity}
@@ -398,21 +415,21 @@ const ProductDetailPage = () => {
                     />
                     <Button 
                       variant="outline" 
-                      className="text-sm w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
+                      className="text-xs w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50 h-8 px-2"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
-                      <Info className="h-4 w-4 mr-1" />
+                      <Info className="h-3 w-3 mr-1" />
                       Conseiller
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-1 text-xs">
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+                      <Check className="h-2.5 w-2.5 text-[#347599] mr-1 flex-shrink-0" />
                       <span>Livraison gratuite</span>
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+                      <Check className="h-2.5 w-2.5 text-[#347599] mr-1 flex-shrink-0" />
                       <span>Pas de loyer majoré</span>
                     </div>
                   </div>

@@ -56,15 +56,15 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
 
   if (!hasVariants) {
     return (
-      <div className="text-gray-500">Aucune option de configuration disponible pour ce produit.</div>
+      <div className="text-gray-500 text-xs">Aucune option de configuration disponible pour ce produit.</div>
     );
   }
   
   if (hasVariants && !hasOptions) {
     return (
-      <div className="text-amber-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
+      <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200 text-xs">
         <p className="flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2" />
+          <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
           Ce produit a des variantes, mais aucune option de configuration n'a pu être récupérée.
         </p>
       </div>
@@ -75,9 +75,9 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   
   if (groupedAttributes.length === 0) {
     return (
-      <div className="text-blue-600 bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <div className="text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200 text-xs">
         <p className="flex items-center">
-          <Info className="h-5 w-5 mr-2" />
+          <Info className="h-3.5 w-3.5 mr-1.5" />
           Aucune option de variation n'est disponible actuellement.
         </p>
       </div>
@@ -85,13 +85,13 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {groupedAttributes.map(([option, values]) => (
-        <div key={option} className="rounded-lg border border-gray-200 p-4 bg-white shadow-sm">
-          <label className="block text-sm font-medium text-gray-700 capitalize mb-3">
+        <div key={option} className="rounded-md border border-gray-200 p-2 bg-white shadow-sm">
+          <label className="block text-xs font-medium text-gray-700 capitalize mb-1.5">
             {option}
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1">
             {values.map((value) => {
               const isAvailable = isOptionAvailable(option, value);
               const isSelected = selectedOptions[option] === value;
@@ -105,6 +105,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
                   className={`
                     ${isSelected ? "bg-indigo-600 hover:bg-indigo-700" : ""}
                     ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
+                    text-xs h-6 px-2 py-0
                   `}
                   onClick={() => isAvailable && onOptionChange(option, value)}
                   disabled={!isAvailable}

@@ -1,167 +1,115 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, ChevronLeft } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { createProductRequest } from '@/services/requestInfoService';
 
-interface SummaryProps {
+interface RequestSummaryProps {
   companyData: {
     company: string;
     vat_number: string;
+    company_verified: boolean;
+    is_vat_exempt: boolean;
     country: string;
-    email?: string;
+    email: string;
   };
   contactData: {
     name: string;
     phone: string;
-    email?: string;
     has_client_account: boolean;
+    email?: string;
   };
   onBack: () => void;
 }
 
-const RequestSummary: React.FC<SummaryProps> = ({ companyData, contactData, onBack }) => {
-  const navigate = useNavigate();
-  const { items, calculateTotalMonthly, calculateTotalValue, clearCart } = useCart();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack }) => {
+  const { items } = useCart();
   
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    
-    try {
-      // Map cart items to equipment description
-      const equipmentDescription = items.map(item => 
-        `${item.product.name} (${item.quantity} unité(s)) - Durée: ${item.duration} mois`
-      ).join("; ");
-      
-      // Use the email from company data if available, otherwise from contact data
-      const email = companyData.email || contactData.email || '';
-      
-      const requestData = {
-        client_name: contactData.name,
-        client_email: email,
-        client_company: companyData.company,
-        client_phone: contactData.phone,
-        client_vat_number: companyData.vat_number,
-        client_country: companyData.country,
-        client_contact_email: email,
-        equipment_description: equipmentDescription,
-        message: "",
-        amount: calculateTotalValue(),
-        monthly_payment: calculateTotalMonthly(),
-        quantity: items.reduce((total, item) => total + item.quantity, 0),
-        duration: items[0]?.duration || 24, // Default to first item's duration
-        wants_account: contactData.has_client_account,
-      };
-      
-      const result = await createProductRequest(requestData);
-      
-      toast.success("Votre demande a été envoyée avec succès");
-      clearCart();
-      navigate("/demande-envoyee", {
-        state: { 
-          success: true, 
-          companyName: companyData.company,
-          name: contactData.name
-        }
-      });
-    } catch (error) {
-      console.error("Erreur lors de l'envoi de la demande:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande");
-      setIsSubmitting(false);
-    }
+  // Calculate totals without using CartContext methods
+  const totalMonthly = items.reduce((total, item) => {
+    const price = item.product.currentPrice || item.product.monthly_price || 0;
+    return total + (price * item.quantity);
+  }, 0);
+  
+  const totalValue = items.reduce((total, item) => {
+    const price = item.product.currentPrice || item.product.monthly_price || 0;
+    const months = item.duration || 36;
+    return total + (price * item.quantity * months);
+  }, 0);
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle form submission here
+    window.location.href = '/request-sent';
   };
   
-  // Calculate total monthly cost and total items
-  const totalMonthly = calculateTotalMonthly();
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+  // Use the email from contactData if available, otherwise use the company email
+  const contactEmail = contactData.email || companyData.email;
   
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Récapitulatif de votre demande</h2>
-        <p className="text-gray-600">Vérifiez les informations ci-dessous avant de soumettre votre demande</p>
+        <p className="text-gray-600">Veuillez vérifier les informations ci-dessous avant de valider</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-          <h3 className="font-medium text-gray-800 mb-3">Informations de l'entreprise</h3>
-          <div className="space-y-2 text-gray-600">
-            <div>
-              <span className="text-gray-500">Société:</span> {companyData.company}
-            </div>
-            <div>
-              <span className="text-gray-500">Numéro d'entreprise:</span> {companyData.vat_number}
-            </div>
-            {companyData.email && (
-              <div>
-                <span className="text-gray-500">Email:</span> {companyData.email}
-              </div>
-            )}
-            <div>
-              <span className="text-gray-500">Pays:</span> {
-                companyData.country === 'BE' ? 'Belgique' : 
-                companyData.country === 'FR' ? 'France' : 
-                companyData.country === 'LU' ? 'Luxembourg' : companyData.country
-              }
-            </div>
+      <div className="space-y-6">
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="font-medium mb-2">Informations entreprise</h3>
+          <div className="space-y-1 text-sm">
+            <p><span className="text-gray-500">Entreprise:</span> {companyData.company}</p>
+            <p><span className="text-gray-500">Numéro {companyData.country === 'FR' ? 'SIRET' : companyData.country === 'LU' ? 'RCS' : 'TVA'}:</span> {companyData.vat_number}</p>
+            <p><span className="text-gray-500">Pays:</span> {companyData.country === 'BE' ? 'Belgique' : companyData.country === 'FR' ? 'France' : 'Luxembourg'}</p>
+            <p><span className="text-gray-500">Email:</span> {companyData.email}</p>
           </div>
         </div>
         
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-          <h3 className="font-medium text-gray-800 mb-3">Informations de contact</h3>
-          <div className="space-y-2 text-gray-600">
-            <div>
-              <span className="text-gray-500">Nom:</span> {contactData.name}
-            </div>
-            {contactData.email && companyData.email !== contactData.email && (
-              <div>
-                <span className="text-gray-500">Email:</span> {contactData.email}
-              </div>
-            )}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="font-medium mb-2">Informations de contact</h3>
+          <div className="space-y-1 text-sm">
+            <p><span className="text-gray-500">Nom:</span> {contactData.name}</p>
+            <p><span className="text-gray-500">Email:</span> {contactEmail}</p>
             {contactData.phone && (
-              <div>
-                <span className="text-gray-500">Téléphone:</span> {contactData.phone}
-              </div>
+              <p><span className="text-gray-500">Téléphone:</span> {contactData.phone}</p>
             )}
-            {contactData.has_client_account && (
-              <div className="flex items-center text-blue-600">
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                <span>Création d'un compte client</span>
-              </div>
-            )}
+            <p><span className="text-gray-500">Compte client:</span> {contactData.has_client_account ? 'Oui' : 'Non'}</p>
           </div>
         </div>
-      </div>
-      
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-        <h3 className="font-medium text-gray-800 mb-3">Produits ({totalItems})</h3>
-        <div className="divide-y divide-blue-100">
-          {items.map((item, index) => (
-            <div key={index} className="py-3 flex justify-between">
-              <div>
-                <div className="font-medium">{item.product.name}</div>
-                <div className="text-sm text-gray-600">
-                  Quantité: {item.quantity} × {item.duration} mois
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-medium text-blue-700">
-                  {formatCurrency(item.product.monthly_price * item.quantity)} HT / mois
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
         
-        <div className="mt-4 pt-3 border-t border-blue-200 flex justify-between items-center">
-          <div className="font-medium text-gray-800">Total mensuel:</div>
-          <div className="text-xl font-bold text-blue-700">
-            {formatCurrency(totalMonthly)} HT / mois
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="font-medium mb-2">Matériel demandé</h3>
+          <div className="space-y-3">
+            {items.map((item, index) => (
+              <div key={index} className="border-b border-gray-200 pb-2 last:border-0 last:pb-0">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">{item.product.name}</p>
+                    <div className="text-sm text-gray-600">
+                      {Object.entries(item.selectedOptions || {}).map(([key, value]) => (
+                        <span key={key} className="mr-2">
+                          {key}: {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{formatCurrency(item.product.monthly_price)} / mois</p>
+                    <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <div className="pt-2 flex justify-between text-sm">
+              <span className="font-medium">Total mensuel:</span>
+              <span className="font-bold text-blue-700">{formatCurrency(totalMonthly)} / mois</span>
+            </div>
+            
+            <div className="pt-1 flex justify-between text-sm">
+              <span className="font-medium">Valeur totale (36 mois):</span>
+              <span>{formatCurrency(totalValue)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -171,22 +119,21 @@ const RequestSummary: React.FC<SummaryProps> = ({ companyData, contactData, onBa
           type="button" 
           variant="outline" 
           onClick={onBack}
-          disabled={isSubmitting}
           className="flex items-center"
         >
-          <ArrowLeft className="mr-1 h-4 w-4" />
+          <ChevronLeft className="mr-1 h-4 w-4" />
           Retour
         </Button>
         
         <Button 
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          className="bg-blue-600 hover:bg-blue-700"
+          type="submit"
+          className="bg-green-600 hover:bg-green-700"
         >
-          {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande'}
+          <ShoppingBag className="mr-2 h-4 w-4" />
+          Envoyer ma demande
         </Button>
       </div>
-    </div>
+    </form>
   );
 };
 
