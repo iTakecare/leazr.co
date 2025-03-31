@@ -34,6 +34,13 @@ export enum OfferWorkflowStatus {
   REJECTED = 'rejected'
 }
 
+export interface RequestInfoData {
+  offerId: string;
+  previousStatus: string;
+  requestedDocs: string[];
+  message?: string;
+}
+
 export interface OfferWorkflowStatusUpdate {
   offerId: string;
   newStatus: OfferWorkflowStatus;
