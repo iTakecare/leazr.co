@@ -6,7 +6,7 @@ import { toast } from "sonner";
 /**
  * Teste si les autorisations pour la création de clients sont correctement configurées
  */
-export const testClientCreationPermission = async (): Promise<boolean> => {
+export const testClientCreationPermission = async (): Promise<{success: boolean; message?: string; clientId?: string}> => {
   try {
     console.log("Test de création d'un client...");
     const testId = uuidv4();
@@ -35,34 +35,43 @@ export const testClientCreationPermission = async (): Promise<boolean> => {
     if (error) {
       console.error("Erreur lors du test de création client:", error);
       toast.error(`Erreur de permissions: ${error.message}`);
-      return false;
+      return { success: false, message: error.message };
     }
     
     console.log("Test de création client réussi:", data);
     toast.success("Test de création client réussi");
     
-    // Nettoyage: supprimer le client de test
-    await supabase
-      .from('clients')
-      .delete()
-      .eq('id', testId);
-    
-    return true;
+    // Ne pas supprimer le client de test pour l'utiliser dans le test d'offre
+    return { success: true, clientId: testId };
   } catch (error) {
     console.error("Exception lors du test de création client:", error);
     toast.error(`Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    return false;
+    return { success: false, message: error instanceof Error ? error.message : 'Erreur inconnue' };
   }
 };
 
 /**
  * Teste si les autorisations pour la création d'offres sont correctement configurées
+ * @param clientId ID optionnel d'un client existant à utiliser pour le test
  */
-export const testOfferCreationPermission = async (): Promise<boolean> => {
+export const testOfferCreationPermission = async (clientId?: string | null): Promise<{success: boolean; message?: string}> => {
   try {
     console.log("Test de création d'une offre...");
     const testId = uuidv4();
-    const testClientId = uuidv4();
+    
+    // Si aucun clientId n'est fourni, créer un client de test
+    let testClientId = clientId;
+    if (!testClientId) {
+      const clientResult = await testClientCreationPermission();
+      if (!clientResult.success) {
+        return { success: false, message: `Impossible de créer un client de test: ${clientResult.message}` };
+      }
+      testClientId = clientResult.clientId;
+    }
+    
+    if (!testClientId) {
+      return { success: false, message: "Impossible d'obtenir un ID client valide pour le test" };
+    }
     
     const testOfferData = {
       id: testId,
@@ -90,7 +99,7 @@ export const testOfferCreationPermission = async (): Promise<boolean> => {
     if (error) {
       console.error("Erreur lors du test de création d'offre:", error);
       toast.error(`Erreur de permissions: ${error.message}`);
-      return false;
+      return { success: false, message: error.message };
     }
     
     console.log("Test de création d'offre réussi:", data);
@@ -101,27 +110,69 @@ export const testOfferCreationPermission = async (): Promise<boolean> => {
       .from('offers')
       .delete()
       .eq('id', testId);
+      
+    // Nettoyage: supprimer aussi le client de test si on l'a créé spécifiquement pour ce test
+    if (!clientId && testClientId) {
+      await supabase
+        .from('clients')
+        .delete()
+        .eq('id', testClientId);
+    }
     
-    return true;
+    return { success: true };
   } catch (error) {
     console.error("Exception lors du test de création d'offre:", error);
     toast.error(`Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    return false;
+    return { success: false, message: error instanceof Error ? error.message : 'Erreur inconnue' };
   }
 };
 
 /**
  * Exécute tous les tests de permissions
  */
-export const runAllPermissionsTests = async (): Promise<void> => {
+export const runAllPermissionsTests = async (): Promise<{
+  clientResult: {success: boolean; message: string},
+  offerResult: {success: boolean; message: string}
+}> => {
   toast.info("Début des tests de permissions...");
   
   const clientResult = await testClientCreationPermission();
-  const offerResult = await testOfferCreationPermission();
+  let clientTestResult = {
+    success: clientResult.success,
+    message: clientResult.success 
+      ? "Test de création de client réussi!"
+      : `Échec du test de création de client: ${clientResult.message || 'Erreur inconnue'}`
+  };
   
-  if (clientResult && offerResult) {
+  // Utiliser le client qu'on vient de créer pour le test d'offre
+  const offerResult = await testOfferCreationPermission(clientResult.clientId);
+  let offerTestResult = {
+    success: offerResult.success,
+    message: offerResult.success 
+      ? "Test de création d'offre réussi!"
+      : `Échec du test de création d'offre: ${offerResult.message || 'Erreur inconnue'}`
+  };
+  
+  // Nettoyer le client de test si création d'offre réussie
+  if (clientResult.success) {
+    try {
+      await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientResult.clientId);
+    } catch (error) {
+      console.error("Erreur lors du nettoyage du client test:", error);
+    }
+  }
+  
+  if (clientResult.success && offerResult.success) {
     toast.success("Tous les tests de permissions sont réussis");
   } else {
     toast.error("Certains tests de permissions ont échoué");
   }
+  
+  return {
+    clientResult: clientTestResult,
+    offerResult: offerTestResult
+  };
 };

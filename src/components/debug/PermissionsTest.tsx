@@ -24,18 +24,23 @@ const PermissionsTest = () => {
   const [clientTestResult, setClientTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [offerTestResult, setOfferTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
   const [allTestsResult, setAllTestsResult] = React.useState<{ success: boolean; message: string } | null>(null);
+  const [testClientId, setTestClientId] = React.useState<string | null>(null);
 
   const handleTestClientPermission = async () => {
     setIsTestingClient(true);
     setClientTestResult(null);
+    setTestClientId(null);
     try {
       const result = await testClientCreationPermission();
       setClientTestResult({ 
-        success: result, 
-        message: result 
+        success: result.success, 
+        message: result.success 
           ? "Test de création de client réussi!" 
-          : "Échec du test de création de client."
+          : `Échec du test de création de client: ${result.message || 'Erreur inconnue'}`
       });
+      if (result.clientId) {
+        setTestClientId(result.clientId);
+      }
     } catch (error) {
       setClientTestResult({ 
         success: false, 
@@ -50,12 +55,13 @@ const PermissionsTest = () => {
     setIsTestingOffer(true);
     setOfferTestResult(null);
     try {
-      const result = await testOfferCreationPermission();
+      // Use the test client ID if available, otherwise the function will create a test client first
+      const result = await testOfferCreationPermission(testClientId);
       setOfferTestResult({ 
-        success: result, 
-        message: result 
+        success: result.success, 
+        message: result.success 
           ? "Test de création d'offre réussi!" 
-          : "Échec du test de création d'offre."
+          : `Échec du test de création d'offre: ${result.message || 'Erreur inconnue'}`
       });
     } catch (error) {
       setOfferTestResult({ 
@@ -72,10 +78,13 @@ const PermissionsTest = () => {
     setAllTestsResult(null);
     setClientTestResult(null);
     setOfferTestResult(null);
+    setTestClientId(null);
     try {
-      await runAllPermissionsTests();
+      const results = await runAllPermissionsTests();
+      setClientTestResult(results.clientResult);
+      setOfferTestResult(results.offerResult);
       setAllTestsResult({ 
-        success: true, 
+        success: results.clientResult.success && results.offerResult.success, 
         message: "Tous les tests ont été exécutés."
       });
     } catch (error) {
@@ -159,7 +168,7 @@ const PermissionsTest = () => {
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" />
-                Tester la création d'offre
+                Tester la création d'offre {testClientId ? "(avec client de test)" : ""}
               </>
             )}
           </Button>
