@@ -109,7 +109,6 @@ serve(async (req) => {
       );
     }
 
-    // Envoyer un email de bienvenue au client
     try {
       console.log("Début de la procédure d'envoi d'email...");
       
@@ -135,23 +134,7 @@ serve(async (req) => {
         from_name: smtpSettings.from_name,
         use_resend: smtpSettings.use_resend
       });
-      
-      // Générer un token et un lien pour la création de compte
-      const { data: signupLinkData, error: signupLinkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'signup',
-        email: data.client_email,
-        options: {
-          redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
-        }
-      });
 
-      if (signupLinkError) {
-        console.error("Erreur lors de la génération du lien de création de compte:", signupLinkError);
-        // On continue sans le lien de création de compte
-      }
-
-      const accountCreationLink = signupLinkData?.properties?.action_link || `${Deno.env.get('SITE_URL') || ''}/auth/signup?email=${encodeURIComponent(data.client_email)}`;
-      
       // Récupérer le modèle d'email de demande de produit
       const { data: emailTemplate, error: templateError } = await supabaseAdmin
         .from('email_templates')
@@ -172,14 +155,6 @@ serve(async (req) => {
             <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
           </ul>
           <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-          
-          <div style="text-align: center; margin: 25px 0;">
-            <a href="${accountCreationLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-              Créer mon compte pour suivre ma demande
-            </a>
-          </div>
-          
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
         </div>
       `;
@@ -195,12 +170,98 @@ serve(async (req) => {
           .replace(/{{client_name}}/g, data.client_name)
           .replace(/{{equipment_description}}/g, data.equipment_description)
           .replace(/{{amount}}/g, data.amount)
-          .replace(/{{monthly_payment}}/g, data.monthly_payment)
-          .replace(/{{account_creation_link}}/g, accountCreationLink);
+          .replace(/{{monthly_payment}}/g, data.monthly_payment);
       } else if (templateError) {
         console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
       } else {
         console.log("Aucun modèle d'email trouvé, utilisation du modèle par défaut");
+      }
+      
+      // Vérifier si l'utilisateur a demandé la création d'un compte
+      if (data.has_client_account === true) {
+        console.log("L'utilisateur a demandé la création d'un compte client");
+        
+        try {
+          // Générer un mot de passe aléatoire temporaire
+          const tempPassword = Math.random().toString(36).slice(-12);
+          
+          // Créer un compte utilisateur
+          const { data: userData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+            email: data.client_email,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { 
+              name: data.client_name,
+              role: "client",
+              client_id: clientId 
+            },
+          });
+          
+          if (createUserError) {
+            console.error("Erreur lors de la création du compte utilisateur:", createUserError);
+            throw new Error(`Erreur lors de la création du compte: ${createUserError.message}`);
+          }
+          
+          console.log("Compte utilisateur créé avec succès:", userData);
+          
+          // Mettre à jour le client avec l'ID utilisateur
+          if (userData.user) {
+            const { error: updateClientError } = await supabaseAdmin
+              .from('clients')
+              .update({
+                has_user_account: true,
+                user_account_created_at: new Date().toISOString(),
+                user_id: userData.user.id
+              })
+              .eq('id', clientId);
+            
+            if (updateClientError) {
+              console.error("Erreur lors de la mise à jour du client:", updateClientError);
+            } else {
+              console.log("Client mis à jour avec l'ID utilisateur");
+            }
+            
+            // Envoyer un email de réinitialisation de mot de passe
+            const { error: resetPasswordError } = await supabaseAdmin.auth.admin.generateLink({
+              type: "recovery",
+              email: data.client_email,
+              options: {
+                redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
+              }
+            });
+            
+            if (resetPasswordError) {
+              console.error("Erreur lors de la génération du lien de réinitialisation:", resetPasswordError);
+            } else {
+              console.log("Email de réinitialisation de mot de passe envoyé");
+            }
+          }
+        } catch (accountError) {
+          console.error("Exception lors de la création du compte:", accountError);
+          // On ne bloque pas le processus même si la création du compte échoue
+        }
+      } else {
+        console.log("L'utilisateur n'a pas demandé de création de compte client");
+        
+        // Générer un lien d'inscription pour l'utilisateur qui souhaiterait créer un compte plus tard
+        // (ce lien sera inclus dans l'email, même s'il n'a pas coché la case)
+        const { data: signupLinkData, error: signupLinkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'signup',
+          email: data.client_email,
+          options: {
+            redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
+          }
+        });
+        
+        if (signupLinkError) {
+          console.error("Erreur lors de la génération du lien de création de compte:", signupLinkError);
+        } else {
+          const accountCreationLink = signupLinkData?.properties?.action_link || `${Deno.env.get('SITE_URL') || ''}/auth/signup?email=${encodeURIComponent(data.client_email)}`;
+          console.log("Lien d'inscription généré:", accountCreationLink);
+          
+          // Remplacer la variable du lien dans le template d'email
+          htmlContent = htmlContent.replace(/{{account_creation_link}}/g, accountCreationLink);
+        }
       }
       
       // Texte brut pour les clients qui ne peuvent pas afficher le HTML

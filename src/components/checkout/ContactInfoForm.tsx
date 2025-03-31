@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -251,7 +250,7 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
           </div>
         )}
         
-        <div className="flex items-center space-x-2 pt-4">
+        <div className="flex items-center space-x-2 pt-4 bg-blue-50 p-3 rounded-md border border-blue-100">
           <Checkbox 
             id="has_client_account"
             checked={formData.has_client_account}
@@ -259,9 +258,14 @@ const ContactInfoForm: React.FC<ContactInfoFormProps> = ({ formData, updateFormD
               updateFormData({ has_client_account: checked === true });
             }}
           />
-          <Label htmlFor="has_client_account" className="text-sm">
-            Je souhaite créer un compte client pour suivre mes demandes
-          </Label>
+          <div>
+            <Label htmlFor="has_client_account" className="text-sm font-medium">
+              Je souhaite créer un compte client pour suivre mes demandes
+            </Label>
+            <p className="text-xs text-gray-500 mt-1">
+              Un email avec les instructions pour créer votre compte vous sera envoyé automatiquement
+            </p>
+          </div>
         </div>
       </div>
       
