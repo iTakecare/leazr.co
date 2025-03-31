@@ -1,6 +1,7 @@
 
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
+import { getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 export const createClientRequest = async (requestData: OfferData) => {
   try {
@@ -23,7 +24,9 @@ export const createClientRequest = async (requestData: OfferData) => {
     
     console.log("Creating client request with data:", validData);
     
-    // Toujours essayer d'abord avec adminSupabase pour les requêtes publiques
+    // Always use a fresh instance of adminSupabase for public requests
+    const adminSupabase = getAdminSupabaseClient();
+    
     try {
       const { data, error } = await adminSupabase
         .from('offers')
@@ -33,7 +36,7 @@ export const createClientRequest = async (requestData: OfferData) => {
       if (error) {
         console.error("Error with adminSupabase:", error);
         
-        // Si échec, tenter avec supabase standard (pour utilisateurs authentifiés)
+        // If that fails, try with the standard client (for authenticated users)
         const { data: standardData, error: standardError } = await supabase
           .from('offers')
           .insert(validData)

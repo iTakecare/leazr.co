@@ -31,29 +31,26 @@ export const getSupabaseClient = () => {
 };
 
 // Function to get admin supabase client with service role key
-// Always returns a fresh instance to avoid conflicts with auth state
+// Creates a fresh instance each time to avoid auth state conflicts
 export const getAdminSupabaseClient = () => {
-  if (!adminSupabaseInstance) {
-    adminSupabaseInstance = createClient<Database>(
-      SUPABASE_URL,
-      SERVICE_ROLE_KEY,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false
+  return createClient<Database>(
+    SUPABASE_URL,
+    SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
         },
-        global: {
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
-          },
-        },
-      }
-    );
-  }
-  return adminSupabaseInstance;
+      },
+    }
+  );
 };
 
 // For backwards compatibility

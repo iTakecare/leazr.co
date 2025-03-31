@@ -1,6 +1,7 @@
 
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
-import { Client, CreateClientData } from "@/types/client"; // Import the needed type
+import { supabase } from "@/integrations/supabase/client";
+import { Client, CreateClientData } from "@/types/client"; 
+import { getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 /**
  * Récupère tous les clients
@@ -141,7 +142,9 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    // Toujours tenter d'abord avec adminSupabase pour les opérations publiques
+    // Always use a fresh instance of adminSupabase for public requests
+    const adminSupabase = getAdminSupabaseClient();
+    
     try {
       const { data: result, error } = await adminSupabase
         .from('clients')

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createClientRequest } from "@/services/offers/clientRequests";
 import { createClient } from "@/services/clientService";
-import { supabase, adminSupabase } from "@/integrations/supabase/client";
+import { getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 export interface ProductRequestData {
   client_name: string;
@@ -70,7 +70,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
 
       console.log("Attempting to create client:", clientData);
       
-      // Utiliser adminSupabase directement pour les requêtes publiques
+      // With our new RLS policies, this should work now
       const client = await createClient(clientData);
       
       if (client) {
@@ -104,6 +104,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
       
       console.log("Attempting to create offer:", offerData);
       
+      // With our new RLS policies, this should work now
       const result = await createClientRequest(offerData);
       console.log("Result from createClientRequest:", result);
       
