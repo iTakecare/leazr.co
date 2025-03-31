@@ -61,7 +61,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         postal_code: data.postal_code || '',
         country: data.client_country || 'BE',
         phone: '',
-        status: 'active'
+        status: 'active' as 'active' | 'inactive' | 'lead'
       };
 
       console.log("Attempting to create client:", clientData);
