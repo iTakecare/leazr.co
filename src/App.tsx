@@ -83,6 +83,7 @@ const App = () => {
                   <Route path="/panier" element={<CartPage />} />
                   <Route path="/demande" element={<RequestPage />} />
                   <Route path="/demande-envoyee" element={<RequestSentPage />} />
+                  <Route path="/request-sent" element={<Navigate to="/demande-envoyee" replace />} />
                   
                   <Route path="/products/:id" element={<ProductDetailPage />} />
                   <Route path="/produits/:id" element={<ProductDetailPage />} />

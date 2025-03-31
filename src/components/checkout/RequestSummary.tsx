@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
+import { useNavigate } from 'react-router-dom';
+import { createProductRequest } from '@/services/requestInfoService';
+import { useToast } from '@/hooks/use-toast';
 
 interface RequestSummaryProps {
   companyData: {
@@ -33,7 +36,10 @@ interface RequestSummaryProps {
 }
 
 const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack }) => {
-  const { items } = useCart();
+  const { items, clearCart } = useCart();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   // Calculate totals without using CartContext methods
   const totalMonthly = items.reduce((total, item) => {
@@ -41,10 +47,70 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
     return total + (price * item.quantity);
   }, 0);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    window.location.href = '/request-sent';
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare equipment description
+      const equipmentDescription = items.map(item => {
+        const options = Object.entries(item.selectedOptions || {})
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(', ');
+          
+        return `${item.product.name} (${formatCurrency(item.product.monthly_price || 0)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
+      }).join('\n');
+      
+      // Create request data
+      const requestData = {
+        client_name: contactData.name,
+        client_email: contactData.email || companyData.email,
+        client_company: companyData.company,
+        client_contact_email: contactData.email,
+        client_country: companyData.country,
+        client_vat_number: companyData.vat_number,
+        client_is_vat_exempt: companyData.is_vat_exempt,
+        equipment_description: equipmentDescription,
+        amount: totalMonthly * 36, // Total contract value
+        monthly_payment: totalMonthly,
+        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        duration: 36, // Standard duration
+        address: contactData.address,
+        city: contactData.city,
+        postal_code: contactData.postal_code,
+        country: contactData.country,
+        has_different_shipping_address: contactData.has_different_shipping_address,
+        shipping_address: contactData.shipping_address,
+        shipping_city: contactData.shipping_city,
+        shipping_postal_code: contactData.shipping_postal_code,
+        shipping_country: contactData.shipping_country
+      };
+
+      console.log("Submitting request with data:", requestData);
+      
+      // Send request to service
+      const result = await createProductRequest(requestData);
+      
+      // Clear cart after successful submission
+      clearCart();
+      
+      // Navigate to success page with company and name data
+      navigate('/demande-envoyee', { 
+        state: { 
+          success: true, 
+          companyName: companyData.company, 
+          name: contactData.name 
+        }
+      });
+    } catch (error) {
+      console.error("Error submitting request:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer."
+      });
+      setIsSubmitting(false);
+    }
   };
   
   // Use the email from contactData if available, otherwise use the company email
@@ -185,6 +251,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
           variant="outline" 
           onClick={onBack}
           className="flex items-center"
+          disabled={isSubmitting}
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
           Retour
@@ -193,9 +260,19 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         <Button 
           type="submit"
           className="bg-green-600 hover:bg-green-700"
+          disabled={isSubmitting}
         >
-          <ShoppingBag className="mr-2 h-4 w-4" />
-          Envoyer ma demande
+          {isSubmitting ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Envoi en cours...
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Envoyer ma demande
+            </>
+          )}
         </Button>
       </div>
     </form>

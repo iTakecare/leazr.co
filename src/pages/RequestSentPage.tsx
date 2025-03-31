@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Container from '@/components/layout/Container';
@@ -14,7 +14,9 @@ interface RequestSentState {
 const RequestSentPage: React.FC = () => {
   const location = useLocation();
   const [requestData, setRequestData] = useState<any>(null);
-  const state = location.state as RequestSentState;
+  
+  // Get state from location or default if not available
+  const state = location.state as RequestSentState || { success: false };
 
   useEffect(() => {
     // Récupérer les détails de la demande depuis sessionStorage
@@ -27,6 +29,13 @@ const RequestSentPage: React.FC = () => {
       }
     }
   }, []);
+
+  // If no proper state data was passed, this indicates a direct navigation to the page 
+  // which is not allowed, so redirect to the homepage
+  if (!state?.success && !location.state) {
+    console.log("No success state found, redirecting to home");
+    return <Navigate to="/" replace />;
+  }
 
   if (!state?.success) {
     return (
@@ -41,7 +50,7 @@ const RequestSentPage: React.FC = () => {
               <Link to="/contact">Nous contacter</Link>
             </Button>
             <Button asChild>
-              <Link to="/catalog">Retour au catalogue</Link>
+              <Link to="/catalogue">Retour au catalogue</Link>
             </Button>
           </div>
         </div>
@@ -142,7 +151,7 @@ const RequestSentPage: React.FC = () => {
             <Link to="/">Retour à l'accueil</Link>
           </Button>
           <Button asChild>
-            <Link to="/catalog">Continuer vos achats</Link>
+            <Link to="/catalogue">Continuer vos achats</Link>
           </Button>
         </div>
       </div>
