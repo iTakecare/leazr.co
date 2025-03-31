@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface SmtpTestData {
+  config: {
+    id: number;
+    host: string;
+    port: string;
+    username: string;
+    password: string;
+    from_email: string;
+    from_name: string;
+    secure: boolean;
+    enabled: boolean;
+  }
+}
+
+interface ResendTestData {
+  apiKey?: string;
+}
 
 const SmtpSettings = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -34,7 +51,6 @@ const SmtpSettings = () => {
     try {
       setLoading(true);
       
-      // Récupérer les paramètres SMTP
       const { data, error } = await supabase
         .from('smtp_settings')
         .select('*')
@@ -52,7 +68,6 @@ const SmtpSettings = () => {
         setUseResend(data.use_resend || false);
       }
       
-      // Récupérer la clé API Resend des secrets
       const { data: secretsData, error: secretsError } = await supabase.functions.invoke('get-secret', {
         body: { key: 'RESEND_API_KEY' }
       });
@@ -77,7 +92,6 @@ const SmtpSettings = () => {
     try {
       setSaving(true);
       
-      // Mettre à jour les paramètres SMTP
       const { error } = await supabase
         .from('smtp_settings')
         .upsert({
@@ -88,7 +102,6 @@ const SmtpSettings = () => {
       
       if (error) throw error;
       
-      // Si on utilise Resend, mettre à jour la clé API
       if (useResend && resendApiKey) {
         const { error: secretError } = await supabase.functions.invoke('set-secret', {
           body: { key: 'RESEND_API_KEY', value: resendApiKey }
@@ -113,12 +126,13 @@ const SmtpSettings = () => {
       setTesting(true);
       
       let testFunction = 'test-smtp-connection';
-      let testData = { config: settings };
+      let testData: SmtpTestData | ResendTestData;
       
       if (useResend) {
         testFunction = 'test-resend';
-        // Correction : Passage de l'apiKey dans un objet compatible avec l'interface attendue
-        testData = { apiKey: resendApiKey }; 
+        testData = { apiKey: resendApiKey } as ResendTestData;
+      } else {
+        testData = { config: settings } as SmtpTestData;
       }
       
       toast.info("Test d'envoi d'email en cours...");
