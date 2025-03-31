@@ -56,15 +56,15 @@ const ResendSettings = () => {
       }
       
       console.log("Fetching Resend API key...");
-      const { data: secretsData, error: secretsError } = await supabase.functions.invoke('get-secret', {
-        body: { key: 'RESEND_API_KEY' }
+      const { data: secretData, error: secretError } = await supabase.functions.invoke('get-secret-value', {
+        body: { secret_name: 'RESEND_API_KEY' }
       });
       
-      if (secretsError) {
-        console.error("Error fetching Resend API key:", secretsError);
-      } else if (secretsData && secretsData.value) {
+      if (secretError) {
+        console.error("Error fetching Resend API key:", secretError);
+      } else if (secretData) {
         console.log("Resend API key retrieved");
-        setResendApiKey(secretsData.value);
+        setResendApiKey(secretData);
       } else {
         console.log("No Resend API key found or it's empty");
       }
