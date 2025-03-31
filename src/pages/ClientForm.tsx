@@ -167,7 +167,12 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
           form.setValue("name", result.companyName);
         }
         
-        if (result.address) {
+        if (result.addressParsed) {
+          form.setValue("address", result.addressParsed.streetAddress || "");
+          form.setValue("postal_code", result.addressParsed.postalCode || "");
+          form.setValue("city", result.addressParsed.city || "");
+          form.setValue("country", result.addressParsed.country || "");
+        } else if (result.address) {
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
             form.setValue("address", addressParts[0].trim());

@@ -246,6 +246,17 @@ export const verifyVatNumber = async (vatNumber: string, country: string = 'BE')
     }
     
     console.log('VIES verification result:', data);
+
+    // Amélioration du parsing de l'adresse
+    if (data && data.valid && data.address) {
+      // Essayer de mieux analyser l'adresse
+      const addressParsed = parseAddress(data.address);
+      return {
+        ...data,
+        addressParsed
+      };
+    }
+    
     return data;
   } catch (error) {
     console.error('Exception during VAT verification:', error);
@@ -254,6 +265,109 @@ export const verifyVatNumber = async (vatNumber: string, country: string = 'BE')
       error: 'Erreur lors de la vérification du numéro de TVA'
     };
   }
+};
+
+/**
+ * Parse une adresse en ses composants (rue, code postal, ville, pays)
+ * @param address L'adresse complète à parser
+ * @returns Les composants de l'adresse
+ */
+const parseAddress = (address: string) => {
+  console.log('Parsing address:', address);
+  
+  // Différentes stratégies de parsing selon le format d'adresse
+  
+  // 1. Essayer de trouver un format avec des virgules (le plus courant dans les réponses VIES)
+  const addressParts = address.split(',').map(part => part.trim());
+  if (addressParts.length >= 2) {
+    // Adresse complète est la première partie
+    const streetAddress = addressParts[0];
+    
+    // Pour la partie code postal et ville
+    const cityPostalParts = addressParts[1].trim().split(/\s+/);
+    
+    // Essayer d'identifier le code postal et la ville
+    let postalCode = '';
+    let city = '';
+    
+    // Si le premier élément est numérique, c'est probablement un code postal
+    if (/^\d+$/.test(cityPostalParts[0])) {
+      postalCode = cityPostalParts[0];
+      city = cityPostalParts.slice(1).join(' ');
+    } else {
+      // Sinon, chercher un pattern numérique dans la chaîne
+      const postalMatch = addressParts[1].match(/\b\d{4,6}\b/);
+      if (postalMatch) {
+        postalCode = postalMatch[0];
+        // La ville est ce qui reste après avoir retiré le code postal
+        city = addressParts[1].replace(postalCode, '').trim();
+      } else {
+        // Si pas de code postal trouvé, considérer toute la partie comme la ville
+        city = addressParts[1];
+      }
+    }
+    
+    // Le pays est généralement la dernière partie
+    const country = addressParts.length > 2 ? addressParts[addressParts.length - 1] : '';
+    
+    console.log('Parsed address:', { streetAddress, postalCode, city, country });
+    return { streetAddress, postalCode, city, country };
+  }
+  
+  // 2. Essayer de trouver un format avec des séparateurs de lignes
+  if (address.includes('\n')) {
+    const lines = address.split('\n').map(line => line.trim()).filter(Boolean);
+    if (lines.length >= 2) {
+      const streetAddress = lines[0];
+      
+      // Analayse pour code postal et ville dans la deuxième ligne
+      const cityPostalLine = lines[1];
+      const postalMatch = cityPostalLine.match(/\b\d{4,6}\b/);
+      let postalCode = '';
+      let city = '';
+      
+      if (postalMatch) {
+        postalCode = postalMatch[0];
+        city = cityPostalLine.replace(postalCode, '').trim();
+      } else {
+        city = cityPostalLine;
+      }
+      
+      const country = lines.length > 2 ? lines[lines.length - 1] : '';
+      
+      console.log('Parsed address from lines:', { streetAddress, postalCode, city, country });
+      return { streetAddress, postalCode, city, country };
+    }
+  }
+  
+  // 3. Dernière tentative: essayer de trouver un code postal quelque part dans la chaîne
+  const postalMatch = address.match(/\b\d{4,6}\b/);
+  if (postalMatch) {
+    const postalCode = postalMatch[0];
+    const parts = address.split(postalCode);
+    
+    // Considérer la partie avant le code postal comme l'adresse
+    const streetAddress = parts[0].trim();
+    
+    // Essayer d'extraire la ville et le pays de la partie après le code postal
+    const afterPostal = parts[1].trim();
+    const afterParts = afterPostal.split(/[,\n]/);
+    
+    const city = afterParts[0].trim();
+    const country = afterParts.length > 1 ? afterParts[afterParts.length - 1].trim() : '';
+    
+    console.log('Parsed address with postal extraction:', { streetAddress, postalCode, city, country });
+    return { streetAddress, postalCode, city, country };
+  }
+  
+  // Si aucune stratégie ne fonctionne, retourner l'adresse complète comme adresse de rue
+  console.log('No parsing strategy worked, returning full address as street');
+  return { 
+    streetAddress: address, 
+    postalCode: '', 
+    city: '', 
+    country: '' 
+  };
 };
 
 /**

@@ -124,8 +124,15 @@ const ClientEditDialog = ({
           form.setValue("company", result.companyName);
         }
         
-        if (result.address) {
-          // Simple parsing of address for demo
+        // Utiliser les données d'adresse parsées si disponibles
+        if (result.addressParsed) {
+          // Utiliser les données parsées
+          form.setValue("address", result.addressParsed.streetAddress || "");
+          form.setValue("postal_code", result.addressParsed.postalCode || "");
+          form.setValue("city", result.addressParsed.city || "");
+          form.setValue("country", result.addressParsed.country || "");
+        } else if (result.address) {
+          // Fallback vers l'ancien comportement
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
             form.setValue("address", addressParts[0].trim());
