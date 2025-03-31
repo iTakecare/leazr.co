@@ -59,7 +59,7 @@ serve(async (req) => {
     // Préparer le contenu texte si non fourni
     const textContent = reqData.text || stripHtml(reqData.html);
 
-    console.log(`Tentative d'envoi d'email via Resend à ${reqData.to}`);
+    console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
