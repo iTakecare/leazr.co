@@ -7,14 +7,24 @@ import ClientsLoading from '@/components/clients/ClientsLoading';
 import ClientsError from '@/components/clients/ClientsError';
 import { deleteClient } from '@/services/clientService';
 import { toast } from 'sonner';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ClientsListProps {
   clients: Client[];
   isLoading: boolean;
   error: Error | null;
+  showAmbassadorClients: boolean;
+  onToggleAmbassadorClients: (value: boolean) => void;
 }
 
-const ClientsList: React.FC<ClientsListProps> = ({ clients, isLoading, error }) => {
+const ClientsList: React.FC<ClientsListProps> = ({ 
+  clients, 
+  isLoading, 
+  error, 
+  showAmbassadorClients,
+  onToggleAmbassadorClients
+}) => {
   const navigate = useNavigate();
 
   const handleDeleteClient = async (id: string) => {
@@ -46,12 +56,23 @@ const ClientsList: React.FC<ClientsListProps> = ({ clients, isLoading, error }) 
   }
 
   return (
-    <ClientList
-      clients={clients}
-      onDeleteClient={handleDeleteClient}
-      onEditClient={handleEditClient}
-      onViewClient={handleViewClient}
-    />
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2">
+        <Switch 
+          id="show-ambassador-clients" 
+          checked={showAmbassadorClients}
+          onCheckedChange={onToggleAmbassadorClients}
+        />
+        <Label htmlFor="show-ambassador-clients">Afficher les clients des ambassadeurs</Label>
+      </div>
+      
+      <ClientList
+        clients={clients}
+        onDeleteClient={handleDeleteClient}
+        onEditClient={handleEditClient}
+        onViewClient={handleViewClient}
+      />
+    </div>
   );
 };
 

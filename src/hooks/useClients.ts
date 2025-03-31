@@ -1,48 +1,32 @@
 
 import { useState, useEffect } from 'react';
 import { getAllClients } from '@/services/clientService';
-import { Client } from '@/types/client';
+import type { Client as ClientType } from '@/types/client';
 
-export interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  companyName?: string;  // Added for compatibility with ClientSelector
-  companyId?: string;    // Added for compatibility with ClientSelector
-  created_at?: string | Date;
-  status?: string;
-  vat_number?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  address?: string;
-  notes?: string;
-  updated_at: Date; // Added to match the Client interface from types/client
-}
+// Nous n'avons plus besoin de cette interface car nous utilisons celle de types/client
+// Interface supprimée pour éviter le conflit
 
 export const useClients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [showAmbassadorClients, setShowAmbassadorClients] = useState(false);
 
   useEffect(() => {
     const fetchClients = async () => {
       try {
         setIsLoading(true);
-        const clientsData = await getAllClients();
+        const clientsData = await getAllClients(showAmbassadorClients);
         
         if (clientsData && clientsData.length > 0) {
           console.log('Clients récupérés:', clientsData.length);
           
-          // Ensure clients have companyName, companyId, and updated_at properties
-          const formattedClients: Client[] = clientsData.map(client => ({
+          // Ensure clients have updated_at property
+          const formattedClients: ClientType[] = clientsData.map(client => ({
             ...client,
-            companyName: client.company || '',
-            companyId: client.id,
+            company: client.company || '',
             updated_at: client.updated_at || new Date() // Ensure updated_at exists
           }));
           
@@ -62,7 +46,7 @@ export const useClients = () => {
     };
 
     fetchClients();
-  }, []);
+  }, [showAmbassadorClients]);
 
   // Make sure filteredClients is always initialized as an array
   const filteredClients = clients ? clients.filter((client) => {
@@ -70,7 +54,7 @@ export const useClients = () => {
       searchTerm === "" ||
       client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (client.company || client.companyName || '')?.toLowerCase().includes(searchTerm.toLowerCase());
+      (client.company || '')?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = 
       selectedStatus === "all" ||
@@ -86,6 +70,8 @@ export const useClients = () => {
     searchTerm,
     setSearchTerm,
     selectedStatus,
-    setSelectedStatus
+    setSelectedStatus,
+    showAmbassadorClients,
+    setShowAmbassadorClients
   };
 };

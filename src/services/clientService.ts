@@ -4,13 +4,28 @@ import { toast } from 'sonner';
 
 export const clientService = {
   // Get all clients
-  getAllClients: async (): Promise<Client[]> => {
+  getAllClients: async (includeAmbassadorClients = false): Promise<Client[]> => {
     try {
-      console.log("Fetching all clients...");
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
+      console.log(`Fetching clients with includeAmbassadorClients=${includeAmbassadorClients}`);
+      
+      let query = supabase.from('clients').select('*');
+      
+      // Si on ne veut pas inclure les clients des ambassadeurs, on doit filtrer pour exclure ceux qui sont dans la table ambassador_clients
+      if (!includeAmbassadorClients) {
+        // On cherche les clients qui n'ont PAS d'entrée dans ambassador_clients
+        const { data: ambassadorClientIds } = await supabase
+          .from('ambassador_clients')
+          .select('client_id');
+        
+        if (ambassadorClientIds && ambassadorClientIds.length > 0) {
+          const clientIdsToExclude = ambassadorClientIds.map(item => item.client_id);
+          console.log(`Excluding ${clientIdsToExclude.length} ambassador clients`);
+          query = query.not('id', 'in', `(${clientIdsToExclude.join(',')})`);
+        }
+      }
+      
+      // Compléter la requête avec l'ordre
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching clients:', error);
@@ -145,6 +160,25 @@ export const clientService = {
   // Delete a client
   deleteClient: async (id: string): Promise<void> => {
     try {
+      console.log(`Attempting to delete client with ID: ${id}`);
+      
+      // First check if client is associated with an ambassador
+      const { data: ambassadorClient } = await supabase
+        .from('ambassador_clients')
+        .select('*')
+        .eq('client_id', id)
+        .maybeSingle();
+      
+      if (ambassadorClient) {
+        console.log('This client is associated with an ambassador, removing association first');
+        const { error: deleteAssociationError } = await supabase
+          .from('ambassador_clients')
+          .delete()
+          .eq('client_id', id);
+          
+        if (deleteAssociationError) throw deleteAssociationError;
+      }
+      
       // First delete all collaborators
       const { error: collaboratorsError } = await supabase
         .from('client_collaborators')

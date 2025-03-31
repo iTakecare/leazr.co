@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +29,17 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { clients, isLoading, error, searchTerm: clientSearchTerm, setSearchTerm: setClientSearchTerm, selectedStatus, setSelectedStatus } = useClients();
+  const { 
+    clients, 
+    isLoading, 
+    error, 
+    searchTerm: clientSearchTerm, 
+    setSearchTerm: setClientSearchTerm, 
+    selectedStatus, 
+    setSelectedStatus,
+    showAmbassadorClients,
+    setShowAmbassadorClients
+  } = useClients();
   
   useEffect(() => {
     setClientSearchTerm(searchTerm);
@@ -40,7 +49,6 @@ const Clients = () => {
     setSelectedStatus(statusFilter);
   }, [statusFilter, setSelectedStatus]);
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -60,7 +68,6 @@ const Clients = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Handle navigation based on tab selection
     if (value === "clients") {
       navigate("/clients");
     } else if (value === "partners") {
@@ -204,7 +211,15 @@ const Clients = () => {
                 </Tabs>
               </CardHeader>
               <CardContent>
-                {activeTab === "clients" && <ClientsList clients={clients} isLoading={isLoading} error={error} />}
+                {activeTab === "clients" && 
+                  <ClientsList 
+                    clients={clients} 
+                    isLoading={isLoading} 
+                    error={error} 
+                    showAmbassadorClients={showAmbassadorClients}
+                    onToggleAmbassadorClients={setShowAmbassadorClients}
+                  />
+                }
               </CardContent>
             </Card>
           </motion.div>
