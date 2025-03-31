@@ -136,6 +136,22 @@ serve(async (req) => {
         use_resend: smtpSettings.use_resend
       });
       
+      // Générer un token et un lien pour la création de compte
+      const { data: signupLinkData, error: signupLinkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'signup',
+        email: data.client_email,
+        options: {
+          redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
+        }
+      });
+
+      if (signupLinkError) {
+        console.error("Erreur lors de la génération du lien de création de compte:", signupLinkError);
+        // On continue sans le lien de création de compte
+      }
+
+      const accountCreationLink = signupLinkData?.properties?.action_link || `${Deno.env.get('SITE_URL') || ''}/auth/signup?email=${encodeURIComponent(data.client_email)}`;
+      
       // Récupérer le modèle d'email de demande de produit
       const { data: emailTemplate, error: templateError } = await supabaseAdmin
         .from('email_templates')
@@ -156,6 +172,13 @@ serve(async (req) => {
             <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
           </ul>
           <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${accountCreationLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Créer mon compte pour suivre ma demande
+            </a>
+          </div>
+          
           <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
         </div>
@@ -172,7 +195,8 @@ serve(async (req) => {
           .replace(/{{client_name}}/g, data.client_name)
           .replace(/{{equipment_description}}/g, data.equipment_description)
           .replace(/{{amount}}/g, data.amount)
-          .replace(/{{monthly_payment}}/g, data.monthly_payment);
+          .replace(/{{monthly_payment}}/g, data.monthly_payment)
+          .replace(/{{account_creation_link}}/g, accountCreationLink);
       } else if (templateError) {
         console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
       } else {

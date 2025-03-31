@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Editor } from "@tinymce/tinymce-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 
 interface EmailTemplate {
   id: number;
@@ -168,24 +168,11 @@ const EmailTemplateEditor: React.FC = () => {
               <Label htmlFor="editor">Contenu de l'email</Label>
               <Card>
                 <CardContent className="pt-6">
-                  <Editor
-                    apiKey="7brhs4b679mgzy88ps7dwcxqjqlsqmi34i8yqnl1p9u800hy"
-                    initialValue={currentTemplate.html_content}
-                    onEditorChange={handleEditorChange}
-                    init={{
-                      height: 500,
-                      menubar: true,
-                      plugins: [
-                        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                      ],
-                      toolbar:
-                        'undo redo | blocks | bold italic forecolor | alignleft aligncenter ' +
-                        'alignright alignjustify | bullist numlist outdent indent | ' +
-                        'removeformat | help',
-                      content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
-                    }}
+                  <RichTextEditor
+                    value={currentTemplate.html_content}
+                    onChange={handleEditorChange}
+                    height={500}
+                    isEmailEditor={true}
                   />
                 </CardContent>
               </Card>
@@ -198,7 +185,8 @@ const EmailTemplateEditor: React.FC = () => {
                 <code className="block mb-1">{'{{equipment_description}}'} - Description de l'équipement</code>
                 <code className="block mb-1">{'{{amount}}'} - Montant total</code>
                 <code className="block mb-1">{'{{monthly_payment}}'} - Paiement mensuel</code>
-                <code className="block">{'{{date}}'} - Date actuelle</code>
+                <code className="block mb-1">{'{{date}}'} - Date actuelle</code>
+                <code className="block mb-1">{'{{account_creation_link}}'} - Lien pour la création de compte client</code>
               </div>
             </div>
 

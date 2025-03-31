@@ -46,6 +46,35 @@ export const getEmailTemplate = async (
 };
 
 /**
+ * Génère un lien de création de compte pour un client
+ */
+export const generateAccountCreationLink = async (
+  email: string
+): Promise<string> => {
+  try {
+    // Utiliser l'API de Supabase pour générer un lien d'inscription
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: 'signup',
+      email: email,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    
+    if (error) {
+      console.error("Erreur lors de la génération du lien de création de compte:", error);
+      // Fallback vers l'URL de base du site avec l'email en paramètre
+      return `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
+    }
+    
+    return data.properties?.action_link || `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
+  } catch (error) {
+    console.error("Exception lors de la génération du lien de création de compte:", error);
+    return `${window.location.origin}/auth/signup?email=${encodeURIComponent(email)}`;
+  }
+};
+
+/**
  * Envoie un email en utilisant Resend
  */
 export const sendEmail = async (
