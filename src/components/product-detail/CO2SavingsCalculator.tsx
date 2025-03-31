@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Leaf } from "lucide-react";
 
@@ -37,61 +38,60 @@ const CO2SavingsCalculator: React.FC<CO2SavingsCalculatorProps> = ({
   const treeMonthsEquivalent = Math.round(totalSavings / 20); // ~20kg CO2 absorbés par arbre par mois
   
   return (
-    <div className="bg-gradient-to-br from-[#f2fcfa] to-[#e8f7f9] border border-[#4ab6c4]/30 rounded-xl p-3 shadow-sm">
-      <div className="flex items-center mb-2">
-        <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] rounded-full p-1.5 text-white mr-2">
-          <Leaf className="h-4 w-4" />
+    <div className="bg-gradient-to-br from-[#f2fcfa] to-[#e8f7f9] border border-[#4ab6c4]/30 rounded-lg p-2 shadow-sm">
+      <div className="flex items-center mb-1">
+        <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] rounded-full p-1 text-white mr-1.5">
+          <Leaf className="h-3.5 w-3.5" />
         </div>
-        <h3 className="text-sm font-semibold text-[#33638e]">
+        <h3 className="text-xs font-semibold text-[#33638e]">
           Impact environnemental positif
         </h3>
       </div>
       
-      <div className="mb-2">
+      <div className="mb-1.5">
         <p className="text-gray-700 text-xs">
-          En choisissant {quantity} {quantity > 1 ? "appareils reconditionnés" : "appareil reconditionné"}, 
-          vous économisez:
+          Économie avec {quantity} {quantity > 1 ? "appareils" : "appareil"} reconditionné(s):
         </p>
       </div>
       
-      <div className="flex flex-col gap-2 mb-2">
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
-          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+      <div className="grid grid-cols-3 gap-1.5 mb-1">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-1.5 border border-[#4ab6c4]/20">
+          <div className="flex-shrink-0 mr-1 text-sm">
             🍃
           </div>
           <div>
-            <div className="text-base font-bold text-[#33638e]">{totalSavings} kg</div>
-            <div className="text-xs text-gray-600">d'équivalent CO2</div>
+            <div className="text-sm font-bold text-[#33638e]">{totalSavings} kg</div>
+            <div className="text-[10px] text-gray-600">CO2</div>
           </div>
         </div>
         
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
-          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-1.5 border border-[#4ab6c4]/20">
+          <div className="flex-shrink-0 mr-1 text-sm">
             🚗
           </div>
           <div>
-            <div className="text-base font-bold text-[#33638e]">{carKmEquivalent} km</div>
-            <div className="text-xs text-gray-600">de trajet en voiture</div>
+            <div className="text-sm font-bold text-[#33638e]">{carKmEquivalent} km</div>
+            <div className="text-[10px] text-gray-600">en voiture</div>
           </div>
         </div>
         
-        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-2 border border-[#4ab6c4]/20">
-          <div className="flex-shrink-0 rounded-full p-1 mr-2 text-lg">
+        <div className="flex items-center bg-white bg-opacity-80 rounded-lg p-1.5 border border-[#4ab6c4]/20">
+          <div className="flex-shrink-0 mr-1 text-sm">
             🌳
           </div>
           <div>
-            <div className="text-base font-bold text-[#33638e]">{treeMonthsEquivalent} {treeMonthsEquivalent > 1 ? "mois" : "mois"}</div>
-            <div className="text-xs text-gray-600">d'absorption d'un arbre</div>
+            <div className="text-sm font-bold text-[#33638e]">{treeMonthsEquivalent} mois</div>
+            <div className="text-[10px] text-gray-600">d'un arbre</div>
           </div>
         </div>
       </div>
       
-      <div className="mt-3 border-t border-[#4ab6c4]/10 pt-2 text-right">
-        <span className="text-[9px] text-gray-500 italic">* Estimations basées sur des études - Source: <a 
+      <div className="text-right">
+        <span className="text-[8px] text-gray-500 italic">* Source: <a 
           href="https://impactco2.fr" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-[9px] text-[#33638e] hover:underline inline-block"
+          className="text-[8px] text-[#33638e] hover:underline inline-block"
         >
           impactco2.fr
         </a></span>

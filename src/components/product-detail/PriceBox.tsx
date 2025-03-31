@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import AddToCartButton from "./AddToCartButton";
@@ -24,13 +24,13 @@ const PriceBox: React.FC<PriceBoxProps> = ({
   selectedOptions = {}
 }) => {
   return (
-    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-gray-700 font-medium">Votre sélection pour {duration} mois</span>
-        <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
+        <span className="text-sm text-gray-700">Pour {duration} mois</span>
+        <span className="text-xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
       </div>
       
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
         {product ? (
           <AddToCartButton 
             product={product}
@@ -40,7 +40,7 @@ const PriceBox: React.FC<PriceBoxProps> = ({
           />
         ) : (
           <Button 
-            className="w-full sm:w-auto px-8 bg-[#2d618f] hover:bg-[#347599]"
+            className="text-sm w-full sm:w-auto px-6 bg-[#2d618f] hover:bg-[#347599]"
             onClick={onRequestOffer}
           >
             Ajouter
@@ -49,21 +49,22 @@ const PriceBox: React.FC<PriceBoxProps> = ({
         
         <Button 
           variant="outline" 
-          className="w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
+          className="text-sm w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
           onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
         >
-          Parler à un conseiller
+          <Info className="h-4 w-4 mr-1" />
+          Conseiller
         </Button>
       </div>
       
-      <div className="space-y-1 text-sm">
+      <div className="grid grid-cols-2 gap-1 text-xs">
         <div className="flex items-center text-gray-600">
-          <Check className="h-4 w-4 text-[#347599] mr-2" />
-          <span>Livraison gratuite en Europe</span>
+          <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+          <span>Livraison gratuite</span>
         </div>
         <div className="flex items-center text-gray-600">
-          <Check className="h-4 w-4 text-[#347599] mr-2" />
-          <span>Pas de premier loyer majoré</span>
+          <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+          <span>Pas de loyer majoré</span>
         </div>
       </div>
     </div>

@@ -303,30 +303,30 @@ const ProductDetailPage = () => {
           
           <div>
             <div className="sticky top-4 rounded-xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-6">
-                <div className="flex mb-2">
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/30 mr-2">
+              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/30">
                     {productCategory === "laptop" ? "Ordinateur" : productCategory}
                   </Badge>
-                  <span className="text-indigo-100">{productBrand}</span>
+                  <span className="text-indigo-100 text-sm">{productBrand}</span>
                 </div>
                 
-                <h1 className="text-3xl font-bold mb-2 text-white">
+                <h1 className="text-2xl font-bold text-white">
                   Leasing {productName}
                 </h1>
                 
-                <div className="text-lg text-indigo-100 mb-4">
+                <div className="text-md text-indigo-100">
                   à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
                 </div>
               </div>
               
-              <div className="bg-white p-6 border-x border-b border-gray-100">
-                <Separator className="my-4" />
+              <div className="bg-white p-4 border-x border-b border-gray-100">
+                <Separator className="my-3" />
                 
-                <div className="mb-6">
-                  <h3 className="text-xl font-medium mb-4 text-gray-800">Sélectionnez votre configuration idéale</h3>
+                <div className="mb-4">
+                  <h3 className="text-md font-medium mb-3 text-gray-800">Configuration</h3>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {configAttributes.map(attribute => {
                       const displayName = getDisplayName(attribute);
                       const currentValue = getCurrentValue(attribute);
@@ -338,35 +338,35 @@ const ProductDetailPage = () => {
                       );
                     })}
                     
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Durée</label>
-                      <div className="bg-gray-50 rounded border border-gray-200 px-3 py-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-700">Durée</label>
+                      <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1.5 text-sm">
                         36 mois
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-700">Quantité</label>
                       <div className="flex items-center">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-r-none border-gray-200"
+                          className="h-8 w-8 rounded-r-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity - 1)}
                           disabled={quantity <= 1}
                         >
-                          <MinusIcon className="h-4 w-4" />
+                          <MinusIcon className="h-3 w-3" />
                         </Button>
-                        <div className="h-10 px-4 flex items-center justify-center border-y border-gray-200">
+                        <div className="h-8 px-3 flex items-center justify-center border-y border-gray-200 text-sm">
                           {quantity}
                         </div>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-l-none border-gray-200"
+                          className="h-8 w-8 rounded-l-none border-gray-200"
                           onClick={() => handleQuantityChange(quantity + 1)}
                         >
-                          <PlusIcon className="h-4 w-4" />
+                          <PlusIcon className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
@@ -374,7 +374,7 @@ const ProductDetailPage = () => {
                 </div>
                 
                 {productCategory && (
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <CO2SavingsCalculator 
                       category={productCategory}
                       quantity={quantity}
@@ -382,13 +382,13 @@ const ProductDetailPage = () => {
                   </div>
                 )}
                 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-700 font-medium">Votre sélection pour 36 mois</span>
-                    <span className="text-2xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
+                    <span className="text-sm text-gray-700">Pour 36 mois</span>
+                    <span className="text-xl font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
                     <AddToCartButton 
                       product={product}
                       quantity={quantity}
@@ -398,28 +398,29 @@ const ProductDetailPage = () => {
                     />
                     <Button 
                       variant="outline" 
-                      className="w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
+                      className="text-sm w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
-                      Parler à un conseiller
+                      <Info className="h-4 w-4 mr-1" />
+                      Conseiller
                     </Button>
                   </div>
                   
-                  <div className="space-y-1 text-sm">
+                  <div className="grid grid-cols-2 gap-1 text-xs">
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-[#347599] mr-2" />
-                      <span>Livraison gratuite en Europe</span>
+                      <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+                      <span>Livraison gratuite</span>
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <Check className="h-4 w-4 text-[#347599] mr-2" />
-                      <span>Pas de premier loyer majoré</span>
+                      <Check className="h-3 w-3 text-[#347599] mr-1 flex-shrink-0" />
+                      <span>Pas de loyer majoré</span>
                     </div>
                   </div>
                 </div>
                 
                 <Button 
                   variant="link" 
-                  className="text-[#2d618f]"
+                  className="text-xs text-[#2d618f] p-0"
                   onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                 >
                   Besoin d&apos;aide ?

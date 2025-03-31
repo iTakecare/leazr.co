@@ -74,10 +74,10 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   return (
     <Button 
       onClick={handleAddToCart}
-      className="px-8 bg-[#2d618f] hover:bg-[#347599] w-full sm:w-auto"
+      className="text-sm w-full sm:w-auto bg-[#2d618f] hover:bg-[#347599]"
       type="button"
     >
-      <ShoppingCart className="mr-2 h-4 w-4" />
+      <ShoppingCart className="mr-1.5 h-4 w-4" />
       Ajouter au panier
     </Button>
   );
