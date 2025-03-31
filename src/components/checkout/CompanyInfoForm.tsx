@@ -270,18 +270,19 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
               type="button"
               size="icon"
               variant="outline"
-              className={`flex-shrink-0 transition-all shadow-md hover:shadow-lg ${
+              className={`flex-shrink-0 transition-all ${
                 vatNumberFilled 
-                  ? 'bg-blue-100 border-blue-500 ring-4 ring-blue-200 animate-pulse hover:bg-blue-200 hover:border-blue-600' 
+                  ? 'bg-blue-100 border-blue-600 ring-8 ring-blue-300 animate-[pulse_1.5s_ease-in-out_infinite] hover:bg-blue-200 hover:border-blue-700 shadow-lg shadow-blue-200/50' 
                   : 'border-gray-300'
               }`}
               onClick={handleSearchCompany}
               disabled={verifying || !formData.vat_number.trim()}
+              aria-label="Rechercher l'entreprise"
             >
               {verifying ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Search className={`h-5 w-5 ${vatNumberFilled ? 'text-blue-700' : ''}`} />
+                <Search className={`h-6 w-6 ${vatNumberFilled ? 'text-blue-700' : ''}`} />
               )}
             </Button>
           </div>
@@ -289,10 +290,10 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
             Format: {idFormats[country as keyof typeof idFormats].format}
           </p>
           {vatNumberFilled && (
-            <div className="mt-2 bg-blue-50 border-l-4 border-blue-500 p-2 rounded flex items-center">
-              <Search className="h-4 w-4 text-blue-600 mr-2" /> 
-              <p className="text-sm font-medium text-blue-700">
-                Cliquez sur la loupe pour vérifier le numéro
+            <div className="mt-2 bg-blue-100 border-l-4 border-blue-600 p-3 rounded-md flex items-center shadow-md">
+              <Search className="h-5 w-5 text-blue-600 mr-2 animate-pulse" /> 
+              <p className="text-sm font-medium text-blue-800">
+                Cliquez sur la loupe bleue pour vérifier le numéro d'entreprise
               </p>
             </div>
           )}
