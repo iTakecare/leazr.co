@@ -1,236 +1,169 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { deleteClient } from "@/services/clientService";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { UserSearch, Filter, Users, HeartHandshake, BadgePercent, Plus } from "lucide-react";
-import { motion } from "framer-motion";
-import { useClients } from "@/hooks/useClients";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import ClientList from "@/components/clients/ClientList";
-import ClientsLoading from "@/components/clients/ClientsLoading";
-import ClientsError from "@/components/clients/ClientsError";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-const Clients = () => {
+const ClientsPage = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState("clients");
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+
   const {
-    filteredClients,
-    loading,
-    loadingError,
+    clients,
+    isLoading,
+    error,
     searchTerm,
     setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    fetchClients,
-    handleDeleteClient
+    selectedStatus,
+    setSelectedStatus
   } = useClients();
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.05,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-  };
-
-  const getStatusFilterLabel = () => {
-    switch(statusFilter) {
-      case 'active': return 'Clients actifs';
-      case 'inactive': return 'Clients inactifs';
-      case 'lead': return 'Prospects';
-      default: return 'Tous les clients';
+  const handleDeleteClient = async () => {
+    if (deleteClientId) {
+      try {
+        await deleteClient(deleteClientId);
+        toast.success("Client supprimé avec succès");
+      } catch (error) {
+        console.error("Error deleting client:", error);
+        toast.error("Erreur lors de la suppression du client");
+      } finally {
+        setDeleteClientId(null);
+      }
     }
   };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    
-    if (value === "ambassadors") {
-      navigate("/ambassadors");
-    } else if (value === "partners") {
-      navigate("/partners");
-    } else if (value === "clients") {
-      navigate("/clients");
-    }
-  };
-
-  if (loading) {
-    return <ClientsLoading />;
-  }
-
-  if (loadingError && filteredClients.length === 0) {
-    return <ClientsError errorMessage={loadingError} onRetry={fetchClients} />;
-  }
 
   return (
     <PageTransition>
       <Container>
-        <motion.div
-          className="py-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants} className="mb-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold mb-1">CRM</h1>
-                <p className="text-muted-foreground">
-                  Gérez vos clients, ambassadeurs et partenaires
-                </p>
-              </div>
-            </div>
-          </motion.div>
+        <div className="container py-8">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold">Clients</h1>
+            <Link to="/clients/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un client
+              </Button>
+            </Link>
+          </div>
 
-          <motion.div variants={itemVariants}>
-            <Card>
-              <CardHeader className="pb-2">
-                <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="grid grid-cols-3 mb-4">
-                    <TabsTrigger value="clients" className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span className={isMobile ? "" : ""}>Clients</span>
-                      <Badge variant="secondary" className="ml-1">
-                        {filteredClients.length}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="ambassadors" className="flex items-center gap-2">
-                      <HeartHandshake className="h-4 w-4" />
-                      <span className={isMobile ? "" : ""}>Ambassadeurs</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="partners" className="flex items-center gap-2">
-                      <BadgePercent className="h-4 w-4" />
-                      <span className={isMobile ? "" : ""}>Partenaires</span>
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="clients" className="mt-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div>
-                        <CardTitle>Liste des clients</CardTitle>
-                        <CardDescription>
-                          {filteredClients.length} client(s) trouvé(s)
-                        </CardDescription>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full sm:w-auto gap-2">
-                              <Filter className="h-4 w-4" />
-                              <span className="truncate">{getStatusFilterLabel()}</span>
-                              <Badge variant="secondary" className="ml-1 text-xs">
-                                {statusFilter === 'all' ? filteredClients.length : filteredClients.length}
-                              </Badge>
+          <div className="flex items-center space-x-4 mb-4">
+            <Input
+              type="text"
+              placeholder="Rechercher un client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrer par statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="inactive">Inactif</SelectItem>
+                <SelectItem value="lead">Prospect</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Chargement...
+            </div>
+          ) : error ? (
+            <div className="text-red-500">Erreur: {error.message}</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Société</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell>{client.name}</TableCell>
+                      <TableCell>{client.email}</TableCell>
+                      <TableCell>{client.company || '-'}</TableCell>
+                      <TableCell>{client.status}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/clients/${client.id}`)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteClientId(client.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56">
-                            <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                                Tous les clients
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                                Clients actifs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                                Clients inactifs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('lead')}>
-                                Prospects
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                          <div className="relative flex-grow">
-                            <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder="Rechercher un client..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-9 w-full"
-                            />
-                          </div>
-                          <Button 
-                            onClick={() => navigate('/clients/create')} 
-                            variant="default" 
-                            size="sm" 
-                            className="sm:ml-2 gap-1"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            <span className={isMobile ? "" : ""}>Nouveau client</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="ambassadors" className="mt-0">
-                    <div>
-                      <CardTitle>Ambassadeurs</CardTitle>
-                      <CardDescription>
-                        Gérez votre équipe de commerciaux
-                      </CardDescription>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="partners" className="mt-0">
-                    <div>
-                      <CardTitle>Partenaires</CardTitle>
-                      <CardDescription>
-                        Gérez vos relations partenaires
-                      </CardDescription>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardHeader>
-              
-              <CardContent>
-                {activeTab === "clients" && (
-                  <ClientList 
-                    clients={filteredClients} 
-                    onDeleteClient={handleDeleteClient} 
-                    onEditClient={(id) => navigate(`/clients/edit/${id}`)}
-                    onViewClient={(id) => navigate(`/clients/${id}`)}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Êtes-vous sûr(e) ?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Cette action est irréversible. Voulez-vous vraiment supprimer ce client ?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteClient}>Supprimer</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </Container>
     </PageTransition>
   );
 };
 
-export default Clients;
+export default ClientsPage;

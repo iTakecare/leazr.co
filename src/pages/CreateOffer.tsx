@@ -100,7 +100,7 @@ const CreateOffer = () => {
             setClientId(client.id);
             setClientName(client.name);
             setClientEmail(client.email || "");
-            setClientCompany(client.company || "");
+            setClientCompany(client.company || client.companyName || "");
           }
         } catch (error) {
           console.error("Error loading client:", error);
@@ -235,11 +235,17 @@ const CreateOffer = () => {
     setIsCatalogOpen(false);
   };
 
-  const handleClientSelect = (client: { id: string; name: string; email: string; company: string }) => {
+  const handleClientSelect = (client: { 
+    id: string; 
+    name: string; 
+    email?: string; 
+    company?: string;
+    companyName?: string;
+  }) => {
     setClientId(client.id);
     setClientName(client.name);
-    setClientEmail(client.email);
-    setClientCompany(client.company);
+    setClientEmail(client.email || '');
+    setClientCompany(client.company || client.companyName || '');
   };
 
   const handleLeaserSelect = (leaser: Leaser) => {

@@ -6,7 +6,7 @@ import { getAllClients } from '@/services/clientService';
 export interface Client {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   company?: string;
   companyName?: string;  // Added for compatibility with ClientSelector
@@ -35,7 +35,7 @@ export const useClients = () => {
         const clientsData = await getAllClients();
         
         // Ensure clients have companyName and companyId properties
-        const formattedClients = clientsData.map(client => ({
+        const formattedClients: Client[] = clientsData.map(client => ({
           ...client,
           companyName: client.company || '',
           companyId: client.id

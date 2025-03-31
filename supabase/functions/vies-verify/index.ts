@@ -46,15 +46,16 @@ serve(async (req: Request) => {
     
     // Parse the request body
     const requestData = await req.json();
-    console.log("Request data:", requestData);
+    console.log("Request data received:", requestData);
     
     const { vatNumber = '', country = '' } = requestData;
 
     if (!vatNumber || !country) {
       return new Response(JSON.stringify({ 
+        valid: false,
         error: 'Missing required fields: vatNumber and country are required'
       }), { 
-        status: 400, 
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -71,73 +72,124 @@ serve(async (req: Request) => {
     
     console.log(`Verifying VAT number: ${cleanVatNumber} for country: ${countryCode}`);
 
-    // Create SOAP request
-    const soapRequest = createViesRequestXML(countryCode, cleanVatNumber);
-    
-    // Send request to VIES
-    const response = await fetch(VIES_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
-      body: soapRequest
-    });
-    
-    if (!response.ok) {
-      console.error(`VIES API error: ${response.status} ${response.statusText}`);
+    try {
+      // Create SOAP request
+      const soapRequest = createViesRequestXML(countryCode, cleanVatNumber);
+      console.log("SOAP request:", soapRequest);
+      
+      // Send request to VIES with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(VIES_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
+        body: soapRequest,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log(`VIES API response status: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        console.error(`VIES API error: ${response.status} ${response.statusText}`);
+        
+        // Try to get error details from response
+        const errorText = await response.text();
+        console.error(`VIES API error response: ${errorText}`);
+        
+        return new Response(JSON.stringify({ 
+          valid: false,
+          error: `VIES service error: ${response.statusText || 'Unknown error'}`
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Parse XML response
+      const xmlText = await response.text();
+      console.log("VIES response received, length:", xmlText.length);
+      
+      // Check if response is empty or invalid
+      if (!xmlText || xmlText.length < 50) {
+        console.error("Empty or invalid XML response:", xmlText);
+        return new Response(JSON.stringify({ 
+          valid: false,
+          error: "VIES service returned an empty or invalid response"
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      
+      if (!xmlDoc) {
+        console.error("Failed to parse XML response");
+        return new Response(JSON.stringify({ 
+          valid: false,
+          error: "Failed to parse VIES response"
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Extract result elements
+      const validNode = xmlDoc.querySelector("valid");
+      const nameNode = xmlDoc.querySelector("name");
+      const addressNode = xmlDoc.querySelector("address");
+      
+      // Handle missing nodes
+      if (!validNode) {
+        console.error("Valid node not found in XML response");
+        const faultElement = xmlDoc.querySelector("faultstring");
+        const faultReason = faultElement ? faultElement.textContent : "Unknown error";
+        
+        return new Response(JSON.stringify({ 
+          valid: false,
+          error: `VIES service error: ${faultReason}`
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      const isValid = validNode.textContent === "true";
+      const companyName = nameNode?.textContent?.trim() || "";
+      const address = addressNode?.textContent?.trim() || "";
+      
+      console.log(`Validation result: valid=${isValid}, name=${companyName}, address=${address}`);
+      
+      // Return the validation result
+      return new Response(JSON.stringify({
+        valid: isValid,
+        companyName,
+        address
+      }), { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError.message || fetchError);
       return new Response(JSON.stringify({ 
         valid: false,
-        error: `VIES service error: ${response.statusText}`
+        error: `Connection error: ${fetchError.message || "Failed to connect to VIES service"}`
       }), { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-    
-    // Parse XML response
-    const xmlText = await response.text();
-    console.log("VIES response received, length:", xmlText.length);
-    
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    
-    if (!xmlDoc) {
-      console.error("Failed to parse XML response");
-      return new Response(JSON.stringify({ 
-        valid: false,
-        error: "Failed to parse VIES response"
-      }), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Extract result elements
-    const validNode = xmlDoc.querySelector("valid");
-    const nameNode = xmlDoc.querySelector("name");
-    const addressNode = xmlDoc.querySelector("address");
-    
-    const isValid = validNode?.textContent === "true";
-    const companyName = nameNode?.textContent?.trim() || "";
-    const address = addressNode?.textContent?.trim() || "";
-    
-    console.log(`Validation result: valid=${isValid}, name=${companyName}, address=${address}`);
-    
-    // Return the validation result
-    return new Response(JSON.stringify({
-      valid: isValid,
-      companyName,
-      address
-    }), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-    
   } catch (error) {
-    console.error("VIES verification error:", error);
+    console.error("VIES verification error:", error.message || error);
     return new Response(JSON.stringify({ 
       valid: false,
       error: `Service error: ${error.message || "Unknown error"}`
     }), { 
-      status: 500, 
+      status: 200, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
