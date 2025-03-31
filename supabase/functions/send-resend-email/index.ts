@@ -42,14 +42,14 @@ serve(async (req) => {
       from: reqData.from?.email || "default-from@email.com"
     });
 
-    // Récupérer la clé API Resend depuis les variables d'environnement
-    // Modification ici: Utiliser le nom correct du secret "RESEND_API"
+    // Récupérer la clé API Resend directement depuis les variables d'environnement
     const resendApiKey = Deno.env.get("RESEND_API");
     if (!resendApiKey) {
-      console.error("Clé API Resend non configurée");
+      console.error("Clé API Resend non configurée dans les variables d'environnement");
       throw new Error("Clé API Resend non configurée");
     }
 
+    console.log("Clé API Resend récupérée avec succès");
     const resend = new Resend(resendApiKey);
 
     // Format d'expéditeur par défaut si non fourni
