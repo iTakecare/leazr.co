@@ -32,17 +32,36 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
       return ambassadorClients;
     } else {
       // Standard client query for non-ambassador clients
-      const { data, error } = await supabase
+      // We need to exclude clients that are in the ambassador_clients table
+      const { data: standardClients, error: standardError } = await supabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Erreur lors de la récupération des clients:", error);
-        throw error;
+      if (standardError) {
+        console.error("Erreur lors de la récupération des clients:", standardError);
+        throw standardError;
       }
 
-      return data || [];
+      // Get all ambassador client IDs
+      const { data: ambassadorClientLinks, error: ambassadorError } = await supabase
+        .from('ambassador_clients')
+        .select('client_id');
+
+      if (ambassadorError) {
+        console.error("Erreur lors de la récupération des liens clients-ambassadeurs:", ambassadorError);
+        throw ambassadorError;
+      }
+
+      // Extract just the client IDs into an array
+      const ambassadorClientIds = ambassadorClientLinks?.map(link => link.client_id) || [];
+
+      // Filter out clients that are in the ambassador_clients table
+      const filteredClients = standardClients?.filter(
+        client => !ambassadorClientIds.includes(client.id)
+      ) || [];
+
+      return filteredClients;
     }
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
