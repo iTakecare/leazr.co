@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, ChevronLeft, InfoIcon } from 'lucide-react';
@@ -41,7 +40,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
-  // Calculate totals without using CartContext methods
   const totalMonthly = items.reduce((total, item) => {
     const price = item.product.currentPrice || item.product.monthly_price || 0;
     return total + (price * item.quantity);
@@ -52,7 +50,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
     setIsSubmitting(true);
     
     try {
-      // Prepare equipment description
       const equipmentDescription = items.map(item => {
         const options = Object.entries(item.selectedOptions || {})
           .map(([key, value]) => `${key}: ${value}`)
@@ -61,7 +58,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         return `${item.product.name} (${formatCurrency(item.product.monthly_price || 0)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
       
-      // Create request data - ensure any client_company related data is properly handled
       const requestData = {
         client_name: contactData.name,
         client_email: contactData.email || companyData.email,
@@ -71,10 +67,10 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         client_vat_number: companyData.vat_number,
         client_is_vat_exempt: companyData.is_vat_exempt,
         equipment_description: equipmentDescription,
-        amount: totalMonthly * 36, // Total contract value
+        amount: totalMonthly * 36,
         monthly_payment: totalMonthly,
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
-        duration: 36, // Standard duration
+        duration: 36,
         address: contactData.address,
         city: contactData.city,
         postal_code: contactData.postal_code,
@@ -89,20 +85,10 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
 
       console.log("Submitting request with data:", requestData);
       
-      // Envoi de la requête avec un délai de 10 secondes avant timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("La requête a pris trop de temps")), 10000);
-      });
+      const result = await createProductRequest(requestData);
       
-      const result = await Promise.race([
-        createProductRequest(requestData),
-        timeoutPromise
-      ]);
-      
-      // Clear cart after successful submission
       clearCart();
       
-      // Navigate to success page with company and name data
       navigate('/demande-envoyee', { 
         state: { 
           success: true, 
@@ -121,10 +107,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
     }
   };
   
-  // Use the email from contactData if available, otherwise use the company email
   const contactEmail = contactData.email || companyData.email;
 
-  // Fonction pour traduire le code pays
   const getCountryName = (countryCode: string): string => {
     switch(countryCode) {
       case 'BE': return 'Belgique';
@@ -134,7 +118,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
     }
   };
 
-  // Fonction pour obtenir le label du numéro d'identification approprié
   const getIdLabel = (countryCode: string): string => {
     switch(countryCode) {
       case 'BE': return 'Numéro TVA';
@@ -144,7 +127,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
     }
   };
 
-  // Fonction pour formater une adresse
   const formatAddress = (
     address?: string,
     city?: string,
