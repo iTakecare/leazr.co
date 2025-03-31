@@ -116,7 +116,7 @@ const ClientEquipmentPage = () => {
               status: "Non assigné",
               serial: "MLPF3LL/A"
             }
-          ] as Equipment[]);
+          ]);
         }
       } catch (error) {
         console.error("Error fetching equipment data:", error);
@@ -138,7 +138,7 @@ const ClientEquipmentPage = () => {
     }, 1000);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | undefined) => {
     if (status === "Actif") {
       return <Badge className="bg-green-500">Actif</Badge>;
     } else if (status === "En maintenance") {
@@ -246,7 +246,7 @@ const ClientEquipmentPage = () => {
                         <td className="py-3 px-2 text-sm font-medium">{item.title}</td>
                         <td className="py-3 px-2 text-sm">{item.serial}</td>
                         <td className="py-3 px-2">
-                          {getStatusBadge(item.status as string)}
+                          {getStatusBadge(item.status)}
                         </td>
                         <td className="py-3 px-2 text-sm">
                           {item.assignedTo ? (

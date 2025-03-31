@@ -6,6 +6,11 @@ export interface Equipment {
   quantity: number;
   margin: number;
   monthlyPayment?: number;
+  assignedTo?: string | null;
+  role?: string;
+  assignedDate?: string;
+  status?: string;
+  serial?: string;
 }
 
 export interface Leaser {
