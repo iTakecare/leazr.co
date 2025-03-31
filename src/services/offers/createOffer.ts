@@ -21,7 +21,8 @@ export const createOffer = async (offerData: OfferData) => {
       type: offerData.type || 'admin_offer',
       workflow_status: offerData.workflow_status,
       status: offerData.workflow_status === 'draft' ? 'pending' : 'pending',
-      remarks: offerData.remarks // Maintenant nous pouvons inclure directement le champ remarks
+      remarks: offerData.remarks // Now we can directly include the remarks field
+      // Removed client_company as it's not in the database schema
     };
     
     console.log("Sending data to database:", dataToSend);

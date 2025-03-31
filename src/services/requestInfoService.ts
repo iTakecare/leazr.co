@@ -98,7 +98,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
         client_id: clientId,
         client_name: data.client_name,
         client_email: data.client_email,
-        client_company: data.client_company, // Include client company
         equipment_description: data.equipment_description,
         amount: data.amount,
         monthly_payment: data.monthly_payment,
@@ -109,6 +108,7 @@ export const createProductRequest = async (data: ProductRequestData) => {
         status: 'pending', // Ensure status is defined in the offers table
         remarks: data.message || '',
         user_id: null // No user is associated with public requests
+        // Removed client_company
       };
       
       console.log("Attempting to create offer in Supabase:", offerData);

@@ -17,7 +17,7 @@ export interface OfferData {
   id?: string;
   created_at?: string;
   updated_at?: string;
-  client_company?: string;
+  client_company?: string; // Make it optional since it's not in the DB
 }
 
 export interface Equipment {

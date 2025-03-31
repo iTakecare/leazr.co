@@ -117,7 +117,7 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
 /**
  * Crée un nouveau client
- * @param client Les données du client à créer
+ * @param data Les données du client à créer
  * @returns Le client créé
  */
 export const createClient = async (data: CreateClientData): Promise<Client | null> => {
@@ -133,7 +133,7 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    const { data, error } = await supabase
+    const { data: result, error } = await supabase
       .from('clients')
       .insert([clientData])
       .select();
@@ -143,7 +143,7 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
       return null;
     }
 
-    return data && data.length > 0 ? data[0] : null;
+    return result && result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error("Erreur lors de la création du client:", error);
     return null;
@@ -249,6 +249,19 @@ export const verifyVatNumber = async (vatNumber: string, country: string = 'BE')
     };
   }
 };
+
+/**
+ * Define the Collaborator type if it's not imported
+ */
+interface Collaborator {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  phone?: string;
+  department?: string;
+  client_id?: string;
+}
 
 /**
  * Ajoute un collaborateur à un client
