@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,6 +56,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
   const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
   const [country, setCountry] = useState(formData.country || 'BE');
+  const [vatNumberFilled, setVatNumberFilled] = useState(Boolean(formData.vat_number.trim()));
 
   const handleCountryChange = (value: string) => {
     setCountry(value);
@@ -65,6 +66,13 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
     if (value !== 'BE' && formData.is_vat_exempt) {
       updateFormData({ is_vat_exempt: false });
     }
+  };
+
+  // Surveiller les changements dans le champ vat_number pour mettre à jour vatNumberFilled
+  const handleVatNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    updateFormData({ vat_number: value });
+    setVatNumberFilled(value.trim().length > 0);
   };
 
   const parseAddressFromVIES = (addressString?: string) => {
@@ -274,7 +282,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
                 id="vat_number"
                 placeholder={idFormats[country as keyof typeof idFormats].example}
                 value={formData.vat_number}
-                onChange={(e) => updateFormData({ vat_number: e.target.value })}
+                onChange={handleVatNumberChange}
                 required={true}
                 className="pr-9"
               />
@@ -283,20 +291,25 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
               type="button"
               size="icon"
               variant="outline"
-              className="flex-shrink-0 border-gray-300"
+              className={`flex-shrink-0 border-gray-300 transition-all ${vatNumberFilled ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100 animate-pulse' : ''}`}
               onClick={handleSearchCompany}
               disabled={verifying || !formData.vat_number.trim()}
             >
               {verifying ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Search className="h-4 w-4" />
+                <Search className={`h-4 w-4 ${vatNumberFilled ? 'text-blue-600' : ''}`} />
               )}
             </Button>
           </div>
           <p className="text-sm text-gray-500">
             Format: {idFormats[country as keyof typeof idFormats].format}
           </p>
+          {vatNumberFilled && (
+            <p className="text-sm text-blue-600 flex items-center mt-1">
+              <Search className="h-3.5 w-3.5 mr-1" /> Cliquez sur la loupe pour vérifier le numéro
+            </p>
+          )}
         </div>
 
         {showVatExemptOption && (
