@@ -1380,6 +1380,7 @@ export type Database = {
           port: string
           secure: boolean
           updated_at: string
+          use_resend: boolean | null
           username: string
         }
         Insert: {
@@ -1393,6 +1394,7 @@ export type Database = {
           port?: string
           secure?: boolean
           updated_at?: string
+          use_resend?: boolean | null
           username: string
         }
         Update: {
@@ -1406,6 +1408,7 @@ export type Database = {
           port?: string
           secure?: boolean
           updated_at?: string
+          use_resend?: boolean | null
           username?: string
         }
         Relationships: []

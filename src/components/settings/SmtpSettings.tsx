@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -61,11 +61,14 @@ const SmtpSettings = () => {
   });
   const [resendApiKey, setResendApiKey] = useState<string>("");
   const [useResend, setUseResend] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      setSaveError(null);
       
+      console.log("Fetching SMTP settings...");
       const { data, error } = await supabase
         .from('smtp_settings')
         .select('*')
@@ -79,20 +82,30 @@ const SmtpSettings = () => {
       }
 
       if (data) {
+        console.log("SMTP settings retrieved:", { ...data, password: "***" });
         setSettings(data);
         setUseResend(data.use_resend || false);
+        
+        // Set the active tab based on the setting
+        setActiveTab(data.use_resend ? "resend" : "smtp");
       }
       
+      console.log("Fetching Resend API key...");
       const { data: secretsData, error: secretsError } = await supabase.functions.invoke('get-secret', {
         body: { key: 'RESEND_API_KEY' }
       });
       
-      if (!secretsError && secretsData && secretsData.value) {
+      if (secretsError) {
+        console.error("Error fetching Resend API key:", secretsError);
+      } else if (secretsData && secretsData.value) {
+        console.log("Resend API key retrieved");
         setResendApiKey(secretsData.value);
+      } else {
+        console.log("No Resend API key found or it's empty");
       }
       
-    } catch (error) {
-      console.error("Erreur lors de la récupération des paramètres:", error);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des paramètres:", err);
       toast.error("Erreur lors du chargement des paramètres SMTP");
     } finally {
       setLoading(false);
@@ -106,7 +119,9 @@ const SmtpSettings = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      console.log("Enregistrement des paramètres avec use_resend:", useResend);
+      setSaveError(null);
+      
+      console.log("Saving settings with use_resend:", useResend);
       
       // Création de l'objet à enregistrer dans la base de données
       const settingsToSave = {
@@ -115,38 +130,54 @@ const SmtpSettings = () => {
         updated_at: new Date().toISOString()
       };
       
+      console.log("Saving SMTP settings:", { 
+        ...settingsToSave, 
+        password: "***" 
+      });
+      
       // Enregistrement dans la table smtp_settings
       const { error } = await supabase
         .from('smtp_settings')
         .upsert(settingsToSave);
       
       if (error) {
-        console.error("Erreur lors de la mise à jour des paramètres SMTP:", error);
+        console.error("Error updating SMTP settings:", error);
+        setSaveError(`Erreur base de données: ${error.message}`);
         throw error;
       }
       
       // Si Resend est activé, enregistrer la clé API
       if (useResend && resendApiKey) {
-        console.log("Enregistrement de la clé API Resend...");
+        console.log("Saving Resend API key...");
         const { data: secretData, error: secretError } = await supabase.functions.invoke('set-secret', {
           body: { key: 'RESEND_API_KEY', value: resendApiKey }
         });
         
         if (secretError) {
-          console.error("Erreur lors de l'enregistrement de la clé Resend:", secretError);
+          console.error("Error saving Resend API key:", secretError);
+          setSaveError(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
           throw new Error(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
         }
         
-        console.log("Clé API Resend enregistrée:", secretData);
+        if (secretData && !secretData.success) {
+          console.error("Failed to save Resend API key:", secretData);
+          setSaveError(`Échec de l'enregistrement de la clé Resend: ${secretData.message || 'Erreur inconnue'}`);
+          throw new Error(`Échec de l'enregistrement de la clé Resend: ${secretData.message || 'Erreur inconnue'}`);
+        }
+        
+        console.log("Resend API key saved successfully:", secretData);
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement des paramètres:", error);
       toast.error(`Erreur: ${error.message || "Problème lors de l'enregistrement"}`);
+      return false;
     } finally {
       setSaving(false);
     }
+    
+    return true;
   };
 
   const handleTest = async () => {
@@ -166,7 +197,8 @@ const SmtpSettings = () => {
       }
       
       toast.info("Test d'envoi d'email en cours...");
-      console.log(`Test de la fonction ${testFunction} avec les données:`, testData);
+      console.log(`Test de la fonction ${testFunction} avec les données:`, 
+        useResend ? { apiKey: "***" } : { config: { ...settings, password: "***" } });
       
       const { data, error } = await supabase.functions.invoke(testFunction, {
         body: testData
@@ -229,6 +261,14 @@ const SmtpSettings = () => {
             notamment pour les demandes d'informations complémentaires.
           </AlertDescription>
         </Alert>
+
+        {saveError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erreur d'enregistrement</AlertTitle>
+            <AlertDescription className="whitespace-pre-line">{saveError}</AlertDescription>
+          </Alert>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
@@ -360,6 +400,7 @@ const SmtpSettings = () => {
             </div>
             
             <Alert className="bg-blue-50 border-blue-200">
+              <InfoIcon className="h-4 w-4 text-blue-600" />
               <AlertTitle>À propos de Resend</AlertTitle>
               <AlertDescription>
                 <p className="mb-2">
