@@ -166,7 +166,7 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ formData, updateFormD
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 pl-1">
           <Checkbox 
             id="is_vat_exempt" 
             checked={formData.is_vat_exempt}
