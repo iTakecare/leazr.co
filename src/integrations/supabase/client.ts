@@ -9,7 +9,6 @@ const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 // Create a singleton instance for the public client
 let supabaseInstance = null;
-let adminSupabaseInstance = null;
 
 // Function to get supabase client with anon key
 export const getSupabaseClient = () => {
@@ -31,9 +30,8 @@ export const getSupabaseClient = () => {
 };
 
 // Function to get admin supabase client with service role key
-// Creates a fresh instance each time to avoid auth state conflicts
+// Uses direct headers to avoid authorization issues
 export const getAdminSupabaseClient = () => {
-  // Always create a fresh instance with proper headers
   return createClient<Database>(
     SUPABASE_URL,
     SERVICE_ROLE_KEY,

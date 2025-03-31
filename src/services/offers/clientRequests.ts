@@ -24,39 +24,19 @@ export const createClientRequest = async (requestData: OfferData) => {
     
     console.log("Creating client request with data:", validData);
     
-    try {
-      // Use a completely new instance for each request to avoid auth conflicts
-      const adminSupabase = getAdminSupabaseClient();
-      
-      // Try with service role first (for public endpoints)
-      const { data, error } = await adminSupabase
-        .from('offers')
-        .insert(validData)
-        .select();
-      
-      if (error) {
-        console.error("Error with adminSupabase:", error);
-        
-        // If service role fails, fall back to authenticated user
-        const { data: standardData, error: standardError } = await supabase
-          .from('offers')
-          .insert(validData)
-          .select();
-        
-        if (standardError) {
-          console.error("Error with standard supabase:", standardError);
-          return { data: null, error: standardError };
-        }
-        
-        return { data: standardData, error: null };
-      }
-      
-      return { data, error: null };
-      
-    } catch (error) {
-      console.error("Exception during offer creation:", error);
+    // With RLS policies now in place, we can try direct insertion
+    const { data, error } = await supabase
+      .from('offers')
+      .insert(validData)
+      .select();
+    
+    if (error) {
+      console.error("Error inserting offer:", error);
       return { data: null, error };
     }
+    
+    return { data, error: null };
+    
   } catch (error) {
     console.error("Error creating client request:", error);
     return { data: null, error };

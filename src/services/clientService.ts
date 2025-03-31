@@ -141,57 +141,31 @@ export const createClient = async (data: CreateClientData): Promise<Client | nul
 
     console.log("Creating client with data:", clientData);
     
-    try {
-      // Use a completely new instance for each request to avoid auth conflicts
-      const adminSupabase = getAdminSupabaseClient();
-      
-      const { data: result, error } = await adminSupabase
-        .from('clients')
-        .insert([clientData])
-        .select();
-        
-      if (error) {
-        console.error("Erreur lors de la création du client avec adminSupabase:", error);
-        
-        // Tentative de fallback avec supabase standard si l'utilisateur est authentifié
-        const { data: standardResult, error: standardError } = await supabase
-          .from('clients')
-          .insert([clientData])
-          .select();
-          
-        if (standardError) {
-          console.error("Erreur lors de la création du client avec supabase standard:", standardError);
-          return null;
-        }
-        
-        // Convert created_at from string to Date before returning
-        if (standardResult && standardResult.length > 0) {
-          const client = standardResult[0];
-          return {
-            ...client,
-            created_at: new Date(client.created_at),
-            updated_at: new Date(client.updated_at)
-          } as Client;
-        }
-        return null;
-      }
-      
-      // Convert created_at from string to Date before returning
-      if (result && result.length > 0) {
-        const client = result[0];
-        return {
-          ...client,
-          created_at: new Date(client.created_at),
-          updated_at: new Date(client.updated_at)
-        } as Client;
-      }
-      return null;
-    } catch (fallbackError) {
-      console.error("Erreur lors de la création du client:", fallbackError);
+    // With RLS policies now in place, we can try direct insertion
+    const { data: result, error } = await supabase
+      .from('clients')
+      .insert([clientData])
+      .select();
+    
+    if (error) {
+      console.error("Error creating client:", error);
       return null;
     }
+    
+    // Convert date strings to Date objects
+    if (result && result.length > 0) {
+      const client = result[0];
+      return {
+        ...client,
+        created_at: new Date(client.created_at),
+        updated_at: new Date(client.updated_at)
+      } as Client;
+    }
+    
+    return null;
+    
   } catch (error) {
-    console.error("Erreur lors de la création du client:", error);
+    console.error("Error creating client:", error);
     return null;
   }
 };
