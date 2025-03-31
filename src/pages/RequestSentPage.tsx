@@ -49,6 +49,24 @@ const RequestSentPage: React.FC = () => {
     );
   }
 
+  // Formatage des informations d'entreprise en fonction du pays et de l'exemption TVA
+  const getCompanyIdLabel = () => {
+    if (!requestData) return "Référence";
+    
+    if (requestData.client_is_vat_exempt) {
+      return "Entreprise";
+    }
+    
+    switch(requestData.client_country) {
+      case 'FR': 
+        return "SIRET/SIREN";
+      case 'LU': 
+        return "N° d'identification";
+      default: 
+        return "N° d'entreprise";
+    }
+  };
+
   return (
     <Container>
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-2xl mx-auto text-center">
@@ -67,10 +85,36 @@ const RequestSentPage: React.FC = () => {
             <h2 className="font-semibold mb-4 text-center">Résumé de votre demande</h2>
             
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Entreprise</p>
-                <p className="font-medium">{state.companyName}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Entreprise</p>
+                  <p className="font-medium">{state.companyName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Pays</p>
+                  <p className="font-medium">
+                    {requestData.client_country === 'FR' 
+                      ? 'France' 
+                      : requestData.client_country === 'LU' 
+                        ? 'Luxembourg' 
+                        : 'Belgique'}
+                  </p>
+                </div>
               </div>
+              
+              {requestData.client_vat_number && !requestData.client_is_vat_exempt && (
+                <div>
+                  <p className="text-sm text-gray-500">{getCompanyIdLabel()}</p>
+                  <p className="font-medium">{requestData.client_vat_number}</p>
+                </div>
+              )}
+              
+              {requestData.client_is_vat_exempt && (
+                <div>
+                  <p className="text-sm text-gray-500">Statut TVA</p>
+                  <p className="font-medium">Non assujetti à la TVA</p>
+                </div>
+              )}
               
               <div>
                 <p className="text-sm text-gray-500">Équipement demandé</p>

@@ -7,6 +7,9 @@ export interface ProductRequestData {
   client_email: string;
   client_company: string;
   client_contact_email?: string;
+  client_country?: string;
+  client_vat_number?: string;
+  client_is_vat_exempt?: boolean;
   equipment_description: string;
   message?: string;
   amount: number;
@@ -39,6 +42,9 @@ export const createProductRequest = async (data: ProductRequestData) => {
       client_name: data.client_name,
       client_email: data.client_email,
       client_company: data.client_company,
+      client_country: data.client_country || 'BE',
+      client_vat_number: data.client_vat_number || '',
+      client_is_vat_exempt: data.client_is_vat_exempt || false,
       equipment_description: data.equipment_description,
       message: data.message,
       amount: data.amount,
