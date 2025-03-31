@@ -71,7 +71,6 @@ export const createProductRequest = async (data: ProductRequestData) => {
     if (responseData.client_email) {
       try {
         // On envoie l'email mais on n'attend pas la réponse pour ne pas bloquer le processus
-        // si l'envoi d'email échoue
         sendWelcomeEmail(
           responseData.client_email,
           responseData.client_name,

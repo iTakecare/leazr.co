@@ -7,7 +7,7 @@ interface EmailTemplate {
 }
 
 /**
- * Envoie un email en utilisant les paramètres SMTP configurés
+ * Envoie un email en utilisant Resend via une fonction Edge
  */
 export const sendEmail = async (
   to: string,
@@ -30,8 +30,8 @@ export const sendEmail = async (
       return false;
     }
     
-    // Appeler la fonction Supabase pour envoyer l'email
-    const { data, error } = await supabase.functions.invoke('send-email', {
+    // Appeler la fonction Supabase pour envoyer l'email via Resend
+    const { data, error } = await supabase.functions.invoke('send-resend-email', {
       body: {
         to,
         subject,
@@ -40,13 +40,6 @@ export const sendEmail = async (
         from: {
           email: smtpSettings.from_email,
           name: smtpSettings.from_name
-        },
-        smtp: {
-          host: smtpSettings.host,
-          port: parseInt(smtpSettings.port),
-          username: smtpSettings.username,
-          password: smtpSettings.password,
-          secure: smtpSettings.secure
         }
       }
     });

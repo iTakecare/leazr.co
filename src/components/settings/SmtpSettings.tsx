@@ -9,11 +9,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SmtpSettings = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [testing, setTesting] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("smtp"); 
   const [settings, setSettings] = useState({
     id: 1,
     host: "",
@@ -21,14 +23,18 @@ const SmtpSettings = () => {
     username: "",
     password: "",
     from_email: "",
-    from_name: "Leasing App",
+    from_name: "iTakecare",
     secure: false,
     enabled: true
   });
+  const [resendApiKey, setResendApiKey] = useState<string>("");
+  const [useResend, setUseResend] = useState<boolean>(false);
 
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      
+      // Récupérer les paramètres SMTP
       const { data, error } = await supabase
         .from('smtp_settings')
         .select('*')
@@ -43,7 +49,18 @@ const SmtpSettings = () => {
 
       if (data) {
         setSettings(data);
+        setUseResend(data.use_resend || false);
       }
+      
+      // Récupérer la clé API Resend des secrets
+      const { data: secretsData, error: secretsError } = await supabase.functions.invoke('get-secret', {
+        body: { key: 'RESEND_API_KEY' }
+      });
+      
+      if (!secretsError && secretsData && secretsData.value) {
+        setResendApiKey(secretsData.value);
+      }
+      
     } catch (error) {
       console.error("Erreur lors de la récupération des paramètres:", error);
       toast.error("Erreur lors du chargement des paramètres SMTP");
@@ -60,19 +77,32 @@ const SmtpSettings = () => {
     try {
       setSaving(true);
       
+      // Mettre à jour les paramètres SMTP
       const { error } = await supabase
         .from('smtp_settings')
         .upsert({
           ...settings,
+          use_resend: useResend,
           updated_at: new Date().toISOString()
         });
       
       if (error) throw error;
       
-      toast.success("Paramètres SMTP enregistrés avec succès");
+      // Si on utilise Resend, mettre à jour la clé API
+      if (useResend && resendApiKey) {
+        const { error: secretError } = await supabase.functions.invoke('set-secret', {
+          body: { key: 'RESEND_API_KEY', value: resendApiKey }
+        });
+        
+        if (secretError) {
+          throw new Error(`Erreur lors de l'enregistrement de la clé Resend: ${secretError.message}`);
+        }
+      }
+      
+      toast.success("Paramètres d'envoi d'emails enregistrés avec succès");
     } catch (error) {
-      console.error("Erreur lors de l'enregistrement des paramètres SMTP:", error);
-      toast.error("Erreur lors de l'enregistrement des paramètres SMTP");
+      console.error("Erreur lors de l'enregistrement des paramètres:", error);
+      toast.error("Erreur lors de l'enregistrement des paramètres");
     } finally {
       setSaving(false);
     }
@@ -81,28 +111,35 @@ const SmtpSettings = () => {
   const handleTest = async () => {
     try {
       setTesting(true);
-      toast.info("Test de connexion SMTP en cours...");
       
-      const { data, error } = await supabase.functions.invoke('test-smtp-connection', {
-        body: {
-          config: settings
-        }
+      let testFunction = 'test-smtp-connection';
+      let testData = { config: settings };
+      
+      if (useResend) {
+        testFunction = 'test-resend';
+        testData = { apiKey: resendApiKey };
+      }
+      
+      toast.info("Test d'envoi d'email en cours...");
+      
+      const { data, error } = await supabase.functions.invoke(testFunction, {
+        body: testData
       });
       
       if (error) {
-        console.error("Erreur lors du test SMTP:", error);
+        console.error("Erreur lors du test:", error);
         toast.error(`Erreur de connexion: ${error.message}`);
         return;
       }
       
-      if (data.success) {
+      if (data && data.success) {
         toast.success(data.message);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Échec du test d'envoi d'email");
       }
     } catch (error) {
-      console.error("Erreur lors du test SMTP:", error);
-      toast.error("Erreur lors du test de connexion SMTP");
+      console.error("Erreur lors du test:", error);
+      toast.error("Erreur lors du test d'envoi d'email");
     } finally {
       setTesting(false);
     }
@@ -129,10 +166,10 @@ const SmtpSettings = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5" />
-          Paramètres SMTP
+          Configuration de l'envoi d'emails
         </CardTitle>
         <CardDescription>
-          Configurez les paramètres du serveur d'email SMTP pour l'envoi des emails du système
+          Configurez les paramètres pour l'envoi des emails du système
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -140,105 +177,205 @@ const SmtpSettings = () => {
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertTitle>Configuration requise</AlertTitle>
           <AlertDescription>
-            La configuration du serveur SMTP est nécessaire pour l'envoi des emails aux clients, 
+            La configuration de l'envoi d'emails est nécessaire pour les notifications aux clients, 
             notamment pour les demandes d'informations complémentaires.
           </AlertDescription>
         </Alert>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="enabled"
-              name="enabled"
-              checked={settings.enabled}
-              onCheckedChange={(checked) => setSettings({ ...settings, enabled: checked })}
-            />
-            <Label htmlFor="enabled" className="font-medium">
-              Activer l'envoi d'emails
-            </Label>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="smtp">SMTP</TabsTrigger>
+            <TabsTrigger value="resend">Resend API</TabsTrigger>
+          </TabsList>
           
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="secure"
-              name="secure"
-              checked={settings.secure}
-              onCheckedChange={(checked) => setSettings({ ...settings, secure: checked })}
-            />
-            <Label htmlFor="secure" className="font-medium">
-              Connexion sécurisée (TLS)
-            </Label>
-          </div>
-        </div>
+          <TabsContent value="smtp" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="enabled"
+                  name="enabled"
+                  checked={settings.enabled && !useResend}
+                  onCheckedChange={(checked) => {
+                    setSettings({ ...settings, enabled: checked });
+                    if (checked) {
+                      setUseResend(false);
+                    }
+                  }}
+                />
+                <Label htmlFor="enabled" className="font-medium">
+                  Utiliser le serveur SMTP
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="secure"
+                  name="secure"
+                  checked={settings.secure}
+                  onCheckedChange={(checked) => setSettings({ ...settings, secure: checked })}
+                />
+                <Label htmlFor="secure" className="font-medium">
+                  Connexion sécurisée (TLS)
+                </Label>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="host">Serveur SMTP</Label>
-            <Input
-              id="host"
-              name="host"
-              placeholder="smtp.example.com"
-              value={settings.host}
-              onChange={handleChange}
-            />
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="host">Serveur SMTP</Label>
+                <Input
+                  id="host"
+                  name="host"
+                  placeholder="smtp.example.com"
+                  value={settings.host}
+                  onChange={handleChange}
+                  disabled={useResend}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="port">Port</Label>
+                <Input
+                  id="port"
+                  name="port"
+                  placeholder="587"
+                  value={settings.port}
+                  onChange={handleChange}
+                  disabled={useResend}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="username">Nom d'utilisateur</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  placeholder="user@example.com"
+                  value={settings.username}
+                  onChange={handleChange}
+                  disabled={useResend}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={settings.password}
+                  onChange={handleChange}
+                  disabled={useResend}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="from_email">Email d'expédition</Label>
+                <Input
+                  id="from_email"
+                  name="from_email"
+                  placeholder="noreply@example.com"
+                  value={settings.from_email}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="from_name">Nom d'expéditeur</Label>
+                <Input
+                  id="from_name"
+                  name="from_name"
+                  placeholder="Mon Application"
+                  value={settings.from_name}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </TabsContent>
           
-          <div className="space-y-2">
-            <Label htmlFor="port">Port</Label>
-            <Input
-              id="port"
-              name="port"
-              placeholder="587"
-              value={settings.port}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="username">Nom d'utilisateur</Label>
-            <Input
-              id="username"
-              name="username"
-              placeholder="user@example.com"
-              value={settings.username}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={settings.password}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="from_email">Email d'expédition</Label>
-            <Input
-              id="from_email"
-              name="from_email"
-              placeholder="noreply@example.com"
-              value={settings.from_email}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="from_name">Nom d'expéditeur</Label>
-            <Input
-              id="from_name"
-              name="from_name"
-              placeholder="Mon Application"
-              value={settings.from_name}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
+          <TabsContent value="resend" className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="use-resend"
+                checked={useResend}
+                onCheckedChange={(checked) => {
+                  setUseResend(checked);
+                  if (checked) {
+                    setSettings({ ...settings, enabled: false });
+                  }
+                }}
+              />
+              <Label htmlFor="use-resend" className="font-medium">
+                Utiliser Resend API (recommandé)
+              </Label>
+            </div>
+            
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertTitle>À propos de Resend</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  Resend est un service moderne et fiable pour l'envoi d'emails qui offre de nombreux avantages
+                  par rapport aux serveurs SMTP traditionnels :
+                </p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>Taux de délivrabilité élevé</li>
+                  <li>Configuration simplifiée</li>
+                  <li>Analytiques d'envoi</li>
+                  <li>10 000 emails gratuits par mois</li>
+                </ul>
+                <p className="mt-2">
+                  <a href="https://resend.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    En savoir plus sur Resend.com
+                  </a>
+                </p>
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-2">
+              <Label htmlFor="resend-api-key">Clé API Resend</Label>
+              <Input
+                id="resend-api-key"
+                placeholder="re_..."
+                value={resendApiKey}
+                onChange={(e) => setResendApiKey(e.target.value)}
+                disabled={!useResend}
+                type="password"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Créez une clé API sur <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com/api-keys</a>
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="from_email">Email d'expédition</Label>
+              <Input
+                id="from_email"
+                name="from_email"
+                placeholder="noreply@example.com"
+                value={settings.from_email}
+                onChange={handleChange}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Avec Resend, vous devez vérifier votre domaine d'envoi. 
+                <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                  Configurer un domaine
+                </a>
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="from_name">Nom d'expéditeur</Label>
+              <Input
+                id="from_name"
+                name="from_name"
+                placeholder="iTakecare"
+                value={settings.from_name}
+                onChange={handleChange}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" onClick={() => fetchSettings()}>
@@ -248,14 +385,20 @@ const SmtpSettings = () => {
           <Button 
             variant="outline" 
             onClick={handleTest} 
-            disabled={testing || !settings.host || !settings.username || !settings.password}
+            disabled={testing || (
+              !useResend && (!settings.host || !settings.username || !settings.password)) || 
+              (useResend && !resendApiKey)
+            }
           >
             <Send className="mr-2 h-4 w-4" />
             {testing ? "Test en cours..." : "Tester la connexion"}
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={saving || !settings.host || !settings.username || !settings.password}
+            disabled={saving || (
+              !useResend && (!settings.host || !settings.username || !settings.password)) || 
+              (useResend && !resendApiKey)
+            }
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
             {saving ? "Enregistrement..." : "Enregistrer"}
