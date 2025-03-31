@@ -36,7 +36,7 @@ export const getAdminSupabaseClient = () => {
   console.log("Creating admin client with service role key");
   
   if (!adminSupabaseInstance) {
-    // Créer une nouvelle instance avec la clé de service directement sans modifier les en-têtes
+    // Create a new instance with the service role key
     adminSupabaseInstance = createClient<Database>(
       SUPABASE_URL, 
       SERVICE_ROLE_KEY,

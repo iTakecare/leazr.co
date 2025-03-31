@@ -1,3 +1,4 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
@@ -9,7 +10,7 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
   try {
     console.log("Test de création d'un client...");
     const testId = uuidv4();
-    const testEmail = `test-${testId.substring(0, 8)}@test.com";
+    const testEmail = `test-${testId.substring(0, 8)}@test.com`;
     
     // Utiliser le client admin pour contourner les restrictions RLS
     const adminClient = getAdminSupabaseClient();
