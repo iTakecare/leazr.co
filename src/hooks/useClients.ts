@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { getAllClients } from '@/services/clientService';
+import { Client } from '@/types/client';
 
-// Define the Client interface specifically for this hook
 export interface Client {
   id: string;
   name: string;
@@ -19,6 +19,7 @@ export interface Client {
   country?: string;
   address?: string;
   notes?: string;
+  updated_at: Date; // Added to match the Client interface from types/client
 }
 
 export const useClients = () => {
@@ -34,16 +35,26 @@ export const useClients = () => {
         setIsLoading(true);
         const clientsData = await getAllClients();
         
-        // Ensure clients have companyName and companyId properties
-        const formattedClients: Client[] = clientsData.map(client => ({
-          ...client,
-          companyName: client.company || '',
-          companyId: client.id
-        }));
+        if (clientsData && clientsData.length > 0) {
+          console.log('Clients récupérés:', clientsData.length);
+          
+          // Ensure clients have companyName, companyId, and updated_at properties
+          const formattedClients: Client[] = clientsData.map(client => ({
+            ...client,
+            companyName: client.company || '',
+            companyId: client.id,
+            updated_at: client.updated_at || new Date() // Ensure updated_at exists
+          }));
+          
+          setClients(formattedClients);
+        } else {
+          console.log('Aucun client trouvé');
+          setClients([]);
+        }
         
-        setClients(formattedClients);
         setError(null);
       } catch (err) {
+        console.error("Erreur lors de la récupération des clients:", err);
         setError(err instanceof Error ? err : new Error('Failed to fetch clients'));
       } finally {
         setIsLoading(false);

@@ -6,22 +6,29 @@ export const clientService = {
   // Get all clients
   getAllClients: async (): Promise<Client[]> => {
     try {
+      console.log("Fetching all clients...");
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching clients:', error);
+        throw error;
+      }
 
+      console.log(`Retrieved ${data?.length || 0} clients from the database`);
+      
       // Transform client data to include companyName property expected by ClientSelector
-      return data.map(client => ({
+      return (data || []).map(client => ({
         ...client,
         companyName: client.company || '',  // Add companyName for compatibility
         companyId: client.id,               // Add companyId for compatibility
       })) as Client[];
     } catch (error) {
-      console.error('Error fetching clients:', error);
-      throw error;
+      console.error('Error in getAllClients:', error);
+      toast.error('Erreur lors de la récupération des clients');
+      return [];
     }
   },
   
@@ -153,8 +160,11 @@ export const clientService = {
         .eq('id', id);
 
       if (error) throw error;
+      
+      toast.success('Client supprimé avec succès');
     } catch (error) {
       console.error('Error deleting client:', error);
+      toast.error('Erreur lors de la suppression du client');
       throw error;
     }
   },
