@@ -15,35 +15,40 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
-      // Vérifier si les fonctions existent avant de les appeler
-      const isClientRole = typeof isClient === 'function' && isClient();
-      const isPartnerRole = typeof isPartner === 'function' && isPartner();
-      const isAmbassadorRole = typeof isAmbassador === 'function' && isAmbassador();
-      const isAdminRole = typeof isAdmin === 'function' && isAdmin();
+      console.log("Index: Checking user role for", user.email, "with userRoleChecked:", userRoleChecked);
       
-      console.log("Index: Redirection basée sur le rôle", { 
-        isClient: isClientRole, 
-        isPartner: isPartnerRole, 
-        isAmbassador: isAmbassadorRole,
-        isAdmin: isAdminRole
+      // Directly check client_id, partner_id, ambassador_id properties
+      const hasClientRole = isClient();
+      const hasPartnerRole = isPartner();
+      const hasAmbassadorRole = isAmbassador();
+      const hasAdminRole = isAdmin();
+      
+      console.log("Index: Role check results", { 
+        hasClientRole, 
+        hasPartnerRole, 
+        hasAmbassadorRole,
+        hasAdminRole,
+        client_id: user.client_id,
+        partner_id: user.partner_id,
+        ambassador_id: user.ambassador_id
       });
       
       // Redirect user based on their role
-      if (isClientRole) {
-        console.log("Index: Redirection vers le tableau de bord client");
+      if (hasClientRole) {
+        console.log("Index: Redirecting to client dashboard because user has client role");
         navigate("/client/dashboard");
-      } else if (isPartnerRole) {
-        console.log("Index: Redirection vers le tableau de bord partenaire");
+      } else if (hasPartnerRole) {
+        console.log("Index: Redirecting to partner dashboard because user has partner role");
         navigate("/partner/dashboard");
-      } else if (isAmbassadorRole) {
-        console.log("Index: Redirection vers le tableau de bord ambassadeur");
+      } else if (hasAmbassadorRole) {
+        console.log("Index: Redirecting to ambassador dashboard because user has ambassador role");
         navigate("/ambassador/dashboard");
-      } else if (isAdminRole) {
-        console.log("Index: Redirection vers le tableau de bord admin");
+      } else if (hasAdminRole) {
+        console.log("Index: Redirecting to admin dashboard because user has admin role");
         navigate("/dashboard");
       } else {
-        // Si l'utilisateur est connecté mais n'a pas de rôle spécifique
-        console.log("Index: Utilisateur connecté sans rôle spécifique, redirection vers client/dashboard par défaut");
+        // If the user is connected but has no specific role
+        console.log("Index: User connected with no specific role, defaulting to client dashboard");
         navigate("/client/dashboard");
       }
     }

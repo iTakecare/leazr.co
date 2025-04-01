@@ -141,76 +141,82 @@ const ClientRoutes = () => {
   const location = useLocation();
   
   useEffect(() => {
-    // Vérifier si on est dans le flux de récupération de mot de passe
+    // Check if we're in the password recovery flow
     const hash = location.hash || window.location.hash;
     if (hash && hash.includes('type=recovery')) {
-      console.log("Flux de réinitialisation de mot de passe détecté dans ClientRoutes, redirection vers login");
+      console.log("Password recovery flow detected in ClientRoutes, redirecting to login");
       navigate('/login', { replace: true });
       return;
     }
     
-    // Ne faire les vérifications que si l'utilisateur est chargé et les rôles vérifiés
+    // Only do verification if user is loaded and roles are checked
     if (!isLoading && userRoleChecked && user) {
-      console.log("ClientRoutes: Vérification du rôle client pour", user.email);
+      console.log("ClientRoutes: Checking client role for", user.email, "with userRoleChecked:", userRoleChecked);
+      console.log("ClientRoutes: User details:", {
+        user_id: user.id,
+        client_id: user.client_id,
+        partner_id: user.partner_id,
+        ambassador_id: user.ambassador_id
+      });
       
-      // S'assurer que isClient est une fonction avant de l'appeler
-      const isClientRole = typeof isClient === 'function' ? isClient() : false;
+      // Check if client role function exists and user has client role
+      const hasClientRole = isClient();
       
-      // Vérification du rôle client
-      if (!isClientRole) {
-        console.log("L'utilisateur n'est pas un client", user);
+      // Check for client role
+      if (!hasClientRole) {
+        console.log("User is not a client", user);
         
-        // S'assurer que isPartner et isAmbassador sont des fonctions avant de les appeler
-        const isPartnerRole = typeof isPartner === 'function' ? isPartner() : false;
-        const isAmbassadorRole = typeof isAmbassador === 'function' ? isAmbassador() : false;
+        // Make sure isPartner and isAmbassador are functions before calling them
+        const hasPartnerRole = isPartner();
+        const hasAmbassadorRole = isAmbassador();
         
-        // Redirection basée sur le rôle
-        if (isPartnerRole) {
-          console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
+        // Redirect based on role
+        if (hasPartnerRole) {
+          console.log("User is a partner, redirecting to partner dashboard");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
           return;
-        } else if (isAmbassadorRole) {
-          console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
+        } else if (hasAmbassadorRole) {
+          console.log("User is an ambassador, redirecting to ambassador dashboard");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
           return;
         } else {
-          console.log("Redirection vers le tableau de bord administrateur");
+          console.log("Redirecting to admin dashboard");
           toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
           navigate('/dashboard', { replace: true });
           return;
         }
       } else {
-        console.log("Utilisateur vérifié comme client:", user.email);
+        console.log("User verified as client:", user.email, "with client_id:", user.client_id);
       }
     } else if (!isLoading && userRoleChecked && !user) {
-      // L'utilisateur n'est pas connecté
-      console.log("L'utilisateur n'est pas connecté, redirection vers login");
+      // User is not logged in
+      console.log("User is not logged in, redirecting to login");
       navigate('/login', { replace: true });
     }
   }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
 
-  // Si on est en cours de chargement ou de vérification des rôles, ou si on est dans le flux de récupération de mot de passe
+  // If loading or checking roles, or in password recovery flow
   if (isLoading || !userRoleChecked || (location.hash && location.hash.includes('type=recovery'))) {
     return <ClientLayout><ClientsLoading /></ClientLayout>;
   }
 
-  // Si l'utilisateur n'est pas connecté
+  // If user is not logged in
   if (!user) {
-    console.log("Redirection vers login car utilisateur non connecté");
+    console.log("Redirecting to login because user is not logged in");
     return <Navigate to="/login" replace />;
   }
 
-  // Si l'utilisateur n'est pas un client
-  const isClientRole = typeof isClient === 'function' ? isClient() : false;
-  if (!isClientRole) {
-    console.log("Utilisateur non client tentant d'accéder à la route client");
-    return null; // On retourne null car la redirection est gérée dans l'useEffect
+  // If user is not a client
+  const hasClientRole = isClient();
+  if (!hasClientRole) {
+    console.log("Non-client user trying to access client route");
+    return null; // Return null as redirection is handled in useEffect
   }
 
-  // L'utilisateur est un client, on affiche les routes client
-  console.log("Affichage des routes client pour:", user.email);
+  // User is a client, display client routes
+  console.log("Displaying client routes for:", user.email);
   return (
     <ClientCheck>
       <Routes>

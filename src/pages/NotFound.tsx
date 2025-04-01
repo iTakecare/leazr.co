@@ -13,9 +13,11 @@ const NotFound = () => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname,
-      "User:", user?.email
+      "User:", user?.email,
+      "Has client role:", user ? isClient() : false,
+      "Client ID:", user?.client_id
     );
-  }, [location.pathname, user]);
+  }, [location.pathname, user, isClient]);
 
   const isClientRouteAttempt = location.pathname.startsWith('/client/');
 
@@ -55,6 +57,8 @@ const NotFound = () => {
     navigate(-1);
   };
 
+  const hasClientRole = user && isClient ? isClient() : false;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
@@ -65,7 +69,7 @@ const NotFound = () => {
             La page que vous recherchez n'existe pas ou a été déplacée.
           </p>
           
-          {isClientRouteAttempt && typeof isClient === 'function' && isClient() && (
+          {isClientRouteAttempt && hasClientRole && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
               <p className="text-amber-700 text-sm mb-4">
                 Si vous cherchez votre tableau de bord client, utilisez le lien ci-dessous:
@@ -218,7 +222,7 @@ const NotFound = () => {
               Retour
             </Button>
             
-            {typeof isClient === 'function' && isClient() && (
+            {hasClientRole && (
               <Button 
                 variant="outline" 
                 asChild

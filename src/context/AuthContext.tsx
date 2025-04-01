@@ -97,11 +97,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             client_id: clientData?.id || null
           };
           
+          console.log("User loaded with roles:", {
+            user_id: extendedUser.id,
+            email: extendedUser.email,
+            client_id: extendedUser.client_id,
+            partner_id: extendedUser.partner_id,
+            ambassador_id: extendedUser.ambassador_id,
+            role: extendedUser.role
+          });
+          
           setUser(extendedUser);
           setUserRoleChecked(true);
-          
-          // Redirect based on role
-          handleRoleBasedRedirection(extendedUser);
         } else {
           setUser(null);
           setUserRoleChecked(true);
@@ -153,11 +159,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 client_id: clientData?.id || null
               };
               
+              console.log("User updated with roles:", {
+                user_id: extendedUser.id,
+                email: extendedUser.email,
+                client_id: extendedUser.client_id,
+                partner_id: extendedUser.partner_id,
+                ambassador_id: extendedUser.ambassador_id,
+                role: extendedUser.role
+              });
+              
               setUser(extendedUser);
               setUserRoleChecked(true);
-              
-              // Also handle redirection on auth state change
-              handleRoleBasedRedirection(extendedUser);
             } else {
               setUser(null);
               setUserRoleChecked(true);
@@ -317,17 +329,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isClient = () => {
     // Considéré comme client s'il a un client_id associé
-    return !!user?.client_id;
+    if (user?.client_id) {
+      console.log("isClient returning true for user:", user.email, "with client_id:", user.client_id);
+      return true;
+    }
+    console.log("isClient returning false for user:", user?.email);
+    return false;
   };
 
   const isPartner = () => {
     // Considéré comme partenaire s'il a un partner_id associé
-    return !!user?.partner_id;
+    if (user?.partner_id) {
+      console.log("isPartner returning true for user:", user.email);
+      return true;
+    }
+    return false;
   };
 
   const isAmbassador = () => {
     // Considéré comme ambassadeur s'il a un ambassador_id associé
-    return !!user?.ambassador_id;
+    if (user?.ambassador_id) {
+      console.log("isAmbassador returning true for user:", user.email);
+      return true;
+    }
+    return false;
   };
 
   return (
