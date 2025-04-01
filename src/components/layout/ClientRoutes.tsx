@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -10,10 +11,11 @@ import ClientsLoading from "@/components/clients/ClientsLoading";
 import ClientsError from "@/components/clients/ClientsError";
 import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { supabase } from "@/integrations/supabase/client";
+import CreateOffer from "@/pages/CreateOffer";
+import { toast } from "sonner";
 import PublicCatalog from "@/pages/PublicCatalog";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
-import ClientSettingsPage from "@/pages/ClientSettingsPage";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -204,7 +206,7 @@ const ClientRoutes = () => {
         <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
-        <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
+        <Route path="calculator" element={<ClientLayout><CreateOffer /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
     </ClientCheck>
