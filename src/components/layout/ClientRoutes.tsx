@@ -141,33 +141,48 @@ const ClientRoutes = () => {
   const location = useLocation();
   
   useEffect(() => {
+    // Vérifier si on est dans le flux de récupération de mot de passe
     const hash = location.hash || window.location.hash;
-    
     if (hash && hash.includes('type=recovery')) {
       console.log("Flux de réinitialisation de mot de passe détecté dans ClientRoutes, redirection vers login");
       navigate('/login', { replace: true });
       return;
     }
     
+    // Ne faire les vérifications que si l'utilisateur est chargé et les rôles vérifiés
     if (!isLoading && userRoleChecked && user) {
+      console.log("ClientRoutes: Vérification du rôle client pour", user.email);
+      
+      // S'assurer que isClient est une fonction avant de l'appeler
+      const isClientRole = typeof isClient === 'function' ? isClient() : false;
+      
       // Vérification du rôle client
-      if (!isClient()) {
+      if (!isClientRole) {
         console.log("L'utilisateur n'est pas un client", user);
         
+        // S'assurer que isPartner et isAmbassador sont des fonctions avant de les appeler
+        const isPartnerRole = typeof isPartner === 'function' ? isPartner() : false;
+        const isAmbassadorRole = typeof isAmbassador === 'function' ? isAmbassador() : false;
+        
         // Redirection basée sur le rôle
-        if (typeof isPartner === 'function' && isPartner()) {
+        if (isPartnerRole) {
           console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
-        } else if (typeof isAmbassador === 'function' && isAmbassador()) {
+          return;
+        } else if (isAmbassadorRole) {
           console.log("L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
+          return;
         } else {
           console.log("Redirection vers le tableau de bord administrateur");
           toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
           navigate('/dashboard', { replace: true });
+          return;
         }
+      } else {
+        console.log("Utilisateur vérifié comme client:", user.email);
       }
     } else if (!isLoading && userRoleChecked && !user) {
       // L'utilisateur n'est pas connecté
@@ -183,16 +198,19 @@ const ClientRoutes = () => {
 
   // Si l'utilisateur n'est pas connecté
   if (!user) {
+    console.log("Redirection vers login car utilisateur non connecté");
     return <Navigate to="/login" replace />;
   }
 
   // Si l'utilisateur n'est pas un client
-  if (typeof isClient === 'function' && !isClient()) {
+  const isClientRole = typeof isClient === 'function' ? isClient() : false;
+  if (!isClientRole) {
     console.log("Utilisateur non client tentant d'accéder à la route client");
     return null; // On retourne null car la redirection est gérée dans l'useEffect
   }
 
   // L'utilisateur est un client, on affiche les routes client
+  console.log("Affichage des routes client pour:", user.email);
   return (
     <ClientCheck>
       <Routes>

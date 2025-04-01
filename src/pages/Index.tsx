@@ -15,17 +15,35 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
+      // Vérifier si les fonctions existent avant de les appeler
+      const isClientRole = typeof isClient === 'function' && isClient();
+      const isPartnerRole = typeof isPartner === 'function' && isPartner();
+      const isAmbassadorRole = typeof isAmbassador === 'function' && isAmbassador();
+      const isAdminRole = typeof isAdmin === 'function' && isAdmin();
+      
+      console.log("Index: Redirection basée sur le rôle", { 
+        isClient: isClientRole, 
+        isPartner: isPartnerRole, 
+        isAmbassador: isAmbassadorRole,
+        isAdmin: isAdminRole
+      });
+      
       // Redirect user based on their role
-      if (isClient()) {
+      if (isClientRole) {
+        console.log("Index: Redirection vers le tableau de bord client");
         navigate("/client/dashboard");
-      } else if (isPartner()) {
+      } else if (isPartnerRole) {
+        console.log("Index: Redirection vers le tableau de bord partenaire");
         navigate("/partner/dashboard");
-      } else if (isAmbassador()) {
+      } else if (isAmbassadorRole) {
+        console.log("Index: Redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard");
-      } else if (isAdmin()) {
+      } else if (isAdminRole) {
+        console.log("Index: Redirection vers le tableau de bord admin");
         navigate("/dashboard");
       } else {
-        // Default to client dashboard if no specific role is found
+        // Si l'utilisateur est connecté mais n'a pas de rôle spécifique
+        console.log("Index: Utilisateur connecté sans rôle spécifique, redirection vers client/dashboard par défaut");
         navigate("/client/dashboard");
       }
     }
