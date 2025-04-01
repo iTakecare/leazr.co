@@ -1,146 +1,368 @@
 
-import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Laptop, 
-  Inbox,
-  Search,
-  MessageSquare,
-  Settings,
-  LogOut,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileText,
+  Laptop,
+  Clock,
+  Package,
+  LogOut,
+  ShieldCheck,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Settings,
+  HelpCircle
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import Logo from "./Logo";
 
-const ClientSidebar = () => {
+interface SidebarProps {
+  className?: string;
+  onLinkClick?: () => void;
+}
+
+interface MenuItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+  badge?: string;
+  isNew?: boolean;
+}
+
+const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  
-  // Get user information
-  const userEmail = user?.email || '';
-  const firstName = user?.user_metadata?.first_name || '';
-  const lastName = user?.user_metadata?.last_name || '';
-  
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (firstName && lastName) {
-      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    } else if (userEmail) {
-      return userEmail.substring(0, 2).toUpperCase();
-    }
-    return "CL";
-  };
+  const isMobile = useIsMobile();
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Navigation items
-  const navigationItems = [
-    {
-      name: "Tableau de bord",
-      href: "/client/dashboard",
-      icon: LayoutDashboard,
-      active: location.pathname === "/client/dashboard",
-    },
-    {
-      name: "Contrats",
-      href: "/client/contracts",
-      icon: FileText,
-      active: location.pathname === "/client/contracts",
-    },
-    {
-      name: "Équipements",
-      href: "/client/equipment",
-      icon: Laptop,
-      active: location.pathname === "/client/equipment" || location.pathname.startsWith("/client/equipment/"),
-    },
-    {
-      name: "Demandes",
-      href: "/client/requests",
-      icon: Inbox,
-      active: location.pathname === "/client/requests",
-    },
-    {
-      name: "Catalogue",
-      href: "/client/catalog",
-      icon: Search,
-      active: location.pathname === "/client/catalog",
-    },
-    {
-      name: "Support",
-      href: "/client/support",
-      icon: MessageSquare,
-      active: location.pathname === "/client/support",
-    },
-    {
-      name: "Paramètres",
-      href: "/client/settings",
-      icon: Settings,
-      active: location.pathname === "/client/settings",
-    },
-  ];
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la récupération de l'avatar:", error);
+          return;
+        }
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'avatar:", err);
+      }
+    };
+    
+    fetchAvatar();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
       await signOut();
       navigate('/login');
+      toast.success("Déconnexion réussie");
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
+      console.error('Erreur lors de la déconnexion:', error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
-  return (
-    <div className="hidden md:flex h-screen bg-white border-r w-16 flex-col justify-between fixed z-30">
-      {/* Logo */}
-      <div className="flex flex-col items-center">
-        <div className="h-16 w-16 flex items-center justify-center border-b">
-          <Link to="/client/dashboard">
-            <img src="/logo.svg" alt="iTakecare" className="h-8 w-8" />
-          </Link>
-        </div>
-        
-        {/* Navigation items */}
-        <nav className="mt-6 flex flex-col items-center gap-4">
-          {navigationItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg transition-colors",
-                item.active
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-gray-500 hover:text-primary hover:bg-primary/10"
-              )}
-              title={item.name}
-            >
-              <item.icon className={cn("h-5 w-5", item.active && "stroke-[2px]")} />
-            </Link>
-          ))}
-        </nav>
-      </div>
-      
-      {/* User section */}
-      <div className="flex flex-col items-center pb-6">
+  const sidebarItems: MenuItem[] = [
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
+    { label: "Contrats", icon: FileText, href: "/client/contracts" },
+    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
+    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
+    { label: "Catalogue", icon: Package, href: "/client/catalog" },
+    { label: "Support", icon: HelpCircle, href: "/client/support" },
+    { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
+    { label: "Paramètres", icon: Settings, href: "/client/settings" },
+  ];
+
+  const isActive = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
+
+  if (isMobile) {
+    return (
+      <>
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleLogout}
-          className="text-gray-500 hover:text-red-500 hover:bg-red-50"
-          title="Déconnexion"
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 z-50 md:hidden bg-background/90 backdrop-blur-sm shadow-lg rounded-full hover:bg-primary/20 transition-all"
+          aria-label="Menu"
         >
-          <LogOut className="h-5 w-5" />
-          <span className="sr-only">Déconnexion</span>
+          <Menu className="h-5 w-5 text-primary" />
+          <span className="sr-only">Menu</span>
         </Button>
         
-        <Avatar className="h-8 w-8 mt-4">
-          <AvatarFallback className="bg-primary/20 text-primary text-xs">
-            {getUserInitials()}
-          </AvatarFallback>
-        </Avatar>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between p-4 border-b">
+                <Logo />
+                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <nav className="flex-1 px-2 py-4">
+                <ul className="space-y-1">
+                  {sidebarItems.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        to={item.href}
+                        onClick={() => {
+                          onLinkClick?.();
+                          setMobileOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
+                          isActive(item.href)
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
+                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                        )}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                      >
+                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
+                        <span className="flex-1">{item.label}</span>
+                        {item.badge && (
+                          <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {item.isNew && !item.badge && (
+                          <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
+                            New
+                          </Badge>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              
+              {user && (
+                <div className="p-4 border-t mt-auto">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar>
+                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {user.email?.substring(0, 2).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="overflow-hidden">
+                      <p className="text-sm font-medium truncate">
+                        {user.first_name && user.last_name 
+                          ? `${user.first_name} ${user.last_name}` 
+                          : user.email}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Client</p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Déconnexion
+                  </Button>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+  
+  return (
+    <aside
+      className={cn(
+        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
+        collapsed ? "w-[80px]" : "w-[280px]",
+        className
+      )}
+    >
+      <div className="flex flex-col h-full">
+        <div className={cn(
+          "flex items-center p-4 mb-2 transition-all duration-300",
+          collapsed ? "justify-center" : "px-6 justify-between"
+        )}>
+          <Logo showText={!collapsed} />
+          
+          {!collapsed && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(true)} 
+              className="rounded-full hover:bg-primary/10"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
+        
+        <nav className="flex-1 px-2 py-4">
+          <TooltipProvider delayDuration={200}>
+            <ul className="space-y-1">
+              {sidebarItems.map((item) => (
+                <li key={item.href}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.href}
+                        onClick={onLinkClick}
+                        className={cn(
+                          "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                          collapsed ? "justify-center px-2" : "px-3",
+                          isActive(item.href)
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
+                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                        )}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                      >
+                        <item.icon 
+                          className={cn(
+                            "h-5 w-5 flex-shrink-0", 
+                            collapsed ? "relative" : "mr-3",
+                            isActive(item.href) && "stroke-[2.5px]"
+                          )} 
+                        />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{item.label}</span>
+                            {item.badge && (
+                              <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
+                                {item.badge}
+                              </Badge>
+                            )}
+                            {item.isNew && !item.badge && (
+                              <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
+                                New
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {collapsed && item.badge && (
+                          <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right" className="font-medium">
+                        <p>{item.label}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
+          </TooltipProvider>
+        </nav>
+        
+        {user && (
+          <div className={cn(
+            "transition-all duration-300 mt-auto border-t border-t-primary/10 pt-4",
+            collapsed ? "p-2" : "p-4 mx-2 mb-2"
+          )}>
+            {!collapsed ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar>
+                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
+                    <AvatarFallback className="bg-primary/20 text-primary">
+                      {user.email?.substring(0, 2).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-medium truncate">
+                      {user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}` 
+                        : user.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Client</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Déconnexion
+                </Button>
+              </>
+            ) : (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={handleLogout}
+                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      <span className="sr-only">Déconnexion</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Déconnexion</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
+        
+        {collapsed && (
+          <div className="p-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(false)} 
+              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
-    </div>
+    </aside>
   );
 };
 

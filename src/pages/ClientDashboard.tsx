@@ -11,7 +11,9 @@ import {
   ChevronRight,
   Plus,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  LayoutDashboard,
+  Calendar
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -97,6 +99,22 @@ const ClientDashboard = () => {
     }
   }, [user]);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+
   const getStatusBadge = (status) => {
     if (status === "Actif" || status === "active") {
       return <Badge className="bg-green-500">Actif</Badge>;
@@ -114,6 +132,7 @@ const ClientDashboard = () => {
     refreshContracts();
     refreshOffers();
     
+    // Donner l'impression que le rechargement prend un peu de temps
     setTimeout(() => {
       setLoading(false);
       toast.success("Données actualisées");
@@ -121,204 +140,252 @@ const ClientDashboard = () => {
   };
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="bg-white border-b p-4 md:px-8 md:py-6">
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground">
-              {user?.email ? `${user.email}` : ''}
-              {user?.company ? ` - ${user.company}` : ''}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Bienvenue dans votre espace iTakecare. Gérez vos contrats et équipements.
-            </p>
+    <div className="w-full max-w-full p-4 md:p-6">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="w-full max-w-full"
+      >
+        <motion.div variants={itemVariants} className="mb-8">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-gradient-to-r from-primary/5 to-primary/10 p-6 rounded-xl shadow-sm">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Tableau de bord
+              </h1>
+              <p className="text-muted-foreground">
+                Bienvenue, {user?.first_name || ''} {user?.last_name || ''}
+              </p>
+              <p className="text-muted-foreground">
+                {user?.company ? `Espace Client ${user.company}` : ''}
+              </p>
+              <p className="mt-4 text-muted-foreground/90 max-w-xl">
+                Voici un aperçu de vos contrats et équipements. Utilisez le tableau de bord pour gérer vos ressources iTakecare.
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleRefresh} disabled={loading} className="flex items-center gap-2 self-start md:self-center">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Actualiser
+            </Button>
           </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={handleRefresh}
-            className="flex items-center gap-2 self-end"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Actualiser
-          </Button>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Main content */}
-      <div className="p-4 md:p-8">
-        {/* Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                <FileText className="h-4 w-4 mr-2" /> Contrats
+        <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card className="shadow-md hover:shadow-lg transition-all border-t-4 border-t-primary/40">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Contrats
               </CardTitle>
+              <FileText className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{contracts?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">Contrats en cours</p>
+              <p className="text-xs text-muted-foreground mt-1">Total des contrats</p>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                <FileText className="h-4 w-4 mr-2 text-green-500" /> Contrats actifs
+          <Card className="shadow-md hover:shadow-lg transition-all border-t-4 border-t-green-500/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Contrats actifs
               </CardTitle>
+              <Calendar className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{contracts?.filter(c => c.status === 'active').length || 0}</div>
-              <p className="text-xs text-muted-foreground">Contrats actifs</p>
+              <p className="text-xs text-muted-foreground mt-1">Contrats en cours</p>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                <Laptop className="h-4 w-4 mr-2 text-blue-500" /> Équipements
+          <Card className="shadow-md hover:shadow-lg transition-all border-t-4 border-t-blue-500/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Équipements
               </CardTitle>
+              <Laptop className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{equipment.length || 0}</div>
-              <p className="text-xs text-muted-foreground">Appareils gérés</p>
+              <p className="text-xs text-muted-foreground mt-1">Appareils gérés</p>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-yellow-500" /> En cours
+          <Card className="shadow-md hover:shadow-lg transition-all border-t-4 border-t-yellow-500/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                En cours
               </CardTitle>
+              <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{offers?.filter(o => o.status === 'pending' || !o.status).length || 0}</div>
-              <p className="text-xs text-muted-foreground">Demandes en attente</p>
+              <p className="text-xs text-muted-foreground mt-1">Demandes en attente</p>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
         
-        {/* Contracts section */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Contrats</h2>
-            <Link to="/client/contracts" className="text-sm text-primary hover:underline">
-              Voir tous
-            </Link>
-          </div>
-          
-          {contractsLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : contracts && contracts.length > 0 ? (
-            <div className="grid gap-4">
-              {contracts.slice(0, 3).map((contract) => (
-                <div key={contract.id} className="bg-white p-4 rounded-lg border shadow-sm hover:shadow transition-shadow">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Contrat #{contract.id.substring(0, 8)}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(contract.created_at).toLocaleDateString()}
-                      </div>
-                      {getStatusBadge(contract.status)}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-bold text-primary">{formatCurrency(contract.monthly_payment)}</div>
-                        <div className="text-xs text-muted-foreground">par mois</div>
-                      </div>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/client/contracts/${contract.id}`}>
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
+        <motion.div variants={itemVariants} className="mb-8">
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Contrats récents</CardTitle>
+              <Button variant="outline" size="sm" asChild className="shadow-sm">
+                <Link to="/client/contracts">Voir tous</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {contractsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed">
-              <FileText className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Aucun contrat trouvé
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">
-                Vos contrats apparaîtront ici une fois qu'ils seront approuvés
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {/* Requests section */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Demandes</h2>
-            <Link to="/client/requests" className="text-sm text-primary hover:underline">
-              Voir toutes
-            </Link>
-          </div>
-          
-          {offersLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : offers && offers.length > 0 ? (
-            <div className="grid gap-4">
-              {offers.slice(0, 2).map((offer) => (
-                <div key={offer.id} className="bg-white p-4 rounded-lg border shadow-sm hover:shadow transition-shadow">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Demande #{offer.id.substring(0, 8)}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(offer.created_at).toLocaleDateString()}
+              ) : contracts.length > 0 ? (
+                <div className="space-y-4">
+                  {contracts.slice(0, 3).map((contract) => (
+                    <div key={contract.id} className="flex items-center justify-between border-b pb-4 hover:bg-muted/20 p-2 rounded-md transition-colors">
+                      <div>
+                        <div className="font-medium">Contrat #{contract.id.substring(0, 8)}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Créé le {new Date(contract.created_at).toLocaleDateString()}
+                        </div>
+                        <div className="mt-1">{getStatusBadge(contract.status)}</div>
                       </div>
-                      <Badge className="mt-1 bg-yellow-500">En attente</Badge>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-bold text-primary">{formatCurrency(offer.monthly_payment)}</div>
-                        <div className="text-xs text-muted-foreground">par mois</div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-bold text-primary">{formatCurrency(contract.monthly_payment)}</div>
+                          <div className="text-xs text-muted-foreground">par mois</div>
+                        </div>
+                        <Button variant="ghost" size="icon" asChild className="rounded-full">
+                          <Link to={`/client/contracts/${contract.id}`}>
+                            <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/client/requests/${offer.id}`}>
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed">
-              <Clock className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Aucune demande en cours
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">
-                Commencez par créer une demande de matériel
-              </p>
-            </div>
-          )}
-          
-          <div className="mt-6">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
-              <Link to="/client/new-request">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle demande
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+              ) : (
+                <div className="text-center py-10 bg-muted/30 rounded-lg">
+                  <FileText className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground font-medium">
+                    {contractsError ? "Erreur lors du chargement des contrats" : "Aucun contrat trouvé"}
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">
+                    Vos contrats apparaîtront ici une fois qu'ils seront approuvés
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Demandes en cours</CardTitle>
+              <Button variant="outline" size="sm" asChild className="shadow-sm">
+                <Link to="/client/requests">Voir toutes</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {offersLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : offers && offers.length > 0 ? (
+                <div className="space-y-4">
+                  {offers.slice(0, 2).map((offer) => (
+                    <div key={offer.id} className="flex items-center justify-between pb-4 border-b hover:bg-muted/20 p-2 rounded-md transition-colors">
+                      <div>
+                        <div className="font-medium">Demande #{offer.id.substring(0, 8)}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Créée le {new Date(offer.created_at).toLocaleDateString()}
+                        </div>
+                        <Badge className="mt-1 bg-yellow-500">En attente de validation</Badge>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-bold text-primary">{formatCurrency(offer.monthly_payment)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            par mois
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" asChild className="rounded-full">
+                          <Link to={`/client/requests/${offer.id}`}>
+                            <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-muted/30 rounded-lg">
+                  <Clock className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground font-medium">
+                    {offersError ? "Erreur lors du chargement des demandes" : "Aucune demande en cours"}
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">
+                    Commencez par créer une demande de matériel
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <Button className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-md" asChild>
+                  <Link to="/client/new-request">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouvelle demande
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {equipment && equipment.length > 0 && (
+          <motion.div variants={itemVariants} className="mt-8">
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Mes équipements</CardTitle>
+                <Button variant="outline" size="sm" asChild className="shadow-sm">
+                  <Link to="/client/equipment">Voir tous</Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground border-b">
+                        <th className="text-left font-medium py-2 px-2">ID</th>
+                        <th className="text-left font-medium py-2 px-2">Équipement</th>
+                        <th className="text-left font-medium py-2 px-2">Statut</th>
+                        <th className="text-left font-medium py-2 px-2">Assigné à</th>
+                        <th className="text-left font-medium py-2 px-2">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {equipment.slice(0, 3).map((item) => (
+                        <tr key={item.id} className="hover:bg-muted/20 group">
+                          <td className="py-3 px-2 text-sm">{item.id}</td>
+                          <td className="py-3 px-2 text-sm font-medium">{item.name}</td>
+                          <td className="py-3 px-2">
+                            {getStatusBadge(item.status)}
+                          </td>
+                          <td className="py-3 px-2 text-sm">
+                            <div>{item.assignedTo}</div>
+                            <div className="text-xs text-muted-foreground">{item.role}</div>
+                          </td>
+                          <td className="py-3 px-2 text-sm">{item.assignedDate}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   );
 };

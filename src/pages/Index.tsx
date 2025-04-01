@@ -15,40 +15,17 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
-      console.log("Index: Checking user role for", user.email, "with userRoleChecked:", userRoleChecked);
-      
-      // Directly check client_id, partner_id, ambassador_id properties
-      const hasClientRole = isClient();
-      const hasPartnerRole = isPartner();
-      const hasAmbassadorRole = isAmbassador();
-      const hasAdminRole = isAdmin();
-      
-      console.log("Index: Role check results", { 
-        hasClientRole, 
-        hasPartnerRole, 
-        hasAmbassadorRole,
-        hasAdminRole,
-        client_id: user.client_id,
-        partner_id: user.partner_id,
-        ambassador_id: user.ambassador_id
-      });
-      
       // Redirect user based on their role
-      if (hasClientRole) {
-        console.log("Index: Redirecting to client dashboard because user has client role");
+      if (isClient()) {
         navigate("/client/dashboard");
-      } else if (hasPartnerRole) {
-        console.log("Index: Redirecting to partner dashboard because user has partner role");
+      } else if (isPartner()) {
         navigate("/partner/dashboard");
-      } else if (hasAmbassadorRole) {
-        console.log("Index: Redirecting to ambassador dashboard because user has ambassador role");
+      } else if (isAmbassador()) {
         navigate("/ambassador/dashboard");
-      } else if (hasAdminRole) {
-        console.log("Index: Redirecting to admin dashboard because user has admin role");
+      } else if (isAdmin()) {
         navigate("/dashboard");
       } else {
-        // If the user is connected but has no specific role
-        console.log("Index: User connected with no specific role, defaulting to client dashboard");
+        // Default to client dashboard if no specific role is found
         navigate("/client/dashboard");
       }
     }

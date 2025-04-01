@@ -13,14 +13,12 @@ import {
   Bell, 
   Shield,
   Save,
-  Loader2,
-  Building
+  Loader2 
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Client } from "@/types/client";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
@@ -32,7 +30,6 @@ const ClientSettingsPage = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [securityAlerts, setSecurityAlerts] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [clientData, setClientData] = useState<Client | null>(null);
 
   // Animation variants
   const containerVariants = {
@@ -56,52 +53,25 @@ const ClientSettingsPage = () => {
       
       setLoading(true);
       try {
-        // Fetch user profile data
-        const { data: profileData, error: profileError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
         
-        if (profileError) {
-          throw profileError;
+        if (error) {
+          throw error;
         }
         
-        if (profileData) {
-          setFirstName(profileData.first_name || "");
-          setLastName(profileData.last_name || "");
-          setPhone(profileData.phone || "");
-          setAvatarUrl(profileData.avatar_url);
-          setEmailNotifications(profileData.email_notifications !== false);
-          setSecurityAlerts(profileData.security_alerts !== false);
-          setTwoFactorAuth(!!profileData.two_factor_auth);
+        if (data) {
+          setFirstName(data.first_name || "");
+          setLastName(data.last_name || "");
+          setPhone(data.phone || "");
+          setAvatarUrl(data.avatar_url);
+          setEmailNotifications(data.email_notifications !== false);
+          setSecurityAlerts(data.security_alerts !== false);
+          setTwoFactorAuth(!!data.two_factor_auth);
         }
-
-        // Fetch client data
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (clientError) {
-          console.error("Erreur lors de la récupération des données client:", clientError);
-        } else if (clientData) {
-          setClientData(clientData);
-          
-          // If user profile doesn't have these fields filled, use client data
-          if (!profileData?.phone && clientData.phone) {
-            setPhone(clientData.phone);
-          }
-          
-          // If first name or last name aren't set, try to extract from client name
-          if ((!profileData?.first_name || !profileData?.last_name) && clientData.name && clientData.name.includes(' ')) {
-            const nameParts = clientData.name.split(' ');
-            if (!profileData?.first_name) setFirstName(nameParts[0] || "");
-            if (!profileData?.last_name) setLastName(nameParts.slice(1).join(' ') || "");
-          }
-        }
-        
       } catch (error) {
         console.error("Error loading user profile:", error);
         toast.error("Impossible de charger votre profil");
@@ -172,12 +142,6 @@ const ClientSettingsPage = () => {
                   </Avatar>
                   <h2 className="text-lg font-medium">{firstName} {lastName}</h2>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  {clientData?.company && (
-                    <div className="flex items-center mt-1 text-sm text-muted-foreground">
-                      <Building className="h-3 w-3 mr-1" />
-                      <span>{clientData.company}</span>
-                    </div>
-                  )}
                 </div>
 
                 <nav className="space-y-1">
@@ -185,12 +149,6 @@ const ClientSettingsPage = () => {
                     <User className="mr-2 h-4 w-4 text-primary" />
                     <span>Profil</span>
                   </a>
-                  {clientData && (
-                    <a href="#company" className="flex items-center p-2 rounded-md hover:bg-muted">
-                      <Building className="mr-2 h-4 w-4 text-primary" />
-                      <span>Entreprise</span>
-                    </a>
-                  )}
                   <a href="#notifications" className="flex items-center p-2 rounded-md hover:bg-muted">
                     <Bell className="mr-2 h-4 w-4 text-primary" />
                     <span>Notifications</span>
@@ -262,68 +220,6 @@ const ClientSettingsPage = () => {
               </CardContent>
             </Card>
           </motion.div>
-
-          {clientData && (
-            <motion.div variants={itemVariants}>
-              <Card id="company">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Building className="mr-2 h-5 w-5 text-primary" />
-                    Informations de l'entreprise
-                  </CardTitle>
-                  <CardDescription>
-                    Données de votre entreprise
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Société</Label>
-                      <div className="p-2 bg-muted/30 rounded-md">
-                        {clientData.company || "Non renseigné"}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Numéro de TVA</Label>
-                      <div className="p-2 bg-muted/30 rounded-md">
-                        {clientData.vat_number || "Non renseigné"}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Adresse</Label>
-                    <div className="p-2 bg-muted/30 rounded-md">
-                      {clientData.address ? (
-                        <div>
-                          <p>{clientData.address}</p>
-                          <p>{clientData.postal_code} {clientData.city}</p>
-                          <p>{clientData.country}</p>
-                        </div>
-                      ) : (
-                        "Non renseignée"
-                      )}
-                    </div>
-                  </div>
-                  
-                  {clientData.has_different_shipping_address && clientData.shipping_address && (
-                    <div className="space-y-2">
-                      <Label>Adresse de livraison</Label>
-                      <div className="p-2 bg-muted/30 rounded-md">
-                        <p>{clientData.shipping_address}</p>
-                        <p>{clientData.shipping_postal_code} {clientData.shipping_city}</p>
-                        <p>{clientData.shipping_country}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <p className="text-xs text-muted-foreground mt-4">
-                    Pour modifier les informations de votre entreprise, veuillez contacter notre équipe support.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
           <motion.div variants={itemVariants}>
             <Card id="notifications">

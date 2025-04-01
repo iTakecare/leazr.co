@@ -1,25 +1,19 @@
+
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isClient } = useAuth();
 
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
-      location.pathname,
-      "User:", user?.email,
-      "Has client role:", user ? isClient() : false,
-      "Client ID:", user?.client_id
+      location.pathname
     );
-  }, [location.pathname, user, isClient]);
-
-  const isClientRouteAttempt = location.pathname.startsWith('/client/');
+  }, [location.pathname]);
 
   const isClientEditAttempt = location.pathname.includes('/clients/edit/');
   const isProductDetailAttempt = location.pathname.includes('/products/');
@@ -57,8 +51,6 @@ const NotFound = () => {
     navigate(-1);
   };
 
-  const hasClientRole = user && isClient ? isClient() : false;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
@@ -68,19 +60,6 @@ const NotFound = () => {
           <p className="text-sm text-gray-500 mb-6">
             La page que vous recherchez n'existe pas ou a été déplacée.
           </p>
-          
-          {isClientRouteAttempt && hasClientRole && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez votre tableau de bord client, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/client/dashboard">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Home className="h-4 w-4" /> Tableau de bord client
-                </Button>
-              </Link>
-            </div>
-          )}
           
           {isClientEditAttempt && clientId && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
@@ -221,19 +200,6 @@ const NotFound = () => {
               <ArrowLeft className="h-4 w-4" /> 
               Retour
             </Button>
-            
-            {hasClientRole && (
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2 w-full"
-              >
-                <Link to="/client/dashboard">
-                  <Home className="h-4 w-4" /> 
-                  Tableau de bord client
-                </Link>
-              </Button>
-            )}
             
             <Button 
               variant="outline" 
