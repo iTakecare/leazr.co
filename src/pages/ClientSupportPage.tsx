@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -421,14 +420,14 @@ const ClientSupportPage = () => {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select
-            value={filterStatus || ""}
-            onValueChange={(value) => setFilterStatus(value || null)}
+            value={filterStatus || "all"}
+            onValueChange={(value) => setFilterStatus(value === "all" ? null : value)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les statuts</SelectItem>
+              <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="open">Ouverts</SelectItem>
               <SelectItem value="in_progress">En cours</SelectItem>
               <SelectItem value="closed">Résolus</SelectItem>
@@ -454,7 +453,83 @@ const ClientSupportPage = () => {
                     <Button>Créer un premier ticket</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[500px]">
-                    {/* Same create ticket dialog content */}
+                    <DialogHeader>
+                      <DialogTitle>Créer un nouveau ticket de support</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <label htmlFor="title" className="text-sm font-medium">
+                          Titre
+                        </label>
+                        <Input
+                          id="title"
+                          placeholder="Résumé de votre problème"
+                          value={newTicket.title}
+                          onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label htmlFor="category" className="text-sm font-medium">
+                            Catégorie
+                          </label>
+                          <Select 
+                            value={newTicket.category} 
+                            onValueChange={(value) => setNewTicket({ ...newTicket, category: value })}
+                          >
+                            <SelectTrigger id="category">
+                              <SelectValue placeholder="Catégorie" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="technical">Problème technique</SelectItem>
+                              <SelectItem value="request">Demande d'équipement</SelectItem>
+                              <SelectItem value="billing">Facturation</SelectItem>
+                              <SelectItem value="other">Autre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <label htmlFor="priority" className="text-sm font-medium">
+                            Priorité
+                          </label>
+                          <Select 
+                            value={newTicket.priority} 
+                            onValueChange={(value) => setNewTicket({ ...newTicket, priority: value as "low" | "medium" | "high" })}
+                          >
+                            <SelectTrigger id="priority">
+                              <SelectValue placeholder="Priorité" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Basse</SelectItem>
+                              <SelectItem value="medium">Moyenne</SelectItem>
+                              <SelectItem value="high">Haute</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <label htmlFor="description" className="text-sm font-medium">
+                          Description
+                        </label>
+                        <Textarea
+                          id="description"
+                          placeholder="Décrivez votre problème en détail"
+                          rows={5}
+                          value={newTicket.description}
+                          onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setNewTicket({ title: "", description: "", category: "technical", priority: "medium" })}>
+                        Annuler
+                      </Button>
+                      <Button onClick={handleCreateTicket}>
+                        Créer le ticket
+                      </Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
               )}
