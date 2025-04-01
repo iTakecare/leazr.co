@@ -14,7 +14,6 @@ import PublicCatalog from "@/pages/PublicCatalog";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
-import { toast } from "sonner";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -189,6 +188,7 @@ const ClientRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Added strict check for client role
   if (!isClient()) {
     console.log("Utilisateur non client tentant d'accéder à la route client");
     return <Navigate to="/" replace />;
