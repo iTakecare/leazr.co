@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -8,13 +9,13 @@ import {
   Clock,
   Package,
   LogOut,
-  Calculator,
   ShieldCheck,
   Menu,
   ChevronLeft,
   ChevronRight,
   X,
-  User
+  Settings,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -98,8 +99,9 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Équipements", icon: Laptop, href: "/client/equipment" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
-    { label: "Calculateur", icon: Calculator, href: "/create-offer" },
+    { label: "Support", icon: HelpCircle, href: "/client/support" },
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
+    { label: "Paramètres", icon: Settings, href: "/client/settings" },
   ];
 
   const isActive = (path: string) => {
