@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -62,6 +61,7 @@ const AmbassadorOfferDetail = () => {
           return;
         }
         
+        // La commission est maintenant correctement calculée dans getOfferById
         setOffer(offerData);
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);

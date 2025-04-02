@@ -1,45 +1,51 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
+import { calculateCommissionByLevel } from "@/utils/calculator";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
-    console.log("Creating offer with data:", offerData);
-    
-    // Création d'un objet propre avec uniquement les colonnes qui existent dans la base de données
-    const dataToSend = {
-      client_id: offerData.client_id,
-      client_name: offerData.client_name,
-      client_email: offerData.client_email,
-      equipment_description: offerData.equipment_description,
-      amount: offerData.amount,
-      coefficient: offerData.coefficient,
-      monthly_payment: offerData.monthly_payment,
-      commission: offerData.commission,
-      user_id: offerData.user_id || null,
-      type: offerData.type || 'admin_offer',
-      workflow_status: offerData.workflow_status,
-      status: offerData.workflow_status === 'draft' ? 'pending' : 'pending',
-      remarks: offerData.remarks 
-    };
-    
-    console.log("Sending data to database:", dataToSend);
-    
-    // With RLS policies now in place, we can try direct insertion
-    const { data, error } = await supabase
-      .from('offers')
-      .insert(dataToSend)
-      .select();
-    
-    if (error) {
-      console.error("Error inserting offer:", error);
-      return { data: null, error };
+    // Ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur
+    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+      // Récupérer l'ambassador_id associé à cet utilisateur
+      const { data: ambassadorData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id, commission_level_id')
+        .eq('user_id', offerData.user_id)
+        .single();
+        
+      if (!ambassadorError && ambassadorData) {
+        offerData.ambassador_id = ambassadorData.id;
+        
+        // Si nous avons un montant et un niveau de commission, recalculons la commission
+        if (offerData.amount && ambassadorData.commission_level_id) {
+          try {
+            const commissionData = await calculateCommissionByLevel(
+              offerData.amount,
+              ambassadorData.commission_level_id,
+              'ambassador',
+              ambassadorData.id
+            );
+            
+            if (commissionData && commissionData.amount) {
+              offerData.commission = commissionData.amount;
+            }
+          } catch (commError) {
+            console.error("Error calculating commission during offer creation:", commError);
+          }
+        }
+      }
     }
     
-    return { data, error: null };
+    const { data, error } = await supabase
+      .from('offers')
+      .insert(offerData)
+      .select()
+      .single();
     
+    return { data, error };
   } catch (error) {
-    console.error("Error creating offer:", error);
+    console.error("Error in createOffer:", error);
     return { data: null, error };
   }
 };
