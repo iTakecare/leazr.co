@@ -29,7 +29,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, userRoleChecked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -151,13 +151,16 @@ const ClientRoutes = () => {
     }
     
     if (!isLoading && userRoleChecked && user) {
+      // S'assurer que isClient, isPartner et isAmbassador sont des fonctions avant de les appeler
       const clientFunction = typeof isClient === 'function' ? isClient : () => false;
       const partnerFunction = typeof isPartner === 'function' ? isPartner : () => false;
       const ambassadorFunction = typeof isAmbassador === 'function' ? isAmbassador : () => false;
       
+      // Vérifier si l'utilisateur n'est PAS un client
       if (!clientFunction()) {
         console.log("L'utilisateur n'est pas un client", user);
         
+        // Rediriger vers le tableau de bord correspondant au rôle
         if (partnerFunction()) {
           console.log("L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
@@ -172,12 +175,11 @@ const ClientRoutes = () => {
           return;
         }
         
-        if (!clientFunction()) {
-          console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
-          toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
-          navigate('/dashboard', { replace: true });
-          return;
-        }
+        // Si l'utilisateur est un administrateur, rediriger vers le tableau de bord administrateur
+        console.log("L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+        toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
+        navigate('/', { replace: true });
+        return;
       }
     }
   }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
@@ -194,7 +196,7 @@ const ClientRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Added strict check for client role
+  // Ajout d'une vérification stricte pour le rôle client
   const clientFunction = typeof isClient === 'function' ? isClient : () => false;
   if (!clientFunction()) {
     console.log("Utilisateur non client tentant d'accéder à la route client");
