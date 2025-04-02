@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -199,16 +198,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (shouldRedirect) {
       console.log("Redirecting user based on role", user.role, "client_id:", user.client_id);
       
-      // Give priority to entity associations over role
-      if (user.client_id) {
+      // Check each role in priority order and redirect accordingly
+      if (user.ambassador_id) {
+        console.log("User is an ambassador, redirecting to ambassador dashboard");
+        setTimeout(() => navigate("/ambassador/dashboard"), 0);
+      } else if (user.client_id) {
         console.log("User is a client, redirecting to client dashboard");
         setTimeout(() => navigate("/client/dashboard"), 0);
       } else if (user.partner_id) {
         console.log("User is a partner, redirecting to partner dashboard");
         setTimeout(() => navigate("/partner/dashboard"), 0);
-      } else if (user.ambassador_id) {
-        console.log("User is an ambassador, redirecting to ambassador dashboard");
-        setTimeout(() => navigate("/ambassador/dashboard"), 0);
       } else if (isAdmin()) {
         console.log("User is an admin, redirecting to admin dashboard");
         setTimeout(() => navigate("/dashboard"), 0);

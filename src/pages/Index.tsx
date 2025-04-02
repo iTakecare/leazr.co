@@ -15,13 +15,13 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
-      // Redirect user based on their role
-      if (isClient()) {
+      // Redirect user based on their role - in priority order
+      if (isAmbassador()) {
+        navigate("/ambassador/dashboard");
+      } else if (isClient()) {
         navigate("/client/dashboard");
       } else if (isPartner()) {
         navigate("/partner/dashboard");
-      } else if (isAmbassador()) {
-        navigate("/ambassador/dashboard");
       } else if (isAdmin()) {
         navigate("/dashboard");
       } else {
