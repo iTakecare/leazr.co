@@ -3,7 +3,6 @@ import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Extend the User type to include the missing properties
 type ExtendedUser = User & {
   first_name?: string;
   last_name?: string;
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRoleChecked, setUserRoleChecked] = useState(false);
   const navigate = useNavigate();
 
-  // Fonction de debug améliorée
   const logUserInfo = (prefix: string, userData: any) => {
     console.log(`[AuthContext] ${prefix}`, {
       email: userData?.email,
@@ -73,14 +71,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.session?.user) {
           console.log("[AuthContext] Session trouvée pour:", data.session.user.email);
           
-          // Get user profile data from profiles table if needed
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name, company, role')
             .eq('id', data.session.user.id)
             .single();
           
-          // Créer l'utilisateur étendu de base
           let extendedUser: ExtendedUser = {
             ...data.session.user,
             first_name: profileData?.first_name || '',
@@ -89,17 +85,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             role: profileData?.role || 'client',
           };
           
-          // Vérifier les différents rôles en parallèle pour améliorer les performances
           const [ambassadorResult, clientResult, partnerResult] = await Promise.all([
-            // Vérifier l'ambassadeur
             supabase.from('ambassadors').select('id').eq('user_id', data.session.user.id).single(),
-            // Vérifier le client
             supabase.from('clients').select('id').eq('user_id', data.session.user.id).single(),
-            // Vérifier le partenaire
             supabase.from('partners').select('id').eq('user_id', data.session.user.id).single()
           ]);
             
-          // Assigner les IDs trouvés
           if (ambassadorResult.data?.id) {
             console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorResult.data.id);
             extendedUser.ambassador_id = ambassadorResult.data.id;
@@ -124,7 +115,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUserRoleChecked(true);
         }
 
-        // Set up auth state listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (_event, session) => {
             console.log("[AuthContext] État d'authentification changé, événement:", _event);
@@ -133,14 +123,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (session?.user) {
               console.log("[AuthContext] Session mise à jour pour:", session.user.email);
               
-              // Get user profile data from profiles table if needed
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('first_name, last_name, company, role')
                 .eq('id', session.user.id)
                 .single();
 
-              // Créer l'utilisateur étendu de base
               let extendedUser: ExtendedUser = {
                 ...session.user,
                 first_name: profileData?.first_name || '',
@@ -149,17 +137,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 role: profileData?.role || 'client',
               };
               
-              // Vérifier les différents rôles en parallèle
               const [ambassadorResult, clientResult, partnerResult] = await Promise.all([
-                // Vérifier l'ambassadeur
                 supabase.from('ambassadors').select('id').eq('user_id', session.user.id).single(),
-                // Vérifier le client
                 supabase.from('clients').select('id').eq('user_id', session.user.id).single(),
-                // Vérifier le partenaire
                 supabase.from('partners').select('id').eq('user_id', session.user.id).single()
               ]);
                 
-              // Assigner les IDs trouvés
               if (ambassadorResult.data?.id) {
                 console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorResult.data.id);
                 extendedUser.ambassador_id = ambassadorResult.data.id;
@@ -179,7 +162,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setUser(extendedUser);
               setUserRoleChecked(true);
               
-              // Effectuer la redirection immédiate si l'utilisateur est sur la page d'index
               if (window.location.pathname === "/" || window.location.pathname === "") {
                 handleRoleBasedRedirection(extendedUser);
               }
@@ -205,50 +187,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
   }, []);
-  
-  // Helper function to handle role-based redirections
+
   const handleRoleBasedRedirection = (user: ExtendedUser) => {
     if (!user) return;
     
-    // Get current path to avoid unnecessary redirections
     const currentPath = window.location.pathname;
     console.log("[AuthContext] Redirection basée sur le rôle, chemin actuel:", currentPath);
     
-    // Vérifier si l'utilisateur est sur la page d'index et doit être redirigé
     if (currentPath === "/" || currentPath === "") {
       console.log("[AuthContext] Utilisateur sur la page d'index, vérification des rôles:");
-      console.log("- Est ambassadeur?", !!user.ambassador_id);
-      console.log("- Est client?", !!user.client_id);
-      console.log("- Est partenaire?", !!user.partner_id);
-      console.log("- Est admin?", isAdmin());
       
-      // Rediriger l'utilisateur selon son rôle, en priorité
       if (user.ambassador_id) {
-        console.log("[AuthContext] Redirection vers le tableau de bord ambassadeur");
+        console.log("[AuthContext] Redirection ambassadeur, ID trouvé:", user.ambassador_id);
         setTimeout(() => navigate("/ambassador/dashboard"), 0);
-        return; // Arrêter après la première redirection
+        return;
       } 
       
       if (user.client_id) {
-        console.log("[AuthContext] Redirection vers le tableau de bord client");
+        console.log("[AuthContext] Redirection client, ID trouvé:", user.client_id);
         setTimeout(() => navigate("/client/dashboard"), 0);
-        return; // Arrêter après la première redirection
+        return;
       } 
       
       if (user.partner_id) {
-        console.log("[AuthContext] Redirection vers le tableau de bord partenaire");
+        console.log("[AuthContext] Redirection partenaire, ID trouvé:", user.partner_id);
         setTimeout(() => navigate("/partner/dashboard"), 0);
-        return; // Arrêter après la première redirection
+        return;
       } 
       
       if (isAdmin()) {
-        console.log("[AuthContext] Redirection vers le tableau de bord administrateur");
+        console.log("[AuthContext] Redirection admin, rôle vérifié:", user.role);
         setTimeout(() => navigate("/dashboard"), 0);
-        return; // Arrêter après la première redirection
+        return;
       }
       
-      // Default fallback to client dashboard if no specific role match
-      console.log("[AuthContext] Aucun rôle spécifique correspondant, redirection vers le tableau de bord client par défaut");
+      console.log("[AuthContext] Aucun rôle spécifique correspondant, redirection par défaut");
       setTimeout(() => navigate("/client/dashboard"), 0);
     }
   };
@@ -291,14 +264,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       let extendedUser = null;
       
       if (data.user) {
-        // Get user profile data from profiles table if needed
         const { data: profileData } = await supabase
           .from('profiles')
           .select('first_name, last_name, company')
           .eq('id', data.user.id)
           .single();
           
-        // Merge user data with profile data
         extendedUser = {
           ...data.user,
           first_name: profileData?.first_name || '',
@@ -341,7 +312,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isAdmin = () => {
-    // Vérifier si le rôle est admin (nouvelle condition) ou l'email est dans la liste des admins
     return user?.role === "admin" ||
            user?.email === "admin@test.com" || 
            user?.email === "alex@test.com" ||
@@ -349,19 +319,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isClient = () => {
-    // Considéré comme client s'il a un client_id associé
     console.log("[AuthContext] isClient check:", !!user?.client_id, user?.client_id);
     return !!user?.client_id;
   };
 
   const isPartner = () => {
-    // Considéré comme partenaire s'il a un partner_id associé
     console.log("[AuthContext] isPartner check:", !!user?.partner_id, user?.partner_id);
     return !!user?.partner_id;
   };
 
   const isAmbassador = () => {
-    // Considéré comme ambassadeur s'il a un ambassador_id associé
     console.log("[AuthContext] isAmbassador check:", !!user?.ambassador_id, user?.ambassador_id);
     return !!user?.ambassador_id;
   };

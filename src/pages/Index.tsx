@@ -26,29 +26,29 @@ const Index = () => {
         partner_id: user?.partner_id
       });
       
-      // Redirection basée sur le rôle - ordre de priorité fixé
+      // Redirection basée sur le rôle avec priorité claire
       if (isAmbassador()) {
         console.log("Index page - redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard", { replace: true });
-        return; // Ajout de return pour stopper l'exécution
+        return;
       } 
       
       if (isClient()) {
         console.log("Index page - redirection vers le tableau de bord client");
         navigate("/client/dashboard", { replace: true });
-        return; // Ajout de return pour stopper l'exécution
+        return;
       } 
       
       if (isPartner()) {
         console.log("Index page - redirection vers le tableau de bord partenaire");
         navigate("/partner/dashboard", { replace: true });
-        return; // Ajout de return pour stopper l'exécution
+        return;
       } 
       
       if (isAdmin()) {
         console.log("Index page - redirection vers le tableau de bord admin");
         navigate("/dashboard", { replace: true });
-        return; // Ajout de return pour stopper l'exécution
+        return;
       }
       
       // Default to client dashboard if no specific role is found

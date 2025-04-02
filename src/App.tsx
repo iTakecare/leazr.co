@@ -136,9 +136,9 @@ const App = () => {
                   {/* Routes client */}
                   <Route path="/client/*" element={<ClientRoutes />} />
                   
-                  {/* Routes ambassadeur - utilisation du layout spécifique */}
+                  {/* Routes ambassadeur - layout spécifique modifié */}
                   <Route path="/ambassador" element={<AmbassadorLayout />}>
-                    <Route index element={<AmbassadorDashboardPage />} />
+                    <Route index element={<Navigate to="/ambassador/dashboard" replace />} />
                     <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                     <Route path="offers" element={<AmbassadorOffersPage />} />
                     <Route path="offers/:id" element={<AmbassadorOfferDetail />} />

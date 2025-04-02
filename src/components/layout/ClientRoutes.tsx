@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -158,28 +159,33 @@ const ClientRoutes = () => {
         client_id: user?.client_id
       });
       
-      const clientFunction = typeof isClient === 'function' ? isClient : () => false;
-      const partnerFunction = typeof isPartner === 'function' ? isPartner : () => false;
-      const ambassadorFunction = typeof isAmbassador === 'function' ? isAmbassador : () => false;
-      
-      if (!clientFunction()) {
+      // Vérifier explicitement si l'utilisateur a le rôle client
+      if (!isClient()) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
         
-        if (ambassadorFunction()) {
+        // Rediriger l'utilisateur en fonction du rôle
+        if (isAmbassador()) {
           console.log("[ClientRoutes] L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
           return;
         }
         
-        if (partnerFunction()) {
+        if (isPartner()) {
           console.log("[ClientRoutes] L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
           return;
         }
         
-        console.log("[ClientRoutes] L'utilisateur n'est pas un client, redirection vers le tableau de bord administrateur");
+        if (user.role === "admin") {
+          console.log("[ClientRoutes] L'utilisateur est un administrateur, redirection vers le tableau de bord administrateur");
+          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'administrateur");
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        
+        console.log("[ClientRoutes] L'utilisateur n'a pas de rôle spécifique, redirection vers l'accueil");
         toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         navigate('/', { replace: true });
         return;

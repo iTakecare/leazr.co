@@ -24,21 +24,16 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
         email: user?.email
       });
       
-      // Vérification de l'authentification en premier
+      // Vérification de l'authentification
       if (!user) {
         console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
         navigate("/login", { replace: true });
         return;
       }
       
-      // Ensuite vérification stricte du rôle d'ambassadeur
+      // Vérification explicite du rôle d'ambassadeur
       if (!isAmbassador()) {
-        console.log("[AmbassadorLayout] Non-ambassadeur tentant d'accéder à l'espace ambassadeur, redirection");
-        console.log("[AmbassadorLayout] Rôles de l'utilisateur:", {
-          isAmbassador: isAmbassador(),
-          ambassador_id: user?.ambassador_id,
-          email: user?.email
-        });
+        console.log("[AmbassadorLayout] Non-ambassadeur tentant d'accéder à l'espace ambassadeur");
         toast.error("Vous n'avez pas les droits d'accès à l'espace ambassadeur");
         
         // Rediriger vers la page appropriée en fonction du rôle
@@ -46,10 +41,11 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
           navigate("/client/dashboard", { replace: true });
         } else if (user.partner_id) {
           navigate("/partner/dashboard", { replace: true });
+        } else if (user.role === "admin") {
+          navigate("/dashboard", { replace: true });
         } else {
           navigate("/", { replace: true });
         }
-        return;
       }
     }
   }, [user, isLoading, userRoleChecked, navigate, isAmbassador]);
@@ -62,10 +58,9 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
     );
   }
 
-  // Vérification stricte pour s'assurer que l'utilisateur est un ambassadeur
+  // Ne rendre le contenu que si l'utilisateur est un ambassadeur
   if (!user || !isAmbassador()) {
-    console.log("[AmbassadorLayout] Conditions d'accès non remplies, aucun rendu");
-    return null; // Pas de rendu pendant la redirection
+    return null;
   }
 
   return (
