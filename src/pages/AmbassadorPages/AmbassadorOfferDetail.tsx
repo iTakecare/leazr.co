@@ -23,7 +23,8 @@ import {
   SendHorizontal,
   Sparkle,
   Building,
-  Star
+  Star,
+  Euro
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -245,6 +246,20 @@ const AmbassadorOfferDetail = () => {
     return 'pending';
   };
 
+  // Determine commission status display
+  const getCommissionStatusBadge = (status) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">En attente</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Annulée</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status || 'Non défini'}</Badge>;
+    }
+  };
+
   return (
     <PageTransition>
       <Container>
@@ -328,6 +343,32 @@ const AmbassadorOfferDetail = () => {
                                 {formatCurrency(offer.monthly_payment)}
                                 <span className="text-sm font-normal text-gray-500">/mois</span>
                               </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Nouveau bloc pour afficher la commission */}
+                      <div className="mt-6">
+                        <h3 className="font-medium mb-2">Votre commission</h3>
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-md shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <Euro className="h-5 w-5 text-green-700" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-green-800">Commission pour cette offre</p>
+                                <p className="text-2xl font-bold text-green-700">{formatCurrency(offer.commission || 0)}</p>
+                              </div>
+                            </div>
+                            <div>
+                              {getCommissionStatusBadge(offer.commission_status)}
+                              {offer.commission_paid_at && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Payée le {formatDate(offer.commission_paid_at)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -518,6 +559,17 @@ const AmbassadorOfferDetail = () => {
                     <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
                     <div className="p-3 bg-slate-50 rounded-md flex items-center">
                       <OfferStatusBadge status={offer.workflow_status} className="mr-2" />
+                    </div>
+                  </div>
+                  
+                  {/* Affichage de la commission dans la sidebar */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Commission</h3>
+                    <div className="p-3 bg-green-50 border border-green-100 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
+                        {getCommissionStatusBadge(offer.commission_status)}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
