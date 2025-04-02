@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export interface PartnerCommission {
+export interface AmbassadorCommission {
   id: string;
   amount: number;
   clientName: string;
@@ -11,19 +11,19 @@ export interface PartnerCommission {
   description?: string;
 }
 
-export const getPartnerCommissions = async (partnerId: string): Promise<PartnerCommission[]> => {
+export const getAmbassadorCommissions = async (ambassadorId: string): Promise<AmbassadorCommission[]> => {
   try {
     const { data, error } = await supabase
       .from('offers')
       .select('id, client_name, commission, created_at, commission_status, equipment_description')
-      .eq('user_id', partnerId)
+      .eq('ambassador_id', ambassadorId)
       .not('commission', 'is', null)
       .gt('commission', 0)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Transformer les données pour correspondre à l'interface PartnerCommission
+    // Transformer les données pour correspondre à l'interface AmbassadorCommission
     return (data || []).map(offer => ({
       id: offer.id,
       amount: offer.commission || 0,
@@ -33,12 +33,12 @@ export const getPartnerCommissions = async (partnerId: string): Promise<PartnerC
       description: `Commission pour ${offer.equipment_description ? JSON.parse(offer.equipment_description)[0]?.title || 'équipement' : 'équipement'}`
     }));
   } catch (error) {
-    console.error("Error fetching commissions:", error);
+    console.error("Error fetching ambassador commissions:", error);
     throw error;
   }
 };
 
-export const updateCommissionStatus = async (offerId: string, newStatus: 'pending' | 'paid' | 'cancelled'): Promise<boolean> => {
+export const updateAmbassadorCommissionStatus = async (offerId: string, newStatus: 'pending' | 'paid' | 'cancelled'): Promise<boolean> => {
   try {
     const updateData: any = {
       commission_status: newStatus
@@ -64,12 +64,12 @@ export const updateCommissionStatus = async (offerId: string, newStatus: 'pendin
   }
 };
 
-export const calculateTotalCommissions = async (partnerId: string): Promise<{ pending: number, paid: number, total: number }> => {
+export const calculateTotalAmbassadorCommissions = async (ambassadorId: string): Promise<{ pending: number, paid: number, total: number }> => {
   try {
     const { data, error } = await supabase
       .from('offers')
       .select('commission, commission_status')
-      .eq('user_id', partnerId)
+      .eq('ambassador_id', ambassadorId)
       .not('commission', 'is', null)
       .gt('commission', 0);
 

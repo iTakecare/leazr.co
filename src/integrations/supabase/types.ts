@@ -45,57 +45,6 @@ export type Database = {
           },
         ]
       }
-      ambassador_commissions: {
-        Row: {
-          ambassador_id: string
-          amount: number
-          client_id: string | null
-          client_name: string
-          created_at: string | null
-          date: string | null
-          description: string | null
-          id: string
-          status: string
-        }
-        Insert: {
-          ambassador_id: string
-          amount: number
-          client_id?: string | null
-          client_name: string
-          created_at?: string | null
-          date?: string | null
-          description?: string | null
-          id?: string
-          status?: string
-        }
-        Update: {
-          ambassador_id?: string
-          amount?: number
-          client_id?: string | null
-          client_name?: string
-          created_at?: string | null
-          date?: string | null
-          description?: string | null
-          id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ambassador_commissions_ambassador_id_fkey"
-            columns: ["ambassador_id"]
-            isOneToOne: false
-            referencedRelation: "ambassadors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ambassador_commissions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ambassadors: {
         Row: {
           address: string | null
@@ -791,12 +740,15 @@ export type Database = {
       }
       offers: {
         Row: {
+          ambassador_id: string | null
           amount: number
           client_email: string | null
           client_id: string | null
           client_name: string
           coefficient: number
           commission: number | null
+          commission_paid_at: string | null
+          commission_status: string | null
           converted_to_contract: boolean | null
           created_at: string | null
           equipment_description: string | null
@@ -814,12 +766,15 @@ export type Database = {
           workflow_status: string | null
         }
         Insert: {
+          ambassador_id?: string | null
           amount?: number
           client_email?: string | null
           client_id?: string | null
           client_name: string
           coefficient?: number
           commission?: number | null
+          commission_paid_at?: string | null
+          commission_status?: string | null
           converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
@@ -837,12 +792,15 @@ export type Database = {
           workflow_status?: string | null
         }
         Update: {
+          ambassador_id?: string | null
           amount?: number
           client_email?: string | null
           client_id?: string | null
           client_name?: string
           coefficient?: number
           commission?: number | null
+          commission_paid_at?: string | null
+          commission_status?: string | null
           converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
@@ -1628,12 +1586,15 @@ export type Database = {
           offer_id: string
         }
         Returns: {
+          ambassador_id: string | null
           amount: number
           client_email: string | null
           client_id: string | null
           client_name: string
           coefficient: number
           commission: number | null
+          commission_paid_at: string | null
+          commission_status: string | null
           converted_to_contract: boolean | null
           created_at: string | null
           equipment_description: string | null

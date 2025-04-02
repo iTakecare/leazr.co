@@ -1,4 +1,3 @@
-
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -9,6 +8,9 @@ export interface OfferData {
   coefficient: number;
   monthly_payment: number;
   commission?: number;
+  commission_status?: string;
+  commission_paid_at?: string; 
+  ambassador_id?: string;
   type?: string;
   workflow_status?: string;
   status?: string;
