@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -63,23 +64,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('id', data.session.user.id)
             .single();
           
-          // Vérifier si l'utilisateur est lié à un partenaire
-          const { data: partnerData } = await supabase
-            .from('partners')
-            .select('id')
-            .eq('user_id', data.session.user.id)
-            .single();
-            
           // Vérifier si l'utilisateur est lié à un ambassadeur  
           const { data: ambassadorData } = await supabase
             .from('ambassadors')
             .select('id')
             .eq('user_id', data.session.user.id)
             .single();
-            
+          
           // Vérifier si l'utilisateur est lié à un client
           const { data: clientData } = await supabase
             .from('clients')
+            .select('id')
+            .eq('user_id', data.session.user.id)
+            .single();
+            
+          // Vérifier si l'utilisateur est lié à un partenaire
+          const { data: partnerData } = await supabase
+            .from('partners')
             .select('id')
             .eq('user_id', data.session.user.id)
             .single();
@@ -96,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             client_id: clientData?.id || null
           };
           
+          console.log("Extended user with roles:", extendedUser);
           setUser(extendedUser);
           setUserRoleChecked(true);
           
@@ -119,13 +121,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .eq('id', session.user.id)
                 .single();
                 
-              // Vérifier si l'utilisateur est lié à un partenaire
-              const { data: partnerData } = await supabase
-                .from('partners')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .single();
-                
               // Vérifier si l'utilisateur est lié à un ambassadeur  
               const { data: ambassadorData } = await supabase
                 .from('ambassadors')
@@ -140,6 +135,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .eq('user_id', session.user.id)
                 .single();
                 
+              // Vérifier si l'utilisateur est lié à un partenaire
+              const { data: partnerData } = await supabase
+                .from('partners')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+                
               // Merge user data with profile data and entity info
               const extendedUser: ExtendedUser = {
                 ...session.user,
@@ -147,11 +149,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 last_name: profileData?.last_name || '',
                 company: profileData?.company || '',
                 role: profileData?.role || 'client',
-                partner_id: partnerData?.id || null,
                 ambassador_id: ambassadorData?.id || null,
-                client_id: clientData?.id || null
+                client_id: clientData?.id || null,
+                partner_id: partnerData?.id || null
               };
               
+              console.log("Auth state changed - Extended user with roles:", extendedUser);
               setUser(extendedUser);
               setUserRoleChecked(true);
               
@@ -196,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                                          !currentPath.startsWith("/i-take-care") && !currentPath.startsWith("/create-offer")));
     
     if (shouldRedirect) {
-      console.log("Redirecting user based on role", user.role, "client_id:", user.client_id);
+      console.log("Redirecting user based on role", user.role, "ambassador_id:", user.ambassador_id, "client_id:", user.client_id, "partner_id:", user.partner_id);
       
       // Check each role in priority order and redirect accordingly
       if (user.ambassador_id) {
@@ -326,6 +329,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isAmbassador = () => {
     // Considéré comme ambassadeur s'il a un ambassador_id associé
+    console.log("Checking if ambassador:", user?.email, "ambassador_id:", user?.ambassador_id);
     return !!user?.ambassador_id;
   };
 

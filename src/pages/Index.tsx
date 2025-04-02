@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,8 +14,18 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
+      console.log("Index page - checking user roles for redirection", {
+        isAmbassador: isAmbassador(),
+        isClient: isClient(),
+        isPartner: isPartner(),
+        isAdmin: isAdmin(),
+        email: user?.email,
+        ambassador_id: user?.ambassador_id
+      });
+      
       // Redirect user based on their role - in priority order
       if (isAmbassador()) {
+        console.log("Index page - redirecting to ambassador dashboard");
         navigate("/ambassador/dashboard");
       } else if (isClient()) {
         navigate("/client/dashboard");

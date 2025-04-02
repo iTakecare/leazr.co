@@ -15,9 +15,24 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   };
 
   useEffect(() => {
-    if (!isLoading && userRoleChecked && !isAmbassador()) {
-      console.log("Non-ambassadeur essayant d'accéder à l'espace ambassadeur, redirection vers login");
-      navigate("/login");
+    if (!isLoading && userRoleChecked) {
+      // Check if user is authenticated first
+      if (!user) {
+        console.log("User not authenticated, redirecting to login");
+        navigate("/login");
+        return;
+      }
+      
+      // Then check if user is an ambassador
+      if (!isAmbassador()) {
+        console.log("Non-ambassador attempting to access ambassador space, redirecting to login");
+        console.log("User roles:", {
+          isAmbassador: isAmbassador(),
+          ambassador_id: user?.ambassador_id,
+          email: user?.email
+        });
+        navigate("/login");
+      }
     }
   }, [user, isLoading, userRoleChecked, navigate, isAmbassador]);
 
@@ -30,7 +45,7 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   }
 
   if (!user || !isAmbassador()) {
-    return null; // Aucun rendu pendant la redirection
+    return null; // No rendering during redirection
   }
 
   return (
