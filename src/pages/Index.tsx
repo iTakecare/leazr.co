@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,27 +15,33 @@ const Index = () => {
 
   useEffect(() => {
     if (user && userRoleChecked) {
-      console.log("Index page - checking user roles for redirection", {
+      console.log("Index page - vérification des rôles utilisateur pour redirection", {
         isAmbassador: isAmbassador(),
         isClient: isClient(),
         isPartner: isPartner(),
         isAdmin: isAdmin(),
         email: user?.email,
-        ambassador_id: user?.ambassador_id
+        ambassador_id: user?.ambassador_id,
+        client_id: user?.client_id,
+        partner_id: user?.partner_id
       });
       
-      // Redirect user based on their role - in priority order
+      // Redirection basée sur le rôle - ordre de priorité modifié
       if (isAmbassador()) {
-        console.log("Index page - redirecting to ambassador dashboard");
+        console.log("Index page - redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard");
       } else if (isClient()) {
+        console.log("Index page - redirection vers le tableau de bord client");
         navigate("/client/dashboard");
       } else if (isPartner()) {
+        console.log("Index page - redirection vers le tableau de bord partenaire");
         navigate("/partner/dashboard");
       } else if (isAdmin()) {
+        console.log("Index page - redirection vers le tableau de bord admin");
         navigate("/dashboard");
       } else {
         // Default to client dashboard if no specific role is found
+        console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
         navigate("/client/dashboard");
       }
     }
