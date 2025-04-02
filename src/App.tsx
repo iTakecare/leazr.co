@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -132,8 +133,9 @@ const App = () => {
                   
                   <Route path="/client/*" element={<ClientRoutes />} />
                   
+                  {/* Routes ambassadeur - priorité élevée */}
                   <Route path="/ambassador" element={<AmbassadorLayout />}>
-                    <Route index element={<AmbassadorDashboardPage />} />
+                    <Route index element={<Navigate to="/ambassador/dashboard" replace />} />
                     <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                     <Route path="offers" element={<AmbassadorOffersPage />} />
                     <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
@@ -147,6 +149,7 @@ const App = () => {
                     <Route path="catalog" element={<AmbassadorCatalog />} />
                   </Route>
                   
+                  {/* Routes partenaire */}
                   <Route path="/partner/dashboard" element={<PartnerDashboard />} />
                   <Route path="/partner/offers" element={<Offers />} />
                   <Route path="/partner/clients" element={<Clients />} />

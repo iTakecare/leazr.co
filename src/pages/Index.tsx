@@ -26,23 +26,23 @@ const Index = () => {
         partner_id: user?.partner_id
       });
       
-      // Redirection basée sur le rôle - ordre de priorité modifié
+      // Redirection basée sur le rôle - ordre de priorité fixé
       if (isAmbassador()) {
         console.log("Index page - redirection vers le tableau de bord ambassadeur");
-        navigate("/ambassador/dashboard");
+        navigate("/ambassador/dashboard", { replace: true });
       } else if (isClient()) {
         console.log("Index page - redirection vers le tableau de bord client");
-        navigate("/client/dashboard");
+        navigate("/client/dashboard", { replace: true });
       } else if (isPartner()) {
         console.log("Index page - redirection vers le tableau de bord partenaire");
-        navigate("/partner/dashboard");
+        navigate("/partner/dashboard", { replace: true });
       } else if (isAdmin()) {
         console.log("Index page - redirection vers le tableau de bord admin");
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       } else {
         // Default to client dashboard if no specific role is found
         console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
-        navigate("/client/dashboard");
+        navigate("/client/dashboard", { replace: true });
       }
     }
   }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);

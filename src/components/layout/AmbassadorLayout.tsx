@@ -4,6 +4,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AmbassadorSidebar from "./AmbassadorSidebar";
 import Navbar from "./Navbar";
+import { toast } from "sonner";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
   const { user, isLoading, userRoleChecked, isAmbassador } = useAuth();
@@ -30,7 +31,7 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
         return;
       }
       
-      // Ensuite vérification du rôle d'ambassadeur
+      // Ensuite vérification stricte du rôle d'ambassadeur
       if (!isAmbassador()) {
         console.log("[AmbassadorLayout] Non-ambassadeur tentant d'accéder à l'espace ambassadeur, redirection");
         console.log("[AmbassadorLayout] Rôles de l'utilisateur:", {
@@ -38,7 +39,9 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
           ambassador_id: user?.ambassador_id,
           email: user?.email
         });
-        navigate("/login");
+        toast.error("Vous n'avez pas les droits d'accès à l'espace ambassadeur");
+        navigate("/", { replace: true });
+        return;
       }
     }
   }, [user, isLoading, userRoleChecked, navigate, isAmbassador]);
