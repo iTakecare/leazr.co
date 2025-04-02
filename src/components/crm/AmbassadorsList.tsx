@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { HeartHandshake, MoreHorizontal, Mail, Phone, AlertCircle, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getAmbassadors, Ambassador } from "@/services/ambassadorService";
+import { getAmbassadors, Ambassador, deleteAmbassador } from "@/services/ambassadorService";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AmbassadorsListProps {
   searchTerm?: string;
@@ -20,6 +29,9 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
   const [ambassadors, setAmbassadors] = useState<Ambassador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAmbassadorId, setSelectedAmbassadorId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   useEffect(() => {
     const fetchAmbassadors = async () => {
@@ -41,7 +53,6 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     fetchAmbassadors();
   }, []);
 
-  // Rafraîchir les données des ambassadeurs
   const refreshAmbassadors = async () => {
     try {
       setLoading(true);
@@ -59,7 +70,33 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     }
   };
 
-  // Filter ambassadors based on search term and status filter
+  const handleDeleteAmbassador = async () => {
+    if (!selectedAmbassadorId) return;
+    
+    try {
+      setDeleteLoading(true);
+      await deleteAmbassador(selectedAmbassadorId);
+      toast.success("Ambassadeur supprimé avec succès");
+      
+      setAmbassadors(prevAmbassadors => 
+        prevAmbassadors.filter(ambassador => ambassador.id !== selectedAmbassadorId)
+      );
+      
+    } catch (error) {
+      console.error("Error deleting ambassador:", error);
+      toast.error("Erreur lors de la suppression de l'ambassadeur");
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+      setSelectedAmbassadorId(null);
+    }
+  };
+
+  const openDeleteDialog = (ambassadorId: string) => {
+    setSelectedAmbassadorId(ambassadorId);
+    setShowDeleteDialog(true);
+  };
+
   const filteredAmbassadors = ambassadors.filter(ambassador => {
     const matchesSearch = 
       ambassador.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,7 +138,6 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     );
   }
   
-  // Mobile card view for ambassadors
   const renderMobileView = () => {
     return (
       <div className="space-y-4">
@@ -175,7 +211,12 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                     <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
                       {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">Supprimer</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => openDeleteDialog(ambassador.id)}
+                    >
+                      Supprimer
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -191,7 +232,6 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
     );
   };
 
-  // Desktop table view
   const renderDesktopView = () => {
     return (
       <div className="space-y-4 overflow-x-auto">
@@ -265,7 +305,12 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
                         <DropdownMenuItem className={ambassador.status === 'active' ? "text-amber-600" : "text-green-600"}>
                           {ambassador.status === 'active' ? 'Désactiver' : 'Activer'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">Supprimer</DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => openDeleteDialog(ambassador.id)}
+                        >
+                          Supprimer
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -293,6 +338,37 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
   return (
     <div className="space-y-4">
       {isMobile ? renderMobileView() : renderDesktopView()}
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cet ambassadeur ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAmbassador();
+              }}
+              disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                "Supprimer"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
