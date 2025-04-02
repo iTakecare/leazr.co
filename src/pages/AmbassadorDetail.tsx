@@ -1,16 +1,14 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, UserPlus, MapPin, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin } from "lucide-react";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
@@ -22,7 +20,6 @@ import StatsSummary from "@/components/crm/detail/sections/StatsSummary";
 import NotesSection from "@/components/crm/detail/sections/NotesSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Building2 } from "lucide-react";
 import { formatDateToFrench } from "@/utils/formatters";
 import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
 
