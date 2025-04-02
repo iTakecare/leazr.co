@@ -82,6 +82,6 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
  * This function is specific to the user asked to be deleted
  */
 export const deleteSpecificProblemUser = async (): Promise<void> => {
-  const specificUserId = "658bd63c-08d8-428a-9c22-eeeca753dd73";
+  const specificUserId = "82cecd7c-b299-4fbf-b6e2-4fd9428a9d66";
   await deleteSpecificUserAccount(specificUserId);
 };
