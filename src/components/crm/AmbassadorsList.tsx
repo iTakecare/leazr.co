@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HeartHandshake, MoreHorizontal, Mail, Phone, AlertCircle, Loader2 } from "lucide-react";
+import { HeartHandshake, MoreHorizontal, Mail, Phone, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getAmbassadors, Ambassador, deleteAmbassador } from "@/services/ambassadorService";
@@ -33,40 +34,37 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   
-  useEffect(() => {
-    const fetchAmbassadors = async () => {
-      try {
-        setLoading(true);
-        const data = await getAmbassadors();
-        console.log("Loaded ambassadors:", data);
-        setAmbassadors(data);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching ambassadors:", err);
-        setError("Une erreur est survenue lors du chargement des ambassadeurs");
-        toast.error("Impossible de charger les ambassadeurs");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchAmbassadors();
-  }, []);
-
-  const refreshAmbassadors = async () => {
+  const fetchAmbassadors = async () => {
     try {
       setLoading(true);
       const data = await getAmbassadors();
-      console.log("Refreshed ambassadors data:", data);
+      console.log("Loaded ambassadors:", data.length, data);
       setAmbassadors(data);
       setError(null);
+    } catch (err) {
+      console.error("Error fetching ambassadors:", err);
+      setError("Une erreur est survenue lors du chargement des ambassadeurs");
+      toast.error("Impossible de charger les ambassadeurs");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Initial data load
+  useEffect(() => {
+    fetchAmbassadors();
+  }, []);
+
+  // Function to manually refresh data
+  const refreshAmbassadors = async () => {
+    try {
+      toast.info("Actualisation de la liste des ambassadeurs...");
+      await fetchAmbassadors();
       toast.success("Données des ambassadeurs rafraîchies");
     } catch (err) {
       console.error("Error refreshing ambassadors:", err);
       setError("Erreur lors du rafraîchissement des données");
       toast.error("Impossible de rafraîchir les données");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -78,9 +76,8 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
       await deleteAmbassador(selectedAmbassadorId);
       toast.success("Ambassadeur supprimé avec succès");
       
-      setAmbassadors(prevAmbassadors => 
-        prevAmbassadors.filter(ambassador => ambassador.id !== selectedAmbassadorId)
-      );
+      // Refresh the list after successful deletion
+      await fetchAmbassadors();
       
     } catch (error) {
       console.error("Error deleting ambassador:", error);
@@ -134,6 +131,10 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
       <div className="flex flex-col items-center justify-center h-64">
         <AlertCircle className="h-12 w-12 text-gray-300 mb-4" />
         <p className="text-muted-foreground">Aucun ambassadeur n'a été trouvé</p>
+        <Button variant="outline" onClick={refreshAmbassadors} className="mt-4">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Rafraîchir
+        </Button>
       </div>
     );
   }
@@ -337,6 +338,12 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" size="sm" onClick={refreshAmbassadors}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Actualiser la liste
+        </Button>
+      </div>
       {isMobile ? renderMobileView() : renderDesktopView()}
       
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

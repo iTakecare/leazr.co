@@ -51,15 +51,22 @@ export interface Ambassador {
 // Récupérer tous les ambassadeurs
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
+    console.log("Fetching ambassadors from database...");
     const { data, error } = await supabase
       .from("ambassadors")
       .select("*")
-      .order("name");
+      .order("created_at", { ascending: false }); // Sort by most recent first
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error in getAmbassadors:", error);
+      throw error;
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} ambassadors from database`);
     return data || [];
   } catch (error) {
     console.error("Error fetching ambassadors:", error);
+    toast.error("Erreur lors du chargement des ambassadeurs");
     return [];
   }
 };
@@ -87,13 +94,19 @@ export const createAmbassador = async (
   ambassadorData: AmbassadorFormValues
 ): Promise<Ambassador> => {
   try {
+    console.log("Creating new ambassador:", ambassadorData);
     const { data, error } = await supabase
       .from("ambassadors")
       .insert([ambassadorData])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating ambassador:", error);
+      throw error;
+    }
+    
+    console.log("Ambassador created successfully:", data);
     return data;
   } catch (error) {
     console.error("Error creating ambassador:", error);

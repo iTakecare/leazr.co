@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus } from "lucide-react";
+import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PartnersList from "@/components/crm/PartnersList";
 import Container from "@/components/layout/Container";
@@ -32,7 +31,6 @@ const AmbassadorsListPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [ambassadorCount, setAmbassadorCount] = useState<number>(0);
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -54,7 +52,6 @@ const AmbassadorsListPage = () => {
       try {
         const ambassadors = await getAmbassadors();
         
-        // Count ambassadors based on the current filter
         if (statusFilter === 'all') {
           setAmbassadorCount(ambassadors.length);
         } else {
@@ -73,7 +70,6 @@ const AmbassadorsListPage = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Handle navigation based on tab selection
     if (value === "clients") {
       navigate("/clients");
     } else if (value === "partners") {
