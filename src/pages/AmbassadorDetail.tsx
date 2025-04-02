@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, ArrowLeft } from "lucide-react";
@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Building2 } from "lucide-react";
 import { formatDateToFrench } from "@/utils/formatters";
+import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
 
 const AmbassadorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,73 +39,73 @@ const AmbassadorDetail = () => {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchAmbassador = async () => {
     if (!id) {
       toast.error("ID d'ambassadeur manquant");
       navigate("/ambassadors");
       return;
     }
 
-    const loadAmbassador = async () => {
-      try {
-        setLoading(true);
-        const data = await getAmbassadorById(id);
-        if (!data) {
-          setError("Ambassadeur introuvable");
-          toast.error("Ambassadeur introuvable");
-          setTimeout(() => navigate("/ambassadors"), 2000);
-          return;
-        }
-        
-        console.log("Ambassador data loaded:", data);
-        setAmbassador(data);
-        
-        // Load commission level
-        if (data.commission_level_id) {
-          loadCommissionLevel(data.commission_level_id);
-        } else {
-          setCommissionLevel(null);
-        }
-        
-        loadCommissionLevels();
-        
-        // Simulation de clients pour l'ambassadeur
-        // Dans un cas réel, vous chargeriez ces données depuis une API
-        setClients([
-          {
-            id: "client1",
-            name: "Client 1",
-            company: "Entreprise A",
-            status: "active",
-            createdAt: "2023-10-15T14:30:00.000Z",
-          },
-          {
-            id: "client2",
-            name: "Client 2",
-            company: "Entreprise B",
-            status: "inactive",
-            createdAt: "2023-11-20T09:15:00.000Z",
-          }
-        ]);
-        
-      } catch (error: any) {
-        console.error("Erreur lors du chargement de l'ambassadeur:", error);
-        
-        if (error.message && error.message.includes("invalid input syntax for type uuid")) {
-          setError("L'identifiant fourni n'est pas valide");
-          toast.error("ID d'ambassadeur invalide");
-        } else {
-          setError("Erreur lors du chargement de l'ambassadeur");
-          toast.error("Erreur lors du chargement de l'ambassadeur");
-        }
-        
+    try {
+      setLoading(true);
+      const data = await getAmbassadorById(id);
+      if (!data) {
+        setError("Ambassadeur introuvable");
+        toast.error("Ambassadeur introuvable");
         setTimeout(() => navigate("/ambassadors"), 2000);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+      
+      console.log("Ambassador data loaded:", data);
+      setAmbassador(data);
+      
+      // Load commission level
+      if (data.commission_level_id) {
+        loadCommissionLevel(data.commission_level_id);
+      } else {
+        setCommissionLevel(null);
+      }
+      
+      loadCommissionLevels();
+      
+      // Simulation de clients pour l'ambassadeur
+      // Dans un cas réel, vous chargeriez ces données depuis une API
+      setClients([
+        {
+          id: "client1",
+          name: "Client 1",
+          company: "Entreprise A",
+          status: "active",
+          createdAt: "2023-10-15T14:30:00.000Z",
+        },
+        {
+          id: "client2",
+          name: "Client 2",
+          company: "Entreprise B",
+          status: "inactive",
+          createdAt: "2023-11-20T09:15:00.000Z",
+        }
+      ]);
+      
+    } catch (error: any) {
+      console.error("Erreur lors du chargement de l'ambassadeur:", error);
+      
+      if (error.message && error.message.includes("invalid input syntax for type uuid")) {
+        setError("L'identifiant fourni n'est pas valide");
+        toast.error("ID d'ambassadeur invalide");
+      } else {
+        setError("Erreur lors du chargement de l'ambassadeur");
+        toast.error("Erreur lors du chargement de l'ambassadeur");
+      }
+      
+      setTimeout(() => navigate("/ambassadors"), 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadAmbassador();
+  useEffect(() => {
+    fetchAmbassador();
   }, [id, navigate]);
 
   const loadCommissionLevels = async () => {
@@ -241,100 +242,115 @@ const AmbassadorDetail = () => {
               </div>
             </div>
 
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <Tabs value={tab} onValueChange={setTab}>
-                  <TabsList className="mb-4 grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Aperçu</TabsTrigger>
-                    <TabsTrigger value="clients">Clients</TabsTrigger>
-                    <TabsTrigger value="commissions">Commissions</TabsTrigger>
-                  </TabsList>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+                <CardContent className="pt-6">
+                  <Tabs value={tab} onValueChange={setTab}>
+                    <TabsList className="mb-4 grid w-full grid-cols-3">
+                      <TabsTrigger value="overview">Aperçu</TabsTrigger>
+                      <TabsTrigger value="clients">Clients</TabsTrigger>
+                      <TabsTrigger value="commissions">Commissions</TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="overview">
-                    <div className="space-y-6">
-                      <ContactInfoSection 
-                        email={ambassador.email} 
-                        phone={ambassador.phone} 
-                      />
+                    <TabsContent value="overview">
+                      <div className="space-y-6">
+                        <ContactInfoSection 
+                          email={ambassador.email} 
+                          phone={ambassador.phone} 
+                        />
 
-                      <CompanyInfoSection 
-                        company={ambassador.company}
-                        vat_number={ambassador.vat_number}
-                        address={ambassador.address}
-                        postal_code={ambassador.postal_code}
-                        city={ambassador.city}
-                        country={ambassador.country}
-                      />
+                        <CompanyInfoSection 
+                          company={ambassador.company}
+                          vat_number={ambassador.vat_number}
+                          address={ambassador.address}
+                          postal_code={ambassador.postal_code}
+                          city={ambassador.city}
+                          country={ambassador.country}
+                        />
 
-                      <StatsSummary 
-                        clientsCount={ambassador.clients_count || 0}
-                        commissionsTotal={ambassador.commissions_total || 0}
-                      />
+                        <StatsSummary 
+                          clientsCount={ambassador.clients_count || 0}
+                          commissionsTotal={ambassador.commissions_total || 0}
+                        />
 
-                      <NotesSection notes={ambassador.notes} />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="clients">
-                    <div className="space-y-4">
-                      <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
-                      
-                      {clients.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Client</TableHead>
-                              <TableHead>Statut</TableHead>
-                              <TableHead>Date</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {clients.map((client) => (
-                              <TableRow key={client.id}>
-                                <TableCell>
-                                  <div className="font-medium">{client.name}</div>
-                                  {client.company && (
-                                    <div className="flex items-center text-xs text-muted-foreground">
-                                      <Building2 className="h-3 w-3 mr-1" />
-                                      {client.company}
-                                    </div>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
-                                    client.status === 'active' 
-                                      ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                                      : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                                  }>
-                                    {client.status === 'active' ? 'Actif' : 'Inactif'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {formatDateToFrench(new Date(client.createdAt))}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <div className="text-center py-8 bg-gray-50 rounded-md">
-                          <p className="text-muted-foreground">Aucun client n'est attribué</p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="commissions">
-                    <div className="space-y-4">
-                      <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
-                      <div className="p-8 text-center bg-gray-50 rounded-md">
-                        <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                        <NotesSection notes={ambassador.notes} />
                       </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+                    </TabsContent>
+
+                    <TabsContent value="clients">
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
+                        
+                        {clients.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Statut</TableHead>
+                                <TableHead>Date</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {clients.map((client) => (
+                                <TableRow key={client.id}>
+                                  <TableCell>
+                                    <div className="font-medium">{client.name}</div>
+                                    {client.company && (
+                                      <div className="flex items-center text-xs text-muted-foreground">
+                                        <Building2 className="h-3 w-3 mr-1" />
+                                        {client.company}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
+                                      client.status === 'active' 
+                                        ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                                    }>
+                                      {client.status === 'active' ? 'Actif' : 'Inactif'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatDateToFrench(new Date(client.createdAt))}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-8 bg-gray-50 rounded-md">
+                            <p className="text-muted-foreground">Aucun client n'est attribué</p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="commissions">
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
+                        <div className="p-8 text-center bg-gray-50 rounded-md">
+                          <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+              
+              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+                <CardContent className="pt-6">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-primary" />
+                    Compte utilisateur
+                  </h2>
+                  <AmbassadorUserAccount 
+                    ambassador={ambassador}
+                    onAccountCreated={fetchAmbassador}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </Container>
