@@ -27,7 +27,7 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
       // Vérification de l'authentification en premier
       if (!user) {
         console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
-        navigate("/login");
+        navigate("/login", { replace: true });
         return;
       }
       
@@ -40,7 +40,15 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
           email: user?.email
         });
         toast.error("Vous n'avez pas les droits d'accès à l'espace ambassadeur");
-        navigate("/", { replace: true });
+        
+        // Rediriger vers la page appropriée en fonction du rôle
+        if (user.client_id) {
+          navigate("/client/dashboard", { replace: true });
+        } else if (user.partner_id) {
+          navigate("/partner/dashboard", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
         return;
       }
     }

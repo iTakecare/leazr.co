@@ -30,20 +30,30 @@ const Index = () => {
       if (isAmbassador()) {
         console.log("Index page - redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard", { replace: true });
-      } else if (isClient()) {
+        return; // Ajout de return pour stopper l'exécution
+      } 
+      
+      if (isClient()) {
         console.log("Index page - redirection vers le tableau de bord client");
         navigate("/client/dashboard", { replace: true });
-      } else if (isPartner()) {
+        return; // Ajout de return pour stopper l'exécution
+      } 
+      
+      if (isPartner()) {
         console.log("Index page - redirection vers le tableau de bord partenaire");
         navigate("/partner/dashboard", { replace: true });
-      } else if (isAdmin()) {
+        return; // Ajout de return pour stopper l'exécution
+      } 
+      
+      if (isAdmin()) {
         console.log("Index page - redirection vers le tableau de bord admin");
         navigate("/dashboard", { replace: true });
-      } else {
-        // Default to client dashboard if no specific role is found
-        console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
-        navigate("/client/dashboard", { replace: true });
+        return; // Ajout de return pour stopper l'exécution
       }
+      
+      // Default to client dashboard if no specific role is found
+      console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
+      navigate("/client/dashboard", { replace: true });
     }
   }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);
 

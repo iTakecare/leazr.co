@@ -178,6 +178,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               logUserInfo("[AuthContext] OnAuthStateChange - Données utilisateur étendues:", extendedUser);
               setUser(extendedUser);
               setUserRoleChecked(true);
+              
+              // Effectuer la redirection immédiate si l'utilisateur est sur la page d'index
+              if (window.location.pathname === "/" || window.location.pathname === "") {
+                handleRoleBasedRedirection(extendedUser);
+              }
             } else {
               console.log("[AuthContext] Session terminée");
               setUser(null);
@@ -210,7 +215,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("[AuthContext] Redirection basée sur le rôle, chemin actuel:", currentPath);
     
     // Vérifier si l'utilisateur est sur la page d'index et doit être redirigé
-    if (currentPath === "/") {
+    if (currentPath === "/" || currentPath === "") {
       console.log("[AuthContext] Utilisateur sur la page d'index, vérification des rôles:");
       console.log("- Est ambassadeur?", !!user.ambassador_id);
       console.log("- Est client?", !!user.client_id);
@@ -221,20 +226,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (user.ambassador_id) {
         console.log("[AuthContext] Redirection vers le tableau de bord ambassadeur");
         setTimeout(() => navigate("/ambassador/dashboard"), 0);
-      } else if (user.client_id) {
+        return; // Arrêter après la première redirection
+      } 
+      
+      if (user.client_id) {
         console.log("[AuthContext] Redirection vers le tableau de bord client");
         setTimeout(() => navigate("/client/dashboard"), 0);
-      } else if (user.partner_id) {
+        return; // Arrêter après la première redirection
+      } 
+      
+      if (user.partner_id) {
         console.log("[AuthContext] Redirection vers le tableau de bord partenaire");
         setTimeout(() => navigate("/partner/dashboard"), 0);
-      } else if (isAdmin()) {
+        return; // Arrêter après la première redirection
+      } 
+      
+      if (isAdmin()) {
         console.log("[AuthContext] Redirection vers le tableau de bord administrateur");
         setTimeout(() => navigate("/dashboard"), 0);
-      } else {
-        // Default fallback to client dashboard if no specific role match
-        console.log("[AuthContext] Aucun rôle spécifique correspondant, redirection vers le tableau de bord client par défaut");
-        setTimeout(() => navigate("/client/dashboard"), 0);
+        return; // Arrêter après la première redirection
       }
+      
+      // Default fallback to client dashboard if no specific role match
+      console.log("[AuthContext] Aucun rôle spécifique correspondant, redirection vers le tableau de bord client par défaut");
+      setTimeout(() => navigate("/client/dashboard"), 0);
     }
   };
 

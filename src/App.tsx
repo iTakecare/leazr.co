@@ -93,8 +93,10 @@ const App = () => {
                   
                   <Route path="/" element={<Index />} />
                   
+                  {/* Routes administrateur */}
                   <Route path="/" element={<Layout />}>
                     <Route index element={<Dashboard />} />
+                    <Route path="dashboard" element={<Dashboard />} />
                     <Route path="clients" element={<Clients />} />
                     <Route path="clients/new" element={<ClientForm />} />
                     <Route path="clients/create" element={<ClientForm />} />
@@ -131,11 +133,12 @@ const App = () => {
                     <Route path="create-test-users" element={<CreateTestUsers />} />
                   </Route>
                   
+                  {/* Routes client */}
                   <Route path="/client/*" element={<ClientRoutes />} />
                   
-                  {/* Routes ambassadeur - priorité élevée */}
+                  {/* Routes ambassadeur - utilisation du layout spécifique */}
                   <Route path="/ambassador" element={<AmbassadorLayout />}>
-                    <Route index element={<Navigate to="/ambassador/dashboard" replace />} />
+                    <Route index element={<AmbassadorDashboardPage />} />
                     <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                     <Route path="offers" element={<AmbassadorOffersPage />} />
                     <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
