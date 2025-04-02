@@ -16,37 +16,35 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   };
 
   useEffect(() => {
-    if (!isLoading && userRoleChecked) {
+    if (!isLoading && userRoleChecked && user) {
       console.log("[AmbassadorLayout] Vérification de l'accès:", {
         user: !!user,
+        role: user.role,
         isAmbassador: isAmbassador(),
-        ambassador_id: user?.ambassador_id,
         email: user?.email
       });
       
-      // Vérification de l'authentification
-      if (!user) {
-        console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
-        navigate("/login", { replace: true });
-        return;
-      }
-      
-      // Vérification explicite du rôle d'ambassadeur
+      // Simple vérification : si l'utilisateur n'est pas un ambassadeur, rediriger
       if (!isAmbassador()) {
         console.log("[AmbassadorLayout] Non-ambassadeur tentant d'accéder à l'espace ambassadeur");
         toast.error("Vous n'avez pas les droits d'accès à l'espace ambassadeur");
         
         // Rediriger vers la page appropriée en fonction du rôle
-        if (user.client_id) {
+        if (user.role === "client") {
           navigate("/client/dashboard", { replace: true });
-        } else if (user.partner_id) {
+        } else if (user.role === "partner") {
           navigate("/partner/dashboard", { replace: true });
         } else if (user.role === "admin") {
           navigate("/dashboard", { replace: true });
         } else {
           navigate("/", { replace: true });
         }
+        return;
       }
+    } else if (!isLoading && userRoleChecked && !user) {
+      // Si non authentifié, rediriger vers la page de connexion
+      console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
+      navigate("/login", { replace: true });
     }
   }, [user, isLoading, userRoleChecked, navigate, isAmbassador]);
 

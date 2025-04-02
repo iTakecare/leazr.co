@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,26 +6,25 @@ import { ArrowRight, BarChart3, PackageCheck, CreditCard, Shield, Leaf } from "l
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked } = useAuth();
+  const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
+        role: user?.role,
         isAmbassador: isAmbassador(),
         isClient: isClient(),
         isPartner: isPartner(),
         isAdmin: isAdmin(),
-        email: user?.email,
-        ambassador_id: user?.ambassador_id,
-        client_id: user?.client_id,
-        partner_id: user?.partner_id
+        email: user?.email
       });
       
-      // Redirection basée sur le rôle avec priorité claire
+      // Redirection basée sur le rôle défini dans les métadonnées utilisateur
       if (isAmbassador()) {
         console.log("Index page - redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard", { replace: true });
@@ -53,6 +51,7 @@ const Index = () => {
       
       // Default to client dashboard if no specific role is found
       console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
+      toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
       navigate("/client/dashboard", { replace: true });
     }
   }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);

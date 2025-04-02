@@ -1,7 +1,9 @@
+
 import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ExtendedUser = User & {
   first_name?: string;
@@ -50,14 +52,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logUserInfo = (prefix: string, userData: any) => {
     console.log(`[AuthContext] ${prefix}`, {
       email: userData?.email,
+      role: userData?.role,
       ambassador_id: userData?.ambassador_id,
       client_id: userData?.client_id,
       partner_id: userData?.partner_id,
-      role: userData?.role,
       has_ambassador: !!userData?.ambassador_id,
       has_client: !!userData?.client_id,
       has_partner: !!userData?.partner_id,
     });
+  };
+
+  // Fonction pour vérifier directement un rôle à partir des métadonnées utilisateur
+  const checkRoleFromMetadata = (userMetadata: any) => {
+    if (!userMetadata) return null;
+    if (userMetadata.role === 'ambassador') return 'ambassador';
+    if (userMetadata.role === 'partner') return 'partner';
+    if (userMetadata.role === 'admin') return 'admin';
+    return 'client'; // par défaut
   };
 
   useEffect(() => {
@@ -71,39 +82,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.session?.user) {
           console.log("[AuthContext] Session trouvée pour:", data.session.user.email);
           
+          // Récupérer le profil utilisateur de Supabase
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name, company, role')
             .eq('id', data.session.user.id)
             .single();
           
+          // Déterminer le rôle principal à partir des métadonnées
+          const userRole = checkRoleFromMetadata(data.session.user.user_metadata) || 
+                           profileData?.role || 
+                           'client';
+          
           let extendedUser: ExtendedUser = {
             ...data.session.user,
             first_name: profileData?.first_name || '',
             last_name: profileData?.last_name || '',
             company: profileData?.company || '',
-            role: profileData?.role || 'client',
+            role: userRole,
           };
           
-          const [ambassadorResult, clientResult, partnerResult] = await Promise.all([
-            supabase.from('ambassadors').select('id').eq('user_id', data.session.user.id).single(),
-            supabase.from('clients').select('id').eq('user_id', data.session.user.id).single(),
-            supabase.from('partners').select('id').eq('user_id', data.session.user.id).single()
-          ]);
+          // Récupérer les IDs associés aux entités
+          try {
+            // Tentative de trouver un enregistrement d'ambassadeur
+            if (userRole === 'ambassador') {
+              const { data: ambassadorData } = await supabase
+                .from('ambassadors')
+                .select('id')
+                .eq('user_id', data.session.user.id)
+                .maybeSingle();
+                
+              if (ambassadorData?.id) {
+                console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorData.id);
+                extendedUser.ambassador_id = ambassadorData.id;
+              }
+            }
             
-          if (ambassadorResult.data?.id) {
-            console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorResult.data.id);
-            extendedUser.ambassador_id = ambassadorResult.data.id;
-          }
-          
-          if (clientResult.data?.id) {
-            console.log("[AuthContext] Utilisateur identifié comme CLIENT:", clientResult.data.id);
-            extendedUser.client_id = clientResult.data.id;
-          }
-          
-          if (partnerResult.data?.id) {
-            console.log("[AuthContext] Utilisateur identifié comme PARTENAIRE:", partnerResult.data.id);
-            extendedUser.partner_id = partnerResult.data.id;
+            // Tentative de trouver un enregistrement client
+            if (userRole === 'client') {
+              const { data: clientData } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('user_id', data.session.user.id)
+                .maybeSingle();
+                
+              if (clientData?.id) {
+                console.log("[AuthContext] Utilisateur identifié comme CLIENT:", clientData.id);
+                extendedUser.client_id = clientData.id;
+              }
+            }
+            
+            // Tentative de trouver un enregistrement partenaire
+            if (userRole === 'partner') {
+              const { data: partnerData } = await supabase
+                .from('partners')
+                .select('id')
+                .eq('user_id', data.session.user.id)
+                .maybeSingle();
+                
+              if (partnerData?.id) {
+                console.log("[AuthContext] Utilisateur identifié comme PARTENAIRE:", partnerData.id);
+                extendedUser.partner_id = partnerData.id;
+              }
+            }
+          } catch (error) {
+            console.error('[AuthContext] Erreur lors de la récupération des IDs associés:', error);
           }
           
           logUserInfo("[AuthContext] Données utilisateur étendues:", extendedUser);
@@ -123,39 +166,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (session?.user) {
               console.log("[AuthContext] Session mise à jour pour:", session.user.email);
               
+              // Récupérer le profil utilisateur de Supabase
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('first_name, last_name, company, role')
                 .eq('id', session.user.id)
                 .single();
-
+              
+              // Déterminer le rôle principal à partir des métadonnées
+              const userRole = checkRoleFromMetadata(session.user.user_metadata) || 
+                               profileData?.role || 
+                               'client';
+              
               let extendedUser: ExtendedUser = {
                 ...session.user,
                 first_name: profileData?.first_name || '',
                 last_name: profileData?.last_name || '',
                 company: profileData?.company || '',
-                role: profileData?.role || 'client',
+                role: userRole,
               };
               
-              const [ambassadorResult, clientResult, partnerResult] = await Promise.all([
-                supabase.from('ambassadors').select('id').eq('user_id', session.user.id).single(),
-                supabase.from('clients').select('id').eq('user_id', session.user.id).single(),
-                supabase.from('partners').select('id').eq('user_id', session.user.id).single()
-              ]);
+              // Récupérer les IDs associés aux entités
+              try {
+                // Tentative de trouver un enregistrement d'ambassadeur
+                if (userRole === 'ambassador') {
+                  const { data: ambassadorData } = await supabase
+                    .from('ambassadors')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+                    
+                  if (ambassadorData?.id) {
+                    console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorData.id);
+                    extendedUser.ambassador_id = ambassadorData.id;
+                  }
+                }
                 
-              if (ambassadorResult.data?.id) {
-                console.log("[AuthContext] Utilisateur identifié comme AMBASSADEUR:", ambassadorResult.data.id);
-                extendedUser.ambassador_id = ambassadorResult.data.id;
-              }
-              
-              if (clientResult.data?.id) {
-                console.log("[AuthContext] Utilisateur identifié comme CLIENT:", clientResult.data.id);
-                extendedUser.client_id = clientResult.data.id;
-              }
-              
-              if (partnerResult.data?.id) {
-                console.log("[AuthContext] Utilisateur identifié comme PARTENAIRE:", partnerResult.data.id);
-                extendedUser.partner_id = partnerResult.data.id;
+                // Tentative de trouver un enregistrement client
+                if (userRole === 'client') {
+                  const { data: clientData } = await supabase
+                    .from('clients')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+                    
+                  if (clientData?.id) {
+                    console.log("[AuthContext] Utilisateur identifié comme CLIENT:", clientData.id);
+                    extendedUser.client_id = clientData.id;
+                  }
+                }
+                
+                // Tentative de trouver un enregistrement partenaire
+                if (userRole === 'partner') {
+                  const { data: partnerData } = await supabase
+                    .from('partners')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+                    
+                  if (partnerData?.id) {
+                    console.log("[AuthContext] Utilisateur identifié comme PARTENAIRE:", partnerData.id);
+                    extendedUser.partner_id = partnerData.id;
+                  }
+                }
+              } catch (error) {
+                console.error('[AuthContext] Erreur lors de la récupération des IDs associés:', error);
               }
               
               logUserInfo("[AuthContext] OnAuthStateChange - Données utilisateur étendues:", extendedUser);
@@ -197,26 +272,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (currentPath === "/" || currentPath === "") {
       console.log("[AuthContext] Utilisateur sur la page d'index, vérification des rôles:");
       
-      if (user.ambassador_id) {
-        console.log("[AuthContext] Redirection ambassadeur, ID trouvé:", user.ambassador_id);
+      // Déterminer le rôle pour la redirection
+      const role = user.role?.toLowerCase();
+      
+      if (role === 'ambassador') {
+        console.log("[AuthContext] Redirection ambassadeur, rôle trouvé:", role);
         setTimeout(() => navigate("/ambassador/dashboard"), 0);
         return;
       } 
       
-      if (user.client_id) {
-        console.log("[AuthContext] Redirection client, ID trouvé:", user.client_id);
+      if (role === 'client') {
+        console.log("[AuthContext] Redirection client, rôle trouvé:", role);
         setTimeout(() => navigate("/client/dashboard"), 0);
         return;
       } 
       
-      if (user.partner_id) {
-        console.log("[AuthContext] Redirection partenaire, ID trouvé:", user.partner_id);
+      if (role === 'partner') {
+        console.log("[AuthContext] Redirection partenaire, rôle trouvé:", role);
         setTimeout(() => navigate("/partner/dashboard"), 0);
         return;
       } 
       
-      if (isAdmin()) {
-        console.log("[AuthContext] Redirection admin, rôle vérifié:", user.role);
+      if (role === 'admin') {
+        console.log("[AuthContext] Redirection admin, rôle trouvé:", role);
         setTimeout(() => navigate("/dashboard"), 0);
         return;
       }
@@ -266,7 +344,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data.user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('first_name, last_name, company')
+          .select('first_name, last_name, company, role')
           .eq('id', data.user.id)
           .single();
           
@@ -274,7 +352,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           ...data.user,
           first_name: profileData?.first_name || '',
           last_name: profileData?.last_name || '',
-          company: profileData?.company || ''
+          company: profileData?.company || '',
+          role: checkRoleFromMetadata(data.user.user_metadata) || profileData?.role || 'client'
         };
       }
       
@@ -319,18 +398,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isClient = () => {
-    console.log("[AuthContext] isClient check:", !!user?.client_id, user?.client_id);
-    return !!user?.client_id;
+    console.log("[AuthContext] isClient check:", user?.role === "client", user?.role);
+    return user?.role === "client";
   };
 
   const isPartner = () => {
-    console.log("[AuthContext] isPartner check:", !!user?.partner_id, user?.partner_id);
-    return !!user?.partner_id;
+    console.log("[AuthContext] isPartner check:", user?.role === "partner", user?.role);
+    return user?.role === "partner";
   };
 
   const isAmbassador = () => {
-    console.log("[AuthContext] isAmbassador check:", !!user?.ambassador_id, user?.ambassador_id);
-    return !!user?.ambassador_id;
+    console.log("[AuthContext] isAmbassador check:", user?.role === "ambassador", user?.role);
+    return user?.role === "ambassador";
   };
 
   return (

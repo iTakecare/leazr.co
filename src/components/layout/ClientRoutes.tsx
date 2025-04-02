@@ -65,6 +65,13 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.log("Cache client ID effacé pour la nouvelle tentative");
         }
         
+        // Si l'utilisateur a un rôle spécifique qui n'est pas 'client', ne pas vérifier l'association
+        if (user.role && user.role !== 'client') {
+          setCheckingClient(false);
+          console.log(`L'utilisateur a un rôle ${user.role}, pas besoin de vérifier l'association client`);
+          return;
+        }
+        
         const { data: associatedClient, error: clientError } = await supabase
           .from('clients')
           .select('id, name, email, user_id, status')
@@ -156,37 +163,34 @@ const ClientRoutes = () => {
         isAmbassador: isAmbassador(),
         isPartner: isPartner(),
         email: user?.email,
-        client_id: user?.client_id
+        role: user?.role
       });
       
-      // Vérifier explicitement si l'utilisateur a le rôle client
+      // Vérifier si l'utilisateur a le rôle client
       if (!isClient()) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
+        toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         
         // Rediriger l'utilisateur en fonction du rôle
         if (isAmbassador()) {
           console.log("[ClientRoutes] L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
-          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
           return;
         }
         
         if (isPartner()) {
           console.log("[ClientRoutes] L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
-          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant que partenaire");
           navigate('/partner/dashboard', { replace: true });
           return;
         }
         
         if (user.role === "admin") {
           console.log("[ClientRoutes] L'utilisateur est un administrateur, redirection vers le tableau de bord administrateur");
-          toast.error("Vous tentez d'accéder à un espace client mais vous êtes connecté en tant qu'administrateur");
           navigate('/dashboard', { replace: true });
           return;
         }
         
         console.log("[ClientRoutes] L'utilisateur n'a pas de rôle spécifique, redirection vers l'accueil");
-        toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         navigate('/', { replace: true });
         return;
       }
@@ -205,8 +209,7 @@ const ClientRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const clientFunction = typeof isClient === 'function' ? isClient : () => false;
-  if (!clientFunction()) {
+  if (!isClient()) {
     console.log("[ClientRoutes] Utilisateur non client tentant d'accéder à la route client");
     return <Navigate to="/" replace />;
   }
