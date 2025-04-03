@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
@@ -61,7 +62,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
           // Mettre à jour la commission dans les données
           if (commissionData && typeof commissionData.amount === 'number') {
             // Vérifier si la commission a changé
-            if (Math.abs(data.commission - commissionData.amount) > 0.01) {
+            if (Math.abs((data.commission || 0) - commissionData.amount) > 0.01) {
               console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
               data.commission = commissionData.amount;
               
@@ -75,6 +76,41 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
       } catch (commError) {
         console.error("Erreur lors du calcul de la commission:", commError);
+      }
+    }
+
+    // Recalculer le montant total à partir des données d'équipement si disponibles
+    if (data && data.equipment_description) {
+      try {
+        let equipmentList = [];
+        
+        if (typeof data.equipment_description === 'string') {
+          equipmentList = JSON.parse(data.equipment_description);
+        } else if (typeof data.equipment_description === 'object') {
+          equipmentList = data.equipment_description;
+        }
+        
+        if (Array.isArray(equipmentList) && equipmentList.length > 0) {
+          // Calculer le prix d'achat total (sans marge)
+          const totalPurchasePrice = equipmentList.reduce(
+            (sum, item) => sum + ((item.purchasePrice || 0) * (item.quantity || 1)), 
+            0
+          );
+          
+          // Si le montant stocké ne correspond pas au calcul, mettre à jour
+          if (Math.abs(Number(data.amount) - totalPurchasePrice) > 0.01) {
+            console.log(`Correction du montant total: ${data.amount}€ -> ${totalPurchasePrice}€`);
+            data.amount = totalPurchasePrice;
+            
+            // Mettre à jour dans la base de données
+            await supabase
+              .from('offers')
+              .update({ amount: totalPurchasePrice })
+              .eq('id', id);
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors du calcul du montant total:", error);
       }
     }
 
