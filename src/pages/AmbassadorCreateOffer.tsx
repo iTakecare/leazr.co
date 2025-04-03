@@ -20,6 +20,7 @@ import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
+import { getLeasers } from "@/services/leaserService";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
