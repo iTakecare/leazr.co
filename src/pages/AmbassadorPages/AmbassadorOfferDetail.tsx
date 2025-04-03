@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getOfferById, updateOffer } from "@/services/offers/offerDetail";
+import { getWorkflowLogs } from "@/services/offers/offerWorkflow";
 import { formatCurrency } from "@/utils/formatters";
 import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,7 +24,8 @@ import {
   Sparkle,
   Building,
   Star,
-  Euro
+  Euro,
+  History
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,7 @@ import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatu
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
 import { Progress } from "@/components/ui/progress";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import OfferHistoryTimeline from "@/components/offers/OfferHistoryTimeline";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +51,8 @@ const AmbassadorOfferDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
+  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
   
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -64,6 +69,10 @@ const AmbassadorOfferDetail = () => {
         }
         
         setOffer(offerData);
+        
+        setIsLoadingLogs(true);
+        const logs = await getWorkflowLogs(id);
+        setWorkflowLogs(logs);
         
         if (offerData.converted_to_contract) {
           try {
@@ -93,6 +102,7 @@ const AmbassadorOfferDetail = () => {
         toast.error("Erreur lors du chargement des détails de l'offre");
       } finally {
         setLoading(false);
+        setIsLoadingLogs(false);
       }
     };
     
@@ -423,10 +433,11 @@ const AmbassadorOfferDetail = () => {
                 
                 <CardContent>
                   <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger value="details">Détails</TabsTrigger>
                       <TabsTrigger value="equipment">Équipement</TabsTrigger>
                       <TabsTrigger value="status">Suivi</TabsTrigger>
+                      <TabsTrigger value="history">Historique</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="details" className="mt-4">
@@ -675,6 +686,13 @@ const AmbassadorOfferDetail = () => {
                             </p>
                           </div>
                         </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="history" className="mt-4">
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Historique des modifications</h3>
+                        <OfferHistoryTimeline logs={workflowLogs} loading={isLoadingLogs} />
                       </div>
                     </TabsContent>
                   </Tabs>
