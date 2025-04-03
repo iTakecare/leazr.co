@@ -16,6 +16,7 @@ import VariantSelector from "@/components/product-detail/VariantSelector";
 import ProductPriceDisplay from "@/components/product-detail/ProductPriceDisplay";
 import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductVariantSelectorProps {
   product: Product;
@@ -36,6 +37,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   const [hasOptions, setHasOptions] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const { isAdmin, isClient } = useAuth();
 
   useEffect(() => {
     setSelectedOptions({});
@@ -150,6 +152,9 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     }
     return product.monthly_price || 0;
   };
+  
+  // Déterminons si nous devons montrer le prix d'achat
+  const shouldShowPurchasePrice = isAdmin() || isClient();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

@@ -2,6 +2,7 @@
 import React from "react";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductPricingProps {
   product: Product;
@@ -9,6 +10,8 @@ interface ProductPricingProps {
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants }) => {
+  const { isAdmin, isClient } = useAuth();
+  
   const calculateMonthlyPrice = (): string | number => {
     let productMonthlyPrice: string | number = "Non définie";
     
@@ -52,9 +55,12 @@ const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants })
   const productPrice = calculatePrice();
   const productMonthlyPrice = calculateMonthlyPrice();
   
+  // Déterminons si le prix d'achat doit être affiché
+  const shouldShowPurchasePrice = isAdmin() || isClient();
+  
   return (
     <div className="mt-3 space-y-1">
-      {productPrice !== "0,00 €" && (
+      {productPrice !== "0,00 €" && shouldShowPurchasePrice && (
         <p className="text-gray-700">
           Prix: <span className="font-semibold">{productPrice}</span>
         </p>

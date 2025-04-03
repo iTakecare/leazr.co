@@ -6,6 +6,7 @@ import { ChevronRight, Layers } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
 
 interface CatalogProductCardProps {
   product: Product;
@@ -16,6 +17,7 @@ interface CatalogProductCardProps {
 const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClick, onViewVariants }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { isClient, isAdmin, isPartner, isAmbassador } = useAuth();
   
   if (!product) return null;
   
@@ -85,6 +87,9 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
   const price = getMinimumPrice();
   const monthlyPrice = getMinimumMonthlyPrice();
   const hasPrice = price > 0 || monthlyPrice > 0;
+  
+  // Determine if purchase price should be shown
+  const shouldShowPurchasePrice = isAdmin() || isClient(); // Only admin and clients can see purchase prices
   
   return (
     <Card 
@@ -157,14 +162,14 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
                       {formatCurrency(monthlyPrice)}
                       <span className="text-gray-500 font-normal text-xs"> /mois</span>
                     </span>
-                    {price > 0 && (
+                    {price > 0 && shouldShowPurchasePrice && (
                       <span className="text-xs text-gray-500">
                         Prix: {hasVariants ? "À partir de " : ""}
                         {formatCurrency(price)}
                       </span>
                     )}
                   </div>
-                ) : price > 0 ? (
+                ) : price > 0 && shouldShowPurchasePrice ? (
                   <div className="text-sm font-semibold">
                     {hasVariants ? "À partir de " : ""}
                     {formatCurrency(price)}

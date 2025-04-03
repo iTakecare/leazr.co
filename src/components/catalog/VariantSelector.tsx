@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
 import { Check, ChevronRight } from "lucide-react";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
+import { useAuth } from "@/context/AuthContext";
 
 interface VariantSelectorProps {
   product: any;
@@ -15,6 +17,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const { isClient, isAdmin } = useAuth();
   
   useEffect(() => {
     if (!product) return;
@@ -86,6 +89,9 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     }
   };
   
+  // Déterminer si le prix d'achat doit être affiché
+  const shouldShowPurchasePrice = isAdmin() || isClient();
+  
   if (!product || !product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
     return null;
   }
@@ -151,12 +157,14 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
               </div>
               
               <div className="mb-4 grid grid-cols-2 gap-6">
-                <div className="rounded-lg bg-white p-3 shadow-sm">
-                  <p className="text-sm text-gray-500">Prix</p>
-                  <p className="text-xl font-bold text-gray-900">{formatCurrency(selectedVariant.price)}</p>
-                </div>
-                {selectedVariant.monthly_price > 0 && (
+                {shouldShowPurchasePrice && selectedVariant.price > 0 && (
                   <div className="rounded-lg bg-white p-3 shadow-sm">
+                    <p className="text-sm text-gray-500">Prix</p>
+                    <p className="text-xl font-bold text-gray-900">{formatCurrency(selectedVariant.price)}</p>
+                  </div>
+                )}
+                {selectedVariant.monthly_price > 0 && (
+                  <div className={`rounded-lg bg-white p-3 shadow-sm ${!shouldShowPurchasePrice ? 'col-span-2' : ''}`}>
                     <p className="text-sm text-gray-500">Mensualité</p>
                     <p className="text-xl font-bold text-indigo-700">{formatCurrency(selectedVariant.monthly_price)}/mois</p>
                   </div>
