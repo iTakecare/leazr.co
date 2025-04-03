@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CommissionRate, 
@@ -88,7 +87,7 @@ interface CommissionCache {
 }
 
 const commissionCache: CommissionCache = {};
-const CACHE_TIMEOUT = 60000; // 60 secondes
+const CACHE_TIMEOUT = 120000; // 2 minutes
 const currentCalculation: {[key: string]: Promise<any>} = {};
 
 /**
@@ -126,36 +125,46 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       
       // Si un ID d'ambassadeur est fourni, récupérer son niveau de commission directement de la base de données
       if (ambassadorId) {
-        // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
-        const { data: ambassador, error: ambassadorError } = await supabase
-          .from('ambassadors')
-          .select('commission_level_id, name')
-          .eq('id', ambassadorId)
-          .single();
-        
-        if (!ambassadorError && ambassador && ambassador.commission_level_id) {
-          actualLevelId = ambassador.commission_level_id;
-          
-          // Get the level name
-          const { data: levelData } = await supabase
-            .from('commission_levels')
-            .select('name')
-            .eq('id', actualLevelId)
+        try {
+          // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
+          const { data: ambassador, error: ambassadorError } = await supabase
+            .from('ambassadors')
+            .select('commission_level_id, name')
+            .eq('id', ambassadorId)
             .single();
+          
+          if (!ambassadorError && ambassador && ambassador.commission_level_id) {
+            actualLevelId = ambassador.commission_level_id;
             
-          if (levelData) {
-            levelName = levelData.name;
+            // Get the level name
+            const { data: levelData } = await supabase
+              .from('commission_levels')
+              .select('name')
+              .eq('id', actualLevelId)
+              .single();
+              
+            if (levelData) {
+              levelName = levelData.name;
+            }
           }
+        } catch (error) {
+          console.error("Error fetching ambassador data:", error);
+          // Fallback to default calculation
         }
       }
       
       // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
       if (!actualLevelId) {
-        const defaultLevel = await fetchDefaultCommissionLevel(type);
-        
-        if (defaultLevel) {
-          actualLevelId = defaultLevel.id;
-          levelName = defaultLevel.name;
+        try {
+          const defaultLevel = await fetchDefaultCommissionLevel(type);
+          
+          if (defaultLevel) {
+            actualLevelId = defaultLevel.id;
+            levelName = defaultLevel.name;
+          }
+        } catch (error) {
+          console.error("Error fetching default commission level:", error);
+          // Fallback to static rates
         }
       }
       
@@ -178,56 +187,90 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       }
       
       // Get full level with rates
-      const level = await getCommissionLevelWithRates(actualLevelId);
-      
-      if (!level || !level.rates || level.rates.length === 0) {
-        const rates = await fetchCommissionRates(actualLevelId);
+      try {
+        const level = await getCommissionLevelWithRates(actualLevelId);
         
-        // Trouver le taux applicable en fonction du montant
-        const applicableRate = rates.find(
-          rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
-        );
-        
-        if (!applicableRate) {
-          const result = {
-            rate: 0,
-            amount: 0,
-            levelName
-          };
+        if (!level || !level.rates || level.rates.length === 0) {
+          try {
+            const rates = await fetchCommissionRates(actualLevelId);
+            
+            // Trouver le taux applicable en fonction du montant
+            const applicableRate = rates.find(
+              rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
+            );
+            
+            if (!applicableRate) {
+              const result = {
+                rate: 0,
+                amount: 0,
+                levelName
+              };
+              
+              // Stocker le résultat en cache
+              commissionCache[cacheKey] = {
+                timestamp: Date.now(),
+                result
+              };
+              
+              return result;
+            }
+            
+            const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
+            const result = {
+              rate: applicableRate.rate,
+              amount: calculatedAmount,
+              levelName
+            };
+            
+            // Stocker le résultat en cache
+            commissionCache[cacheKey] = {
+              timestamp: Date.now(),
+              result
+            };
+            
+            return result;
+          } catch (error) {
+            console.error("Error fetching commission rates:", error);
+            // Return default result
+            const result = {
+              rate: 0,
+              amount: 0,
+              levelName
+            };
+            
+            commissionCache[cacheKey] = {
+              timestamp: Date.now(),
+              result
+            };
+            
+            return result;
+          }
+        } else {
+          // Use the rates from the level
+          const applicableRate = level.rates.find(
+            rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
+          );
           
-          // Stocker le résultat en cache
-          commissionCache[cacheKey] = {
-            timestamp: Date.now(),
-            result
-          };
+          if (!applicableRate) {
+            const result = {
+              rate: 0,
+              amount: 0,
+              levelName: level.name
+            };
+            
+            // Stocker le résultat en cache
+            commissionCache[cacheKey] = {
+              timestamp: Date.now(),
+              result
+            };
+            
+            return result;
+          }
           
-          return result;
-        }
-        
-        const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
-        const result = {
-          rate: applicableRate.rate,
-          amount: calculatedAmount,
-          levelName
-        };
-        
-        // Stocker le résultat en cache
-        commissionCache[cacheKey] = {
-          timestamp: Date.now(),
-          result
-        };
-        
-        return result;
-      } else {
-        // Use the rates from the level
-        const applicableRate = level.rates.find(
-          rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
-        );
-        
-        if (!applicableRate) {
+          const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
           const result = {
-            rate: 0,
-            amount: 0,
+            rate: applicableRate.rate,
+            amount: calculatedAmount,
             levelName: level.name
           };
           
@@ -239,15 +282,15 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
           
           return result;
         }
-        
-        const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
+      } catch (error) {
+        console.error("Error getting commission level with rates:", error);
+        // Return default result
         const result = {
-          rate: applicableRate.rate,
-          amount: calculatedAmount,
-          levelName: level.name
+          rate: 0,
+          amount: 0,
+          levelName
         };
         
-        // Stocker le résultat en cache
         commissionCache[cacheKey] = {
           timestamp: Date.now(),
           result

@@ -26,6 +26,7 @@ const AmbassadorCommissionPreview = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const calculationParamsRef = useRef<string>("");
   const calculationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const computeCountRef = useRef<number>(0);
 
   // Fonction pour calculer la commission avec contrôle des paramètres
   const calculateCommission = React.useCallback(async () => {
@@ -34,11 +35,24 @@ const AmbassadorCommissionPreview = ({
       return;
     }
 
+    // Limiter le nombre de calculs
+    if (computeCountRef.current > 10) {
+      console.log("Too many commission calculations, skipping...");
+      setTimeout(() => {
+        computeCountRef.current = 0;
+      }, 5000);
+      return;
+    }
+
     // Calculer le montant total de l'équipement
-    const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+    const totalEquipmentAmount = equipmentList.reduce((sum, eq) => {
+      const price = typeof eq.purchasePrice === 'number' ? eq.purchasePrice : 0;
+      const quantity = typeof eq.quantity === 'number' ? eq.quantity : 0;
+      return sum + (price * quantity);
+    }, 0);
     
-    // Pas besoin de calculer si le montant est nul
-    if (totalEquipmentAmount <= 0) {
+    // Pas besoin de calculer si le montant est nul ou trop petit
+    if (totalEquipmentAmount <= 0 || totalEquipmentAmount < 10) {
       return;
     }
     
@@ -64,6 +78,8 @@ const AmbassadorCommissionPreview = ({
     
     calculationTimerRef.current = setTimeout(async () => {
       try {
+        computeCountRef.current += 1;
+        
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -82,12 +98,14 @@ const AmbassadorCommissionPreview = ({
         setIsCalculating(false);
         calculationTimerRef.current = null;
       }
-    }, 300);
+    }, 500);
   }, [ambassadorId, commissionLevelId, equipmentList]);
 
   // Utiliser useEffect avec des dépendances stables pour déclencher le calcul
   useEffect(() => {
-    calculateCommission();
+    if (equipmentList?.length > 0 && ambassadorId && commissionLevelId) {
+      calculateCommission();
+    }
     
     // Nettoyage pour éviter des fuites de mémoire
     return () => {
@@ -95,7 +113,7 @@ const AmbassadorCommissionPreview = ({
         clearTimeout(calculationTimerRef.current);
       }
     };
-  }, [calculateCommission]);
+  }, [calculateCommission, equipmentList, ambassadorId, commissionLevelId]);
 
   // Ne pas rendre le composant si l'ID de l'ambassadeur ou du niveau de commission n'est pas disponible
   if (!ambassadorId || !commissionLevelId) {

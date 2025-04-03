@@ -1,20 +1,26 @@
+
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-export const formatCurrency = (value: number | string): string => {
-  // First, ensure we have a number
+export const formatCurrency = (value: number | string | null | undefined): string => {
+  // Vérification plus stricte des valeurs nulles/undefined/NaN
+  if (value === null || value === undefined || value === "") {
+    return "0,00 €";
+  }
+  
+  // Conversion en nombre
   let numValue: number;
   
-  if (value === null || value === undefined) {
-    return "0,00 €";
-  } else if (typeof value === 'number') {
+  if (typeof value === 'number') {
     numValue = value;
   } else if (typeof value === 'string') {
-    numValue = parseFloat(value);
+    // Tenter de convertir la chaîne en nombre
+    numValue = parseFloat(value.replace(',', '.'));
   } else {
     numValue = 0;
   }
   
+  // Vérification supplémentaire pour NaN
   if (isNaN(numValue)) {
     return "0,00 €";
   }
@@ -25,24 +31,39 @@ export const formatCurrency = (value: number | string): string => {
     numValue = 0;
   }
   
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(numValue);
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numValue);
+  } catch (error) {
+    console.error("Error formatting currency:", error);
+    return "0,00 €";
+  }
 };
 
 export const formatPercentage = (value: number | string): string => {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  // Vérification pour les valeurs nulles/undefined
+  if (value === null || value === undefined || value === "") {
+    return "0%";
+  }
+  
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
   
   if (isNaN(numValue)) return '0%';
   
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'percent',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 2
-  }).format(numValue / 100);
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2
+    }).format(numValue / 100);
+  } catch (error) {
+    console.error("Error formatting percentage:", error);
+    return "0%";
+  }
 };
 
 export const formatDate = (dateString: string): string => {
@@ -83,12 +104,19 @@ export const formatDistanceToNow = (dateString: string | Date): string => {
   }
 };
 
-export const formatPercentageWithComma = (value: number): string => {
-  if (isNaN(value)) return "0,00%";
+export const formatPercentageWithComma = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "0,00%";
+  }
   
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'percent',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value / 100);
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'percent',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value / 100);
+  } catch (error) {
+    console.error("Error formatting percentage with comma:", error);
+    return "0,00%";
+  }
 };
