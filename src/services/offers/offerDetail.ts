@@ -40,6 +40,18 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         
         console.log("Montant financé calculé:", financedAmount);
         
+        // Si le montant financé est différent de celui stocké, le mettre à jour
+        if (data.financed_amount !== financedAmount) {
+          console.log(`Mise à jour du montant financé: ${data.financed_amount || 0}€ -> ${financedAmount}€`);
+          data.financed_amount = financedAmount;
+          
+          // Mettre à jour le montant financé dans la base de données
+          await supabase
+            .from('offers')
+            .update({ financed_amount: financedAmount })
+            .eq('id', id);
+        }
+        
         // Récupérer le niveau de commission de l'ambassadeur
         const { data: ambassador } = await supabase
           .from('ambassadors')
@@ -91,7 +103,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
 export const updateOffer = async (id: string, data: Partial<OfferData>): Promise<{data?: any, error?: any}> => {
   try {
     // Ensure numeric values are properly converted for database storage
-    const dataToSave = {
+    const dataToSave: Partial<OfferData> = {
       ...data,
       amount: data.amount !== undefined ? 
         (typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount) : 
@@ -106,6 +118,16 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
         (typeof data.commission === 'string' ? parseFloat(data.commission) : data.commission) : 
         undefined
     };
+    
+    // Calculer et ajouter le montant financé si nécessaire
+    if (dataToSave.monthly_payment !== undefined && dataToSave.coefficient !== undefined) {
+      const financedAmount = calculateFinancedAmount(
+        Number(dataToSave.monthly_payment), 
+        Number(dataToSave.coefficient || 3.27)
+      );
+      console.log(`Calcul du montant financé pour la mise à jour: ${financedAmount}€`);
+      dataToSave.financed_amount = financedAmount;
+    }
     
     const result = await supabase
       .from('offers')

@@ -27,3 +27,6 @@ export {
   saveOfferSignature,
   generateSignatureLink
 };
+
+// Exporter également les fonctions de offerDetail directement
+export * from './offers/offerDetail';

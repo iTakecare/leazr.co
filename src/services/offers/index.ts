@@ -1,54 +1,63 @@
-// Exporter toutes les fonctions de services des offres
-export * from './createOffer';
-export * from './getOffers';
-export * from './offerDetail';
-export * from './offerStatus';
-export * from './offerWorkflow';
-export * from './clientRequests';
-export * from './types';
-
-// Exportations spécifiques pour éviter l'ambiguïté
-import { generateAndDownloadOfferPdf, getOfferDataForPdf, generateSamplePdf } from './offerPdf';
-import { isOfferSigned, saveOfferSignature, generateSignatureLink } from './offerSignature';
-
-// Ré-exporter explicitement pour résoudre l'ambiguïté
-export {
-  generateAndDownloadOfferPdf,
-  getOfferDataForPdf,
-  generateSamplePdf,
-  isOfferSigned,
-  saveOfferSignature,
-  generateSignatureLink
-};
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
-export const createOffer = async (offerData: OfferData) => {
+// Fonction pour créer une offre
+export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data?: any; error?: any }> => {
   try {
-    // Ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur
-    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
-      // Récupérer l'ambassador_id associé à cet utilisateur
-      const { data: ambassadorData, error: ambassadorError } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('user_id', offerData.user_id)
-        .single();
-        
-      if (!ambassadorError && ambassadorData) {
-        offerData.ambassador_id = ambassadorData.id;
-      }
+    // Convertir les valeurs numériques si nécessaire
+    const dataToSave = {
+      ...offerData,
+      amount: offerData.amount ? 
+        (typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount) : 
+        null,
+      coefficient: offerData.coefficient ? 
+        (typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient) : 
+        null,
+      monthly_payment: offerData.monthly_payment ? 
+        (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment) : 
+        null,
+      commission: offerData.commission ? 
+        (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
+        null
+    };
+
+    // Calculer et ajouter le montant financé
+    if (dataToSave.monthly_payment && dataToSave.coefficient) {
+      const financedAmount = calculateFinancedAmount(
+        Number(dataToSave.monthly_payment),
+        Number(dataToSave.coefficient || 3.27)
+      );
+      console.log(`Calcul du montant financé pour la création: ${financedAmount}€`);
+      dataToSave.financed_amount = financedAmount;
     }
-    
+
+    console.log("Création d'une nouvelle offre avec les données:", dataToSave);
+    const { data, error } = await supabase.from('offers').insert([dataToSave]).select('*');
+
+    if (error) throw error;
+
+    return { data: data[0] };
+  } catch (error) {
+    console.error("Erreur lors de la création de l'offre:", error);
+    return { error };
+  }
+};
+
+export const getAllOffers = async (): Promise<{ data: OfferData[] | null; error: any }> => {
+  try {
     const { data, error } = await supabase
       .from('offers')
-      .insert(offerData)
-      .select()
-      .single();
-    
-    return { data, error };
+      .select('*');
+
+    if (error) {
+      console.error("Erreur lors de la récupération des offres:", error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (error) {
-    console.error("Error in createOffer:", error);
+    console.error("Erreur lors de la récupération des offres:", error);
     return { data: null, error };
   }
 };
