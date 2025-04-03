@@ -23,6 +23,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
