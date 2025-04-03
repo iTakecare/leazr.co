@@ -1,28 +1,25 @@
-// First lines of imports from your file
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
-import { Equipment, Leaser, GlobalMarginAdjustment } from "@/types/equipment";
+import { Equipment, Leaser } from "@/types/equipment";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
-import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
-import { getAllClients } from "@/services/clientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
+import { OffersLoading } from "@/components/offers/OffersLoading";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -34,6 +31,7 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [loadingLeasers, setLoadingLeasers] = useState(true);
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -49,7 +47,6 @@ const CreateOffer = () => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
-    setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
     addToList,
@@ -57,13 +54,13 @@ const CreateOffer = () => {
     cancelEditing,
     removeFromList,
     updateQuantity,
-    findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
   
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
+        setLoadingLeasers(true);
         const fetchedLeasers = await getLeasers();
         
         if (fetchedLeasers && fetchedLeasers.length > 0) {
@@ -72,30 +69,13 @@ const CreateOffer = () => {
       } catch (error) {
         console.error("Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      } finally {
+        setLoadingLeasers(false);
       }
     };
     
     fetchLeasers();
   }, []);
-
-  const fetchClient = async (id: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      setClient(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement du client:", error);
-      toast.error("Impossible de charger les informations du client");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenClientSelector = () => {
     setClientSelectorOpen(true);
@@ -223,6 +203,10 @@ const CreateOffer = () => {
   };
 
   const hideFinancialDetails = !isAdmin();
+
+  if (loadingLeasers) {
+    return <OffersLoading />;
+  }
 
   return (
     <PageTransition>

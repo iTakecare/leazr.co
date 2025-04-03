@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 
-const OffersLoading = () => {
+export const OffersLoading = () => {
   return (
     <PageTransition>
       <Container>
