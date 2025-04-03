@@ -16,12 +16,8 @@ export const createOffer = async (offerData: OfferData) => {
         undefined
     };
 
-    // Si une commission a été spécifiée, on l'utilise directement
-    if (offerData.commission) {
-      console.log("Using provided commission value:", offerData.commission);
-    }
-    // Sinon, ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur et calcul de la commission
-    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+    // Ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur
+    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
       // Récupérer l'ambassador_id associé à cet utilisateur
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
@@ -56,8 +52,6 @@ export const createOffer = async (offerData: OfferData) => {
         }
       }
     }
-    
-    console.log("Final offer data to save:", offerDataToSave);
     
     const { data, error } = await supabase
       .from('offers')

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ interface EquipmentListProps {
   hideFinancialDetails?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
-  onCommissionCalculated?: (commission: number) => void;
 }
 
 const EquipmentList = ({
@@ -39,8 +37,7 @@ const EquipmentList = ({
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
   ambassadorId,
-  commissionLevelId,
-  onCommissionCalculated
+  commissionLevelId
 }: EquipmentListProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
     amount: 0, 
@@ -71,12 +68,6 @@ const EquipmentList = ({
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
-        
-        // Forward the commission value to the parent component
-        if (onCommissionCalculated) {
-          onCommissionCalculated(commissionData.amount);
-        }
-        
         console.log("Commission calculated:", commissionData);
       } catch (error) {
         console.error("Error calculating commission:", error);
@@ -89,7 +80,7 @@ const EquipmentList = ({
     if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
       calculateCommission();
     }
-  }, [totalMonthlyPayment, equipmentList, globalMarginAdjustment.amount, ambassadorId, commissionLevelId, onCommissionCalculated]);
+  }, [totalMonthlyPayment, equipmentList, globalMarginAdjustment.amount, ambassadorId, commissionLevelId]);
 
   if (equipmentList.length === 0) {
     return (

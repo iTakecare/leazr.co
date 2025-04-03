@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [calculatedCommission, setCalculatedCommission] = useState<number | null>(null);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -211,7 +209,7 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: calculatedCommission || undefined, // Use the calculated commission value if available
+        commission: totalMonthlyPayment * 0.1,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
@@ -237,11 +235,6 @@ const AmbassadorCreateOffer = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  const handleCommissionCalculated = (commission: number) => {
-    console.log("Commission calculated in parent:", commission);
-    setCalculatedCommission(commission);
   };
   
   const clientInfoProps = {
@@ -362,7 +355,6 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
-                      onCommissionCalculated={handleCommissionCalculated}
                     />
                     
                     <ClientInfo

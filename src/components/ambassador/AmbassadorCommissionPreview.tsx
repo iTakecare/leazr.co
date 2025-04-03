@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -11,15 +11,13 @@ interface AmbassadorCommissionPreviewProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   equipmentList: any[];
-  onCommissionCalculated?: (commission: number) => void;
 }
 
 const AmbassadorCommissionPreview = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentList,
-  onCommissionCalculated
+  equipmentList
 }: AmbassadorCommissionPreviewProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({
     amount: 0,
@@ -27,146 +25,42 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  
-  // Tracking if component is mounted
-  const isMounted = useRef(true);
-  
-  // Debounce timer reference
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Track last successful calculation data
-  const lastCalculationRef = useRef({
-    equipmentHash: '',
-    ambassadorId: '',
-    commissionLevelId: '',
-    calculated: false,
-    timestamp: 0
-  });
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      // Clear any pending debounce timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
-    // Skip calculation if missing required parameters
-    if (!ambassadorId || !commissionLevelId) {
-      return;
-    }
-    
-    // Skip calculation if no equipment
-    if (equipmentList.length === 0) {
-      return;
-    }
-    
-    // Create a simple hash of the equipment list for comparison
-    const equipmentHash = JSON.stringify(equipmentList.map(eq => ({
-      id: eq.id,
-      price: eq.purchasePrice,
-      quantity: eq.quantity
-    })));
-    
-    // Total equipment amount (this is what we want to calculate commission on)
-    const totalEquipmentAmount = equipmentList.reduce(
-      (sum, eq) => sum + (eq.purchasePrice * eq.quantity), 
-      0
-    );
-    
-    if (totalEquipmentAmount <= 0) {
-      return;
-    }
-    
-    // Check if we've already calculated with these exact parameters recently
-    const now = Date.now();
-    const isSameCalculation = 
-      lastCalculationRef.current.equipmentHash === equipmentHash &&
-      lastCalculationRef.current.ambassadorId === ambassadorId &&
-      lastCalculationRef.current.commissionLevelId === commissionLevelId &&
-      lastCalculationRef.current.calculated &&
-      (now - lastCalculationRef.current.timestamp < 2000); // 2 seconds cache
-    
-    if (isSameCalculation) {
-      return; // Skip calculation if we've done it recently with same params
-    }
-
-    // Cancel any previous debounce timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Set a new debounce timer (300ms delay)
-    debounceTimerRef.current = setTimeout(() => {
-      // Don't start a calculation if one is already in progress
-      if (isCalculating) {
+    const calculateCommission = async () => {
+      if (!totalMonthlyPayment || totalMonthlyPayment === 0 || !ambassadorId || !commissionLevelId) {
         return;
       }
-      
-      calculateCommission(totalEquipmentAmount, equipmentHash);
-    }, 300);
-    
-    // Cleanup function to clear the timeout if the component unmounts or dependencies change
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
-    };
-    
-  }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId, isCalculating]);
 
-  const calculateCommission = async (totalEquipmentAmount: number, equipmentHash: string) => {
-    if (isCalculating || !isMounted.current) return;
-    
-    setIsCalculating(true);
-    
-    try {
-      const commissionData = await calculateCommissionByLevel(
-        totalEquipmentAmount,
-        commissionLevelId,
-        'ambassador',
-        ambassadorId
-      );
-      
-      if (!isMounted.current) return;
-      
-      setCommission({
-        amount: commissionData.amount,
-        rate: commissionData.rate,
-        levelName: commissionData.levelName || ""
-      });
-      
-      // Update the last calculation reference
-      lastCalculationRef.current = {
-        equipmentHash,
-        ambassadorId: ambassadorId || '',
-        commissionLevelId: commissionLevelId || '',
-        calculated: true,
-        timestamp: Date.now()
-      };
-      
-      // Notify parent component about the calculated commission
-      if (onCommissionCalculated) {
-        onCommissionCalculated(commissionData.amount);
-      }
-    } catch (error) {
-      if (!isMounted.current) return;
-      
-      console.error("Error calculating commission:", error);
-      toast.error("Erreur lors du calcul de la commission");
-    } finally {
-      if (isMounted.current) {
+      setIsCalculating(true);
+      try {
+        console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
+        const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+        const commissionData = await calculateCommissionByLevel(
+          totalEquipmentAmount,
+          commissionLevelId,
+          'ambassador',
+          ambassadorId
+        );
+        
+        setCommission({
+          amount: commissionData.amount,
+          rate: commissionData.rate,
+          levelName: commissionData.levelName || ""
+        });
+        console.log("Commission calculated:", commissionData);
+      } catch (error) {
+        console.error("Error calculating commission:", error);
+        toast.error("Erreur lors du calcul de la commission");
+      } finally {
         setIsCalculating(false);
       }
+    };
+
+    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
+      calculateCommission();
     }
-  };
+  }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId]);
 
   if (!ambassadorId || !commissionLevelId) {
     return null;
