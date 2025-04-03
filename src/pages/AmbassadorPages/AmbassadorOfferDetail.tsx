@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
 import { Progress } from "@/components/ui/progress";
+import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +46,7 @@ const AmbassadorOfferDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -61,8 +63,12 @@ const AmbassadorOfferDetail = () => {
           return;
         }
         
-        // La commission est maintenant correctement calculée dans getOfferById
         setOffer(offerData);
+        
+        // Si nécessaire, recalculer et mettre à jour la commission
+        if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
+          await updateCommission(offerData);
+        }
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
         setError("Impossible de charger les détails de l'offre");
@@ -74,6 +80,71 @@ const AmbassadorOfferDetail = () => {
     
     fetchOfferDetails();
   }, [id, user]);
+  
+  const updateCommission = async (offerData: any) => {
+    try {
+      setRecalculatingCommission(true);
+      
+      if (!offerData.ambassador_id || !offerData.monthly_payment || !offerData.coefficient) {
+        console.log("Impossible de recalculer la commission: données insuffisantes");
+        return;
+      }
+      
+      // Récupérer le niveau de commission de l'ambassadeur
+      const { data: ambassador } = await supabase
+        .from('ambassadors')
+        .select('*, commission_levels(name, id)')
+        .eq('id', offerData.ambassador_id)
+        .single();
+      
+      if (!ambassador || !ambassador.commission_level_id) {
+        console.log("Impossible de recalculer la commission: données d'ambassadeur manquantes");
+        return;
+      }
+      
+      // Calculer le montant financé à partir de la mensualité
+      const financedAmount = calculateFinancedAmount(
+        Number(offerData.monthly_payment), 
+        Number(offerData.coefficient)
+      );
+      
+      if (financedAmount <= 0) {
+        console.log("Impossible de recalculer la commission: montant financé invalide");
+        return;
+      }
+      
+      // Calculer la commission basée sur le niveau de l'ambassadeur
+      const commissionData = await calculateCommissionByLevel(
+        financedAmount,
+        ambassador.commission_level_id,
+        'ambassador',
+        offerData.ambassador_id
+      );
+      
+      if (commissionData && typeof commissionData.amount === 'number') {
+        // Si la commission calculée est différente de celle stockée, mettre à jour
+        if (Math.abs(commissionData.amount - offerData.commission) > 0.01) {
+          console.log(`Mise à jour de la commission: ${offerData.commission}€ -> ${commissionData.amount}€`);
+          
+          const { error } = await updateOffer(offerData.id, {
+            commission: commissionData.amount
+          });
+          
+          if (!error) {
+            setOffer({
+              ...offerData,
+              commission: commissionData.amount
+            });
+            console.log(`Commission mise à jour avec succès: ${commissionData.amount}€ (${commissionData.rate}%)`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la commission:", error);
+    } finally {
+      setRecalculatingCommission(false);
+    }
+  };
   
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -119,7 +190,6 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  // Tableau des statuts dans l'ordre du workflow
   const workflowStatuses = [
     { 
       id: OFFER_STATUSES.DRAFT.id, 
@@ -176,7 +246,7 @@ const AmbassadorOfferDetail = () => {
       iconColor: 'text-green-800'
     }
   ];
-  
+
   if (loading) {
     return (
       <PageTransition>
@@ -224,7 +294,6 @@ const AmbassadorOfferDetail = () => {
     );
   }
   
-  // Extraire les données d'équipement si disponibles
   let equipmentData = [];
   try {
     if (offer.equipment_description) {
@@ -236,7 +305,6 @@ const AmbassadorOfferDetail = () => {
     console.log("Erreur de parsing des données d'équipement:", e);
   }
 
-  // Fonction pour déterminer si une étape est active, complétée ou en attente
   const getStepStatus = (stepId) => {
     const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
     const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
@@ -246,7 +314,6 @@ const AmbassadorOfferDetail = () => {
     return 'pending';
   };
 
-  // Determine commission status display
   const getCommissionStatusBadge = (status) => {
     switch (status) {
       case 'paid':
@@ -277,7 +344,6 @@ const AmbassadorOfferDetail = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Informations principales */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -348,7 +414,6 @@ const AmbassadorOfferDetail = () => {
                         </div>
                       </div>
                       
-                      {/* Nouveau bloc pour afficher la commission */}
                       <div className="mt-6">
                         <h3 className="font-medium mb-2">Votre commission</h3>
                         <div className="p-4 bg-green-50 border border-green-200 rounded-md shadow-sm">
@@ -359,7 +424,15 @@ const AmbassadorOfferDetail = () => {
                               </div>
                               <div>
                                 <p className="text-sm text-green-800">Commission pour cette offre</p>
-                                <p className="text-2xl font-bold text-green-700">{formatCurrency(offer.commission || 0)}</p>
+                                <p className="text-2xl font-bold text-green-700">
+                                  {recalculatingCommission ? (
+                                    <span className="flex items-center">
+                                      <span className="animate-pulse">Calcul en cours...</span>
+                                    </span>
+                                  ) : (
+                                    formatCurrency(offer.commission || 0)
+                                  )}
+                                </p>
                               </div>
                             </div>
                             <div>
@@ -437,7 +510,6 @@ const AmbassadorOfferDetail = () => {
                         <div>
                           <h3 className="font-medium mb-3">Processus de validation</h3>
                           
-                          {/* Workflow Steps Visualization - Desktop */}
                           <div className="hidden md:flex justify-between mb-4">
                             {workflowStatuses.map((status, index) => {
                               const stepStatus = getStepStatus(status.id);
@@ -489,7 +561,6 @@ const AmbassadorOfferDetail = () => {
                             })}
                           </div>
                           
-                          {/* Workflow Steps Visualization - Mobile */}
                           <div className="md:hidden">
                             <ol className="relative border-l border-gray-200 ml-3">
                               {workflowStatuses.map((status, index) => {
@@ -519,7 +590,6 @@ const AmbassadorOfferDetail = () => {
                             </ol>
                           </div>
                           
-                          {/* Status Progress Bar */}
                           <div className="mt-4">
                             <Progress 
                               value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
@@ -537,7 +607,6 @@ const AmbassadorOfferDetail = () => {
               </Card>
             </div>
             
-            {/* Sidebar */}
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
@@ -562,7 +631,6 @@ const AmbassadorOfferDetail = () => {
                     </div>
                   </div>
                   
-                  {/* Affichage de la commission dans la sidebar */}
                   <div>
                     <h3 className="text-sm font-medium mb-2">Commission</h3>
                     <div className="p-3 bg-green-50 border border-green-100 rounded-md">
