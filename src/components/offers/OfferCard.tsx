@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 interface OfferCardProps {
   offer: Offer;
@@ -29,6 +30,19 @@ const OfferCard: React.FC<OfferCardProps> = ({
   isUpdatingStatus 
 }) => {
   const navigate = useNavigate();
+  const [financedAmount, setFinancedAmount] = useState<number>(0);
+  
+  // Calculer le montant financé lors du montage du composant
+  useEffect(() => {
+    if (offer && offer.monthly_payment && offer.coefficient) {
+      // Utiliser la fonction calculateFinancedAmount du calculateur
+      const amount = calculateFinancedAmount(
+        Number(offer.monthly_payment),
+        Number(offer.coefficient)
+      );
+      setFinancedAmount(amount);
+    }
+  }, [offer]);
   
   // Formatage de la date
   const formatDate = (dateString: string) => {
@@ -93,8 +107,16 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
         </div>
         
+        {/* Affichage du montant financé */}
+        <div className="text-xs text-muted-foreground">
+          <div className="flex items-center">
+            <CreditCard className="h-3 w-3 mr-1" />
+            <span>Montant financé: {formatCurrency(financedAmount)}</span>
+          </div>
+        </div>
+        
         {isConverted && (
-          <div className="bg-green-100 text-green-800 rounded-md p-1.5 text-xs mb-2">
+          <div className="bg-green-100 text-green-800 rounded-md p-1.5 text-xs mt-2">
             <div className="flex items-center">
               <Check className="h-3 w-3 mr-1" />
               <span>Convertie en contrat</span>
