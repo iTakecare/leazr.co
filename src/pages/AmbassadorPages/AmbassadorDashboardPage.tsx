@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
+import { toast } from "sonner";
 
 const AmbassadorDashboardPage = () => {
   const navigate = useNavigate();
@@ -31,13 +33,16 @@ const AmbassadorDashboardPage = () => {
     const loadStats = async () => {
       setLoading(true);
       try {
-        // Compter les clients
-        const { count: clientsCount, error: clientsError } = await supabase
+        // Direct query to count ambassador clients
+        const { data: clientsData, error: clientsError } = await supabase
           .from("ambassador_clients")
-          .select("client_id", { count: "exact" })
+          .select("client_id")
           .eq("ambassador_id", ambassadorId);
 
         if (clientsError) throw clientsError;
+        
+        const clientsCount = clientsData?.length || 0;
+        console.log(`Found ${clientsCount} clients for ambassador ${ambassadorId}`);
 
         // Obtenir le total des commissions
         const { data: commissions, error: commissionsError } = await supabase
@@ -47,10 +52,10 @@ const AmbassadorDashboardPage = () => {
 
         if (commissionsError) throw commissionsError;
 
-        const totalCommissions = commissions.reduce(
+        const totalCommissions = commissions?.reduce(
           (sum, commission) => sum + (parseFloat(commission.amount) || 0),
           0
-        );
+        ) || 0;
 
         // Obtenir la dernière commission
         const { data: lastCommission, error: lastCommissionError } = await supabase
@@ -65,7 +70,7 @@ const AmbassadorDashboardPage = () => {
         // Compter les offres en cours
         const { data: pendingOffers, error: pendingOffersError } = await supabase
           .from("offers")
-          .select("id", { count: "exact" })
+          .select("id")
           .eq("type", "ambassador_offer")
           .eq("user_id", user?.id)
           .not("workflow_status", "eq", "financed")
@@ -76,7 +81,7 @@ const AmbassadorDashboardPage = () => {
         // Compter les offres acceptées
         const { data: acceptedOffers, error: acceptedOffersError } = await supabase
           .from("offers")
-          .select("id", { count: "exact" })
+          .select("id")
           .eq("type", "ambassador_offer")
           .eq("user_id", user?.id)
           .eq("workflow_status", "financed");
@@ -86,7 +91,11 @@ const AmbassadorDashboardPage = () => {
         // Récupérer les clients récents
         const { data: clients, error: recentClientsError } = await supabase
           .from("ambassador_clients")
-          .select("clients(*)")
+          .select(`
+            id,
+            client_id,
+            clients:client_id(*)
+          `)
           .eq("ambassador_id", ambassadorId)
           .order("created_at", { ascending: false })
           .limit(5);
@@ -105,17 +114,24 @@ const AmbassadorDashboardPage = () => {
         if (recentOffersError) throw recentOffersError;
 
         setStats({
-          clientsCount: clientsCount || 0,
+          clientsCount,
           totalCommissions,
-          lastCommissionAmount: lastCommission.length > 0 ? parseFloat(lastCommission[0].amount) : 0,
+          lastCommissionAmount: lastCommission?.length > 0 ? parseFloat(lastCommission[0].amount) : 0,
           pendingOffersCount: pendingOffers?.length || 0,
           acceptedOffersCount: acceptedOffers?.length || 0
         });
         
-        setRecentClients(clients.map(item => item.clients));
-        setRecentOffers(offers);
+        // Process clients data to get the actual client objects
+        const processedClients = clients
+          ?.filter(item => item.clients) // Filter out any null client references
+          .map(item => item.clients) || [];
+        
+        console.log("Processed clients:", processedClients);
+        setRecentClients(processedClients);
+        setRecentOffers(offers || []);
       } catch (error) {
         console.error("Erreur lors du chargement des statistiques:", error);
+        toast.error("Impossible de charger les données du tableau de bord");
       } finally {
         setLoading(false);
       }
@@ -225,10 +241,10 @@ const AmbassadorDashboardPage = () => {
                 {recentClients.length > 0 ? (
                   <div className="space-y-4">
                     {recentClients.map((client, index) => (
-                      <div key={index} className="flex items-center justify-between border-b pb-2 last:border-0">
+                      <div key={client.id || index} className="flex items-center justify-between border-b pb-2 last:border-0">
                         <div>
                           <p className="font-medium">{client.name}</p>
-                          <p className="text-sm text-muted-foreground">{client.email}</p>
+                          <p className="text-sm text-muted-foreground">{client.email || client.company || "Pas d'information"}</p>
                         </div>
                         <Button 
                           variant="ghost" 
@@ -273,11 +289,11 @@ const AmbassadorDashboardPage = () => {
                 {recentOffers.length > 0 ? (
                   <div className="space-y-4">
                     {recentOffers.map((offer, index) => (
-                      <div key={index} className="flex items-center justify-between border-b pb-2 last:border-0">
+                      <div key={offer.id || index} className="flex items-center justify-between border-b pb-2 last:border-0">
                         <div>
                           <p className="font-medium">{offer.client_name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {formatCurrency(offer.monthly_payment)}/mois - {offer.workflow_status}
+                            {formatCurrency(offer.monthly_payment)}/mois - {offer.workflow_status || 'En cours'}
                           </p>
                         </div>
                         <Button 
