@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { ArrowLeft, Layers, Check, Box, Info, Tool, Shield, LifeBuoy, RefreshCw } from "lucide-react";
+import { ArrowLeft, Layers, Check, Box, Info, Wrench, Shield, LifeBuoy, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/utils/formatters";
@@ -68,7 +67,6 @@ const AmbassadorProductDetail = () => {
 
   const variants = product.variant_combination_prices || [];
 
-  // Fonction pour déterminer si une variante est disponible
   const isVariantAvailable = (variant: any) => {
     return variant && variant.active !== false;
   };
@@ -161,7 +159,7 @@ const AmbassadorProductDetail = () => {
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Tool className="h-5 w-5 text-green-500" />
+                <Wrench className="h-5 w-5 text-green-500" />
                 <span>Maintenance incluse</span>
               </div>
               <div className="flex items-center gap-3">
