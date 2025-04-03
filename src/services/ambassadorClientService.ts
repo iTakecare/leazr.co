@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateClientData, Client } from "@/types/client";
@@ -53,25 +54,29 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
     
     console.log("Loading clients for ambassador:", ambassadorIdToUse);
     
+    // Join ambassador_clients with clients to get the full client data
     const { data, error } = await supabase
-      .from("ambassador_clients")
+      .from('ambassador_clients')
       .select(`
         id,
         client_id,
-        clients:client_id(*)
+        clients (*)
       `)
-      .eq("ambassador_id", ambassadorIdToUse);
+      .eq('ambassador_id', ambassadorIdToUse);
     
     if (error) {
       console.error("Error loading ambassador clients:", error);
       throw error;
     }
     
+    console.log("Raw data from ambassador_clients:", data);
+    
     if (!data || data.length === 0) {
       console.log("No clients found for this ambassador");
       return [];
     }
     
+    // Process the joined data to extract client information
     const processedClients = data
       .filter(item => item.clients) // Filter out any null client references
       .map(item => ({
@@ -80,7 +85,7 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
         is_ambassador_client: true
       }));
     
-    console.log("Processed clients:", processedClients);
+    console.log("Processed clients:", processedClients.length, processedClients);
     return processedClients;
   } catch (error) {
     console.error("Error loading ambassador clients:", error);

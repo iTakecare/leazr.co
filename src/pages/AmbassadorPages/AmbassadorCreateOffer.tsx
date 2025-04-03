@@ -142,6 +142,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleSelectClient = (selectedClient: ClientSelectorClient) => {
+    console.log("Selected client in AmbassadorCreateOffer:", selectedClient);
     setClient({
       id: selectedClient.id,
       name: selectedClient.name,
@@ -279,9 +280,9 @@ const AmbassadorCreateOffer = () => {
           isOpen={clientSelectorOpen} 
           onClose={() => setClientSelectorOpen(false)} 
           onSelectClient={handleSelectClient}
-          selectedClientId=""
+          selectedClientId={client?.id || ""}
           onClientSelect={() => {}}
-          ambassadorMode={true}  // Utiliser le mode ambassadeur
+          ambassadorMode={true}  // Enable ambassador mode to filter clients
         />
         
         <LeaserSelector

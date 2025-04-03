@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -143,6 +142,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleSelectClient = (selectedClient: ClientSelectorClient) => {
+    console.log("Selected client in AmbassadorCreateOffer:", selectedClient);
     setClient({
       id: selectedClient.id,
       name: selectedClient.name,
@@ -280,8 +280,9 @@ const AmbassadorCreateOffer = () => {
           isOpen={clientSelectorOpen} 
           onClose={() => setClientSelectorOpen(false)} 
           onSelectClient={handleSelectClient}
-          selectedClientId=""
+          selectedClientId={client?.id || ""}
           onClientSelect={() => {}}
+          ambassadorMode={true}
         />
         
         <LeaserSelector
@@ -316,7 +317,6 @@ const AmbassadorCreateOffer = () => {
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-                    {/* Le sélecteur de leaser a été supprimé ici */}
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}

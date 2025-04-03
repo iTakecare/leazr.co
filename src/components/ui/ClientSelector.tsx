@@ -50,11 +50,19 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         if (ambassadorMode && user?.ambassador_id) {
           // Si en mode ambassadeur, charger les clients de l'ambassadeur
-          fetchedClients = await getAmbassadorClients();
-          console.log("Loaded ambassador clients:", fetchedClients.length);
+          console.log("Loading ambassador clients with ambassador_id:", user.ambassador_id);
+          fetchedClients = await getAmbassadorClients(user.ambassador_id);
+          console.log("Loaded ambassador clients:", fetchedClients);
         } else {
           // Sinon, charger tous les clients
           fetchedClients = await getAllClients();
+        }
+        
+        if (!fetchedClients || fetchedClients.length === 0) {
+          console.log("No clients found");
+          setClients([]);
+          setLoading(false);
+          return;
         }
         
         // Transform to ensure compatibility with ClientSelectorClient type
@@ -66,6 +74,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           email: client.email
         }));
         
+        console.log("Formatted clients for selector:", formattedClients);
         setClients(formattedClients);
       } catch (error) {
         console.error("Failed to load clients", error);
@@ -100,7 +109,6 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Sélectionner un client</h2>
-            {/* Nous avons supprimé le bouton de fermeture ici car il est déjà inclus dans le DialogContent */}
           </div>
           
           <div className="space-y-4">
@@ -116,26 +124,32 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
-                    clients.map(client => (
-                      <CommandItem
-                        key={client.id}
-                        onSelect={() => handleSelect(client)}
-                        className="flex flex-col items-start cursor-pointer py-2"
-                      >
-                        <div className="flex justify-between w-full">
-                          <div className="flex flex-col">
-                            <span className="font-medium">{client.name}</span>
-                            <span className="text-xs text-muted-foreground">{client.companyName}</span>
+                    clients.length > 0 ? (
+                      clients.map(client => (
+                        <CommandItem
+                          key={client.id}
+                          onSelect={() => handleSelect(client)}
+                          className="flex flex-col items-start cursor-pointer py-2"
+                        >
+                          <div className="flex justify-between w-full">
+                            <div className="flex flex-col">
+                              <span className="font-medium">{client.name}</span>
+                              <span className="text-xs text-muted-foreground">{client.companyName}</span>
+                            </div>
+                            <CheckIcon
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
                           </div>
-                          <CheckIcon
-                            className={cn(
-                              "ml-auto h-4 w-4",
-                              selectedClientId === client.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </div>
-                      </CommandItem>
-                    ))
+                        </CommandItem>
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-muted-foreground">
+                        Aucun client trouvé pour cet ambassadeur.
+                      </div>
+                    )
                   )}
                 </CommandGroup>
               </CommandList>
