@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 import OffersLoading from "@/components/offers/OffersLoading";
+import LoadingState from "@/components/offers/LoadingState";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -31,7 +33,7 @@ const AmbassadorCreateOffer = () => {
   const { user } = useAuth();
   
   const [client, setClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
@@ -39,7 +41,7 @@ const AmbassadorCreateOffer = () => {
   const [remarks, setRemarks] = useState("");
   const [loadingLeasers, setLoadingLeasers] = useState(true);
   
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
   
   // Utiliser le hook useAmbassadorClients pour gérer les clients de l'ambassadeur
   const { clients: ambassadorClients, isLoading: isLoadingClients, loadClients } = useAmbassadorClients();
@@ -68,6 +70,7 @@ const AmbassadorCreateOffer = () => {
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
   
+  // Charger les leasers au début
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -76,10 +79,15 @@ const AmbassadorCreateOffer = () => {
         
         if (fetchedLeasers && fetchedLeasers.length > 0) {
           setSelectedLeaser(fetchedLeasers[0]);
+        } else {
+          // Utiliser les leasers par défaut si aucun n'est trouvé
+          setSelectedLeaser(defaultLeasers[0]);
         }
       } catch (error) {
         console.error("Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+        // Utiliser les leasers par défaut en cas d'erreur
+        setSelectedLeaser(defaultLeasers[0]);
       } finally {
         setLoadingLeasers(false);
       }
@@ -102,6 +110,9 @@ const AmbassadorCreateOffer = () => {
       fetchAmbassador(ambassadorId);
     } else if (user?.ambassador_id) {
       fetchAmbassador(user.ambassador_id);
+    } else {
+      // Si pas d'ambassadeur ID, terminer le chargement
+      setLoading(false);
     }
   }, [ambassadorId, user]);
   
@@ -271,14 +282,10 @@ const AmbassadorCreateOffer = () => {
   
   const hideFinancialDetails = true;
   
-  useEffect(() => {
-    if (ambassador) {
-      console.log("Ambassador state updated:", ambassador);
-      console.log("Commission level ID:", ambassador.commission_level_id);
-    }
-  }, [ambassador]);
+  // Vérification de tous les états de chargement
+  const isPageLoading = loading || loadingLeasers || !selectedLeaser;
   
-  if (loading || loadingLeasers) {
+  if (isPageLoading) {
     return <OffersLoading />;
   }
   
