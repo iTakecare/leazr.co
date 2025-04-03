@@ -20,6 +20,7 @@ export interface OfferData {
   additional_info?: string; // Alternative field name for remarks
   user_id?: string;
   converted_to_contract?: boolean;
+  financed_amount?: number; // Added this field
   clients?: {
     id?: string;
     name?: string;

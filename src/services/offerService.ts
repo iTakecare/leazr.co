@@ -15,6 +15,17 @@ import {
   generateSignatureLink 
 } from './offers/offerSignature';
 
+import {
+  deleteOffer,
+  updateOfferStatus
+} from './offers/offerStatus';
+
+import {
+  getWorkflowLogs,
+  sendInfoRequest,
+  processInfoResponse
+} from './offers/offerWorkflow';
+
 // Import and re-export from other offer service files
 export * from './offers';
 
@@ -25,8 +36,13 @@ export {
   generateSamplePdf,
   isOfferSigned,
   saveOfferSignature,
-  generateSignatureLink
+  generateSignatureLink,
+  deleteOffer,
+  updateOfferStatus,
+  getWorkflowLogs,
+  sendInfoRequest,
+  processInfoResponse
 };
 
-// Exporter également les fonctions de offerDetail directement
+// Export functions from offerDetail directly
 export * from './offers/offerDetail';
