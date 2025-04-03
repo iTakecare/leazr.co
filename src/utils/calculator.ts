@@ -28,14 +28,20 @@ export const commissionRates = [
 
 // Cache for commission calculations to avoid repeated API calls and calculations
 const commissionCache = new Map();
-// TTL for cache entries (5 minutes)
-const CACHE_TTL = 5 * 60 * 1000;
+// TTL for cache entries (1 minute)
+const CACHE_TTL = 60 * 1000;
+
+// Flag to prevent simultaneous calculations for the same parameters
+const pendingCalculations = new Set();
 
 /**
  * Calculate monthly leasing payment
  * Formula: Amount * Coefficient / 100 = Monthly payment
  */
 export const calculateMonthlyLeasing = (amount: number): number => {
+  // Return 0 for invalid amounts to prevent NaN propagation
+  if (isNaN(amount) || amount <= 0) return 0;
+  
   const coefficient = leasingCoefficients.find(
     (c) => amount >= c.min && amount <= c.max
   );
@@ -49,6 +55,9 @@ export const calculateMonthlyLeasing = (amount: number): number => {
  * Calculate partner commission amount
  */
 export const calculateCommission = (amount: number): number => {
+  // Return 0 for invalid amounts to prevent NaN propagation
+  if (isNaN(amount) || amount <= 0) return 0;
+  
   const commissionRate = commissionRates.find(
     (c) => amount >= c.min && amount <= c.max
   );
@@ -62,6 +71,9 @@ export const calculateCommission = (amount: number): number => {
  * Get coefficient rate based on amount
  */
 export const getCoefficientRate = (amount: number): number => {
+  // Return 0 for invalid amounts to prevent NaN propagation
+  if (isNaN(amount) || amount <= 0) return 0;
+  
   const coefficient = leasingCoefficients.find(
     (c) => amount >= c.min && amount <= c.max
   );
@@ -73,6 +85,9 @@ export const getCoefficientRate = (amount: number): number => {
  * Get commission rate based on amount
  */
 export const getCommissionRate = (amount: number): number => {
+  // Return 0 for invalid amounts to prevent NaN propagation
+  if (isNaN(amount) || amount <= 0) return 0;
+  
   const commissionRate = commissionRates.find(
     (c) => amount >= c.min && amount <= c.max
   );
@@ -83,8 +98,18 @@ export const getCommissionRate = (amount: number): number => {
 /**
  * Calculate commission based on amount and commission level
  */
-export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner', ambassadorId?: string): Promise<{ rate: number, amount: number, levelName?: string }> => {
+export const calculateCommissionByLevel = async (
+  amount: number, 
+  levelId?: string, 
+  type: 'partner' | 'ambassador' = 'partner', 
+  ambassadorId?: string
+): Promise<{ rate: number, amount: number, levelName?: string }> => {
   try {
+    // Return early if amount is invalid
+    if (isNaN(amount) || amount <= 0) {
+      return { rate: 0, amount: 0 };
+    }
+    
     // Create a unique cache key for this combination of parameters
     const cacheKey = `${amount}-${levelId}-${type}-${ambassadorId}`;
     
@@ -94,79 +119,113 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       return cachedItem.value;
     }
     
+    // Check if this calculation is already in progress, if so return a default value
+    if (pendingCalculations.has(cacheKey)) {
+      return { rate: 0, amount: 0 };
+    }
+    
+    // Mark this calculation as pending
+    pendingCalculations.add(cacheKey);
+    
     console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}, ambassadorId: ${ambassadorId}`);
     let actualLevelId = levelId;
     let levelName: string | undefined;
     
-    // If an ambassador ID is provided, get their commission level directly from the database
-    if (ambassadorId) {
-      console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level from database`);
-      
-      // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
-      const { data: ambassador, error: ambassadorError } = await supabase
-        .from('ambassadors')
-        .select('commission_level_id, name')
-        .eq('id', ambassadorId)
-        .single();
-      
-      if (!ambassadorError && ambassador && ambassador.commission_level_id) {
-        actualLevelId = ambassador.commission_level_id;
+    try {
+      // If an ambassador ID is provided, get their commission level directly from the database
+      if (ambassadorId) {
+        console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level from database`);
+        
+        // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
+        const { data: ambassador, error: ambassadorError } = await supabase
+          .from('ambassadors')
+          .select('commission_level_id, name')
+          .eq('id', ambassadorId)
+          .single();
+        
+        if (!ambassadorError && ambassador && ambassador.commission_level_id) {
+          actualLevelId = ambassador.commission_level_id;
+        }
       }
-    }
-
-    // If no level ID is provided, use the default level
-    if (!actualLevelId) {
-      console.log("[calculateCommissionByLevel] No levelId provided, fetching default level");
-      const defaultLevel = await fetchDefaultCommissionLevel(type);
-      console.log("[calculateCommissionByLevel] Default level:", defaultLevel);
-      
-      if (defaultLevel) {
-        actualLevelId = defaultLevel.id;
-        levelName = defaultLevel.name;
+  
+      // If no level ID is provided, use the default level
+      if (!actualLevelId) {
+        console.log("[calculateCommissionByLevel] No levelId provided, fetching default level");
+        const defaultLevel = await fetchDefaultCommissionLevel(type);
+        console.log("[calculateCommissionByLevel] Default level:", defaultLevel);
+        
+        if (defaultLevel) {
+          actualLevelId = defaultLevel.id;
+          levelName = defaultLevel.name;
+        }
       }
-    }
-    
-    // If still no ID, use static rates
-    if (!actualLevelId) {
-      console.log("[calculateCommissionByLevel] No level available, using static rates");
-      const staticRate = getCommissionRate(amount);
-      console.log(`[calculateCommissionByLevel] Static rate for amount ${amount}: ${staticRate}%`);
       
-      const result = {
-        rate: staticRate,
-        amount: (amount * staticRate) / 100
-      };
-      
-      // Cache the result
-      commissionCache.set(cacheKey, { 
-        value: result,
-        timestamp: Date.now()
-      });
-      
-      return result;
-    }
-    
-    // Get commission rates for the level
-    console.log(`[calculateCommissionByLevel] Fetching rates for level: ${actualLevelId}`);
-    
-    // Get full level with rates
-    const level = await getCommissionLevelWithRates(actualLevelId);
-    console.log("[calculateCommissionByLevel] Commission level with rates:", level);
-    
-    if (!level || !level.rates || level.rates.length === 0) {
-      console.log("[calculateCommissionByLevel] No rates found for level, fetching separately");
-      const rates = await fetchCommissionRates(actualLevelId);
-      
-      // Find applicable rate based on amount
-      const applicableRate = rates.find(
-        rate => amount >= rate.min_amount && amount <= rate.max_amount
-      );
-      
-      if (!applicableRate) {
-        console.log(`[calculateCommissionByLevel] No applicable rate found for amount: ${amount}`);
+      // If still no ID, use static rates
+      if (!actualLevelId) {
+        console.log("[calculateCommissionByLevel] No level available, using static rates");
+        const staticRate = getCommissionRate(amount);
+        console.log(`[calculateCommissionByLevel] Static rate for amount ${amount}: ${staticRate}%`);
+        
         const result = {
-          rate: 0,
-          amount: 0,
+          rate: staticRate,
+          amount: (amount * staticRate) / 100
+        };
+        
+        // Cache the result
+        commissionCache.set(cacheKey, { 
+          value: result,
+          timestamp: Date.now()
+        });
+        
+        // Remove from pending calculations
+        pendingCalculations.delete(cacheKey);
+        
+        return result;
+      }
+      
+      // Get commission rates for the level
+      console.log(`[calculateCommissionByLevel] Fetching rates for level: ${actualLevelId}`);
+      
+      // Get full level with rates
+      const level = await getCommissionLevelWithRates(actualLevelId);
+      console.log("[calculateCommissionByLevel] Commission level with rates:", level);
+      
+      if (!level || !level.rates || level.rates.length === 0) {
+        console.log("[calculateCommissionByLevel] No rates found for level, fetching separately");
+        const rates = await fetchCommissionRates(actualLevelId);
+        
+        // Find applicable rate based on amount
+        const applicableRate = rates.find(
+          rate => amount >= rate.min_amount && amount <= rate.max_amount
+        );
+        
+        if (!applicableRate) {
+          console.log(`[calculateCommissionByLevel] No applicable rate found for amount: ${amount}`);
+          const result = {
+            rate: 0,
+            amount: 0,
+            levelName
+          };
+          
+          // Cache the result
+          commissionCache.set(cacheKey, {
+            value: result,
+            timestamp: Date.now()
+          });
+          
+          // Remove from pending calculations
+          pendingCalculations.delete(cacheKey);
+          
+          return result;
+        }
+        
+        console.log(`[calculateCommissionByLevel] Found applicable rate: ${applicableRate.rate}%`);
+        const calculatedAmount = (amount * applicableRate.rate) / 100;
+        console.log(`[calculateCommissionByLevel] Calculated commission amount: ${calculatedAmount}`);
+        
+        const result = {
+          rate: applicableRate.rate,
+          amount: calculatedAmount,
           levelName
         };
         
@@ -176,65 +235,59 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
           timestamp: Date.now()
         });
         
+        // Remove from pending calculations
+        pendingCalculations.delete(cacheKey);
+        
         return result;
-      }
-      
-      console.log(`[calculateCommissionByLevel] Found applicable rate: ${applicableRate.rate}%`);
-      const calculatedAmount = (amount * applicableRate.rate) / 100;
-      console.log(`[calculateCommissionByLevel] Calculated commission amount: ${calculatedAmount}`);
-      
-      const result = {
-        rate: applicableRate.rate,
-        amount: calculatedAmount,
-        levelName
-      };
-      
-      // Cache the result
-      commissionCache.set(cacheKey, {
-        value: result,
-        timestamp: Date.now()
-      });
-      
-      return result;
-    } else {
-      // Use the rates from the level
-      const applicableRate = level.rates.find(
-        rate => amount >= rate.min_amount && amount <= rate.max_amount
-      );
-      
-      if (!applicableRate) {
-        console.log(`[calculateCommissionByLevel] No applicable rate found in level rates for amount: ${amount}`);
+      } else {
+        // Use the rates from the level
+        const applicableRate = level.rates.find(
+          rate => amount >= rate.min_amount && amount <= rate.max_amount
+        );
+        
+        if (!applicableRate) {
+          console.log(`[calculateCommissionByLevel] No applicable rate found in level rates for amount: ${amount}`);
+          const result = {
+            rate: 0,
+            amount: 0,
+            levelName: level.name
+          };
+          
+          // Cache the result
+          commissionCache.set(cacheKey, {
+            value: result,
+            timestamp: Date.now()
+          });
+          
+          // Remove from pending calculations
+          pendingCalculations.delete(cacheKey);
+          
+          return result;
+        }
+        
+        console.log(`[calculateCommissionByLevel] Found applicable rate from level: ${applicableRate.rate}%`);
+        const calculatedAmount = (amount * applicableRate.rate) / 100;
+        
         const result = {
-          rate: 0,
-          amount: 0,
+          rate: applicableRate.rate,
+          amount: calculatedAmount,
           levelName: level.name
         };
         
-        // Cache the result
+        // Cache the result with timestamp
         commissionCache.set(cacheKey, {
           value: result,
           timestamp: Date.now()
         });
         
+        // Remove from pending calculations
+        pendingCalculations.delete(cacheKey);
+        
         return result;
       }
-      
-      console.log(`[calculateCommissionByLevel] Found applicable rate from level: ${applicableRate.rate}%`);
-      const calculatedAmount = (amount * applicableRate.rate) / 100;
-      
-      const result = {
-        rate: applicableRate.rate,
-        amount: calculatedAmount,
-        levelName: level.name
-      };
-      
-      // Cache the result with timestamp
-      commissionCache.set(cacheKey, {
-        value: result,
-        timestamp: Date.now()
-      });
-      
-      return result;
+    } finally {
+      // Ensure we always remove from pending calculations, even in case of error
+      pendingCalculations.delete(cacheKey);
     }
   } catch (error) {
     console.error("[calculateCommissionByLevel] Error:", error);

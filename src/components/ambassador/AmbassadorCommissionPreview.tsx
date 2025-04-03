@@ -33,17 +33,47 @@ const AmbassadorCommissionPreview = ({
     totalAmount: 0, 
     ambassadorId: '', 
     commissionLevelId: '',
-    equipmentListHash: ''
+    equipmentListHash: '',
+    lastCalculationTime: 0
   });
+  
+  // Object to track if the component is mounted
+  const isMounted = useRef(true);
+  
+  useEffect(() => {
+    // Set mounted flag
+    isMounted.current = true;
+    
+    // Cleanup function to set unmounted flag
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
-    const calculateCommission = async () => {
-      if (!totalMonthlyPayment || totalMonthlyPayment === 0 || !ambassadorId || !commissionLevelId) {
-        return;
-      }
+    // Skip calculation if missing required parameters
+    if (!ambassadorId || !commissionLevelId) {
+      return;
+    }
+    
+    // Prevent calculations triggered by zero values at component initialization
+    if (totalMonthlyPayment === 0 && equipmentList.length === 0) {
+      return;
+    }
+    
+    // Debounce calculations - don't allow more frequent than every 500ms
+    const now = Date.now();
+    if (now - previousParams.current.lastCalculationTime < 500) {
+      return;
+    }
 
+    const calculateCommission = async () => {
       // Calculate total equipment amount
       const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+      
+      if (totalEquipmentAmount <= 0) {
+        return;
+      }
       
       // Create a simple hash of the equipment list for comparison
       const equipmentListHash = JSON.stringify(equipmentList.map(eq => ({
@@ -62,6 +92,9 @@ const AmbassadorCommissionPreview = ({
         return;
       }
 
+      // Update the last calculation timestamp
+      previousParams.current.lastCalculationTime = now;
+      
       setIsCalculating(true);
       try {
         console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
@@ -73,37 +106,51 @@ const AmbassadorCommissionPreview = ({
           ambassadorId
         );
         
-        setCommission({
-          amount: commissionData.amount,
-          rate: commissionData.rate,
-          levelName: commissionData.levelName || ""
-        });
-        
-        // Notify parent component about the calculated commission
-        if (onCommissionCalculated) {
-          onCommissionCalculated(commissionData.amount);
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          setCommission({
+            amount: commissionData.amount,
+            rate: commissionData.rate,
+            levelName: commissionData.levelName || ""
+          });
+          
+          // Notify parent component about the calculated commission
+          if (onCommissionCalculated) {
+            onCommissionCalculated(commissionData.amount);
+          }
+          
+          console.log("Commission calculated:", commissionData);
+          
+          // Update the previous parameters reference
+          previousParams.current = {
+            totalAmount: totalEquipmentAmount,
+            ambassadorId,
+            commissionLevelId,
+            equipmentListHash,
+            lastCalculationTime: now
+          };
         }
-        
-        console.log("Commission calculated:", commissionData);
-        
-        // Update the previous parameters reference
-        previousParams.current = {
-          totalAmount: totalEquipmentAmount,
-          ambassadorId,
-          commissionLevelId,
-          equipmentListHash
-        };
       } catch (error) {
         console.error("Error calculating commission:", error);
-        toast.error("Erreur lors du calcul de la commission");
+        if (isMounted.current) {
+          toast.error("Erreur lors du calcul de la commission");
+        }
       } finally {
-        setIsCalculating(false);
+        if (isMounted.current) {
+          setIsCalculating(false);
+        }
       }
     };
 
-    if (equipmentList.length > 0 && ambassadorId && commissionLevelId) {
-      calculateCommission();
-    }
+    // Use setTimeout to prevent React state update cycles
+    const timeoutId = setTimeout(() => {
+      if (equipmentList.length > 0 && ambassadorId && commissionLevelId) {
+        calculateCommission();
+      }
+    }, 50);
+    
+    // Clean up timeout on dependency changes
+    return () => clearTimeout(timeoutId);
   }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId, onCommissionCalculated]);
 
   if (!ambassadorId || !commissionLevelId) {
