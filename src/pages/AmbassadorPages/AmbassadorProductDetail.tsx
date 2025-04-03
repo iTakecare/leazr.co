@@ -138,16 +138,7 @@ const AmbassadorProductDetail = () => {
                     {formatCurrency(product.monthly_price)}
                     <span className="text-sm font-normal text-gray-500"> /mois</span>
                   </p>
-                  {product.price > 0 && (
-                    <p className="text-sm text-gray-600">
-                      Prix d'achat: {formatCurrency(product.price)}
-                    </p>
-                  )}
                 </div>
-              ) : product.price > 0 ? (
-                <p className="text-xl font-bold">
-                  {formatCurrency(product.price)}
-                </p>
               ) : (
                 <p className="text-lg font-medium text-gray-500">Prix sur demande</p>
               )}
@@ -242,15 +233,6 @@ const AmbassadorProductDetail = () => {
                                   {formatCurrency(variant.monthly_price)}
                                   <span className="text-sm font-normal text-gray-500">/mois</span>
                                 </div>
-                                {variant.price > 0 && (
-                                  <div className="text-sm text-gray-600">
-                                    Prix: {formatCurrency(variant.price)}
-                                  </div>
-                                )}
-                              </div>
-                            ) : variant.price > 0 ? (
-                              <div className="font-bold text-right">
-                                {formatCurrency(variant.price)}
                               </div>
                             ) : (
                               <div className="text-gray-500 text-right">Prix sur demande</div>
