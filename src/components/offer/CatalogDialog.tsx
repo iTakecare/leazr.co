@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
@@ -31,39 +30,18 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   
   // Handle product selection from the selector
   const onSelectProduct = (product: any) => {
-    console.log("Product selected:", product);
-    
-    // Convert to the expected Product type if needed
-    const catalogProduct: Product = {
-      id: product.id,
-      name: product.name,
-      brand: product.brand || "",
-      category: product.category || "",
-      description: product.description || "",
-      price: product.price || 0,
-      monthly_price: product.monthly_price,
-      image_url: product.image_url,
-      active: product.active !== undefined ? product.active : true,
-      variation_attributes: product.variation_attributes,
-      variant_combination_prices: product.variant_combination_prices,
-      is_parent: product.is_parent,
-      attributes: product.attributes,
-      createdAt: product.createdAt || new Date(),
-      updatedAt: product.updatedAt || new Date()
-    };
-    
     // Check if the product has variants
     const hasVariants = 
-      (catalogProduct.variation_attributes && Object.keys(catalogProduct.variation_attributes).length > 0) &&
-      (catalogProduct.variant_combination_prices && catalogProduct.variant_combination_prices.length > 0);
+      (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) &&
+      (product.variant_combination_prices && product.variant_combination_prices.length > 0);
     
     if (hasVariants) {
       // If product has variants, show the variant selector
-      setSelectedProduct(catalogProduct);
+      setSelectedProduct(product);
       setShowVariantSelector(true);
     } else {
       // Otherwise, directly select the product
-      handleProductSelect(catalogProduct);
+      handleProductSelect(product);
       onClose();
     }
   };
@@ -73,26 +51,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Convert to the expected Product type
-    const catalogProduct: Product = {
-      id: product.id,
-      name: product.name,
-      brand: product.brand || "",
-      category: product.category || "",
-      description: product.description || "",
-      price: product.price || 0,
-      monthly_price: product.monthly_price,
-      image_url: product.image_url,
-      active: product.active !== undefined ? product.active : true,
-      variation_attributes: product.variation_attributes,
-      variant_combination_prices: product.variant_combination_prices,
-      is_parent: product.is_parent,
-      attributes: product.attributes,
-      createdAt: product.createdAt || new Date(),
-      updatedAt: product.updatedAt || new Date()
-    };
-    
-    setSelectedProduct(catalogProduct);
+    setSelectedProduct(product);
     setShowVariantSelector(true);
   };
   

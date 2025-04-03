@@ -7,36 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, Info } from "lucide-react";
-import ProductCard from "./ProductCard";
+import { Search, Loader2, Info, ChevronDown, ChevronUp } from "lucide-react";
+import CatalogProductCard from "./CatalogProductCard";
 import { toast } from "sonner";
-
-interface ProductVariant {
-  id: string;
-  price: number;
-  monthly_price?: number;
-  attributes: Record<string, any>;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  brand?: string;
-  category?: string;
-  description?: string;
-  price: number;
-  monthly_price?: number;
-  image_url?: string;
-  active: boolean;
-  variants?: ProductVariant[];
-  is_parent?: boolean;
-  variation_attributes?: Record<string, string[]>;
-  attributes?: Record<string, any>;
-  variant_combination_prices?: any[];
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}
+import { Product } from "@/types/catalog";
 
 interface ProductSelectorProps {
   isOpen: boolean;
@@ -58,10 +32,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("tous");
+  const [showScrollHint, setShowScrollHint] = useState(true);
   
   const fetchProducts = async (): Promise<Product[]> => {
-    console.log("Fetching products from Supabase");
-    
     try {
       const { data: productsData, error: productsError } = await supabase
         .from("products")
@@ -73,8 +46,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         throw productsError;
       }
       
-      console.log(`Retrieved ${productsData.length} products`);
-      
       const { data: variantPricesData, error: variantPricesError } = await supabase
         .from("product_variant_prices")
         .select("*");
@@ -83,8 +54,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         console.error("Error fetching variant prices:", variantPricesError);
         throw variantPricesError;
       }
-      
-      console.log(`Retrieved ${variantPricesData.length} variant prices`);
       
       const productsWithVariants = productsData.map(product => {
         const productVariantPrices = variantPricesData.filter(price => 
@@ -108,7 +77,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         };
       });
       
-      console.log("Processed products with variants:", productsWithVariants.length);
       return productsWithVariants;
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -198,7 +166,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const filteredProducts = getFilteredProducts();
   
   const handleProductSelect = (product: Product) => {
-    console.log("Selected product:", product);
     onSelectProduct(product);
   };
   
@@ -207,8 +174,27 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       setSearchQuery("");
       setSelectedCategory("all");
       setSelectedTab("tous");
+      // Afficher l'indicateur de défilement au début, puis le masquer après un délai
+      setShowScrollHint(true);
+      const timer = setTimeout(() => {
+        setShowScrollHint(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Effet pour masquer l'indicateur de défilement lors du scroll
+  useEffect(() => {
+    if (isOpen && showScrollHint) {
+      const handleScroll = () => {
+        setShowScrollHint(false);
+      };
+      
+      document.addEventListener('scroll', handleScroll, true);
+      return () => document.removeEventListener('scroll', handleScroll, true);
+    }
+  }, [isOpen, showScrollHint]);
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -264,39 +250,51 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               </Tabs>
             </div>
             
-            <ScrollArea className="flex-1 p-4">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2">Chargement des produits...</span>
-                </div>
-              ) : error ? (
-                <div className="text-center p-8 text-red-500">
-                  <p>Une erreur est survenue lors du chargement des produits.</p>
-                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
-                    Réessayer
-                  </Button>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="text-center p-8 text-gray-500 flex flex-col items-center">
-                  <Info className="h-12 w-12 text-gray-400 mb-2" />
-                  <p className="text-lg font-medium">Aucun produit trouvé</p>
-                  <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
-                      <ProductCard 
-                        product={product as any} 
-                        onClick={() => handleProductSelect(product)}
-                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
-                      />
+            <div className="relative flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-40">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="ml-2">Chargement des produits...</span>
                     </div>
-                  ))}
+                  ) : error ? (
+                    <div className="text-center p-8 text-red-500">
+                      <p>Une erreur est survenue lors du chargement des produits.</p>
+                      <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                        Réessayer
+                      </Button>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="text-center p-8 text-gray-500 flex flex-col items-center">
+                      <Info className="h-12 w-12 text-gray-400 mb-2" />
+                      <p className="text-lg font-medium">Aucun produit trouvé</p>
+                      <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {filteredProducts.map((product) => (
+                        <div key={product.id} className="cursor-pointer">
+                          <CatalogProductCard 
+                            product={product} 
+                            onClick={() => handleProductSelect(product)}
+                            onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+              
+              {/* Indicateur de défilement */}
+              {showScrollHint && filteredProducts.length > 4 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-2 rounded-full flex items-center gap-2 shadow-md animate-bounce">
+                  <span>Faites défiler pour voir plus</span>
+                  <ChevronDown className="h-4 w-4" />
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </Tabs>
         </div>
       </SheetContent>
