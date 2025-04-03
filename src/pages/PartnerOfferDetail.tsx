@@ -177,6 +177,9 @@ const PartnerOfferDetail = () => {
     );
   }
 
+  // Check if this is an internal request (no ambassador)
+  const isInternalRequest = !offer.ambassador_id;
+
   return (
     <PageTransition>
       <Container>
@@ -356,11 +359,17 @@ const PartnerOfferDetail = () => {
                       <span className="text-muted-foreground">Mensualité:</span>
                       <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                     </div>
-                    <div className="border-t my-2"></div>
-                    <div className="flex justify-between font-medium">
-                      <span>Votre commission:</span>
-                      <span className="text-green-600">{formatCurrency(offer.commission)}</span>
-                    </div>
+                    
+                    {/* Only show commission if this is not an internal request */}
+                    {!isInternalRequest && (
+                      <>
+                        <div className="border-t my-2"></div>
+                        <div className="flex justify-between font-medium">
+                          <span>Votre commission:</span>
+                          <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
