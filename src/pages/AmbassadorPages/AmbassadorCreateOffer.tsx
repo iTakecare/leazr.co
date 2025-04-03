@@ -244,6 +244,7 @@ const AmbassadorCreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
+        financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",

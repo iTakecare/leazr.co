@@ -160,6 +160,9 @@ const CreateOffer = () => {
         }))
       );
 
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -169,6 +172,7 @@ const CreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
+        financed_amount: financedAmount,
         workflow_status: "draft",
         type: "offer",
         user_id: user?.id || "",

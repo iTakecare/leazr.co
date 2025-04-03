@@ -752,6 +752,7 @@ export type Database = {
           converted_to_contract: boolean | null
           created_at: string | null
           equipment_description: string | null
+          financed_amount: number | null
           id: string
           monthly_payment: number
           previous_status: string | null
@@ -778,6 +779,7 @@ export type Database = {
           converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
+          financed_amount?: number | null
           id?: string
           monthly_payment?: number
           previous_status?: string | null
@@ -804,6 +806,7 @@ export type Database = {
           converted_to_contract?: boolean | null
           created_at?: string | null
           equipment_description?: string | null
+          financed_amount?: number | null
           id?: string
           monthly_payment?: number
           previous_status?: string | null
@@ -1598,6 +1601,7 @@ export type Database = {
           converted_to_contract: boolean | null
           created_at: string | null
           equipment_description: string | null
+          financed_amount: number | null
           id: string
           monthly_payment: number
           previous_status: string | null

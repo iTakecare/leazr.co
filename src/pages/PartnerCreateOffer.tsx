@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -302,6 +301,10 @@ const PartnerCreateOffer = () => {
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+      
+      // Calculate financed amount
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
       const offerData = {
         user_id: user.id,
@@ -314,6 +317,7 @@ const PartnerCreateOffer = () => {
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
+        financed_amount: financedAmount,
         additional_info: remarks,
         type: 'partner_offer'
       };
