@@ -44,7 +44,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         if (ambassador?.commission_level_id) {
           // Calculer la commission basée sur le niveau de l'ambassadeur
           const commissionData = await calculateCommissionByLevel(
-            totalEquipmentAmount,
+            Number(totalEquipmentAmount),
             ambassador.commission_level_id,
             'ambassador',
             data.ambassador_id

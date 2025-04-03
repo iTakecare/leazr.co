@@ -1,22 +1,31 @@
+
 export interface OfferData {
   id?: string;
   client_id: string;
   client_name: string;
   client_email?: string;
+  client_company?: string; // Optional field, used only for display/session storage, not sent to DB
   equipment_description?: string;
-  amount: number;
-  coefficient: number;
-  monthly_payment: number;
-  commission?: number;
+  amount: number | string; // Allow for both number and string types
+  coefficient: number | string; // Allow for both number and string types
+  monthly_payment: number | string; // Allow for both number and string types
+  commission?: number | string; // Allow for both number and string types
   commission_status?: string;
   commission_paid_at?: string; 
   ambassador_id?: string;
   type?: string;
   workflow_status?: string;
   status?: string;
-  remarks?: string;
+  remarks?: string; // Used for additional info or notes
+  additional_info?: string; // Alternative field name for remarks
   user_id?: string;
-  client_company?: string; // Optional field, used only for display/session storage, not sent to DB
+  converted_to_contract?: boolean;
+  clients?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    company?: string;
+  };
 }
 
 export enum OfferStatus {

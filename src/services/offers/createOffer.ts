@@ -5,6 +5,17 @@ import { calculateCommissionByLevel } from "@/utils/calculator";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
+    // Ensure numeric values are properly converted
+    const offerDataToSave = {
+      ...offerData,
+      amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
+      coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
+      monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
+      commission: offerData.commission ? 
+        (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
+        undefined
+    };
+
     // Ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur
     if (offerData.type === 'ambassador_offer' && offerData.user_id) {
       // Récupérer l'ambassador_id associé à cet utilisateur
@@ -15,20 +26,20 @@ export const createOffer = async (offerData: OfferData) => {
         .single();
         
       if (!ambassadorError && ambassadorData) {
-        offerData.ambassador_id = ambassadorData.id;
+        offerDataToSave.ambassador_id = ambassadorData.id;
         
         // Si nous avons un montant et un niveau de commission, recalculons la commission
-        if (offerData.amount && ambassadorData.commission_level_id) {
+        if (offerDataToSave.amount && ambassadorData.commission_level_id) {
           try {
             const commissionData = await calculateCommissionByLevel(
-              offerData.amount,
+              Number(offerDataToSave.amount),
               ambassadorData.commission_level_id,
               'ambassador',
               ambassadorData.id
             );
             
             if (commissionData && commissionData.amount) {
-              offerData.commission = commissionData.amount;
+              offerDataToSave.commission = commissionData.amount;
             }
           } catch (commError) {
             console.error("Error calculating commission during offer creation:", commError);
@@ -39,7 +50,7 @@ export const createOffer = async (offerData: OfferData) => {
     
     const { data, error } = await supabase
       .from('offers')
-      .insert(offerData)
+      .insert(offerDataToSave)
       .select()
       .single();
     
