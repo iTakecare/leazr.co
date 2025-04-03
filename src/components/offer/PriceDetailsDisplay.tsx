@@ -42,11 +42,16 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
     ? displayMonthlyPayment 
     : 0;
 
+  // Calcul du montant financé à partir de la mensualité et du coefficient
+  // Formule: montant financé = (mensualité × 100) ÷ coefficient
+  const financedAmount = coefficient > 0 ? (safeMonthlyPayment * 100) / coefficient : 0;
+
   // Éviter les recalculs inutiles de formatage en les mémorisant
   const formattedMarginAmount = formatCurrency(displayMarginAmount);
   const formattedMarginPercentage = formatPercentageWithComma(marginPercentage);
   const formattedPriceWithMargin = formatCurrency(displayPriceWithMargin);
   const formattedMonthlyPayment = formatCurrency(safeMonthlyPayment);
+  const formattedFinancedAmount = formatCurrency(financedAmount);
 
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
@@ -65,6 +70,10 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Coefficient appliqué :</span>
             <span className="font-medium">{coefficient.toFixed(3)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Montant financé :</span>
+            <span className="font-medium">{formattedFinancedAmount}</span>
           </div>
         </>
       )}

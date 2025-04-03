@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 interface AmbassadorCommissionPreviewProps {
   totalMonthlyPayment: number;
@@ -46,17 +47,7 @@ const AmbassadorCommissionPreview = ({
     if (calculationAttemptedRef.current) return;
     calculationAttemptedRef.current = true;
     
-    // Calculer le montant total des équipements
-    const totalEquipmentAmount = equipmentList.reduce((sum, eq) => {
-      const price = typeof eq.purchasePrice === 'number' ? eq.purchasePrice : 0;
-      const quantity = typeof eq.quantity === 'number' ? eq.quantity : 0;
-      return sum + (price * quantity);
-    }, 0);
-    
-    // Ne pas calculer pour de petits montants
-    if (totalEquipmentAmount < 10) return;
-    
-    // Le calcul effectif est déplacé dans un import dynamique
+    // Calculer le montant financé à partir de la mensualité et du coefficient applicable
     const calculateCommission = async () => {
       setIsCalculating(true);
       
@@ -64,8 +55,24 @@ const AmbassadorCommissionPreview = ({
         // Importer dynamiquement pour éviter les cycles de dépendances
         const { calculateCommissionByLevel } = await import('@/utils/calculator');
         
+        // Récupérer le coefficient applicable pour le premier équipement
+        // (On suppose que le même coefficient est utilisé pour tous les équipements)
+        let coefficient = 3.55; // Valeur par défaut
+        
+        if (equipmentList.length > 0 && equipmentList[0].coefficient) {
+          coefficient = equipmentList[0].coefficient;
+        } else if (equipmentList.length > 0 && equipmentList[0].purchasePrice) {
+          // Si le coefficient n'est pas défini, essayer de le déduire du prix d'achat
+          const { getCoefficientRate } = await import('@/utils/calculator');
+          coefficient = getCoefficientRate(equipmentList[0].purchasePrice);
+        }
+        
+        // Calculer le montant financé à partir de la mensualité totale
+        const financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, coefficient);
+        
+        // Calculer la commission basée sur le montant financé
         const commissionData = await calculateCommissionByLevel(
-          totalEquipmentAmount,
+          financedAmount,
           commissionLevelId,
           'ambassador',
           ambassadorId

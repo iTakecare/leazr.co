@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Plus, MinusCircle, PlusCircle } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateCommissionByLevel } from "@/utils/calculator";
+import { calculateCommissionByLevel, calculateFinancedAmount } from "@/utils/calculator";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -53,14 +54,15 @@ const EquipmentList = ({
       return;
     }
     
-    const totalEquipmentAmount = globalMarginAdjustment.amount + 
-      equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+    // Calculer le montant financé à partir de la mensualité totale et du coefficient global
+    const coefficient = globalMarginAdjustment.newCoef;
+    const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
     
-    if (totalEquipmentAmount <= 0) {
+    if (financedAmount <= 0) {
       return;
     }
     
-    const paramsSignature = `${totalEquipmentAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
+    const paramsSignature = `${financedAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
     
     if (paramsSignature === paramsSignatureRef.current) {
       return;
@@ -77,7 +79,7 @@ const EquipmentList = ({
     calculationTimerRef.current = setTimeout(async () => {
       try {
         const commissionData = await calculateCommissionByLevel(
-          totalEquipmentAmount,
+          financedAmount,
           commissionLevelId,
           'ambassador',
           ambassadorId
@@ -95,7 +97,7 @@ const EquipmentList = ({
         calculationTimerRef.current = null;
       }
     }, 500);
-  }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.amount]);
+  }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.newCoef, totalMonthlyPayment]);
 
   useEffect(() => {
     if (ambassadorId && commissionLevelId) {
@@ -132,6 +134,9 @@ const EquipmentList = ({
   
   const marginDifference = globalMarginAdjustment.marginDifference || 0;
   const totalMarginWithDifference = totalMarginAmount + marginDifference;
+  
+  // Calcul du montant financé
+  const financedAmount = calculateFinancedAmount(totalMonthlyPayment, globalMarginAdjustment.newCoef);
 
   return (
     <>
@@ -244,6 +249,10 @@ const EquipmentList = ({
                 <div className="flex justify-between items-center">
                   <div>Marge totale en euros :</div>
                   <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>Montant financé :</div>
+                  <div className="font-medium">{formatCurrency(financedAmount)}</div>
                 </div>
                 {marginDifference !== 0 && (
                   <>

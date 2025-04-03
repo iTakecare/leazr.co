@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CommissionRate, 
@@ -74,6 +75,18 @@ export const getCommissionRate = (amount: number): number => {
   return commissionRate?.rate || 0;
 };
 
+/**
+ * Calcul du montant financé à partir de la mensualité et du coefficient
+ * Formule : montant financé = (mensualité × 100) ÷ coefficient
+ */
+export const calculateFinancedAmount = (monthlyPayment: number, coefficient: number): number => {
+  if (!monthlyPayment || !coefficient || coefficient <= 0) {
+    return 0;
+  }
+  
+  return (monthlyPayment * 100) / coefficient;
+};
+
 // Cache de calcul de commission pour éviter les calculs répétitifs
 interface CommissionCache {
   [key: string]: {
@@ -94,7 +107,12 @@ const currentCalculation: {[key: string]: Promise<any>} = {};
  * Calculate commission based on amount and commission level
  * Optimized with better caching and calculation management
  */
-export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner', ambassadorId?: string): Promise<{ rate: number, amount: number, levelName?: string }> => {
+export const calculateCommissionByLevel = async (
+  amount: number, 
+  levelId?: string, 
+  type: 'partner' | 'ambassador' = 'partner', 
+  ambassadorId?: string
+): Promise<{ rate: number, amount: number, levelName?: string }> => {
   // Vérifier si les données d'entrée sont valides pour éviter des calculs inutiles
   if (!amount || amount <= 0) {
     return { rate: 0, amount: 0, levelName: "" };
