@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -55,11 +56,6 @@ import CartPage from './pages/CartPage';
 import RequestPage from './pages/RequestPage';
 import RequestSentPage from './pages/RequestSentPage';
 import Index from './pages/Index';
-import AmbassadorClients from "./pages/AmbassadorPages/AmbassadorClients";
-import AmbassadorClientDetail from "./pages/AmbassadorPages/AmbassadorClientDetail";
-import AmbassadorClientCreate from "./pages/AmbassadorPages/AmbassadorClientCreate";
-import AmbassadorCommissions from "./pages/AmbassadorPages/AmbassadorCommissions";
-import AmbassadorStatistics from "./pages/AmbassadorPages/AmbassadorStatistics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -146,7 +142,7 @@ const App = () => {
                     <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                     <Route path="offers" element={<AmbassadorOffersPage />} />
                     <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
-                    <Route path="clients" element={<AmbassadorClients />} />
+                    <Route path="clients" element={<AmbassadorClientsPage />} />
                     <Route path="clients/new" element={<ClientForm isAmbassador={true} />} />
                     <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
                     <Route path="clients/:id" element={<ClientDetail />} />
@@ -154,8 +150,6 @@ const App = () => {
                     <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                     <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
                     <Route path="catalog" element={<AmbassadorCatalog />} />
-                    <Route path="commissions" element={<AmbassadorCommissions />} />
-                    <Route path="statistics" element={<AmbassadorStatistics />} />
                   </Route>
                   
                   {/* Routes partenaire */}
