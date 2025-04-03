@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
@@ -23,9 +22,9 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         let equipmentData = [];
         try {
           if (data.equipment_description) {
-            equipmentData = typeof data.equipment_data === 'object' ? 
-              data.equipment_data : 
-              JSON.parse(data.equipment_description);
+            equipmentData = typeof data.equipment_description === 'object' ? 
+              data.equipment_description : 
+              JSON.parse(data.equipment_description as string);
           }
         } catch (e) {
           console.error("Erreur de parsing des données d'équipement:", e);

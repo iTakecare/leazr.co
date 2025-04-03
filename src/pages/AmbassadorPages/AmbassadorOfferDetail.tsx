@@ -532,7 +532,7 @@ const AmbassadorOfferDetail = () => {
                                       {Object.entries(item.variants).map(([key, value]) => (
                                         <div key={key} className="flex flex-col">
                                           <span className="text-xs text-gray-600">{key}</span>
-                                          <span className="font-medium text-sm">{value}</span>
+                                          <span className="font-medium text-sm">{String(value)}</span>
                                         </div>
                                       ))}
                                     </div>
