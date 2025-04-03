@@ -1,181 +1,174 @@
+
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, Plus, MinusCircle, PlusCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
+import { Minus, Plus, Info } from "lucide-react";
 import { calculateCommissionByLevel } from "@/utils/calculator";
-import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
 
 interface EquipmentListProps {
   equipmentList: any[];
+  editingId: string | null;
   startEditing: (id: string) => void;
   removeFromList: (id: string) => void;
-  updateQuantity: (id: string, newQuantity: number) => void;
-  editingId: string | null;
+  updateQuantity: (id: string, quantity: number) => void;
   totalMonthlyPayment: number;
   globalMarginAdjustment: {
     amount: number;
     newCoef: number;
     active: boolean;
-    marginDifference?: number;
+    marginDifference: number;
   };
   toggleAdaptMonthlyPayment: () => void;
   hideFinancialDetails?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
+  onCommissionCalculated?: (commission: number) => void;
 }
 
 const EquipmentList = ({
   equipmentList,
+  editingId,
   startEditing,
   removeFromList,
   updateQuantity,
-  editingId,
   totalMonthlyPayment,
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
   ambassadorId,
-  commissionLevelId
+  commissionLevelId,
+  onCommissionCalculated
 }: EquipmentListProps) => {
-  const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
-    amount: 0, 
-    rate: 0, 
-    levelName: "" 
-  });
-  const [isCalculating, setIsCalculating] = useState(false);
-
-  useEffect(() => {
-    const calculateCommission = async () => {
-      if (!totalMonthlyPayment || totalMonthlyPayment === 0) {
-        return;
-      }
-
-      setIsCalculating(true);
-      try {
-        console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        const totalEquipmentAmount = globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
-        const commissionData = await calculateCommissionByLevel(
-          totalEquipmentAmount,
-          commissionLevelId,
-          'ambassador',
-          ambassadorId
-        );
-        
-        setCommission({ 
-          amount: commissionData.amount, 
-          rate: commissionData.rate,
-          levelName: commissionData.levelName || ""
-        });
-        console.log("Commission calculated:", commissionData);
-      } catch (error) {
-        console.error("Error calculating commission:", error);
-        toast.error("Erreur lors du calcul de la commission");
-      } finally {
-        setIsCalculating(false);
-      }
-    };
-
-    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
-      calculateCommission();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(null);
+  
+  const handleDeleteClick = (id: string) => {
+    setEquipmentToDelete(id);
+    setShowConfirm(true);
+  };
+  
+  const confirmDelete = () => {
+    if (equipmentToDelete) {
+      removeFromList(equipmentToDelete);
+      setEquipmentToDelete(null);
     }
-  }, [totalMonthlyPayment, equipmentList, globalMarginAdjustment.amount, ambassadorId, commissionLevelId]);
+    setShowConfirm(false);
+  };
+  
+  const cancelDelete = () => {
+    setEquipmentToDelete(null);
+    setShowConfirm(false);
+  };
 
   if (equipmentList.length === 0) {
     return (
       <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Liste d'équipements</CardTitle>
-        </CardHeader>
-        <CardContent className="py-12">
-          <div className="text-center text-muted-foreground">
-            <p>Ajoutez des équipements à votre offre</p>
-          </div>
+        <CardContent className="p-6 flex flex-col items-center justify-center h-64 text-center">
+          <Info className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">Aucun équipement ajouté</h3>
+          <p className="text-muted-foreground">
+            Utilisez le formulaire à gauche pour ajouter des équipements à votre offre.
+          </p>
         </CardContent>
       </Card>
     );
   }
 
-  const totalBaseAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
-  const totalMarginAmount = globalMarginAdjustment.amount;
-  const globalMarginPercentage = totalMarginAmount > 0 && totalBaseAmount > 0 
-    ? ((totalMarginAmount / totalBaseAmount) * 100).toFixed(2) 
-    : "0.00";
-  
-  const marginDifference = globalMarginAdjustment.marginDifference || 0;
-  const totalMarginWithDifference = totalMarginAmount + marginDifference;
-
   return (
     <>
       <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-2 border-b">
+        <CardHeader className="pb-3 border-b">
           <CardTitle>Liste des équipements</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 pb-0">
+
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Équipement</th>
-                  <th className="text-left py-2">Prix unitaire</th>
-                  <th className="text-center py-2">Qté</th>
-                  {!hideFinancialDetails && <th className="text-right py-2">Marge</th>}
-                  <th className="text-right py-2">Total</th>
-                  <th className="text-right py-2">Actions</th>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Équipement</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">Prix unitaire</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">Qté</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Total</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {equipmentList.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100">
-                    <td className="py-3">{item.title}</td>
-                    <td className="py-3">{hideFinancialDetails ? "—" : formatCurrency(item.purchasePrice)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center justify-center gap-1">
+                  <tr key={item.id} className={editingId === item.id ? "bg-blue-50" : ""}>
+                    <td className="px-4 py-3 text-sm">
+                      {item.title}
+                      {!hideFinancialDetails && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Marge: {item.margin}%
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-center">
+                      {formatCurrency(item.purchasePrice)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-center">
+                      <div className="flex items-center justify-center">
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1 || editingId === item.id}
                         >
-                          <MinusCircle className="h-4 w-4" />
+                          <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-6 text-center">{item.quantity}</span>
+                        <span className="mx-2 min-w-8 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          disabled={editingId === item.id}
                         >
-                          <PlusCircle className="h-4 w-4" />
+                          <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                    {!hideFinancialDetails && (
-                      <td className="text-right py-3">{item.margin.toFixed(2)} %</td>
-                    )}
-                    <td className="text-right py-3 text-blue-600 font-medium">
-                      {formatCurrency((item.monthlyPayment || 0) * item.quantity)}
+                    <td className="px-4 py-3 text-sm text-right">
+                      {formatCurrency(item.purchasePrice * item.quantity)}
+                      {!hideFinancialDetails && item.monthlyPayment && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatCurrency(item.monthlyPayment * item.quantity)}/mois
+                        </div>
+                      )}
                     </td>
-                    <td className="text-right py-3">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => startEditing(item.id)}
-                          disabled={!!editingId}
-                          className="h-7 w-7 text-blue-600"
+                          disabled={editingId !== null}
+                          className="h-7 text-xs"
                         >
-                          <Edit className="h-4 w-4" />
+                          Modifier
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          onClick={() => removeFromList(item.id)}
-                          disabled={!!editingId}
-                          className="h-7 w-7 text-red-600"
+                          size="sm"
+                          onClick={() => handleDeleteClick(item.id)}
+                          disabled={editingId !== null}
+                          className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          Supprimer
                         </Button>
                       </div>
                     </td>
@@ -184,83 +177,87 @@ const EquipmentList = ({
               </tbody>
             </table>
           </div>
-
-          <div className="flex justify-end pt-4 pb-2 border-t mt-2">
-            <div className="font-medium">Mensualité totale : </div>
-            <div className="text-lg font-bold text-blue-600 ml-2">
-              {formatCurrency(totalMonthlyPayment)}
-            </div>
-          </div>
           
-        </CardContent>
-      </Card>
-
-      <Card className="border border-gray-200 shadow-sm mt-4">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Récapitulatif global</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            {!hideFinancialDetails && (
-              <>
-                <div className="flex justify-between items-center">
-                  <div>Coefficient actuel :</div>
-                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Nouveau coefficient :</div>
-                  <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Marge globale :</div>
-                  <div className="font-medium">{globalMarginPercentage}%</div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>Marge totale en euros :</div>
-                  <div className="font-medium">{formatCurrency(totalMarginAmount)}</div>
-                </div>
-                {marginDifference !== 0 && (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <div>Différence de marge :</div>
-                      <div className="font-medium text-green-600">{formatCurrency(marginDifference)}</div>
-                    </div>
-                    <div className="flex justify-between items-center border-t pt-2">
-                      <div>Total marge avec différence :</div>
-                      <div className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference)}</div>
-                    </div>
-                  </>
+          <div className="px-4 py-3 border-t bg-gray-50">
+            <div className="flex justify-between items-center">
+              <div className="text-sm font-medium">Total des équipements:</div>
+              <div className="text-sm font-medium">
+                {formatCurrency(
+                  equipmentList.reduce(
+                    (sum, item) => sum + item.purchasePrice * item.quantity,
+                    0
+                  )
                 )}
-              </>
+              </div>
+            </div>
+            
+            {!hideFinancialDetails && globalMarginAdjustment.amount !== 0 && (
+              <div className="flex justify-between items-center mt-2">
+                <div className="text-sm text-gray-500">
+                  Ajustement global de marge ({globalMarginAdjustment.marginDifference.toFixed(2)}%)
+                </div>
+                <div className="text-sm text-gray-500">
+                  {formatCurrency(globalMarginAdjustment.amount)}
+                </div>
+              </div>
             )}
             
-            <div className="pt-2 flex items-center justify-between border-t mt-3">
-              <label htmlFor="adapt-monthly" className="cursor-pointer">
-                Adapter la mensualité au nouveau coefficient
-              </label>
-              <Switch
-                id="adapt-monthly"
-                checked={globalMarginAdjustment.active}
-                onCheckedChange={toggleAdaptMonthlyPayment}
-              />
-            </div>
-            
-            <div className="flex justify-between items-center pt-4 border-t mt-3">
-              <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
-              <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
-            </div>
-            
-            {commission?.amount > 0 && (
-              <div className="flex justify-between items-center pt-2">
-                <div className="font-medium">Votre commission :</div>
-                <div className="text-green-600 font-medium">
-                  {formatCurrency(commission.amount)}
-                </div>
+            {!hideFinancialDetails && (
+              <div className="mt-4 flex items-center">
+                <Switch 
+                  id="adapt-monthly-payment"
+                  checked={globalMarginAdjustment.active}
+                  onCheckedChange={toggleAdaptMonthlyPayment}
+                />
+                <label 
+                  htmlFor="adapt-monthly-payment" 
+                  className="ml-2 text-sm text-gray-600 cursor-pointer"
+                >
+                  Adapter la mensualité au nouveau coefficient
+                </label>
               </div>
             )}
           </div>
         </CardContent>
+        
+        <CardFooter className="flex flex-col p-4 border-t bg-gray-50">
+          <div className="w-full flex justify-between items-center">
+            <div className="text-base font-medium">Mensualité totale:</div>
+            <div className="text-xl font-bold text-blue-600">
+              {formatCurrency(totalMonthlyPayment)}<span className="text-sm font-normal text-gray-500">/mois</span>
+            </div>
+          </div>
+          
+          {ambassadorId && commissionLevelId && (
+            <div className="w-full mt-4">
+              <AmbassadorCommissionPreview 
+                totalMonthlyPayment={totalMonthlyPayment}
+                ambassadorId={ambassadorId}
+                commissionLevelId={commissionLevelId}
+                equipmentList={equipmentList}
+                onCommissionCalculated={onCommissionCalculated}
+              />
+            </div>
+          )}
+        </CardFooter>
       </Card>
+
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cet équipement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

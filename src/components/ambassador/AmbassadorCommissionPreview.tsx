@@ -11,13 +11,15 @@ interface AmbassadorCommissionPreviewProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   equipmentList: any[];
+  onCommissionCalculated?: (commission: number) => void;
 }
 
 const AmbassadorCommissionPreview = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentList
+  equipmentList,
+  onCommissionCalculated
 }: AmbassadorCommissionPreviewProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({
     amount: 0,
@@ -48,6 +50,12 @@ const AmbassadorCommissionPreview = ({
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
+        
+        // Notifier le parent du montant de la commission calculée
+        if (onCommissionCalculated) {
+          onCommissionCalculated(commissionData.amount);
+        }
+        
         console.log("Commission calculated:", commissionData);
       } catch (error) {
         console.error("Error calculating commission:", error);
@@ -60,7 +68,7 @@ const AmbassadorCommissionPreview = ({
     if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
       calculateCommission();
     }
-  }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId]);
+  }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId, onCommissionCalculated]);
 
   if (!ambassadorId || !commissionLevelId) {
     return null;
