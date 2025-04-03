@@ -19,7 +19,6 @@ import Container from "@/components/layout/Container";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
-import LeaserButton from "@/components/offer/LeaserButton";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 
 function useQuery() {
@@ -390,6 +389,7 @@ const PartnerCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
+                      hideFinancialDetails={true}
                     />
                   </div>
                 </div>
@@ -409,6 +409,7 @@ const PartnerCreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                    hideFinancialDetails={true}
                   />
                   
                   <ClientInfo
@@ -423,6 +424,7 @@ const PartnerCreateOffer = () => {
                     isSubmitting={isSubmitting}
                     selectedLeaser={selectedLeaser}
                     equipmentList={equipmentList}
+                    hideFinancialDetails={true}
                   />
                 </div>
               </div>

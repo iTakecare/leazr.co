@@ -270,12 +270,14 @@ const CreateOffer = () => {
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-                    <div className="mb-4">
-                      <LeaserButton 
-                        selectedLeaser={selectedLeaser} 
-                        onOpen={handleOpenLeaserSelector} 
-                      />
-                    </div>
+                    {isAdmin() && (
+                      <div className="mb-4">
+                        <LeaserButton 
+                          selectedLeaser={selectedLeaser} 
+                          onOpen={handleOpenLeaserSelector} 
+                        />
+                      </div>
+                    )}
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}

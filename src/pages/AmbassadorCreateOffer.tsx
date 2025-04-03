@@ -20,8 +20,6 @@ import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
-import LeaserButton from "@/components/offer/LeaserButton";
-import { getLeasers } from "@/services/leaserService";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -313,12 +311,6 @@ const AmbassadorCreateOffer = () => {
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-                    <div className="mb-4">
-                      <LeaserButton 
-                        selectedLeaser={selectedLeaser} 
-                        onOpen={handleOpenLeaserSelector} 
-                      />
-                    </div>
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}
