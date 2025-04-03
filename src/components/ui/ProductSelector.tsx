@@ -31,7 +31,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedTab, setSelectedTab] = useState("tous");
   const [showScrollHint, setShowScrollHint] = useState(true);
   
   const fetchProducts = async (): Promise<Product[]> => {
@@ -142,24 +141,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
     
-    if (selectedTab === "parents") {
-      filtered = filtered.filter(product => 
-        product.is_parent || 
-        (product.variant_combination_prices && product.variant_combination_prices.length > 0)
-      );
-    } else if (selectedTab === "variantes") {
-      filtered = filtered.filter(product => 
-        product.variation_attributes && 
-        Object.keys(product.variation_attributes).length > 0
-      );
-    } else if (selectedTab === "individuels") {
-      filtered = filtered.filter(product => 
-        !product.is_parent && 
-        (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) &&
-        (!product.variant_combination_prices || product.variant_combination_prices.length === 0)
-      );
-    }
-    
     return filtered;
   };
 
@@ -173,7 +154,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     if (isOpen) {
       setSearchQuery("");
       setSelectedCategory("all");
-      setSelectedTab("tous");
       // Afficher l'indicateur de défilement au début, puis le masquer après un délai
       setShowScrollHint(true);
       const timer = setTimeout(() => {
@@ -239,17 +219,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               </TabsList>
             </div>
             
-            <div className="px-4 py-2 border-b">
-              <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="tous" className="flex-1">Tous</TabsTrigger>
-                  <TabsTrigger value="parents" className="flex-1">Parents</TabsTrigger>
-                  <TabsTrigger value="variantes" className="flex-1">Variantes</TabsTrigger>
-                  <TabsTrigger value="individuels" className="flex-1">Individuels</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            
             <div className="relative flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4">
@@ -272,7 +241,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                       <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-16">
                       {filteredProducts.map((product) => (
                         <div key={product.id} className="cursor-pointer">
                           <CatalogProductCard 
@@ -287,9 +256,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 </div>
               </ScrollArea>
               
-              {/* Indicateur de défilement */}
+              {/* Indicateur de défilement avec position fixe */}
               {showScrollHint && filteredProducts.length > 4 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-2 rounded-full flex items-center gap-2 shadow-md animate-bounce">
+                <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-2 rounded-full flex items-center gap-2 shadow-md animate-bounce z-50">
                   <span>Faites défiler pour voir plus</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>

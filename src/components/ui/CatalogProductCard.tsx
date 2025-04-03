@@ -28,6 +28,63 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
   const variantsCount = hasVariants 
     ? (product.variants_count || product.variant_combination_prices?.length || 0)
     : 0;
+    
+  // Get minimum price across all variants
+  const getMinimumPrice = (): number => {
+    let minPrice = product.price || 0;
+    
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      const combinationPrices = product.variant_combination_prices
+        .map(variant => variant.price || 0)
+        .filter(price => price > 0);
+      
+      if (combinationPrices.length > 0) {
+        const minCombinationPrice = Math.min(...combinationPrices);
+        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
+          minPrice = minCombinationPrice;
+        }
+      }
+    }
+    
+    return minPrice;
+  };
+  
+  // Get minimum monthly price across all variants
+  const getMinimumMonthlyPrice = (): number => {
+    let minPrice = product.monthly_price || 0;
+    
+    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      const combinationPrices = product.variant_combination_prices
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (combinationPrices.length > 0) {
+        const minCombinationPrice = Math.min(...combinationPrices);
+        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
+          minPrice = minCombinationPrice;
+        }
+      }
+    }
+    
+    else if (product.variants && product.variants.length > 0) {
+      const variantPrices = product.variants
+        .map(variant => variant.monthly_price || 0)
+        .filter(price => price > 0);
+      
+      if (variantPrices.length > 0) {
+        const minVariantPrice = Math.min(...variantPrices);
+        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
+          minPrice = minVariantPrice;
+        }
+      }
+    }
+    
+    return minPrice;
+  };
+  
+  const price = getMinimumPrice();
+  const monthlyPrice = getMinimumMonthlyPrice();
+  const hasPrice = price > 0 || monthlyPrice > 0;
   
   return (
     <Card 
@@ -93,20 +150,27 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
             
             <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
               <div>
-                {product.monthly_price ? (
+                {monthlyPrice > 0 ? (
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-blue-600">
-                      {formatCurrency(product.monthly_price)}
+                      {hasVariants ? "À partir de " : ""}
+                      {formatCurrency(monthlyPrice)}
                       <span className="text-gray-500 font-normal text-xs"> /mois</span>
                     </span>
-                    <span className="text-xs text-gray-500">
-                      Prix: {formatCurrency(product.price || 0)}
-                    </span>
+                    {price > 0 && (
+                      <span className="text-xs text-gray-500">
+                        Prix: {hasVariants ? "À partir de " : ""}
+                        {formatCurrency(price)}
+                      </span>
+                    )}
+                  </div>
+                ) : price > 0 ? (
+                  <div className="text-sm font-semibold">
+                    {hasVariants ? "À partir de " : ""}
+                    {formatCurrency(price)}
                   </div>
                 ) : (
-                  <div className="text-sm font-semibold">
-                    {formatCurrency(product.price || 0)}
-                  </div>
+                  <div className="text-sm text-gray-500">Prix sur demande</div>
                 )}
               </div>
               
