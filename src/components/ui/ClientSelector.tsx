@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { getAllClients } from "@/services/clientService";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
-import { Client } from "@/types/client";
 
 // Define a specific type for the client in this component
 export interface ClientSelectorClient {
@@ -25,8 +24,6 @@ interface ClientSelectorProps {
   isOpen?: boolean;
   onClose?: () => void;
   onSelectClient?: (client: ClientSelectorClient) => void;
-  ambassadorClients?: Client[];
-  isLoadingClients?: boolean;
 }
 
 const ClientSelector: React.FC<ClientSelectorProps> = ({ 
@@ -34,9 +31,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   onClientSelect,
   isOpen,
   onClose,
-  onSelectClient,
-  ambassadorClients,
-  isLoadingClients = false
+  onSelectClient
 }) => {
   const [clients, setClients] = useState<ClientSelectorClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,36 +41,18 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     const loadClients = async () => {
       try {
         setLoading(true);
+        const fetchedClients = await getAllClients();
         
-        // Si des clients d'ambassadeur sont fournis, les utiliser
-        if (ambassadorClients) {
-          console.log("Utilisation des clients d'ambassadeur:", ambassadorClients.length);
-          
-          const formattedClients = ambassadorClients.map(client => ({
-            id: client.id,
-            name: client.name,
-            companyName: client.company || '',
-            company: client.company,
-            email: client.email
-          }));
-          
-          setClients(formattedClients);
-        } else {
-          // Sinon, charger tous les clients
-          console.log("Chargement de tous les clients");
-          const fetchedClients = await getAllClients();
-          
-          // Transform to ensure compatibility with ClientSelectorClient type
-          const formattedClients = fetchedClients.map(client => ({
-            id: client.id,
-            name: client.name,
-            companyName: client.company || '',
-            company: client.company,
-            email: client.email
-          }));
-          
-          setClients(formattedClients);
-        }
+        // Transform to ensure compatibility with ClientSelectorClient type
+        const formattedClients = fetchedClients.map(client => ({
+          id: client.id,
+          name: client.name,
+          companyName: client.company || '',
+          company: client.company,
+          email: client.email
+        }));
+        
+        setClients(formattedClients);
       } catch (error) {
         console.error("Failed to load clients", error);
       } finally {
@@ -84,7 +61,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, [ambassadorClients]);
+  }, []);
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -122,13 +99,9 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               <CommandList>
                 <CommandEmpty>Aucun client trouvé.</CommandEmpty>
                 <CommandGroup>
-                  {loading || isLoadingClients ? (
+                  {loading ? (
                     <div className="flex items-center justify-center py-6">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : clients.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      {ambassadorClients ? "Aucun client trouvé pour cet ambassadeur" : "Aucun client disponible"}
                     </div>
                   ) : (
                     clients.map(client => (
@@ -171,7 +144,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {loading || isLoadingClients ? (
+          {loading ? (
             <div className="flex items-center">
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Chargement...
