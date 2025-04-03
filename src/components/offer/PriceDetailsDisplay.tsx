@@ -1,7 +1,6 @@
 
 import React from "react";
 import { formatCurrency, formatPercentageWithComma } from "@/utils/formatters";
-import { useAuth } from "@/context/AuthContext";
 
 interface PriceDetailsDisplayProps {
   marginAmount: number;
@@ -20,8 +19,6 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   hideFinancialDetails = true,
   calculatedMargin
 }) => {
-  const { isAdmin } = useAuth();
-  
   // Calculate the price without margin (base price)
   const priceWithoutMargin = priceWithMargin - marginAmount;
   
@@ -36,12 +33,9 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   // Calculate the actual price with margin based on the calculated amount
   const displayPriceWithMargin = priceWithoutMargin + displayMarginAmount;
 
-  // Only show financial details to admins
-  const shouldShowFinancialDetails = isAdmin() && !hideFinancialDetails;
-
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
-      {shouldShowFinancialDetails && (
+      {!hideFinancialDetails && (
         <>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
