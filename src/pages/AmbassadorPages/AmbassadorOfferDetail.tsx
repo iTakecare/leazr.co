@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getOfferById, updateOffer } from "@/services/offers/offerDetail";
 import { formatCurrency } from "@/utils/formatters";
-import { format } from "date-fns";
+import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -47,6 +48,7 @@ const AmbassadorOfferDetail = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
+  const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
   
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -64,6 +66,27 @@ const AmbassadorOfferDetail = () => {
         }
         
         setOffer(offerData);
+        
+        // Si l'offre est convertie en contrat, calculer la date de fin du contrat (36 mois par défaut)
+        if (offerData.converted_to_contract) {
+          try {
+            // Récupérer le contrat associé à cette offre pour obtenir sa date
+            const { data: contractData } = await supabase
+              .from('contracts')
+              .select('created_at')
+              .eq('offer_id', id)
+              .single();
+            
+            if (contractData) {
+              const startDate = new Date(contractData.created_at);
+              const endDate = new Date(startDate);
+              endDate.setMonth(startDate.getMonth() + 36); // Contrat standard de 36 mois
+              setContractEndDate(endDate);
+            }
+          } catch (err) {
+            console.error("Erreur lors de la récupération du contrat:", err);
+          }
+        }
         
         // Si nécessaire, recalculer et mettre à jour la commission
         if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
@@ -319,13 +342,51 @@ const AmbassadorOfferDetail = () => {
       case 'paid':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">En attente</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">En attente</Badge>;
       case 'cancelled':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Annulée</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status || 'Non défini'}</Badge>;
     }
   };
+
+  // Déterminer la couleur de fond du cadre de commission en fonction du statut
+  const getCommissionBoxColor = (status) => {
+    switch (status) {
+      case 'paid':
+        return "bg-green-50 border-green-200";
+      case 'pending':
+        return "bg-amber-50 border-amber-200";
+      case 'cancelled':
+        return "bg-red-50 border-red-200";
+      default:
+        return "bg-gray-50 border-gray-200";
+    }
+  };
+
+  const getCommissionIconColor = (status) => {
+    switch (status) {
+      case 'paid':
+        return "text-green-700";
+      case 'pending':
+        return "text-amber-700";
+      case 'cancelled':
+        return "text-red-700";
+      default:
+        return "text-gray-700";
+    }
+  };
+  
+  // Calculer le nombre de mois restants sur le contrat
+  const getRemainingMonths = () => {
+    if (!contractEndDate) return null;
+    
+    const now = new Date();
+    const remaining = differenceInMonths(contractEndDate, now);
+    return remaining > 0 ? remaining : 0;
+  };
+
+  const remainingMonths = getRemainingMonths();
 
   return (
     <PageTransition>
@@ -416,15 +477,15 @@ const AmbassadorOfferDetail = () => {
                       
                       <div className="mt-6">
                         <h3 className="font-medium mb-2">Votre commission</h3>
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-md shadow-sm">
+                        <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                <Euro className="h-5 w-5 text-green-700" />
+                              <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
+                                <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
                               </div>
                               <div>
-                                <p className="text-sm text-green-800">Commission pour cette offre</p>
-                                <p className="text-2xl font-bold text-green-700">
+                                <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
+                                <p className="text-2xl font-bold text-gray-700">
                                   {recalculatingCommission ? (
                                     <span className="flex items-center">
                                       <span className="animate-pulse">Calcul en cours...</span>
@@ -476,6 +537,21 @@ const AmbassadorOfferDetail = () => {
                                     </p>
                                   </div>
                                 </div>
+                                
+                                {/* Affichage des variantes choisies */}
+                                {item.variants && Object.keys(item.variants).length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-gray-100">
+                                    <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {Object.entries(item.variants).map(([key, value]) => (
+                                        <div key={key} className="flex flex-col">
+                                          <span className="text-xs text-gray-600">{key}</span>
+                                          <span className="font-medium text-sm">{value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </CardContent>
                             </Card>
                           ))}
@@ -506,6 +582,33 @@ const AmbassadorOfferDetail = () => {
                             </div>
                           </div>
                         </div>
+                        
+                        {/* Information sur la durée du contrat si convertie */}
+                        {offer.converted_to_contract && remainingMonths !== null && (
+                          <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+                            <div className="flex items-center">
+                              <CalendarIcon className="h-5 w-5 mr-3 text-blue-600" />
+                              <div>
+                                <p className="font-medium text-blue-800">
+                                  Contrat en cours
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                  {remainingMonths} mois restants jusqu'à échéance
+                                </p>
+                                {contractEndDate && (
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Date de fin: {format(contractEndDate, "dd MMMM yyyy", { locale: fr })}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            {remainingMonths <= 3 && (
+                              <div className="mt-3 p-2 bg-amber-100 rounded text-sm text-amber-800">
+                                <span className="font-medium">Action recommandée:</span> Contacter le client pour discuter du renouvellement
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         <div>
                           <h3 className="font-medium mb-3">Processus de validation</h3>
@@ -633,7 +736,7 @@ const AmbassadorOfferDetail = () => {
                   
                   <div>
                     <h3 className="text-sm font-medium mb-2">Commission</h3>
-                    <div className="p-3 bg-green-50 border border-green-100 rounded-md">
+                    <div className={`p-3 border rounded-md ${getCommissionBoxColor(offer.commission_status)}`}>
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
                         {getCommissionStatusBadge(offer.commission_status)}
