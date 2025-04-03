@@ -191,11 +191,16 @@ const AmbassadorProductDetail = () => {
           </TabsList>
           
           <TabsContent value="details">
-            <ProductDescription product={product} />
+            <ProductDescription 
+              title="Description du produit" 
+              description={product.description || ""}
+            />
           </TabsContent>
           
           <TabsContent value="specs">
-            <ProductSpecificationsTable product={product} />
+            <ProductSpecificationsTable 
+              specifications={product.specifications || {}}
+            />
           </TabsContent>
           
           <TabsContent value="variants">
@@ -220,7 +225,7 @@ const AmbassadorProductDetail = () => {
                             <div className="font-medium">
                               {Object.entries(variantAttributes).map(([key, value], i, arr) => (
                                 <React.Fragment key={key}>
-                                  <span>{key}: {value}</span>
+                                  <span>{key}: {String(value)}</span>
                                   {i < arr.length - 1 && <span className="mx-2 text-gray-400">|</span>}
                                 </React.Fragment>
                               ))}
