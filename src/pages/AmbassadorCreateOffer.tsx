@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,8 @@ import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
-import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
+import OffersLoading from "@/components/offers/OffersLoading";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const AmbassadorCreateOffer = () => {
   
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingLeasers, setLoadingLeasers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
@@ -66,6 +68,7 @@ const AmbassadorCreateOffer = () => {
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
+        setLoadingLeasers(true);
         const fetchedLeasers = await getLeasers();
         
         if (fetchedLeasers && fetchedLeasers.length > 0) {
@@ -74,6 +77,8 @@ const AmbassadorCreateOffer = () => {
       } catch (error) {
         console.error("Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      } finally {
+        setLoadingLeasers(false);
       }
     };
     
@@ -259,6 +264,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const hideFinancialDetails = true;
+  const isPageLoading = loading || loadingLeasers;
   
   useEffect(() => {
     if (ambassador) {
@@ -304,21 +310,13 @@ const AmbassadorCreateOffer = () => {
               </div>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Chargement...</span>
-              </div>
+            {isPageLoading ? (
+              <OffersLoading />
             ) : (
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-                    <div className="mb-4">
-                      <LeaserButton 
-                        selectedLeaser={selectedLeaser} 
-                        onOpen={handleOpenLeaserSelector} 
-                      />
-                    </div>
+                    {/* Le sélecteur de leaser a été supprimé ici */}
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}
