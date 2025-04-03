@@ -22,6 +22,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
+import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -201,6 +202,39 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      let commissionAmount = 0;
+      
+      const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      const commissionLevelId = ambassador?.commission_level_id;
+      
+      if (currentAmbassadorId && commissionLevelId) {
+        try {
+          const commissionData = await calculateCommissionByLevel(
+            financedAmount,
+            commissionLevelId,
+            'ambassador',
+            currentAmbassadorId
+          );
+          
+          if (commissionData && typeof commissionData.amount === 'number') {
+            commissionAmount = commissionData.amount;
+            console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
+          } else {
+            console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
+            toast.error("Erreur lors du calcul de la commission");
+          }
+        } catch (commError) {
+          console.error("Erreur lors du calcul de la commission:", commError);
+          commissionAmount = totalMonthlyPayment * 0.1;
+        }
+      } else {
+        console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
+        commissionAmount = totalMonthlyPayment * 0.1;
+      }
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -209,10 +243,11 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: commissionAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
+        ambassador_id: currentAmbassadorId,
         remarks: remarks
       };
       
