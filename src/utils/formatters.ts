@@ -1,35 +1,40 @@
+
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// Améliorons la gestion des cas particuliers pour éviter les erreurs
 export const formatCurrency = (value: number | string | null | undefined): string => {
-  // Vérification stricte des valeurs nulles/undefined/NaN
-  if (value === null || value === undefined || value === "") {
+  // Protection contre les valeurs nulles/undefined/NaN
+  if (value === null || value === undefined || value === "" || 
+      (typeof value === 'number' && isNaN(value))) {
     return "0,00 €";
   }
   
-  // Conversion en nombre
+  // Conversion en nombre avec vérification stricte
   let numValue: number;
   
   if (typeof value === 'number') {
     numValue = value;
   } else if (typeof value === 'string') {
-    // Conversion de chaîne en nombre
-    numValue = parseFloat(value.replace(',', '.'));
+    // Conversion des chaînes en nombres
+    const cleaned = value.replace(/[^\d.,\-]/g, '').replace(',', '.');
+    numValue = parseFloat(cleaned);
+    
+    // Si la conversion échoue, retourner 0
+    if (isNaN(numValue)) {
+      return "0,00 €";
+    }
   } else {
-    numValue = 0;
-  }
-  
-  // Vérification pour NaN
-  if (isNaN(numValue)) {
     return "0,00 €";
   }
   
-  // Arrondir les valeurs très proches de zéro
+  // Arrondir les valeurs très proches de zéro pour éviter -0.00 €
   if (Math.abs(numValue) < 0.01) {
     numValue = 0;
   }
   
   try {
+    // Utiliser l'API Intl pour un formatage cohérent
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
@@ -42,6 +47,7 @@ export const formatCurrency = (value: number | string | null | undefined): strin
   }
 };
 
+// Conserver les autres fonctions de formatage sans changement
 export const formatPercentage = (value: number | string): string => {
   // Vérification pour les valeurs nulles/undefined
   if (value === null || value === undefined || value === "") {

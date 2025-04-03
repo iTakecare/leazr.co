@@ -7,13 +7,17 @@ interface ProductPriceDisplayProps {
   minimumPrice: number;
 }
 
-const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({ 
-  currentPrice, 
-  minimumPrice 
+const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
+  currentPrice,
+  minimumPrice
 }) => {
-  // Utilisation de valeurs sécurisées pour l'affichage
-  const displayCurrentPrice = typeof currentPrice === 'number' && !isNaN(currentPrice) ? currentPrice : null;
-  const displayMinPrice = typeof minimumPrice === 'number' && !isNaN(minimumPrice) ? minimumPrice : 39.99; // Valeur par défaut
+  // Protection contre les valeurs invalides
+  const isValidPrice = (price: number | null): boolean => {
+    return typeof price === 'number' && !isNaN(price) && price > 0;
+  };
+  
+  const displayCurrentPrice = isValidPrice(currentPrice) ? currentPrice : null;
+  const displayMinPrice = isValidPrice(minimumPrice) ? minimumPrice : 39.99; // Valeur par défaut
   
   return (
     <div className="text-lg text-gray-700 mb-4">

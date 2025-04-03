@@ -19,19 +19,28 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   hideFinancialDetails = true,
   calculatedMargin
 }) => {
+  // Vérification et calculs sécurisés
+  const safeMarginAmount = !isNaN(marginAmount) && isFinite(marginAmount) ? marginAmount : 0;
+  const safePriceWithMargin = !isNaN(priceWithMargin) && isFinite(priceWithMargin) ? priceWithMargin : 0;
+  
   // Calcul sécurisé du prix sans marge
-  const priceWithoutMargin = priceWithMargin - marginAmount;
+  const priceWithoutMargin = Math.max(0, safePriceWithMargin - safeMarginAmount);
   
   // Utiliser la marge calculée si disponible, sinon calculer
   const marginPercentage = calculatedMargin?.percentage || (priceWithoutMargin > 0 
-    ? (marginAmount / priceWithoutMargin) * 100 
+    ? (safeMarginAmount / priceWithoutMargin) * 100 
     : 0);
   
   // Utiliser le montant de marge calculé si disponible
-  const displayMarginAmount = calculatedMargin?.amount || marginAmount;
+  const displayMarginAmount = calculatedMargin?.amount || safeMarginAmount;
   
   // Prix avec marge basé sur le montant calculé
   const displayPriceWithMargin = priceWithoutMargin + displayMarginAmount;
+
+  // Formater uniquement quand nécessaire pour le rendu
+  const safeMonthlyPayment = !isNaN(displayMonthlyPayment) && isFinite(displayMonthlyPayment) 
+    ? displayMonthlyPayment 
+    : 0;
 
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
@@ -56,7 +65,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
       <div className="flex justify-between items-center border-t pt-2 mt-2">
         <span className="text-blue-600 font-medium">Mensualité unitaire :</span>
         <span className="text-blue-600 font-medium text-lg">
-          {formatCurrency(displayMonthlyPayment)}
+          {formatCurrency(safeMonthlyPayment)}
         </span>
       </div>
     </div>

@@ -1,9 +1,8 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateCommissionByLevel } from "@/utils/calculator";
 
 interface AmbassadorCommissionPreviewProps {
   totalMonthlyPayment: number;
@@ -24,51 +23,55 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const calculationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastParametersRef = useRef<string>("");
-  const isInitialMountRef = useRef(true);
+  const hasCalculatedRef = useRef(false);
+  const equipmentSignatureRef = useRef("");
   
-  // Fonction pour calculer la commission au clic du bouton
-  const handleCalculateCommission = React.useCallback(() => {
-    // Ne pas calculer si les informations nécessaires sont manquantes
-    if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
-      return;
-    }
+  // Ne pas rendre le composant si les IDs nécessaires sont manquants
+  if (!ambassadorId || !commissionLevelId) {
+    return null;
+  }
 
-    // Calculer le montant total de l'équipement
+  // Nous utilisons un effect simple au montage uniquement 
+  // pour éviter les recalculs constants
+  useEffect(() => {
+    // Ne calculer qu'une seule fois, quand les données sont valides
+    if (hasCalculatedRef.current || !equipmentList.length) return;
+    
+    // Calculer une empreinte des équipements pour suivre les changements réels
+    const equipmentSignature = JSON.stringify(
+      equipmentList.map(eq => ({
+        id: eq.id,
+        price: eq.purchasePrice,
+        quantity: eq.quantity
+      }))
+    );
+    
+    // Si l'empreinte est la même, pas besoin de recalculer
+    if (equipmentSignature === equipmentSignatureRef.current) return;
+    equipmentSignatureRef.current = equipmentSignature;
+    
+    // Calculer le montant total des équipements
     const totalEquipmentAmount = equipmentList.reduce((sum, eq) => {
       const price = typeof eq.purchasePrice === 'number' ? eq.purchasePrice : 0;
       const quantity = typeof eq.quantity === 'number' ? eq.quantity : 0;
       return sum + (price * quantity);
     }, 0);
     
-    // Pas besoin de calculer si le montant est trop petit
-    if (totalEquipmentAmount < 10) {
-      return;
-    }
+    // Ne pas calculer pour de petits montants
+    if (totalEquipmentAmount < 10) return;
     
-    // Créer une signature pour les paramètres actuels
-    const currentParams = `${totalEquipmentAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
+    // Marquer comme calculé
+    hasCalculatedRef.current = true;
     
-    // Éviter les calculs redondants si les paramètres n'ont pas changé
-    if (currentParams === lastParametersRef.current && !isInitialMountRef.current) {
-      return;
-    }
-    
-    // Mettre à jour la référence des paramètres
-    lastParametersRef.current = currentParams;
-    isInitialMountRef.current = false;
-    
-    // Annuler tout calcul précédent en attente
-    if (calculationTimerRef.current) {
-      clearTimeout(calculationTimerRef.current);
-    }
-    
-    // Différer le calcul pour éviter les calculs trop fréquents
-    setIsCalculating(true);
-    
-    calculationTimerRef.current = setTimeout(async () => {
+    // Le calcul effectif est déplacé dans un import dynamique
+    // pour retarder son chargement et réduire l'impact
+    const calculateCommission = async () => {
+      setIsCalculating(true);
+      
       try {
+        // Importer dynamiquement pour éviter les cycles de dépendances
+        const { calculateCommissionByLevel } = await import('@/utils/calculator');
+        
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -85,30 +88,15 @@ const AmbassadorCommissionPreview = ({
         console.error("Error calculating commission:", error);
       } finally {
         setIsCalculating(false);
-        calculationTimerRef.current = null;
-      }
-    }, 300);
-  }, [ambassadorId, commissionLevelId, equipmentList]);
-
-  // Calculer la commission uniquement au montage du composant
-  React.useEffect(() => {
-    // Vérification des conditions nécessaires pour calculer
-    if (equipmentList.length > 0 && ambassadorId && commissionLevelId && isInitialMountRef.current) {
-      handleCalculateCommission();
-    }
-    
-    // Nettoyage
-    return () => {
-      if (calculationTimerRef.current) {
-        clearTimeout(calculationTimerRef.current);
       }
     };
-  }, [handleCalculateCommission]);
-
-  // Ne pas rendre le composant si les IDs nécessaires sont manquants
-  if (!ambassadorId || !commissionLevelId) {
-    return null;
-  }
+    
+    // Lancer le calcul après un court délai
+    const timer = setTimeout(calculateCommission, 500);
+    
+    // Nettoyage
+    return () => clearTimeout(timer);
+  }, [ambassadorId, commissionLevelId, equipmentList]);
 
   return (
     <Card className="border border-gray-200 shadow-sm">
