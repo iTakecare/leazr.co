@@ -83,14 +83,16 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           </div>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-hidden">
           {showVariantSelector && selectedProduct ? (
-            <div className="p-4">
-              <VariantSelector 
-                product={selectedProduct}
-                onVariantSelect={onVariantSelect}
-              />
-            </div>
+            <ScrollArea className="h-full max-h-[calc(90vh-80px)]">
+              <div className="p-4">
+                <VariantSelector 
+                  product={selectedProduct}
+                  onVariantSelect={onVariantSelect}
+                />
+              </div>
+            </ScrollArea>
           ) : (
             <ProductSelector
               isOpen={isOpen && !showVariantSelector}
@@ -101,7 +103,7 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
               description="Parcourez notre catalogue pour ajouter un produit à votre offre"
             />
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

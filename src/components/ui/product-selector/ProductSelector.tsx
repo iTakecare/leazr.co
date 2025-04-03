@@ -8,6 +8,7 @@ import ProductList from "./ProductList";
 import { useProductSelector } from "@/hooks/products/useProductSelector";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import { Product } from "@/types/catalog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProductSelectorProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden">
+      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden flex flex-col">
         <div className="flex flex-col h-full">
           <SheetHeader className="p-4 border-b">
             <SheetTitle>{title}</SheetTitle>
@@ -80,13 +81,17 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           </div>
           
           {/* Product list */}
-          <ProductList 
-            filteredProducts={filteredProducts}
-            isLoading={isLoading}
-            error={error}
-            handleProductSelect={handleProductSelect}
-            onViewVariants={onViewVariants}
-          />
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <ProductList 
+                filteredProducts={filteredProducts}
+                isLoading={isLoading}
+                error={error}
+                handleProductSelect={handleProductSelect}
+                onViewVariants={onViewVariants}
+              />
+            </ScrollArea>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -70,8 +70,8 @@ const ProductList: React.FC<ProductListProps> = ({
   }
 
   return (
-    <div className="p-4 h-full overflow-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-6">
+    <div className="h-full overflow-y-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 pb-16">
         {filteredProducts.map((product) => (
           <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
             <ProductCard 

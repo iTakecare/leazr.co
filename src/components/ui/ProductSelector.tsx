@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, Info, ChevronDown } from "lucide-react";
+import { Search, Loader2, Info } from "lucide-react";
 import CatalogProductCard from "./CatalogProductCard";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
@@ -31,7 +31,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [showScrollHint, setShowScrollHint] = useState(true);
   
   const fetchProducts = async (): Promise<Product[]> => {
     try {
@@ -154,25 +153,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     if (isOpen) {
       setSearchQuery("");
       setSelectedCategory("all");
-      setShowScrollHint(true);
-      const timer = setTimeout(() => {
-        setShowScrollHint(false);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen && showScrollHint) {
-      const handleScroll = () => {
-        setShowScrollHint(false);
-      };
-      
-      document.addEventListener('scroll', handleScroll, true);
-      return () => document.removeEventListener('scroll', handleScroll, true);
-    }
-  }, [isOpen, showScrollHint]);
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -203,7 +185,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         <Tabs 
           value={selectedCategory} 
           onValueChange={setSelectedCategory}
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col overflow-hidden"
         >
           <div className="px-4 py-2 border-b overflow-x-auto">
             <TabsList className="w-auto inline-flex">
@@ -217,7 +199,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           </div>
           
           <ScrollArea className="flex-1">
-            <div className="p-4">
+            <div className="p-4 pb-24">
               {isLoading ? (
                 <div className="flex items-center justify-center h-40">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -237,7 +219,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-16">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="cursor-pointer">
                       <CatalogProductCard 
@@ -251,13 +233,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
               )}
             </div>
           </ScrollArea>
-          
-          {showScrollHint && filteredProducts.length > 4 && (
-            <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-2 rounded-full flex items-center gap-2 shadow-md animate-bounce z-50">
-              <span>Faites défiler pour voir plus</span>
-              <ChevronDown className="h-4 w-4" />
-            </div>
-          )}
         </Tabs>
       </SheetContent>
     </Sheet>

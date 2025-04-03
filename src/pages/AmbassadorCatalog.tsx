@@ -66,7 +66,7 @@ const AmbassadorCatalog = () => {
         
         <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 p-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-64 rounded-md bg-muted animate-pulse" />
               ))}
@@ -76,12 +76,14 @@ const AmbassadorCatalog = () => {
               Une erreur s'est produite lors du chargement des produits. Veuillez réessayer.
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center p-8 border border-dashed rounded-lg">
+            <div className="text-center p-8 border border-dashed rounded-lg m-4">
               <p className="text-xl font-medium mb-2">Aucun produit trouvé</p>
               <p className="text-muted-foreground">Essayez de modifier vos critères de recherche</p>
             </div>
           ) : (
-            <AmbassadorProductGrid products={filteredProducts} />
+            <div className="px-4">
+              <AmbassadorProductGrid products={filteredProducts} />
+            </div>
           )}
         </ScrollArea>
       </motion.div>

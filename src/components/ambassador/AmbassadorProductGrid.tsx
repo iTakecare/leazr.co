@@ -32,7 +32,7 @@ const AmbassadorProductGrid: React.FC<AmbassadorProductGridProps> = ({ products 
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-12">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-24">
       {products.map((product) => (
         <motion.div 
           key={product.id} 
