@@ -31,8 +31,13 @@ export const createOffer = async (offerData: OfferData) => {
         // Si nous avons un montant et un niveau de commission, recalculons la commission
         if (offerDataToSave.amount && ambassadorData.commission_level_id) {
           try {
+            // Ensure amount is a number for calculation
+            const amount = typeof offerDataToSave.amount === 'string' 
+              ? parseFloat(offerDataToSave.amount) 
+              : offerDataToSave.amount;
+              
             const commissionData = await calculateCommissionByLevel(
-              Number(offerDataToSave.amount),
+              Number(amount),
               ambassadorData.commission_level_id,
               'ambassador',
               ambassadorData.id

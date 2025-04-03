@@ -131,9 +131,18 @@ const PartnerCreateOffer = () => {
             setRemarks(offer.additional_info || '');
             
             if (offer.coefficient && offer.amount) {
-              const coefficient = parseFloat(offer.coefficient) || 0;
-              const amount = parseFloat(offer.amount) || 0;
-              const monthlyPayment = parseFloat(offer.monthly_payment) || 0;
+              // Convert string values to numbers as needed
+              const coefficient = typeof offer.coefficient === 'string' 
+                ? parseFloat(offer.coefficient) 
+                : offer.coefficient || 0;
+                
+              const amount = typeof offer.amount === 'string' 
+                ? parseFloat(offer.amount) 
+                : offer.amount || 0;
+                
+              const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                ? parseFloat(offer.monthly_payment) 
+                : offer.monthly_payment || 0;
               
               setGlobalMarginAdjustment(prev => ({
                 ...prev,
@@ -161,7 +170,10 @@ const PartnerCreateOffer = () => {
                   setEquipmentList(formattedEquipment);
                   
                   if (offer.monthly_payment) {
-                    setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                    const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                      ? parseFloat(offer.monthly_payment) 
+                      : offer.monthly_payment;
+                    setTargetMonthlyPayment(monthlyPayment || 0);
                   }
                 }
               } catch (e) {
@@ -172,7 +184,9 @@ const PartnerCreateOffer = () => {
                     const title = match[1].trim();
                     const quantity = parseInt(match[2], 10);
                     
-                    const totalCost = offer.amount || 0;
+                    const totalCost = typeof offer.amount === 'string' 
+                      ? parseFloat(offer.amount) 
+                      : offer.amount || 0;
                     const approxPricePerItem = totalCost / (quantity || 1);
                     
                     return {
@@ -188,7 +202,11 @@ const PartnerCreateOffer = () => {
                 
                 if (equipmentItems.length > 0) {
                   setEquipmentList(equipmentItems);
-                  setTargetMonthlyPayment(parseFloat(offer.monthly_payment) || 0);
+                  
+                  const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                    ? parseFloat(offer.monthly_payment) 
+                    : offer.monthly_payment || 0;
+                  setTargetMonthlyPayment(monthlyPayment);
                 }
               }
             }
@@ -281,6 +299,10 @@ const PartnerCreateOffer = () => {
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
 
+      // Ensure all numeric values are properly handled
+      const totalAmount = globalMarginAdjustment.amount + 
+        equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+
       const offerData = {
         user_id: user.id,
         client_name: clientName,
@@ -288,7 +310,7 @@ const PartnerCreateOffer = () => {
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
         equipment_text: equipmentDescription,
-        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+        amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,

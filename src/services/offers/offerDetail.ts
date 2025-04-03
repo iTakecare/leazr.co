@@ -30,9 +30,13 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
 
         // Calculer le montant total des équipements
-        const totalEquipmentAmount = equipmentData.reduce((sum, eq) => {
+        // Ensure we have a proper number for calculation
+        const equipmentAmount = equipmentData.reduce((sum, eq) => {
           return sum + (eq.purchasePrice * eq.quantity);
-        }, 0) || data.amount;
+        }, 0);
+        
+        const totalEquipmentAmount = equipmentAmount || 
+          (typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount || 0);
 
         // Récupérer le niveau de commission de l'ambassadeur
         const { data: ambassador } = await supabase
@@ -76,9 +80,26 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
 
 export const updateOffer = async (id: string, data: Partial<OfferData>): Promise<boolean> => {
   try {
+    // Ensure numeric values are properly converted for database storage
+    const dataToSave = {
+      ...data,
+      amount: data.amount !== undefined ? 
+        (typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount) : 
+        undefined,
+      coefficient: data.coefficient !== undefined ? 
+        (typeof data.coefficient === 'string' ? parseFloat(data.coefficient) : data.coefficient) : 
+        undefined,
+      monthly_payment: data.monthly_payment !== undefined ? 
+        (typeof data.monthly_payment === 'string' ? parseFloat(data.monthly_payment) : data.monthly_payment) : 
+        undefined,
+      commission: data.commission !== undefined ? 
+        (typeof data.commission === 'string' ? parseFloat(data.commission) : data.commission) : 
+        undefined
+    };
+    
     const { error } = await supabase
       .from('offers')
-      .update(data)
+      .update(dataToSave)
       .eq('id', id);
     
     if (error) throw error;
