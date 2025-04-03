@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
+import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -37,6 +39,9 @@ const AmbassadorCreateOffer = () => {
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  
+  // Utiliser le hook useAmbassadorClients pour gérer les clients de l'ambassadeur
+  const { clients: ambassadorClients, isLoading: isLoadingClients, loadClients } = useAmbassadorClients();
   
   const {
     equipment,
@@ -77,7 +82,10 @@ const AmbassadorCreateOffer = () => {
     };
     
     fetchLeasers();
-  }, []);
+    
+    // Charger les clients de l'ambassadeur au chargement de la page
+    loadClients();
+  }, [loadClients]);
   
   useEffect(() => {
     if (clientId) {
@@ -275,6 +283,8 @@ const AmbassadorCreateOffer = () => {
           onSelectClient={handleSelectClient}
           selectedClientId=""
           onClientSelect={() => {}}
+          ambassadorClients={ambassadorClients}
+          isLoadingClients={isLoadingClients}
         />
         
         <LeaserSelector
