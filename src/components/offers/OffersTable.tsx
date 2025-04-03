@@ -150,7 +150,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem 
-                      onClick={() => window.location.href = `/offer/${offer.id}`}
+                      onClick={() => window.location.href = `/offers/${offer.id}`}
                       disabled={isUpdatingStatus}
                     >
                       <FilePlus className="mr-2 h-4 w-4" />
