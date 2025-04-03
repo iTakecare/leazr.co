@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateCommissionByLevel } from "@/utils/calculator";
-import { toast } from "sonner";
 
 interface AmbassadorCommissionPreviewProps {
   totalMonthlyPayment: number;
@@ -25,17 +24,33 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
+  const [lastCalculationParams, setLastCalculationParams] = useState<string>("");
 
-  useEffect(() => {
-    const calculateCommission = async () => {
-      if (!totalMonthlyPayment || totalMonthlyPayment === 0 || !ambassadorId || !commissionLevelId) {
-        return;
-      }
+  // Calcul à la demande plutôt que réactif (useEffect)
+  React.useEffect(() => {
+    // Vérifier si on a déjà les informations nécessaires
+    if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
+      return;
+    }
 
-      setIsCalculating(true);
+    // Créer une signature unique pour les paramètres actuels
+    const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+    const currentCalculationParams = `${totalEquipmentAmount}-${commissionLevelId}-${ambassadorId}`;
+    
+    // Éviter les calculs redondants en vérifiant si les paramètres ont changé
+    if (currentCalculationParams === lastCalculationParams) {
+      return;
+    }
+
+    // Mémoriser les paramètres actuels
+    setLastCalculationParams(currentCalculationParams);
+    
+    // Calculer la commission uniquement quand nécessaire
+    setIsCalculating(true);
+    
+    // Utiliser setTimeout pour éviter le blocage de l'interface
+    const timer = setTimeout(async () => {
       try {
-        console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -48,19 +63,15 @@ const AmbassadorCommissionPreview = ({
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
-        console.log("Commission calculated:", commissionData);
       } catch (error) {
         console.error("Error calculating commission:", error);
-        toast.error("Erreur lors du calcul de la commission");
       } finally {
         setIsCalculating(false);
       }
-    };
-
-    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
-      calculateCommission();
-    }
-  }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId]);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [ambassadorId, commissionLevelId, equipmentList]);
 
   if (!ambassadorId || !commissionLevelId) {
     return null;

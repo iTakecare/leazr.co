@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Plus, MinusCircle, PlusCircle } from "lucide-react";
@@ -45,17 +46,39 @@ const EquipmentList = ({
     levelName: "" 
   });
   const [isCalculating, setIsCalculating] = useState(false);
+  const lastParamsRef = useRef<string>("");
+  const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const calculateCommission = async () => {
-      if (!totalMonthlyPayment || totalMonthlyPayment === 0) {
-        return;
-      }
-
-      setIsCalculating(true);
+  // Fonction pour calculer la commission de manière optimisée
+  const calculateCommission = useCallback(async () => {
+    if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
+      return;
+    }
+    
+    const totalEquipmentAmount = globalMarginAdjustment.amount + 
+      equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+    
+    // Création d'une signature unique pour les paramètres de calcul
+    const paramsSignature = `${totalEquipmentAmount}-${commissionLevelId}-${ambassadorId}`;
+    
+    // Éviter les calculs redondants
+    if (paramsSignature === lastParamsRef.current) {
+      return;
+    }
+    
+    // Mettre à jour la référence des derniers paramètres
+    lastParamsRef.current = paramsSignature;
+    
+    // Annuler tout calcul précédent en attente
+    if (calculationTimeoutRef.current) {
+      clearTimeout(calculationTimeoutRef.current);
+    }
+    
+    // Débouncer le calcul pour éviter trop d'appels
+    setIsCalculating(true);
+    
+    calculationTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        const totalEquipmentAmount = globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -68,19 +91,27 @@ const EquipmentList = ({
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
-        console.log("Commission calculated:", commissionData);
       } catch (error) {
         console.error("Error calculating commission:", error);
-        toast.error("Erreur lors du calcul de la commission");
       } finally {
         setIsCalculating(false);
+        calculationTimeoutRef.current = null;
+      }
+    }, 300);
+  }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.amount]);
+
+  // Utiliser un useEffect avec une dépendance stable pour déclencher le calcul
+  React.useEffect(() => {
+    // Déclencher le calcul initial
+    calculateCommission();
+    
+    // Nettoyer le timeout lors du démontage
+    return () => {
+      if (calculationTimeoutRef.current) {
+        clearTimeout(calculationTimeoutRef.current);
       }
     };
-
-    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
-      calculateCommission();
-    }
-  }, [totalMonthlyPayment, equipmentList, globalMarginAdjustment.amount, ambassadorId, commissionLevelId]);
+  }, [calculateCommission]);
 
   if (equipmentList.length === 0) {
     return (
