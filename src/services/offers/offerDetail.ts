@@ -32,7 +32,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
 
         // Calcul correct du montant financé à partir de la mensualité et du coefficient
-        // Formule: (mensualité × 100) ÷ coefficient = montant financé
+        // Formule correcte: (mensualité × 100) ÷ coefficient = montant financé
         const financedAmount = calculateFinancedAmount(
           Number(data.monthly_payment), 
           Number(data.coefficient || 3.27)
