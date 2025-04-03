@@ -11,8 +11,6 @@ import {
   Calculator,
   Package,
   LogOut,
-  Settings,
-  Mail,
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
