@@ -348,8 +348,8 @@ const PartnerOfferDetail = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Montant total:</span>
-                      <span className="font-medium">{formatCurrency(offer.amount)}</span>
+                      <span className="text-muted-foreground">Montant financé:</span>
+                      <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mensualité:</span>

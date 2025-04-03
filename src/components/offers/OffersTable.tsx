@@ -112,7 +112,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Équipement</TableHead>
-                {!isAmbassador() && <TableHead className="text-right">Montant</TableHead>}
+                {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right w-[100px]">Actions</TableHead>
@@ -147,7 +147,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   {!isAmbassador() && (
                     <TableCell className="text-right">
-                      {formatCurrency(offer.amount)}
+                      {formatCurrency(offer.financed_amount)}
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium">
