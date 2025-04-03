@@ -26,12 +26,18 @@ const AmbassadorDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [recentClients, setRecentClients] = useState([]);
   const [recentOffers, setRecentOffers] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!ambassadorId) return;
+    if (!ambassadorId) {
+      setLoading(false);
+      setError("Identifiant d'ambassadeur non trouvé");
+      return;
+    }
 
     const loadStats = async () => {
       setLoading(true);
+      setError(null);
       try {
         // Direct query to count ambassador clients
         const { data: clientsData, error: clientsError } = await supabase
@@ -44,28 +50,59 @@ const AmbassadorDashboardPage = () => {
         const clientsCount = clientsData?.length || 0;
         console.log(`Found ${clientsCount} clients for ambassador ${ambassadorId}`);
 
-        // Obtenir le total des commissions
-        const { data: commissions, error: commissionsError } = await supabase
-          .from("ambassador_commissions")
-          .select("amount")
-          .eq("ambassador_id", ambassadorId);
+        // Try to get commissions data, but don't fail if table doesn't exist
+        let totalCommissions = 0;
+        let lastCommissionAmount = 0;
+        
+        try {
+          // Check if ambassador_commissions table exists
+          const { data: tableExists } = await supabase.rpc('check_table_exists', {
+            table_name: 'ambassador_commissions'
+          });
+          
+          if (tableExists) {
+            // Obtenir le total des commissions
+            const { data: commissions, error: commissionsError } = await supabase
+              .from("ambassador_commissions")
+              .select("amount")
+              .eq("ambassador_id", ambassadorId);
 
-        if (commissionsError) throw commissionsError;
-
-        const totalCommissions = commissions?.reduce(
-          (sum, commission) => sum + (parseFloat(commission.amount) || 0),
-          0
-        ) || 0;
-
-        // Obtenir la dernière commission
-        const { data: lastCommission, error: lastCommissionError } = await supabase
-          .from("ambassador_commissions")
-          .select("amount")
-          .eq("ambassador_id", ambassadorId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (lastCommissionError) throw lastCommissionError;
+            if (!commissionsError && commissions) {
+              totalCommissions = commissions.reduce(
+                (sum, commission) => sum + (parseFloat(commission.amount) || 0),
+                0
+              ) || 0;
+              
+              // Obtenir la dernière commission
+              const { data: lastCommission } = await supabase
+                .from("ambassador_commissions")
+                .select("amount")
+                .eq("ambassador_id", ambassadorId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+                
+              if (lastCommission && lastCommission.length > 0) {
+                lastCommissionAmount = parseFloat(lastCommission[0].amount) || 0;
+              }
+            }
+          } else {
+            console.log('Table ambassador_commissions does not exist yet');
+            // Use alternative approach: get data from ambassadors table
+            const { data: ambassador } = await supabase
+              .from("ambassadors")
+              .select("commissions_total, last_commission")
+              .eq("id", ambassadorId)
+              .single();
+              
+            if (ambassador) {
+              totalCommissions = parseFloat(ambassador.commissions_total) || 0;
+              lastCommissionAmount = parseFloat(ambassador.last_commission) || 0;
+            }
+          }
+        } catch (commissionError) {
+          console.error("Error fetching commission data:", commissionError);
+          // Continue execution, just with zero values for commissions
+        }
         
         // Compter les offres en cours
         const { data: pendingOffers, error: pendingOffersError } = await supabase
@@ -116,7 +153,7 @@ const AmbassadorDashboardPage = () => {
         setStats({
           clientsCount,
           totalCommissions,
-          lastCommissionAmount: lastCommission?.length > 0 ? parseFloat(lastCommission[0].amount) : 0,
+          lastCommissionAmount,
           pendingOffersCount: pendingOffers?.length || 0,
           acceptedOffersCount: acceptedOffers?.length || 0
         });
@@ -131,6 +168,7 @@ const AmbassadorDashboardPage = () => {
         setRecentOffers(offers || []);
       } catch (error) {
         console.error("Erreur lors du chargement des statistiques:", error);
+        setError("Impossible de charger les données du tableau de bord");
         toast.error("Impossible de charger les données du tableau de bord");
       } finally {
         setLoading(false);
@@ -153,6 +191,35 @@ const AmbassadorDashboardPage = () => {
         <Container>
           <div className="h-screen flex items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="p-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold">
+                {greeting()}, {user?.first_name || user?.email}
+              </h1>
+              <p className="text-muted-foreground">Votre tableau de bord ambassadeur</p>
+            </div>
+            
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
+              <p className="font-medium">Erreur: {error}</p>
+              <p className="text-sm mt-2">Veuillez réessayer plus tard ou contacter l'assistance.</p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => window.location.reload()}
+              >
+                Réessayer
+              </Button>
+            </div>
           </div>
         </Container>
       </PageTransition>
