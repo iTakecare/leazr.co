@@ -1,9 +1,5 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/utils/formatters";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import {
   Table,
   TableBody,
@@ -13,237 +9,155 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
+import { Offer } from "@/hooks/offers/useFetchOffers";
+import { formatCurrency } from "@/utils/formatters";
+import { 
+  Pencil, Trash2, MoreHorizontal, File, FilePlus, Send
+} from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import OfferStatusBadge from "./OfferStatusBadge";
+import OffersEmptyState from "./OffersEmptyState";
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  MoreHorizontal, 
-  Trash2, 
-  Send, 
-  Eye, 
-  FileDown, 
-  ExternalLink
-} from "lucide-react";
-import OfferStatusBadge from "./OfferStatusBadge";
-import { useAuth } from "@/context/AuthContext";
-import { generateSignatureLink } from "@/services/offers/offerSignature";
-import { toast } from "sonner";
 
 interface OffersTableProps {
-  offers: any[];
+  offers: Offer[];
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
-  onResendOffer?: (offerId: string) => void;
-  onDownloadPdf?: (offerId: string) => void;
+  onResendOffer?: (offerId: string) => Promise<void>;
+  onDownloadPdf?: (offerId: string) => Promise<void>;
   isUpdatingStatus: boolean;
 }
 
-const OffersTable: React.FC<OffersTableProps> = ({
+const OffersTable: React.FC<OffersTableProps> = ({ 
   offers,
   onStatusChange,
   onDeleteOffer,
   onResendOffer,
   onDownloadPdf,
-  isUpdatingStatus,
+  isUpdatingStatus
 }) => {
-  const navigate = useNavigate();
-  const { isAdmin, isAmbassador } = useAuth();
-  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
-
-  if (!offers.length) {
-    return (
-      <div className="text-center p-8 bg-gray-50 rounded-md">
-        <p className="text-gray-500">Aucune offre trouvée.</p>
-      </div>
-    );
+  if (offers.length === 0) {
+    return <OffersEmptyState />;
   }
 
-  const formatDate = (dateString: string) => {
+  // Calcule le montant total correct à partir des données d'équipement
+  const getTotalAmount = (offer: Offer) => {
     try {
-      return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
-    } catch (error) {
-      return "Date incorrecte";
+      if (offer.equipment_description) {
+        let equipmentList;
+        
+        if (typeof offer.equipment_description === 'string') {
+          equipmentList = JSON.parse(offer.equipment_description);
+        } else if (typeof offer.equipment_description === 'object') {
+          equipmentList = offer.equipment_description;
+        }
+        
+        if (Array.isArray(equipmentList) && equipmentList.length > 0) {
+          return equipmentList.reduce((total, item) => {
+            const priceWithMargin = item.purchasePrice * (1 + (item.margin / 100));
+            return total + (priceWithMargin * (item.quantity || 1));
+          }, 0);
+        }
+      }
+    } catch (e) {
+      console.error("Erreur lors du calcul du montant total:", e);
     }
+    
+    return offer.amount;
   };
-
-  const handleViewDetails = (offerId: string) => {
-    if (isAmbassador()) {
-      navigate(`/ambassador/offers/${offerId}`);
-    } else {
-      navigate(`/offers/${offerId}`);
-    }
-  };
-
-  const handleSendToClient = async (offerId: string) => {
-    await onStatusChange(offerId, "sent");
-  };
-
-  const handleCopyOnlineOfferLink = (offerId: string) => {
-    const link = generateSignatureLink(offerId);
-    navigator.clipboard.writeText(link);
-    toast.success("Lien de l'offre en ligne copié dans le presse-papier");
-  };
-
-  const openOnlineOffer = (offerId: string) => {
-    const link = generateSignatureLink(offerId);
-    window.open(link, '_blank', 'noopener,noreferrer');
-  };
-
+  
   return (
-    <>
-      <div className="rounded-md border overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Équipement</TableHead>
-                {!isAmbassador() && <TableHead className="text-right">Montant</TableHead>}
-                <TableHead className="text-right">Mensualité</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {offers.map((offer) => (
-                <TableRow key={offer.id}>
-                  <TableCell>{formatDate(offer.created_at)}</TableCell>
-                  <TableCell className="font-medium">{offer.client_name}</TableCell>
-                  <TableCell className="max-w-[180px] truncate">
-                    {offer.equipment_description &&
-                      typeof offer.equipment_description === "string" &&
-                      (offer.equipment_description.startsWith("[") ||
-                        offer.equipment_description.startsWith("{"))
-                      ? (() => {
-                          try {
-                            const equipmentData = JSON.parse(
-                              offer.equipment_description
-                            );
-                            if (Array.isArray(equipmentData)) {
-                              return equipmentData
-                                .map((item) => item.title)
-                                .join(", ");
-                            }
-                            return equipmentData.title || "Équipement sans titre";
-                          } catch (e) {
-                            return "Format d'équipement non valide";
-                          }
-                        })()
-                      : offer.equipment_description || "Non spécifié"}
-                  </TableCell>
-                  {!isAmbassador() && (
-                    <TableCell className="text-right">
-                      {formatCurrency(offer.amount)}
-                    </TableCell>
-                  )}
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(offer.monthly_payment)}
-                  </TableCell>
-                  <TableCell>
-                    <OfferStatusBadge status={offer.workflow_status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          aria-label="Plus d'options"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(offer.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Voir détails
-                        </DropdownMenuItem>
-                        
-                        {offer.workflow_status === "draft" && !isAmbassador() && (
-                          <DropdownMenuItem
-                            onClick={() => handleSendToClient(offer.id)}
-                            disabled={isUpdatingStatus}
-                          >
-                            <Send className="mr-2 h-4 w-4" />
-                            Envoyer au client
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onDownloadPdf && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Télécharger PDF
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {!isAmbassador() && (
-                          <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Voir offre en ligne
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
-                            <Send className="mr-2 h-4 w-4" />
-                            Renvoyer
-                          </DropdownMenuItem>
-                        )}
-                        
-                        <DropdownMenuItem onClick={() => setConfirmDelete(offer.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action ne peut pas être annulée. Cela supprimera
-              définitivement cette offre.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (confirmDelete) {
-                  onDeleteOffer(confirmDelete);
-                  setConfirmDelete(null);
-                }
-              }}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Équipement</TableHead>
+            <TableHead className="text-right">Montant</TableHead>
+            <TableHead className="text-right">Mensualité</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {offers.map((offer) => (
+            <TableRow key={offer.id}>
+              <TableCell className="font-medium">
+                {format(new Date(offer.created_at), "dd MMM yyyy", { locale: fr })}
+              </TableCell>
+              <TableCell>{offer.client_name}</TableCell>
+              <TableCell className="max-w-[240px] truncate">
+                {typeof offer.equipment_description === 'string'
+                  ? offer.equipment_description.substring(0, 30) + (offer.equipment_description.length > 30 ? '...' : '')
+                  : 'Équipement'}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(getTotalAmount(offer))}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(offer.monthly_payment)}
+              </TableCell>
+              <TableCell>
+                <OfferStatusBadge status={offer.workflow_status} />
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = `/create-offer?id=${offer.id}`}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Éditer
+                    </DropdownMenuItem>
+                    {onDownloadPdf && (
+                      <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
+                        <File className="mr-2 h-4 w-4" />
+                        Télécharger PDF
+                      </DropdownMenuItem>
+                    )}
+                    {onResendOffer && (
+                      <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Renvoyer l'offre
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => window.location.href = `/offer/${offer.id}`}
+                      disabled={isUpdatingStatus}
+                    >
+                      <FilePlus className="mr-2 h-4 w-4" />
+                      Voir détails
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onDeleteOffer(offer.id)}
+                      className="text-red-600 focus:text-red-700"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

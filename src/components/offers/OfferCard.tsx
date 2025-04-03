@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,32 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const isConverted = offer.converted_to_contract;
 
+  // Calculer le montant total correct si l'équipement est disponible
+  const getTotalAmount = () => {
+    try {
+      if (offer.equipment_description) {
+        let equipmentList;
+        
+        if (typeof offer.equipment_description === 'string') {
+          equipmentList = JSON.parse(offer.equipment_description);
+        } else if (typeof offer.equipment_description === 'object') {
+          equipmentList = offer.equipment_description;
+        }
+        
+        if (Array.isArray(equipmentList) && equipmentList.length > 0) {
+          return equipmentList.reduce((total, item) => {
+            const priceWithMargin = item.purchasePrice * (1 + (item.margin / 100));
+            return total + (priceWithMargin * (item.quantity || 1));
+          }, 0);
+        }
+      }
+    } catch (e) {
+      console.error("Erreur lors du calcul du montant total:", e);
+    }
+    
+    return offer.amount;
+  };
+
   return (
     <Card className={cn(
       "transition-all",
@@ -106,7 +133,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
         <div className="text-xs text-muted-foreground">
           <div className="flex items-center">
             <CreditCard className="h-3 w-3 mr-1" />
-            <span>Montant financé: {formatCurrency(financedAmount)}</span>
+            <span>Montant total: {formatCurrency(getTotalAmount())}</span>
           </div>
         </div>
         

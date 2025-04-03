@@ -91,21 +91,24 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
         
         if (Array.isArray(equipmentList) && equipmentList.length > 0) {
-          // Calculer le prix d'achat total (sans marge)
-          const totalPurchasePrice = equipmentList.reduce(
-            (sum, item) => sum + ((item.purchasePrice || 0) * (item.quantity || 1)), 
+          // Calculer le prix d'achat total (avec marge)
+          const totalAmount = equipmentList.reduce(
+            (sum, item) => {
+              const priceWithMargin = item.purchasePrice * (1 + (item.margin / 100));
+              return sum + (priceWithMargin * (item.quantity || 1));
+            }, 
             0
           );
           
           // Si le montant stocké ne correspond pas au calcul, mettre à jour
-          if (Math.abs(Number(data.amount) - totalPurchasePrice) > 0.01) {
-            console.log(`Correction du montant total: ${data.amount}€ -> ${totalPurchasePrice}€`);
-            data.amount = totalPurchasePrice;
+          if (Math.abs(Number(data.amount) - totalAmount) > 0.01) {
+            console.log(`Correction du montant total: ${data.amount}€ -> ${totalAmount}€`);
+            data.amount = totalAmount;
             
             // Mettre à jour dans la base de données
             await supabase
               .from('offers')
-              .update({ amount: totalPurchasePrice })
+              .update({ amount: totalAmount })
               .eq('id', id);
           }
         }
