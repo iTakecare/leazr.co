@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -27,6 +27,12 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
+  // Référence pour suivre les paramètres précédents et éviter les recalculs inutiles
+  const previousParams = useRef({ 
+    totalAmount: 0, 
+    ambassadorId: '', 
+    commissionLevelId: '' 
+  });
 
   useEffect(() => {
     const calculateCommission = async () => {
@@ -34,10 +40,21 @@ const AmbassadorCommissionPreview = ({
         return;
       }
 
+      const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+      
+      // Vérifier si les paramètres ont changé pour éviter les recalculs inutiles
+      if (
+        previousParams.current.totalAmount === totalEquipmentAmount &&
+        previousParams.current.ambassadorId === ambassadorId &&
+        previousParams.current.commissionLevelId === commissionLevelId
+      ) {
+        return;
+      }
+
       setIsCalculating(true);
       try {
         console.log(`Calculating commission for ambassador ${ambassadorId} with level ${commissionLevelId}`);
-        const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+        
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -57,6 +74,13 @@ const AmbassadorCommissionPreview = ({
         }
         
         console.log("Commission calculated:", commissionData);
+        
+        // Mettre à jour les paramètres précédents
+        previousParams.current = {
+          totalAmount: totalEquipmentAmount,
+          ambassadorId,
+          commissionLevelId
+        };
       } catch (error) {
         console.error("Error calculating commission:", error);
         toast.error("Erreur lors du calcul de la commission");

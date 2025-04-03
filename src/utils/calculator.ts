@@ -25,6 +25,9 @@ export const commissionRates = [
   { min: 500, max: 2500, rate: 10 },
 ];
 
+// Cache pour éviter des appels répétés avec les mêmes paramètres
+const commissionCache = new Map();
+
 /**
  * Calculate monthly leasing payment
  * Formula: Amount * Coefficient / 100 = Monthly payment
@@ -79,6 +82,14 @@ export const getCommissionRate = (amount: number): number => {
  */
 export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner', ambassadorId?: string): Promise<{ rate: number, amount: number, levelName?: string }> => {
   try {
+    // Créer une clé de cache unique pour cette combinaison de paramètres
+    const cacheKey = `${amount}-${levelId}-${type}-${ambassadorId}`;
+    
+    // Vérifier si nous avons déjà calculé cette commission
+    if (commissionCache.has(cacheKey)) {
+      return commissionCache.get(cacheKey);
+    }
+    
     console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}, ambassadorId: ${ambassadorId}`);
     let actualLevelId = levelId;
     let levelName: string | undefined;
@@ -96,26 +107,9 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       
       if (!ambassadorError && ambassador && ambassador.commission_level_id) {
         actualLevelId = ambassador.commission_level_id;
-        console.log(`[calculateCommissionByLevel] Using ambassador's commission level from database: ${actualLevelId}`);
-        
-        // Get the level name
-        const { data: levelData } = await supabase
-          .from('commission_levels')
-          .select('name')
-          .eq('id', actualLevelId)
-          .single();
-          
-        if (levelData) {
-          levelName = levelData.name;
-          console.log(`[calculateCommissionByLevel] Level name: ${levelName}`);
-        }
-      } else {
-        console.log("[calculateCommissionByLevel] Ambassador doesn't have a commission level or error occurred:", ambassadorError);
-        console.log("[calculateCommissionByLevel] Ambassador data:", ambassador);
-        console.log("[calculateCommissionByLevel] Falling back to default");
       }
     }
-    
+
     // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
     if (!actualLevelId) {
       console.log("[calculateCommissionByLevel] No levelId provided, fetching default level");
@@ -197,11 +191,13 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
         levelName: level.name
       };
     }
+    
+    // Stocker le résultat dans le cache
+    const result = { rate: 0, amount: 0 };
+    commissionCache.set(cacheKey, result);
+    return result;
   } catch (error) {
-    console.error("[calculateCommissionByLevel] Error calculating commission:", error);
-    return {
-      rate: 0,
-      amount: 0
-    };
+    console.error("[calculateCommissionByLevel] Error:", error);
+    return { rate: 0, amount: 0 };
   }
 };
