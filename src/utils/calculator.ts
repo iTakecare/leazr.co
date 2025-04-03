@@ -28,8 +28,8 @@ export const commissionRates = [
 
 // Cache for commission calculations to avoid repeated API calls and calculations
 const commissionCache = new Map();
-// TTL for cache entries (1 minute)
-const CACHE_TTL = 60 * 1000;
+// TTL for cache entries (5 minutes)
+const CACHE_TTL = 5 * 60 * 1000;
 
 // Flag to prevent simultaneous calculations for the same parameters
 const pendingCalculations = new Set();
@@ -119,52 +119,89 @@ export const calculateCommissionByLevel = async (
       return cachedItem.value;
     }
     
-    // Check if this calculation is already in progress, if so return a default value
+    // Check if this calculation is already in progress, if so wait for it
     if (pendingCalculations.has(cacheKey)) {
-      return { rate: 0, amount: 0 };
+      // Return a default value or wait until the calculation completes
+      const startTime = Date.now();
+      while (pendingCalculations.has(cacheKey)) {
+        // If waiting too long (1 second), return default value
+        if (Date.now() - startTime > 1000) {
+          return { rate: 0, amount: 0 };
+        }
+        // Small pause to prevent CPU blocking
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      
+      // Check cache again after waiting
+      const updatedCache = commissionCache.get(cacheKey);
+      if (updatedCache && updatedCache.timestamp) {
+        return updatedCache.value;
+      }
     }
     
     // Mark this calculation as pending
     pendingCalculations.add(cacheKey);
     
-    console.log(`[calculateCommissionByLevel] Starting with amount: ${amount}, levelId: ${levelId}, type: ${type}, ambassadorId: ${ambassadorId}`);
-    let actualLevelId = levelId;
-    let levelName: string | undefined;
-    
     try {
-      // If an ambassador ID is provided, get their commission level directly from the database
+      let actualLevelId = levelId;
+      let levelName: string | undefined;
+      
+      // If an ambassador ID is provided, get their commission level from cache first
       if (ambassadorId) {
-        console.log(`[calculateCommissionByLevel] Ambassador ID provided: ${ambassadorId}, fetching their commission level from database`);
+        const ambassadorCacheKey = `ambassador-${ambassadorId}`;
+        const cachedAmbassador = commissionCache.get(ambassadorCacheKey);
         
-        // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
-        const { data: ambassador, error: ambassadorError } = await supabase
-          .from('ambassadors')
-          .select('commission_level_id, name')
-          .eq('id', ambassadorId)
-          .single();
-        
-        if (!ambassadorError && ambassador && ambassador.commission_level_id) {
-          actualLevelId = ambassador.commission_level_id;
+        if (cachedAmbassador && cachedAmbassador.timestamp && 
+            (Date.now() - cachedAmbassador.timestamp < CACHE_TTL)) {
+          actualLevelId = cachedAmbassador.value.commission_level_id;
+        } else {
+          // Get the ambassador record with commission_level_id directly from the database
+          const { data: ambassador, error: ambassadorError } = await supabase
+            .from('ambassadors')
+            .select('commission_level_id, name')
+            .eq('id', ambassadorId)
+            .single();
+          
+          if (!ambassadorError && ambassador) {
+            actualLevelId = ambassador.commission_level_id;
+            
+            // Cache the ambassador data
+            commissionCache.set(ambassadorCacheKey, {
+              value: ambassador,
+              timestamp: Date.now()
+            });
+          }
         }
       }
   
       // If no level ID is provided, use the default level
       if (!actualLevelId) {
-        console.log("[calculateCommissionByLevel] No levelId provided, fetching default level");
-        const defaultLevel = await fetchDefaultCommissionLevel(type);
-        console.log("[calculateCommissionByLevel] Default level:", defaultLevel);
+        const defaultCacheKey = `default-level-${type}`;
+        const cachedDefault = commissionCache.get(defaultCacheKey);
         
-        if (defaultLevel) {
-          actualLevelId = defaultLevel.id;
-          levelName = defaultLevel.name;
+        if (cachedDefault && cachedDefault.timestamp && 
+            (Date.now() - cachedDefault.timestamp < CACHE_TTL)) {
+          actualLevelId = cachedDefault.value.id;
+          levelName = cachedDefault.value.name;
+        } else {
+          const defaultLevel = await fetchDefaultCommissionLevel(type);
+          
+          if (defaultLevel) {
+            actualLevelId = defaultLevel.id;
+            levelName = defaultLevel.name;
+            
+            // Cache the default level
+            commissionCache.set(defaultCacheKey, {
+              value: defaultLevel,
+              timestamp: Date.now()
+            });
+          }
         }
       }
       
       // If still no ID, use static rates
       if (!actualLevelId) {
-        console.log("[calculateCommissionByLevel] No level available, using static rates");
         const staticRate = getCommissionRate(amount);
-        console.log(`[calculateCommissionByLevel] Static rate for amount ${amount}: ${staticRate}%`);
         
         const result = {
           rate: staticRate,
@@ -177,22 +214,48 @@ export const calculateCommissionByLevel = async (
           timestamp: Date.now()
         });
         
-        // Remove from pending calculations
-        pendingCalculations.delete(cacheKey);
-        
         return result;
       }
       
-      // Get commission rates for the level
-      console.log(`[calculateCommissionByLevel] Fetching rates for level: ${actualLevelId}`);
+      // Get full level with rates from cache or database
+      const levelCacheKey = `level-${actualLevelId}`;
+      let level;
+      const cachedLevel = commissionCache.get(levelCacheKey);
       
-      // Get full level with rates
-      const level = await getCommissionLevelWithRates(actualLevelId);
-      console.log("[calculateCommissionByLevel] Commission level with rates:", level);
+      if (cachedLevel && cachedLevel.timestamp && 
+          (Date.now() - cachedLevel.timestamp < CACHE_TTL)) {
+        level = cachedLevel.value;
+      } else {
+        level = await getCommissionLevelWithRates(actualLevelId);
+        
+        if (level) {
+          // Cache the level with rates
+          commissionCache.set(levelCacheKey, {
+            value: level,
+            timestamp: Date.now()
+          });
+        }
+      }
       
+      // Process rates and calculate commission
       if (!level || !level.rates || level.rates.length === 0) {
-        console.log("[calculateCommissionByLevel] No rates found for level, fetching separately");
-        const rates = await fetchCommissionRates(actualLevelId);
+        // Fallback to fetching rates separately if level doesn't include them
+        const ratesCacheKey = `rates-${actualLevelId}`;
+        let rates;
+        const cachedRates = commissionCache.get(ratesCacheKey);
+        
+        if (cachedRates && cachedRates.timestamp && 
+            (Date.now() - cachedRates.timestamp < CACHE_TTL)) {
+          rates = cachedRates.value;
+        } else {
+          rates = await fetchCommissionRates(actualLevelId);
+          
+          // Cache the rates
+          commissionCache.set(ratesCacheKey, {
+            value: rates,
+            timestamp: Date.now()
+          });
+        }
         
         // Find applicable rate based on amount
         const applicableRate = rates.find(
@@ -200,28 +263,21 @@ export const calculateCommissionByLevel = async (
         );
         
         if (!applicableRate) {
-          console.log(`[calculateCommissionByLevel] No applicable rate found for amount: ${amount}`);
           const result = {
             rate: 0,
             amount: 0,
             levelName
           };
           
-          // Cache the result
           commissionCache.set(cacheKey, {
             value: result,
             timestamp: Date.now()
           });
           
-          // Remove from pending calculations
-          pendingCalculations.delete(cacheKey);
-          
           return result;
         }
         
-        console.log(`[calculateCommissionByLevel] Found applicable rate: ${applicableRate.rate}%`);
         const calculatedAmount = (amount * applicableRate.rate) / 100;
-        console.log(`[calculateCommissionByLevel] Calculated commission amount: ${calculatedAmount}`);
         
         const result = {
           rate: applicableRate.rate,
@@ -229,14 +285,10 @@ export const calculateCommissionByLevel = async (
           levelName
         };
         
-        // Cache the result
         commissionCache.set(cacheKey, {
           value: result,
           timestamp: Date.now()
         });
-        
-        // Remove from pending calculations
-        pendingCalculations.delete(cacheKey);
         
         return result;
       } else {
@@ -246,26 +298,20 @@ export const calculateCommissionByLevel = async (
         );
         
         if (!applicableRate) {
-          console.log(`[calculateCommissionByLevel] No applicable rate found in level rates for amount: ${amount}`);
           const result = {
             rate: 0,
             amount: 0,
             levelName: level.name
           };
           
-          // Cache the result
           commissionCache.set(cacheKey, {
             value: result,
             timestamp: Date.now()
           });
           
-          // Remove from pending calculations
-          pendingCalculations.delete(cacheKey);
-          
           return result;
         }
         
-        console.log(`[calculateCommissionByLevel] Found applicable rate from level: ${applicableRate.rate}%`);
         const calculatedAmount = (amount * applicableRate.rate) / 100;
         
         const result = {
@@ -274,19 +320,15 @@ export const calculateCommissionByLevel = async (
           levelName: level.name
         };
         
-        // Cache the result with timestamp
         commissionCache.set(cacheKey, {
           value: result,
           timestamp: Date.now()
         });
         
-        // Remove from pending calculations
-        pendingCalculations.delete(cacheKey);
-        
         return result;
       }
     } finally {
-      // Ensure we always remove from pending calculations, even in case of error
+      // Always remove from pending calculations, even in case of error
       pendingCalculations.delete(cacheKey);
     }
   } catch (error) {
