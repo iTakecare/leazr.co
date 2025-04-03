@@ -232,7 +232,9 @@ const OfferDetail = () => {
     // Email sending functionality to be implemented here
   };
   
-  // Fixed missing function - This handles sending information requests
+  // Déterminer si c'est une demande interne (sans ambassadeur)
+  const isInternalRequest = !offer?.ambassador_id;
+  
   const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
     if (!offer) return;
     
@@ -707,8 +709,8 @@ const OfferDetail = () => {
                   <div className="text-lg">{offer.client_email}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-500">Montant total</div>
-                  <div className="text-lg font-medium">{formatCurrency(offer.amount || 0)}</div>
+                  <div className="text-sm font-medium text-gray-500">Montant financé</div>
+                  <div className="text-lg font-medium">{formatCurrency(offer.financed_amount || 0)}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-gray-500">Paiement mensuel</div>
@@ -718,10 +720,12 @@ const OfferDetail = () => {
                   <div className="text-sm font-medium text-gray-500">Coefficient</div>
                   <div className="text-lg">{offer.coefficient}</div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Commission</div>
-                  <div className="text-lg">{formatCurrency(offer.commission || 0)}</div>
-                </div>
+                {!isInternalRequest && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-500">Commission</div>
+                    <div className="text-lg">{formatCurrency(offer.commission || 0)}</div>
+                  </div>
+                )}
                 <div>
                   <div className="text-sm font-medium text-gray-500">Date de création</div>
                   <div className="text-lg">{formatDate(offer.created_at)}</div>
@@ -729,7 +733,7 @@ const OfferDetail = () => {
                 <div>
                   <div className="text-sm font-medium text-gray-500">Type d'offre</div>
                   <div className="text-lg">
-                    {offer.type === 'admin_offer' ? 'Offre administrative' : 'Demande client'}
+                    {isInternalRequest ? 'Demande interne' : 'Demande client'}
                   </div>
                 </div>
               </div>
