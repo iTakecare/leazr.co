@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { ArrowLeft, Layers, Check, Box, Info } from "lucide-react";
+import { ArrowLeft, Layers, Check, Box, Info, Tool, Shield, LifeBuoy, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/utils/formatters";
@@ -139,9 +139,7 @@ const AmbassadorProductDetail = () => {
                     <span className="text-sm font-normal text-gray-500"> /mois</span>
                   </p>
                 </div>
-              ) : (
-                <p className="text-lg font-medium text-gray-500">Prix sur demande</p>
-              )}
+              ) : null}
             </div>
 
             <Separator className="my-6" />
@@ -163,12 +161,24 @@ const AmbassadorProductDetail = () => {
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Check className="h-5 w-5 text-green-500" />
-                <span>Garantie fabricant incluse</span>
+                <Tool className="h-5 w-5 text-green-500" />
+                <span>Maintenance incluse</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-green-500" />
+                <span>Garantie étendue</span>
               </div>
               <div className="flex items-center gap-3">
                 <Box className="h-5 w-5 text-green-500" />
                 <span>Livraison incluse</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <LifeBuoy className="h-5 w-5 text-green-500" />
+                <span>Support technique dédié</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <RefreshCw className="h-5 w-5 text-green-500" />
+                <span>Remplacement en cas de panne</span>
               </div>
             </div>
           </div>
@@ -234,9 +244,7 @@ const AmbassadorProductDetail = () => {
                                   <span className="text-sm font-normal text-gray-500">/mois</span>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="text-gray-500 text-right">Prix sur demande</div>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
