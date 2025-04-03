@@ -61,7 +61,7 @@ const AmbassadorSidebar = () => {
       title: "Catalogue",
       icon: Package,
       href: `/ambassador/catalog`,
-      active: pathname === "/ambassador/catalog",
+      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
     },
   ];
 

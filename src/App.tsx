@@ -48,6 +48,7 @@ import AmbassadorOfferDetail from "./pages/AmbassadorPages/AmbassadorOfferDetail
 import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage";
 import AmbassadorLayout from "./components/layout/AmbassadorLayout";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
+import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import SignOffer from "./pages/client/SignOffer";
 import PublicCatalog from "./pages/PublicCatalog";
@@ -150,6 +151,7 @@ const App = () => {
                     <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                     <Route path="create-offer/:clientId" element={<AmbassadorCreateOffer />} />
                     <Route path="catalog" element={<AmbassadorCatalog />} />
+                    <Route path="catalog/:productId" element={<AmbassadorProductDetail />} />
                   </Route>
                   
                   {/* Routes partenaire */}
