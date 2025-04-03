@@ -14,6 +14,7 @@ import {
   Settings,
   Mail,
   FileText,
+  LineChart,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,6 +65,12 @@ const AmbassadorSidebar = () => {
       icon: Package,
       href: `/ambassador/catalog`,
       active: pathname === "/ambassador/catalog",
+    },
+    {
+      title: "Statistiques",
+      icon: LineChart,
+      href: `/ambassador/statistics`,
+      active: pathname === "/ambassador/statistics",
     },
   ];
 
