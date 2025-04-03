@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import OfferStatusBadge from "./OfferStatusBadge";
 import OffersEmptyState from "./OffersEmptyState";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +56,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
         let equipmentList;
         
         if (typeof offer.equipment_description === 'string') {
-          equipmentList = JSON.parse(offer.equipment_description);
+          try {
+            equipmentList = JSON.parse(offer.equipment_description);
+          } catch (e) {
+            console.error("Erreur parsing equipment_description:", e);
+            return offer.amount;
+          }
         } else if (typeof offer.equipment_description === 'object') {
           equipmentList = offer.equipment_description;
         }
@@ -72,6 +78,16 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
     
     return offer.amount;
+  };
+
+  // Formatage de l'affichage de l'équipement pour la table
+  const formatEquipment = (offer: Offer) => {
+    try {
+      return formatEquipmentDisplay(offer.equipment_description);
+    } catch (e) {
+      console.error("Erreur lors du formatage de l'équipement:", e);
+      return "Équipement non détaillé";
+    }
   };
   
   return (
@@ -96,9 +112,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
               </TableCell>
               <TableCell>{offer.client_name}</TableCell>
               <TableCell className="max-w-[240px] truncate">
-                {typeof offer.equipment_description === 'string'
-                  ? offer.equipment_description.substring(0, 30) + (offer.equipment_description.length > 30 ? '...' : '')
-                  : 'Équipement'}
+                {formatEquipment(offer)}
               </TableCell>
               <TableCell className="text-right">
                 {formatCurrency(getTotalAmount(offer))}

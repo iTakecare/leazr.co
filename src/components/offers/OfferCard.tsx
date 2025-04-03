@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 
 interface OfferCardProps {
   offer: Offer;
@@ -68,7 +69,12 @@ const OfferCard: React.FC<OfferCardProps> = ({
         let equipmentList;
         
         if (typeof offer.equipment_description === 'string') {
-          equipmentList = JSON.parse(offer.equipment_description);
+          try {
+            equipmentList = JSON.parse(offer.equipment_description);
+          } catch (e) {
+            console.error("Erreur parsing equipment_description:", e);
+            return offer.amount;
+          }
         } else if (typeof offer.equipment_description === 'object') {
           equipmentList = offer.equipment_description;
         }
@@ -85,6 +91,15 @@ const OfferCard: React.FC<OfferCardProps> = ({
     }
     
     return offer.amount;
+  };
+  
+  const formatEquipment = () => {
+    try {
+      return formatEquipmentDisplay(offer.equipment_description);
+    } catch (e) {
+      console.error("Erreur lors du formatage de l'équipement:", e);
+      return "Équipement non détaillé";
+    }
   };
 
   return (
