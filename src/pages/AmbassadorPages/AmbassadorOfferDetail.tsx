@@ -192,7 +192,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "Date inconnue";
     try {
       return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: fr });
@@ -305,19 +305,18 @@ const AmbassadorOfferDetail = () => {
     );
   }
   
-  let equipmentData: any[] = [];
+  let equipmentData = [];
   try {
-    if (offer?.equipment_description) {
-      equipmentData = typeof offer.equipment_description === 'object' ? 
-        offer.equipment_description : 
-        JSON.parse(offer.equipment_description as string);
+    if (offer.equipment_description) {
+      equipmentData = typeof offer.equipment_data === 'object' ? 
+        offer.equipment_data : 
+        JSON.parse(offer.equipment_description);
     }
   } catch (e) {
     console.log("Erreur de parsing des données d'équipement:", e);
-    equipmentData = [];
   }
 
-  const getStepStatus = (stepId) => {
+  const getStepStatus = (stepId: string) => {
     const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
     const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
     
@@ -326,7 +325,7 @@ const AmbassadorOfferDetail = () => {
     return 'pending';
   };
 
-  const getCommissionStatusBadge = (status) => {
+  const getCommissionStatusBadge = (status: string | undefined) => {
     switch (status) {
       case 'paid':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
@@ -339,7 +338,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
 
-  const getCommissionBoxColor = (status) => {
+  const getCommissionBoxColor = (status: string | undefined) => {
     switch (status) {
       case 'paid':
         return "bg-green-50 border-green-200";
@@ -352,7 +351,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
 
-  const getCommissionIconColor = (status) => {
+  const getCommissionIconColor = (status: string | undefined) => {
     switch (status) {
       case 'paid':
         return "text-green-700";
@@ -508,7 +507,7 @@ const AmbassadorOfferDetail = () => {
                     <TabsContent value="equipment" className="mt-4">
                       {equipmentData && equipmentData.length > 0 ? (
                         <div className="space-y-4">
-                          {equipmentData.map((item, index) => (
+                          {equipmentData.map((item: any, index: number) => (
                             <Card key={index} className="overflow-hidden">
                               <CardContent className="p-4">
                                 <h3 className="font-semibold mb-2">{item.title}</h3>
@@ -529,7 +528,7 @@ const AmbassadorOfferDetail = () => {
                                   <div className="mt-3 pt-3 border-t border-gray-100">
                                     <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
                                     <div className="grid grid-cols-2 gap-2">
-                                      {Object.entries(item.variants).map(([key, value]) => (
+                                      {Object.entries(item.variants).map(([key, value]: [string, any]) => (
                                         <div key={key} className="flex flex-col">
                                           <span className="text-xs text-gray-600">{key}</span>
                                           <span className="font-medium text-sm">{String(value)}</span>
@@ -613,19 +612,7 @@ const AmbassadorOfferDetail = () => {
                                     {stepStatus === 'completed' ? (
                                       <Check className="h-6 w-6 text-green-700" />
                                     ) : (
-                                      status.id === 'sent' ? (
-                                        <span className="text-xl font-medium">E</span>
-                                      ) : status.id === 'valid_itc' ? (
-                                        <span className="text-xl font-medium">V</span>
-                                      ) : status.id === 'approved' ? (
-                                        <span className="text-xl font-medium">A</span>
-                                      ) : status.id === 'leaser_review' ? (
-                                        <span className="text-xl font-medium">V</span>
-                                      ) : status.id === 'financed' ? (
-                                        <span className="text-xl font-medium">F</span>
-                                      ) : (
-                                        <status.icon className="h-6 w-6" />
-                                      )
+                                      <status.icon className="h-6 w-6" />
                                     )}
                                   </div>
                                   <span className={`text-sm font-medium ${

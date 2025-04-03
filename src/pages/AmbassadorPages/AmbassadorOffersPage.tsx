@@ -81,9 +81,9 @@ const AmbassadorOffersPage = () => {
   }, [searchTerm, activeTab, activeType, offers]);
   
   // Gestion de la suppression d'une offre
-  const handleDeleteOffer = async (id: string): Promise<void> => {
+  const handleDeleteOffer = async (id) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
-      return Promise.resolve();
+      return;
     }
     
     try {
@@ -101,23 +101,21 @@ const AmbassadorOffersPage = () => {
       console.error("Erreur lors de la suppression de l'offre:", err);
       toast.error("Impossible de supprimer l'offre");
     }
-    
-    return Promise.resolve();
   };
   
   // Gestion du changement de statut (limité pour les ambassadeurs)
-  const handleUpdateWorkflowStatus = async (offerId: string, newStatus: string): Promise<void> => {
+  const handleUpdateWorkflowStatus = async (offerId, newStatus) => {
     // Pour les ambassadeurs, on ne permet que le passage de draft à sent
     if (newStatus !== 'sent') {
       toast.error("Vous n'avez pas les droits pour effectuer cette action");
-      return Promise.resolve();
+      return;
     }
     
     try {
       const offerToUpdate = offers.find(offer => offer.id === offerId);
       if (!offerToUpdate || offerToUpdate.workflow_status !== 'draft') {
         toast.error("Vous ne pouvez envoyer que des offres en brouillon");
-        return Promise.resolve();
+        return;
       }
       
       const { error } = await supabase
@@ -140,20 +138,16 @@ const AmbassadorOffersPage = () => {
       console.error("Erreur lors de la mise à jour du statut:", err);
       toast.error("Impossible de mettre à jour le statut de l'offre");
     }
-    
-    return Promise.resolve();
   };
   
   // Fonction factice pour le téléchargement du PDF (à implémenter)
-  const handleDownloadPdf = async (id: string): Promise<void> => {
+  const handleDownloadPdf = (id) => {
     toast.info("Téléchargement du PDF en cours de développement");
-    return Promise.resolve();
   };
   
   // Fonction factice pour renvoyer l'offre (à implémenter)
-  const handleResendOffer = async (id: string): Promise<void> => {
+  const handleResendOffer = (id) => {
     toast.info("Renvoi de l'offre en cours de développement");
-    return Promise.resolve();
   };
 
   if (loading) {

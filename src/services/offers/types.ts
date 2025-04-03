@@ -1,3 +1,4 @@
+
 export interface OfferData {
   id?: string;
   client_id: string;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
@@ -7,15 +7,13 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
-  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink
+  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
-import { generateSignatureLink } from "@/services/offers/offerSignature";
-import { calculateFinancedAmount } from "@/utils/calculator";
-import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
+import { generateSignatureLink } from "@/services/offerService";
 
 interface OfferCardProps {
   offer: Offer;
@@ -31,18 +29,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
   isUpdatingStatus 
 }) => {
   const navigate = useNavigate();
-  const [financedAmount, setFinancedAmount] = useState<number>(0);
   
-  useEffect(() => {
-    if (offer && offer.monthly_payment && offer.coefficient) {
-      const amount = calculateFinancedAmount(
-        Number(offer.monthly_payment),
-        Number(offer.coefficient)
-      );
-      setFinancedAmount(amount);
-    }
-  }, [offer]);
-  
+  // Formatage de la date
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
@@ -62,43 +50,36 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const isConverted = offer.converted_to_contract;
 
-  // Calculer le montant total correct si l'équipement est disponible
-  const getTotalAmount = () => {
-    try {
-      if (offer.equipment_description) {
-        let equipmentList;
-        
-        if (typeof offer.equipment_description === 'string') {
-          try {
-            equipmentList = JSON.parse(offer.equipment_description);
-          } catch (e) {
-            console.error("Erreur parsing equipment_description:", e);
-            return offer.amount;
-          }
-        } else if (typeof offer.equipment_description === 'object') {
-          equipmentList = offer.equipment_description;
-        }
-        
-        if (Array.isArray(equipmentList) && equipmentList.length > 0) {
-          return equipmentList.reduce((total, item) => {
-            const priceWithMargin = item.purchasePrice * (1 + (item.margin / 100));
-            return total + (priceWithMargin * (item.quantity || 1));
-          }, 0);
-        }
-      }
-    } catch (e) {
-      console.error("Erreur lors du calcul du montant total:", e);
-    }
-    
-    return offer.amount;
-  };
-  
-  const formatEquipment = () => {
-    try {
-      return formatEquipmentDisplay(offer.equipment_description);
-    } catch (e) {
-      console.error("Erreur lors du formatage de l'équipement:", e);
-      return "Équipement non détaillé";
+  const getOfferTypeBadge = () => {
+    switch(offer.type) {
+      case 'ambassador_offer':
+        return (
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 text-xs">
+            <Users className="h-3 w-3 mr-1" />
+            Ambassadeur
+          </Badge>
+        );
+      case 'partner_offer':
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+            <Building className="h-3 w-3 mr-1" />
+            Partenaire
+          </Badge>
+        );
+      case 'client_request':
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 text-xs">
+            <User className="h-3 w-3 mr-1" />
+            Demande
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
+            <Building className="h-3 w-3 mr-1" />
+            Admin
+          </Badge>
+        );
     }
   };
 
@@ -117,20 +98,16 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 <span className="truncate max-w-[140px]">{offer.clients.company}</span>
               </div>
             )}
+            {offer.ambassador_name && (
+              <div className="flex items-center text-xs text-purple-600">
+                <Users className="h-3 w-3 mr-1" />
+                <span className="truncate max-w-[140px]">{offer.ambassador_name}</span>
+              </div>
+            )}
           </div>
           
           <div className="ml-2">
-            {offer.type === 'client_request' ? (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
-                <User className="h-3 w-3 mr-1" />
-                Demande
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 text-xs">
-                <Building className="h-3 w-3 mr-1" />
-                Admin
-              </Badge>
-            )}
+            {getOfferTypeBadge()}
           </div>
         </div>
         
@@ -145,15 +122,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
         </div>
         
-        <div className="text-xs text-muted-foreground">
-          <div className="flex items-center">
-            <CreditCard className="h-3 w-3 mr-1" />
-            <span>Montant total: {formatCurrency(getTotalAmount())}</span>
-          </div>
-        </div>
-        
         {isConverted && (
-          <div className="bg-green-100 text-green-800 rounded-md p-1.5 text-xs mt-2">
+          <div className="bg-green-100 text-green-800 rounded-md p-1.5 text-xs mb-2">
             <div className="flex items-center">
               <Check className="h-3 w-3 mr-1" />
               <span>Convertie en contrat</span>
