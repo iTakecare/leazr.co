@@ -70,8 +70,8 @@ const ProductList: React.FC<ProductListProps> = ({
   }
 
   return (
-    <ScrollArea className="flex-1 p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="p-4 h-full overflow-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-6">
         {filteredProducts.map((product) => (
           <div key={product.id} className="cursor-pointer" onClick={() => handleProductSelect(product)}>
             <ProductCard 
@@ -82,7 +82,7 @@ const ProductList: React.FC<ProductListProps> = ({
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
 

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
 import AmbassadorProductGrid from "@/components/ambassador/AmbassadorProductGrid";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AmbassadorCatalog = () => {
   const isMobile = useIsMobile();
@@ -41,7 +42,7 @@ const AmbassadorCatalog = () => {
   return (
     <Container>
       <motion.div 
-        className="py-6 md:py-8"
+        className="py-6 md:py-8 flex flex-col h-full"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
@@ -63,24 +64,26 @@ const AmbassadorCatalog = () => {
           </div>
         </div>
         
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-64 rounded-md bg-muted animate-pulse" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
-            Une erreur s'est produite lors du chargement des produits. Veuillez réessayer.
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center p-8 border border-dashed rounded-lg">
-            <p className="text-xl font-medium mb-2">Aucun produit trouvé</p>
-            <p className="text-muted-foreground">Essayez de modifier vos critères de recherche</p>
-          </div>
-        ) : (
-          <AmbassadorProductGrid products={filteredProducts} />
-        )}
+        <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 rounded-md bg-muted animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
+              Une erreur s'est produite lors du chargement des produits. Veuillez réessayer.
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center p-8 border border-dashed rounded-lg">
+              <p className="text-xl font-medium mb-2">Aucun produit trouvé</p>
+              <p className="text-muted-foreground">Essayez de modifier vos critères de recherche</p>
+            </div>
+          ) : (
+            <AmbassadorProductGrid products={filteredProducts} />
+          )}
+        </ScrollArea>
       </motion.div>
     </Container>
   );
