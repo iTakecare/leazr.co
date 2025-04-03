@@ -16,6 +16,8 @@ export interface Offer {
   user_id: string;
   type: string;
   converted_to_contract: boolean;
+  ambassador_id?: string;
+  ambassador_name?: string;
   clients?: {
     id?: string;
     name?: string;
@@ -44,6 +46,12 @@ export const useFetchOffers = () => {
             name,
             email,
             company
+          ),
+          ambassadors:ambassador_id (
+            id,
+            name,
+            email,
+            company
           )
         `)
         .order('created_at', { ascending: false });
@@ -59,7 +67,13 @@ export const useFetchOffers = () => {
         throw error;
       }
       
-      setOffers(data || []);
+      // Transformer les données pour inclure le nom de l'ambassadeur
+      const transformedOffers = data?.map(offer => ({
+        ...offer,
+        ambassador_name: offer.ambassadors?.name || null
+      })) || [];
+      
+      setOffers(transformedOffers);
     } catch (error: any) {
       console.error("Error fetching offers:", error);
       setLoadingError(`Erreur lors du chargement des offres: ${error.message}`);
