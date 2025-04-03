@@ -27,11 +27,13 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  // Référence pour suivre les paramètres précédents et éviter les recalculs inutiles
+  
+  // Reference to track previous parameters and avoid unnecessary recalculations
   const previousParams = useRef({ 
     totalAmount: 0, 
     ambassadorId: '', 
-    commissionLevelId: '' 
+    commissionLevelId: '',
+    equipmentListHash: ''
   });
 
   useEffect(() => {
@@ -40,13 +42,22 @@ const AmbassadorCommissionPreview = ({
         return;
       }
 
+      // Calculate total equipment amount
       const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
       
-      // Vérifier si les paramètres ont changé pour éviter les recalculs inutiles
+      // Create a simple hash of the equipment list for comparison
+      const equipmentListHash = JSON.stringify(equipmentList.map(eq => ({
+        id: eq.id,
+        price: eq.purchasePrice,
+        quantity: eq.quantity
+      })));
+      
+      // Verify if the parameters have changed to avoid unnecessary recalculations
       if (
         previousParams.current.totalAmount === totalEquipmentAmount &&
         previousParams.current.ambassadorId === ambassadorId &&
-        previousParams.current.commissionLevelId === commissionLevelId
+        previousParams.current.commissionLevelId === commissionLevelId &&
+        previousParams.current.equipmentListHash === equipmentListHash
       ) {
         return;
       }
@@ -75,11 +86,12 @@ const AmbassadorCommissionPreview = ({
         
         console.log("Commission calculated:", commissionData);
         
-        // Mettre à jour les paramètres précédents
+        // Update the previous parameters reference
         previousParams.current = {
           totalAmount: totalEquipmentAmount,
           ambassadorId,
-          commissionLevelId
+          commissionLevelId,
+          equipmentListHash
         };
       } catch (error) {
         console.error("Error calculating commission:", error);
@@ -89,7 +101,7 @@ const AmbassadorCommissionPreview = ({
       }
     };
 
-    if (equipmentList.length > 0 && (ambassadorId || commissionLevelId)) {
+    if (equipmentList.length > 0 && ambassadorId && commissionLevelId) {
       calculateCommission();
     }
   }, [totalMonthlyPayment, equipmentList, ambassadorId, commissionLevelId, onCommissionCalculated]);
