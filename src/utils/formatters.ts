@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -7,8 +6,7 @@ export const formatCurrency = (value: number | string): string => {
   let numValue: number;
   
   if (value === null || value === undefined) {
-    console.warn("formatCurrency received null or undefined:", value);
-    numValue = 0;
+    return "0,00 €";
   } else if (typeof value === 'number') {
     numValue = value;
   } else if (typeof value === 'string') {
@@ -18,21 +16,13 @@ export const formatCurrency = (value: number | string): string => {
   }
   
   if (isNaN(numValue)) {
-    console.warn("formatCurrency received an invalid value:", value);
-    numValue = 0;
+    return "0,00 €";
   }
   
-  // If the value is very close to zero but not actually zero due to floating point issues,
-  // just set it to zero
+  // Si la valeur est très proche de zéro mais pas exactement zéro en raison de problèmes de virgule flottante,
+  // fixons-la simplement à zéro
   if (Math.abs(numValue) < 0.01) {
     numValue = 0;
-  }
-  
-  // If the value is still 0, set a default for testing
-  if (numValue === 0) {
-    console.warn("formatCurrency is formatting a zero value:", value);
-    // Keep it 0 for production, for testing you could uncomment the line below
-    // numValue = 39.99;
   }
   
   return new Intl.NumberFormat('fr-FR', {

@@ -88,16 +88,25 @@ interface CommissionCache {
 }
 
 const commissionCache: CommissionCache = {};
-const CACHE_TIMEOUT = 30000; // 30 secondes
-let currentCalculation: {[key: string]: Promise<any>} = {};
+const CACHE_TIMEOUT = 60000; // 60 secondes
+const currentCalculation: {[key: string]: Promise<any>} = {};
 
 /**
  * Calculate commission based on amount and commission level
+ * Optimized with better caching and calculation management
  */
 export const calculateCommissionByLevel = async (amount: number, levelId?: string, type: 'partner' | 'ambassador' = 'partner', ambassadorId?: string): Promise<{ rate: number, amount: number, levelName?: string }> => {
+  // Vérifier si les données d'entrée sont valides pour éviter des calculs inutiles
+  if (!amount || amount <= 0) {
+    return { rate: 0, amount: 0, levelName: "" };
+  }
+  
+  // Arrondir le montant pour une meilleure mise en cache
+  const roundedAmount = Math.round(amount * 100) / 100;
+  
   try {
     // Créer une clé de cache unique basée sur les paramètres
-    const cacheKey = `${amount}-${levelId}-${type}-${ambassadorId}`;
+    const cacheKey = `${roundedAmount}-${levelId || 'default'}-${type}-${ambassadorId || 'none'}`;
     
     // Vérifier si nous avons un résultat récent en cache
     const cachedResult = commissionCache[cacheKey];
@@ -152,10 +161,11 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       
       // Si toujours pas d'ID, utiliser les taux statiques
       if (!actualLevelId) {
-        const staticRate = getCommissionRate(amount);
+        const staticRate = getCommissionRate(roundedAmount);
         const result = {
           rate: staticRate,
-          amount: (amount * staticRate) / 100
+          amount: (roundedAmount * staticRate) / 100,
+          levelName: ""
         };
         
         // Stocker le résultat en cache
@@ -175,7 +185,7 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
         
         // Trouver le taux applicable en fonction du montant
         const applicableRate = rates.find(
-          rate => amount >= rate.min_amount && amount <= rate.max_amount
+          rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
         );
         
         if (!applicableRate) {
@@ -194,7 +204,7 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
           return result;
         }
         
-        const calculatedAmount = (amount * applicableRate.rate) / 100;
+        const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
         const result = {
           rate: applicableRate.rate,
           amount: calculatedAmount,
@@ -211,7 +221,7 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
       } else {
         // Use the rates from the level
         const applicableRate = level.rates.find(
-          rate => amount >= rate.min_amount && amount <= rate.max_amount
+          rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
         );
         
         if (!applicableRate) {
@@ -230,7 +240,7 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
           return result;
         }
         
-        const calculatedAmount = (amount * applicableRate.rate) / 100;
+        const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
         const result = {
           rate: applicableRate.rate,
           amount: calculatedAmount,
@@ -258,7 +268,8 @@ export const calculateCommissionByLevel = async (amount: number, levelId?: strin
     console.error("Error calculating commission:", error);
     return {
       rate: 0,
-      amount: 0
+      amount: 0,
+      levelName: ""
     };
   }
 };

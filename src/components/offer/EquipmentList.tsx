@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Plus, MinusCircle, PlusCircle } from "lucide-react";
@@ -46,10 +45,9 @@ const EquipmentList = ({
     levelName: "" 
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const lastParamsRef = useRef<string>("");
-  const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const paramsSignatureRef = useRef<string>("");
+  const calculationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fonction pour calculer la commission de manière optimisée
   const calculateCommission = useCallback(async () => {
     if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
       return;
@@ -58,26 +56,25 @@ const EquipmentList = ({
     const totalEquipmentAmount = globalMarginAdjustment.amount + 
       equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
     
-    // Création d'une signature unique pour les paramètres de calcul
-    const paramsSignature = `${totalEquipmentAmount}-${commissionLevelId}-${ambassadorId}`;
-    
-    // Éviter les calculs redondants
-    if (paramsSignature === lastParamsRef.current) {
+    if (totalEquipmentAmount <= 0) {
       return;
     }
     
-    // Mettre à jour la référence des derniers paramètres
-    lastParamsRef.current = paramsSignature;
+    const paramsSignature = `${totalEquipmentAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
     
-    // Annuler tout calcul précédent en attente
-    if (calculationTimeoutRef.current) {
-      clearTimeout(calculationTimeoutRef.current);
+    if (paramsSignature === paramsSignatureRef.current) {
+      return;
     }
     
-    // Débouncer le calcul pour éviter trop d'appels
+    paramsSignatureRef.current = paramsSignature;
+    
+    if (calculationTimerRef.current) {
+      clearTimeout(calculationTimerRef.current);
+    }
+    
     setIsCalculating(true);
     
-    calculationTimeoutRef.current = setTimeout(async () => {
+    calculationTimerRef.current = setTimeout(async () => {
       try {
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
@@ -95,23 +92,22 @@ const EquipmentList = ({
         console.error("Error calculating commission:", error);
       } finally {
         setIsCalculating(false);
-        calculationTimeoutRef.current = null;
+        calculationTimerRef.current = null;
       }
-    }, 300);
+    }, 500);
   }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.amount]);
 
-  // Utiliser un useEffect avec une dépendance stable pour déclencher le calcul
-  React.useEffect(() => {
-    // Déclencher le calcul initial
-    calculateCommission();
+  useEffect(() => {
+    if (ambassadorId && commissionLevelId) {
+      calculateCommission();
+    }
     
-    // Nettoyer le timeout lors du démontage
     return () => {
-      if (calculationTimeoutRef.current) {
-        clearTimeout(calculationTimeoutRef.current);
+      if (calculationTimerRef.current) {
+        clearTimeout(calculationTimerRef.current);
       }
     };
-  }, [calculateCommission]);
+  }, [calculateCommission, ambassadorId, commissionLevelId]);
 
   if (equipmentList.length === 0) {
     return (
@@ -222,7 +218,6 @@ const EquipmentList = ({
               {formatCurrency(totalMonthlyPayment)}
             </div>
           </div>
-          
         </CardContent>
       </Card>
 
@@ -281,7 +276,7 @@ const EquipmentList = ({
               <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
             </div>
             
-            {commission?.amount > 0 && (
+            {ambassadorId && commissionLevelId && commission.amount > 0 && (
               <div className="flex justify-between items-center pt-2">
                 <div className="font-medium">Votre commission :</div>
                 <div className="text-green-600 font-medium">

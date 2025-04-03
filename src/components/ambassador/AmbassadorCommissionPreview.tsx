@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -24,32 +24,45 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const [lastCalculationParams, setLastCalculationParams] = useState<string>("");
+  const calculationParamsRef = useRef<string>("");
+  const calculationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calcul à la demande plutôt que réactif (useEffect)
-  React.useEffect(() => {
-    // Vérifier si on a déjà les informations nécessaires
+  // Fonction pour calculer la commission avec contrôle des paramètres
+  const calculateCommission = React.useCallback(async () => {
+    // Vérifier si les informations nécessaires sont disponibles
     if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
       return;
     }
 
-    // Créer une signature unique pour les paramètres actuels
+    // Calculer le montant total de l'équipement
     const totalEquipmentAmount = equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
-    const currentCalculationParams = `${totalEquipmentAmount}-${commissionLevelId}-${ambassadorId}`;
     
-    // Éviter les calculs redondants en vérifiant si les paramètres ont changé
-    if (currentCalculationParams === lastCalculationParams) {
+    // Pas besoin de calculer si le montant est nul
+    if (totalEquipmentAmount <= 0) {
       return;
     }
-
-    // Mémoriser les paramètres actuels
-    setLastCalculationParams(currentCalculationParams);
     
-    // Calculer la commission uniquement quand nécessaire
+    // Créer une signature unique pour les paramètres actuels
+    const currentParams = `${totalEquipmentAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
+    
+    // Éviter les calculs redondants
+    if (currentParams === calculationParamsRef.current) {
+      return;
+    }
+    
+    // Mettre à jour la référence des paramètres
+    calculationParamsRef.current = currentParams;
+    
+    // Annuler tout calcul précédent en attente
+    if (calculationTimerRef.current) {
+      clearTimeout(calculationTimerRef.current);
+      calculationTimerRef.current = null;
+    }
+    
+    // Différer le calcul pour éviter les calculs trop fréquents
     setIsCalculating(true);
     
-    // Utiliser setTimeout pour éviter le blocage de l'interface
-    const timer = setTimeout(async () => {
+    calculationTimerRef.current = setTimeout(async () => {
       try {
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
@@ -67,12 +80,24 @@ const AmbassadorCommissionPreview = ({
         console.error("Error calculating commission:", error);
       } finally {
         setIsCalculating(false);
+        calculationTimerRef.current = null;
       }
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    }, 300);
   }, [ambassadorId, commissionLevelId, equipmentList]);
 
+  // Utiliser useEffect avec des dépendances stables pour déclencher le calcul
+  useEffect(() => {
+    calculateCommission();
+    
+    // Nettoyage pour éviter des fuites de mémoire
+    return () => {
+      if (calculationTimerRef.current) {
+        clearTimeout(calculationTimerRef.current);
+      }
+    };
+  }, [calculateCommission]);
+
+  // Ne pas rendre le composant si l'ID de l'ambassadeur ou du niveau de commission n'est pas disponible
   if (!ambassadorId || !commissionLevelId) {
     return null;
   }
@@ -94,7 +119,7 @@ const AmbassadorCommissionPreview = ({
               <div className="font-medium">Montant de commission:</div>
               <div className="text-green-600 font-medium flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                {formatCurrency(commission.amount)}
+                {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
                 {commission.rate > 0 && (
                   <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
                 )}
