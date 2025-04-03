@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateFinancedAmount } from "@/utils/calculator";
+import { calculateFinancedAmount, getCoefficientRate } from "@/utils/calculator";
 
 interface AmbassadorCommissionPreviewProps {
   totalMonthlyPayment: number;
@@ -55,20 +55,20 @@ const AmbassadorCommissionPreview = ({
         // Importer dynamiquement pour éviter les cycles de dépendances
         const { calculateCommissionByLevel } = await import('@/utils/calculator');
         
-        // Récupérer le coefficient applicable pour le premier équipement
-        // (On suppose que le même coefficient est utilisé pour tous les équipements)
-        let coefficient = 3.55; // Valeur par défaut
+        // D'abord, estimer le montant financé avec un coefficient de départ
+        // pour déterminer la bonne tranche de coefficient
+        let initialCoefficient = 3.28; // Valeur moyenne pour commencer
+        let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
-        if (equipmentList.length > 0 && equipmentList[0].coefficient) {
-          coefficient = equipmentList[0].coefficient;
-        } else if (equipmentList.length > 0 && equipmentList[0].purchasePrice) {
-          // Si le coefficient n'est pas défini, essayer de le déduire du prix d'achat
-          const { getCoefficientRate } = await import('@/utils/calculator');
-          coefficient = getCoefficientRate(equipmentList[0].purchasePrice);
+        // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
+        const preciseCoefficient = getCoefficientRate(financedAmount);
+        
+        // Recalculer le montant financé avec le coefficient précis
+        if (preciseCoefficient > 0) {
+          financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, preciseCoefficient);
         }
         
-        // Calculer le montant financé à partir de la mensualité totale
-        const financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, coefficient);
+        console.log(`Commission Preview: Mensualité ${newTotalMonthlyPayment}€, Coefficient ${preciseCoefficient}, Montant financé ${financedAmount}€`);
         
         // Calculer la commission basée sur le montant financé
         const commissionData = await calculateCommissionByLevel(
@@ -95,7 +95,7 @@ const AmbassadorCommissionPreview = ({
     
     // Nettoyage
     return () => clearTimeout(timer);
-  }, [ambassadorId, commissionLevelId, equipmentList.length]); // Dépendance sur length uniquement
+  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]); // Ajout de totalMonthlyPayment aux dépendances
 
   return (
     <Card className="border border-gray-200 shadow-sm">
