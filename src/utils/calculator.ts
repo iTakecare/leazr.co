@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CommissionRate, 
@@ -7,8 +6,9 @@ import {
   getAmbassadorCommissionLevel as fetchAmbassadorCommissionLevel,
   getCommissionLevelWithRates
 } from "@/services/commissionService";
+import { getLeasers } from "@/services/leaserService";
 
-// Leasing coefficients (Grenke)
+// Valeurs de repli statiques (ne seront utilisées que si la récupération depuis la DB échoue)
 export const leasingCoefficients = [
   { min: 25000.01, max: 50000, rate: 3.16 },
   { min: 12500.01, max: 25000, rate: 3.17 },
@@ -53,15 +53,94 @@ export const calculateCommission = (amount: number): number => {
   return (amount * commissionRate.rate) / 100;
 };
 
+// Cache pour les coefficients de leasing
+const coefficientCache: {
+  data: any[];
+  timestamp: number;
+} = {
+  data: [],
+  timestamp: 0
+};
+
 /**
- * Get coefficient rate based on amount
+ * Get coefficient rate based on amount from DB or fallback to static values
  */
-export const getCoefficientRate = (amount: number): number => {
-  const coefficient = leasingCoefficients.find(
+export const getCoefficientRate = async (amount: number): Promise<number> => {
+  try {
+    // Vérifier si le cache est récent (moins de 5 minutes)
+    if (coefficientCache.data.length > 0 && Date.now() - coefficientCache.timestamp < 300000) {
+      const cachedCoefficient = coefficientCache.data.find(
+        (c) => amount >= c.min && amount <= c.max
+      );
+      
+      if (cachedCoefficient) {
+        return cachedCoefficient.coefficient;
+      }
+    }
+    
+    // Récupérer les leasers depuis la base de données
+    const leasers = await getLeasers();
+    
+    if (leasers && leasers.length > 0) {
+      // Prenons le premier leaser (généralement Grenke)
+      const leaser = leasers[0];
+      
+      // Mettre à jour le cache
+      if (leaser.ranges && leaser.ranges.length > 0) {
+        coefficientCache.data = leaser.ranges;
+        coefficientCache.timestamp = Date.now();
+        
+        // Trouver la tranche applicable
+        const range = leaser.ranges.find(
+          (r) => amount >= r.min && amount <= r.max
+        );
+        
+        if (range) {
+          return range.coefficient;
+        }
+      }
+    }
+    
+    // Si on arrive ici, utiliser les valeurs statiques de repli
+    const staticCoefficient = leasingCoefficients.find(
+      (c) => amount >= c.min && amount <= c.max
+    );
+    
+    return staticCoefficient?.rate || 0;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des coefficients:", error);
+    
+    // En cas d'erreur, revenir aux valeurs statiques
+    const staticCoefficient = leasingCoefficients.find(
+      (c) => amount >= c.min && amount <= c.max
+    );
+    
+    return staticCoefficient?.rate || 0;
+  }
+};
+
+/**
+ * Version synchrone pour la compatibilité avec le code existant
+ * Cette fonction utilisera les valeurs en cache ou les valeurs statiques si le cache est vide
+ */
+export const getCoefficientRateSync = (amount: number): number => {
+  // Utiliser le cache s'il existe et est récent
+  if (coefficientCache.data.length > 0 && Date.now() - coefficientCache.timestamp < 300000) {
+    const cachedCoefficient = coefficientCache.data.find(
+      (c) => amount >= c.min && amount <= c.max
+    );
+    
+    if (cachedCoefficient) {
+      return cachedCoefficient.coefficient;
+    }
+  }
+  
+  // Sinon, utiliser les valeurs statiques
+  const staticCoefficient = leasingCoefficients.find(
     (c) => amount >= c.min && amount <= c.max
   );
   
-  return coefficient?.rate || 0;
+  return staticCoefficient?.rate || 0;
 };
 
 /**

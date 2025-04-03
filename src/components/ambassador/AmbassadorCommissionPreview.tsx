@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateFinancedAmount, getCoefficientRate } from "@/utils/calculator";
+import { calculateFinancedAmount, getCoefficientRateSync, getCoefficientRate } from "@/utils/calculator";
 
 interface AmbassadorCommissionPreviewProps {
   totalMonthlyPayment: number;
@@ -61,7 +61,7 @@ const AmbassadorCommissionPreview = ({
         let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
         // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
-        const preciseCoefficient = getCoefficientRate(financedAmount);
+        const preciseCoefficient = await getCoefficientRate(financedAmount);
         
         // Recalculer le montant financé avec le coefficient précis
         if (preciseCoefficient > 0) {
