@@ -7,7 +7,8 @@ import { CheckIcon, ChevronsUpDownIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAllClients } from "@/services/clientService";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { useAuth } from "@/context/AuthContext";
 
 // Define a specific type for the client in this component
 export interface ClientSelectorClient {
@@ -24,6 +25,7 @@ interface ClientSelectorProps {
   isOpen?: boolean;
   onClose?: () => void;
   onSelectClient?: (client: ClientSelectorClient) => void;
+  ambassadorMode?: boolean;
 }
 
 const ClientSelector: React.FC<ClientSelectorProps> = ({ 
@@ -31,17 +33,29 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   onClientSelect,
   isOpen,
   onClose,
-  onSelectClient
+  onSelectClient,
+  ambassadorMode = false
 }) => {
   const [clients, setClients] = useState<ClientSelectorClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   
   useEffect(() => {
     const loadClients = async () => {
       try {
         setLoading(true);
-        const fetchedClients = await getAllClients();
+        
+        let fetchedClients;
+        
+        if (ambassadorMode && user?.ambassador_id) {
+          // Si en mode ambassadeur, charger les clients de l'ambassadeur
+          fetchedClients = await getAmbassadorClients();
+          console.log("Loaded ambassador clients:", fetchedClients.length);
+        } else {
+          // Sinon, charger tous les clients
+          fetchedClients = await getAllClients();
+        }
         
         // Transform to ensure compatibility with ClientSelectorClient type
         const formattedClients = fetchedClients.map(client => ({
@@ -61,7 +75,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, []);
+  }, [ambassadorMode, user?.ambassador_id]);
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -86,18 +100,16 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Sélectionner un client</h2>
-            {onClose && (
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+            {/* Nous avons supprimé le bouton de fermeture ici car il est déjà inclus dans le DialogContent */}
           </div>
           
           <div className="space-y-4">
             <Command className="rounded-lg border shadow-md">
               <CommandInput placeholder="Rechercher un client..." />
               <CommandList>
-                <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                <CommandEmpty>
+                  {loading ? "Chargement..." : "Aucun client trouvé."}
+                </CommandEmpty>
                 <CommandGroup>
                   {loading ? (
                     <div className="flex items-center justify-center py-6">
