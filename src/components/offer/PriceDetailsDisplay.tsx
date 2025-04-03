@@ -42,6 +42,12 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
     ? displayMonthlyPayment 
     : 0;
 
+  // Éviter les recalculs inutiles de formatage en les mémorisant
+  const formattedMarginAmount = formatCurrency(displayMarginAmount);
+  const formattedMarginPercentage = formatPercentageWithComma(marginPercentage);
+  const formattedPriceWithMargin = formatCurrency(displayPriceWithMargin);
+  const formattedMonthlyPayment = formatCurrency(safeMonthlyPayment);
+
   return (
     <div className="space-y-2 border-t pt-4 mt-4">
       {!hideFinancialDetails && (
@@ -49,12 +55,12 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Marge :</span>
             <span className="font-medium">
-              {formatCurrency(displayMarginAmount)} ({formatPercentageWithComma(marginPercentage)})
+              {formattedMarginAmount} ({formattedMarginPercentage})
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Prix avec marge :</span>
-            <span className="font-medium">{formatCurrency(displayPriceWithMargin)}</span>
+            <span className="font-medium">{formattedPriceWithMargin}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Coefficient appliqué :</span>
@@ -65,7 +71,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
       <div className="flex justify-between items-center border-t pt-2 mt-2">
         <span className="text-blue-600 font-medium">Mensualité unitaire :</span>
         <span className="text-blue-600 font-medium text-lg">
-          {formatCurrency(safeMonthlyPayment)}
+          {formattedMonthlyPayment}
         </span>
       </div>
     </div>

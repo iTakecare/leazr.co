@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
 export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const leaser = selectedLeaser || defaultLeasers[0];
+  const calculationsInProgressRef = useRef<Record<string, boolean>>({});
   
   const [equipment, setEquipment] = useState<Equipment>({
     id: crypto.randomUUID(),
@@ -30,17 +31,15 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     marginDifference: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const lastEquipmentPriceRef = useRef(0);
+  const lastLeaserIdRef = useRef("");
 
   const toggleAdaptMonthlyPayment = () => {
-    console.log("Toggling adaptMonthlyPayment from:", globalMarginAdjustment.adaptMonthlyPayment);
-    setGlobalMarginAdjustment(prev => {
-      const newValue = !prev.adaptMonthlyPayment;
-      console.log("Setting adaptMonthlyPayment to:", newValue);
-      return {
-        ...prev,
-        adaptMonthlyPayment: newValue
-      };
-    });
+    setGlobalMarginAdjustment(prev => ({
+      ...prev,
+      adaptMonthlyPayment: !prev.adaptMonthlyPayment
+    }));
   };
 
   const calculateFinancedAmount = (eq: Equipment) => {
@@ -62,11 +61,19 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   };
 
   const calculateMonthlyPayment = () => {
+    if (equipment.purchasePrice === lastEquipmentPriceRef.current && 
+        leaser?.id === lastLeaserIdRef.current) {
+      return;
+    }
+    
+    lastEquipmentPriceRef.current = equipment.purchasePrice;
+    lastLeaserIdRef.current = leaser?.id || "";
+    
     const financedAmount = calculateFinancedAmount(equipment);
     const coef = findCoefficient(financedAmount);
     setCoefficient(coef);
     const calculated = (financedAmount * coef) / 100;
-    console.log("Calculated monthly payment:", calculated);
+    
     setMonthlyPayment(calculated);
     
     setEquipment(prev => ({
@@ -80,6 +87,10 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       setCalculatedMargin({ percentage: 0, amount: 0 });
       return;
     }
+    
+    const calcKey = `margin-${targetMonthlyPayment}-${equipment.purchasePrice}`;
+    if (calculationsInProgressRef.current[calcKey]) return;
+    calculationsInProgressRef.current[calcKey] = true;
 
     const ranges = leaser?.ranges || defaultLeasers[0].ranges;
     
@@ -98,25 +109,20 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
     
-    console.log("Target monthly:", targetMonthlyPayment);
-    console.log("Purchase price:", equipment.purchasePrice);
-    console.log("Applied coefficient:", coef);
-    console.log("Required total amount:", requiredTotal);
-    console.log("Calculated margin amount:", marginAmount);
-    console.log("Calculated margin percentage:", marginPercentage);
-    
     setCalculatedMargin({
       percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount
     });
     
     setCoefficient(coef);
+    
+    setTimeout(() => {
+      calculationsInProgressRef.current[calcKey] = false;
+    }, 300);
   };
 
   const applyCalculatedMargin = () => {
     if (calculatedMargin.percentage > 0) {
-      console.log("Applying calculated margin:", calculatedMargin.percentage);
-      
       setEquipment(prev => {
         const updatedEquipment = {
           ...prev,
@@ -125,7 +131,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         
         if (targetMonthlyPayment > 0) {
           updatedEquipment.monthlyPayment = targetMonthlyPayment;
-          console.log("Setting monthly payment to target:", targetMonthlyPayment);
         }
         
         return updatedEquipment;
@@ -140,7 +145,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const addToList = () => {
     if (equipment.title && equipment.purchasePrice > 0) {
       const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
-      console.log("Adding to list with monthly payment:", currentMonthlyPayment);
       
       const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
       
@@ -149,9 +153,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         margin: Number(marginToUse.toFixed(2)),
         monthlyPayment: currentMonthlyPayment
       };
-      
-      console.log("Equipment being added with margin:", equipmentToAdd.margin);
-      console.log("Equipment being added with monthly payment:", equipmentToAdd.monthlyPayment);
       
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 
@@ -216,14 +217,33 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   };
 
   useEffect(() => {
-    calculateMonthlyPayment();
-  }, [equipment, leaser]);
+    if (equipment.purchasePrice > 0) {
+      calculateMonthlyPayment();
+    }
+  }, [equipment.margin, equipment.purchasePrice, leaser?.id]);
 
   useEffect(() => {
-    calculateMarginFromMonthlyPayment();
-  }, [targetMonthlyPayment, equipment.purchasePrice, leaser]);
+    if (targetMonthlyPayment > 0 && equipment.purchasePrice > 0) {
+      calculateMarginFromMonthlyPayment();
+    }
+  }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id]);
 
+  const equipmentListLengthRef = useRef(0);
+  const globalMarginToggleRef = useRef(false);
+  
   useEffect(() => {
+    const currentToggleState = globalMarginAdjustment.adaptMonthlyPayment;
+    const currentListLength = equipmentList.length;
+    
+    if (equipmentListLengthRef.current === currentListLength && 
+        globalMarginToggleRef.current === currentToggleState && 
+        currentListLength === 0) {
+      return;
+    }
+    
+    equipmentListLengthRef.current = currentListLength;
+    globalMarginToggleRef.current = currentToggleState;
+    
     calculateGlobalMarginAdjustment();
   }, [equipmentList, leaser, globalMarginAdjustment.adaptMonthlyPayment]);
 

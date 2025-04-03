@@ -23,32 +23,28 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const hasCalculatedRef = useRef(false);
+  const calculationAttemptedRef = useRef(false);
   const equipmentSignatureRef = useRef("");
+  const totalPaymentRef = useRef(0);
   
   // Ne pas rendre le composant si les IDs nécessaires sont manquants
   if (!ambassadorId || !commissionLevelId) {
     return null;
   }
 
-  // Nous utilisons un effect simple au montage uniquement 
-  // pour éviter les recalculs constants
+  // Nous utilisons un effect simple avec une dépendance sur equipmentList.length uniquement
   useEffect(() => {
-    // Ne calculer qu'une seule fois, quand les données sont valides
-    if (hasCalculatedRef.current || !equipmentList.length) return;
+    // Ne pas calculer si déjà calculé ou si les équipements sont vides
+    if (!equipmentList || equipmentList.length === 0) return;
     
-    // Calculer une empreinte des équipements pour suivre les changements réels
-    const equipmentSignature = JSON.stringify(
-      equipmentList.map(eq => ({
-        id: eq.id,
-        price: eq.purchasePrice,
-        quantity: eq.quantity
-      }))
-    );
+    // Ne pas recalculer si le montant total n'a pas changé de manière significative
+    const newTotalMonthlyPayment = totalMonthlyPayment || 0;
+    if (Math.abs(totalPaymentRef.current - newTotalMonthlyPayment) < 0.01) return;
+    totalPaymentRef.current = newTotalMonthlyPayment;
     
-    // Si l'empreinte est la même, pas besoin de recalculer
-    if (equipmentSignature === equipmentSignatureRef.current) return;
-    equipmentSignatureRef.current = equipmentSignature;
+    // Calculer une empreinte des équipements une seule fois
+    if (calculationAttemptedRef.current) return;
+    calculationAttemptedRef.current = true;
     
     // Calculer le montant total des équipements
     const totalEquipmentAmount = equipmentList.reduce((sum, eq) => {
@@ -60,11 +56,7 @@ const AmbassadorCommissionPreview = ({
     // Ne pas calculer pour de petits montants
     if (totalEquipmentAmount < 10) return;
     
-    // Marquer comme calculé
-    hasCalculatedRef.current = true;
-    
     // Le calcul effectif est déplacé dans un import dynamique
-    // pour retarder son chargement et réduire l'impact
     const calculateCommission = async () => {
       setIsCalculating(true);
       
@@ -80,8 +72,8 @@ const AmbassadorCommissionPreview = ({
         );
         
         setCommission({
-          amount: commissionData.amount,
-          rate: commissionData.rate,
+          amount: commissionData.amount || 0,
+          rate: commissionData.rate || 0,
           levelName: commissionData.levelName || ""
         });
       } catch (error) {
@@ -92,11 +84,11 @@ const AmbassadorCommissionPreview = ({
     };
     
     // Lancer le calcul après un court délai
-    const timer = setTimeout(calculateCommission, 500);
+    const timer = setTimeout(calculateCommission, 300);
     
     // Nettoyage
     return () => clearTimeout(timer);
-  }, [ambassadorId, commissionLevelId, equipmentList]);
+  }, [ambassadorId, commissionLevelId, equipmentList.length]); // Dépendance sur length uniquement
 
   return (
     <Card className="border border-gray-200 shadow-sm">

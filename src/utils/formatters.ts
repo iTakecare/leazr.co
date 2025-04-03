@@ -6,7 +6,7 @@ import { fr } from "date-fns/locale";
 export const formatCurrency = (value: number | string | null | undefined): string => {
   // Protection contre les valeurs nulles/undefined/NaN
   if (value === null || value === undefined || value === "" || 
-      (typeof value === 'number' && isNaN(value))) {
+      (typeof value === 'number' && (isNaN(value) || !isFinite(value)))) {
     return "0,00 €";
   }
   
@@ -21,7 +21,7 @@ export const formatCurrency = (value: number | string | null | undefined): strin
     numValue = parseFloat(cleaned);
     
     // Si la conversion échoue, retourner 0
-    if (isNaN(numValue)) {
+    if (isNaN(numValue) || !isFinite(numValue)) {
       return "0,00 €";
     }
   } else {
@@ -109,7 +109,7 @@ export const formatDistanceToNow = (dateString: string | Date): string => {
 };
 
 export const formatPercentageWithComma = (value: number | null | undefined): string => {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || isNaN(value) || !isFinite(value)) {
     return "0,00%";
   }
   
