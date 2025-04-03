@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -49,45 +48,41 @@ const AmbassadorDashboardPage = () => {
         
         const clientsCount = clientsData?.length || 0;
         console.log(`Found ${clientsCount} clients for ambassador ${ambassadorId}`);
-
-        // Try to get commissions data, but don't fail if table doesn't exist
+        
+        // Get commissions directly from the offers table
         let totalCommissions = 0;
         let lastCommissionAmount = 0;
         
         try {
-          // Check if ambassador_commissions table exists
-          const { data: tableExists } = await supabase.rpc('check_table_exists', {
-            table_name: 'ambassador_commissions'
-          });
-          
-          if (tableExists) {
-            // Obtenir le total des commissions
-            const { data: commissions, error: commissionsError } = await supabase
-              .from("ambassador_commissions")
-              .select("amount")
-              .eq("ambassador_id", ambassadorId);
+          // Get all offers with commissions for this ambassador
+          const { data: commissionsData, error: commissionsError } = await supabase
+            .from("offers")
+            .select("commission, created_at")
+            .eq("ambassador_id", ambassadorId)
+            .not("commission", "is", null)
+            .gt("commission", 0);
 
-            if (!commissionsError && commissions) {
-              totalCommissions = commissions.reduce(
-                (sum, commission) => sum + (parseFloat(commission.amount) || 0),
-                0
-              ) || 0;
-              
-              // Obtenir la dernière commission
-              const { data: lastCommission } = await supabase
-                .from("ambassador_commissions")
-                .select("amount")
-                .eq("ambassador_id", ambassadorId)
-                .order("created_at", { ascending: false })
-                .limit(1);
-                
-              if (lastCommission && lastCommission.length > 0) {
-                lastCommissionAmount = parseFloat(lastCommission[0].amount) || 0;
-              }
+          if (!commissionsError && commissionsData && commissionsData.length > 0) {
+            // Calculate total commissions
+            totalCommissions = commissionsData.reduce(
+              (sum, offer) => sum + (parseFloat(offer.commission) || 0),
+              0
+            );
+            
+            // Find the most recent commission
+            const sortedCommissions = [...commissionsData].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            
+            if (sortedCommissions.length > 0) {
+              lastCommissionAmount = parseFloat(sortedCommissions[0].commission) || 0;
             }
+            
+            console.log(`Loaded ${commissionsData.length} commissions, total: ${totalCommissions}`);
           } else {
-            console.log('Table ambassador_commissions does not exist yet');
-            // Use alternative approach: get data from ambassadors table
+            console.log('No commissions found for ambassador in offers table');
+            
+            // Fallback: get data from ambassadors table
             const { data: ambassador } = await supabase
               .from("ambassadors")
               .select("commissions_total, last_commission")
@@ -104,7 +99,7 @@ const AmbassadorDashboardPage = () => {
           // Continue execution, just with zero values for commissions
         }
         
-        // Compter les offres en cours
+        // Count pending offers
         const { data: pendingOffers, error: pendingOffersError } = await supabase
           .from("offers")
           .select("id")
@@ -115,7 +110,7 @@ const AmbassadorDashboardPage = () => {
           
         if (pendingOffersError) throw pendingOffersError;
         
-        // Compter les offres acceptées
+        // Count accepted offers
         const { data: acceptedOffers, error: acceptedOffersError } = await supabase
           .from("offers")
           .select("id")
@@ -125,7 +120,7 @@ const AmbassadorDashboardPage = () => {
           
         if (acceptedOffersError) throw acceptedOffersError;
         
-        // Récupérer les clients récents
+        // Get recent clients
         const { data: clients, error: recentClientsError } = await supabase
           .from("ambassador_clients")
           .select(`
@@ -139,7 +134,7 @@ const AmbassadorDashboardPage = () => {
           
         if (recentClientsError) throw recentClientsError;
         
-        // Récupérer les offres récentes
+        // Get recent offers
         const { data: offers, error: recentOffersError } = await supabase
           .from("offers")
           .select("*")
