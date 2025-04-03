@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -57,6 +58,7 @@ const AmbassadorOfferDetail = () => {
         setLoading(true);
         const offerData = await getOfferById(id);
         
+        // Vérifier que l'offre appartient bien à l'ambassadeur connecté
         if (!offerData || offerData.user_id !== user.id) {
           setError("Vous n'avez pas accès à cette offre");
           toast.error("Vous n'avez pas accès à cette offre");
@@ -65,8 +67,10 @@ const AmbassadorOfferDetail = () => {
         
         setOffer(offerData);
         
+        // Si l'offre est convertie en contrat, calculer la date de fin du contrat (36 mois par défaut)
         if (offerData.converted_to_contract) {
           try {
+            // Récupérer le contrat associé à cette offre pour obtenir sa date
             const { data: contractData } = await supabase
               .from('contracts')
               .select('created_at')
@@ -76,7 +80,7 @@ const AmbassadorOfferDetail = () => {
             if (contractData) {
               const startDate = new Date(contractData.created_at);
               const endDate = new Date(startDate);
-              endDate.setMonth(startDate.getMonth() + 36);
+              endDate.setMonth(startDate.getMonth() + 36); // Contrat standard de 36 mois
               setContractEndDate(endDate);
             }
           } catch (err) {
@@ -84,6 +88,7 @@ const AmbassadorOfferDetail = () => {
           }
         }
         
+        // Si nécessaire, recalculer et mettre à jour la commission
         if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
           await updateCommission(offerData);
         }
@@ -108,6 +113,7 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
+      // Récupérer le niveau de commission de l'ambassadeur
       const { data: ambassador } = await supabase
         .from('ambassadors')
         .select('*, commission_levels(name, id)')
@@ -119,6 +125,7 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
+      // Calculer le montant financé à partir de la mensualité
       const financedAmount = calculateFinancedAmount(
         Number(offerData.monthly_payment), 
         Number(offerData.coefficient)
@@ -129,6 +136,7 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
+      // Calculer la commission basée sur le niveau de l'ambassadeur
       const commissionData = await calculateCommissionByLevel(
         financedAmount,
         ambassador.commission_level_id,
@@ -137,6 +145,7 @@ const AmbassadorOfferDetail = () => {
       );
       
       if (commissionData && typeof commissionData.amount === 'number') {
+        // Si la commission calculée est différente de celle stockée, mettre à jour
         if (Math.abs(commissionData.amount - offerData.commission) > 0.01) {
           console.log(`Mise à jour de la commission: ${offerData.commission}€ -> ${commissionData.amount}€`);
           
@@ -169,6 +178,7 @@ const AmbassadorOfferDetail = () => {
     try {
       setSendingEmail(true);
       
+      // Si l'offre est en brouillon, on la passe à "sent" avant l'envoi
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
           .from('offers')
@@ -178,9 +188,11 @@ const AmbassadorOfferDetail = () => {
           
         if (error) throw error;
         
+        // Mettre à jour l'état local
         setOffer({ ...offer, workflow_status: 'sent' });
       }
       
+      // Simuler l'envoi d'un email (à remplacer par un vrai envoi d'email)
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success("Email envoyé au client avec succès");
@@ -192,7 +204,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  const formatDate = (dateString: string | null | undefined) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "Date inconnue";
     try {
       return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: fr });
@@ -316,7 +328,7 @@ const AmbassadorOfferDetail = () => {
     console.log("Erreur de parsing des données d'équipement:", e);
   }
 
-  const getStepStatus = (stepId: string) => {
+  const getStepStatus = (stepId) => {
     const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
     const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
     
@@ -325,7 +337,7 @@ const AmbassadorOfferDetail = () => {
     return 'pending';
   };
 
-  const getCommissionStatusBadge = (status: string | undefined) => {
+  const getCommissionStatusBadge = (status) => {
     switch (status) {
       case 'paid':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
@@ -338,7 +350,8 @@ const AmbassadorOfferDetail = () => {
     }
   };
 
-  const getCommissionBoxColor = (status: string | undefined) => {
+  // Déterminer la couleur de fond du cadre de commission en fonction du statut
+  const getCommissionBoxColor = (status) => {
     switch (status) {
       case 'paid':
         return "bg-green-50 border-green-200";
@@ -351,7 +364,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
 
-  const getCommissionIconColor = (status: string | undefined) => {
+  const getCommissionIconColor = (status) => {
     switch (status) {
       case 'paid':
         return "text-green-700";
@@ -364,6 +377,7 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
+  // Calculer le nombre de mois restants sur le contrat
   const getRemainingMonths = () => {
     if (!contractEndDate) return null;
     
@@ -507,7 +521,7 @@ const AmbassadorOfferDetail = () => {
                     <TabsContent value="equipment" className="mt-4">
                       {equipmentData && equipmentData.length > 0 ? (
                         <div className="space-y-4">
-                          {equipmentData.map((item: any, index: number) => (
+                          {equipmentData.map((item, index) => (
                             <Card key={index} className="overflow-hidden">
                               <CardContent className="p-4">
                                 <h3 className="font-semibold mb-2">{item.title}</h3>
@@ -524,14 +538,15 @@ const AmbassadorOfferDetail = () => {
                                   </div>
                                 </div>
                                 
+                                {/* Affichage des variantes choisies */}
                                 {item.variants && Object.keys(item.variants).length > 0 && (
                                   <div className="mt-3 pt-3 border-t border-gray-100">
                                     <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
                                     <div className="grid grid-cols-2 gap-2">
-                                      {Object.entries(item.variants).map(([key, value]: [string, any]) => (
+                                      {Object.entries(item.variants).map(([key, value]) => (
                                         <div key={key} className="flex flex-col">
                                           <span className="text-xs text-gray-600">{key}</span>
-                                          <span className="font-medium text-sm">{String(value)}</span>
+                                          <span className="font-medium text-sm">{value}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -568,6 +583,7 @@ const AmbassadorOfferDetail = () => {
                           </div>
                         </div>
                         
+                        {/* Information sur la durée du contrat si convertie */}
                         {offer.converted_to_contract && remainingMonths !== null && (
                           <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
                             <div className="flex items-center">
@@ -612,7 +628,19 @@ const AmbassadorOfferDetail = () => {
                                     {stepStatus === 'completed' ? (
                                       <Check className="h-6 w-6 text-green-700" />
                                     ) : (
-                                      <status.icon className="h-6 w-6" />
+                                      status.id === 'sent' ? (
+                                        <span className="text-xl font-medium">E</span>
+                                      ) : status.id === 'valid_itc' ? (
+                                        <span className="text-xl font-medium">V</span>
+                                      ) : status.id === 'approved' ? (
+                                        <span className="text-xl font-medium">A</span>
+                                      ) : status.id === 'leaser_review' ? (
+                                        <span className="text-xl font-medium">V</span>
+                                      ) : status.id === 'financed' ? (
+                                        <span className="text-xl font-medium">F</span>
+                                      ) : (
+                                        <status.icon className="h-6 w-6" />
+                                      )
                                     )}
                                   </div>
                                   <span className={`text-sm font-medium ${

@@ -16,8 +16,6 @@ export interface Offer {
   user_id: string;
   type: string;
   converted_to_contract: boolean;
-  ambassador_id?: string;
-  ambassador_name?: string;
   clients?: {
     id?: string;
     name?: string;
@@ -61,34 +59,7 @@ export const useFetchOffers = () => {
         throw error;
       }
       
-      // Si nous avons des offres d'ambassadeurs, récupérer les informations des ambassadeurs
-      const transformedOffers = await Promise.all((data || []).map(async (offer) => {
-        let ambassador_name = null;
-        
-        // Si c'est une offre d'ambassadeur et qu'on a un ID d'ambassadeur
-        if (offer.type === 'ambassador_offer' && offer.ambassador_id) {
-          try {
-            const { data: ambassadorData, error: ambassadorError } = await supabase
-              .from('ambassadors')
-              .select('name')
-              .eq('id', offer.ambassador_id)
-              .single();
-              
-            if (!ambassadorError && ambassadorData) {
-              ambassador_name = ambassadorData.name;
-            }
-          } catch (err) {
-            console.error("Erreur lors de la récupération de l'ambassadeur:", err);
-          }
-        }
-        
-        return {
-          ...offer,
-          ambassador_name
-        };
-      }));
-      
-      setOffers(transformedOffers);
+      setOffers(data || []);
     } catch (error: any) {
       console.error("Error fetching offers:", error);
       setLoadingError(`Erreur lors du chargement des offres: ${error.message}`);
