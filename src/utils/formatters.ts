@@ -1,9 +1,8 @@
-
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export const formatCurrency = (value: number | string | null | undefined): string => {
-  // Vérification plus stricte des valeurs nulles/undefined/NaN
+  // Vérification stricte des valeurs nulles/undefined/NaN
   if (value === null || value === undefined || value === "") {
     return "0,00 €";
   }
@@ -14,19 +13,18 @@ export const formatCurrency = (value: number | string | null | undefined): strin
   if (typeof value === 'number') {
     numValue = value;
   } else if (typeof value === 'string') {
-    // Tenter de convertir la chaîne en nombre
+    // Conversion de chaîne en nombre
     numValue = parseFloat(value.replace(',', '.'));
   } else {
     numValue = 0;
   }
   
-  // Vérification supplémentaire pour NaN
+  // Vérification pour NaN
   if (isNaN(numValue)) {
     return "0,00 €";
   }
   
-  // Si la valeur est très proche de zéro mais pas exactement zéro en raison de problèmes de virgule flottante,
-  // fixons-la simplement à zéro
+  // Arrondir les valeurs très proches de zéro
   if (Math.abs(numValue) < 0.01) {
     numValue = 0;
   }

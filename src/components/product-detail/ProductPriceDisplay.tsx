@@ -11,9 +11,9 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
   currentPrice, 
   minimumPrice 
 }) => {
-  // Ensure we have valid prices to display
-  const displayCurrentPrice = currentPrice !== null && currentPrice !== undefined && !isNaN(currentPrice) ? currentPrice : null;
-  const displayMinPrice = minimumPrice && !isNaN(minimumPrice) ? minimumPrice : 39.99; // Fallback price
+  // Utilisation de valeurs sécurisées pour l'affichage
+  const displayCurrentPrice = typeof currentPrice === 'number' && !isNaN(currentPrice) ? currentPrice : null;
+  const displayMinPrice = typeof minimumPrice === 'number' && !isNaN(minimumPrice) ? minimumPrice : 39.99; // Valeur par défaut
   
   return (
     <div className="text-lg text-gray-700 mb-4">

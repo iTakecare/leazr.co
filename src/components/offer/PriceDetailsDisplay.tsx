@@ -19,18 +19,18 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   hideFinancialDetails = true,
   calculatedMargin
 }) => {
-  // Calculate the price without margin (base price)
+  // Calcul sécurisé du prix sans marge
   const priceWithoutMargin = priceWithMargin - marginAmount;
   
-  // Use calculated margin if available, otherwise calculate it
+  // Utiliser la marge calculée si disponible, sinon calculer
   const marginPercentage = calculatedMargin?.percentage || (priceWithoutMargin > 0 
     ? (marginAmount / priceWithoutMargin) * 100 
     : 0);
   
-  // Use calculated margin amount if available
+  // Utiliser le montant de marge calculé si disponible
   const displayMarginAmount = calculatedMargin?.amount || marginAmount;
   
-  // Calculate the actual price with margin based on the calculated amount
+  // Prix avec marge basé sur le montant calculé
   const displayPriceWithMargin = priceWithoutMargin + displayMarginAmount;
 
   return (

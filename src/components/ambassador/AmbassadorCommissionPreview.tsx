@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -24,23 +24,14 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const calculationParamsRef = useRef<string>("");
   const calculationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const computeCountRef = useRef<number>(0);
-
-  // Fonction pour calculer la commission avec contrôle des paramètres
-  const calculateCommission = React.useCallback(async () => {
-    // Vérifier si les informations nécessaires sont disponibles
+  const lastParametersRef = useRef<string>("");
+  const isInitialMountRef = useRef(true);
+  
+  // Fonction pour calculer la commission au clic du bouton
+  const handleCalculateCommission = React.useCallback(() => {
+    // Ne pas calculer si les informations nécessaires sont manquantes
     if (!ambassadorId || !commissionLevelId || !equipmentList.length) {
-      return;
-    }
-
-    // Limiter le nombre de calculs
-    if (computeCountRef.current > 10) {
-      console.log("Too many commission calculations, skipping...");
-      setTimeout(() => {
-        computeCountRef.current = 0;
-      }, 5000);
       return;
     }
 
@@ -51,26 +42,26 @@ const AmbassadorCommissionPreview = ({
       return sum + (price * quantity);
     }, 0);
     
-    // Pas besoin de calculer si le montant est nul ou trop petit
-    if (totalEquipmentAmount <= 0 || totalEquipmentAmount < 10) {
+    // Pas besoin de calculer si le montant est trop petit
+    if (totalEquipmentAmount < 10) {
       return;
     }
     
-    // Créer une signature unique pour les paramètres actuels
+    // Créer une signature pour les paramètres actuels
     const currentParams = `${totalEquipmentAmount.toFixed(2)}-${commissionLevelId}-${ambassadorId}`;
     
-    // Éviter les calculs redondants
-    if (currentParams === calculationParamsRef.current) {
+    // Éviter les calculs redondants si les paramètres n'ont pas changé
+    if (currentParams === lastParametersRef.current && !isInitialMountRef.current) {
       return;
     }
     
     // Mettre à jour la référence des paramètres
-    calculationParamsRef.current = currentParams;
+    lastParametersRef.current = currentParams;
+    isInitialMountRef.current = false;
     
     // Annuler tout calcul précédent en attente
     if (calculationTimerRef.current) {
       clearTimeout(calculationTimerRef.current);
-      calculationTimerRef.current = null;
     }
     
     // Différer le calcul pour éviter les calculs trop fréquents
@@ -78,8 +69,6 @@ const AmbassadorCommissionPreview = ({
     
     calculationTimerRef.current = setTimeout(async () => {
       try {
-        computeCountRef.current += 1;
-        
         const commissionData = await calculateCommissionByLevel(
           totalEquipmentAmount,
           commissionLevelId,
@@ -98,24 +87,25 @@ const AmbassadorCommissionPreview = ({
         setIsCalculating(false);
         calculationTimerRef.current = null;
       }
-    }, 500);
+    }, 300);
   }, [ambassadorId, commissionLevelId, equipmentList]);
 
-  // Utiliser useEffect avec des dépendances stables pour déclencher le calcul
-  useEffect(() => {
-    if (equipmentList?.length > 0 && ambassadorId && commissionLevelId) {
-      calculateCommission();
+  // Calculer la commission uniquement au montage du composant
+  React.useEffect(() => {
+    // Vérification des conditions nécessaires pour calculer
+    if (equipmentList.length > 0 && ambassadorId && commissionLevelId && isInitialMountRef.current) {
+      handleCalculateCommission();
     }
     
-    // Nettoyage pour éviter des fuites de mémoire
+    // Nettoyage
     return () => {
       if (calculationTimerRef.current) {
         clearTimeout(calculationTimerRef.current);
       }
     };
-  }, [calculateCommission, equipmentList, ambassadorId, commissionLevelId]);
+  }, [handleCalculateCommission]);
 
-  // Ne pas rendre le composant si l'ID de l'ambassadeur ou du niveau de commission n'est pas disponible
+  // Ne pas rendre le composant si les IDs nécessaires sont manquants
   if (!ambassadorId || !commissionLevelId) {
     return null;
   }
