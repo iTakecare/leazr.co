@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
+import OffersLoading from "@/components/offers/OffersLoading";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -37,6 +37,7 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [loadingLeasers, setLoadingLeasers] = useState(true);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -70,6 +71,7 @@ const AmbassadorCreateOffer = () => {
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
+        setLoadingLeasers(true);
         const fetchedLeasers = await getLeasers();
         
         if (fetchedLeasers && fetchedLeasers.length > 0) {
@@ -78,6 +80,8 @@ const AmbassadorCreateOffer = () => {
       } catch (error) {
         console.error("Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      } finally {
+        setLoadingLeasers(false);
       }
     };
     
@@ -274,6 +278,10 @@ const AmbassadorCreateOffer = () => {
     }
   }, [ambassador]);
   
+  if (loading || loadingLeasers) {
+    return <OffersLoading />;
+  }
+  
   return (
     <PageTransition>
       <Container>
@@ -313,73 +321,64 @@ const AmbassadorCreateOffer = () => {
               </div>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Chargement...</span>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div>
-                    <div className="mt-6">
-                      <EquipmentForm
-                        equipment={equipment}
-                        setEquipment={setEquipment}
-                        selectedLeaser={selectedLeaser}
-                        addToList={addToList}
-                        editingId={editingId}
-                        cancelEditing={cancelEditing}
-                        onOpenCatalog={handleOpenCatalog}
-                        coefficient={coefficient}
-                        monthlyPayment={monthlyPayment}
-                        targetMonthlyPayment={targetMonthlyPayment}
-                        setTargetMonthlyPayment={setTargetMonthlyPayment}
-                        calculatedMargin={calculatedMargin}
-                        applyCalculatedMargin={applyCalculatedMargin}
-                        hideFinancialDetails={hideFinancialDetails}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    <EquipmentList
-                      equipmentList={equipmentList}
-                      editingId={editingId}
-                      startEditing={startEditing}
-                      removeFromList={removeFromList}
-                      updateQuantity={updateQuantity}
-                      totalMonthlyPayment={totalMonthlyPayment}
-                      globalMarginAdjustment={{
-                        amount: globalMarginAdjustment.amount,
-                        newCoef: globalMarginAdjustment.newCoef,
-                        active: globalMarginAdjustment.adaptMonthlyPayment,
-                        marginDifference: globalMarginAdjustment.marginDifference
-                      }}
-                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                      hideFinancialDetails={hideFinancialDetails}
-                      ambassadorId={ambassadorId || user?.ambassador_id}
-                      commissionLevelId={ambassador?.commission_level_id}
-                    />
-                    
-                    <ClientInfo
-                      clientId={clientInfoProps.clientId}
-                      clientName={clientInfoProps.clientName}
-                      clientEmail={clientInfoProps.clientEmail}
-                      clientCompany={clientInfoProps.clientCompany}
-                      remarks={clientInfoProps.remarks}
-                      setRemarks={clientInfoProps.setRemarks}
-                      onOpenClientSelector={clientInfoProps.onOpenClientSelector}
-                      handleSaveOffer={clientInfoProps.handleSaveOffer}
-                      isSubmitting={clientInfoProps.isSubmitting}
-                      selectedLeaser={clientInfoProps.selectedLeaser}
-                      equipmentList={clientInfoProps.equipmentList}
-                      hideFinancialDetails={hideFinancialDetails}
-                    />
-                  </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <div className="mt-6">
+                  <EquipmentForm
+                    equipment={equipment}
+                    setEquipment={setEquipment}
+                    selectedLeaser={selectedLeaser}
+                    addToList={addToList}
+                    editingId={editingId}
+                    cancelEditing={cancelEditing}
+                    onOpenCatalog={handleOpenCatalog}
+                    coefficient={coefficient}
+                    monthlyPayment={monthlyPayment}
+                    targetMonthlyPayment={targetMonthlyPayment}
+                    setTargetMonthlyPayment={setTargetMonthlyPayment}
+                    calculatedMargin={calculatedMargin}
+                    applyCalculatedMargin={applyCalculatedMargin}
+                    hideFinancialDetails={hideFinancialDetails}
+                  />
                 </div>
-              </>
-            )}
+              </div>
+
+              <div className="space-y-8">
+                <EquipmentList
+                  equipmentList={equipmentList}
+                  editingId={editingId}
+                  startEditing={startEditing}
+                  removeFromList={removeFromList}
+                  updateQuantity={updateQuantity}
+                  totalMonthlyPayment={totalMonthlyPayment}
+                  globalMarginAdjustment={{
+                    amount: globalMarginAdjustment.amount,
+                    newCoef: globalMarginAdjustment.newCoef,
+                    active: globalMarginAdjustment.adaptMonthlyPayment,
+                    marginDifference: globalMarginAdjustment.marginDifference
+                  }}
+                  toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                  hideFinancialDetails={hideFinancialDetails}
+                  ambassadorId={ambassadorId || user?.ambassador_id}
+                  commissionLevelId={ambassador?.commission_level_id}
+                />
+                
+                <ClientInfo
+                  clientId={clientInfoProps.clientId}
+                  clientName={clientInfoProps.clientName}
+                  clientEmail={clientInfoProps.clientEmail}
+                  clientCompany={clientInfoProps.clientCompany}
+                  remarks={clientInfoProps.remarks}
+                  setRemarks={clientInfoProps.setRemarks}
+                  onOpenClientSelector={clientInfoProps.onOpenClientSelector}
+                  handleSaveOffer={clientInfoProps.handleSaveOffer}
+                  isSubmitting={clientInfoProps.isSubmitting}
+                  selectedLeaser={clientInfoProps.selectedLeaser}
+                  equipmentList={clientInfoProps.equipmentList}
+                  hideFinancialDetails={hideFinancialDetails}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Container>
