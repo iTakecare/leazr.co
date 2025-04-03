@@ -13,8 +13,8 @@ export const leasingCoefficients = [
   { min: 25000.01, max: 50000, rate: 3.16 },
   { min: 12500.01, max: 25000, rate: 3.17 },
   { min: 5000.01, max: 12500, rate: 3.18 },
-  { min: 2500.01, max: 5000, rate: 3.28 },
-  { min: 500, max: 2500, rate: 3.64 },
+  { min: 2500.01, max: 5000, rate: 3.27 },
+  { min: 500, max: 2500, rate: 3.55 },
 ];
 
 // Gardons les taux statiques pour la rétrocompatibilité

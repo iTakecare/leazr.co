@@ -57,7 +57,7 @@ const AmbassadorCommissionPreview = ({
         
         // D'abord, estimer le montant financé avec un coefficient de départ
         // pour déterminer la bonne tranche de coefficient
-        let initialCoefficient = 3.28; // Valeur moyenne pour commencer
+        let initialCoefficient = 3.27; // Valeur moyenne pour commencer (mise à jour avec la valeur correcte)
         let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
         // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
