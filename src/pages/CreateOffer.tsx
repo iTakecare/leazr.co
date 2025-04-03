@@ -19,7 +19,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
-import { OffersLoading } from "@/components/offers/OffersLoading";
+import OffersLoading from "@/components/offers/OffersLoading";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
