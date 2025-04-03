@@ -31,8 +31,8 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
           console.error("Erreur de parsing des données d'équipement:", e);
         }
 
-        // Calcul correct du montant financé à partir de la mensualité et du coefficient
-        // Formule correcte: (mensualité × 100) ÷ coefficient = montant financé
+        // Application stricte de la formule pour le calcul du montant financé
+        // Montant financé = (Mensualité × 100) ÷ Coefficient
         const financedAmount = calculateFinancedAmount(
           Number(data.monthly_payment), 
           Number(data.coefficient || 3.27)

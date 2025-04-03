@@ -53,7 +53,6 @@ const EquipmentList = ({
       return;
     }
     
-    // Calculer le montant financé à partir de la mensualité totale et du coefficient global
     const coefficient = globalMarginAdjustment.newCoef;
     const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
     
@@ -134,7 +133,6 @@ const EquipmentList = ({
   const marginDifference = globalMarginAdjustment.marginDifference || 0;
   const totalMarginWithDifference = totalMarginAmount + marginDifference;
   
-  // Calcul du montant financé
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, globalMarginAdjustment.newCoef);
 
   return (

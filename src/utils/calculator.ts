@@ -156,11 +156,12 @@ export const getCommissionRate = (amount: number): number => {
 
 /**
  * Calcul du montant financé à partir de la mensualité et du coefficient
- * Formule: (mensualité × 100) ÷ coefficient = montant financé
+ * Formule stricte: montant financé = (mensualité × 100) ÷ coefficient
  */
 export const calculateFinancedAmount = (monthlyPayment: number, coefficient: number): number => {
   if (!coefficient || coefficient <= 0 || !monthlyPayment) return 0;
   
+  // Application stricte de la formule: (mensualité × 100) ÷ coefficient
   return (monthlyPayment * 100) / coefficient;
 };
 

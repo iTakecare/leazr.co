@@ -43,7 +43,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
     : 0;
 
   // Calcul du montant financé à partir de la mensualité et du coefficient
-  // Formule correcte: (mensualité × 100) ÷ coefficient
+  // Application stricte de la formule: montant financé = (mensualité × 100) ÷ coefficient
   const financedAmount = coefficient > 0 ? (safeMonthlyPayment * 100) / coefficient : 0;
 
   // Éviter les recalculs inutiles de formatage en les mémorisant
