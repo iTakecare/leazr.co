@@ -308,9 +308,9 @@ const AmbassadorOfferDetail = () => {
   let equipmentData: any[] = [];
   try {
     if (offer?.equipment_description) {
-      equipmentData = typeof offer.equipment_data === 'object' ? 
-        offer.equipment_data : 
-        JSON.parse(offer.equipment_description);
+      equipmentData = typeof offer.equipment_description === 'object' ? 
+        offer.equipment_description : 
+        JSON.parse(offer.equipment_description as string);
     }
   } catch (e) {
     console.log("Erreur de parsing des données d'équipement:", e);
