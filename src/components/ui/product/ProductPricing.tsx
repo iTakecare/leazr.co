@@ -10,7 +10,7 @@ interface ProductPricingProps {
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants }) => {
-  const { isAdmin, isClient } = useAuth();
+  const { isAdmin } = useAuth();
   
   const calculateMonthlyPrice = (): string | number => {
     let productMonthlyPrice: string | number = "Non définie";
@@ -55,8 +55,8 @@ const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants })
   const productPrice = calculatePrice();
   const productMonthlyPrice = calculateMonthlyPrice();
   
-  // Déterminons si le prix d'achat doit être affiché
-  const shouldShowPurchasePrice = isAdmin() || isClient();
+  // Only admin can see purchase price
+  const shouldShowPurchasePrice = isAdmin();
   
   return (
     <div className="mt-3 space-y-1">

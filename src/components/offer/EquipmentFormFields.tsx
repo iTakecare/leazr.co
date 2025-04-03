@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Package, X } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatPercentageWithComma } from "@/utils/formatters";
+import { useAuth } from "@/context/AuthContext";
 
 interface EquipmentFormFieldsProps {
   equipment: Equipment;
@@ -26,6 +27,11 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   hideFinancialDetails = false,
   onRemove
 }) => {
+  const { isAdmin } = useAuth();
+  
+  // Only show financial details to admins
+  const shouldDisplayFinancialDetails = isAdmin() && !hideFinancialDetails;
+
   return (
     <div className="space-y-3 relative">
       {/* Bouton pour supprimer l'équipement si onRemove est fourni */}
@@ -71,7 +77,7 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         {errors.title && <p className="text-xs text-red-500 mt-0.5">Ce champ est requis</p>}
       </div>
 
-      {!hideFinancialDetails && (
+      {shouldDisplayFinancialDetails && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 bg-gray-50 p-2 rounded-md border border-gray-100">
           <div>
             <Label htmlFor="price" className="text-xs font-medium text-gray-600">Prix d'achat (€)</Label>
@@ -117,21 +123,21 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
       )}
 
       {/* Champs cachés pour préserver les valeurs quand les champs sont masqués */}
-      {hideFinancialDetails && (
-        <input
-          type="hidden"
-          name="purchasePrice"
-          value={equipment.purchasePrice || ""}
-          onChange={(e) => handleChange("purchasePrice", e.target.value)}
-        />
-      )}
-      {hideFinancialDetails && (
-        <input
-          type="hidden"
-          name="margin"
-          value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
-          onChange={(e) => handleChange("margin", e.target.value)}
-        />
+      {!shouldDisplayFinancialDetails && (
+        <>
+          <input
+            type="hidden"
+            name="purchasePrice"
+            value={equipment.purchasePrice || ""}
+            onChange={(e) => handleChange("purchasePrice", e.target.value)}
+          />
+          <input
+            type="hidden"
+            name="margin"
+            value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
+            onChange={(e) => handleChange("margin", e.target.value)}
+          />
+        </>
       )}
     </div>
   );

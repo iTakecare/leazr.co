@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -37,7 +36,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   const [hasOptions, setHasOptions] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { isAdmin, isClient } = useAuth();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     setSelectedOptions({});
@@ -153,8 +152,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     return product.monthly_price || 0;
   };
   
-  // Déterminons si nous devons montrer le prix d'achat
-  const shouldShowPurchasePrice = isAdmin() || isClient();
+  const shouldShowPurchasePrice = isAdmin();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

@@ -26,7 +26,7 @@ import { getLeasers } from "@/services/leaserService";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
@@ -208,7 +208,7 @@ const CreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: false
+    hideFinancialDetails: !isAdmin()
   };
 
   const handleAddEquipment = (title: string) => {
@@ -222,7 +222,7 @@ const CreateOffer = () => {
     });
   };
 
-  const hideFinancialDetails = false;
+  const hideFinancialDetails = !isAdmin();
 
   return (
     <PageTransition>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
-  const { isClient, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   
   useEffect(() => {
     if (!product) return;
@@ -89,8 +88,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
     }
   };
   
-  // Déterminer si le prix d'achat doit être affiché
-  const shouldShowPurchasePrice = isAdmin() || isClient();
+  const shouldShowPurchasePrice = isAdmin();
   
   if (!product || !product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
     return null;

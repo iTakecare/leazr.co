@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,7 @@ interface CatalogProductCardProps {
 const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClick, onViewVariants }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isClient, isAdmin, isPartner, isAmbassador } = useAuth();
+  const { isAdmin } = useAuth();
   
   if (!product) return null;
   
@@ -88,8 +87,8 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
   const monthlyPrice = getMinimumMonthlyPrice();
   const hasPrice = price > 0 || monthlyPrice > 0;
   
-  // Determine if purchase price should be shown
-  const shouldShowPurchasePrice = isAdmin() || isClient(); // Only admin and clients can see purchase prices
+  // Only admin should see purchase prices
+  const shouldShowPurchasePrice = isAdmin();
   
   return (
     <Card 
