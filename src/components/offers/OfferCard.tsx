@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
   const navigate = useNavigate();
   const [financedAmount, setFinancedAmount] = useState<number>(0);
   
-  // Calculer le montant financé lors du montage du composant
   useEffect(() => {
     if (offer && offer.monthly_payment && offer.coefficient) {
-      // Utiliser la fonction calculateFinancedAmount du calculateur
       const amount = calculateFinancedAmount(
         Number(offer.monthly_payment),
         Number(offer.coefficient)
@@ -44,7 +41,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
     }
   }, [offer]);
   
-  // Formatage de la date
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
@@ -107,7 +103,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
         </div>
         
-        {/* Affichage du montant financé */}
         <div className="text-xs text-muted-foreground">
           <div className="flex items-center">
             <CreditCard className="h-3 w-3 mr-1" />

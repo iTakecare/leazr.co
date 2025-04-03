@@ -9,6 +9,7 @@ export interface Offer {
   client_id?: string;
   amount: number;
   monthly_payment: number;
+  coefficient?: number;
   commission?: number;
   workflow_status: string;
   equipment_description?: string;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -58,7 +57,6 @@ const AmbassadorOfferDetail = () => {
         setLoading(true);
         const offerData = await getOfferById(id);
         
-        // Vérifier que l'offre appartient bien à l'ambassadeur connecté
         if (!offerData || offerData.user_id !== user.id) {
           setError("Vous n'avez pas accès à cette offre");
           toast.error("Vous n'avez pas accès à cette offre");
@@ -67,10 +65,8 @@ const AmbassadorOfferDetail = () => {
         
         setOffer(offerData);
         
-        // Si l'offre est convertie en contrat, calculer la date de fin du contrat (36 mois par défaut)
         if (offerData.converted_to_contract) {
           try {
-            // Récupérer le contrat associé à cette offre pour obtenir sa date
             const { data: contractData } = await supabase
               .from('contracts')
               .select('created_at')
@@ -80,7 +76,7 @@ const AmbassadorOfferDetail = () => {
             if (contractData) {
               const startDate = new Date(contractData.created_at);
               const endDate = new Date(startDate);
-              endDate.setMonth(startDate.getMonth() + 36); // Contrat standard de 36 mois
+              endDate.setMonth(startDate.getMonth() + 36);
               setContractEndDate(endDate);
             }
           } catch (err) {
@@ -88,7 +84,6 @@ const AmbassadorOfferDetail = () => {
           }
         }
         
-        // Si nécessaire, recalculer et mettre à jour la commission
         if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
           await updateCommission(offerData);
         }
@@ -113,7 +108,6 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
-      // Récupérer le niveau de commission de l'ambassadeur
       const { data: ambassador } = await supabase
         .from('ambassadors')
         .select('*, commission_levels(name, id)')
@@ -125,7 +119,6 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
-      // Calculer le montant financé à partir de la mensualité
       const financedAmount = calculateFinancedAmount(
         Number(offerData.monthly_payment), 
         Number(offerData.coefficient)
@@ -136,7 +129,6 @@ const AmbassadorOfferDetail = () => {
         return;
       }
       
-      // Calculer la commission basée sur le niveau de l'ambassadeur
       const commissionData = await calculateCommissionByLevel(
         financedAmount,
         ambassador.commission_level_id,
@@ -145,7 +137,6 @@ const AmbassadorOfferDetail = () => {
       );
       
       if (commissionData && typeof commissionData.amount === 'number') {
-        // Si la commission calculée est différente de celle stockée, mettre à jour
         if (Math.abs(commissionData.amount - offerData.commission) > 0.01) {
           console.log(`Mise à jour de la commission: ${offerData.commission}€ -> ${commissionData.amount}€`);
           
@@ -178,7 +169,6 @@ const AmbassadorOfferDetail = () => {
     try {
       setSendingEmail(true);
       
-      // Si l'offre est en brouillon, on la passe à "sent" avant l'envoi
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
           .from('offers')
@@ -188,11 +178,9 @@ const AmbassadorOfferDetail = () => {
           
         if (error) throw error;
         
-        // Mettre à jour l'état local
         setOffer({ ...offer, workflow_status: 'sent' });
       }
       
-      // Simuler l'envoi d'un email (à remplacer par un vrai envoi d'email)
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success("Email envoyé au client avec succès");
@@ -317,15 +305,16 @@ const AmbassadorOfferDetail = () => {
     );
   }
   
-  let equipmentData = [];
+  let equipmentData: any[] = [];
   try {
-    if (offer.equipment_description) {
+    if (offer?.equipment_description) {
       equipmentData = typeof offer.equipment_data === 'object' ? 
         offer.equipment_data : 
         JSON.parse(offer.equipment_description);
     }
   } catch (e) {
     console.log("Erreur de parsing des données d'équipement:", e);
+    equipmentData = [];
   }
 
   const getStepStatus = (stepId) => {
@@ -350,7 +339,6 @@ const AmbassadorOfferDetail = () => {
     }
   };
 
-  // Déterminer la couleur de fond du cadre de commission en fonction du statut
   const getCommissionBoxColor = (status) => {
     switch (status) {
       case 'paid':
@@ -377,7 +365,6 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-  // Calculer le nombre de mois restants sur le contrat
   const getRemainingMonths = () => {
     if (!contractEndDate) return null;
     
@@ -538,7 +525,6 @@ const AmbassadorOfferDetail = () => {
                                   </div>
                                 </div>
                                 
-                                {/* Affichage des variantes choisies */}
                                 {item.variants && Object.keys(item.variants).length > 0 && (
                                   <div className="mt-3 pt-3 border-t border-gray-100">
                                     <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
@@ -583,7 +569,6 @@ const AmbassadorOfferDetail = () => {
                           </div>
                         </div>
                         
-                        {/* Information sur la durée du contrat si convertie */}
                         {offer.converted_to_contract && remainingMonths !== null && (
                           <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
                             <div className="flex items-center">
