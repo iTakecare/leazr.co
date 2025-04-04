@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOfferById } from '@/services/offers/offerDetail';
@@ -314,7 +313,7 @@ const OfferDetail = () => {
                           <Progress 
                             value={progressPercentage} 
                             className={`h-2 w-32 ${offer.workflow_status === 'rejected' ? 'bg-red-100' : ''}`}
-                            indicatorClassName={offer.workflow_status === 'rejected' ? 'bg-red-500' : undefined}
+                            status={offer.workflow_status === 'rejected' ? 'rejected' : undefined}
                           />
                           <span className="text-xs font-medium">{progressPercentage}%</span>
                         </div>
