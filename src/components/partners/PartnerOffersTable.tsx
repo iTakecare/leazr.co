@@ -21,12 +21,16 @@ import {
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useOfferActions } from "@/hooks/offers/useOfferActions";
 
 const PartnerOffersTable = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Utiliser le hook useOfferActions pour avoir accès à la fonction handleViewOffer
+  const { handleViewOffer } = useOfferActions(offers, setOffers);
 
   const fetchOffers = async () => {
     try {
@@ -65,12 +69,6 @@ const PartnerOffersTable = () => {
 
   const createNewOffer = () => {
     navigate('/partner/offers/create');
-  };
-
-  const viewOfferDetails = (id: string) => {
-    console.log("Navigating to admin offer details from PartnerOffersTable:", id);
-    // Redirection vers la vue de détail d'offre administrateur
-    navigate(`/offers/${id}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -155,7 +153,7 @@ const PartnerOffersTable = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      onClick={() => viewOfferDetails(offer.id)}
+                      onClick={() => handleViewOffer(offer.id)}
                       className="text-blue-600 hover:text-blue-800"
                     >
                       Voir détails
