@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -40,6 +39,7 @@ import { translateOfferType } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +50,7 @@ const AmbassadorOfferDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [activeTab, setActiveTab] = useState("status");  // Changé de "details" à "status" (pour la vue ambassador)
+  const [activeTab, setActiveTab] = useState("status");
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
   
@@ -263,6 +263,8 @@ const AmbassadorOfferDetail = () => {
     }
   ];
 
+  const isInternalOffer = offer?.type === 'internal_offer';
+
   if (loading) {
     return (
       <PageTransition>
@@ -394,7 +396,12 @@ const AmbassadorOfferDetail = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour
               </Button>
-              <h1 className="text-2xl font-bold">Détail de l'offre</h1>
+              <div>
+                <h1 className="text-2xl font-bold">Détail de l'offre</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
+                </div>
+              </div>
             </div>
             
             {/* Résumé financier visible en haut */}
@@ -424,26 +431,40 @@ const AmbassadorOfferDetail = () => {
                   </p>
                 </CardContent>
               </Card>
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Star className="h-4 w-4 mr-2 text-green-600" />
-                    Votre commission
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-green-600">
-                    {recalculatingCommission ? (
-                      <span className="animate-pulse">Calcul...</span>
-                    ) : (
-                      formatCurrency(offer.commission || 0)
+              {!isInternalOffer ? (
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-green-600" />
+                      Votre commission
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-green-600">
+                      {recalculatingCommission ? (
+                        <span className="animate-pulse">Calcul...</span>
+                      ) : (
+                        formatCurrency(offer.commission || 0)
+                      )}
+                    </p>
+                    {offer.commission_status && (
+                      <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
                     )}
-                  </p>
-                  {offer.commission_status && (
-                    <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="shadow-sm bg-indigo-50 border-indigo-100">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Building className="h-4 w-4 mr-2 text-indigo-600" />
+                      Offre interne
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-md text-indigo-700">Sans commission</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -778,20 +799,23 @@ const AmbassadorOfferDetail = () => {
                     
                     <div>
                       <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
-                      <div className="p-3 bg-slate-50 rounded-md flex items-center">
+                      <div className="p-3 bg-slate-50 rounded-md flex items-center justify-between">
                         <OfferStatusBadge status={offer.workflow_status} className="mr-2" />
+                        {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
                       </div>
                     </div>
                     
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Commission</h3>
-                      <div className={`p-3 border rounded-md ${getCommissionBoxColor(offer.commission_status)}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
-                          {getCommissionStatusBadge(offer.commission_status)}
+                    {!isInternalOffer ? (
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Commission</h3>
+                        <div className={`p-3 border rounded-md ${getCommissionBoxColor(offer.commission_status)}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
+                            {getCommissionStatusBadge(offer.commission_status)}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : null}
                     
                     <div>
                       <h3 className="text-sm font-medium mb-2">Résumé financier</h3>

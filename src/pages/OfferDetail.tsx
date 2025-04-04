@@ -1,812 +1,501 @@
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import Container from "@/components/layout/Container";
+import PageTransition from "@/components/layout/PageTransition";
+import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen, Euro, CalendarIcon, Star, Building } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { formatCurrency } from "@/utils/formatters";
+import { format } from "date-fns";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
+import { translateOfferType } from "@/utils/offerTypeTranslator";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
+import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getOfferById } from '@/services/offers/offerDetail';
-import { getWorkflowLogs } from '@/services/offers/offerWorkflow';
-import { updateOfferStatus } from '@/services/offerService';
-import { useAuth } from '@/context/AuthContext';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { formatCurrency } from '@/utils/formatters';
-import { translateOfferType } from '@/utils/offerTypeTranslator';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  AlertCircle, ArrowLeft, Loader2, Clock, User, Check, X, 
-  Building, FileText, Calendar, CreditCard, Edit, Send, 
-  CheckCircle2, Ban, Info, Briefcase, Euro
-} from 'lucide-react';
-import Container from '@/components/layout/Container';
-import PageTransition from '@/components/layout/PageTransition';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import OfferStatusBadge from '@/components/offers/OfferStatusBadge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
-import { formatEquipmentDisplay } from '@/utils/equipmentFormatter';
-import EquipmentDisplay from '@/components/offers/EquipmentDisplay';
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">En attente</Badge>;
+    case 'accepted':
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Validée</Badge>;
+    case 'rejected':
+      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Refusée</Badge>;
+    case 'info_requested':
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Informations demandées</Badge>;
+    case 'leaser_review':
+      return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Évaluation leaser</Badge>;
+    case 'partner_created':
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">En attente de vérification</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+
+const getCommissionStatusBadge = (status: string | undefined) => {
+  switch (status) {
+    case 'paid':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
+    case 'pending':
+      return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">En attente</Badge>;
+    case 'cancelled':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Annulée</Badge>;
+    default:
+      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status || 'Non défini'}</Badge>;
+  }
+};
+
+const getCommissionBoxColor = (status: string | undefined) => {
+  switch (status) {
+    case 'paid':
+      return "bg-green-50 border-green-200";
+    case 'pending':
+      return "bg-amber-50 border-amber-200";
+    case 'cancelled':
+      return "bg-red-50 border-red-200";
+    default:
+      return "bg-gray-50 border-gray-200";
+  }
+};
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [offer, setOffer] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("workflow");  // Afficher le workflow par défaut
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [showWorkflowDialog, setShowWorkflowDialog] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [statusReason, setStatusReason] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const [offer, setOffer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [shareUrl, setShareUrl] = useState<string>("");
+  const [signatureUrl, setSignatureUrl] = useState<string>("");
+  const [isCopied, setIsCopied] = useState(false);
+  const [isCopiedSignature, setIsCopiedSignature] = useState(false);
 
-  const workflowSteps = [
-    { 
-      id: 'draft', 
-      label: 'Brouillon', 
-      description: 'L\'offre est en cours de création',
-      icon: Edit,
-      color: 'bg-gray-100 border-gray-300 hover:bg-gray-200'
-    },
-    { 
-      id: 'sent', 
-      label: 'Envoyée', 
-      description: 'L\'offre a été envoyée au client',
-      icon: Send,
-      color: 'bg-blue-100 border-blue-300 hover:bg-blue-200'
-    },
-    { 
-      id: 'valid_itc', 
-      label: 'Validée ITC',
-      description: 'L\'offre a été validée par ITC', 
-      icon: CheckCircle2,
-      color: 'bg-indigo-100 border-indigo-300 hover:bg-indigo-200'
-    },
-    { 
-      id: 'info_requested', 
-      label: 'Info demandées',
-      description: 'Des informations supplémentaires ont été demandées', 
-      icon: Info,
-      color: 'bg-amber-100 border-amber-300 hover:bg-amber-200'
-    },
-    { 
-      id: 'approved', 
-      label: 'Approuvée',
-      description: 'L\'offre a été approuvée', 
-      icon: Check,
-      color: 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200'
-    },
-    { 
-      id: 'leaser_review', 
-      label: 'Revue bailleur',
-      description: 'L\'offre est en cours de revue par le bailleur', 
-      icon: Building,
-      color: 'bg-purple-100 border-purple-300 hover:bg-purple-200'
-    },
-    { 
-      id: 'financed', 
-      label: 'Financée',
-      description: 'L\'offre a été financée', 
-      icon: CreditCard,
-      color: 'bg-green-100 border-green-300 hover:bg-green-200'
-    },
-    { 
-      id: 'rejected', 
-      label: 'Rejetée',
-      description: 'L\'offre a été rejetée', 
-      icon: Ban,
-      color: 'bg-red-100 border-red-300 hover:bg-red-200'
-    }
-  ];
+  // Check if this is an internal offer (no commission)
+  const isInternalOffer = offer?.type === 'internal_offer';
 
-  useEffect(() => {
-    const loadOffer = async () => {
+  const fetchOfferDetails = async () => {
+    try {
+      setLoading(true);
       if (!id) return;
+
+      const { data, error } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
       
-      try {
-        setLoading(true);
-        const data = await getOfferById(id);
-        
-        if (!data) {
-          setError('Offre non trouvée');
-          return;
-        }
-        
-        setOffer(data);
-
-        const logs = await getWorkflowLogs(id);
-        setWorkflowLogs(logs);
-      } catch (err) {
-        console.error('Erreur lors du chargement de l\'offre:', err);
-        setError('Impossible de charger les détails de l\'offre');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOffer();
-  }, [id]);
-
-  const handleChangeStatus = (status: string) => {
-    setSelectedStatus(status);
-    setShowWorkflowDialog(true);
+      setOffer(data);
+      
+      const baseUrl = window.location.origin;
+      setShareUrl(`${baseUrl}/client/offers/${data.id}`);
+      
+      setSignatureUrl(generateSignatureLink(data.id));
+    } catch (error) {
+      console.error("Error fetching offer details:", error);
+      toast.error("Erreur lors du chargement des détails de l'offre");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleConfirmStatusChange = async () => {
-    if (!id || !selectedStatus) return;
+  useEffect(() => {
+    fetchOfferDetails();
+  }, [id]);
 
-    try {
-      setUpdatingStatus(true);
-      const success = await updateOfferStatus(
-        id,
-        selectedStatus,
-        offer.workflow_status,
-        statusReason || undefined
-      );
-
-      if (success) {
-        setOffer({ ...offer, workflow_status: selectedStatus });
-        
-        const logs = await getWorkflowLogs(id);
-        setWorkflowLogs(logs);
-        
-        toast.success(`Statut mis à jour avec succès: ${workflowSteps.find(step => step.id === selectedStatus)?.label}`);
-        setShowWorkflowDialog(false);
-        setStatusReason("");
-      } else {
-        toast.error("Erreur lors de la mise à jour du statut");
+  const copyToClipboard = (text: string, setStateFn: React.Dispatch<React.SetStateAction<boolean>>) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setStateFn(true);
+        toast.success("Lien copié dans le presse-papier");
+        setTimeout(() => setStateFn(false), 2000);
+      },
+      () => {
+        toast.error("Impossible de copier le lien");
       }
+    );
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      toast.info("Le PDF est en cours de génération...");
+      // In a real app, this would call a function to generate and download the PDF
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error);
-      toast.error("Erreur lors de la mise à jour du statut");
-    } finally {
-      setUpdatingStatus(false);
+      console.error("Error downloading PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
     }
+  };
+
+  const shareSignatureLink = () => {
+    if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
+      toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
+      return;
+    }
+    
+    if (offer.workflow_status === 'draft') {
+      supabase
+        .from('offers')
+        .update({ workflow_status: 'sent' })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error updating offer status:", error);
+            toast.error("Erreur lors de la mise à jour du statut de l'offre");
+          } else {
+            setOffer({ ...offer, workflow_status: 'sent' });
+            toast.success("Statut de l'offre mis à jour à 'Envoyée'");
+          }
+        });
+    }
+    
+    toast.success("Lien de signature envoyé au client");
   };
 
   if (loading) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex justify-center items-center h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-            <span className="text-lg">Chargement des détails de l'offre...</span>
+          <div className="flex justify-center items-center h-[70vh]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="mt-2">Chargement des détails de l'offre...</p>
+            </div>
           </div>
         </Container>
       </PageTransition>
     );
   }
 
-  if (error || !offer) {
+  if (!offer) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex flex-col items-center justify-center h-[60vh]">
-            <AlertCircle className="h-16 w-16 text-destructive mb-4" />
-            <h2 className="text-xl font-bold mb-2">Erreur</h2>
-            <p className="text-muted-foreground mb-4">{error || 'Offre non trouvée'}</p>
-            <Button onClick={() => navigate('/offers')}>
-              Retour à la liste des offres
+          <div className="py-8">
+            <Button variant="outline" onClick={() => navigate("/offers")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour au tableau de bord
             </Button>
+            <div className="mt-8 text-center">
+              <p>L'offre n'a pas été trouvée.</p>
+            </div>
           </div>
         </Container>
       </PageTransition>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd MMMM yyyy', { locale: fr });
-    } catch (e) {
-      return 'Date non disponible';
-    }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd MMMM yyyy HH:mm', { locale: fr });
-    } catch (e) {
-      return 'Date non disponible';
-    }
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return 'UN';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  };
-
-  const getStepStatus = (stepId: string) => {
-    const stepIndex = workflowSteps.findIndex(step => step.id === stepId);
-    const currentStepIndex = workflowSteps.findIndex(step => step.id === offer.workflow_status);
-    
-    if (stepIndex < currentStepIndex) {
-      return 'completed';
-    } else if (stepIndex === currentStepIndex) {
-      return 'current';
-    } else {
-      return 'upcoming';
-    }
-  };
-
-  let equipmentData = [];
-  try {
-    if (offer.equipment_description) {
-      const parsedData = typeof offer.equipment_data === 'object' 
-        ? offer.equipment_data 
-        : JSON.parse(offer.equipment_description);
-      
-      if (Array.isArray(parsedData)) {
-        equipmentData = parsedData;
-      }
-    }
-  } catch (e) {
-    console.error('Erreur lors du parsing des données d\'équipement:', e);
-  }
-
-  const calculateProgressPercentage = () => {
-    const currentIndex = workflowSteps.findIndex(step => step.id === offer.workflow_status);
-    if (currentIndex === -1) return 0;
-    
-    if (offer.workflow_status === 'rejected') return 100;
-    
-    return Math.round((currentIndex / (workflowSteps.length - 2)) * 100);
-  };
-
-  const progressPercentage = calculateProgressPercentage();
-  
-  const equipmentDisplayText = formatEquipmentDisplay(offer.equipment_description || offer.equipment_data);
 
   return (
     <PageTransition>
       <Container>
-        <TooltipProvider>
-          <div className="py-6">
-            <div className="flex justify-between items-center mb-6">
-              <Button variant="ghost" onClick={() => navigate('/offers')} className="flex items-center">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Retour aux offres
+        <div className="py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={() => navigate("/offers")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
               </Button>
-              <div className="flex items-center gap-4">
-                <div className="text-sm px-3 py-1 rounded-full bg-gray-100">
-                  <span className="text-gray-700 font-medium">Type: </span>
-                  <span className="font-bold text-primary">{translateOfferType(offer.type)}</span>
+              <div>
+                <h1 className="text-2xl font-bold">Offre #{id?.substring(0, 8)}</h1>
+                <div className="flex items-center gap-2">
+                  <p className="text-muted-foreground">
+                    Créée le {format(new Date(offer.created_at), 'dd/MM/yyyy')}
+                  </p>
+                  {offer.type && <OfferTypeTag type={offer.type} />}
                 </div>
-                <OfferStatusBadge status={offer.workflow_status || offer.status} className="capitalize px-3 py-1" />
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={fetchOfferDetails}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Actualiser
+              </Button>
+              {offer.status === 'accepted' && (
+                <Button onClick={handleDownloadPdf}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Télécharger PDF
+                </Button>
+              )}
+            </div>
+          </div>
 
-            {/* Résumé de l'offre */}
-            <div className="grid gap-6">
-              <Card className="border-none shadow-md bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h1 className="text-2xl font-bold mb-1">
-                        Offre #{id?.substring(0, 6)}
-                      </h1>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Créée le {formatDate(offer.created_at)}
-                      </div>
+          {/* Financial summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <Euro className="h-4 w-4 mr-2 text-blue-600" />
+                  Montant financé
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                  Mensualité
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-blue-700">
+                  {formatCurrency(offer.monthly_payment)}
+                  <span className="text-sm font-normal text-blue-500">/mois</span>
+                </p>
+              </CardContent>
+            </Card>
+            
+            {!isInternalOffer ? (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Star className="h-4 w-4 mr-2 text-green-600" />
+                    Commission
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(offer.commission || 0)}</p>
+                  {offer.commission_status && (
+                    <div className="mt-1">
+                      {getCommissionStatusBadge(offer.commission_status)}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {offer.workflow_status !== 'rejected' && (
-                        <div className="hidden sm:block">
-                          <div className="text-xs text-gray-500 mb-1">Progression</div>
-                          <div className="flex items-center gap-2">
-                            <Progress 
-                              value={progressPercentage} 
-                              className={`h-2 w-32 ${offer.workflow_status === 'rejected' ? 'bg-red-100' : ''}`}
-                              status={offer.workflow_status === 'rejected' ? 'rejected' : undefined}
-                            />
-                            <span className="text-xs font-medium">{progressPercentage}%</span>
-                          </div>
-                        </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="shadow-sm bg-indigo-50 border-indigo-100">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Building className="h-4 w-4 mr-2 text-indigo-600" />
+                    Offre interne
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-md text-indigo-700">Sans commission</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations client</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <dt className="text-sm text-muted-foreground">Nom</dt>
+                      <dd className="font-medium">{offer.client_name}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-muted-foreground">Email</dt>
+                      <dd className="font-medium">{offer.client_email}</dd>
+                    </div>
+                    {offer.client_company && (
+                      <div>
+                        <dt className="text-sm text-muted-foreground">Société</dt>
+                        <dd className="font-medium">{offer.client_company}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Équipement</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-line">{offer.equipment_description}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Liens de partage</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <p className="mb-4 text-muted-foreground">
+                      Partagez ce lien avec votre client pour qu'il puisse consulter l'offre.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 p-2 border rounded bg-muted truncate">
+                        {shareUrl}
+                      </div>
+                      <Button variant="outline" onClick={() => copyToClipboard(shareUrl, setIsCopied)}>
+                        {isCopied ? (
+                          <span className="text-green-600">Copié!</span>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copier
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <p className="mb-4 text-muted-foreground">
+                      <strong>Lien de signature électronique :</strong> Envoyez ce lien pour permettre à votre client de signer l'offre en ligne.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 p-2 border rounded bg-muted truncate">
+                        {signatureUrl}
+                      </div>
+                      <Button variant="outline" onClick={() => copyToClipboard(signatureUrl, setIsCopiedSignature)}>
+                        {isCopiedSignature ? (
+                          <span className="text-green-600">Copié!</span>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copier
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Button 
+                        variant="default" 
+                        className="w-full"
+                        onClick={shareSignatureLink}
+                        disabled={offer.workflow_status === 'approved'}
+                      >
+                        <Pen className="h-4 w-4 mr-2" />
+                        {offer.workflow_status === 'approved' 
+                          ? "Offre déjà signée" 
+                          : "Envoyer le lien de signature au client"}
+                      </Button>
+                      
+                      {offer.workflow_status === 'approved' && (
+                        <Alert className="mt-4 bg-green-50 border-green-200">
+                          <AlertTitle className="text-green-800">Offre signée</AlertTitle>
+                          <AlertDescription className="text-green-700">
+                            Cette offre a déjà été signée électroniquement
+                            {offer.signer_name ? ` par ${offer.signer_name}` : ""}.
+                          </AlertDescription>
+                        </Alert>
                       )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
-              {/* Résumé financier visible en haut */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Euro className="h-4 w-4 mr-2 text-blue-600" />
-                      Montant financé
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
-                      Mensualité
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold text-blue-700">
-                      {formatCurrency(offer.monthly_payment)}
-                      <span className="text-sm font-normal text-blue-500">/mois</span>
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Briefcase className="h-4 w-4 mr-2 text-green-600" />
-                      Commission
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(offer.commission)}</p>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              {/* Détails complet du client et équipement */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-xl flex items-center">
-                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        Détails de l'offre
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Tabs defaultValue="workflow" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="mb-4 w-full grid grid-cols-3">
-                          <TabsTrigger value="workflow">Workflow</TabsTrigger>
-                          <TabsTrigger value="details">Client</TabsTrigger>
-                          <TabsTrigger value="equipment">Équipements</TabsTrigger>
-                        </TabsList>
-                        
-                        {/* Contenu du workflow */}
-                        <TabsContent value="workflow">
-                          <div className="grid gap-6">
-                            <div>
-                              <h3 className="text-sm font-medium mb-4">Progression du workflow</h3>
-                              
-                              <div className="hidden md:block">
-                                <div className="relative mb-6">
-                                  <div className="absolute top-5 left-0 w-full h-1 bg-gray-200"></div>
-                                  <div className="flex justify-between relative">
-                                    {workflowSteps
-                                      .filter(step => step.id !== 'rejected')
-                                      .map((step, index) => {
-                                        const status = getStepStatus(step.id);
-                                        return (
-                                          <Tooltip key={step.id}>
-                                            <TooltipTrigger asChild>
-                                              <div className="flex flex-col items-center z-10">
-                                                <div 
-                                                  className={`w-10 h-10 rounded-full flex items-center justify-center
-                                                    ${status === 'completed' ? 'bg-green-500 text-white' : 
-                                                      status === 'current' ? 'bg-blue-500 text-white' : 
-                                                      'bg-gray-200 text-gray-400'}
-                                                  `}
-                                                >
-                                                  {status === 'completed' ? (
-                                                    <Check className="h-5 w-5" />
-                                                  ) : (
-                                                    <step.icon className="h-5 w-5" />
-                                                  )}
-                                                </div>
-                                                <span className={`mt-2 text-xs font-medium ${
-                                                  status === 'completed' ? 'text-green-600' : 
-                                                  status === 'current' ? 'text-blue-600' : 
-                                                  'text-gray-400'
-                                                }`}>
-                                                  {step.label}
-                                                </span>
-                                              </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{step.description}</TooltipContent>
-                                          </Tooltip>
-                                        );
-                                      })}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="md:hidden space-y-3">
-                                {workflowSteps.map((step) => {
-                                  const status = getStepStatus(step.id);
-                                  return (
-                                    <div 
-                                      key={step.id} 
-                                      className={`flex items-center p-3 rounded-md
-                                        ${status === 'completed' ? 'bg-green-50 border border-green-100' : 
-                                          status === 'current' ? 'bg-blue-50 border border-blue-100' : 
-                                          'bg-gray-50 border border-gray-100'}
-                                      `}
-                                    >
-                                      <div 
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3
-                                          ${status === 'completed' ? 'bg-green-500 text-white' : 
-                                            status === 'current' ? 'bg-blue-500 text-white' : 
-                                            'bg-gray-200 text-gray-400'}
-                                        `}
-                                      >
-                                        {status === 'completed' ? (
-                                          <Check className="h-4 w-4" />
-                                        ) : (
-                                          <step.icon className="h-4 w-4" />
-                                        )}
-                                      </div>
-                                      <div>
-                                        <p className={`font-medium ${
-                                          status === 'completed' ? 'text-green-700' : 
-                                          status === 'current' ? 'text-blue-700' : 
-                                          'text-gray-500'
-                                        }`}>
-                                          {step.label}
-                                        </p>
-                                        <p className="text-xs text-gray-500">{step.description}</p>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                            
-                            <Card className="overflow-hidden">
-                              <CardHeader className="bg-gray-50 pb-3 border-b">
-                                <CardTitle className="text-base flex items-center">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Changer le statut du workflow
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-4">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  {workflowSteps.map((step) => (
-                                    <Button 
-                                      key={step.id}
-                                      variant={offer.workflow_status === step.id ? "default" : "outline"}
-                                      className={`w-full text-xs sm:text-sm flex items-center gap-2 ${
-                                        offer.workflow_status !== step.id ? step.color : ''
-                                      }`}
-                                      onClick={() => handleChangeStatus(step.id)}
-                                      disabled={offer.workflow_status === step.id}
-                                    >
-                                      <step.icon className="h-3 w-3" />
-                                      {step.label}
-                                    </Button>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                        
-                            <div>
-                              <h3 className="text-sm font-medium mb-4 flex items-center">
-                                <Clock className="h-4 w-4 mr-2" />
-                                Historique du workflow
-                              </h3>
-                              {workflowLogs.length > 0 ? (
-                                <div className="space-y-4">
-                                  {workflowLogs.map((log) => (
-                                    <div key={log.id} className="border rounded-md p-4 hover:shadow-sm transition-shadow bg-white">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex items-start">
-                                          <Avatar className="h-8 w-8 mr-3">
-                                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                              {getInitials(`${log.profiles?.first_name} ${log.profiles?.last_name}`)}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div>
-                                            <p className="font-medium">
-                                              {log.previous_status !== log.new_status ? (
-                                                <>
-                                                  Status changé: <Badge variant="outline" className="ml-1 mr-1">{log.previous_status || 'draft'}</Badge> 
-                                                  {' → '} 
-                                                  <Badge variant="outline" className="ml-1">{log.new_status}</Badge>
-                                                </>
-                                              ) : (
-                                                <>Action sur {log.new_status}</>
-                                              )}
-                                            </p>
-                                            {log.reason && (
-                                              <p className="text-sm mt-1 bg-gray-50 p-2 rounded italic">"{log.reason}"</p>
-                                            )}
-                                            <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                                              <User className="h-3 w-3 mr-1" />
-                                              {log.profiles?.first_name} {log.profiles?.last_name}
-                                              <span className="mx-2">•</span>
-                                              <Clock className="h-3 w-3 mr-1" />
-                                              {formatDateTime(log.created_at)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-center py-10 bg-gray-50 rounded-lg">
-                                  <Clock className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                                  <p className="text-muted-foreground">
-                                    Aucun historique de workflow disponible
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </TabsContent>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>État de l'offre</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-muted-foreground">Statut:</span>
+                    <div className="flex items-center gap-2">
+                      <span>{getStatusBadge(offer.workflow_status || offer.status)}</span>
+                      {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
+                    </div>
+                  </div>
+                  
+                  {(offer.workflow_status === 'info_requested' || offer.status === 'rejected') && (
+                    <Alert variant="destructive" className="mt-4">
+                      <AlertTitle>Action requise</AlertTitle>
+                      <AlertDescription>
+                        Des informations supplémentaires sont requises pour cette offre. 
+                        Veuillez contacter l'administrateur pour plus de détails.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
 
-                        <TabsContent value="details">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Client</h3>
-                                <div className="p-4 rounded-lg bg-gray-50 space-y-3">
-                                  <div className="flex items-center">
-                                    <Avatar className="h-10 w-10 mr-3 bg-primary">
-                                      <AvatarFallback>{getInitials(offer.client_name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-medium">{offer.client_name}</p>
-                                      <p className="text-sm text-muted-foreground">{offer.client_email}</p>
-                                    </div>
-                                  </div>
-                                  {offer.client_company && (
-                                    <div className="flex items-center">
-                                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <p>{offer.client_company}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Date de création</h3>
-                                <div className="p-4 rounded-lg bg-gray-50">
-                                  <div className="flex items-center">
-                                    <Calendar className="h-5 w-5 mr-2 text-primary" />
-                                    <p className="font-medium">{formatDate(offer.created_at)}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Détails financiers</h3>
-                                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                                  <div className="flex justify-between items-center pb-3 border-b border-blue-100">
-                                    <span className="text-sm text-gray-600">Montant financé:</span>
-                                    <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Paiement mensuel:</span>
-                                    <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Coefficient:</span>
-                                    <span className="font-medium">{offer.coefficient}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center pt-3 border-t border-blue-100">
-                                    <span className="text-sm text-gray-600">Commission:</span>
-                                    <span className="font-medium text-green-600">{formatCurrency(offer.commission)}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </TabsContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Résumé financier</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Montant financé:</span>
+                      <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mensualité:</span>
+                      <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
+                    </div>
+                    
+                    {/* Only show commission if this is not an internal offer */}
+                    {!isInternalOffer && (
+                      <>
+                        <div className="border-t my-2"></div>
+                        <div className="flex justify-between font-medium">
+                          <span>Votre commission:</span>
+                          <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                        </div>
+                      </>
+                    )}
 
-                        <TabsContent value="equipment">
-                          <EquipmentDisplay 
-                            equipmentDisplay={equipmentDisplayText} 
-                            monthlyPayment={offer.monthly_payment} 
-                            remarks={offer.remarks}
-                          />
-                          
-                          {equipmentData.length > 0 && (
-                            <div className="space-y-4 mt-4">
-                              <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
-                              {equipmentData.map((item: any, index: number) => (
-                                <div key={index} className="border p-4 rounded-md hover:shadow-md transition-shadow bg-white">
-                                  <h3 className="font-medium text-lg border-b pb-2 mb-3">{item.title}</h3>
-                                  <div className="grid grid-cols-3 gap-4">
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Prix d'achat:</p>
-                                      <p className="font-medium text-blue-700">{formatCurrency(item.price)}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Quantité:</p>
-                                      <p className="font-medium">{item.quantity}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Marge:</p>
-                                      <p className="font-medium text-green-600">{item.margin ? `${item.margin}%` : 'N/A'}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div>
-                  <Card className="sticky top-6">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Statut actuel</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-4">
-                        <div className={`
-                          flex items-center p-4 rounded-md ${
-                            offer.workflow_status === 'rejected' ? 'bg-red-50 text-red-700' :
-                            offer.workflow_status === 'financed' ? 'bg-green-50 text-green-700' :
-                            'bg-blue-50 text-blue-700'
-                          }
-                        `}>
-                          <div className={`
-                            w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                              offer.workflow_status === 'rejected' ? 'bg-red-100' :
-                              offer.workflow_status === 'financed' ? 'bg-green-100' :
-                              'bg-blue-100'
-                            }
-                          `}>
-                            {(() => {
-                              const step = workflowSteps.find(s => s.id === offer.workflow_status);
-                              const StepIcon = step ? step.icon : Clock;
-                              return <StepIcon className="h-5 w-5" />;
-                            })()}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {workflowSteps.find(step => step.id === offer.workflow_status)?.label || offer.workflow_status}
-                            </p>
-                            <p className="text-xs opacity-90">
-                              Mis à jour le {formatDate(offer.updated_at)}
-                            </p>
-                          </div>
+                    {isInternalOffer && (
+                      <>
+                        <div className="border-t my-2"></div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">Type:</span>
+                          <OfferTypeTag type={offer.type} />
                         </div>
-                      </div>
-                      
-                      <Separator className="my-4" />
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium">Actions rapides</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            variant="outline" 
-                            className="w-full flex items-center gap-2 justify-center"
-                            onClick={() => navigate(`/offers/${id}/edit`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            Modifier
-                          </Button>
-                          <Button 
-                            variant="default" 
-                            className="w-full flex items-center gap-2 justify-center"
-                            onClick={() => setActiveTab("workflow")}
-                          >
-                            <Check className="h-4 w-4" />
-                            Workflow
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <Separator className="my-4" />
-                      
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium">Résumé financier</h3>
-                        <div className="border rounded-md p-4 bg-blue-50">
-                          <div className="grid grid-cols-2 gap-2 mb-2">
-                            <div>
-                              <p className="text-xs text-gray-600">Montant financé</p>
-                              <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-600">Coefficient</p>
-                              <p className="font-medium">{offer.coefficient || '-'}</p>
-                            </div>
-                          </div>
-                          <div className="pt-2 border-t border-blue-200">
-                            <p className="text-xs text-gray-600">Mensualité</p>
-                            <p className="font-bold text-lg text-blue-700">
-                              {formatCurrency(offer.monthly_payment)}
-                              <span className="text-xs font-normal text-blue-600">/mois</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">Signaler un problème</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Signaler un problème</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Pour signaler un problème avec cette offre, veuillez contacter directement
+                      l'équipe support à support@itakecare.com ou par téléphone au +32 123 456 789.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Fermer</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => {
+                      window.location.href = "mailto:support@itakecare.com?subject=Problème avec l'offre " + id;
+                    }}>
+                      Envoyer un email
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
-        </TooltipProvider>
-
-        <Dialog open={showWorkflowDialog} onOpenChange={setShowWorkflowDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Changer le statut de l'offre</DialogTitle>
-              <DialogDescription>
-                Vous êtes sur le point de changer le statut de l'offre de 
-                "{workflowSteps.find(step => step.id === offer?.workflow_status)?.label || offer?.workflow_status}" 
-                à "{workflowSteps.find(step => step.id === selectedStatus)?.label || selectedStatus}".
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label htmlFor="reason" className="text-sm font-medium">
-                  Raison du changement (optionnel)
-                </label>
-                <Textarea 
-                  id="reason" 
-                  placeholder="Entrez la raison du changement de statut..."
-                  value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="sm:justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowWorkflowDialog(false)}
-                disabled={updatingStatus}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Annuler
-              </Button>
-              <Button 
-                onClick={handleConfirmStatusChange}
-                disabled={updatingStatus}
-                className="gap-2"
-              >
-                {updatingStatus ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Mise à jour...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Confirmer
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </div>
       </Container>
     </PageTransition>
   );

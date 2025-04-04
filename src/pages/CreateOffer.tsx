@@ -35,6 +35,7 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [isInternalOffer, setIsInternalOffer] = useState(false);
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -164,6 +165,10 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
+      // Déterminer si l'offre est interne (sans commission) ou normale
+      const offerType = isInternalOffer ? 'internal_offer' : 'offer';
+      const commissionAmount = isInternalOffer ? 0 : totalMonthlyPayment * 0.1;
+
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -172,10 +177,10 @@ const CreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: "offer",
+        type: offerType,
         user_id: user?.id || "",
         remarks: remarks
       };
@@ -280,6 +285,25 @@ const CreateOffer = () => {
                         selectedLeaser={selectedLeaser} 
                         onOpen={handleOpenLeaserSelector} 
                       />
+                    </div>
+                    <div className="mb-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="is_internal_offer"
+                          checked={isInternalOffer}
+                          onChange={(e) => setIsInternalOffer(e.target.checked)}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <label htmlFor="is_internal_offer" className="text-sm font-medium">
+                          Offre interne (sans commission)
+                        </label>
+                      </div>
+                      {isInternalOffer && (
+                        <p className="text-xs text-muted-foreground mt-1 ml-6">
+                          Cette offre sera marquée comme interne et n'aura pas de commission associée.
+                        </p>
+                      )}
                     </div>
                     <div className="mt-6">
                       <EquipmentForm

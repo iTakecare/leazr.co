@@ -26,6 +26,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { translateOfferType } from "@/utils/offerTypeTranslator";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -177,8 +178,7 @@ const PartnerOfferDetail = () => {
     );
   }
 
-  // Check if this is an internal request (no ambassador)
-  const isInternalRequest = !offer.ambassador_id;
+  const isInternalOffer = offer?.type === 'internal_offer';
 
   return (
     <PageTransition>
@@ -192,9 +192,12 @@ const PartnerOfferDetail = () => {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Offre #{id?.substring(0, 8)}</h1>
-                <p className="text-muted-foreground">
-                  Créée le {format(new Date(offer.created_at), 'dd/MM/yyyy')}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-muted-foreground">
+                    Créée le {format(new Date(offer.created_at), 'dd/MM/yyyy')}
+                  </p>
+                  {offer.type && <OfferTypeTag type={offer.type} />}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -360,13 +363,22 @@ const PartnerOfferDetail = () => {
                       <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                     </div>
                     
-                    {/* Only show commission if this is not an internal request */}
-                    {!isInternalRequest && (
+                    {!isInternalOffer && (
                       <>
                         <div className="border-t my-2"></div>
                         <div className="flex justify-between font-medium">
                           <span>Votre commission:</span>
                           <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                        </div>
+                      </>
+                    )}
+
+                    {isInternalOffer && (
+                      <>
+                        <div className="border-t my-2"></div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">Type:</span>
+                          <OfferTypeTag type={offer.type} />
                         </div>
                       </>
                     )}
