@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { 
   AlertCircle, ArrowLeft, Loader2, Clock, User, Check, X, 
   Building, FileText, Calendar, CreditCard, Edit, Send, 
-  CheckCircle2, Ban, Info
+  CheckCircle2, Ban, Info, Briefcase, Euro
 } from 'lucide-react';
 import Container from '@/components/layout/Container';
 import PageTransition from '@/components/layout/PageTransition';
@@ -40,6 +40,8 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
+import { formatEquipmentDisplay } from '@/utils/equipmentFormatter';
+import EquipmentDisplay from '@/components/offers/EquipmentDisplay';
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +49,7 @@ const OfferDetail = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("workflow");  // Changé de "details" à "workflow"
+  const [activeTab, setActiveTab] = useState("workflow");  // Afficher le workflow par défaut
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -269,6 +271,8 @@ const OfferDetail = () => {
   };
 
   const progressPercentage = calculateProgressPercentage();
+  
+  const equipmentDisplayText = formatEquipmentDisplay(offer.equipment_description || offer.equipment_data);
 
   return (
     <PageTransition>
@@ -289,6 +293,7 @@ const OfferDetail = () => {
               </div>
             </div>
 
+            {/* Résumé de l'offre */}
             <div className="grid gap-6">
               <Card className="border-none shadow-md bg-white">
                 <CardContent className="p-6">
@@ -320,7 +325,48 @@ const OfferDetail = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Résumé financier visible en haut */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Euro className="h-4 w-4 mr-2 text-blue-600" />
+                      Montant financé
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
+                      Mensualité
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {formatCurrency(offer.monthly_payment)}
+                      <span className="text-sm font-normal text-blue-500">/mois</span>
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Briefcase className="h-4 w-4 mr-2 text-green-600" />
+                      Commission
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(offer.commission)}</p>
+                  </CardContent>
+                </Card>
+              </div>
               
+              {/* Détails complet du client et équipement */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <Card>
@@ -331,110 +377,14 @@ const OfferDetail = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <Tabs defaultValue="workflow" value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="mb-4 w-full grid grid-cols-3">
-                          <TabsTrigger value="details">Informations</TabsTrigger>
-                          <TabsTrigger value="equipment">Équipements</TabsTrigger>
                           <TabsTrigger value="workflow">Workflow</TabsTrigger>
+                          <TabsTrigger value="details">Client</TabsTrigger>
+                          <TabsTrigger value="equipment">Équipements</TabsTrigger>
                         </TabsList>
                         
-                        <TabsContent value="details">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Client</h3>
-                                <div className="p-4 rounded-lg bg-gray-50 space-y-3">
-                                  <div className="flex items-center">
-                                    <Avatar className="h-10 w-10 mr-3 bg-primary">
-                                      <AvatarFallback>{getInitials(offer.client_name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-medium">{offer.client_name}</p>
-                                      <p className="text-sm text-muted-foreground">{offer.client_email}</p>
-                                    </div>
-                                  </div>
-                                  {offer.client_company && (
-                                    <div className="flex items-center">
-                                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <p>{offer.client_company}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Date de création</h3>
-                                <div className="p-4 rounded-lg bg-gray-50">
-                                  <div className="flex items-center">
-                                    <Calendar className="h-5 w-5 mr-2 text-primary" />
-                                    <p className="font-medium">{formatDate(offer.created_at)}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Détails financiers</h3>
-                                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                                  <div className="flex justify-between items-center pb-3 border-b border-blue-100">
-                                    <span className="text-sm text-gray-600">Montant financé:</span>
-                                    <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Paiement mensuel:</span>
-                                    <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Coefficient:</span>
-                                    <span className="font-medium">{offer.coefficient}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center pt-3 border-t border-blue-100">
-                                    <span className="text-sm text-gray-600">Commission:</span>
-                                    <span className="font-medium text-green-600">{formatCurrency(offer.commission)}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="equipment">
-                          {equipmentData.length > 0 ? (
-                            <div className="space-y-4">
-                              {equipmentData.map((item: any, index: number) => (
-                                <div key={index} className="border p-4 rounded-md hover:shadow-md transition-shadow bg-white">
-                                  <h3 className="font-medium text-lg border-b pb-2 mb-3">{item.title}</h3>
-                                  <div className="grid grid-cols-3 gap-4">
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Prix d'achat:</p>
-                                      <p className="font-medium text-blue-700">{formatCurrency(item.price)}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Quantité:</p>
-                                      <p className="font-medium">{item.quantity}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Marge:</p>
-                                      <p className="font-medium text-green-600">{item.margin ? `${item.margin}%` : 'N/A'}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-10 bg-gray-50 rounded-lg">
-                              <Info className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                              <p className="text-muted-foreground">
-                                {offer.equipment_description || 'Aucun équipement spécifié'}
-                              </p>
-                            </div>
-                          )}
-                        </TabsContent>
-
+                        {/* Contenu du workflow */}
                         <TabsContent value="workflow">
                           <div className="grid gap-6">
                             <div>
@@ -605,6 +555,103 @@ const OfferDetail = () => {
                             </div>
                           </div>
                         </TabsContent>
+
+                        <TabsContent value="details">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-6">
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-3">Client</h3>
+                                <div className="p-4 rounded-lg bg-gray-50 space-y-3">
+                                  <div className="flex items-center">
+                                    <Avatar className="h-10 w-10 mr-3 bg-primary">
+                                      <AvatarFallback>{getInitials(offer.client_name)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-medium">{offer.client_name}</p>
+                                      <p className="text-sm text-muted-foreground">{offer.client_email}</p>
+                                    </div>
+                                  </div>
+                                  {offer.client_company && (
+                                    <div className="flex items-center">
+                                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      <p>{offer.client_company}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-3">Date de création</h3>
+                                <div className="p-4 rounded-lg bg-gray-50">
+                                  <div className="flex items-center">
+                                    <Calendar className="h-5 w-5 mr-2 text-primary" />
+                                    <p className="font-medium">{formatDate(offer.created_at)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-6">
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-3">Détails financiers</h3>
+                                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
+                                  <div className="flex justify-between items-center pb-3 border-b border-blue-100">
+                                    <span className="text-sm text-gray-600">Montant financé:</span>
+                                    <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Paiement mensuel:</span>
+                                    <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Coefficient:</span>
+                                    <span className="font-medium">{offer.coefficient}</span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-center pt-3 border-t border-blue-100">
+                                    <span className="text-sm text-gray-600">Commission:</span>
+                                    <span className="font-medium text-green-600">{formatCurrency(offer.commission)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="equipment">
+                          <EquipmentDisplay 
+                            equipmentDisplay={equipmentDisplayText} 
+                            monthlyPayment={offer.monthly_payment} 
+                            remarks={offer.remarks}
+                          />
+                          
+                          {equipmentData.length > 0 && (
+                            <div className="space-y-4 mt-4">
+                              <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
+                              {equipmentData.map((item: any, index: number) => (
+                                <div key={index} className="border p-4 rounded-md hover:shadow-md transition-shadow bg-white">
+                                  <h3 className="font-medium text-lg border-b pb-2 mb-3">{item.title}</h3>
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div className="bg-gray-50 p-3 rounded">
+                                      <p className="text-sm text-gray-500 mb-1">Prix d'achat:</p>
+                                      <p className="font-medium text-blue-700">{formatCurrency(item.price)}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded">
+                                      <p className="text-sm text-gray-500 mb-1">Quantité:</p>
+                                      <p className="font-medium">{item.quantity}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded">
+                                      <p className="text-sm text-gray-500 mb-1">Marge:</p>
+                                      <p className="font-medium text-green-600">{item.margin ? `${item.margin}%` : 'N/A'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
                       </Tabs>
                     </CardContent>
                   </Card>
@@ -669,6 +716,31 @@ const OfferDetail = () => {
                             <Check className="h-4 w-4" />
                             Workflow
                           </Button>
+                        </div>
+                      </div>
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium">Résumé financier</h3>
+                        <div className="border rounded-md p-4 bg-blue-50">
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                              <p className="text-xs text-gray-600">Montant financé</p>
+                              <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-600">Coefficient</p>
+                              <p className="font-medium">{offer.coefficient || '-'}</p>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-blue-200">
+                            <p className="text-xs text-gray-600">Mensualité</p>
+                            <p className="font-bold text-lg text-blue-700">
+                              {formatCurrency(offer.monthly_payment)}
+                              <span className="text-xs font-normal text-blue-600">/mois</span>
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

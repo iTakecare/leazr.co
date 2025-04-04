@@ -38,6 +38,8 @@ import { Progress } from "@/components/ui/progress";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 import { translateOfferType } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
+import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -376,6 +378,7 @@ const AmbassadorOfferDetail = () => {
   };
 
   const remainingMonths = getRemainingMonths();
+  const equipmentDisplayText = formatEquipmentDisplay(offer.equipment_description || offer.equipment_data);
 
   return (
     <PageTransition>
@@ -392,6 +395,55 @@ const AmbassadorOfferDetail = () => {
                 Retour
               </Button>
               <h1 className="text-2xl font-bold">Détail de l'offre</h1>
+            </div>
+            
+            {/* Résumé financier visible en haut */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Euro className="h-4 w-4 mr-2 text-blue-600" />
+                    Montant financé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                    Mensualité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {formatCurrency(offer.monthly_payment)}
+                    <span className="text-sm font-normal text-blue-500">/mois</span>
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Star className="h-4 w-4 mr-2 text-green-600" />
+                    Votre commission
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-green-600">
+                    {recalculatingCommission ? (
+                      <span className="animate-pulse">Calcul...</span>
+                    ) : (
+                      formatCurrency(offer.commission || 0)
+                    )}
+                  </p>
+                  {offer.commission_status && (
+                    <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -426,139 +478,12 @@ const AmbassadorOfferDetail = () => {
                   </CardHeader>
                   
                   <CardContent>
-                    <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
+                    <Tabs defaultValue="status" value={activeTab} onValueChange={setActiveTab}>
                       <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="status">Suivi</TabsTrigger>
                         <TabsTrigger value="details">Détails</TabsTrigger>
                         <TabsTrigger value="equipment">Équipement</TabsTrigger>
-                        <TabsTrigger value="status">Suivi</TabsTrigger>
                       </TabsList>
-                      
-                      <TabsContent value="details" className="mt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h3 className="font-medium mb-2">Informations client</h3>
-                            <div className="space-y-2">
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span className="font-medium">{offer.client_name}</span>
-                              </div>
-                              {offer.client_email && (
-                                <div className="flex items-center">
-                                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                                  <span>{offer.client_email}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h3 className="font-medium mb-2">Détails de paiement</h3>
-                            <div className="p-3 bg-slate-50 rounded-md">
-                              <div className="text-center">
-                                <p className="text-sm text-gray-600">Mensualité</p>
-                                <p className="text-2xl font-bold text-blue-700">
-                                  {formatCurrency(offer.monthly_payment)}
-                                  <span className="text-sm font-normal text-gray-500">/mois</span>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-6">
-                          <h3 className="font-medium mb-2">Votre commission</h3>
-                          <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
-                                  <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
-                                </div>
-                                <div>
-                                  <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
-                                  <p className="text-2xl font-bold text-gray-700">
-                                    {recalculatingCommission ? (
-                                      <span className="flex items-center">
-                                        <span className="animate-pulse">Calcul en cours...</span>
-                                      </span>
-                                    ) : (
-                                      formatCurrency(offer.commission || 0)
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                              <div>
-                                {getCommissionStatusBadge(offer.commission_status)}
-                                {offer.commission_paid_at && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Payée le {formatDate(offer.commission_paid_at)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {offer.remarks && (
-                          <div className="mt-6">
-                            <h3 className="font-medium mb-2">Remarques</h3>
-                            <div className="p-3 bg-slate-50 rounded-md">
-                              <p className="whitespace-pre-line">{offer.remarks}</p>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="mt-6">
-                          <h3 className="font-medium mb-2">Type d'offre</h3>
-                          <div className="p-3 bg-slate-50 rounded-md">
-                            <p>{translateOfferType(offer.type)}</p>
-                          </div>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="equipment" className="mt-4">
-                        {equipmentData && equipmentData.length > 0 ? (
-                          <div className="space-y-4">
-                            {equipmentData.map((item: any, index: number) => (
-                              <Card key={index} className="overflow-hidden">
-                                <CardContent className="p-4">
-                                  <h3 className="font-semibold mb-2">{item.title}</h3>
-                                  <div className="grid grid-cols-2 gap-4 mb-3">
-                                    <div>
-                                      <p className="text-sm text-gray-500">Quantité</p>
-                                      <p className="font-medium">{item.quantity}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-500">Mensualité unitaire</p>
-                                      <p className="font-medium text-blue-700">
-                                        {formatCurrency(item.monthlyPayment || 0)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  
-                                  {item.variants && Object.keys(item.variants).length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                      <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {Object.entries(item.variants).map(([key, value]: [string, any]) => (
-                                          <div key={key} className="flex flex-col">
-                                            <span className="text-xs text-gray-600">{key}</span>
-                                            <span className="font-medium text-sm">{String(value)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md bg-gray-50">
-                            <Info className="h-10 w-10 text-gray-400 mb-2" />
-                            <p className="text-gray-500">Aucune information d'équipement disponible</p>
-                          </div>
-                        )}
-                      </TabsContent>
                       
                       <TabsContent value="status" className="mt-4">
                         <div className="space-y-6">
@@ -688,6 +613,147 @@ const AmbassadorOfferDetail = () => {
                           </div>
                         </div>
                       </TabsContent>
+                      
+                      <TabsContent value="details" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="font-medium mb-2">Informations client</h3>
+                            <div className="space-y-2">
+                              <div className="flex items-center">
+                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span className="font-medium">{offer.client_name}</span>
+                              </div>
+                              {offer.client_email && (
+                                <div className="flex items-center">
+                                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                                  <span>{offer.client_email}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h3 className="font-medium mb-2">Détails de paiement</h3>
+                            <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
+                              <div className="flex justify-between items-center pb-3 border-b border-blue-100">
+                                <span className="text-sm text-gray-600">Montant financé:</span>
+                                <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Paiement mensuel:</span>
+                                <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Coefficient:</span>
+                                <span className="font-medium">{offer.coefficient}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Votre commission</h3>
+                          <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
+                                  <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
+                                </div>
+                                <div>
+                                  <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
+                                  <p className="text-2xl font-bold text-gray-700">
+                                    {recalculatingCommission ? (
+                                      <span className="flex items-center">
+                                        <span className="animate-pulse">Calcul en cours...</span>
+                                      </span>
+                                    ) : (
+                                      formatCurrency(offer.commission || 0)
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              <div>
+                                {getCommissionStatusBadge(offer.commission_status)}
+                                {offer.commission_paid_at && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Payée le {formatDate(offer.commission_paid_at)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {offer.remarks && (
+                          <div className="mt-6">
+                            <h3 className="font-medium mb-2">Remarques</h3>
+                            <div className="p-3 bg-slate-50 rounded-md">
+                              <p className="whitespace-pre-line">{offer.remarks}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Type d'offre</h3>
+                          <div className="p-3 bg-slate-50 rounded-md">
+                            <p>{translateOfferType(offer.type)}</p>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="equipment" className="mt-4">
+                        <EquipmentDisplay 
+                          equipmentDisplay={equipmentDisplayText} 
+                          monthlyPayment={offer.monthly_payment} 
+                          remarks={offer.remarks}
+                        />
+                        
+                        {equipmentData && equipmentData.length > 0 ? (
+                          <div className="space-y-4">
+                            <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
+                            {equipmentData.map((item: any, index: number) => (
+                              <Card key={index} className="overflow-hidden">
+                                <CardContent className="p-4">
+                                  <h3 className="font-semibold mb-2">{item.title}</h3>
+                                  <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                      <p className="text-sm text-gray-500">Quantité</p>
+                                      <p className="font-medium">{item.quantity}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-500">Mensualité unitaire</p>
+                                      <p className="font-medium text-blue-700">
+                                        {formatCurrency(item.monthlyPayment || 0)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  {item.variants && Object.keys(item.variants).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                      <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(item.variants).map(([key, value]: [string, any]) => (
+                                          <div key={key} className="flex flex-col">
+                                            <span className="text-xs text-gray-600">{key}</span>
+                                            <span className="font-medium text-sm">{String(value)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md bg-gray-50">
+                            <Info className="h-10 w-10 text-gray-400 mb-2" />
+                            <p className="text-gray-500">Aucune information d'équipement disponible</p>
+                          </div>
+                        )}
+                      </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
@@ -723,6 +789,29 @@ const AmbassadorOfferDetail = () => {
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
                           {getCommissionStatusBadge(offer.commission_status)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Résumé financier</h3>
+                      <div className="border rounded-md p-4 bg-blue-50">
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                          <div>
+                            <p className="text-xs text-gray-600">Montant financé</p>
+                            <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Coefficient</p>
+                            <p className="font-medium">{offer.coefficient || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-blue-200">
+                          <p className="text-xs text-gray-600">Mensualité</p>
+                          <p className="font-bold text-lg text-blue-700">
+                            {formatCurrency(offer.monthly_payment)}
+                            <span className="text-xs font-normal text-blue-600">/mois</span>
+                          </p>
                         </div>
                       </div>
                     </div>
