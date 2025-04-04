@@ -79,13 +79,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
-  // Fonction de navigation pour voir les détails d'une offre
+  // Utilisation du hook useNavigate pour la navigation entre les routes React
   const handleViewDetails = (offerId: string) => {
     console.log("Navigation vers les détails de l'offre:", offerId);
-    // Navigation explicite vers la page de détail de l'offre
-    if (offerId) {
-      navigate(`/offers/${offerId}`);
-    }
+    navigate(`/offers/${offerId}`);
   };
 
   const handleSendToClient = async (offerId: string) => {
