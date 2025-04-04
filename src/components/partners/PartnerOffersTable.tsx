@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,7 @@ const PartnerOffersTable = () => {
 
   const viewOfferDetails = (id: string) => {
     console.log("Navigating to offer details from PartnerOffersTable:", id);
+    // Correction de la route pour accéder à la page PartnerOfferDetail
     navigate(`/partner/offers/${id}`);
   };
 
