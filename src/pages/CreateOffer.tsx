@@ -1,4 +1,4 @@
-
+// First lines of imports from your file
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -170,9 +170,9 @@ const CreateOffer = () => {
         client_email: client.email,
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-        coefficient: currentCoefficient,
+        coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: 0, // Pas de commission pour les offres non-ambassadeur
+        commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "offer",
