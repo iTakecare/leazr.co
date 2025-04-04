@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ const PartnerOffersTable = () => {
   const { user } = useAuth();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchOffers = async () => {
     try {
@@ -62,14 +64,13 @@ const PartnerOffersTable = () => {
   }, [user]);
 
   const createNewOffer = () => {
-    window.location.href = '/partner/offers/create';
+    navigate('/partner/offers/create');
   };
   
-  // Direct navigation function to the admin offer details page
+  // Fonction de navigation corrigée pour utiliser le hook useNavigate
   const navigateToOfferDetail = (offerId: string) => {
     console.log("Navigating to offer details:", offerId);
-    // Use absolute path to ensure consistency regardless of current route
-    window.location.href = `/offers/${offerId}`;
+    navigate(`/offers/${offerId}`);
   };
 
   const getStatusBadge = (status: string) => {

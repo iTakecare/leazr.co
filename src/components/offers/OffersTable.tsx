@@ -1,5 +1,6 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -58,6 +59,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onDownloadPdf,
   isUpdatingStatus,
 }) => {
+  const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
@@ -77,10 +79,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
-  // Navigation directe vers la page de détail de l'offre
+  // Utilisation du hook useNavigate pour la navigation entre les routes React
   const handleViewDetails = (offerId: string) => {
     console.log("Navigation vers les détails de l'offre:", offerId);
-    window.location.href = `/offers/${offerId}`;
+    navigate(`/offers/${offerId}`);
   };
 
   const handleSendToClient = async (offerId: string) => {
