@@ -1,6 +1,5 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -59,7 +58,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onDownloadPdf,
   isUpdatingStatus,
 }) => {
-  const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
@@ -79,10 +77,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
-  // Make sure we use a direct URL navigation to ensure consistent routing
+  // Navigation directe vers la page de détail de l'offre
   const handleViewDetails = (offerId: string) => {
-    console.log("Navigating to offer details:", offerId);
-    // Use window.location.href for consistent navigation with absolute path
+    console.log("Navigation vers les détails de l'offre:", offerId);
     window.location.href = `/offers/${offerId}`;
   };
 
@@ -102,7 +99,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   return (
-    <>
+    <div>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
@@ -217,7 +214,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
         </div>
       </div>
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+      <AlertDialog 
+        open={!!confirmDelete} 
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
@@ -242,7 +242,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
