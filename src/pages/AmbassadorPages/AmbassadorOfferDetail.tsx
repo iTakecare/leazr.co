@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -47,7 +48,7 @@ const AmbassadorOfferDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("status");  // Changé de "details" à "status" (pour la vue ambassador)
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
   

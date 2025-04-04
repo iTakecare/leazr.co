@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOfferById } from '@/services/offers/offerDetail';
@@ -46,7 +47,7 @@ const OfferDetail = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("workflow");  // Changé de "details" à "workflow"
   const { user } = useAuth();
   const navigate = useNavigate();
   
