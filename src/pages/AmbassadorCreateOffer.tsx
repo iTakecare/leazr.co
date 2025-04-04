@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [calculatedCommission, setCalculatedCommission] = useState(0);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -166,6 +168,11 @@ const AmbassadorCreateOffer = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
   
+  const handleCommissionCalculated = (amount: number) => {
+    console.log("Commission calculée reçue dans AmbassadorCreateOffer:", amount);
+    setCalculatedCommission(amount);
+  };
+  
   const handleSaveOffer = async () => {
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
@@ -201,6 +208,10 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
+      // Utiliser la commission calculée au lieu d'un calcul approximatif
+      const commission = calculatedCommission;
+      console.log("Enregistrement de l'offre avec commission:", commission);
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -209,11 +220,13 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: commission,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
-        remarks: remarks
+        remarks: remarks,
+        ambassador_id: ambassadorId || user?.ambassador_id,
+        commission_status: "pending"
       };
       
       console.log("Saving offer with the following data:", offerData);
@@ -355,6 +368,7 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
+                      onCommissionCalculated={handleCommissionCalculated}
                     />
                     
                     <ClientInfo
