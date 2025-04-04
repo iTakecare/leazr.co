@@ -1,277 +1,395 @@
-
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getOfferById } from '@/services/offers/offerDetail';
-import { getWorkflowLogs } from '@/services/offers/offerWorkflow';
-import { updateOfferStatus } from '@/services/offerService';
-import { useAuth } from '@/context/AuthContext';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { formatCurrency } from '@/utils/formatters';
-import { translateOfferType } from '@/utils/offerTypeTranslator';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  AlertCircle, ArrowLeft, Loader2, Clock, User, Check, X, 
-  Building, FileText, Calendar, CreditCard, Edit, Send, 
-  CheckCircle2, Ban, Info, Briefcase, Euro
-} from 'lucide-react';
-import Container from '@/components/layout/Container';
-import PageTransition from '@/components/layout/PageTransition';
-import { Separator } from '@/components/ui/separator';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { formatCurrency } from "@/utils/formatters";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import PageTransition from "@/components/layout/PageTransition";
+import Container from "@/components/layout/Container";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Mail,
+  Eye,
+  Check,
+  Info,
+  CalendarIcon,
+  Clock,
+  User,
+  Pencil,
+  SendHorizontal,
+  Sparkle,
+  Building,
+  Star,
+  Euro
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import OfferStatusBadge from '@/components/offers/OfferStatusBadge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
-import { formatEquipmentDisplay } from '@/utils/equipmentFormatter';
-import EquipmentDisplay from '@/components/offers/EquipmentDisplay';
+import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
+import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
+import { Progress } from "@/components/ui/progress";
+import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { translateOfferType } from "@/utils/offerTypeTranslator";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
+import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
+import { hasCommission } from "@/utils/offerTypeTranslator";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [offer, setOffer] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("workflow");  // Afficher le workflow par défaut
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [showWorkflowDialog, setShowWorkflowDialog] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [statusReason, setStatusReason] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  const workflowSteps = [
-    { 
-      id: 'draft', 
-      label: 'Brouillon', 
-      description: 'L\'offre est en cours de création',
-      icon: Edit,
-      color: 'bg-gray-100 border-gray-300 hover:bg-gray-200'
-    },
-    { 
-      id: 'sent', 
-      label: 'Envoyée', 
-      description: 'L\'offre a été envoyée au client',
-      icon: Send,
-      color: 'bg-blue-100 border-blue-300 hover:bg-blue-200'
-    },
-    { 
-      id: 'valid_itc', 
-      label: 'Validée ITC',
-      description: 'L\'offre a été validée par ITC', 
-      icon: CheckCircle2,
-      color: 'bg-indigo-100 border-indigo-300 hover:bg-indigo-200'
-    },
-    { 
-      id: 'info_requested', 
-      label: 'Info demandées',
-      description: 'Des informations supplémentaires ont été demandées', 
-      icon: Info,
-      color: 'bg-amber-100 border-amber-300 hover:bg-amber-200'
-    },
-    { 
-      id: 'approved', 
-      label: 'Approuvée',
-      description: 'L\'offre a été approuvée', 
-      icon: Check,
-      color: 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200'
-    },
-    { 
-      id: 'leaser_review', 
-      label: 'Revue bailleur',
-      description: 'L\'offre est en cours de revue par le bailleur', 
-      icon: Building,
-      color: 'bg-purple-100 border-purple-300 hover:bg-purple-200'
-    },
-    { 
-      id: 'financed', 
-      label: 'Financée',
-      description: 'L\'offre a été financée', 
-      icon: CreditCard,
-      color: 'bg-green-100 border-green-300 hover:bg-green-200'
-    },
-    { 
-      id: 'rejected', 
-      label: 'Rejetée',
-      description: 'L\'offre a été rejetée', 
-      icon: Ban,
-      color: 'bg-red-100 border-red-300 hover:bg-red-200'
-    }
-  ];
-
+  const [offer, setOffer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [activeTab, setActiveTab] = useState("status");
+  const [recalculatingCommission, setRecalculatingCommission] = useState(false);
+  const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
+  
   useEffect(() => {
-    const loadOffer = async () => {
-      if (!id) return;
+    const fetchOfferDetails = async () => {
+      if (!id || !user) return;
       
       try {
         setLoading(true);
-        const data = await getOfferById(id);
+        const { data, error } = await supabase
+          .from('offers')
+          .select('*')
+          .eq('id', id)
+          .single();
         
+        if (error) throw error;
         if (!data) {
-          setError('Offre non trouvée');
+          setError("Offre non trouvée");
+          toast.error("Offre non trouvée");
           return;
         }
         
         setOffer(data);
-
-        const logs = await getWorkflowLogs(id);
-        setWorkflowLogs(logs);
+        
+        if (data.converted_to_contract) {
+          try {
+            const { data: contractData } = await supabase
+              .from('contracts')
+              .select('created_at')
+              .eq('offer_id', id)
+              .single();
+            
+            if (contractData) {
+              const startDate = new Date(contractData.created_at);
+              const endDate = new Date(startDate);
+              endDate.setMonth(startDate.getMonth() + 36);
+              setContractEndDate(endDate);
+            }
+          } catch (err) {
+            console.error("Erreur lors de la récupération du contrat:", err);
+          }
+        }
+        
+        if (data.type === 'ambassador_offer' && data.ambassador_id) {
+          await updateCommission(data);
+        }
       } catch (err) {
-        console.error('Erreur lors du chargement de l\'offre:', err);
-        setError('Impossible de charger les détails de l\'offre');
+        console.error("Erreur lors du chargement de l'offre:", err);
+        setError("Impossible de charger les détails de l'offre");
+        toast.error("Erreur lors du chargement des détails de l'offre");
       } finally {
         setLoading(false);
       }
     };
-
-    loadOffer();
-  }, [id]);
-
-  const handleChangeStatus = (status: string) => {
-    setSelectedStatus(status);
-    setShowWorkflowDialog(true);
+    
+    fetchOfferDetails();
+  }, [id, user]);
+  
+  // Add this function to check if the offer type has commission
+  const shouldDisplayCommission = (offerType: string | undefined | null): boolean => {
+    return hasCommission(offerType);
   };
-
-  const handleConfirmStatusChange = async () => {
-    if (!id || !selectedStatus) return;
-
+  
+  const updateCommission = async (offerData: any) => {
     try {
-      setUpdatingStatus(true);
-      const success = await updateOfferStatus(
-        id,
-        selectedStatus,
-        offer.workflow_status,
-        statusReason || undefined
+      setRecalculatingCommission(true);
+      
+      if (!offerData.ambassador_id || !offerData.monthly_payment || !offerData.coefficient) {
+        console.log("Impossible de recalculer la commission: données insuffisantes");
+        return;
+      }
+      
+      const { data: ambassador } = await supabase
+        .from('ambassadors')
+        .select('*, commission_levels(name, id)')
+        .eq('id', offerData.ambassador_id)
+        .single();
+      
+      if (!ambassador || !ambassador.commission_level_id) {
+        console.log("Impossible de recalculer la commission: données d'ambassadeur manquantes");
+        return;
+      }
+      
+      const financedAmount = calculateFinancedAmount(
+        Number(offerData.monthly_payment), 
+        Number(offerData.coefficient)
       );
-
-      if (success) {
-        setOffer({ ...offer, workflow_status: selectedStatus });
-        
-        const logs = await getWorkflowLogs(id);
-        setWorkflowLogs(logs);
-        
-        toast.success(`Statut mis à jour avec succès: ${workflowSteps.find(step => step.id === selectedStatus)?.label}`);
-        setShowWorkflowDialog(false);
-        setStatusReason("");
-      } else {
-        toast.error("Erreur lors de la mise à jour du statut");
+      
+      if (financedAmount <= 0) {
+        console.log("Impossible de recalculer la commission: montant financé invalide");
+        return;
+      }
+      
+      const commissionData = await calculateCommissionByLevel(
+        financedAmount,
+        ambassador.commission_level_id,
+        'ambassador',
+        offerData.ambassador_id
+      );
+      
+      if (commissionData && typeof commissionData.amount === 'number') {
+        if (Math.abs(commissionData.amount - offerData.commission) > 0.01) {
+          console.log(`Mise à jour de la commission: ${offerData.commission}€ -> ${commissionData.amount}€`);
+          
+          const { error } = await supabase
+            .from('offers')
+            .update({
+              commission: commissionData.amount
+            })
+            .eq('id', offerData.id);
+          
+          if (!error) {
+            setOffer({
+              ...offerData,
+              commission: commissionData.amount
+            });
+            console.log(`Commission mise à jour avec succès: ${commissionData.amount}€ (${commissionData.rate}%)`);
+          }
+        }
       }
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error);
-      toast.error("Erreur lors de la mise à jour du statut");
+      console.error("Erreur lors de la mise à jour de la commission:", error);
     } finally {
-      setUpdatingStatus(false);
+      setRecalculatingCommission(false);
     }
   };
+  
+  const handleSendEmail = async () => {
+    if (!offer || !offer.id) {
+      toast.error("Impossible d'envoyer l'email");
+      return;
+    }
+    
+    try {
+      setSendingEmail(true);
+      
+      if (offer.workflow_status === 'draft') {
+        const { error } = await supabase
+          .from('offers')
+          .update({ workflow_status: 'sent' })
+          .eq('id', offer.id);
+          
+        if (error) throw error;
+        
+        setOffer({ ...offer, workflow_status: 'sent' });
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success("Email envoyé au client avec succès");
+    } catch (err) {
+      console.error("Erreur lors de l'envoi de l'email:", err);
+      toast.error("Impossible d'envoyer l'email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+  
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "Date inconnue";
+    try {
+      return format(new Date(dateString), "dd MMMM yyyy, HH:mm", { locale: fr });
+    } catch (error) {
+      return "Date incorrecte";
+    }
+  };
+  
+  const workflowStatuses = [
+    { 
+      id: OFFER_STATUSES.DRAFT.id, 
+      label: 'Brouillon', 
+      icon: Pencil, 
+      color: 'bg-green-100',
+      textColor: 'text-green-700',
+      ringColor: 'ring-green-100',
+      iconColor: 'text-green-800'
+    },
+    { 
+      id: OFFER_STATUSES.SENT.id, 
+      label: 'Envoyée', 
+      icon: SendHorizontal, 
+      color: 'bg-blue-100',
+      textColor: 'text-blue-700',
+      ringColor: 'ring-blue-100',
+      iconColor: 'text-blue-800'
+    },
+    { 
+      id: OFFER_STATUSES.VALID_ITC.id, 
+      label: 'Valid. ITC', 
+      icon: Sparkle, 
+      color: 'bg-purple-100',
+      textColor: 'text-purple-700',
+      ringColor: 'ring-purple-100',
+      iconColor: 'text-purple-800'
+    },
+    { 
+      id: OFFER_STATUSES.APPROVED.id, 
+      label: 'Approuvée', 
+      icon: Check, 
+      color: 'bg-emerald-100',
+      textColor: 'text-emerald-700',
+      ringColor: 'ring-emerald-100',
+      iconColor: 'text-emerald-800'
+    },
+    { 
+      id: OFFER_STATUSES.LEASER_REVIEW.id, 
+      label: 'Valid. bailleur', 
+      icon: Building, 
+      color: 'bg-indigo-100',
+      textColor: 'text-indigo-700',
+      ringColor: 'ring-indigo-100',
+      iconColor: 'text-indigo-800'
+    },
+    { 
+      id: OFFER_STATUSES.FINANCED.id, 
+      label: 'Financée', 
+      icon: Star, 
+      color: 'bg-green-100',
+      textColor: 'text-green-700',
+      ringColor: 'ring-green-100',
+      iconColor: 'text-green-800'
+    }
+  ];
 
   if (loading) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex justify-center items-center h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-            <span className="text-lg">Chargement des détails de l'offre...</span>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Chargement des détails de l'offre...</span>
           </div>
         </Container>
       </PageTransition>
     );
   }
-
-  if (error || !offer) {
+  
+  if (error) {
     return (
       <PageTransition>
         <Container>
-          <div className="flex flex-col items-center justify-center h-[60vh]">
-            <AlertCircle className="h-16 w-16 text-destructive mb-4" />
-            <h2 className="text-xl font-bold mb-2">Erreur</h2>
-            <p className="text-muted-foreground mb-4">{error || 'Offre non trouvée'}</p>
-            <Button onClick={() => navigate('/offers')}>
-              Retour à la liste des offres
+          <div className="flex flex-col items-center justify-center h-64">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Erreur</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate("/offers")}>
+              Retour aux offres
             </Button>
           </div>
         </Container>
       </PageTransition>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd MMMM yyyy', { locale: fr });
-    } catch (e) {
-      return 'Date non disponible';
-    }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd MMMM yyyy HH:mm', { locale: fr });
-    } catch (e) {
-      return 'Date non disponible';
-    }
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return 'UN';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  };
-
-  const getStepStatus = (stepId: string) => {
-    const stepIndex = workflowSteps.findIndex(step => step.id === stepId);
-    const currentStepIndex = workflowSteps.findIndex(step => step.id === offer.workflow_status);
-    
-    if (stepIndex < currentStepIndex) {
-      return 'completed';
-    } else if (stepIndex === currentStepIndex) {
-      return 'current';
-    } else {
-      return 'upcoming';
-    }
-  };
-
+  
+  if (!offer) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex flex-col items-center justify-center h-64">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Offre introuvable</h2>
+            <p className="text-gray-600 mb-4">Cette offre n'existe pas ou a été supprimée.</p>
+            <Button onClick={() => navigate("/offers")}>
+              Retour aux offres
+            </Button>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+  
   let equipmentData = [];
   try {
     if (offer.equipment_description) {
-      const parsedData = typeof offer.equipment_data === 'object' 
-        ? offer.equipment_data 
-        : JSON.parse(offer.equipment_description);
-      
-      if (Array.isArray(parsedData)) {
-        equipmentData = parsedData;
-      }
+      equipmentData = typeof offer.equipment_data === 'object' ? 
+        offer.equipment_data : 
+        JSON.parse(offer.equipment_description);
     }
   } catch (e) {
-    console.error('Erreur lors du parsing des données d\'équipement:', e);
+    console.log("Erreur de parsing des données d'équipement:", e);
   }
 
-  const calculateProgressPercentage = () => {
-    const currentIndex = workflowSteps.findIndex(step => step.id === offer.workflow_status);
-    if (currentIndex === -1) return 0;
+  const getStepStatus = (stepId: string) => {
+    const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
+    const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
     
-    if (offer.workflow_status === 'rejected') return 100;
-    
-    return Math.round((currentIndex / (workflowSteps.length - 2)) * 100);
+    if (stepIndex < currentStatusIndex) return 'completed';
+    if (stepIndex === currentStatusIndex) return 'active';
+    return 'pending';
   };
 
-  const progressPercentage = calculateProgressPercentage();
+  const getCommissionStatusBadge = (status: string | undefined) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payée</Badge>;
+      case 'pending':
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">En attente</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Annulée</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status || 'Non défini'}</Badge>;
+    }
+  };
+
+  const getCommissionBoxColor = (status: string | undefined) => {
+    switch (status) {
+      case 'paid':
+        return "bg-green-50 border-green-200";
+      case 'pending':
+        return "bg-amber-50 border-amber-200";
+      case 'cancelled':
+        return "bg-red-50 border-red-200";
+      default:
+        return "bg-gray-50 border-gray-200";
+    }
+  };
+
+  const getCommissionIconColor = (status: string | undefined) => {
+    switch (status) {
+      case 'paid':
+        return "text-green-700";
+      case 'pending':
+        return "text-amber-700";
+      case 'cancelled':
+        return "text-red-700";
+      default:
+        return "text-gray-700";
+    }
+  };
   
+  const getRemainingMonths = () => {
+    if (!contractEndDate) return null;
+    
+    const now = new Date();
+    const remaining = differenceInMonths(contractEndDate, now);
+    return remaining > 0 ? remaining : 0;
+  };
+
+  const remainingMonths = getRemainingMonths();
   const equipmentDisplayText = formatEquipmentDisplay(offer.equipment_description || offer.equipment_data);
 
   return (
@@ -279,537 +397,396 @@ const OfferDetail = () => {
       <Container>
         <TooltipProvider>
           <div className="py-6">
+            {/* Header with back button and type */}
             <div className="flex justify-between items-center mb-6">
-              <Button variant="ghost" onClick={() => navigate('/offers')} className="flex items-center">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+              <Button variant="ghost" onClick={() => navigate('/offers')} className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
                 Retour aux offres
               </Button>
-              <div className="flex items-center gap-4">
-                <div className="text-sm px-3 py-1 rounded-full bg-gray-100">
-                  <span className="text-gray-700 font-medium">Type: </span>
-                  <span className="font-bold text-primary">{translateOfferType(offer.type)}</span>
-                </div>
-                <OfferStatusBadge status={offer.workflow_status || offer.status} className="capitalize px-3 py-1" />
+              
+              {/* Show the correct offer type */}
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-muted-foreground">Type:</div>
+                <OfferTypeTag type={offer?.type || ''} />
               </div>
             </div>
-
-            {/* Résumé de l'offre */}
-            <div className="grid gap-6">
-              <Card className="border-none shadow-md bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h1 className="text-2xl font-bold mb-1">
-                        Offre #{id?.substring(0, 6)}
-                      </h1>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Créée le {formatDate(offer.created_at)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {offer.workflow_status !== 'rejected' && (
-                        <div className="hidden sm:block">
-                          <div className="text-xs text-gray-500 mb-1">Progression</div>
-                          <div className="flex items-center gap-2">
-                            <Progress 
-                              value={progressPercentage} 
-                              className={`h-2 w-32 ${offer.workflow_status === 'rejected' ? 'bg-red-100' : ''}`}
-                              status={offer.workflow_status === 'rejected' ? 'rejected' : undefined}
-                            />
-                            <span className="text-xs font-medium">{progressPercentage}%</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            
+            {/* Résumé financier visible en haut */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Euro className="h-4 w-4 mr-2 text-blue-600" />
+                    Montant financé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(offer?.financed_amount || 0)}</p>
                 </CardContent>
               </Card>
-
-              {/* Résumé financier visible en haut */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="shadow-sm">
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                    Mensualité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(offer?.monthly_payment || 0)}
+                    <span className="text-sm font-normal text-blue-500">/mois</span>
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Only show commission card if the offer type has commission */}
+              {offer && shouldDisplayCommission(offer.type) && (
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center">
-                      <Euro className="h-4 w-4 mr-2 text-blue-600" />
-                      Montant financé
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
-                      Mensualité
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold text-blue-700">
-                      {formatCurrency(offer.monthly_payment)}
-                      <span className="text-sm font-normal text-blue-500">/mois</span>
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Briefcase className="h-4 w-4 mr-2 text-green-600" />
+                      <Star className="h-4 w-4 mr-2 text-green-600" />
                       Commission
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(offer.commission)}</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(offer?.commission || 0)}</p>
                   </CardContent>
                 </Card>
-              </div>
-              
-              {/* Détails complet du client et équipement */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-xl flex items-center">
-                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        Détails de l'offre
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Tabs defaultValue="workflow" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="mb-4 w-full grid grid-cols-3">
-                          <TabsTrigger value="workflow">Workflow</TabsTrigger>
-                          <TabsTrigger value="details">Client</TabsTrigger>
-                          <TabsTrigger value="equipment">Équipements</TabsTrigger>
-                        </TabsList>
-                        
-                        {/* Contenu du workflow */}
-                        <TabsContent value="workflow">
-                          <div className="grid gap-6">
-                            <div>
-                              <h3 className="text-sm font-medium mb-4">Progression du workflow</h3>
-                              
-                              <div className="hidden md:block">
-                                <div className="relative mb-6">
-                                  <div className="absolute top-5 left-0 w-full h-1 bg-gray-200"></div>
-                                  <div className="flex justify-between relative">
-                                    {workflowSteps
-                                      .filter(step => step.id !== 'rejected')
-                                      .map((step, index) => {
-                                        const status = getStepStatus(step.id);
-                                        return (
-                                          <Tooltip key={step.id}>
-                                            <TooltipTrigger asChild>
-                                              <div className="flex flex-col items-center z-10">
-                                                <div 
-                                                  className={`w-10 h-10 rounded-full flex items-center justify-center
-                                                    ${status === 'completed' ? 'bg-green-500 text-white' : 
-                                                      status === 'current' ? 'bg-blue-500 text-white' : 
-                                                      'bg-gray-200 text-gray-400'}
-                                                  `}
-                                                >
-                                                  {status === 'completed' ? (
-                                                    <Check className="h-5 w-5" />
-                                                  ) : (
-                                                    <step.icon className="h-5 w-5" />
-                                                  )}
-                                                </div>
-                                                <span className={`mt-2 text-xs font-medium ${
-                                                  status === 'completed' ? 'text-green-600' : 
-                                                  status === 'current' ? 'text-blue-600' : 
-                                                  'text-gray-400'
-                                                }`}>
-                                                  {step.label}
-                                                </span>
-                                              </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{step.description}</TooltipContent>
-                                          </Tooltip>
-                                        );
-                                      })}
-                                  </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center mb-2">
+                          <h2 className="text-xl font-semibold">
+                            Offre pour {offer.client_name}
+                          </h2>
+                          <OfferStatusBadge status={offer.workflow_status} className="ml-3" />
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center">
+                          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                          Créée le {formatDate(offer.created_at)}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleSendEmail}
+                          disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          {sendingEmail ? 'Envoi...' : "Envoyer au client"}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <Tabs defaultValue="status" value={activeTab} onValueChange={setActiveTab}>
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="status">Suivi</TabsTrigger>
+                        <TabsTrigger value="details">Détails</TabsTrigger>
+                        <TabsTrigger value="equipment">Équipement</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="status" className="mt-4">
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="font-medium mb-3">État actuel</h3>
+                            <div className="p-4 border rounded-md bg-slate-50">
+                              <div className="flex items-center">
+                                <Clock className="h-5 w-5 mr-3 text-blue-600" />
+                                <div>
+                                  <p className="font-medium">
+                                    {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.label || "Statut inconnu"}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Dernière mise à jour: {formatDate(offer.updated_at)}
+                                  </p>
                                 </div>
-                              </div>
-                              
-                              <div className="md:hidden space-y-3">
-                                {workflowSteps.map((step) => {
-                                  const status = getStepStatus(step.id);
-                                  return (
-                                    <div 
-                                      key={step.id} 
-                                      className={`flex items-center p-3 rounded-md
-                                        ${status === 'completed' ? 'bg-green-50 border border-green-100' : 
-                                          status === 'current' ? 'bg-blue-50 border border-blue-100' : 
-                                          'bg-gray-50 border border-gray-100'}
-                                      `}
-                                    >
-                                      <div 
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3
-                                          ${status === 'completed' ? 'bg-green-500 text-white' : 
-                                            status === 'current' ? 'bg-blue-500 text-white' : 
-                                            'bg-gray-200 text-gray-400'}
-                                        `}
-                                      >
-                                        {status === 'completed' ? (
-                                          <Check className="h-4 w-4" />
-                                        ) : (
-                                          <step.icon className="h-4 w-4" />
-                                        )}
-                                      </div>
-                                      <div>
-                                        <p className={`font-medium ${
-                                          status === 'completed' ? 'text-green-700' : 
-                                          status === 'current' ? 'text-blue-700' : 
-                                          'text-gray-500'
-                                        }`}>
-                                          {step.label}
-                                        </p>
-                                        <p className="text-xs text-gray-500">{step.description}</p>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
                               </div>
                             </div>
-                            
-                            <Card className="overflow-hidden">
-                              <CardHeader className="bg-gray-50 pb-3 border-b">
-                                <CardTitle className="text-base flex items-center">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Changer le statut du workflow
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-4">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  {workflowSteps.map((step) => (
-                                    <Button 
-                                      key={step.id}
-                                      variant={offer.workflow_status === step.id ? "default" : "outline"}
-                                      className={`w-full text-xs sm:text-sm flex items-center gap-2 ${
-                                        offer.workflow_status !== step.id ? step.color : ''
-                                      }`}
-                                      onClick={() => handleChangeStatus(step.id)}
-                                      disabled={offer.workflow_status === step.id}
-                                    >
-                                      <step.icon className="h-3 w-3" />
-                                      {step.label}
-                                    </Button>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                        
-                            <div>
-                              <h3 className="text-sm font-medium mb-4 flex items-center">
-                                <Clock className="h-4 w-4 mr-2" />
-                                Historique du workflow
-                              </h3>
-                              {workflowLogs.length > 0 ? (
-                                <div className="space-y-4">
-                                  {workflowLogs.map((log) => (
-                                    <div key={log.id} className="border rounded-md p-4 hover:shadow-sm transition-shadow bg-white">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex items-start">
-                                          <Avatar className="h-8 w-8 mr-3">
-                                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                              {getInitials(`${log.profiles?.first_name} ${log.profiles?.last_name}`)}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div>
-                                            <p className="font-medium">
-                                              {log.previous_status !== log.new_status ? (
-                                                <>
-                                                  Status changé: <Badge variant="outline" className="ml-1 mr-1">{log.previous_status || 'draft'}</Badge> 
-                                                  {' → '} 
-                                                  <Badge variant="outline" className="ml-1">{log.new_status}</Badge>
-                                                </>
-                                              ) : (
-                                                <>Action sur {log.new_status}</>
-                                              )}
-                                            </p>
-                                            {log.reason && (
-                                              <p className="text-sm mt-1 bg-gray-50 p-2 rounded italic">"{log.reason}"</p>
-                                            )}
-                                            <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                                              <User className="h-3 w-3 mr-1" />
-                                              {log.profiles?.first_name} {log.profiles?.last_name}
-                                              <span className="mx-2">•</span>
-                                              <Clock className="h-3 w-3 mr-1" />
-                                              {formatDateTime(log.created_at)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-center py-10 bg-gray-50 rounded-lg">
-                                  <Clock className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                                  <p className="text-muted-foreground">
-                                    Aucun historique de workflow disponible
+                          </div>
+                          
+                          {offer.converted_to_contract && remainingMonths !== null && (
+                            <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+                              <div className="flex items-center">
+                                <CalendarIcon className="h-5 w-5 mr-3 text-blue-600" />
+                                <div>
+                                  <p className="font-medium text-blue-800">
+                                    Contrat en cours
                                   </p>
+                                  <p className="text-sm text-blue-700">
+                                    {remainingMonths} mois restants jusqu'à échéance
+                                  </p>
+                                  {contractEndDate && (
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Date de fin: {format(contractEndDate, "dd MMMM yyyy", { locale: fr })}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              {remainingMonths <= 3 && (
+                                <div className="mt-3 p-2 bg-amber-100 rounded text-sm text-amber-800">
+                                  <span className="font-medium">Action recommandée:</span> Contacter le client pour discuter du renouvellement
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          <div>
+                            <h3 className="font-medium mb-3">Processus de validation</h3>
+                            
+                            <div className="hidden md:flex justify-between mb-4">
+                              {workflowStatuses.map((status, index) => {
+                                const stepStatus = getStepStatus(status.id);
+                                return (
+                                  <div key={status.id} className="flex flex-col items-center">
+                                    <div 
+                                      className={`flex items-center justify-center w-16 h-16 rounded-full mb-2 ${
+                                        stepStatus === 'completed' ? 'bg-green-100' : 
+                                        stepStatus === 'active' ? status.color : 
+                                        'bg-gray-100'
+                                      }`}
+                                    >
+                                      {stepStatus === 'completed' ? (
+                                        <Check className="h-6 w-6 text-green-700" />
+                                      ) : (
+                                        <status.icon className="h-6 w-6" />
+                                      )}
+                                    </div>
+                                    <span className={`text-sm font-medium ${
+                                      stepStatus === 'active' ? 'text-blue-700' :
+                                      stepStatus === 'completed' ? 'text-green-700' : 
+                                      'text-gray-500'
+                                    }`}>
+                                      {status.label}
+                                    </span>
+                                    {index < workflowStatuses.length - 1 && (
+                                      <div className="absolute hidden md:block" style={{
+                                        left: `calc(${(index + 0.5) * (100 / workflowStatuses.length)}%)`,
+                                        width: `calc(${100 / workflowStatuses.length}%)`,
+                                        top: '2.5rem',
+                                        height: '2px',
+                                        backgroundColor: stepStatus === 'completed' ? '#22c55e' : '#e5e7eb'
+                                      }}></div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            <div className="md:hidden">
+                              <ol className="relative border-l border-gray-200 ml-3">
+                                {workflowStatuses.map((status, index) => {
+                                  const stepStatus = getStepStatus(status.id);
+                                  return (
+                                    <li key={status.id} className="mb-6 ml-6">
+                                      <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
+                                        stepStatus === 'completed' ? 'bg-green-100 ring-green-100 ring-4' : 
+                                        stepStatus === 'active' ? `${status.color} ${status.ringColor} ring-4` : 
+                                        'bg-gray-100 ring-gray-100 ring-4'
+                                      }`}>
+                                        {stepStatus === 'completed' ? 
+                                          <Check className="w-3 h-3 text-green-800" /> : 
+                                          stepStatus === 'active' ?
+                                          <status.icon className={`w-3 h-3 ${status.iconColor}`} /> :
+                                          <span className="w-3 h-3 text-gray-800">{index + 1}</span>
+                                        }
+                                      </span>
+                                      <h3 className="font-medium">{status.label}</h3>
+                                      <p className="text-sm text-gray-500">
+                                        {stepStatus === 'completed' ? "Complété" : 
+                                        stepStatus === 'active' ? "En cours" : "En attente"}
+                                      </p>
+                                    </li>
+                                  );
+                                })}
+                              </ol>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Progress 
+                                value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
+                                className="h-2"
+                              />
+                              <p className="text-xs text-gray-500 mt-1 text-right">
+                                {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0}% complété
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="details" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="font-medium mb-2">Informations client</h3>
+                            <div className="space-y-2">
+                              <div className="flex items-center">
+                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span className="font-medium">{offer.client_name}</span>
+                              </div>
+                              {offer.client_email && (
+                                <div className="flex items-center">
+                                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                                  <span>{offer.client_email}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                        </TabsContent>
-
-                        <TabsContent value="details">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Client</h3>
-                                <div className="p-4 rounded-lg bg-gray-50 space-y-3">
-                                  <div className="flex items-center">
-                                    <Avatar className="h-10 w-10 mr-3 bg-primary">
-                                      <AvatarFallback>{getInitials(offer.client_name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-medium">{offer.client_name}</p>
-                                      <p className="text-sm text-muted-foreground">{offer.client_email}</p>
-                                    </div>
-                                  </div>
-                                  {offer.client_company && (
-                                    <div className="flex items-center">
-                                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <p>{offer.client_company}</p>
-                                    </div>
-                                  )}
-                                </div>
+                          
+                          <div>
+                            <h3 className="font-medium mb-2">Détails de paiement</h3>
+                            <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
+                              <div className="flex justify-between items-center pb-3 border-b border-blue-100">
+                                <span className="text-sm text-gray-600">Montant financé:</span>
+                                <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
                               </div>
                               
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Date de création</h3>
-                                <div className="p-4 rounded-lg bg-gray-50">
-                                  <div className="flex items-center">
-                                    <Calendar className="h-5 w-5 mr-2 text-primary" />
-                                    <p className="font-medium">{formatDate(offer.created_at)}</p>
-                                  </div>
-                                </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Paiement mensuel:</span>
+                                <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
                               </div>
-                            </div>
-                            
-                            <div className="space-y-6">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Détails financiers</h3>
-                                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                                  <div className="flex justify-between items-center pb-3 border-b border-blue-100">
-                                    <span className="text-sm text-gray-600">Montant financé:</span>
-                                    <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Paiement mensuel:</span>
-                                    <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Coefficient:</span>
-                                    <span className="font-medium">{offer.coefficient}</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center pt-3 border-t border-blue-100">
-                                    <span className="text-sm text-gray-600">Commission:</span>
-                                    <span className="font-medium text-green-600">{formatCurrency(offer.commission)}</span>
-                                  </div>
-                                </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Coefficient:</span>
+                                <span className="font-medium">{offer.coefficient}</span>
                               </div>
                             </div>
                           </div>
-                        </TabsContent>
-
-                        <TabsContent value="equipment">
-                          <EquipmentDisplay 
-                            equipmentDisplay={equipmentDisplayText} 
-                            monthlyPayment={offer.monthly_payment} 
-                            remarks={offer.remarks}
-                          />
-                          
-                          {equipmentData.length > 0 && (
-                            <div className="space-y-4 mt-4">
-                              <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
-                              {equipmentData.map((item: any, index: number) => (
-                                <div key={index} className="border p-4 rounded-md hover:shadow-md transition-shadow bg-white">
-                                  <h3 className="font-medium text-lg border-b pb-2 mb-3">{item.title}</h3>
-                                  <div className="grid grid-cols-3 gap-4">
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Prix d'achat:</p>
-                                      <p className="font-medium text-blue-700">{formatCurrency(item.price)}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Quantité:</p>
+                        </div>
+                        
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Votre commission</h3>
+                          <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
+                                  <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
+                                </div>
+                                <div>
+                                  <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
+                                  <p className="text-2xl font-bold text-gray-700">
+                                    {recalculatingCommission ? (
+                                      <span className="flex items-center">
+                                        <span className="animate-pulse">Calcul en cours...</span>
+                                      </span>
+                                    ) : (
+                                      formatCurrency(offer.commission || 0)
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              <div>
+                                {getCommissionStatusBadge(offer.commission_status)}
+                                {offer.commission_paid_at && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Payée le {formatDate(offer.commission_paid_at)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {offer.remarks && (
+                          <div className="mt-6">
+                            <h3 className="font-medium mb-2">Remarques</h3>
+                            <div className="p-3 bg-slate-50 rounded-md">
+                              <p className="whitespace-pre-line">{offer.remarks}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Type d'offre</h3>
+                          <div className="p-3 bg-slate-50 rounded-md">
+                            <p>{translateOfferType(offer.type)}</p>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="equipment" className="mt-4">
+                        <EquipmentDisplay 
+                          equipmentDisplay={equipmentDisplayText} 
+                          monthlyPayment={offer.monthly_payment} 
+                          remarks={offer.remarks}
+                        />
+                        
+                        {equipmentData && equipmentData.length > 0 ? (
+                          <div className="space-y-4">
+                            <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
+                            {equipmentData.map((item: any, index: number) => (
+                              <Card key={index} className="overflow-hidden">
+                                <CardContent className="p-4">
+                                  <h3 className="font-semibold mb-2">{item.title}</h3>
+                                  <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                      <p className="text-sm text-gray-500">Quantité</p>
                                       <p className="font-medium">{item.quantity}</p>
                                     </div>
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <p className="text-sm text-gray-500 mb-1">Marge:</p>
-                                      <p className="font-medium text-green-600">{item.margin ? `${item.margin}%` : 'N/A'}</p>
+                                    <div>
+                                      <p className="text-sm text-gray-500">Mensualité unitaire</p>
+                                      <p className="font-medium text-blue-700">
+                                        {formatCurrency(item.monthlyPayment || 0)}
+                                      </p>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div>
-                  <Card className="sticky top-6">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Statut actuel</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-4">
-                        <div className={`
-                          flex items-center p-4 rounded-md ${
-                            offer.workflow_status === 'rejected' ? 'bg-red-50 text-red-700' :
-                            offer.workflow_status === 'financed' ? 'bg-green-50 text-green-700' :
-                            'bg-blue-50 text-blue-700'
-                          }
-                        `}>
-                          <div className={`
-                            w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                              offer.workflow_status === 'rejected' ? 'bg-red-100' :
-                              offer.workflow_status === 'financed' ? 'bg-green-100' :
-                              'bg-blue-100'
-                            }
-                          `}>
-                            {(() => {
-                              const step = workflowSteps.find(s => s.id === offer.workflow_status);
-                              const StepIcon = step ? step.icon : Clock;
-                              return <StepIcon className="h-5 w-5" />;
-                            })()}
+                                  
+                                  {item.variants && Object.keys(item.variants).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                      <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(item.variants).map(([key, value]: [string, any]) => (
+                                          <div key={key} className="flex flex-col">
+                                            <span className="text-xs text-gray-600">{key}</span>
+                                            <span className="font-medium text-sm">{String(value)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
                           </div>
-                          <div>
-                            <p className="font-medium">
-                              {workflowSteps.find(step => step.id === offer.workflow_status)?.label || offer.workflow_status}
-                            </p>
-                            <p className="text-xs opacity-90">
-                              Mis à jour le {formatDate(offer.updated_at)}
-                            </p>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md bg-gray-50">
+                            <Info className="h-10 w-10 text-gray-400 mb-2" />
+                            <p className="text-gray-500">Aucune information d'équipement disponible</p>
                           </div>
-                        </div>
-                      </div>
-                      
-                      <Separator className="my-4" />
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium">Actions rapides</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            variant="outline" 
-                            className="w-full flex items-center gap-2 justify-center"
-                            onClick={() => navigate(`/offers/${id}/edit`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            Modifier
-                          </Button>
-                          <Button 
-                            variant="default" 
-                            className="w-full flex items-center gap-2 justify-center"
-                            onClick={() => setActiveTab("workflow")}
-                          >
-                            <Check className="h-4 w-4" />
-                            Workflow
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <Separator className="my-4" />
-                      
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium">Résumé financier</h3>
-                        <div className="border rounded-md p-4 bg-blue-50">
-                          <div className="grid grid-cols-2 gap-2 mb-2">
-                            <div>
-                              <p className="text-xs text-gray-600">Montant financé</p>
-                              <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-600">Coefficient</p>
-                              <p className="font-medium">{offer.coefficient || '-'}</p>
-                            </div>
-                          </div>
-                          <div className="pt-2 border-t border-blue-200">
-                            <p className="text-xs text-gray-600">Mensualité</p>
-                            <p className="font-bold text-lg text-blue-700">
-                              {formatCurrency(offer.monthly_payment)}
-                              <span className="text-xs font-normal text-blue-600">/mois</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-          </div>
-        </TooltipProvider>
-
-        <Dialog open={showWorkflowDialog} onOpenChange={setShowWorkflowDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Changer le statut de l'offre</DialogTitle>
-              <DialogDescription>
-                Vous êtes sur le point de changer le statut de l'offre de 
-                "{workflowSteps.find(step => step.id === offer?.workflow_status)?.label || offer?.workflow_status}" 
-                à "{workflowSteps.find(step => step.id === selectedStatus)?.label || selectedStatus}".
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label htmlFor="reason" className="text-sm font-medium">
-                  Raison du changement (optionnel)
-                </label>
-                <Textarea 
-                  id="reason" 
-                  placeholder="Entrez la raison du changement de statut..."
-                  value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="sm:justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowWorkflowDialog(false)}
-                disabled={updatingStatus}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Annuler
-              </Button>
-              <Button 
-                onClick={handleConfirmStatusChange}
-                disabled={updatingStatus}
-                className="gap-2"
-              >
-                {updatingStatus ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Mise à jour...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Confirmer
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </Container>
-    </PageTransition>
-  );
-};
-
-export default OfferDetail;
+              
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button 
+                      className="w-full justify-start" 
+                      onClick={handleSendEmail}
+                      disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      Envoyer au client
+                    </Button>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
+                      <div className="p-3 bg-slate-50 rounded-md flex items-center">
+                        <OfferStatusBadge status={offer.workflow_status}

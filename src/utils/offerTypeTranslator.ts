@@ -23,3 +23,13 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return type;
   }
 };
+
+/**
+ * Vérifie si le type d'offre a une commission
+ * Les offres internes n'ont pas de commission
+ */
+export const hasCommission = (type: string | undefined | null): boolean => {
+  if (!type) return false;
+  
+  return type.toLowerCase() !== 'internal_offer';
+};

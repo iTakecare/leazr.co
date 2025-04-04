@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -36,7 +35,7 @@ import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatu
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
 import { Progress } from "@/components/ui/progress";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
-import { translateOfferType } from "@/utils/offerTypeTranslator";
+import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
@@ -50,7 +49,7 @@ const AmbassadorOfferDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [activeTab, setActiveTab] = useState("status");  // Changé de "details" à "status" (pour la vue ambassador)
+  const [activeTab, setActiveTab] = useState("status");
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
   
@@ -263,6 +262,11 @@ const AmbassadorOfferDetail = () => {
     }
   ];
 
+  const shouldShowCommission = (offer: any): boolean => {
+    if (!offer) return false;
+    return hasCommission(offer.type);
+  };
+
   if (loading) {
     return (
       <PageTransition>
@@ -424,26 +428,28 @@ const AmbassadorOfferDetail = () => {
                   </p>
                 </CardContent>
               </Card>
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Star className="h-4 w-4 mr-2 text-green-600" />
-                    Votre commission
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-green-600">
-                    {recalculatingCommission ? (
-                      <span className="animate-pulse">Calcul...</span>
-                    ) : (
-                      formatCurrency(offer.commission || 0)
+              {shouldShowCommission(offer) && (
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-green-600" />
+                      Votre commission
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-green-600">
+                      {recalculatingCommission ? (
+                        <span className="animate-pulse">Calcul...</span>
+                      ) : (
+                        formatCurrency(offer.commission || 0)
+                      )}
+                    </p>
+                    {offer.commission_status && (
+                      <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
                     )}
-                  </p>
-                  {offer.commission_status && (
-                    <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

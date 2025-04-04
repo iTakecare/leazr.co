@@ -25,7 +25,8 @@ import {
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
-import { translateOfferType } from "@/utils/offerTypeTranslator";
+import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -144,6 +145,11 @@ const PartnerOfferDetail = () => {
     toast.success("Lien de signature envoyé au client");
   };
 
+  const shouldShowCommission = (offer: any): boolean => {
+    if (!offer) return false;
+    return hasCommission(offer.type);
+  };
+
   if (loading) {
     return (
       <PageTransition>
@@ -152,6 +158,24 @@ const PartnerOfferDetail = () => {
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
               <p className="mt-2">Chargement des détails de l'offre...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+  
+  if (error) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-8">
+            <Button variant="outline" onClick={() => navigate("/partner/dashboard")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour au tableau de bord
+            </Button>
+            <div className="mt-8 text-center">
+              <p>Une erreur s'est produite lors du chargement des détails de l'offre.</p>
             </div>
           </div>
         </Container>
@@ -178,7 +202,7 @@ const PartnerOfferDetail = () => {
   }
 
   // Check if this is an internal request (no ambassador)
-  const isInternalRequest = !offer.ambassador_id;
+  const isInternalRequest = !offer.ambassador_id || offer.type === 'internal_offer';
 
   return (
     <PageTransition>
@@ -239,7 +263,10 @@ const PartnerOfferDetail = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Équipement</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Équipement</CardTitle>
+                    <OfferTypeTag type={offer.type} />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="whitespace-pre-line">{offer.equipment_description}</p>
@@ -360,8 +387,7 @@ const PartnerOfferDetail = () => {
                       <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                     </div>
                     
-                    {/* Only show commission if this is not an internal request */}
-                    {!isInternalRequest && (
+                    {shouldShowCommission(offer) && (
                       <>
                         <div className="border-t my-2"></div>
                         <div className="flex justify-between font-medium">

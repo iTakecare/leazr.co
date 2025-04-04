@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData, OfferType } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { hasCommission } from "@/utils/offerTypeTranslator";
 
 // Fonction pour créer une offre
 export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data?: any; error?: any }> => {
@@ -23,8 +24,8 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
         null
     };
 
-    // Pour les offres internes, s'assurer que la commission est à zéro
-    if (offerData.type === OfferType.INTERNAL) {
+    // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
+    if (!hasCommission(offerData.type)) {
       dataToSave.commission = 0;
     }
 
