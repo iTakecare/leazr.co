@@ -4,11 +4,14 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { CartProvider } from './context/CartContext.tsx'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <CartProvider>
-      <App />
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
     </CartProvider>
   </BrowserRouter>
 );
