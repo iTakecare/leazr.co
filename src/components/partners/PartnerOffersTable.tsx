@@ -20,11 +20,9 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
 
 const PartnerOffersTable = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,13 +62,13 @@ const PartnerOffersTable = () => {
   }, [user]);
 
   const createNewOffer = () => {
-    navigate('/partner/offers/create');
+    window.location.href = '/partner/offers/create';
   };
   
   // Direct navigation function to the admin offer details page
-  const navigateToAdminOfferDetail = (offerId: string) => {
-    console.log("Navigating to admin offer details:", offerId);
-    // Utiliser un chemin absolu pour la navigation
+  const navigateToOfferDetail = (offerId: string) => {
+    console.log("Navigating to offer details:", offerId);
+    // Use absolute path to ensure consistency regardless of current route
     window.location.href = `/offers/${offerId}`;
   };
 
@@ -156,7 +154,7 @@ const PartnerOffersTable = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      onClick={() => navigateToAdminOfferDetail(offer.id)}
+                      onClick={() => navigateToOfferDetail(offer.id)}
                       className="text-blue-600 hover:text-blue-800"
                     >
                       Voir détails
