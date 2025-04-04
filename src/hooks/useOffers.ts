@@ -33,8 +33,7 @@ export const useOffers = () => {
     handleResendOffer,
     handleDownloadPdf,
     handleRequestInfo,
-    handleProcessInfoResponse,
-    handleViewOffer
+    handleProcessInfoResponse
   } = useOfferActions(offers, setOffers);
 
   return {
@@ -59,7 +58,6 @@ export const useOffers = () => {
     handleDownloadPdf,
     handleUpdateWorkflowStatus,
     handleRequestInfo,
-    handleProcessInfoResponse,
-    handleViewOffer
+    handleProcessInfoResponse
   };
 };

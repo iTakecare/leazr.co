@@ -35,6 +35,7 @@ import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatu
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
 import { Progress } from "@/components/ui/progress";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { translateOfferType } from "@/utils/offerTypeTranslator";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -502,6 +503,13 @@ const AmbassadorOfferDetail = () => {
                           </div>
                         </div>
                       )}
+                      
+                      <div className="mt-6">
+                        <h3 className="font-medium mb-2">Type d'offre</h3>
+                        <div className="p-3 bg-slate-50 rounded-md">
+                          <p>{translateOfferType(offer.type)}</p>
+                        </div>
+                      </div>
                     </TabsContent>
                     
                     <TabsContent value="equipment" className="mt-4">
