@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -8,18 +9,11 @@ import {
   generateAndDownloadOfferPdf 
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
-import { useNavigate } from "react-router-dom";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const navigate = useNavigate();
-
-  const handleViewOffer = (offerId: string) => {
-    console.log("Navigating to offer details:", offerId);
-    navigate(`/partner/offers/${offerId}`);
-  };
 
   const handleDeleteOffer = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.")) {
@@ -177,7 +171,6 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     handleResendOffer,
     handleDownloadPdf,
     handleRequestInfo,
-    handleProcessInfoResponse,
-    handleViewOffer
+    handleProcessInfoResponse
   };
 };

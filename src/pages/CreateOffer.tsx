@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,8 @@ import { getAllClients } from "@/services/clientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
-import { calculateFinancedAmount } from "@/utils/calculator";
 import { getLeasers } from "@/services/leaserService";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -34,7 +35,6 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [calculatedCommission, setCalculatedCommission] = useState(0);
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -125,11 +125,6 @@ const CreateOffer = () => {
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
-  
-  const handleCommissionCalculated = (amount: number) => {
-    console.log("Commission calculée reçue:", amount);
-    setCalculatedCommission(amount);
-  };
 
   const handleSaveOffer = async () => {
     if (!client) {
@@ -177,7 +172,7 @@ const CreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: currentCoefficient,
         monthly_payment: totalMonthlyPayment,
-        commission: 0, // Valeur par défaut à 0
+        commission: 0, // Pas de commission pour les offres non-ambassadeur
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "offer",
@@ -322,7 +317,6 @@ const CreateOffer = () => {
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
-                      onCommissionCalculated={handleCommissionCalculated}
                     />
 
                     <ClientInfo

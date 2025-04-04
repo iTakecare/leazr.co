@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,12 +20,13 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const PartnerOffersTable = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   const fetchOffers = async () => {
     try {
@@ -66,15 +66,9 @@ const PartnerOffersTable = () => {
   const createNewOffer = () => {
     navigate('/partner/offers/create');
   };
-  
-  // Fonction pour naviguer vers les détails d'une offre
-  const navigateToOfferDetail = (offerId: string) => {
-    console.log("Navigating to offer details:", offerId);
-    // Utiliser un chemin absolu pour éviter les problèmes de redirection
-    if (offerId) {
-      // Naviguer vers la page de détail de l'offre sans recharger la page
-      navigate(`/offers/${offerId}`);
-    }
+
+  const viewOfferDetails = (id: string) => {
+    navigate(`/partner/offers/${id}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -132,38 +126,38 @@ const PartnerOffersTable = () => {
                 <TableHead>Client</TableHead>
                 <TableHead>Matériel</TableHead>
                 <TableHead className="text-right">Montant</TableHead>
+                <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {offers.map((offer) => (
-                <TableRow key={offer.id}>
-                  <TableCell>
+                <TableRow 
+                  key={offer.id} 
+                  className="cursor-pointer hover:bg-slate-50"
+                  onClick={() => viewOfferDetails(offer.id)}
+                >
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      <span>{format(new Date(offer.created_at), 'dd/MM/yyyy')}</span>
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {format(new Date(offer.created_at), 'dd/MM/yyyy')}
                     </div>
                   </TableCell>
-                  <TableCell>{offer.client_name}</TableCell>
-                  <TableCell>
-                    <div className="max-w-xs truncate">
-                      {offer.equipment_description}
-                    </div>
+                  <TableCell className="max-w-[150px] truncate">
+                    {offer.client_name}
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate">
+                    {offer.equipment_description?.substring(0, 30)}
+                    {offer.equipment_description?.length > 30 ? '...' : ''}
                   </TableCell>
                   <TableCell className="text-right">
+                    {formatCurrency(offer.amount)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
                     {formatCurrency(offer.monthly_payment)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(offer.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={() => navigateToOfferDetail(offer.id)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      Voir détails
-                    </Button>
+                  <TableCell>
+                    {getStatusBadge(offer.status)}
                   </TableCell>
                 </TableRow>
               ))}

@@ -94,7 +94,6 @@ const EquipmentList = ({
         
         // Propager la commission calculée au parent
         if (onCommissionCalculated && typeof commissionData.amount === 'number') {
-          console.log("Propagating commission to parent:", commissionData.amount);
           onCommissionCalculated(commissionData.amount);
         }
       } catch (error) {
