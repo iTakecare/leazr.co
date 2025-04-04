@@ -17,8 +17,6 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return "Offre administrative";
     case 'client_request':
       return "Demande client";
-    case 'internal_offer':
-      return "Offre interne";
     default:
       return type;
   }

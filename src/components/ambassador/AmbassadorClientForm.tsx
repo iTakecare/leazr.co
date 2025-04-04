@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -96,26 +97,19 @@ const AmbassadorClientForm = () => {
         }
         
         if (result.address) {
-          if (result.addressParsed) {
-            form.setValue("address", result.addressParsed.streetAddress || "");
-            form.setValue("postal_code", result.addressParsed.postalCode || "");
-            form.setValue("city", result.addressParsed.city || "");
-            form.setValue("country", result.addressParsed.country || "");
-          } else {
-            const addressParts = result.address.split(',');
-            if (addressParts.length >= 3) {
-              form.setValue("address", addressParts[0].trim());
-              
-              const cityParts = addressParts[1].trim().split(' ');
-              if (cityParts.length >= 2) {
-                form.setValue("postal_code", cityParts[0].trim());
-                form.setValue("city", cityParts.slice(1).join(' '));
-              }
-              
-              form.setValue("country", addressParts[2].trim());
-            } else {
-              form.setValue("address", result.address);
+          const addressParts = result.address.split(',');
+          if (addressParts.length >= 3) {
+            form.setValue("address", addressParts[0].trim());
+            
+            const cityParts = addressParts[1].trim().split(' ');
+            if (cityParts.length >= 2) {
+              form.setValue("postal_code", cityParts[0].trim());
+              form.setValue("city", cityParts.slice(1).join(' '));
             }
+            
+            form.setValue("country", addressParts[2].trim());
+          } else {
+            form.setValue("address", result.address);
           }
         }
       } else {

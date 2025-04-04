@@ -70,11 +70,3 @@ export interface OfferStatusCounts {
   rejected: number;
   total: number;
 }
-
-export enum OfferType {
-  ADMIN = 'admin_offer',
-  PARTNER = 'partner_offer',
-  AMBASSADOR = 'ambassador_offer',
-  CLIENT = 'client_request',
-  INTERNAL = 'internal_offer'
-}

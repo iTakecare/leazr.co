@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateClientData, Client } from "@/types/client";
@@ -218,64 +219,5 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
   } catch (error) {
     console.error("Exception in createClientAsAmbassadorDb:", error);
     return null;
-  }
-};
-
-// Supprimer un client d'ambassadeur
-export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
-  try {
-    console.log("Suppression du client ambassadeur:", clientId);
-    
-    // 1. Récupérer l'ID d'ambassadeur de l'utilisateur actuel
-    const ambassadorId = await getCurrentAmbassadorProfile();
-    
-    if (!ambassadorId) {
-      console.error("ID d'ambassadeur introuvable pour l'utilisateur actuel");
-      return false;
-    }
-    
-    // 2. Trouver l'ID de la relation ambassador_client
-    const { data: linkData, error: linkError } = await supabase
-      .from("ambassador_clients")
-      .select("id")
-      .eq("client_id", clientId)
-      .eq("ambassador_id", ambassadorId)
-      .single();
-    
-    if (linkError || !linkData) {
-      console.error("Erreur lors de la recherche de la relation ambassadeur-client:", linkError);
-      return false;
-    }
-    
-    // 3. Supprimer la relation ambassador_client
-    const { error: deleteRelationError } = await supabase
-      .from("ambassador_clients")
-      .delete()
-      .eq("id", linkData.id);
-    
-    if (deleteRelationError) {
-      console.error("Erreur lors de la suppression de la relation ambassadeur-client:", deleteRelationError);
-      return false;
-    }
-    
-    // 4. Supprimer le client
-    const { error: deleteClientError } = await supabase
-      .from("clients")
-      .delete()
-      .eq("id", clientId);
-    
-    if (deleteClientError) {
-      console.error("Erreur lors de la suppression du client:", deleteClientError);
-      return false;
-    }
-    
-    // 5. Mettre à jour le compteur de clients pour l'ambassadeur
-    await updateAmbassadorClientCount(ambassadorId);
-    
-    console.log("Client supprimé avec succès");
-    return true;
-  } catch (error) {
-    console.error("Exception lors de la suppression du client:", error);
-    return false;
   }
 };

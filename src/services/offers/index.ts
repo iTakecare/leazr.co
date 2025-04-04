@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { OfferData, OfferType } from "./types";
+import { OfferData } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
 
 // Fonction pour créer une offre
@@ -22,13 +22,6 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         null
     };
-
-    // Pour les offres internes, s'assurer que la commission est à zéro
-    if (offerData.type === OfferType.INTERNAL) {
-      dataToSave.commission = 0;
-      // Aussi s'assurer que le statut de commission est défini correctement
-      dataToSave.commission_status = 'not_applicable';
-    }
 
     // Calculer et ajouter le montant financé
     if (dataToSave.monthly_payment && dataToSave.coefficient) {
