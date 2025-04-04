@@ -15,9 +15,6 @@ export const useClientOffer = (offerId: string | undefined) => {
     debugInfo
   } = useLoadClientOffer(offerId);
 
-  // Vérifier si c'est une offre interne (sans commission)
-  const isInternalOffer = offer?.type === 'internal_offer';
-
   // Gérer la génération de PDF
   const {
     isPrintingPdf,
@@ -44,7 +41,6 @@ export const useClientOffer = (offerId: string | undefined) => {
     signature,
     isPrintingPdf,
     debugInfo,
-    isInternalOffer,
     handleSignature,
     handlePrintPdf
   };
