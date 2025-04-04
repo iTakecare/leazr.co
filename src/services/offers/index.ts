@@ -26,6 +26,8 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     // Pour les offres internes, s'assurer que la commission est à zéro
     if (offerData.type === OfferType.INTERNAL) {
       dataToSave.commission = 0;
+      // Aussi s'assurer que le statut de commission est défini correctement
+      dataToSave.commission_status = 'not_applicable';
     }
 
     // Calculer et ajouter le montant financé
