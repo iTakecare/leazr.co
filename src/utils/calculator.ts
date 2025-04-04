@@ -191,11 +191,8 @@ export const calculateCommissionByLevel = async (
   type: 'partner' | 'ambassador' = 'partner', 
   ambassadorId?: string
 ): Promise<{ rate: number, amount: number, levelName?: string }> => {
-  console.log(`Calcul de commission appelé avec: montant=${amount}, levelId=${levelId}, type=${type}, ambassadorId=${ambassadorId}`);
-
   // Vérifier si les données d'entrée sont valides pour éviter des calculs inutiles
   if (!amount || amount <= 0) {
-    console.log('Montant invalide pour le calcul de commission:', amount);
     return { rate: 0, amount: 0, levelName: "" };
   }
   
@@ -209,13 +206,11 @@ export const calculateCommissionByLevel = async (
     // Vérifier si nous avons un résultat récent en cache
     const cachedResult = commissionCache[cacheKey];
     if (cachedResult && (Date.now() - cachedResult.timestamp) < CACHE_TIMEOUT) {
-      console.log('Utilisation du cache pour le calcul de commission:', cachedResult.result);
       return cachedResult.result;
     }
     
     // Vérifier si un calcul est déjà en cours pour ces mêmes paramètres
     if (currentCalculation[cacheKey]) {
-      console.log('Calcul de commission déjà en cours, attente du résultat...');
       return currentCalculation[cacheKey];
     }
     
@@ -227,7 +222,6 @@ export const calculateCommissionByLevel = async (
       // Si un ID d'ambassadeur est fourni, récupérer son niveau de commission directement de la base de données
       if (ambassadorId) {
         try {
-          console.log('Récupération du niveau de commission pour ambassadeur:', ambassadorId);
           // Get the ambassador record with commission_level_id directly from the database to ensure we have the latest data
           const { data: ambassador, error: ambassadorError } = await supabase
             .from('ambassadors')
@@ -237,7 +231,6 @@ export const calculateCommissionByLevel = async (
           
           if (!ambassadorError && ambassador && ambassador.commission_level_id) {
             actualLevelId = ambassador.commission_level_id;
-            console.log('Niveau de commission trouvé pour ambassadeur:', actualLevelId);
             
             // Get the level name
             const { data: levelData } = await supabase
@@ -248,10 +241,7 @@ export const calculateCommissionByLevel = async (
               
             if (levelData) {
               levelName = levelData.name;
-              console.log('Nom du niveau de commission:', levelName);
             }
-          } else {
-            console.error('Erreur ou pas de niveau trouvé pour ambassadeur:', ambassadorError);
           }
         } catch (error) {
           console.error("Error fetching ambassador data:", error);
@@ -262,13 +252,11 @@ export const calculateCommissionByLevel = async (
       // Si aucun ID de niveau n'est fourni, utiliser le niveau par défaut
       if (!actualLevelId) {
         try {
-          console.log('Récupération du niveau de commission par défaut pour type:', type);
           const defaultLevel = await fetchDefaultCommissionLevel(type);
           
           if (defaultLevel) {
             actualLevelId = defaultLevel.id;
             levelName = defaultLevel.name;
-            console.log('Niveau par défaut trouvé:', { id: actualLevelId, name: levelName });
           }
         } catch (error) {
           console.error("Error fetching default commission level:", error);
@@ -278,14 +266,10 @@ export const calculateCommissionByLevel = async (
       
       // Si toujours pas d'ID, utiliser les taux statiques
       if (!actualLevelId) {
-        console.log('Utilisation des taux statiques pour le montant:', roundedAmount);
         const staticRate = getCommissionRate(roundedAmount);
-        const calculatedAmount = (roundedAmount * staticRate) / 100;
-        console.log(`Taux statique: ${staticRate}%, montant calculé: ${calculatedAmount}€`);
-        
         const result = {
           rate: staticRate,
-          amount: calculatedAmount,
+          amount: (roundedAmount * staticRate) / 100,
           levelName: ""
         };
         
@@ -300,12 +284,10 @@ export const calculateCommissionByLevel = async (
       
       // Get full level with rates
       try {
-        console.log('Récupération des taux pour le niveau:', actualLevelId);
         const level = await getCommissionLevelWithRates(actualLevelId);
         
         if (!level || !level.rates || level.rates.length === 0) {
           try {
-            console.log('Niveau sans taux, récupération directe des taux');
             const rates = await fetchCommissionRates(actualLevelId);
             
             // Trouver le taux applicable en fonction du montant
@@ -314,7 +296,6 @@ export const calculateCommissionByLevel = async (
             );
             
             if (!applicableRate) {
-              console.log('Aucun taux applicable trouvé pour le montant:', roundedAmount);
               const result = {
                 rate: 0,
                 amount: 0,
@@ -331,8 +312,6 @@ export const calculateCommissionByLevel = async (
             }
             
             const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
-            console.log(`Taux trouvé: ${applicableRate.rate}%, montant financé: ${roundedAmount}€, commission calculée: ${calculatedAmount}€`);
-            
             const result = {
               rate: applicableRate.rate,
               amount: calculatedAmount,
@@ -364,13 +343,11 @@ export const calculateCommissionByLevel = async (
           }
         } else {
           // Use the rates from the level
-          console.log('Taux trouvés dans le niveau:', level.rates);
           const applicableRate = level.rates.find(
             rate => roundedAmount >= rate.min_amount && roundedAmount <= rate.max_amount
           );
           
           if (!applicableRate) {
-            console.log('Aucun taux applicable trouvé dans les taux du niveau pour le montant:', roundedAmount);
             const result = {
               rate: 0,
               amount: 0,
@@ -387,8 +364,6 @@ export const calculateCommissionByLevel = async (
           }
           
           const calculatedAmount = (roundedAmount * applicableRate.rate) / 100;
-          console.log(`Taux trouvé dans le niveau: ${applicableRate.rate}%, montant financé: ${roundedAmount}€, commission calculée: ${calculatedAmount}€`);
-          
           const result = {
             rate: applicableRate.rate,
             amount: calculatedAmount,
