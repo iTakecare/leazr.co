@@ -128,43 +128,45 @@ const AmbassadorSidebar = () => {
         </div>
         
         <nav className="flex-1 px-2 py-4">
-          <ul className="space-y-1">
-            {routes.map((item) => (
-              <li key={item.href}>
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                          collapsed ? "justify-center px-2" : "px-3",
-                          item.active
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={item.active ? "page" : undefined}
-                      >
-                        <item.icon 
+          <ScrollArea>
+            <ul className="space-y-1">
+              {routes.map((item) => (
+                <li key={item.href}>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={item.href}
                           className={cn(
-                            "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "" : "mr-3",
-                            item.active && "stroke-[2.5px]"
-                          )} 
-                        />
-                        {!collapsed && <span>{item.title}</span>}
-                      </Link>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
-                        <p>{item.title}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-              </li>
-            ))}
-          </ul>
+                            "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                            collapsed ? "justify-center px-2" : "px-3",
+                            item.active
+                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
+                              : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                          )}
+                          aria-current={item.active ? "page" : undefined}
+                        >
+                          <item.icon 
+                            className={cn(
+                              "h-5 w-5 flex-shrink-0", 
+                              collapsed ? "" : "mr-3",
+                              item.active && "stroke-[2.5px]"
+                            )} 
+                          />
+                          {!collapsed && <span>{item.title}</span>}
+                        </Link>
+                      </TooltipTrigger>
+                      {collapsed && (
+                        <TooltipContent side="right" className="font-medium">
+                          <p>{item.title}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
         </nav>
         
         <div className={cn(
