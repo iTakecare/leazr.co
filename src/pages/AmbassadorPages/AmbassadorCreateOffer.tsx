@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
@@ -11,13 +11,11 @@ import { Equipment, Leaser, GlobalMarginAdjustment } from "@/types/equipment";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
-import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
@@ -38,6 +36,7 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [calculatedCommission, setCalculatedCommission] = useState<number>(0);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -98,6 +97,40 @@ const AmbassadorCreateOffer = () => {
       fetchAmbassador(user.ambassador_id);
     }
   }, [ambassadorId, user]);
+  
+  // Effet pour calculer la commission basée sur le montant financé et le niveau de commission
+  useEffect(() => {
+    const calculateCommission = async () => {
+      if (!ambassador?.commission_level_id || equipmentList.length === 0) return;
+      
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      if (financedAmount <= 0) return;
+      
+      const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      
+      if (!currentAmbassadorId) return;
+      
+      try {
+        const commissionData = await calculateCommissionByLevel(
+          financedAmount,
+          ambassador.commission_level_id,
+          'ambassador',
+          currentAmbassadorId
+        );
+        
+        if (commissionData && typeof commissionData.amount === 'number') {
+          setCalculatedCommission(commissionData.amount);
+          console.log(`Commission calculée pour l'offre: ${commissionData.amount}€ (${commissionData.rate}%)`);
+        }
+      } catch (error) {
+        console.error("Erreur lors du calcul de la commission:", error);
+      }
+    };
+    
+    calculateCommission();
+  }, [ambassadorId, user?.ambassador_id, ambassador?.commission_level_id, equipmentList, coefficient, globalMarginAdjustment.newCoef, totalMonthlyPayment]);
   
   const fetchAmbassador = async (id: string) => {
     try {
@@ -205,35 +238,12 @@ const AmbassadorCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      let commissionAmount = 0;
+      // Utiliser la commission calculée par le composant EquipmentList
+      const commissionAmount = calculatedCommission;
       
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
-      const commissionLevelId = ambassador?.commission_level_id;
       
-      if (currentAmbassadorId && commissionLevelId) {
-        try {
-          const commissionData = await calculateCommissionByLevel(
-            financedAmount,
-            commissionLevelId,
-            'ambassador',
-            currentAmbassadorId
-          );
-          
-          if (commissionData && typeof commissionData.amount === 'number') {
-            commissionAmount = commissionData.amount;
-            console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
-          } else {
-            console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-            toast.error("Erreur lors du calcul de la commission");
-          }
-        } catch (commError) {
-          console.error("Erreur lors du calcul de la commission:", commError);
-          commissionAmount = totalMonthlyPayment * 0.1;
-        }
-      } else {
-        console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
-        commissionAmount = totalMonthlyPayment * 0.1;
-      }
+      console.log(`Enregistrement de l'offre avec la commission calculée: ${commissionAmount}€`);
       
       const offerData = {
         client_id: client.id,
@@ -241,7 +251,7 @@ const AmbassadorCreateOffer = () => {
         client_email: client.email,
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-        coefficient: globalMarginAdjustment.newCoef,
+        coefficient: currentCoefficient,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
@@ -288,26 +298,8 @@ const AmbassadorCreateOffer = () => {
     hideFinancialDetails: true
   };
   
-  const handleAddEquipment = (title: string) => {
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: title || "",
-      purchasePrice: 1000,
-      quantity: 1,
-      margin: 20,
-      monthlyPayment: 0,
-    });
-  };
-  
   const hideFinancialDetails = true;
   const isPageLoading = loading || loadingLeasers;
-  
-  useEffect(() => {
-    if (ambassador) {
-      console.log("Ambassador state updated:", ambassador);
-      console.log("Commission level ID:", ambassador.commission_level_id);
-    }
-  }, [ambassador]);
   
   return (
     <PageTransition>
@@ -391,6 +383,7 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={ambassador?.commission_level_id}
+                      onCommissionCalculated={setCalculatedCommission}
                     />
                     
                     <ClientInfo
