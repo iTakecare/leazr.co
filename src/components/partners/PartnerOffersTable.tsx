@@ -70,7 +70,8 @@ const PartnerOffersTable = () => {
   // Direct navigation function to the admin offer details page
   const navigateToAdminOfferDetail = (offerId: string) => {
     console.log("Navigating to admin offer details:", offerId);
-    navigate(`/offers/${offerId}`);
+    // Utiliser un chemin absolu pour la navigation
+    window.location.href = `/offers/${offerId}`;
   };
 
   const getStatusBadge = (status: string) => {
