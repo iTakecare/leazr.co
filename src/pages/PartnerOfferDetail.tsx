@@ -26,7 +26,6 @@ import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { translateOfferType } from "@/utils/offerTypeTranslator";
-import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
