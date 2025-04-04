@@ -67,10 +67,14 @@ const PartnerOffersTable = () => {
     navigate('/partner/offers/create');
   };
   
-  // Fonction de navigation corrigée pour utiliser le hook useNavigate
+  // Fonction pour naviguer vers les détails d'une offre
   const navigateToOfferDetail = (offerId: string) => {
     console.log("Navigating to offer details:", offerId);
-    navigate(`/offers/${offerId}`);
+    // Utiliser un chemin absolu pour éviter les problèmes de redirection
+    if (offerId) {
+      // Naviguer vers la page de détail de l'offre sans recharger la page
+      navigate(`/offers/${offerId}`);
+    }
   };
 
   const getStatusBadge = (status: string) => {
