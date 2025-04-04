@@ -1,19 +1,16 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AmbassadorSidebar from "./AmbassadorSidebar";
-import Navbar from "./Navbar";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
   const { user, isLoading, userRoleChecked, isAmbassador } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleMenuClick = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isLoading && userRoleChecked && user) {
@@ -62,14 +59,17 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <AmbassadorSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar onMenuClick={handleMenuClick} />
-        <main className="flex-1 overflow-auto">
-          {children || <Outlet />}
-        </main>
-      </div>
+    <div className="min-h-screen flex bg-gradient-to-br from-background to-primary/5">
+      {!isMobile && <AmbassadorSidebar />}
+      
+      <main className="flex-1 relative">
+        <div className="absolute inset-0 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center opacity-[0.02]" />
+        <ScrollArea className="h-screen">
+          <div className="p-4 md:p-6 pb-24">
+            {children || <Outlet />}
+          </div>
+        </ScrollArea>
+      </main>
     </div>
   );
 };
