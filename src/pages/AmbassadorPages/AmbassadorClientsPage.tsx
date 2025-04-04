@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { getAmbassadorClients, deleteAmbassadorClient } from "@/services/ambassadorClientService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +43,6 @@ const AmbassadorClientsPage = () => {
       setLoading(true);
       setError(null);
       
-      // Utiliser directement le service pour récupérer les clients
       const data = await getAmbassadorClients();
       
       setClients(data);
@@ -105,11 +103,14 @@ const AmbassadorClientsPage = () => {
     if (!clientToDelete) return;
     
     try {
-      // Cette fonction devra être implémentée dans le service
-      // await deleteAmbassadorClient(clientToDelete.id);
+      const success = await deleteAmbassadorClient(clientToDelete.id);
       
-      toast.success("Client supprimé avec succès");
-      fetchClients();
+      if (success) {
+        toast.success("Client supprimé avec succès");
+        fetchClients();
+      } else {
+        toast.error("Erreur lors de la suppression du client");
+      }
     } catch (error) {
       console.error("Erreur lors de la suppression du client:", error);
       toast.error("Erreur lors de la suppression du client");
