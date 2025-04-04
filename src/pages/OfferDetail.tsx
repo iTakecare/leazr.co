@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOfferById } from '@/services/offers/offerDetail';
+import { getWorkflowLogs } from '@/services/offers/offerWorkflow';
 import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -10,16 +11,20 @@ import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, Clock, User } from 'lucide-react';
 import Container from '@/components/layout/Container';
 import PageTransition from '@/components/layout/PageTransition';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OfferStatusBadge from '@/components/offers/OfferStatusBadge';
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("details");
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -37,6 +42,10 @@ const OfferDetail = () => {
         }
         
         setOffer(data);
+
+        // Load workflow logs
+        const logs = await getWorkflowLogs(id);
+        setWorkflowLogs(logs);
       } catch (err) {
         console.error('Erreur lors du chargement de l\'offre:', err);
         setError('Impossible de charger les détails de l\'offre');
@@ -87,6 +96,15 @@ const OfferDetail = () => {
     }
   };
 
+  // Formater la date et l'heure pour l'affichage
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy HH:mm', { locale: fr });
+    } catch (e) {
+      return 'Date non disponible';
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -125,7 +143,10 @@ const OfferDetail = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour aux offres
             </Button>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-muted-foreground">
+                Type: <span className="font-medium">{translateOfferType(offer.type)}</span>
+              </div>
               {getStatusBadge(offer.status)}
             </div>
           </div>
@@ -133,87 +154,139 @@ const OfferDetail = () => {
           <div className="grid gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Détails de l'offre</CardTitle>
+                <CardTitle className="flex justify-between items-center">
+                  <span>Détails de l'offre</span>
+                  <OfferStatusBadge status={offer.workflow_status || offer.status} />
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">Informations concernant cette offre</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Client</h3>
-                    <p className="font-medium">{offer.client_name}</p>
-                  </div>
+                <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="details">Informations</TabsTrigger>
+                    <TabsTrigger value="equipment">Équipements</TabsTrigger>
+                    <TabsTrigger value="workflow">Workflow</TabsTrigger>
+                  </TabsList>
                   
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                    <p className="font-medium">{offer.client_email}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Montant financé</h3>
-                    <p className="font-medium">{formatCurrency(offer.financed_amount || 0)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Paiement mensuel</h3>
-                    <p className="font-medium">{formatCurrency(offer.monthly_payment)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Coefficient</h3>
-                    <p className="font-medium">{offer.coefficient}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Commission</h3>
-                    <p className="font-medium">{formatCurrency(offer.commission)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Date de création</h3>
-                    <p className="font-medium">{formatDate(offer.created_at)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Type d'offre</h3>
-                    <p className="font-medium">{translateOfferType(offer.type)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Équipements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {equipmentData.length > 0 ? (
-                  <div className="space-y-4">
-                    {equipmentData.map((item: any, index: number) => (
-                      <div key={index} className="border p-4 rounded-md">
-                        <h3 className="font-medium text-lg">{item.title}</h3>
-                        <div className="grid grid-cols-3 gap-4 mt-2">
-                          <div>
-                            <p className="text-sm text-gray-500">Prix d'achat:</p>
-                            <p className="font-medium">{formatCurrency(item.price)}</p>
+                  <TabsContent value="details">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Client</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <p className="font-medium">{offer.client_name}</p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Quantité:</p>
-                            <p className="font-medium">{item.quantity}</p>
+                          <p className="text-sm">{offer.client_email}</p>
+                          {offer.client_company && (
+                            <p className="text-sm">{offer.client_company}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Détails financiers</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-500">Montant financé:</span>
+                            <span className="font-medium">{formatCurrency(offer.financed_amount || 0)}</span>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Marge:</p>
-                            <p className="font-medium">{item.margin ? `${item.margin}%` : 'N/A'}</p>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-500">Paiement mensuel:</span>
+                            <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-500">Coefficient:</span>
+                            <span className="font-medium">{offer.coefficient}</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-500">Commission:</span>
+                            <span className="font-medium">{formatCurrency(offer.commission)}</span>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">
-                    {offer.equipment_description || 'Aucun équipement spécifié'}
-                  </p>
-                )}
+                      
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-2">Date de création</h3>
+                        <p className="font-medium">{formatDate(offer.created_at)}</p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="equipment">
+                    {equipmentData.length > 0 ? (
+                      <div className="space-y-4">
+                        {equipmentData.map((item: any, index: number) => (
+                          <div key={index} className="border p-4 rounded-md">
+                            <h3 className="font-medium text-lg">{item.title}</h3>
+                            <div className="grid grid-cols-3 gap-4 mt-2">
+                              <div>
+                                <p className="text-sm text-gray-500">Prix d'achat:</p>
+                                <p className="font-medium">{formatCurrency(item.price)}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Quantité:</p>
+                                <p className="font-medium">{item.quantity}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Marge:</p>
+                                <p className="font-medium">{item.margin ? `${item.margin}%` : 'N/A'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">
+                        {offer.equipment_description || 'Aucun équipement spécifié'}
+                      </p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="workflow">
+                    <div>
+                      <h3 className="text-sm font-medium mb-4">Historique du workflow</h3>
+                      {workflowLogs.length > 0 ? (
+                        <div className="space-y-4">
+                          {workflowLogs.map((log) => (
+                            <div key={log.id} className="border rounded-md p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start">
+                                  <Clock className="mt-0.5 h-4 w-4 text-muted-foreground mr-2" />
+                                  <div>
+                                    <p className="font-medium">
+                                      {log.previous_status !== log.new_status ? (
+                                        <>
+                                          Status changé: <Badge variant="outline" className="ml-1 mr-1">{log.previous_status || 'draft'}</Badge> 
+                                          {' → '} 
+                                          <Badge variant="outline" className="ml-1">{log.new_status}</Badge>
+                                        </>
+                                      ) : (
+                                        <>Action sur {log.new_status}</>
+                                      )}
+                                    </p>
+                                    {log.reason && <p className="text-sm mt-1">{log.reason}</p>}
+                                    <div className="flex items-center mt-2">
+                                      <div className="text-xs text-muted-foreground">
+                                        {log.profiles?.first_name} {log.profiles?.last_name} • {formatDateTime(log.created_at)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-4 text-muted-foreground">
+                          Aucun historique de workflow disponible
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
