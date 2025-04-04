@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOfferById } from '@/services/offers/offerDetail';
 import { getWorkflowLogs } from '@/services/offers/offerWorkflow';
+import { updateOfferStatus } from '@/services/offerService';
 import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -11,12 +12,22 @@ import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ArrowLeft, Loader2, Clock, User } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, Clock, User, Check, X } from 'lucide-react';
 import Container from '@/components/layout/Container';
 import PageTransition from '@/components/layout/PageTransition';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OfferStatusBadge from '@/components/offers/OfferStatusBadge';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +38,23 @@ const OfferDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Workflow management states
+  const [showWorkflowDialog, setShowWorkflowDialog] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const workflowSteps = [
+    { id: 'draft', label: 'Brouillon' },
+    { id: 'sent', label: 'Envoyée' },
+    { id: 'valid_itc', label: 'Validée ITC' },
+    { id: 'info_requested', label: 'Info demandées' },
+    { id: 'approved', label: 'Approuvée' },
+    { id: 'leaser_review', label: 'Revue bailleur' },
+    { id: 'financed', label: 'Financée' },
+    { id: 'rejected', label: 'Rejetée' }
+  ];
 
   useEffect(() => {
     const loadOffer = async () => {
@@ -56,6 +84,44 @@ const OfferDetail = () => {
 
     loadOffer();
   }, [id]);
+
+  const handleChangeStatus = (status: string) => {
+    setSelectedStatus(status);
+    setShowWorkflowDialog(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!id || !selectedStatus) return;
+
+    try {
+      setUpdatingStatus(true);
+      const success = await updateOfferStatus(
+        id,
+        selectedStatus,
+        offer.workflow_status,
+        statusReason || undefined
+      );
+
+      if (success) {
+        setOffer({ ...offer, workflow_status: selectedStatus });
+        
+        // Reload workflow logs
+        const logs = await getWorkflowLogs(id);
+        setWorkflowLogs(logs);
+        
+        toast.success(`Statut mis à jour avec succès: ${selectedStatus}`);
+        setShowWorkflowDialog(false);
+        setStatusReason("");
+      } else {
+        toast.error("Erreur lors de la mise à jour du statut");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error);
+      toast.error("Erreur lors de la mise à jour du statut");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -246,44 +312,67 @@ const OfferDetail = () => {
                   </TabsContent>
 
                   <TabsContent value="workflow">
-                    <div>
-                      <h3 className="text-sm font-medium mb-4">Historique du workflow</h3>
-                      {workflowLogs.length > 0 ? (
-                        <div className="space-y-4">
-                          {workflowLogs.map((log) => (
-                            <div key={log.id} className="border rounded-md p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start">
-                                  <Clock className="mt-0.5 h-4 w-4 text-muted-foreground mr-2" />
-                                  <div>
-                                    <p className="font-medium">
-                                      {log.previous_status !== log.new_status ? (
-                                        <>
-                                          Status changé: <Badge variant="outline" className="ml-1 mr-1">{log.previous_status || 'draft'}</Badge> 
-                                          {' → '} 
-                                          <Badge variant="outline" className="ml-1">{log.new_status}</Badge>
-                                        </>
-                                      ) : (
-                                        <>Action sur {log.new_status}</>
-                                      )}
-                                    </p>
-                                    {log.reason && <p className="text-sm mt-1">{log.reason}</p>}
-                                    <div className="flex items-center mt-2">
-                                      <div className="text-xs text-muted-foreground">
-                                        {log.profiles?.first_name} {log.profiles?.last_name} • {formatDateTime(log.created_at)}
+                    <div className="grid gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Changer le statut du workflow</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {workflowSteps.map((step) => (
+                              <Button 
+                                key={step.id}
+                                variant={offer.workflow_status === step.id ? "default" : "outline"}
+                                className="w-full text-xs sm:text-sm"
+                                onClick={() => handleChangeStatus(step.id)}
+                                disabled={offer.workflow_status === step.id}
+                              >
+                                {step.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    
+                      <div>
+                        <h3 className="text-sm font-medium mb-4">Historique du workflow</h3>
+                        {workflowLogs.length > 0 ? (
+                          <div className="space-y-4">
+                            {workflowLogs.map((log) => (
+                              <div key={log.id} className="border rounded-md p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start">
+                                    <Clock className="mt-0.5 h-4 w-4 text-muted-foreground mr-2" />
+                                    <div>
+                                      <p className="font-medium">
+                                        {log.previous_status !== log.new_status ? (
+                                          <>
+                                            Status changé: <Badge variant="outline" className="ml-1 mr-1">{log.previous_status || 'draft'}</Badge> 
+                                            {' → '} 
+                                            <Badge variant="outline" className="ml-1">{log.new_status}</Badge>
+                                          </>
+                                        ) : (
+                                          <>Action sur {log.new_status}</>
+                                        )}
+                                      </p>
+                                      {log.reason && <p className="text-sm mt-1">{log.reason}</p>}
+                                      <div className="flex items-center mt-2">
+                                        <div className="text-xs text-muted-foreground">
+                                          {log.profiles?.first_name} {log.profiles?.last_name} • {formatDateTime(log.created_at)}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-center py-4 text-muted-foreground">
-                          Aucun historique de workflow disponible
-                        </p>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-center py-4 text-muted-foreground">
+                            Aucun historique de workflow disponible
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -292,6 +381,59 @@ const OfferDetail = () => {
           </div>
         </div>
       </Container>
+
+      {/* Dialog pour confirmer le changement de statut */}
+      <Dialog open={showWorkflowDialog} onOpenChange={setShowWorkflowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Changer le statut de l'offre</DialogTitle>
+            <DialogDescription>
+              Vous êtes sur le point de changer le statut de l'offre de "{offer?.workflow_status || 'draft'}" à "{selectedStatus}".
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label htmlFor="reason" className="text-sm font-medium">
+                Raison du changement (optionnel)
+              </label>
+              <Textarea 
+                id="reason" 
+                placeholder="Entrez la raison du changement de statut..."
+                value={statusReason}
+                onChange={(e) => setStatusReason(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowWorkflowDialog(false)}
+              disabled={updatingStatus}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleConfirmStatusChange}
+              disabled={updatingStatus}
+              className="gap-2"
+            >
+              {updatingStatus ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Mise à jour...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  Confirmer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 };
