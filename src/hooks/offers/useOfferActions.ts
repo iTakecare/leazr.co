@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -19,7 +18,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
   const handleViewOffer = (offerId: string) => {
     console.log("Navigating to offer details:", offerId);
-    navigate(`/offers/${offerId}`);
+    navigate(`/partner/offers/${offerId}`);
   };
 
   const handleDeleteOffer = async (id: string) => {
@@ -179,6 +178,6 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     handleDownloadPdf,
     handleRequestInfo,
     handleProcessInfoResponse,
-    handleViewOffer // Export the new function
+    handleViewOffer
   };
 };

@@ -68,7 +68,7 @@ const PartnerOffersTable = () => {
 
   const viewOfferDetails = (id: string) => {
     console.log("Navigating to offer details from PartnerOffersTable:", id);
-    navigate(`/offers/${id}`);
+    navigate(`/partner/offers/${id}`);
   };
 
   const getStatusBadge = (status: string) => {
