@@ -239,7 +239,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
             >
               Supprimer
             </AlertDialogAction>
-          </DialogDialogFooter>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
