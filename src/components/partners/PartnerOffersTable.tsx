@@ -68,9 +68,9 @@ const PartnerOffersTable = () => {
   };
 
   const viewOfferDetails = (id: string) => {
-    console.log("Navigating to offer details from PartnerOffersTable:", id);
-    // Correction de la route pour accéder à la page PartnerOfferDetail
-    navigate(`/partner/offers/${id}`);
+    console.log("Navigating to admin offer details from PartnerOffersTable:", id);
+    // Redirection vers la vue de détail d'offre administrateur
+    navigate(`/offers/${id}`);
   };
 
   const getStatusBadge = (status: string) => {
