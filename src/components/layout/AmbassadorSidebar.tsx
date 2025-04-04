@@ -1,43 +1,37 @@
 
 import React, { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, Users, Package, Calculator, FileText,
-  ChevronRight, ChevronLeft, LogOut
+  LogOut
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import Logo from "./Logo";
 import { supabase } from "@/integrations/supabase/client";
-import SidebarMenuItem from "./SidebarMenuItem";
-import SidebarUserSection from "./SidebarUserSection";
-import MobileSidebar from "./MobileSidebar";
+import Logo from "./Logo";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger
+} from "@/components/ui/sidebar";
 
-interface SidebarProps {
-  className?: string;
-  onLinkClick?: () => void;
-}
-
-interface MenuItem {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-}
-
-const AmbassadorSidebar = ({ className, onLinkClick }: SidebarProps) => {
+const AmbassadorSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
-  const menuItems: MenuItem[] = [
+  const menuItems = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/ambassador/dashboard" },
     { label: "Clients", icon: Users, href: "/ambassador/clients" },
     { label: "Calculateur", icon: Calculator, href: "/ambassador/create-offer" },
@@ -101,102 +95,63 @@ const AmbassadorSidebar = ({ className, onLinkClick }: SidebarProps) => {
     return "IT";
   };
 
-  const getUserDisplayName = () => {
-    if (!user) return "Ambassadeur";
-    
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    } else if (user.email) {
-      return user.email;
-    }
-    return "Ambassadeur";
-  };
-  
-  const getUserRole = () => {
-    return "Ambassadeur";
-  };
-
-  if (isMobile) {
-    return (
-      <MobileSidebar
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-        menuItems={menuItems}
-        isActive={isActive}
-        onLinkClick={onLinkClick}
-        avatarUrl={avatarUrl}
-        getUserInitials={getUserInitials}
-        getUserDisplayName={getUserDisplayName}
-        getUserRole={getUserRole}
-        handleLogout={handleLogout}
-      />
-    );
-  }
-
   return (
-    <aside
-      className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
-        className
-      )}
-    >
-      <div className="flex flex-col h-full">
-        <div className={cn(
-          "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-between"
-        )}>
-          <Logo showText={!collapsed} />
-          
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10"
+    <>
+      <Sidebar className="shadow-lg">
+        <SidebarRail />
+        <SidebarHeader className="flex items-center justify-between">
+          <Logo showText={true} />
+          <SidebarTrigger />
+        </SidebarHeader>
+        
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton 
+                      isActive={isActive(item.href)}
+                      tooltip={item.label}
+                      onClick={() => navigate(item.href)}
+                    >
+                      <item.icon className="mr-2 h-5 w-5" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        
+        <SidebarFooter className="mt-auto">
+          <div className="flex items-center justify-between p-4 border-t">
+            <div className="flex items-center">
+              <Avatar className="h-9 w-9 mr-2">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={user?.email || "Avatar"} />
+                ) : (
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{user?.first_name || user?.email || "Ambassadeur"}</span>
+                <span className="text-xs text-muted-foreground">Ambassadeur</span>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="ml-4 p-2 rounded-full hover:bg-primary/10"
+              title="Déconnexion"
             >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
-        </div>
-        
-        <nav className="flex-1 px-2 py-4">
-          <ul className="space-y-1">
-            {menuItems.map((item) => (
-              <SidebarMenuItem 
-                key={item.href}
-                item={item}
-                isActive={isActive}
-                collapsed={collapsed}
-                onLinkClick={onLinkClick}
-              />
-            ))}
-          </ul>
-        </nav>
-        
-        <SidebarUserSection
-          collapsed={collapsed}
-          avatarUrl={avatarUrl}
-          getUserInitials={getUserInitials}
-          getUserDisplayName={getUserDisplayName}
-          getUserRole={getUserRole}
-          handleLogout={handleLogout}
-        />
-        
-        {collapsed && (
-          <div className="p-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(false)} 
-              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
-        )}
-      </div>
-    </aside>
+        </SidebarFooter>
+      </Sidebar>
+    </>
   );
 };
 
