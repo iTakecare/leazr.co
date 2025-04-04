@@ -79,12 +79,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
+  // Make sure we use a direct URL navigation to ensure consistent routing
   const handleViewDetails = (offerId: string) => {
-    if (isAmbassador()) {
-      navigate(`/ambassador/offers/${offerId}`);
-    } else {
-      navigate(`/offers/${offerId}`);
-    }
+    console.log("Navigating to offer details:", offerId);
+    // Use window.location.href for consistent navigation with absolute path
+    window.location.href = `/offers/${offerId}`;
   };
 
   const handleSendToClient = async (offerId: string) => {
@@ -240,7 +239,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
             >
               Supprimer
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </DialogDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
