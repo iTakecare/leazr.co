@@ -1,173 +1,202 @@
 
-import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAuth } from "@/context/AuthContext";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
-  BarChart,
-  Users,
-  Calculator,
-  Package,
-  LogOut,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  Menu
+  LayoutDashboard, Users, Package, Calculator, FileText,
+  ChevronRight, ChevronLeft, LogOut
 } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import Logo from "./Logo";
+import { supabase } from "@/integrations/supabase/client";
+import SidebarMenuItem from "./SidebarMenuItem";
+import SidebarUserSection from "./SidebarUserSection";
+import MobileSidebar from "./MobileSidebar";
 
-const AmbassadorSidebar = () => {
-  const { pathname } = useLocation();
+interface SidebarProps {
+  className?: string;
+  onLinkClick?: () => void;
+}
+
+interface MenuItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+}
+
+const AmbassadorSidebar = ({ className, onLinkClick }: SidebarProps) => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  const menuItems: MenuItem[] = [
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/ambassador/dashboard" },
+    { label: "Clients", icon: Users, href: "/ambassador/clients" },
+    { label: "Calculateur", icon: Calculator, href: "/ambassador/create-offer" },
+    { label: "Offres", icon: FileText, href: "/ambassador/offers" },
+    { label: "Catalogue", icon: Package, href: "/ambassador/catalog" },
+  ];
 
-  const ambassadorId = user?.ambassador_id;
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la récupération de l'avatar:", error);
+          return;
+        }
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'avatar:", err);
+      }
+    };
+    
+    fetchAvatar();
+  }, [user]);
 
-  const handleSignOut = async () => {
+  const handleLogout = async () => {
     try {
       await signOut();
+      navigate('/login');
       toast.success("Déconnexion réussie");
     } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
       toast.error("Erreur lors de la déconnexion");
-      console.error("Erreur de déconnexion:", error);
     }
   };
 
-  const routes = [
-    {
-      title: "Tableau de bord",
-      icon: BarChart,
-      href: `/ambassador/dashboard`,
-      active: pathname === "/ambassador/dashboard",
-    },
-    {
-      title: "Clients",
-      icon: Users,
-      href: `/ambassador/clients`,
-      active: pathname === "/ambassador/clients" || pathname.startsWith("/ambassador/clients/"),
-    },
-    {
-      title: "Calculateur",
-      icon: Calculator,
-      href: `/ambassador/create-offer`,
-      active: pathname === "/ambassador/create-offer",
-    },
-    {
-      title: "Offres",
-      icon: FileText,
-      href: `/ambassador/offers`,
-      active: pathname === "/ambassador/offers" || pathname.startsWith("/ambassador/offers/"),
-    },
-    {
-      title: "Catalogue",
-      icon: Package,
-      href: `/ambassador/catalog`,
-      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
-    },
-  ];
+  const isActive = (href: string) => {
+    if (href === "/ambassador/dashboard" && location.pathname === "/ambassador/dashboard") {
+      return true;
+    }
+    return location.pathname.startsWith(href) && href !== "/ambassador/dashboard";
+  };
 
-  // Si en mode mobile, utiliser un composant Sheet ou Drawer à la place
+  const getUserInitials = () => {
+    if (!user) return "IT";
+    
+    if (user.first_name && user.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    } else if (user.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "IT";
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return "Ambassadeur";
+    
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    } else if (user.email) {
+      return user.email;
+    }
+    return "Ambassadeur";
+  };
+  
+  const getUserRole = () => {
+    return "Ambassadeur";
+  };
+
   if (isMobile) {
     return (
-      <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
-        <div className="flex h-16 items-center border-b px-6">
-          <Link to="/ambassador/dashboard" className="flex items-center gap-2 font-bold">
-            <span className="text-primary">I Take Care</span>
-            <span className="text-muted-foreground">Ambassadeur</span>
-          </Link>
-        </div>
-        <ScrollArea className="flex-1 px-4 py-4">
-          <nav className="grid gap-2">
-            {routes.map((route, i) => (
-              <Button
-                key={i}
-                variant={route.active ? "default" : "ghost"}
-                className={cn(
-                  "justify-start gap-2",
-                  route.active && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => navigate(route.href)}
-              >
-                <route.icon className="h-4 w-4" />
-                {route.title}
-              </Button>
-            ))}
-          </nav>
-        </ScrollArea>
-        <div className="flex flex-col gap-2 border-t p-4">
-          <Button
-            variant="outline"
-            className="justify-start gap-2"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
-      </div>
+      <MobileSidebar
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        menuItems={menuItems}
+        isActive={isActive}
+        onLinkClick={onLinkClick}
+        avatarUrl={avatarUrl}
+        getUserInitials={getUserInitials}
+        getUserDisplayName={getUserDisplayName}
+        getUserRole={getUserRole}
+        handleLogout={handleLogout}
+      />
     );
   }
 
   return (
-    <div 
+    <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-20 flex h-full flex-col border-r bg-background transition-all duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-64",
-        "md:flex"
+        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
+        collapsed ? "w-[80px]" : "w-[280px]",
+        className
       )}
     >
-      <div className="flex h-16 items-center justify-between border-b px-3">
-        {!collapsed && (
-          <Link to="/ambassador/dashboard" className="flex items-center gap-2 font-bold">
-            <span className="text-primary">I Take Care</span>
-            <span className="text-muted-foreground">Ambassadeur</span>
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("h-8 w-8", collapsed ? "mx-auto" : "")}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
-      <ScrollArea className="flex-1 px-2 py-4">
-        <nav className="grid gap-2">
-          {routes.map((route, i) => (
-            <Button
-              key={i}
-              variant={route.active ? "default" : "ghost"}
-              className={cn(
-                collapsed ? "justify-center p-2" : "justify-start gap-2",
-                route.active && "bg-primary text-primary-foreground"
-              )}
-              onClick={() => navigate(route.href)}
+      <div className="flex flex-col h-full">
+        <div className={cn(
+          "flex items-center p-4 mb-2 transition-all duration-300",
+          collapsed ? "justify-center" : "px-6 justify-between"
+        )}>
+          <Logo showText={!collapsed} />
+          
+          {!collapsed && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(true)} 
+              className="rounded-full hover:bg-primary/10"
             >
-              <route.icon className="h-4 w-4" />
-              {!collapsed && <span>{route.title}</span>}
+              <ChevronLeft className="h-5 w-5" />
             </Button>
-          ))}
-        </nav>
-      </ScrollArea>
-      <div className="flex flex-col gap-2 border-t p-2">
-        <Button
-          variant="outline"
-          className={cn(
-            collapsed ? "justify-center p-2" : "justify-start gap-2"
           )}
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Déconnexion</span>}
-        </Button>
+        </div>
+        
+        <nav className="flex-1 px-2 py-4">
+          <ul className="space-y-1">
+            {menuItems.map((item) => (
+              <SidebarMenuItem 
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                collapsed={collapsed}
+                onLinkClick={onLinkClick}
+              />
+            ))}
+          </ul>
+        </nav>
+        
+        <SidebarUserSection
+          collapsed={collapsed}
+          avatarUrl={avatarUrl}
+          getUserInitials={getUserInitials}
+          getUserDisplayName={getUserDisplayName}
+          getUserRole={getUserRole}
+          handleLogout={handleLogout}
+        />
+        
+        {collapsed && (
+          <div className="p-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setCollapsed(false)} 
+              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
-    </div>
+    </aside>
   );
 };
 
