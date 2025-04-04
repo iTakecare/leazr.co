@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { getLeasers } from "@/services/leaserService";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
