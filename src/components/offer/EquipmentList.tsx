@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ interface EquipmentListProps {
   hideFinancialDetails?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
+  onCommissionCalculated?: (amount: number) => void;
 }
 
 const EquipmentList = ({
@@ -37,7 +39,8 @@ const EquipmentList = ({
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
   ambassadorId,
-  commissionLevelId
+  commissionLevelId,
+  onCommissionCalculated
 }: EquipmentListProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({ 
     amount: 0, 
@@ -88,6 +91,12 @@ const EquipmentList = ({
           rate: commissionData.rate,
           levelName: commissionData.levelName || ""
         });
+        
+        // Propager la commission calculée au parent
+        if (onCommissionCalculated && typeof commissionData.amount === 'number') {
+          console.log("Propagating commission to parent:", commissionData.amount);
+          onCommissionCalculated(commissionData.amount);
+        }
       } catch (error) {
         console.error("Error calculating commission:", error);
       } finally {
@@ -95,7 +104,7 @@ const EquipmentList = ({
         calculationTimerRef.current = null;
       }
     }, 500);
-  }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.newCoef, totalMonthlyPayment]);
+  }, [ambassadorId, commissionLevelId, equipmentList, globalMarginAdjustment.newCoef, totalMonthlyPayment, onCommissionCalculated]);
 
   useEffect(() => {
     if (ambassadorId && commissionLevelId) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +26,6 @@ import {
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
-import { translateOfferType } from "@/utils/offerTypeTranslator";
 
 const getStatusBadge = (status: string) => {
   switch (status) {

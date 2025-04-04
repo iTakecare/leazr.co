@@ -79,10 +79,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
+  // Fonction de navigation pour voir les détails d'une offre
   const handleViewDetails = (offerId: string) => {
-    if (isAmbassador()) {
-      navigate(`/ambassador/offers/${offerId}`);
-    } else {
+    console.log("Navigation vers les détails de l'offre:", offerId);
+    // Navigation explicite vers la page de détail de l'offre
+    if (offerId) {
       navigate(`/offers/${offerId}`);
     }
   };
@@ -103,7 +104,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   return (
-    <>
+    <div>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
@@ -218,7 +219,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
         </div>
       </div>
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+      <AlertDialog 
+        open={!!confirmDelete} 
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
@@ -243,7 +247,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
