@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
@@ -26,6 +27,7 @@ export const createOffer = async (offerData: any) => {
       return { data: null, error };
     }
 
+    console.log("Offer created successfully:", data);
     return { data, error: null };
   } catch (error) {
     console.error("Error in createOffer:", error);
