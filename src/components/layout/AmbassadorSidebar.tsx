@@ -1,157 +1,107 @@
 
-import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
-import {
-  LayoutDashboard, Users, Package, Calculator, FileText,
-  LogOut
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import Logo from "./Logo";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  SidebarTrigger
-} from "@/components/ui/sidebar";
+  BarChart,
+  Users,
+  Calculator,
+  Package,
+  LogOut,
+  FileText,
+} from "lucide-react";
+import { toast } from "sonner";
 
 const AmbassadorSidebar = () => {
-  const location = useLocation();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  
-  const menuItems = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/ambassador/dashboard" },
-    { label: "Clients", icon: Users, href: "/ambassador/clients" },
-    { label: "Calculateur", icon: Calculator, href: "/ambassador/create-offer" },
-    { label: "Offres", icon: FileText, href: "/ambassador/offers" },
-    { label: "Catalogue", icon: Package, href: "/ambassador/catalog" },
-  ];
+  const { signOut, user } = useAuth();
 
-  useEffect(() => {
-    const fetchAvatar = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Erreur lors de la récupération de l'avatar:", error);
-          return;
-        }
-        
-        if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'avatar:", err);
-      }
-    };
-    
-    fetchAvatar();
-  }, [user]);
+  const ambassadorId = user?.ambassador_id;
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/login');
       toast.success("Déconnexion réussie");
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
       toast.error("Erreur lors de la déconnexion");
+      console.error("Erreur de déconnexion:", error);
     }
   };
 
-  const isActive = (href: string) => {
-    if (href === "/ambassador/dashboard" && location.pathname === "/ambassador/dashboard") {
-      return true;
-    }
-    return location.pathname.startsWith(href) && href !== "/ambassador/dashboard";
-  };
-
-  const getUserInitials = () => {
-    if (!user) return "IT";
-    
-    if (user.first_name && user.last_name) {
-      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
-    } else if (user.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return "IT";
-  };
+  const routes = [
+    {
+      title: "Tableau de bord",
+      icon: BarChart,
+      href: `/ambassador/dashboard`,
+      active: pathname === "/ambassador/dashboard",
+    },
+    {
+      title: "Clients",
+      icon: Users,
+      href: `/ambassador/clients`,
+      active: pathname === "/ambassador/clients" || pathname.startsWith("/ambassador/clients/"),
+    },
+    {
+      title: "Calculateur",
+      icon: Calculator,
+      href: `/ambassador/create-offer`,
+      active: pathname === "/ambassador/create-offer",
+    },
+    {
+      title: "Offres",
+      icon: FileText,
+      href: `/ambassador/offers`,
+      active: pathname === "/ambassador/offers" || pathname.startsWith("/ambassador/offers/"),
+    },
+    {
+      title: "Catalogue",
+      icon: Package,
+      href: `/ambassador/catalog`,
+      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
+    },
+  ];
 
   return (
-    <>
-      <Sidebar className="shadow-lg">
-        <SidebarRail />
-        <SidebarHeader className="flex items-center justify-between">
-          <Logo showText={true} />
-          <SidebarTrigger />
-        </SidebarHeader>
-        
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton 
-                      isActive={isActive(item.href)}
-                      tooltip={item.label}
-                      onClick={() => navigate(item.href)}
-                    >
-                      <item.icon className="mr-2 h-5 w-5" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        
-        <SidebarFooter className="mt-auto">
-          <div className="flex items-center justify-between p-4 border-t">
-            <div className="flex items-center">
-              <Avatar className="h-9 w-9 mr-2">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={user?.email || "Avatar"} />
-                ) : (
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                )}
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.first_name || user?.email || "Ambassadeur"}</span>
-                <span className="text-xs text-muted-foreground">Ambassadeur</span>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="ml-4 p-2 rounded-full hover:bg-primary/10"
-              title="Déconnexion"
+    <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
+      <div className="flex h-16 items-center border-b px-6">
+        <Link to="/ambassador/dashboard" className="flex items-center gap-2 font-bold">
+          <span className="text-primary">I Take Care</span>
+          <span className="text-muted-foreground">Ambassadeur</span>
+        </Link>
+      </div>
+      <ScrollArea className="flex-1 px-4 py-4">
+        <nav className="grid gap-2">
+          {routes.map((route, i) => (
+            <Button
+              key={i}
+              variant={route.active ? "default" : "ghost"}
+              className={cn(
+                "justify-start gap-2",
+                route.active && "bg-primary text-primary-foreground"
+              )}
+              onClick={() => navigate(route.href)}
             >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-    </>
+              <route.icon className="h-4 w-4" />
+              {route.title}
+            </Button>
+          ))}
+        </nav>
+      </ScrollArea>
+      <div className="flex flex-col gap-2 border-t p-4">
+        <Button
+          variant="outline"
+          className="justify-start gap-2"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-4 w-4" />
+          Déconnexion
+        </Button>
+      </div>
+    </div>
   );
 };
 

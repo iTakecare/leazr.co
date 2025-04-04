@@ -66,11 +66,22 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <TimeFilterSelector 
-          value={timeFilter} 
-          onChange={setTimeFilter} 
-          className="w-full sm:w-auto"
-        />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <TimeFilterSelector 
+            value={timeFilter} 
+            onChange={setTimeFilter} 
+            className="w-full sm:w-auto"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={refreshData}
+            className="h-10 w-10 flex-shrink-0"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            <span className="sr-only">Rafraîchir</span>
+          </Button>
+        </div>
       </motion.div>
 
       {error && (
