@@ -166,7 +166,7 @@ const CreateOffer = () => {
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
       // Déterminer si l'offre est interne (sans commission) ou normale
-      const offerType = isInternalOffer ? 'internal_offer' : 'offer';
+      const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
       const commissionAmount = isInternalOffer ? 0 : totalMonthlyPayment * 0.1;
 
       const offerData = {

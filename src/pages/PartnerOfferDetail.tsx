@@ -315,7 +315,7 @@ const PartnerOfferDetail = () => {
     );
   }
 
-  const isInternalRequest = offer.type === 'internal_offer';
+  const isInternalOffer = offer.type === 'internal_offer';
   const availableNextSteps = getAvailableNextSteps();
 
   return (

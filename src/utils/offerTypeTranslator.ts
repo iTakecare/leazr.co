@@ -31,5 +31,6 @@ export const translateOfferType = (type: string | undefined | null): string => {
 export const hasCommission = (type: string | undefined | null): boolean => {
   if (!type) return false;
   
+  // Les offres internes ou de type 'internal_offer' n'ont pas de commission
   return type.toLowerCase() !== 'internal_offer';
 };
