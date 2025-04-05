@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadImage, getCacheBustedUrl } from "@/utils/imageUtils";
+import { uploadImage, getCacheBustedUrl, parseImageData } from "@/utils/imageUtils";
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -25,7 +25,13 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
-    setImageUrl(initialImageUrl);
+    // Parse the incoming initialImageUrl in case it's in JSON format
+    if (initialImageUrl) {
+      const parsedUrl = parseImageData(initialImageUrl);
+      setImageUrl(parsedUrl || undefined);
+    } else {
+      setImageUrl(undefined);
+    }
   }, [initialImageUrl]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +84,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   };
 
   // Use cache busting for the avatar image
-  const displayImageUrl = imageUrl ? getCacheBustedUrl(imageUrl) : undefined;
+  const displayImageUrl = imageUrl || '';
 
   return (
     <div className="flex flex-col items-center space-y-4">

@@ -93,13 +93,47 @@ export async function uploadImage(
 }
 
 /**
- * Gets a cached-busted image URL
+ * Gets a cached-busted image URL and fixes common URL issues
  */
 export function getCacheBustedUrl(url: string | null | undefined): string {
   if (!url) return '';
   
   // Fix common URL issues 
   let fixedUrl = url;
+  
+  // Try to parse if it's JSON
+  if (typeof fixedUrl === 'string' && (fixedUrl.startsWith('{') || fixedUrl.startsWith('['))) {
+    try {
+      const parsed = JSON.parse(fixedUrl);
+      
+      // Check various JSON structures that might contain URLs
+      if (parsed.url) {
+        fixedUrl = parsed.url;
+      } else if (parsed.data && typeof parsed.data === 'string') {
+        // It might be a data URL or another string URL
+        fixedUrl = parsed.data;
+      } else if (Array.isArray(parsed) && parsed.length > 0) {
+        // If it's an array, try to get the first item that might be a URL
+        if (typeof parsed[0] === 'string') {
+          fixedUrl = parsed[0];
+        } else if (parsed[0]?.url) {
+          fixedUrl = parsed[0].url;
+        }
+      } else {
+        // Try to get any property that looks like a URL
+        const possibleUrlProps = ['src', 'href', 'link', 'image', 'path', 'publicUrl'];
+        for (const prop of possibleUrlProps) {
+          if (parsed[prop] && typeof parsed[prop] === 'string') {
+            fixedUrl = parsed[prop];
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse JSON URL, using as is:', e);
+      // Continue with the URL as is
+    }
+  }
   
   // Fix missing protocol (if URL starts with single slash)
   if (fixedUrl.startsWith('/') && !fixedUrl.startsWith('//')) {
@@ -111,8 +145,31 @@ export function getCacheBustedUrl(url: string | null | undefined): string {
     fixedUrl = fixedUrl.replace('https:/', 'https://');
   }
   
+  // Fix another common typo (https/:/ instead of https://)
+  if (fixedUrl.startsWith('https/:/')) {
+    fixedUrl = fixedUrl.replace('https/:/', 'https://');
+  }
+  
+  // Ensure valid URL format for data URLs
+  if (fixedUrl.startsWith('data:') && !fixedUrl.includes(';base64,')) {
+    // Try to add the missing parts if it's a data URL with incorrect format
+    if (fixedUrl.includes(',')) {
+      const parts = fixedUrl.split(',');
+      const mimeType = parts[0].replace('data:', '') || 'image/png';
+      fixedUrl = `data:${mimeType};base64,${parts[1]}`;
+    } else {
+      // If it doesn't have a comma, it's likely just the base64 data without the prefix
+      fixedUrl = `data:image/png;base64,${fixedUrl.replace('data:', '')}`;
+    }
+  }
+  
   // Add cache busting parameter
   const timestamp = Date.now();
+  
+  // Don't add cache busting to data URLs
+  if (fixedUrl.startsWith('data:')) {
+    return fixedUrl;
+  }
   
   // If URL already has query parameters, append cache busting parameter
   if (fixedUrl.includes('?')) {
@@ -120,4 +177,53 @@ export function getCacheBustedUrl(url: string | null | undefined): string {
   }
   
   return `${fixedUrl}?t=${timestamp}`;
+}
+
+/**
+ * Parse various image formats from the database or API responses
+ */
+export function parseImageData(imageData: any): string | null {
+  if (!imageData) return null;
+  
+  try {
+    // Case 1: Direct URL string
+    if (typeof imageData === 'string') {
+      // Check if it's JSON string
+      if (imageData.startsWith('{') || imageData.startsWith('[')) {
+        try {
+          return parseImageData(JSON.parse(imageData));
+        } catch (e) {
+          console.warn('Failed to parse JSON image data:', e);
+        }
+      }
+      
+      // Regular URL or data URL
+      return getCacheBustedUrl(imageData);
+    }
+    
+    // Case 2: Object with URL property
+    if (imageData.url) {
+      return getCacheBustedUrl(imageData.url);
+    }
+    
+    // Case 3: Object with data property
+    if (imageData.data) {
+      if (typeof imageData.data === 'string') {
+        return getCacheBustedUrl(imageData.data);
+      }
+      return null;
+    }
+    
+    // Case 4: Array of images, get the first one
+    if (Array.isArray(imageData) && imageData.length > 0) {
+      return parseImageData(imageData[0]);
+    }
+    
+    // Last resort: stringify the object
+    console.warn('Unknown image data format:', imageData);
+    return null;
+  } catch (e) {
+    console.error('Error parsing image data:', e);
+    return null;
+  }
 }
