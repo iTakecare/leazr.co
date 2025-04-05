@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import AvatarUploader from './AvatarUploader';
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import LogoUploader from './LogoUploader';
 
 interface SiteSettings {
   site_name: string;
@@ -230,14 +229,14 @@ const GeneralSettings = () => {
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Logo</h3>
             <div className="flex flex-col items-center p-4 border rounded-md">
-              <AvatarUploader
-                initialImageUrl={settings?.logo_url}
-                onImageUploaded={handleLogoUploaded}
+              <LogoUploader
+                initialLogoUrl={settings?.logo_url}
+                onLogoUploaded={handleLogoUploaded}
                 bucketName="site-settings"
                 folderPath="logos"
               />
               <p className="text-xs text-muted-foreground mt-4 text-center">
-                Téléchargez une image au format PNG, JPG ou WebP pour votre logo.
+                Téléchargez une image au format PNG, JPG, WebP ou SVG pour votre logo.
               </p>
             </div>
           </div>

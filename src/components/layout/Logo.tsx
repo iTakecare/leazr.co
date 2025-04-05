@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getCacheBustedUrl } from "@/services/directFileUploadService";
 
 interface LogoProps {
   className?: string;
@@ -19,6 +18,26 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  
+  // Fonction pour vérifier si une chaîne est du JSON
+  const isPotentiallyJSON = (str: string): boolean => {
+    return (typeof str === 'string') && (str.startsWith('{') || str.startsWith('['));
+  };
+  
+  // Fonction pour ajouter un paramètre cache-busting à une URL
+  const getCacheBustedUrl = (url: string | null): string => {
+    if (!url) return '';
+    
+    // Si c'est un objet JSON ou une chaîne JSON, ne pas l'utiliser
+    if (isPotentiallyJSON(url)) {
+      console.error("L'URL du logo semble être un objet JSON invalide:", url);
+      return '';
+    }
+    
+    // Ajouter le paramètre cache-busting
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${Date.now()}`;
+  };
   
   // Fetch logo and site info on component mount
   useEffect(() => {
@@ -44,8 +63,8 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           // Set logo URL if available and is not a JSON object (error case)
           if (data.logo_url && typeof data.logo_url === 'string') {
             // Check if the URL might be JSON (which indicates an error)
-            if (data.logo_url.startsWith('{') || data.logo_url.startsWith('[')) {
-              console.error("Logo URL appears to be JSON, not displaying:", data.logo_url);
+            if (isPotentiallyJSON(data.logo_url)) {
+              console.error("L'URL du logo semble être du JSON, ne pas afficher:", data.logo_url);
               setImageError(true);
             } else {
               setLogoUrl(data.logo_url);
