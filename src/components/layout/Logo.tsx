@@ -44,20 +44,9 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           // Clean up logo URL if it contains double slashes or fix missing protocol
           let cleanLogoUrl = null;
           if (data.logo_url) {
-            // Fix missing https protocol
-            if (data.logo_url.startsWith("//")) {
-              cleanLogoUrl = "https:" + data.logo_url;
-            } else if (data.logo_url.includes("/storage/v1/object/public/")) {
-              // Make sure there's no double slash issues
-              cleanLogoUrl = data.logo_url.replace(/\/\//g, "/").replace(":/", "://");
-              
-              // Add cache-busting parameter
-              cleanLogoUrl = getImageUrlWithCacheBuster(cleanLogoUrl);
-            } else {
-              cleanLogoUrl = data.logo_url;
-            }
-            
-            console.log("Cleaned logo URL:", cleanLogoUrl);
+            // Add cache-busting parameter to force image refresh
+            cleanLogoUrl = getImageUrlWithCacheBuster(data.logo_url);
+            console.log("Cleaned logo URL with cache buster:", cleanLogoUrl);
           }
           
           setLogoUrl(cleanLogoUrl);
