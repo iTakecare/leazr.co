@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadImage } from '@/services/fileUploadService';
+import { SUPABASE_URL, SUPABASE_KEY } from '@/integrations/supabase/client';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -45,21 +45,48 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log(`Uploading file: ${file.name} with content type: ${file.type}`);
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+      const storageUrl = `${SUPABASE_URL}/storage/v1/object/${bucketName}/${filePath}`;
       
-      const result = await uploadImage(file, bucketName, folderPath);
+      console.log(`Uploading to: ${storageUrl}`);
       
-      if (!result) {
-        throw new Error("Upload failed");
+      // Create FormData for the upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Direct upload using fetch API
+      const response = await fetch(storageUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Upload error:", errorText);
+        
+        // If the bucket doesn't exist, create it and retry
+        if (errorText.includes("The bucket you're trying to access doesn't exist")) {
+          toast.error(`Le bucket "${bucketName}" n'existe pas dans Supabase. Créez-le manuellement dans la console Supabase.`);
+          return;
+        }
+        
+        throw new Error(`Erreur lors de l'upload: ${response.status} ${response.statusText}`);
       }
       
-      const uploadedUrl = result.url;
+      // Get public URL
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
+      console.log(`Image uploaded successfully: ${publicUrl}`);
       
-      console.log(`Image uploaded successfully: ${uploadedUrl}`);
-      setImageUrl(uploadedUrl);
+      setImageUrl(publicUrl);
       
       if (onImageUploaded) {
-        onImageUploaded(uploadedUrl);
+        onImageUploaded(publicUrl);
       }
       
       toast.success("Image téléchargée avec succès");

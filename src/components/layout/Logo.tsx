@@ -40,25 +40,15 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          let effectiveLogoUrl = null;
+          // Handle logo URL with cache-busting
           if (data.logo_url) {
-            // Fix malformed URLs
-            if (data.logo_url.indexOf('//') === 0) {
-              effectiveLogoUrl = 'https:' + data.logo_url;
-            } else {
-              effectiveLogoUrl = data.logo_url;
-            }
-            
-            // Add cache-busting parameter
+            // Add timestamp for cache busting
             const timestamp = Date.now();
-            const urlParts = effectiveLogoUrl.split('?');
-            const baseUrl = urlParts[0];
-            effectiveLogoUrl = `${baseUrl}?t=${timestamp}`;
-            
-            console.log("Logo URL with cache buster:", effectiveLogoUrl);
+            const urlBase = data.logo_url.split("?")[0];
+            const newUrl = `${urlBase}?t=${timestamp}`;
+            setLogoUrl(newUrl);
           }
           
-          setLogoUrl(effectiveLogoUrl);
           setSiteInfo({
             siteName: data.site_name || "iTakecare"
           });

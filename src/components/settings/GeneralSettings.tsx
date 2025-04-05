@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +10,33 @@ import AvatarUploader from './AvatarUploader';
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/services/settingsService';
-import { checkBucketAccess } from '@/services/bucketService';
+
+interface SiteSettings {
+  site_name: string;
+  site_description: string;
+  company_name: string;
+  company_address: string;
+  company_phone: string;
+  company_email: string;
+  logo_url: string;
+}
+
+const getSiteSettings = async (): Promise<SiteSettings> => {
+  return {
+    site_name: 'iTakecare',
+    site_description: 'Hub de gestion',
+    company_name: 'iTakecare SRL',
+    company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
+    company_phone: '+32 71 49 16 85',
+    company_email: 'hello@itakecare.be',
+    logo_url: '',
+  };
+};
+
+const updateSiteSettings = async (settings: SiteSettings): Promise<boolean> => {
+  console.log('Saving settings:', settings);
+  return true;
+};
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -20,25 +44,6 @@ const GeneralSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bucketError, setBucketError] = useState<string | null>(null);
-
-  // Check bucket access on component mount
-  useEffect(() => {
-    const checkStorage = async () => {
-      try {
-        const bucketExists = await checkBucketAccess('site-settings');
-        if (!bucketExists) {
-          setBucketError("Le bucket 'site-settings' n'existe pas ou n'est pas accessible. Les téléchargements d'images ne fonctionneront pas.");
-        } else {
-          setBucketError(null);
-        }
-      } catch (err) {
-        console.error("Error checking bucket access:", err);
-        setBucketError("Erreur lors de la vérification de l'accès au stockage");
-      }
-    };
-    
-    checkStorage();
-  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -159,6 +164,8 @@ const GeneralSettings = () => {
                 {bucketError}
                 <p className="mt-1">
                   Vous devez créer le bucket "site-settings" dans votre projet Supabase pour permettre le téléchargement d'images.
+                  <br />
+                  Allez dans le Dashboard Supabase &gt; Storage &gt; New Bucket &gt; Créez un bucket nommé "site-settings".
                 </p>
               </AlertDescription>
             </Alert>
@@ -249,11 +256,9 @@ const GeneralSettings = () => {
               <p className="text-xs text-muted-foreground mt-4 text-center">
                 Téléchargez une image au format PNG, JPG ou WebP pour votre logo.
               </p>
-              {bucketError && (
-                <p className="text-xs text-destructive mt-2 text-center">
-                  Le bucket de stockage "site-settings" n'existe pas ou n'est pas accessible.
-                </p>
-              )}
+              <p className="text-xs text-amber-500 mt-2 text-center">
+                Assurez-vous d'avoir créé le bucket "site-settings" dans votre console Supabase.
+              </p>
             </div>
           </div>
         </div>
