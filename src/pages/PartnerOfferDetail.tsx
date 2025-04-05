@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +50,16 @@ const getStatusBadge = (status: string) => {
       return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Évaluation leaser</Badge>;
     case 'partner_created':
       return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">En attente de vérification</Badge>;
+    case 'draft':
+      return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Brouillon</Badge>;
+    case 'sent':
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Envoyée</Badge>;
+    case 'valid_itc':
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Validée ITC</Badge>;
+    case 'approved':
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approuvée</Badge>;
+    case 'financed':
+      return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Financée</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -89,7 +100,6 @@ const PartnerOfferDetail = () => {
         .from('offers')
         .select('*')
         .eq('id', id)
-        .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
@@ -212,6 +222,48 @@ const PartnerOfferDetail = () => {
     setWorkflowDialogOpen(true);
   };
 
+  // Fonction pour obtenir les étapes disponibles du workflow en fonction du statut actuel
+  const getAvailableNextSteps = () => {
+    const currentStep = WORKFLOW_STEPS.find(step => step.id === offer.workflow_status);
+    const currentIndex = currentStep ? WORKFLOW_STEPS.indexOf(currentStep) : -1;
+    
+    if (currentIndex === -1) return WORKFLOW_STEPS;
+
+    // Pour les admins, on offre plus de flexibilité dans les changements d'état
+    if (isAdmin()) {
+      // Si l'offre est rejetée ou financée, on ne propose pas d'étapes suivantes
+      if (offer.workflow_status === 'rejected' || offer.workflow_status === 'financed') {
+        return [];
+      }
+
+      // Proposer les étapes précédente, suivante et rejet
+      let availableSteps = [];
+      
+      // Étape précédente si possible
+      if (currentIndex > 0) {
+        availableSteps.push(WORKFLOW_STEPS[currentIndex - 1]);
+      }
+      
+      // Étape suivante si possible
+      if (currentIndex < WORKFLOW_STEPS.length - 1) {
+        availableSteps.push(WORKFLOW_STEPS[currentIndex + 1]);
+      }
+      
+      // Option de rejet toujours disponible sauf si déjà rejeté
+      if (offer.workflow_status !== 'rejected') {
+        const rejectStep = WORKFLOW_STEPS.find(step => step.id === 'rejected');
+        if (rejectStep && !availableSteps.includes(rejectStep)) {
+          availableSteps.push(rejectStep);
+        }
+      }
+      
+      return availableSteps;
+    }
+    
+    // Pour les non-admin, limiter les transitions possibles
+    return [];
+  };
+
   if (loading) {
     return (
       <PageTransition>
@@ -263,27 +315,8 @@ const PartnerOfferDetail = () => {
     );
   }
 
-  const isInternalRequest = !offer.ambassador_id || offer.type === 'internal_offer';
-
-  const getAvailableNextSteps = () => {
-    const currentIndex = WORKFLOW_STEPS.findIndex(step => step.id === offer.workflow_status);
-    if (currentIndex === -1) return WORKFLOW_STEPS;
-    
-    let availableSteps = [];
-    if (currentIndex > 0) {
-      availableSteps.push(WORKFLOW_STEPS[currentIndex - 1]);
-    }
-    
-    if (currentIndex < WORKFLOW_STEPS.length - 1 && offer.workflow_status !== 'rejected' && offer.workflow_status !== 'financed') {
-      availableSteps.push(WORKFLOW_STEPS[currentIndex + 1]);
-    }
-    
-    if (offer.workflow_status !== 'rejected' && offer.workflow_status !== 'financed') {
-      availableSteps.push(WORKFLOW_STEPS.find(step => step.id === 'rejected')!);
-    }
-    
-    return availableSteps;
-  };
+  const isInternalRequest = offer.type === 'internal_offer';
+  const availableNextSteps = getAvailableNextSteps();
 
   return (
     <PageTransition>
@@ -490,7 +523,7 @@ const PartnerOfferDetail = () => {
                       <div>
                         <h3 className="text-sm font-medium mb-2">Modifier le statut</h3>
                         <div className="grid grid-cols-1 gap-2">
-                          {getAvailableNextSteps().map(step => (
+                          {availableNextSteps.map(step => (
                             <Button 
                               key={step.id} 
                               variant="outline" 
