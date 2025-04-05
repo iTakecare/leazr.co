@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -102,6 +101,34 @@ export const detectMimeTypeFromExtension = (fileName: string): string => {
     default:
       return 'application/octet-stream';
   }
+};
+
+/**
+ * Ajoute un paramètre de cache-busting à une URL d'image
+ */
+export const getCacheBustedUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  
+  // Vérifier si l'URL est un objet JSON (cas d'erreur)
+  if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
+    console.error("URL invalide (JSON détecté):", url);
+    return '';
+  }
+  
+  // Ajouter le paramètre cache-busting
+  const timestamp = Date.now();
+  
+  // Ne pas ajouter de cache-busting aux URLs data:
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  
+  // Si l'URL contient déjà des paramètres, ajouter le cache-busting
+  if (url.includes('?')) {
+    return `${url}&t=${timestamp}`;
+  }
+  
+  return `${url}?t=${timestamp}`;
 };
 
 /**
