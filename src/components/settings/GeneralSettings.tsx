@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -18,12 +19,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/services/settingsService';
+import { ensureStorageBucket } from '@/services/storageService';
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ensure the storage bucket exists on component mount
+  useEffect(() => {
+    const setupStorage = async () => {
+      try {
+        const bucketExists = await ensureStorageBucket('site-settings');
+        console.log(`Storage bucket site-settings ${bucketExists ? 'exists' : 'creation attempted'}`);
+      } catch (err) {
+        console.error("Error ensuring storage bucket:", err);
+      }
+    };
+    
+    setupStorage();
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -90,6 +106,7 @@ const GeneralSettings = () => {
 
   const handleLogoUploaded = (url: string) => {
     if (settings) {
+      console.log("Logo uploaded, new URL:", url);
       setSettings({
         ...settings,
         logo_url: url,

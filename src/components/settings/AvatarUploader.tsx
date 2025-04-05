@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadImage } from '@/services/fileUploadService';
+import { uploadImage } from '@/utils/imageUtils';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -38,19 +38,21 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
-      console.log("Using fileUploadService to upload image");
+      console.log(`Using imageUtils.uploadImage with bucket: ${bucketName}, folder: ${folderPath}`);
       
-      // Utiliser le service d'upload qui gère correctement les types MIME
-      const result = await uploadImage(file, bucketName, folderPath);
+      // Using the imageUtils.uploadImage function which correctly handles MIME types
+      const uploadedUrl = await uploadImage(file, bucketName, folderPath);
       
-      if (result && result.url) {
-        setImageUrl(result.url);
+      if (uploadedUrl) {
+        console.log(`Image uploaded successfully: ${uploadedUrl}`);
+        setImageUrl(uploadedUrl);
         
         if (onImageUploaded) {
-          onImageUploaded(result.url);
+          onImageUploaded(uploadedUrl);
         }
         toast.success("Image téléchargée avec succès");
       } else {
+        console.error("Upload returned null URL");
         toast.error("Échec du téléchargement de l'image");
       }
     } catch (error) {

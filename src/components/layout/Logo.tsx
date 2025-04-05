@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getImageUrlWithCacheBuster } from "@/services/storageService";
 
 interface LogoProps {
   className?: string;
@@ -17,12 +18,15 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     siteName: "iTakecare"
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   
   // Fetch logo and site info on component mount
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
         setIsLoading(true);
+        setImageError(false);
+        
         const { data, error } = await supabase
           .from('site_settings')
           .select('*')
@@ -37,10 +41,23 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Clean up logo URL if it contains double slashes
+          // Clean up logo URL if it contains double slashes or fix missing protocol
           let cleanLogoUrl = null;
           if (data.logo_url) {
-            cleanLogoUrl = data.logo_url.replace(/\/\/([^\/])/g, '/$1');
+            // Fix missing https protocol
+            if (data.logo_url.startsWith("//")) {
+              cleanLogoUrl = "https:" + data.logo_url;
+            } else if (data.logo_url.includes("/storage/v1/object/public/")) {
+              // Make sure there's no double slash issues
+              cleanLogoUrl = data.logo_url.replace(/\/\//g, "/").replace(":/", "://");
+              
+              // Add cache-busting parameter
+              cleanLogoUrl = getImageUrlWithCacheBuster(cleanLogoUrl);
+            } else {
+              cleanLogoUrl = data.logo_url;
+            }
+            
+            console.log("Cleaned logo URL:", cleanLogoUrl);
           }
           
           setLogoUrl(cleanLogoUrl);
@@ -78,35 +95,23 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         {/* Logo container with image or initials */}
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
-          {logoUrl ? (
+          {logoUrl && !imageError ? (
             <img 
               src={logoUrl} 
               alt={siteInfo.siteName}
               className="w-10 h-10 object-contain"
               onError={(e) => {
                 console.error("Error loading logo image:", logoUrl);
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
+                setImageError(true);
               }}
             />
           ) : isLoading ? (
             <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
           ) : (
-            <img 
-              src="/site-favicon.ico" 
-              alt="iTakecare Logo"
-              className="w-7 h-7 object-contain"
-              onError={(e) => {
-                // If image fails to load, display initials instead
-                (e.target as HTMLImageElement).style.display = 'none';
-                document.getElementById('logo-fallback')?.classList.remove('hidden');
-              }}
-            />
+            <span className="font-bold text-primary text-lg">
+              {getUserInitials()}
+            </span>
           )}
-          <span id="logo-fallback" className={logoUrl ? "hidden" : "font-bold text-primary text-lg"}>
-            {getUserInitials()}
-          </span>
         </div>
       </div>
       
