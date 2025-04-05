@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
-import { uploadImage } from '@/utils/imageUtils';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -31,16 +30,68 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       return;
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image est trop volumineuse (max 5MB)");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      // Using uploadImage from imageUtils which correctly handles image uploads
-      const url = await uploadImage(file, bucketName, folderPath);
+      // Normalize filename to prevent extension confusion
+      const timestamp = Date.now();
+      const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
       
-      if (url) {
-        setImageUrl(url);
+      // Extract proper extension - only keep the last extension if multiple exist
+      let fileName = originalName;
+      const extensionMatch = originalName.match(/\.([^.]+)$/);
+      const extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+      
+      // Ensure we have a timestamp prefix for uniqueness
+      fileName = `${timestamp}-${fileName}`;
+      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+      
+      // Determine proper MIME type using the proper extension
+      let contentType = 'application/octet-stream'; // default fallback
+      
+      if (extension === 'png') contentType = 'image/png';
+      else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+      else if (extension === 'gif') contentType = 'image/gif';
+      else if (extension === 'webp') contentType = 'image/webp';
+      else if (extension === 'svg') contentType = 'image/svg+xml';
+      else if (file.type.startsWith('image/')) contentType = file.type;
+      
+      console.log(`Uploading image with content type: ${contentType}`);
+      
+      // Create a blob with the correct MIME type
+      const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+      
+      // Upload the file using explicit content type
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, fileBlob, {
+          contentType: contentType,
+          upsert: true
+        });
+      
+      if (error) {
+        console.error("Erreur de téléchargement:", error);
+        toast.error("Échec du téléchargement de l'image");
+        return;
+      }
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      
+      const publicUrl = data.publicUrl;
+      console.log("Image uploaded successfully:", publicUrl);
+      
+      if (publicUrl) {
+        setImageUrl(publicUrl);
         
         if (onImageUploaded) {
-          onImageUploaded(url);
+          onImageUploaded(publicUrl);
         }
         toast.success("Image téléchargée avec succès");
       } else {
