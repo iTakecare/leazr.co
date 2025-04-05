@@ -33,16 +33,14 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
-      // Use uploadImage from imageUtils
-      const result = await uploadImage(file, bucketName, folderPath);
+      // Using uploadImage from imageUtils which correctly handles image uploads
+      const url = await uploadImage(file, bucketName, folderPath);
       
-      if (result) {
-        // Make sure URL doesn't have double slashes in path segments
-        let cleanUrl = result.replace(/\/\/([^\/])/g, '/$1');
-        setImageUrl(cleanUrl);
+      if (url) {
+        setImageUrl(url);
         
         if (onImageUploaded) {
-          onImageUploaded(cleanUrl);
+          onImageUploaded(url);
         }
         toast.success("Image téléchargée avec succès");
       } else {

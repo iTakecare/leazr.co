@@ -73,8 +73,11 @@ const GeneralSettings = () => {
       
       const success = await updateSiteSettings(updated);
       
-      if (!success) {
+      if (success) {
+        toast.success("Paramètres enregistrés avec succès");
+      } else {
         setError("Erreur lors de l'enregistrement des paramètres");
+        toast.error("Erreur lors de l'enregistrement des paramètres");
       }
     } catch (err) {
       console.error("Erreur lors de l'enregistrement des paramètres:", err);
