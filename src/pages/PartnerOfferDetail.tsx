@@ -53,6 +53,7 @@ const PartnerOfferDetail = () => {
   const { user } = useAuth();
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string>("");
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
@@ -87,6 +88,7 @@ const PartnerOfferDetail = () => {
     } catch (error) {
       console.error("Error fetching offer details:", error);
       toast.error("Erreur lors du chargement des détails de l'offre");
+      setLoadError("Une erreur s'est produite");
       navigate('/partner/dashboard');
     } finally {
       setLoading(false);
@@ -165,7 +167,7 @@ const PartnerOfferDetail = () => {
     );
   }
   
-  if (error) {
+  if (loadError) {
     return (
       <PageTransition>
         <Container>
@@ -201,7 +203,6 @@ const PartnerOfferDetail = () => {
     );
   }
 
-  // Check if this is an internal request (no ambassador)
   const isInternalRequest = !offer.ambassador_id || offer.type === 'internal_offer';
 
   return (
