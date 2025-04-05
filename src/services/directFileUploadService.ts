@@ -1,270 +1,187 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
+import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 /**
- * Upload a file using the FileReader API combined with direct Supabase storage
+ * Vérifie si un bucket existe et le crée s'il n'existe pas
  */
-export async function uploadFileDirectly(
+export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
+  try {
+    // Vérifier si le bucket existe
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    if (error) {
+      console.error('Erreur lors de la vérification des buckets:', error);
+      return false;
+    }
+
+    // Si le bucket existe, retourner true
+    if (buckets.some(bucket => bucket.name === bucketName)) {
+      return true;
+    }
+
+    // Si le bucket n'existe pas, essayer de le créer avec la fonction Edge
+    try {
+      const response = await fetch('/api/create-storage-bucket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bucketName }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          console.log(`Bucket ${bucketName} créé avec succès via Edge Function`);
+          return true;
+        }
+      }
+      
+      console.error(`Échec de la création du bucket ${bucketName} via Edge Function`);
+    } catch (edgeFnError) {
+      console.error(`Erreur lors de l'appel Edge Function:`, edgeFnError);
+    }
+
+    // Essayer la fonction RPC
+    try {
+      const { data, error } = await supabase.rpc('create_storage_bucket', { bucket_name: bucketName });
+      if (!error) {
+        console.log(`Bucket ${bucketName} créé via RPC`);
+        return true;
+      }
+    } catch (rpcError) {
+      console.error(`Erreur RPC:`, rpcError);
+    }
+
+    // Essayer de créer le bucket directement (fallback)
+    try {
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+
+      if (createError) {
+        if (createError.message.includes('already exists')) {
+          return true;
+        }
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        return false;
+      }
+
+      return true;
+    } catch (createError) {
+      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+      return false;
+    }
+  } catch (error) {
+    console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Détecte le type MIME à partir de l'extension du fichier
+ */
+export const detectMimeTypeFromExtension = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'pdf':
+      return 'application/pdf';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+/**
+ * Upload un fichier dans Supabase Storage avec une méthode hybride (fetch API + fallback SDK)
+ */
+export const uploadFileDirectly = async (
   file: File,
   bucketName: string,
-  folderPath: string = ""
-): Promise<{ url: string; fileName: string } | null> {
+  folderPath: string = ''
+): Promise<{ url: string, fileName: string } | null> => {
   try {
-    // Validate file size (5MB max)
+    // Valider la taille du fichier (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Le fichier est trop volumineux (max 5MB)");
       return null;
     }
     
-    // Generate a unique file name with timestamp to prevent conflicts
+    // Générer un nom de fichier unique
     const timestamp = Date.now();
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
-    const uniqueFileName = `${timestamp}-${safeFileName}`;
+    const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
+    const uniqueFileName = `${timestamp}-${fileName}`;
     const fullPath = folderPath ? `${folderPath}/${uniqueFileName}` : uniqueFileName;
     
-    // Determine content type based on file extension
-    const fileExt = safeFileName.split('.').pop()?.toLowerCase() || '';
-    const contentType = getContentTypeByExtension(fileExt);
+    // Déterminer le type de contenu en fonction de l'extension du fichier
+    const contentType = file.type || detectMimeTypeFromExtension(file.name);
     
     console.log(`Uploading file ${uniqueFileName} with content type ${contentType}`);
     
-    // Use FileReader to get the file data as ArrayBuffer
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = async (event) => {
-        if (!event.target?.result) {
-          reject(new Error("Failed to read file"));
-          return;
-        }
-        
-        try {
-          // Convert ArrayBuffer to Blob with explicit type
-          const arrayBuffer = event.target.result as ArrayBuffer;
-          const blob = new Blob([arrayBuffer], { type: contentType });
-          
-          // Upload the blob to Supabase Storage using fetch for more control
-          try {
-            const formData = new FormData();
-            formData.append('file', blob);
-            
-            const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${fullPath}`;
-            
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabase.supabaseKey}`
-              },
-              body: formData
-            });
-            
-            if (!response.ok) {
-              console.log("Direct fetch upload failed, trying Supabase API instead");
-              // Fall back to the Supabase SDK if fetch method fails
-              const { data, error } = await supabase.storage
-                .from(bucketName)
-                .upload(fullPath, blob, {
-                  contentType,
-                  upsert: true,
-                  cacheControl: "0"
-                });
-              
-              if (error) {
-                console.error("Storage upload error:", error);
-                reject(error);
-                return;
-              }
-            }
-            
-            // Get the public URL
-            const { data: publicUrlData } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(fullPath);
-            
-            console.log("File uploaded successfully:", publicUrlData.publicUrl);
-            resolve({ 
-              url: publicUrlData.publicUrl,
-              fileName: uniqueFileName 
-            });
-          } catch (uploadError) {
-            console.error("Upload failed with fetch, trying Supabase SDK:", uploadError);
-            
-            // Fall back to Supabase SDK
-            const { data, error } = await supabase.storage
-              .from(bucketName)
-              .upload(fullPath, blob, {
-                contentType,
-                upsert: true,
-                cacheControl: "0"
-              });
-              
-            if (error) {
-              console.error("Storage upload error:", error);
-              reject(error);
-              return;
-            }
-            
-            // Get the public URL
-            const { data: publicUrlData } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(fullPath);
-            
-            console.log("File uploaded successfully (via SDK):", publicUrlData.publicUrl);
-            resolve({ 
-              url: publicUrlData.publicUrl,
-              fileName: uniqueFileName 
-            });
-          }
-        } catch (err) {
-          console.error("Error during upload:", err);
-          reject(err);
-        }
-      };
-      
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
-        reject(error);
-      };
-      
-      // Read file as ArrayBuffer
-      reader.readAsArrayBuffer(file);
-    });
-  } catch (error) {
-    console.error("Upload error:", error);
-    toast.error("Erreur lors du téléchargement du fichier");
-    return null;
-  }
-}
-
-/**
- * Get content type based on file extension
- */
-function getContentTypeByExtension(extension: string): string {
-  const mimeTypes: Record<string, string> = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'svg': 'image/svg+xml',
-    'pdf': 'application/pdf',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'xls': 'application/vnd.ms-excel',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  };
-  
-  return mimeTypes[extension] || 'application/octet-stream';
-}
-
-/**
- * Ensure bucket exists and is properly configured
- */
-export async function ensureBucketExists(bucketName: string): Promise<boolean> {
-  try {
-    // Check if bucket exists in a cache to avoid repeated calls
-    const cachedBuckets = (window as any).__cachedBuckets || {};
-    if (cachedBuckets[bucketName]) {
-      console.log(`Bucket ${bucketName} exists (from cache)`);
-      return true;
-    }
-    
-    // Check if bucket exists
-    const { data: buckets, error } = await supabase.storage.listBuckets();
-    
-    if (error) {
-      console.error("Error listing buckets:", error);
-      
-      // Try with RPC function as fallback
-      try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('check_bucket_exists', {
-          bucket_name: bucketName
-        });
-        
-        if (!rpcError && rpcData === true) {
-          // Cache the result
-          (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
-          return true;
-        }
-      } catch (rpcErr) {
-        console.error("Error checking bucket with RPC:", rpcErr);
-      }
-      
-      return false;
-    }
-    
-    if (buckets.some(bucket => bucket.name === bucketName)) {
-      console.log(`Bucket ${bucketName} already exists`);
-      // Cache the result
-      (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
-      return true;
-    }
-    
-    // Create bucket if it doesn't exist
-    console.log(`Creating bucket ${bucketName}`);
-    
-    // Try RPC function first
+    // Méthode 1: Utiliser fetch directement 
     try {
-      console.log(`Trying to create bucket ${bucketName} via RPC`);
-      const { data: rpcData, error: rpcError } = await supabase.rpc('create_storage_bucket', {
-        bucket_name: bucketName
+      const formData = new FormData();
+      const blob = new Blob([await file.arrayBuffer()], { type: contentType });
+      formData.append('file', blob, uniqueFileName);
+      
+      const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${fullPath}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'x-upsert': 'true'
+        },
+        body: formData
       });
       
-      if (!rpcError) {
-        console.log(`Bucket ${bucketName} created via RPC`);
-        // Cache the result
-        (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
-        return true;
+      if (!response.ok) {
+        console.log("Fetch upload failed, trying SDK fallback method");
+        throw new Error("Fetch upload failed");
       }
-    } catch (rpcErr) {
-      console.error("Error creating bucket with RPC:", rpcErr);
+    } catch (fetchError) {
+      console.log("Falling back to Supabase SDK", fetchError);
+      
+      // Méthode 2: Utiliser l'API Supabase comme fallback
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(fullPath, file, {
+          contentType,
+          upsert: true,
+          cacheControl: "3600"
+        });
+      
+      if (error) {
+        console.error("Upload error via SDK:", error);
+        throw error;
+      }
     }
     
-    // Fall back to direct API
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true
-    });
+    // Récupérer l'URL publique
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fullPath);
     
-    if (createError) {
-      if (createError.message.includes('already exists')) {
-        console.log(`Bucket ${bucketName} already exists (from error)`);
-        // Cache the result
-        (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
-        return true;
-      }
-      console.error(`Error creating bucket ${bucketName}:`, createError);
-      return false;
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      throw new Error("Impossible d'obtenir l'URL publique");
     }
     
-    console.log(`Bucket ${bucketName} created successfully`);
-    // Cache the result
-    (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
-    return true;
+    console.log("File uploaded successfully:", publicUrlData.publicUrl);
+    return { url: publicUrlData.publicUrl, fileName: uniqueFileName };
   } catch (error) {
-    console.error(`Error in ensureBucketExists for ${bucketName}:`, error);
-    return false;
+    console.error("Upload error:", error);
+    return null;
   }
-}
-
-/**
- * Gets a URL with cache-busting parameter
- */
-export function getCacheBustedUrl(url: string | null): string {
-  if (!url) return '';
-  
-  // If it's a data URL, return as is
-  if (url.startsWith('data:')) {
-    return url;
-  }
-  
-  // Check if the URL might be JSON (which indicates an error)
-  if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
-    console.error("URL appears to be JSON, not a valid image URL:", url);
-    return '';
-  }
-  
-  // Add cache-busting parameter
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}t=${Date.now()}`;
-}
+};

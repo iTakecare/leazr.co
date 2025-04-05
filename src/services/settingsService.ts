@@ -50,14 +50,39 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       if (current && current.id) {
         settings.id = current.id;
       } else {
-        console.error("Impossible de trouver l'ID des paramètres");
-        return false;
+        // Si pas de paramètres existants, en créer
+        const { data, error } = await supabase
+          .from('site_settings')
+          .insert([{
+            site_name: settings.site_name || 'iTakecare',
+            site_description: settings.site_description,
+            company_name: settings.company_name,
+            company_address: settings.company_address,
+            company_phone: settings.company_phone,
+            company_email: settings.company_email,
+            logo_url: settings.logo_url
+          }])
+          .select()
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la création des paramètres:", error);
+          toast.error("Erreur lors de la création des paramètres");
+          return false;
+        }
+        
+        toast.success("Paramètres créés avec succès");
+        return true;
       }
     }
     
+    // Mise à jour des paramètres existants
     const { error } = await supabase
       .from('site_settings')
-      .update(settings)
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', settings.id);
     
     if (error) {

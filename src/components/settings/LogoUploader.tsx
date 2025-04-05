@@ -1,14 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ensureBucketExists, uploadFileDirectly } from "@/services/directFileUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -60,124 +57,6 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
       }
     }
   }, [initialLogoUrl, retryCount]);
-  
-  const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
-    try {
-      // Vérifier si le bucket existe
-      const { data, error } = await supabase.storage.listBuckets();
-      
-      if (error) {
-        console.error("Erreur lors de la vérification des buckets:", error);
-        return false;
-      }
-      
-      if (data.some(bucket => bucket.name === bucketName)) {
-        return true;
-      }
-      
-      // Créer le bucket s'il n'existe pas
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true
-      });
-      
-      if (createError) {
-        if (createError.message.includes('already exists')) {
-          return true;
-        }
-        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error(`Erreur dans ensureBucketExists pour ${bucketName}:`, error);
-      return false;
-    }
-  };
-  
-  const uploadFileDirectly = async (file: File, bucketName: string, folderPath: string) => {
-    try {
-      // Valider la taille du fichier (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Le fichier est trop volumineux (max 5MB)");
-        return null;
-      }
-      
-      // Générer un nom de fichier unique
-      const timestamp = Date.now();
-      const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
-      const uniqueFileName = `${timestamp}-${fileName}`;
-      const fullPath = folderPath ? `${folderPath}/${uniqueFileName}` : uniqueFileName;
-      
-      // Déterminer le type de contenu en fonction de l'extension du fichier
-      const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
-      const mimeTypes: Record<string, string> = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml'
-      };
-      const contentType = mimeTypes[fileExt] || 'application/octet-stream';
-      
-      console.log(`Uploading logo ${uniqueFileName} with content type ${contentType}`);
-      
-      // Méthode 1: Utiliser fetch directement pour avoir plus de contrôle sur le Content-Type
-      try {
-        const formData = new FormData();
-        const blob = new Blob([await file.arrayBuffer()], { type: contentType });
-        formData.append('file', blob, uniqueFileName);
-        
-        const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${fullPath}`;
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
-            'x-upsert': 'true'
-          },
-          body: formData
-        });
-        
-        if (!response.ok) {
-          console.log("L'upload direct par fetch a échoué, tentative avec l'API Supabase");
-          throw new Error("Fetch upload failed");
-        }
-      } catch (fetchError) {
-        console.log("Fallback à la méthode Supabase SDK", fetchError);
-        
-        // Méthode 2: Utiliser l'API Supabase comme fallback
-        const { data, error } = await supabase.storage
-          .from(bucketName)
-          .upload(fullPath, file, {
-            contentType,
-            upsert: true,
-            cacheControl: "3600"
-          });
-        
-        if (error) {
-          console.error("Erreur lors de l'upload via SDK:", error);
-          throw error;
-        }
-      }
-      
-      // Récupérer l'URL publique
-      const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fullPath);
-      
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        throw new Error("Impossible d'obtenir l'URL publique");
-      }
-      
-      console.log("Logo uploadé avec succès:", publicUrlData.publicUrl);
-      return { url: publicUrlData.publicUrl, fileName: uniqueFileName };
-    } catch (error) {
-      console.error("Erreur lors de l'upload:", error);
-      return null;
-    }
-  };
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -33,11 +33,6 @@ const getSiteSettings = async (): Promise<SiteSettings> => {
   };
 };
 
-const updateSiteSettings = async (settings: SiteSettings): Promise<boolean> => {
-  console.log('Saving settings:', settings);
-  return true;
-};
-
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +85,7 @@ const GeneralSettings = () => {
         logo_url: settings.logo_url,
       };
       
+      const { updateSiteSettings } = await import('@/services/settingsService');
       const success = await updateSiteSettings(updated);
       
       if (success) {
