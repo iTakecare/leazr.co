@@ -109,7 +109,7 @@ const OfferDetail = () => {
     fetchOfferDetails();
   }, [id, user]);
   
-  // Add this function to check if the offer type has commission
+  // Function to check if the offer type has commission
   const shouldDisplayCommission = (offerType: string | undefined | null): boolean => {
     return hasCommission(offerType);
   };
@@ -790,4 +790,4 @@ const OfferDetail = () => {
                     
                     <div>
                       <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
-                      <div className="p-3 bg-
+                      <div className="p-3 bg-slate-
