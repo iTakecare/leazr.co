@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -790,4 +791,57 @@ const OfferDetail = () => {
                     
                     <div>
                       <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
-                      <div className="p-3 bg-slate-
+                      <div className="p-3 bg-slate-50 rounded-md flex items-center">
+                        <OfferStatusBadge status={offer.workflow_status} className="mr-2" />
+                        <span className="text-sm">
+                          {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.label || "Non défini"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {shouldDisplayCommission(offer.type) && (
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Commission</h3>
+                        <div className={`p-3 border rounded-md ${getCommissionBoxColor(offer.commission_status)}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
+                            {getCommissionStatusBadge(offer.commission_status)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Résumé financier</h3>
+                      <div className="border rounded-md p-4 bg-blue-50">
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                          <div>
+                            <p className="text-xs text-gray-600">Montant financé</p>
+                            <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Coefficient</p>
+                            <p className="font-medium">{offer.coefficient || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-blue-200">
+                          <p className="text-xs text-gray-600">Mensualité</p>
+                          <p className="font-bold text-lg text-blue-700">
+                            {formatCurrency(offer.monthly_payment)}
+                            <span className="text-xs font-normal text-blue-600">/mois</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </TooltipProvider>
+      </Container>
+    </PageTransition>
+  );
+};
+
+export default OfferDetail;
