@@ -32,3 +32,6 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
+// Export the Toaster component with an alias for backward compatibility
+export { Toaster as ShadcnToaster }
