@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen } from "lucide-react";
+import { ArrowLeft, FileDown, RefreshCw, Loader2, Copy, Pen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,11 +22,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
+import { updateOfferStatus } from "@/services/offerService";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -47,10 +54,21 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+const WORKFLOW_STEPS = [
+  { id: 'draft', label: 'Brouillon', description: 'L\'offre est en cours de création' },
+  { id: 'sent', label: 'Envoyée', description: 'L\'offre a été envoyée au client' },
+  { id: 'info_requested', label: 'Infos demandées', description: 'Des informations supplémentaires ont été demandées' },
+  { id: 'valid_itc', label: 'Validée ITC', description: 'L\'offre a été validée par ITC' },
+  { id: 'leaser_review', label: 'Évaluation leaser', description: 'En cours d\'évaluation par le bailleur' },
+  { id: 'approved', label: 'Approuvée', description: 'L\'offre a été approuvée par le client' },
+  { id: 'financed', label: 'Financée', description: 'Le financement a été accordé' },
+  { id: 'rejected', label: 'Rejetée', description: 'L\'offre a été rejetée' }
+];
+
 const PartnerOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -58,6 +76,9 @@ const PartnerOfferDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
   const [isCopiedSignature, setIsCopiedSignature] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
 
   const fetchOfferDetails = async () => {
     try {
@@ -152,6 +173,45 @@ const PartnerOfferDetail = () => {
     return hasCommission(offer.type);
   };
 
+  const handleUpdateWorkflowStatus = async (newStatus: string) => {
+    if (!offer || !newStatus) return;
+    
+    try {
+      setUpdatingStatus(true);
+      
+      const success = await updateOfferStatus(
+        offer.id,
+        newStatus,
+        offer.workflow_status || 'draft',
+        `Status updated by ${user?.email}`
+      );
+      
+      if (success) {
+        // Mise à jour locale de l'offre
+        setOffer({ ...offer, workflow_status: newStatus });
+        toast.success(`Statut mis à jour avec succès: ${getStatusLabel(newStatus)}`);
+        setWorkflowDialogOpen(false);
+      } else {
+        toast.error("Erreur lors de la mise à jour du statut");
+      }
+    } catch (error) {
+      console.error("Error updating workflow status:", error);
+      toast.error("Erreur lors de la mise à jour du statut");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const getStatusLabel = (statusId: string): string => {
+    const step = WORKFLOW_STEPS.find(step => step.id === statusId);
+    return step ? step.label : statusId;
+  };
+
+  const openWorkflowDialog = (statusId: string) => {
+    setSelectedStatusId(statusId);
+    setWorkflowDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <PageTransition>
@@ -204,6 +264,26 @@ const PartnerOfferDetail = () => {
   }
 
   const isInternalRequest = !offer.ambassador_id || offer.type === 'internal_offer';
+
+  const getAvailableNextSteps = () => {
+    const currentIndex = WORKFLOW_STEPS.findIndex(step => step.id === offer.workflow_status);
+    if (currentIndex === -1) return WORKFLOW_STEPS;
+    
+    let availableSteps = [];
+    if (currentIndex > 0) {
+      availableSteps.push(WORKFLOW_STEPS[currentIndex - 1]);
+    }
+    
+    if (currentIndex < WORKFLOW_STEPS.length - 1 && offer.workflow_status !== 'rejected' && offer.workflow_status !== 'financed') {
+      availableSteps.push(WORKFLOW_STEPS[currentIndex + 1]);
+    }
+    
+    if (offer.workflow_status !== 'rejected' && offer.workflow_status !== 'financed') {
+      availableSteps.push(WORKFLOW_STEPS.find(step => step.id === 'rejected')!);
+    }
+    
+    return availableSteps;
+  };
 
   return (
     <PageTransition>
@@ -361,6 +441,79 @@ const PartnerOfferDetail = () => {
                     <span>{getStatusBadge(offer.workflow_status || offer.status)}</span>
                   </div>
                   
+                  {isAdmin() && (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-medium mb-2">Progression dans le workflow</h3>
+                      <div className="space-y-3">
+                        {WORKFLOW_STEPS.map((step, index) => {
+                          const isCurrentStep = step.id === offer.workflow_status;
+                          const isPastStep = WORKFLOW_STEPS.findIndex(s => s.id === offer.workflow_status) > index;
+                          
+                          return (
+                            <div 
+                              key={step.id} 
+                              className={`p-3 rounded-lg border ${
+                                isCurrentStep 
+                                  ? 'bg-blue-50 border-blue-200' 
+                                  : isPastStep 
+                                    ? 'bg-green-50 border-green-200'
+                                    : 'bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className={`font-medium ${
+                                    isCurrentStep ? 'text-blue-700' : isPastStep ? 'text-green-700' : 'text-gray-700'
+                                  }`}>
+                                    {step.label}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{step.description}</p>
+                                </div>
+                                {isCurrentStep && (
+                                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                                    Actuel
+                                  </Badge>
+                                )}
+                                {isPastStep && (
+                                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                                    Complété
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <Separator className="my-4" />
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Modifier le statut</h3>
+                        <div className="grid grid-cols-1 gap-2">
+                          {getAvailableNextSteps().map(step => (
+                            <Button 
+                              key={step.id} 
+                              variant="outline" 
+                              className="justify-between"
+                              onClick={() => openWorkflowDialog(step.id)}
+                              disabled={updatingStatus}
+                            >
+                              <span>{step.label}</span>
+                              <ChevronRight className="h-4 w-4 ml-2" />
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        {updatingStatus && (
+                          <div className="flex items-center justify-center p-2 mt-2">
+                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                            <span>Mise à jour en cours...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   {(offer.workflow_status === 'info_requested' || offer.status === 'rejected') && (
                     <Alert variant="destructive" className="mt-4">
                       <AlertTitle>Action requise</AlertTitle>
@@ -427,6 +580,35 @@ const PartnerOfferDetail = () => {
           </div>
         </div>
       </Container>
+      
+      <AlertDialog open={workflowDialogOpen} onOpenChange={setWorkflowDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Changer le statut de l'offre</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir changer le statut de cette offre vers{' '}
+              <strong>{getStatusLabel(selectedStatusId || '')}</strong> ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updatingStatus}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedStatusId && handleUpdateWorkflowStatus(selectedStatusId)}
+              disabled={updatingStatus}
+              className={selectedStatusId === 'rejected' ? 'bg-red-500 hover:bg-red-600' : ''}
+            >
+              {updatingStatus ? (
+                <div className="flex items-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Mise à jour...
+                </div>
+              ) : (
+                'Confirmer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTransition>
   );
 };
