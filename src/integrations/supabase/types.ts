@@ -373,6 +373,30 @@ export type Database = {
           },
         ]
       }
+      content_cms: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contract_workflow_logs: {
         Row: {
           contract_id: string
@@ -556,6 +580,36 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_cms: {
+        Row: {
+          buttontext: string
+          created_at: string
+          id: string
+          imageurl: string
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          buttontext: string
+          created_at?: string
+          id?: string
+          imageurl: string
+          subtitle: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          buttontext?: string
+          created_at?: string
+          id?: string
+          imageurl?: string
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leaser_ranges: {
         Row: {
           coefficient: number
@@ -615,6 +669,57 @@ export type Database = {
           logo_url?: string | null
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      menus_cms: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          location: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          location: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          location?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_cms: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
         }
         Relationships: []
       }
@@ -829,6 +934,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pages_cms: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       partner_clients: {
         Row: {
@@ -1413,6 +1554,39 @@ export type Database = {
         }
         Relationships: []
       }
+      steps_cms: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          imageurl: string
+          number: number
+          reverse: boolean | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          imageurl: string
+          number: number
+          reverse?: boolean | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          imageurl?: string
+          number?: number
+          reverse?: boolean | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       woocommerce_configs: {
         Row: {
           consumer_key: string
@@ -1584,6 +1758,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_menus_cms: {
+        Args: {
+          location_name: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          items: Json
+          location: string
+          name: string
+          updated_at: string
+        }[]
+      }
       get_offer_by_id_public: {
         Args: {
           offer_id: string
@@ -1614,6 +1801,20 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           workflow_status: string | null
+        }[]
+      }
+      get_pages_cms: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          slug: string
+          title: string
+          updated_at: string
         }[]
       }
       get_pdf_templates: {

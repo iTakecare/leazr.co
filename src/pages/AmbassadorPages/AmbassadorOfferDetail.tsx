@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -267,6 +267,10 @@ const AmbassadorOfferDetail = () => {
     return hasCommission(offer.type);
   };
 
+  const isAdmin = useCallback(() => {
+    return user?.role === 'admin';
+  }, [user]);
+
   if (loading) {
     return (
       <PageTransition>
@@ -384,6 +388,14 @@ const AmbassadorOfferDetail = () => {
   const remainingMonths = getRemainingMonths();
   const equipmentDisplayText = formatEquipmentDisplay(offer.equipment_description || offer.equipment_data);
 
+  const calculatedMargin = offer?.amount && offer?.financed_amount 
+    ? offer.amount - offer.financed_amount 
+    : 0;
+  
+  const marginPercentage = offer?.amount && offer?.financed_amount && offer?.amount > 0
+    ? ((calculatedMargin / offer.financed_amount) * 100).toFixed(2)
+    : 0;
+
   return (
     <PageTransition>
       <Container>
@@ -401,7 +413,6 @@ const AmbassadorOfferDetail = () => {
               <h1 className="text-2xl font-bold">Détail de l'offre</h1>
             </div>
             
-            {/* Résumé financier visible en haut */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
@@ -447,6 +458,24 @@ const AmbassadorOfferDetail = () => {
                     {offer.commission_status && (
                       <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+              {isAdmin() && !shouldShowCommission(offer) && (
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-green-600" />
+                      Marge générée
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(calculatedMargin || 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {marginPercentage}%
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -819,6 +848,14 @@ const AmbassadorOfferDetail = () => {
                             <span className="text-xs font-normal text-blue-600">/mois</span>
                           </p>
                         </div>
+                        {isAdmin() && (
+                          <div className="pt-2 mt-2 border-t border-blue-200">
+                            <p className="text-xs text-gray-600">Marge générée</p>
+                            <p className="font-bold text-blue-700">
+                              {formatCurrency(calculatedMargin)} <span className="text-xs font-normal">({marginPercentage}%)</span>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

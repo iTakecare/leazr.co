@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -197,7 +196,6 @@ const PartnerOfferDetail = () => {
       );
       
       if (success) {
-        // Mise à jour locale de l'offre
         setOffer({ ...offer, workflow_status: newStatus });
         toast.success(`Statut mis à jour avec succès: ${getStatusLabel(newStatus)}`);
         setWorkflowDialogOpen(false);
@@ -222,34 +220,27 @@ const PartnerOfferDetail = () => {
     setWorkflowDialogOpen(true);
   };
 
-  // Fonction pour obtenir les étapes disponibles du workflow en fonction du statut actuel
   const getAvailableNextSteps = () => {
     const currentStep = WORKFLOW_STEPS.find(step => step.id === offer.workflow_status);
     const currentIndex = currentStep ? WORKFLOW_STEPS.indexOf(currentStep) : -1;
     
     if (currentIndex === -1) return WORKFLOW_STEPS;
 
-    // Pour les admins, on offre plus de flexibilité dans les changements d'état
     if (isAdmin()) {
-      // Si l'offre est rejetée ou financée, on ne propose pas d'étapes suivantes
       if (offer.workflow_status === 'rejected' || offer.workflow_status === 'financed') {
         return [];
       }
 
-      // Proposer les étapes précédente, suivante et rejet
       let availableSteps = [];
       
-      // Étape précédente si possible
       if (currentIndex > 0) {
         availableSteps.push(WORKFLOW_STEPS[currentIndex - 1]);
       }
       
-      // Étape suivante si possible
       if (currentIndex < WORKFLOW_STEPS.length - 1) {
         availableSteps.push(WORKFLOW_STEPS[currentIndex + 1]);
       }
       
-      // Option de rejet toujours disponible sauf si déjà rejeté
       if (offer.workflow_status !== 'rejected') {
         const rejectStep = WORKFLOW_STEPS.find(step => step.id === 'rejected');
         if (rejectStep && !availableSteps.includes(rejectStep)) {
@@ -260,9 +251,16 @@ const PartnerOfferDetail = () => {
       return availableSteps;
     }
     
-    // Pour les non-admin, limiter les transitions possibles
     return [];
   };
+
+  const calculatedMargin = offer.amount && offer.financed_amount 
+    ? offer.amount - offer.financed_amount 
+    : 0;
+  
+  const marginPercentage = offer.amount && offer.financed_amount && offer.amount > 0
+    ? ((calculatedMargin / offer.financed_amount) * 100).toFixed(2)
+    : 0;
 
   if (loading) {
     return (
@@ -573,6 +571,25 @@ const PartnerOfferDetail = () => {
                       <span className="text-muted-foreground">Mensualité:</span>
                       <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                     </div>
+                    
+                    {isAdmin() && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Montant total:</span>
+                          <span className="font-medium">{formatCurrency(offer.amount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Marge générée:</span>
+                          <span className="font-medium text-green-600">
+                            {formatCurrency(calculatedMargin)} ({marginPercentage}%)
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Coefficient:</span>
+                          <span className="font-medium">{offer.coefficient || 'N/A'}</span>
+                        </div>
+                      </>
+                    )}
                     
                     {shouldShowCommission(offer) && (
                       <>
