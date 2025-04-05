@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { parseImageData } from "@/utils/imageUtils";
+import { getCacheBustedUrl } from "@/services/directFileUploadService";
 
 interface LogoProps {
   className?: string;
@@ -43,10 +43,8 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           
           // Set logo URL if available
           if (data.logo_url) {
-            // Use the parseImageData function to handle various formats
-            const parsedUrl = parseImageData(data.logo_url);
-            setLogoUrl(parsedUrl);
-            console.log("Parsed logo URL:", parsedUrl);
+            setLogoUrl(data.logo_url);
+            console.log("Logo URL set:", data.logo_url);
           }
           
           setSiteInfo({
@@ -76,7 +74,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   };
 
   // Add cache busting parameter to prevent caching issues
-  const logoUrlWithCacheBusting = logoUrl ? `${logoUrl}?t=${Date.now()}` : '';
+  const logoUrlWithCacheBusting = logoUrl ? getCacheBustedUrl(logoUrl) : '';
 
   return (
     <div className={cn("flex items-center gap-2", className)}>

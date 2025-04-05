@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadImage, getCacheBustedUrl, parseImageData } from "@/utils/imageUtils";
+import { uploadFileDirectly, getCacheBustedUrl, ensureBucketExists } from "@/services/directFileUploadService";
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -26,8 +26,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
     if (initialImageUrl) {
-      const parsedUrl = parseImageData(initialImageUrl);
-      setImageUrl(parsedUrl || undefined);
+      setImageUrl(initialImageUrl);
     } else {
       setImageUrl(undefined);
     }
@@ -58,15 +57,18 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // Use our improved direct upload method
-      const uploadedUrl = await uploadImage(file, bucketName, folderPath);
+      // Ensure bucket exists
+      await ensureBucketExists(bucketName);
       
-      if (uploadedUrl) {
-        console.log(`Image uploaded successfully: ${uploadedUrl}`);
-        setImageUrl(uploadedUrl);
+      // Use our new direct upload method
+      const result = await uploadFileDirectly(file, bucketName, folderPath);
+      
+      if (result && result.url) {
+        console.log(`Image uploaded successfully: ${result.url}`);
+        setImageUrl(result.url);
         
         if (onImageUploaded) {
-          onImageUploaded(uploadedUrl);
+          onImageUploaded(result.url);
         }
         
         toast.success("Image téléchargée avec succès");
