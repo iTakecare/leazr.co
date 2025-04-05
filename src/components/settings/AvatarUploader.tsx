@@ -25,7 +25,6 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
-    // Parse the incoming initialImageUrl in case it's in JSON format
     if (initialImageUrl) {
       const parsedUrl = parseImageData(initialImageUrl);
       setImageUrl(parsedUrl || undefined);
@@ -59,15 +58,15 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // Use imageUtils for a unified approach to image uploads
-      const imageUrl = await uploadImage(file, bucketName, folderPath);
+      // Use our improved direct upload method
+      const uploadedUrl = await uploadImage(file, bucketName, folderPath);
       
-      if (imageUrl) {
-        console.log(`Image uploaded successfully: ${imageUrl}`);
-        setImageUrl(imageUrl);
+      if (uploadedUrl) {
+        console.log(`Image uploaded successfully: ${uploadedUrl}`);
+        setImageUrl(uploadedUrl);
         
         if (onImageUploaded) {
-          onImageUploaded(imageUrl);
+          onImageUploaded(uploadedUrl);
         }
         
         toast.success("Image téléchargée avec succès");
@@ -84,7 +83,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   };
 
   // Use cache busting for the avatar image
-  const displayImageUrl = imageUrl || '';
+  const displayImageUrl = imageUrl ? getCacheBustedUrl(imageUrl) : '';
 
   return (
     <div className="flex flex-col items-center space-y-4">

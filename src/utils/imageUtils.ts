@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -22,57 +21,36 @@ export async function uploadImage(
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    // Make sure file has correct content type
-    let fileToUpload = file;
-    if (!file.type.startsWith('image/')) {
-      // Force the correct content type based on file extension
-      const extension = fileName.split('.').pop()?.toLowerCase();
-      const contentType = extension === 'png' ? 'image/png' : 
-                          extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' :
-                          extension === 'webp' ? 'image/webp' :
-                          extension === 'gif' ? 'image/gif' : 'image/png';
-      
-      fileToUpload = new File([file], fileName, { type: contentType });
-      console.log(`Corrected file type to: ${contentType} for file: ${fileName}`);
-    }
+    // Determine correct content type based on file extension
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    const contentType = extension === 'png' ? 'image/png' : 
+                        extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' :
+                        extension === 'webp' ? 'image/webp' :
+                        extension === 'gif' ? 'image/gif' : 'image/png';
     
-    console.log(`Uploading to: ${bucketName}/${filePath} with Content-Type: ${fileToUpload.type}`);
+    console.log(`Using direct fetch method to upload: ${fileName} with Content-Type: ${contentType}`);
     
-    // Upload using Supabase Storage API
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, fileToUpload, {
-        contentType: fileToUpload.type,
-        upsert: true,
-        cacheControl: '3600'
-      });
+    // Use direct fetch API for better control over Content-Type
+    const formData = new FormData();
+    formData.append('file', file);
     
-    if (error) {
-      console.error('Upload error:', error);
-      
-      // Try the alternative upload method with fetch API
-      try {
-        console.log('Attempting alternative upload method with explicit content type');
-        const formData = new FormData();
-        formData.append('file', fileToUpload);
-        
-        const response = await fetch(`${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
-            'x-upsert': 'true'
-          },
-          body: formData
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Upload failed: ${errorText}`);
-        }
-      } catch (fetchError) {
-        console.error('Alternative upload failed:', fetchError);
-        throw error; // Throw the original error if the alternative also fails
-      }
+    // Get the storage URL and key
+    const storageUrl = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
+    
+    // Upload using fetch with explicit content-type in body
+    const response = await fetch(storageUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabase.supabaseKey}`,
+        'x-upsert': 'true'
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload error:', errorText);
+      throw new Error(`Upload failed: ${errorText}`);
     }
     
     // Get public URL
@@ -88,7 +66,8 @@ export async function uploadImage(
     return urlData.publicUrl;
   } catch (error) {
     console.error('Image upload error:', error);
-    throw error;
+    toast.error("Erreur lors du téléchargement de l'image");
+    return null;
   }
 }
 
