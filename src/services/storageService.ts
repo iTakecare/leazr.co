@@ -310,8 +310,16 @@ export function getImageUrlWithCacheBuster(url: string | null): string {
     // Nettoyer l'URL en supprimant les paramètres existants
     const baseUrl = url.split('?')[0];
     
+    // Si l'URL semble être un lien relatif ou incomplet, essayer de le corriger
+    let fixedUrl = baseUrl;
+    if (baseUrl.startsWith('//')) {
+      fixedUrl = 'https:' + baseUrl;
+    } else if (!baseUrl.startsWith('http') && !baseUrl.startsWith('/')) {
+      fixedUrl = '/' + baseUrl;
+    }
+    
     // Ajouter un timestamp comme paramètre de cache-busting
-    return `${baseUrl}?t=${Date.now()}`;
+    return `${fixedUrl}?t=${Date.now()}`;
   } catch (error) {
     console.error("Erreur lors de la génération de l'URL avec cache-busting:", error);
     return url;

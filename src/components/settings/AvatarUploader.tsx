@@ -38,35 +38,20 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 
     setIsUploading(true);
     try {
-      // Extract file extension and generate a unique filename
+      // Generate a unique filename with extension
       const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      const fileName = `${uniqueName}.${fileExt}`;
       const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
       
-      // Determine the correct MIME type based on extension
-      let contentType = file.type;
-      if (!contentType || contentType === 'application/octet-stream') {
-        // Fallback to extension-based detection
-        if (fileExt === 'png') contentType = 'image/png';
-        else if (fileExt === 'jpg' || fileExt === 'jpeg') contentType = 'image/jpeg';
-        else if (fileExt === 'gif') contentType = 'image/gif';
-        else if (fileExt === 'webp') contentType = 'image/webp';
-        else if (fileExt === 'svg') contentType = 'image/svg+xml';
-      }
-      
-      console.log(`Uploading file: ${fileName} with content type: ${contentType}`);
-      
-      // Convert file to arrayBuffer and create a new Blob with explicit content type
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      
-      // Using the FormData API for direct upload to ensure content-type is preserved
+      console.log(`Uploading file: ${fileName} with content type: ${file.type}`);
+
+      // Create a FormData object
       const formData = new FormData();
-      const fileWithCorrectType = new File([blob], fileName, { type: contentType });
-      formData.append('file', fileWithCorrectType);
+      formData.append('file', file);
       
-      // Upload using fetch API to better control the content-type
-      const response = await fetch(
+      // Use direct fetch for better control of content-type
+      const uploadResponse = await fetch(
         `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
         {
           method: 'POST',
@@ -77,18 +62,21 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         }
       );
       
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
         console.error("Upload failed:", errorText);
-        throw new Error("Upload failed");
+        throw new Error(`Upload failed: ${errorText}`);
       }
       
-      // Generate and use the public URL
+      console.log("Upload successful, generating public URL");
+      
+      // Get the public URL
       const { data } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
-      const uploadedUrl = data.publicUrl;
+      // Add cache-busting parameter
+      const uploadedUrl = `${data.publicUrl}?t=${Date.now()}`;
       
       if (uploadedUrl) {
         console.log(`Image uploaded successfully: ${uploadedUrl}`);

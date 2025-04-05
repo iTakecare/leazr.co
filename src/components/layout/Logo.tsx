@@ -41,15 +41,14 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Clean up logo URL if it contains double slashes or fix missing protocol
-          let cleanLogoUrl = null;
+          let effectiveLogoUrl = null;
           if (data.logo_url) {
             // Add cache-busting parameter to force image refresh
-            cleanLogoUrl = getImageUrlWithCacheBuster(data.logo_url);
-            console.log("Cleaned logo URL with cache buster:", cleanLogoUrl);
+            effectiveLogoUrl = getImageUrlWithCacheBuster(data.logo_url);
+            console.log("Logo URL with cache buster:", effectiveLogoUrl);
           }
           
-          setLogoUrl(cleanLogoUrl);
+          setLogoUrl(effectiveLogoUrl);
           setSiteInfo({
             siteName: data.site_name || "iTakecare"
           });
@@ -82,7 +81,6 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
         <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
         
-        {/* Logo container with image or initials */}
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
           {logoUrl && !imageError ? (
             <img 
