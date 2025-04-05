@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,6 @@ const GeneralSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bucketError, setBucketError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -146,30 +146,13 @@ const GeneralSettings = () => {
         </CardDescription>
       </CardHeader>
       
-      {(error || bucketError) && (
+      {error && (
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Erreur</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {bucketError && (
-            <Alert variant="warning" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Problème de stockage</AlertTitle>
-              <AlertDescription>
-                {bucketError}
-                <p className="mt-1">
-                  Vous devez créer le bucket "site-settings" dans votre projet Supabase pour permettre le téléchargement d'images.
-                  <br />
-                  Allez dans le Dashboard Supabase &gt; Storage &gt; New Bucket &gt; Créez un bucket nommé "site-settings".
-                </p>
-              </AlertDescription>
-            </Alert>
-          )}
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         </CardContent>
       )}
       
@@ -255,9 +238,6 @@ const GeneralSettings = () => {
               />
               <p className="text-xs text-muted-foreground mt-4 text-center">
                 Téléchargez une image au format PNG, JPG ou WebP pour votre logo.
-              </p>
-              <p className="text-xs text-amber-500 mt-2 text-center">
-                Assurez-vous d'avoir créé le bucket "site-settings" dans votre console Supabase.
               </p>
             </div>
           </div>
