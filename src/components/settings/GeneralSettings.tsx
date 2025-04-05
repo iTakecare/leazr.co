@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -62,7 +61,6 @@ const GeneralSettings = () => {
       setIsSaving(true);
       setError(null);
       
-      // Mettre à jour les paramètres
       const updated = {
         site_name: settings.site_name,
         site_description: settings.site_description,
