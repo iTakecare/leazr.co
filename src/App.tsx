@@ -17,7 +17,7 @@ import ITakecarePage from "./pages/ITakecarePage";
 import { ThemeProvider } from "./components/providers/theme-provider";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "@/components/ui/sonner";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { ShadcnToaster } from "@/components/ui/toaster";
 import ClientRoutes from "./components/layout/ClientRoutes";
 import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";

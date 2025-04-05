@@ -12,7 +12,6 @@ import DataImporter from "@/components/settings/DataImporter";
 import UserManager from "@/components/settings/UserManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import GeneralSettings from "@/components/settings/GeneralSettings";
-import PermissionsTest from "@/components/debug/PermissionsTest";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -44,7 +43,7 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-9 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="general">Général</TabsTrigger>
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -53,7 +52,6 @@ const Settings = () => {
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-          <TabsTrigger value="devtools">DevTools</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -154,20 +152,6 @@ const Settings = () => {
             </CardHeader>
             <CardContent>
               <UserManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="devtools">
-          <Card>
-            <CardHeader>
-              <CardTitle>Outils de développement</CardTitle>
-              <CardDescription>
-                Outils de test et de diagnostic pour les développeurs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PermissionsTest />
             </CardContent>
           </Card>
         </TabsContent>
