@@ -307,8 +307,15 @@ export function getImageUrlWithCacheBuster(url: string | null): string {
   if (!url) return "/placeholder.svg";
   
   try {
+    // Vérifier si l'URL est un object JSON (cas d'erreur connu)
+    if (url.startsWith('{') || url.startsWith('[')) {
+      console.error("Invalid image URL (JSON detected):", url);
+      return "/placeholder.svg";
+    }
+    
     // Nettoyer l'URL en supprimant les paramètres existants
-    const baseUrl = url.split('?')[0];
+    const urlParts = url.split('?');
+    const baseUrl = urlParts[0];
     
     // Si l'URL semble être un lien relatif ou incomplet, essayer de le corriger
     let fixedUrl = baseUrl;
@@ -322,7 +329,7 @@ export function getImageUrlWithCacheBuster(url: string | null): string {
     return `${fixedUrl}?t=${Date.now()}`;
   } catch (error) {
     console.error("Erreur lors de la génération de l'URL avec cache-busting:", error);
-    return url;
+    return url || "/placeholder.svg";
   }
 }
 

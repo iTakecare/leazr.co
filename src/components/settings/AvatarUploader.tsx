@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { ensureStorageBucket } from '@/services/storageService';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -22,10 +23,27 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   const [imageUrl, setImageUrl] = useState<string | undefined>(initialImageUrl);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Make sure the bucket exists before upload
+  const ensureBucketExists = async (): Promise<boolean> => {
+    try {
+      const bucketExists = await ensureStorageBucket(bucketName);
+      if (!bucketExists) {
+        console.error(`Bucket ${bucketName} doesn't exist and couldn't be created`);
+        toast.error(`Erreur: le bucket ${bucketName} n'existe pas`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking/creating bucket:", error);
+      return false;
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type and size
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner un fichier image");
       return;
@@ -37,8 +55,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     }
 
     setIsUploading(true);
+    
     try {
-      // Generate a unique filename with extension
+      // Make sure bucket exists
+      const bucketExists = await ensureBucketExists();
+      if (!bucketExists) {
+        setIsUploading(false);
+        return;
+      }
+
+      // Generate a unique filename with timestamp and original extension
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
       const fileName = `${uniqueName}.${fileExt}`;
@@ -46,11 +72,11 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       
       console.log(`Uploading file: ${fileName} with content type: ${file.type}`);
 
-      // Create a FormData object
+      // Create FormData for proper multipart/form-data upload
       const formData = new FormData();
       formData.append('file', file);
       
-      // Use direct fetch for better control of content-type
+      // Use direct fetch API with proper headers for correct MIME type handling
       const uploadResponse = await fetch(
         `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
         {
@@ -63,33 +89,33 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       );
       
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("Upload failed:", errorText);
-        throw new Error(`Upload failed: ${errorText}`);
+        const errorData = await uploadResponse.text();
+        console.error("Upload failed:", errorData);
+        throw new Error(`Upload failed: ${errorData}`);
       }
       
       console.log("Upload successful, generating public URL");
       
-      // Get the public URL
+      // Get the public URL with cache busting
       const { data } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
-      // Add cache-busting parameter
+      if (!data.publicUrl) {
+        throw new Error("Failed to get public URL");
+      }
+      
+      // Add cache busting parameter to force browser to reload the image
       const uploadedUrl = `${data.publicUrl}?t=${Date.now()}`;
       
-      if (uploadedUrl) {
-        console.log(`Image uploaded successfully: ${uploadedUrl}`);
-        setImageUrl(uploadedUrl);
-        
-        if (onImageUploaded) {
-          onImageUploaded(uploadedUrl);
-        }
-        toast.success("Image téléchargée avec succès");
-      } else {
-        console.error("Failed to get public URL");
-        toast.error("Échec du téléchargement de l'image");
+      console.log(`Image uploaded successfully: ${uploadedUrl}`);
+      setImageUrl(uploadedUrl);
+      
+      if (onImageUploaded) {
+        onImageUploaded(uploadedUrl);
       }
+      
+      toast.success("Image téléchargée avec succès");
     } catch (error) {
       console.error("Erreur de téléchargement:", error);
       toast.error("Erreur de téléchargement de l'image");
@@ -101,7 +127,13 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="w-24 h-24">
-        <AvatarImage src={imageUrl} />
+        <AvatarImage 
+          src={imageUrl} 
+          onError={(e) => {
+            console.error("Error loading avatar image:", e);
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
       </Avatar>
       
