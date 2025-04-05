@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
+import { uploadImage } from '@/services/fileUploadService';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -45,45 +45,15 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // Generate a unique filename with timestamp and original extension
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-      const fileName = `${uniqueName}.${fileExt}`;
-      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+      console.log(`Uploading file: ${file.name} with content type: ${file.type}`);
       
-      console.log(`Uploading file: ${fileName} with content type: ${file.type}`);
-
-      // Create FormData for proper multipart/form-data upload
-      const formData = new FormData();
-      formData.append('file', file);
+      const result = await uploadImage(file, bucketName, folderPath);
       
-      // Use supabase Storage API directly - let it handle bucket existence
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          contentType: file.type, // Set the content type explicitly
-          upsert: true // Override if file exists
-        });
-      
-      if (error) {
-        console.error("Upload error:", error);
-        
-        // If bucket doesn't exist, try to create it and retry
-        if (error.message.includes("bucket") && error.message.includes("not found")) {
-          toast.error(`Le bucket ${bucketName} n'existe pas. Impossible de télécharger le fichier.`);
-          return;
-        }
-        
-        throw error;
+      if (!result) {
+        throw new Error("Upload failed");
       }
       
-      // Get the public URL with cache busting parameter
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-      
-      // Add cache busting parameter
-      const uploadedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const uploadedUrl = result.url;
       
       console.log(`Image uploaded successfully: ${uploadedUrl}`);
       setImageUrl(uploadedUrl);

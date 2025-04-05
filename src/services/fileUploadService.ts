@@ -131,7 +131,8 @@ export const enforceCorrectMimeType = (file: File): File => {
 };
 
 /**
- * Upload une image dans un bucket
+ * Upload une image dans un bucket en utilisant une requête fetch directe pour s'assurer
+ * que le type MIME est correctement défini
  */
 export const uploadImage = async (
   file: File,
@@ -170,30 +171,50 @@ export const uploadImage = async (
     
     console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes`);
 
-    // Convertir le fichier en Blob avec le type MIME explicite pour éviter toute mauvaise interprétation
-    const fileBlob = new Blob([await fileWithCorrectMime.arrayBuffer()], { type: contentType });
-
-    // Upload du fichier en spécifiant correctement le contentType
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, fileBlob, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: contentType // Spécifier explicitement le type MIME du fichier
-      });
-
-    if (error) {
-      console.error('Erreur lors de l\'upload:', error);
-      toast.error("Erreur lors de l'upload du fichier");
-      return null;
+    // Utiliser directement l'API Fetch pour avoir un contrôle total sur le Content-Type
+    const formData = new FormData();
+    formData.append('file', fileWithCorrectMime); // Utiliser le fichier avec le type MIME correct
+    
+    // URL de l'API Supabase Storage
+    const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
+    
+    // Upload du fichier avec l'en-tête Content-Type non défini pour permettre à FormData de définir la limite
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabase.supabaseKey}`
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Erreur lors de l'upload direct: ${errorText}`);
+      
+      // Fallback: utiliser la méthode supabase.storage si l'API Fetch échoue
+      console.log('Fallback to supabase.storage.upload');
+      
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, fileWithCorrectMime, {
+          contentType: contentType,
+          upsert: true
+        });
+        
+      if (error) {
+        console.error(`Erreur lors de l'upload via supabase.storage: ${error.message}`);
+        toast.error(`Erreur lors de l'upload: ${error.message}`);
+        return null;
+      }
     }
 
     // Récupérer l'URL publique
-    const { data } = supabase.storage
+    const { data: publicUrlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
-    return { url: data.publicUrl };
+    console.log(`Image téléchargée avec succès: ${publicUrlData.publicUrl}`);
+    return { url: publicUrlData.publicUrl };
   } catch (error) {
     console.error('Erreur lors de l\'upload:', error);
     toast.error("Erreur lors de l'upload du fichier");
