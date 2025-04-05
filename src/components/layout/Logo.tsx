@@ -73,7 +73,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   };
 
   // Use cache-busted URL for the logo to prevent caching issues
-  const logoUrlWithCacheBusting = getCacheBustedUrl(logoUrl);
+  const logoUrlWithCacheBusting = logoUrl ? getCacheBustedUrl(logoUrl) : '';
 
   return (
     <div className={cn("flex items-center gap-2", className)}>

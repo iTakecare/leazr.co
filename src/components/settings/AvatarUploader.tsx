@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadImage } from "@/utils/imageUtils";
+import { uploadImage, getCacheBustedUrl } from "@/utils/imageUtils";
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -36,9 +36,11 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setError(null);
 
     // Validate file type and size
-    if (!file.type.startsWith('image/')) {
-      setError("Veuillez sélectionner un fichier image");
-      toast.error("Veuillez sélectionner un fichier image");
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (!validImageTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      setError("Veuillez sélectionner un fichier image (JPG, PNG, GIF ou WebP)");
+      toast.error("Veuillez sélectionner un fichier image (JPG, PNG, GIF ou WebP)");
       return;
     }
 
@@ -75,11 +77,14 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     }
   };
 
+  // Use cache busting for the avatar image
+  const displayImageUrl = imageUrl ? getCacheBustedUrl(imageUrl) : undefined;
+
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="w-24 h-24">
         <AvatarImage 
-          src={imageUrl} 
+          src={displayImageUrl} 
           onError={(e) => {
             console.error("Error loading avatar image:", e);
             (e.target as HTMLImageElement).style.display = 'none';
