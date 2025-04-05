@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getCacheBustedUrl } from "@/utils/imageUtils";
 
 interface LogoProps {
   className?: string;
@@ -40,13 +41,9 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Handle logo URL with cache-busting
+          // Set logo URL if available
           if (data.logo_url) {
-            // Add timestamp for cache busting
-            const timestamp = Date.now();
-            const urlBase = data.logo_url.split("?")[0];
-            const newUrl = `${urlBase}?t=${timestamp}`;
-            setLogoUrl(newUrl);
+            setLogoUrl(data.logo_url);
           }
           
           setSiteInfo({
@@ -75,6 +72,9 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     return "IT";
   };
 
+  // Use cache-busted URL for the logo to prevent caching issues
+  const logoUrlWithCacheBusting = getCacheBustedUrl(logoUrl);
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
@@ -84,7 +84,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
           {logoUrl && !imageError ? (
             <img 
-              src={logoUrl} 
+              src={logoUrlWithCacheBusting} 
               alt={siteInfo.siteName}
               className="w-10 h-10 object-contain"
               onError={(e) => {

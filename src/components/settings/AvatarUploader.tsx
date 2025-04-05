@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { SUPABASE_URL, SUPABASE_KEY } from '@/integrations/supabase/client';
+import { uploadImage } from "@/utils/imageUtils";
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -21,6 +21,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
 }) => {
   const [imageUrl, setImageUrl] = useState<string | undefined>(initialImageUrl);
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
@@ -31,13 +32,18 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset previous errors
+    setError(null);
+
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
+      setError("Veuillez sélectionner un fichier image");
       toast.error("Veuillez sélectionner un fichier image");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
+      setError("L'image est trop volumineuse (max 5MB)");
       toast.error("L'image est trop volumineuse (max 5MB)");
       return;
     }
@@ -45,54 +51,25 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // Generate a unique filename
-      const timestamp = Date.now();
-      const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-      const storageUrl = `${SUPABASE_URL}/storage/v1/object/${bucketName}/${filePath}`;
+      // Use imageUtils for a unified approach to image uploads
+      const imageUrl = await uploadImage(file, bucketName, folderPath);
       
-      console.log(`Uploading to: ${storageUrl}`);
-      
-      // Create FormData for the upload
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Direct upload using fetch API
-      const response = await fetch(storageUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Upload error:", errorText);
+      if (imageUrl) {
+        console.log(`Image uploaded successfully: ${imageUrl}`);
+        setImageUrl(imageUrl);
         
-        // If the bucket doesn't exist, create it and retry
-        if (errorText.includes("The bucket you're trying to access doesn't exist")) {
-          toast.error(`Le bucket "${bucketName}" n'existe pas dans Supabase. Créez-le manuellement dans la console Supabase.`);
-          return;
+        if (onImageUploaded) {
+          onImageUploaded(imageUrl);
         }
         
-        throw new Error(`Erreur lors de l'upload: ${response.status} ${response.statusText}`);
+        toast.success("Image téléchargée avec succès");
+      } else {
+        throw new Error("Erreur lors du téléchargement de l'image");
       }
-      
-      // Get public URL
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
-      console.log(`Image uploaded successfully: ${publicUrl}`);
-      
-      setImageUrl(publicUrl);
-      
-      if (onImageUploaded) {
-        onImageUploaded(publicUrl);
-      }
-      
-      toast.success("Image téléchargée avec succès");
     } catch (error) {
       console.error("Erreur de téléchargement:", error);
-      toast.error("Erreur de téléchargement de l'image");
+      setError("Erreur lors du téléchargement de l'image");
+      toast.error("Erreur lors du téléchargement de l'image");
     } finally {
       setIsUploading(false);
     }
@@ -110,6 +87,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         />
         <AvatarFallback className="bg-muted text-xl">?</AvatarFallback>
       </Avatar>
+      
+      {error && (
+        <p className="text-destructive text-sm">{error}</p>
+      )}
       
       <div className="flex flex-col items-center">
         <Label 
