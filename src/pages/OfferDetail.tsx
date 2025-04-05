@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/utils/formatters";
-import { format } from "date-fns";
+import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -663,38 +663,40 @@ const OfferDetail = () => {
                           </div>
                         </div>
                         
-                        <div className="mt-6">
-                          <h3 className="font-medium mb-2">Votre commission</h3>
-                          <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
-                                  <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
+                        {offer && shouldDisplayCommission(offer.type) && (
+                          <div className="mt-6">
+                            <h3 className="font-medium mb-2">Votre commission</h3>
+                            <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
+                                    <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
+                                  </div>
+                                  <div>
+                                    <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
+                                    <p className="text-2xl font-bold text-gray-700">
+                                      {recalculatingCommission ? (
+                                        <span className="flex items-center">
+                                          <span className="animate-pulse">Calcul en cours...</span>
+                                        </span>
+                                      ) : (
+                                        formatCurrency(offer.commission || 0)
+                                      )}
+                                    </p>
+                                  </div>
                                 </div>
                                 <div>
-                                  <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
-                                  <p className="text-2xl font-bold text-gray-700">
-                                    {recalculatingCommission ? (
-                                      <span className="flex items-center">
-                                        <span className="animate-pulse">Calcul en cours...</span>
-                                      </span>
-                                    ) : (
-                                      formatCurrency(offer.commission || 0)
-                                    )}
-                                  </p>
+                                  {getCommissionStatusBadge(offer.commission_status)}
+                                  {offer.commission_paid_at && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Payée le {formatDate(offer.commission_paid_at)}
+                                    </p>
+                                  )}
                                 </div>
-                              </div>
-                              <div>
-                                {getCommissionStatusBadge(offer.commission_status)}
-                                {offer.commission_paid_at && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Payée le {formatDate(offer.commission_paid_at)}
-                                  </p>
-                                )}
                               </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                         
                         {offer.remarks && (
                           <div className="mt-6">
@@ -788,5 +790,4 @@ const OfferDetail = () => {
                     
                     <div>
                       <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
-                      <div className="p-3 bg-slate-50 rounded-md flex items-center">
-                        <OfferStatusBadge status={offer.workflow_status}
+                      <div className="p-3 bg-
