@@ -12,11 +12,29 @@ import DataImporter from "@/components/settings/DataImporter";
 import UserManager from "@/components/settings/UserManager";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import GeneralSettings from "@/components/settings/GeneralSettings";
+import { initStorage } from "@/services/bucketService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [storageError, setStorageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check storage on component mount
+    const checkBuckets = async () => {
+      try {
+        await initStorage();
+      } catch (error) {
+        console.error("Error initializing storage:", error);
+        setStorageError("Erreur lors de l'initialisation du stockage");
+      }
+    };
+    
+    checkBuckets();
+  }, []);
   
   useEffect(() => {
     // Récupère l'onglet à partir des paramètres d'URL
@@ -41,6 +59,19 @@ const Settings = () => {
         <h1 className="text-3xl font-bold">Paramètres</h1>
         <p className="text-gray-500">Gérez les paramètres de votre application</p>
       </div>
+      
+      {storageError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Problème de stockage</AlertTitle>
+          <AlertDescription>
+            {storageError}
+            <p className="mt-1">
+              Vérifiez que les buckets de stockage nécessaires existent dans votre projet Supabase.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid grid-cols-8 w-full">

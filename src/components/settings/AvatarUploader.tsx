@@ -1,11 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { ensureStorageBucket } from '@/services/storageService';
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -23,21 +22,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   const [imageUrl, setImageUrl] = useState<string | undefined>(initialImageUrl);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Make sure the bucket exists before upload
-  const ensureBucketExists = async (): Promise<boolean> => {
-    try {
-      const bucketExists = await ensureStorageBucket(bucketName);
-      if (!bucketExists) {
-        console.error(`Bucket ${bucketName} doesn't exist and couldn't be created`);
-        toast.error(`Erreur: le bucket ${bucketName} n'existe pas`);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error checking/creating bucket:", error);
-      return false;
-    }
-  };
+  useEffect(() => {
+    // Update the image URL when the initialImageUrl prop changes
+    setImageUrl(initialImageUrl);
+  }, [initialImageUrl]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,13 +45,6 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // Make sure bucket exists
-      const bucketExists = await ensureBucketExists();
-      if (!bucketExists) {
-        setIsUploading(false);
-        return;
-      }
-
       // Generate a unique filename with timestamp and original extension
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
@@ -76,37 +57,33 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       
-      // Use direct fetch API with proper headers for correct MIME type handling
-      const uploadResponse = await fetch(
-        `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`
-          },
-          body: formData
-        }
-      );
+      // Use supabase Storage API directly - let it handle bucket existence
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          contentType: file.type, // Set the content type explicitly
+          upsert: true // Override if file exists
+        });
       
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.text();
-        console.error("Upload failed:", errorData);
-        throw new Error(`Upload failed: ${errorData}`);
+      if (error) {
+        console.error("Upload error:", error);
+        
+        // If bucket doesn't exist, try to create it and retry
+        if (error.message.includes("bucket") && error.message.includes("not found")) {
+          toast.error(`Le bucket ${bucketName} n'existe pas. Impossible de télécharger le fichier.`);
+          return;
+        }
+        
+        throw error;
       }
       
-      console.log("Upload successful, generating public URL");
-      
-      // Get the public URL with cache busting
-      const { data } = supabase.storage
+      // Get the public URL with cache busting parameter
+      const { data: urlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
-      if (!data.publicUrl) {
-        throw new Error("Failed to get public URL");
-      }
-      
-      // Add cache busting parameter to force browser to reload the image
-      const uploadedUrl = `${data.publicUrl}?t=${Date.now()}`;
+      // Add cache busting parameter
+      const uploadedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       
       console.log(`Image uploaded successfully: ${uploadedUrl}`);
       setImageUrl(uploadedUrl);

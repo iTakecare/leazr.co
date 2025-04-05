@@ -1,14 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,26 +12,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/services/settingsService';
-import { ensureStorageBucket } from '@/services/storageService';
+import { checkBucketAccess } from '@/services/bucketService';
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bucketError, setBucketError] = useState<string | null>(null);
 
-  // Ensure the storage bucket exists on component mount
+  // Check bucket access on component mount
   useEffect(() => {
-    const setupStorage = async () => {
+    const checkStorage = async () => {
       try {
-        const bucketExists = await ensureStorageBucket('site-settings');
-        console.log(`Storage bucket site-settings ${bucketExists ? 'exists' : 'creation attempted'}`);
+        const bucketExists = await checkBucketAccess('site-settings');
+        if (!bucketExists) {
+          setBucketError("Le bucket 'site-settings' n'existe pas ou n'est pas accessible. Les téléchargements d'images ne fonctionneront pas.");
+        } else {
+          setBucketError(null);
+        }
       } catch (err) {
-        console.error("Error ensuring storage bucket:", err);
+        console.error("Error checking bucket access:", err);
+        setBucketError("Erreur lors de la vérification de l'accès au stockage");
       }
     };
     
-    setupStorage();
+    checkStorage();
   }, []);
 
   useEffect(() => {
@@ -142,13 +141,28 @@ const GeneralSettings = () => {
         </CardDescription>
       </CardHeader>
       
-      {error && (
+      {(error || bucketError) && (
         <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erreur</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {bucketError && (
+            <Alert variant="warning" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Problème de stockage</AlertTitle>
+              <AlertDescription>
+                {bucketError}
+                <p className="mt-1">
+                  Vous devez créer le bucket "site-settings" dans votre projet Supabase pour permettre le téléchargement d'images.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       )}
       
@@ -235,6 +249,11 @@ const GeneralSettings = () => {
               <p className="text-xs text-muted-foreground mt-4 text-center">
                 Téléchargez une image au format PNG, JPG ou WebP pour votre logo.
               </p>
+              {bucketError && (
+                <p className="text-xs text-destructive mt-2 text-center">
+                  Le bucket de stockage "site-settings" n'existe pas ou n'est pas accessible.
+                </p>
+              )}
             </div>
           </div>
         </div>

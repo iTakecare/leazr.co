@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getImageUrlWithCacheBuster } from "@/services/storageService";
 
 interface LogoProps {
   className?: string;
@@ -43,7 +42,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           
           let effectiveLogoUrl = null;
           if (data.logo_url) {
-            // Add cache-busting parameter to force image refresh
+            // Add cache-busting parameter and fix malformed URLs
             effectiveLogoUrl = getImageUrlWithCacheBuster(data.logo_url);
             console.log("Logo URL with cache buster:", effectiveLogoUrl);
           }
@@ -62,6 +61,34 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     
     fetchSiteSettings();
   }, []);
+  
+  // Fix for URLs and add cache busting parameter
+  const getImageUrlWithCacheBuster = (url: string | null): string | null => {
+    if (!url) return null;
+    
+    try {
+      // Vérifier si l'URL est un object JSON (cas d'erreur connu)
+      if (url.startsWith('{') || url.startsWith('[')) {
+        console.error("Invalid image URL (JSON detected):", url);
+        return null;
+      }
+      
+      // Fixer les URLs Supabase sans https:
+      if (url.indexOf('//') === 0) {
+        url = 'https:' + url;
+      }
+      
+      // Nettoyer l'URL en supprimant les paramètres existants
+      const urlParts = url.split('?');
+      const baseUrl = urlParts[0];
+      
+      // Ajouter un timestamp comme paramètre de cache-busting
+      return `${baseUrl}?t=${Date.now()}`;
+    } catch (error) {
+      console.error("Erreur lors de la génération de l'URL avec cache-busting:", error);
+      return null;
+    }
+  };
   
   // Generate user initials or use IT by default
   const getUserInitials = () => {
