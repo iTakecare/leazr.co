@@ -41,10 +41,16 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         if (data) {
           console.log("Site settings loaded for logo:", data);
           
-          // Set logo URL if available
-          if (data.logo_url) {
-            setLogoUrl(data.logo_url);
-            console.log("Logo URL set:", data.logo_url);
+          // Set logo URL if available and is not a JSON object (error case)
+          if (data.logo_url && typeof data.logo_url === 'string') {
+            // Check if the URL might be JSON (which indicates an error)
+            if (data.logo_url.startsWith('{') || data.logo_url.startsWith('[')) {
+              console.error("Logo URL appears to be JSON, not displaying:", data.logo_url);
+              setImageError(true);
+            } else {
+              setLogoUrl(data.logo_url);
+              console.log("Logo URL set:", data.logo_url);
+            }
           }
           
           setSiteInfo({

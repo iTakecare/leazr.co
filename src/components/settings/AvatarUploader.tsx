@@ -26,7 +26,14 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
     if (initialImageUrl) {
-      setImageUrl(initialImageUrl);
+      // Vérifier si l'URL est un objet JSON (cas d'erreur)
+      if (typeof initialImageUrl === 'string' && 
+          (initialImageUrl.startsWith('{') || initialImageUrl.startsWith('['))) {
+        console.error("Initial image URL is JSON, not displaying:", initialImageUrl);
+        setImageUrl(undefined);
+      } else {
+        setImageUrl(initialImageUrl);
+      }
     } else {
       setImageUrl(undefined);
     }
@@ -58,13 +65,23 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     
     try {
       // Ensure bucket exists
-      await ensureBucketExists(bucketName);
+      const bucketCreated = await ensureBucketExists(bucketName);
       
-      // Use our new direct upload method
+      if (!bucketCreated) {
+        throw new Error(`Impossible de créer ou d'accéder au bucket ${bucketName}`);
+      }
+      
+      // Use our direct upload method
       const result = await uploadFileDirectly(file, bucketName, folderPath);
       
       if (result && result.url) {
         console.log(`Image uploaded successfully: ${result.url}`);
+        
+        // Verify the URL isn't JSON
+        if (result.url.startsWith('{') || result.url.startsWith('[')) {
+          throw new Error("L'URL retournée est un JSON, pas une URL d'image valide");
+        }
+        
         setImageUrl(result.url);
         
         if (onImageUploaded) {

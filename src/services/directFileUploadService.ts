@@ -44,31 +44,78 @@ export async function uploadFileDirectly(
           const arrayBuffer = event.target.result as ArrayBuffer;
           const blob = new Blob([arrayBuffer], { type: contentType });
           
-          // Upload the blob to Supabase Storage
-          const { data, error } = await supabase.storage
-            .from(bucketName)
-            .upload(fullPath, blob, {
-              contentType,
-              upsert: true,
-              cacheControl: "0"
+          // Upload the blob to Supabase Storage using fetch for more control
+          try {
+            const formData = new FormData();
+            formData.append('file', blob);
+            
+            const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${fullPath}`;
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabase.supabaseKey}`
+              },
+              body: formData
             });
-          
-          if (error) {
-            console.error("Storage upload error:", error);
-            reject(error);
-            return;
+            
+            if (!response.ok) {
+              console.log("Direct fetch upload failed, trying Supabase API instead");
+              // Fall back to the Supabase SDK if fetch method fails
+              const { data, error } = await supabase.storage
+                .from(bucketName)
+                .upload(fullPath, blob, {
+                  contentType,
+                  upsert: true,
+                  cacheControl: "0"
+                });
+              
+              if (error) {
+                console.error("Storage upload error:", error);
+                reject(error);
+                return;
+              }
+            }
+            
+            // Get the public URL
+            const { data: publicUrlData } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(fullPath);
+            
+            console.log("File uploaded successfully:", publicUrlData.publicUrl);
+            resolve({ 
+              url: publicUrlData.publicUrl,
+              fileName: uniqueFileName 
+            });
+          } catch (uploadError) {
+            console.error("Upload failed with fetch, trying Supabase SDK:", uploadError);
+            
+            // Fall back to Supabase SDK
+            const { data, error } = await supabase.storage
+              .from(bucketName)
+              .upload(fullPath, blob, {
+                contentType,
+                upsert: true,
+                cacheControl: "0"
+              });
+              
+            if (error) {
+              console.error("Storage upload error:", error);
+              reject(error);
+              return;
+            }
+            
+            // Get the public URL
+            const { data: publicUrlData } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(fullPath);
+            
+            console.log("File uploaded successfully (via SDK):", publicUrlData.publicUrl);
+            resolve({ 
+              url: publicUrlData.publicUrl,
+              fileName: uniqueFileName 
+            });
           }
-          
-          // Get the public URL
-          const { data: publicUrlData } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(fullPath);
-          
-          console.log("File uploaded successfully:", publicUrlData.publicUrl);
-          resolve({ 
-            url: publicUrlData.publicUrl,
-            fileName: uniqueFileName 
-          });
         } catch (err) {
           console.error("Error during upload:", err);
           reject(err);
@@ -116,21 +163,65 @@ function getContentTypeByExtension(extension: string): string {
  */
 export async function ensureBucketExists(bucketName: string): Promise<boolean> {
   try {
+    // Check if bucket exists in a cache to avoid repeated calls
+    const cachedBuckets = (window as any).__cachedBuckets || {};
+    if (cachedBuckets[bucketName]) {
+      console.log(`Bucket ${bucketName} exists (from cache)`);
+      return true;
+    }
+    
     // Check if bucket exists
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
       console.error("Error listing buckets:", error);
+      
+      // Try with RPC function as fallback
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('check_bucket_exists', {
+          bucket_name: bucketName
+        });
+        
+        if (!rpcError && rpcData === true) {
+          // Cache the result
+          (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
+          return true;
+        }
+      } catch (rpcErr) {
+        console.error("Error checking bucket with RPC:", rpcErr);
+      }
+      
       return false;
     }
     
     if (buckets.some(bucket => bucket.name === bucketName)) {
       console.log(`Bucket ${bucketName} already exists`);
+      // Cache the result
+      (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
       return true;
     }
     
     // Create bucket if it doesn't exist
     console.log(`Creating bucket ${bucketName}`);
+    
+    // Try RPC function first
+    try {
+      console.log(`Trying to create bucket ${bucketName} via RPC`);
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_storage_bucket', {
+        bucket_name: bucketName
+      });
+      
+      if (!rpcError) {
+        console.log(`Bucket ${bucketName} created via RPC`);
+        // Cache the result
+        (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
+        return true;
+      }
+    } catch (rpcErr) {
+      console.error("Error creating bucket with RPC:", rpcErr);
+    }
+    
+    // Fall back to direct API
     const { error: createError } = await supabase.storage.createBucket(bucketName, {
       public: true
     });
@@ -138,6 +229,8 @@ export async function ensureBucketExists(bucketName: string): Promise<boolean> {
     if (createError) {
       if (createError.message.includes('already exists')) {
         console.log(`Bucket ${bucketName} already exists (from error)`);
+        // Cache the result
+        (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
         return true;
       }
       console.error(`Error creating bucket ${bucketName}:`, createError);
@@ -145,6 +238,8 @@ export async function ensureBucketExists(bucketName: string): Promise<boolean> {
     }
     
     console.log(`Bucket ${bucketName} created successfully`);
+    // Cache the result
+    (window as any).__cachedBuckets = {...cachedBuckets, [bucketName]: true};
     return true;
   } catch (error) {
     console.error(`Error in ensureBucketExists for ${bucketName}:`, error);
@@ -161,6 +256,12 @@ export function getCacheBustedUrl(url: string | null): string {
   // If it's a data URL, return as is
   if (url.startsWith('data:')) {
     return url;
+  }
+  
+  // Check if the URL might be JSON (which indicates an error)
+  if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
+    console.error("URL appears to be JSON, not a valid image URL:", url);
+    return '';
   }
   
   // Add cache-busting parameter
