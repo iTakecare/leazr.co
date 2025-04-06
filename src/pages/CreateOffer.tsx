@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -176,20 +177,27 @@ const CreateOffer = () => {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // MÉTHODE DIRECTE: Récupérer l'élément qui affiche la commission avec son ID unique
-        const commissionElement = document.getElementById('commission-display-value');
+        // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
+        const commissionElement = document.querySelector('.commission-value');
         
-        if (commissionElement && commissionElement.dataset.commissionAmount) {
+        console.log("Recherche de l'élément de commission:", commissionElement);
+        
+        if (commissionElement) {
           try {
-            commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
-            console.log("Commission extraite directement de l'UI:", commissionAmount);
+            // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
+            const commissionText = commissionElement.textContent || '';
+            // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
+            const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
+            commissionAmount = parseFloat(numericValue);
+            
+            console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
             
             if (isNaN(commissionAmount)) {
-              console.warn("La commission extraite est NaN, utilisation de la valeur par défaut");
-              commissionAmount = Math.round(financedAmount * 0.03);
+              console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
+              commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut
             }
           } catch (error) {
-            console.error("Erreur lors de l'extraction de la commission:", error);
+            console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
             commissionAmount = Math.round(financedAmount * 0.03);
           }
         } else {

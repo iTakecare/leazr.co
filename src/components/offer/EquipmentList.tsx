@@ -292,7 +292,7 @@ const EquipmentList = ({
               <div className="flex justify-between items-center pt-2">
                 <div className="font-medium">Votre commission :</div>
                 <div 
-                  className="text-green-600 font-medium"
+                  className="text-green-600 font-medium commission-value"
                   data-commission-amount={commission.amount.toFixed(2)}
                   id="commission-display-value"
                 >

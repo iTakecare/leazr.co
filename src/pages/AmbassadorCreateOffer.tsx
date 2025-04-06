@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
+import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -201,6 +203,40 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
+      const commissionElement = document.querySelector('.commission-value');
+      let commissionAmount = 0;
+      
+      console.log("Recherche de l'élément de commission:", commissionElement);
+      
+      if (commissionElement) {
+        try {
+          // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
+          const commissionText = commissionElement.textContent || '';
+          // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
+          const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
+          commissionAmount = parseFloat(numericValue);
+          
+          console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
+          
+          if (isNaN(commissionAmount)) {
+            console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
+            commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+          }
+        } catch (error) {
+          console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
+          commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+        }
+      } else {
+        console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
+        commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+      }
+      
+      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -209,14 +245,17 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: commissionAmount,
+        financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
+        ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks
       };
       
       console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
       
       const { data, error } = await createOffer(offerData);
       
