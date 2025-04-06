@@ -18,6 +18,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
     if (data && data.type === 'ambassador_offer' && data.ambassador_id) {
       try {
         console.log("Recalcul de la commission pour l'offre d'ambassadeur", data.id);
+        console.log("Données de l'offre:", JSON.stringify(data, null, 2));
         
         // Extraire les données d'équipement pour le calcul
         let equipmentData = [];
@@ -41,7 +42,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         console.log("Montant financé calculé:", financedAmount);
         
         // Si le montant financé est différent de celui stocké, le mettre à jour
-        if (data.financed_amount !== financedAmount) {
+        if (Math.abs((data.financed_amount || 0) - financedAmount) > 0.01) {
           console.log(`Mise à jour du montant financé: ${data.financed_amount || 0}€ -> ${financedAmount}€`);
           data.financed_amount = financedAmount;
           
@@ -87,6 +88,19 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
 
         if (commissionLevelId) {
+          // Récupérer les taux de commission pour le niveau spécifique
+          const { data: rates, error: ratesError } = await supabase
+            .from('commission_rates')
+            .select('*')
+            .eq('commission_level_id', commissionLevelId)
+            .order('min_amount', { ascending: true });
+            
+          if (ratesError) {
+            console.error("Erreur lors de la récupération des taux de commission:", ratesError);
+          } else {
+            console.log("Taux de commission trouvés:", rates);
+          }
+          
           // Calculer la commission basée sur le niveau de l'ambassadeur
           const commissionData = await calculateCommissionByLevel(
             financedAmount,
@@ -109,6 +123,8 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
                 .from('offers')
                 .update({ commission: commissionData.amount })
                 .eq('id', id);
+                
+              console.log("Commission mise à jour dans la base de données");
             }
           }
         } else {
@@ -129,6 +145,8 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
 
 export const updateOffer = async (id: string, data: Partial<OfferData>): Promise<{data?: any, error?: any}> => {
   try {
+    console.log("Mise à jour de l'offre", id, "avec les données:", data);
+    
     // Ensure numeric values are properly converted for database storage
     const dataToSave: Partial<OfferData> = {
       ...data,
@@ -154,7 +172,60 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
       );
       console.log(`Calcul du montant financé pour la mise à jour: ${financedAmount}€`);
       dataToSave.financed_amount = financedAmount;
+      
+      // Si c'est une offre d'ambassadeur, recalculer la commission
+      const { data: offerData, error: offerError } = await supabase
+        .from('offers')
+        .select('type, ambassador_id')
+        .eq('id', id)
+        .single();
+        
+      if (!offerError && offerData && offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
+        console.log("Recalcul de la commission lors de la mise à jour");
+        
+        // Récupérer le niveau de commission de l'ambassadeur
+        const { data: ambassador, error: ambassadorError } = await supabase
+          .from('ambassadors')
+          .select('commission_level_id')
+          .eq('id', offerData.ambassador_id)
+          .single();
+          
+        if (ambassadorError) {
+          console.error("Erreur lors de la récupération du niveau de commission:", ambassadorError);
+        }
+        
+        let commissionLevelId = ambassador?.commission_level_id;
+        
+        if (!commissionLevelId) {
+          const { data: defaultLevel, error: defaultLevelError } = await supabase
+            .from('commission_levels')
+            .select('id')
+            .eq('type', 'ambassador')
+            .eq('is_default', true)
+            .single();
+            
+          if (!defaultLevelError && defaultLevel) {
+            commissionLevelId = defaultLevel.id;
+          }
+        }
+        
+        if (commissionLevelId) {
+          const commissionData = await calculateCommissionByLevel(
+            financedAmount,
+            commissionLevelId,
+            'ambassador',
+            offerData.ambassador_id
+          );
+          
+          if (commissionData && typeof commissionData.amount === 'number') {
+            console.log("Nouvelle commission calculée:", commissionData.amount);
+            dataToSave.commission = commissionData.amount;
+          }
+        }
+      }
     }
+    
+    console.log("Données finales à sauvegarder:", dataToSave);
     
     const result = await supabase
       .from('offers')
@@ -175,3 +246,4 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
     return { error };
   }
 };
+
