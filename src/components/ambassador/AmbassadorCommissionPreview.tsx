@@ -10,15 +10,13 @@ interface AmbassadorCommissionPreviewProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   equipmentList: any[];
-  hideFinancialDetails?: boolean;
 }
 
 const AmbassadorCommissionPreview = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentList,
-  hideFinancialDetails = false
+  equipmentList
 }: AmbassadorCommissionPreviewProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({
     amount: 0,
@@ -59,7 +57,7 @@ const AmbassadorCommissionPreview = ({
         
         // D'abord, estimer le montant financé avec un coefficient de départ
         // pour déterminer la bonne tranche de coefficient
-        let initialCoefficient = 3.27; // Valeur moyenne pour commencer
+        let initialCoefficient = 3.27; // Valeur moyenne pour commencer (mise à jour avec la valeur correcte)
         let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
         // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
@@ -80,13 +78,11 @@ const AmbassadorCommissionPreview = ({
           ambassadorId
         );
         
-        if (commissionData) {
-          setCommission({
-            amount: commissionData.amount || 0,
-            rate: commissionData.rate || 0,
-            levelName: commissionData.levelName || ""
-          });
-        }
+        setCommission({
+          amount: commissionData.amount || 0,
+          rate: commissionData.rate || 0,
+          levelName: commissionData.levelName || ""
+        });
       } catch (error) {
         console.error("Error calculating commission:", error);
       } finally {
@@ -99,7 +95,7 @@ const AmbassadorCommissionPreview = ({
     
     // Nettoyage
     return () => clearTimeout(timer);
-  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]);
+  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]); // Ajout de totalMonthlyPayment aux dépendances
 
   return (
     <Card className="border border-gray-200 shadow-sm">

@@ -152,40 +152,54 @@ const CreateOffer = () => {
         0
       );
 
-      // Inclure les informations de marge dans equipment_description
-      const equipmentDataWithMargin = {
-        items: equipmentList.map(eq => ({
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        })),
-        marginDifference: globalMarginAdjustment.marginDifference || 0,
-        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
-      };
+        }))
+      );
 
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
       // Déterminer si l'offre est interne (sans commission) ou normale
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-      const commissionAmount = isInternalOffer ? 0 : totalMonthlyPayment * 0.1;
+      
+      // Vérifier si une commission est affichée dans l'interface utilisateur
+      let commissionAmount = 0;
+      
+      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM avec l'attribut data
+      const commissionElement = document.querySelector('[data-commission-amount]');
+      if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
+        const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
+        if (!isNaN(displayedCommission)) {
+          commissionAmount = displayedCommission;
+          console.log("Commission récupérée depuis l'interface:", commissionAmount);
+        }
+      } else if (isInternalOffer) {
+        // Si c'est une offre interne, la commission est de 0
+        commissionAmount = 0;
+        console.log("Offre interne - commission à 0");
+      } else {
+        // Pour les autres types d'offres, utilisez un pourcentage du montant financé
+        commissionAmount = financedAmount * 0.03; // 3% par défaut
+        console.log("Commission par défaut calculée:", commissionAmount);
+      }
 
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: JSON.stringify(equipmentDataWithMargin),
+        equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
-        margin: globalMarginAdjustment.amount,
-        margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: offerType,
         user_id: user?.id || "",

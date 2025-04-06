@@ -7,14 +7,13 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
-  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users, Factory
+  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offerService";
-import { useAuth } from "@/context/AuthContext";
 
 interface OfferCardProps {
   offer: Offer;
@@ -30,7 +29,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
   isUpdatingStatus 
 }) => {
   const navigate = useNavigate();
-  const { isAdmin, isAmbassador } = useAuth();
   
   // Formatage de la date
   const formatDate = (dateString: string) => {
@@ -52,39 +50,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const isConverted = offer.converted_to_contract;
 
-  // Calcul de la marge
-  const calculateMargin = () => {
-    // Si la marge totale avec différence est disponible dans la base de données, l'utiliser en priorité
-    if (offer.total_margin_with_difference !== undefined) {
-      return offer.total_margin_with_difference;
-    }
-    
-    // Si la marge de base est disponible et la différence de marge aussi, les additionner
-    if (offer.margin !== undefined && offer.margin_difference !== undefined) {
-      return offer.margin + offer.margin_difference;
-    }
-    
-    // Si la marge est déjà stockée dans l'offre
-    if (offer.margin !== undefined) {
-      return offer.margin;
-    }
-    
-    // Si nous avons les montants nécessaires pour calculer
-    if (offer.financed_amount !== undefined && offer.amount) {
-      const margin = offer.financed_amount - offer.amount;
-      return margin > 0 ? margin : 0;
-    }
-    
-    // Si on a le montant mensuel et le coef, on peut estimer
-    if (offer.monthly_payment && offer.coefficient !== undefined) {
-      const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
-      const margin = financedAmount - (offer.amount || 0);
-      return margin > 0 ? margin : 0;
-    }
-    
-    return 0; // Valeur par défaut
-  };
-
   const getOfferTypeBadge = () => {
     switch(offer.type) {
       case 'ambassador_offer':
@@ -105,14 +70,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
         return (
           <Badge variant="outline" className="bg-amber-50 text-amber-700 text-xs">
             <User className="h-3 w-3 mr-1" />
-            Demande client
-          </Badge>
-        );
-      case 'internal_offer':
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
-            <Factory className="h-3 w-3 mr-1" />
-            Interne
+            Demande
           </Badge>
         );
       default:
@@ -153,20 +111,15 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-2">
+        <div className="flex items-center justify-between mb-2">
           <div className="text-sm font-medium">
             {formatCurrency(offer.monthly_payment)}
             <span className="text-xs text-muted-foreground">/mois</span>
           </div>
-          <div className="text-xs text-muted-foreground flex items-center justify-end">
+          <div className="text-xs text-muted-foreground flex items-center">
             <Clock className="h-3 w-3 mr-1" />
             {formatDate(offer.created_at)}
           </div>
-          {!isAmbassador() && (
-            <div className="text-xs text-green-600 font-medium">
-              Marge: {formatCurrency(calculateMargin())}
-            </div>
-          )}
         </div>
         
         {isConverted && (

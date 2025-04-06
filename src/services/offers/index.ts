@@ -19,14 +19,22 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       monthly_payment: offerData.monthly_payment ? 
         (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment) : 
         null,
-      commission: offerData.commission ? 
+      commission: offerData.commission !== undefined ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         null
     };
 
+    // Log the commission value for debugging
+    console.log(`Commission value being saved: ${dataToSave.commission}€`);
+
+    // Priorité à la commission fournie dans les données d'entrée
+    if (offerData.commission !== undefined) {
+      console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
+    }
     // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
-    if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
+    else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
       dataToSave.commission = 0;
+      console.log("Type d'offre sans commission, valeur fixée à 0");
     }
 
     // Calculer et ajouter le montant financé
@@ -42,8 +50,12 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);
     const { data, error } = await supabase.from('offers').insert([dataToSave]).select('*');
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur lors de l'insertion:", error);
+      throw error;
+    }
 
+    console.log("Offre créée avec succès:", data[0]);
     return { data: data[0] };
   } catch (error) {
     console.error("Erreur lors de la création de l'offre:", error);

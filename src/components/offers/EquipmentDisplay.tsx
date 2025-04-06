@@ -15,14 +15,12 @@ interface EquipmentDisplayProps {
   equipmentDisplay: string;
   monthlyPayment: number;
   remarks?: string;
-  hideFinancialDetails?: boolean;
 }
 
 const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   equipmentDisplay,
   monthlyPayment,
-  remarks,
-  hideFinancialDetails = false
+  remarks
 }) => {
   return (
     <Card className="mb-6">
