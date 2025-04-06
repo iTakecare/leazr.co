@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -110,7 +109,6 @@ const OfferDetail = () => {
     fetchOfferDetails();
   }, [id, user]);
   
-  // Function to check if the offer type has commission
   const shouldDisplayCommission = (offerType: string | undefined | null): boolean => {
     return hasCommission(offerType);
   };
@@ -334,6 +332,9 @@ const OfferDetail = () => {
     console.log("Erreur de parsing des données d'équipement:", e);
   }
 
+  const isAmbassadorOffer = offer?.type === 'ambassador_offer';
+  const hideFinancialDetails = isAmbassadorOffer;
+  
   const getStepStatus = (stepId: string) => {
     const currentStatusIndex = workflowStatuses.findIndex(status => status.id === offer.workflow_status);
     const stepIndex = workflowStatuses.findIndex(status => status.id === stepId);
@@ -398,33 +399,32 @@ const OfferDetail = () => {
       <Container>
         <TooltipProvider>
           <div className="py-6">
-            {/* Header with back button and type */}
             <div className="flex justify-between items-center mb-6">
               <Button variant="ghost" onClick={() => navigate('/offers')} className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Retour aux offres
               </Button>
               
-              {/* Show the correct offer type */}
               <div className="flex items-center gap-2">
                 <div className="text-sm text-muted-foreground">Type:</div>
                 <OfferTypeTag type={offer?.type || ''} />
               </div>
             </div>
             
-            {/* Résumé financier visible en haut */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Euro className="h-4 w-4 mr-2 text-blue-600" />
-                    Montant financé
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(offer?.financed_amount || 0)}</p>
-                </CardContent>
-              </Card>
+              {!hideFinancialDetails && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Euro className="h-4 w-4 mr-2 text-blue-600" />
+                      Montant financé
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(offer?.financed_amount || 0)}</p>
+                  </CardContent>
+                </Card>
+              )}
               
               <Card>
                 <CardHeader className="pb-2">
@@ -441,7 +441,6 @@ const OfferDetail = () => {
                 </CardContent>
               </Card>
               
-              {/* Only show commission card if the offer type has commission */}
               {offer && shouldDisplayCommission(offer.type) && (
                 <Card>
                   <CardHeader className="pb-2">
