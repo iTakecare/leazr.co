@@ -57,7 +57,7 @@ const AmbassadorCommissionPreview = ({
         
         // D'abord, estimer le montant financé avec un coefficient de départ
         // pour déterminer la bonne tranche de coefficient
-        let initialCoefficient = 3.27; // Valeur moyenne pour commencer (mise à jour avec la valeur correcte)
+        let initialCoefficient = 3.27; // Valeur moyenne pour commencer
         let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
         // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
@@ -78,11 +78,13 @@ const AmbassadorCommissionPreview = ({
           ambassadorId
         );
         
-        setCommission({
-          amount: commissionData.amount || 0,
-          rate: commissionData.rate || 0,
-          levelName: commissionData.levelName || ""
-        });
+        if (commissionData) {
+          setCommission({
+            amount: commissionData.amount || 0,
+            rate: commissionData.rate || 0,
+            levelName: commissionData.levelName || ""
+          });
+        }
       } catch (error) {
         console.error("Error calculating commission:", error);
       } finally {

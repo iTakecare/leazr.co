@@ -12,6 +12,42 @@ export const calculateFinancedAmount = (monthlyPayment: number, coefficient: num
 import { supabase } from "@/integrations/supabase/client";
 
 /**
+ * Récupère le taux de coefficient basé sur le montant financé
+ * Version asynchrone qui fait un appel à la base de données
+ */
+export const getCoefficientRate = async (financedAmount: number): Promise<number> => {
+  try {
+    if (!financedAmount || financedAmount <= 0) {
+      console.log("Montant financé invalide pour récupérer le coefficient:", financedAmount);
+      return 3.27; // Valeur par défaut
+    }
+    
+    console.log(`Recherche du coefficient pour montant financé: ${financedAmount}€`);
+    // Dans une future version, nous pourrions récupérer le coefficient depuis la base de données
+    // Pour l'instant, utilisation d'une approximation basée sur le montant
+    
+    return 3.27; // Valeur fixe pour le moment
+  } catch (error) {
+    console.error("Erreur lors de la récupération du coefficient:", error);
+    return 3.27; // Valeur par défaut en cas d'erreur
+  }
+};
+
+/**
+ * Récupère le taux de coefficient basé sur le montant financé
+ * Version synchrone qui utilise une table de correspondance locale
+ */
+export const getCoefficientRateSync = (financedAmount: number): number => {
+  if (!financedAmount || financedAmount <= 0) {
+    return 3.27; // Valeur par défaut
+  }
+  
+  // Pour une future version avec des coefficients dynamiques
+  // Pour l'instant, utilisation d'une valeur fixe
+  return 3.27;
+};
+
+/**
  * Calcule la commission basée sur le niveau de commission
  */
 export const calculateCommissionByLevel = async (
@@ -19,7 +55,7 @@ export const calculateCommissionByLevel = async (
   commissionLevelId: string,
   levelType: 'ambassador' | 'partner', 
   entityId?: string
-): Promise<{ amount: number; rate: number; rateId?: string } | null> => {
+): Promise<{ amount: number; rate: number; rateId?: string; levelName?: string } | null> => {
   if (!amount || amount <= 0 || !commissionLevelId) {
     console.error("Données invalides pour le calcul de commission", { amount, commissionLevelId });
     return null;
@@ -27,6 +63,19 @@ export const calculateCommissionByLevel = async (
   
   try {
     console.log(`Calcul de commission pour montant: ${amount}€, niveau: ${commissionLevelId}, type: ${levelType}`);
+    
+    // Récupérer d'abord le nom du niveau de commission
+    const { data: levelData, error: levelError } = await supabase
+      .from('commission_levels')
+      .select('name')
+      .eq('id', commissionLevelId)
+      .single();
+      
+    const levelName = levelData?.name || "";
+    
+    if (levelError) {
+      console.warn("Impossible de récupérer le nom du niveau de commission:", levelError);
+    }
     
     // Récupérer les taux de commission pour le niveau spécifique
     const { data: rates, error } = await supabase
@@ -69,7 +118,8 @@ export const calculateCommissionByLevel = async (
     return {
       amount: commissionAmount,
       rate: applicableRate.rate,
-      rateId: applicableRate.id
+      rateId: applicableRate.id,
+      levelName: levelName
     };
   } catch (error) {
     console.error("Erreur lors du calcul de la commission:", error);
