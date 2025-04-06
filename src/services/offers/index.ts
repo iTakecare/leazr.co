@@ -19,7 +19,7 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       monthly_payment: offerData.monthly_payment ? 
         (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment) : 
         null,
-      commission: offerData.commission !== undefined ? 
+      commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         null
     };
@@ -28,13 +28,19 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     console.log(`Commission value being saved: ${dataToSave.commission}€`);
 
     // Priorité à la commission fournie dans les données d'entrée
-    if (offerData.commission !== undefined) {
+    if (offerData.commission !== undefined && offerData.commission !== null) {
       console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
     }
     // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
     else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
       dataToSave.commission = 0;
       console.log("Type d'offre sans commission, valeur fixée à 0");
+    }
+
+    // Vérification supplémentaire pour s'assurer que commission n'est pas NaN ou undefined
+    if (isNaN(Number(dataToSave.commission)) || dataToSave.commission === undefined) {
+      console.warn("Commission invalide détectée, définition à 0");
+      dataToSave.commission = 0;
     }
 
     // Calculer et ajouter le montant financé

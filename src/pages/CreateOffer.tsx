@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [isInternalOffer, setIsInternalOffer] = useState(true); // Default to true
+  const [isInternalOffer, setIsInternalOffer] = useState(true);
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -172,22 +171,34 @@ const CreateOffer = () => {
       // Vérifier si une commission est affichée dans l'interface utilisateur
       let commissionAmount = 0;
       
-      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM avec l'attribut data
-      const commissionElement = document.querySelector('[data-commission-amount]');
-      if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
-        const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
-        if (!isNaN(displayedCommission)) {
-          commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'interface:", commissionAmount);
-        }
-      } else if (isInternalOffer) {
-        // Si c'est une offre interne, la commission est de 0
+      // Pour les offres internes, la commission est de 0
+      if (isInternalOffer) {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // Pour les autres types d'offres, utilisez un pourcentage du montant financé
-        commissionAmount = financedAmount * 0.03; // 3% par défaut
-        console.log("Commission par défaut calculée:", commissionAmount);
+        // Pour les autres types d'offres, essayons de récupérer la commission de l'élément DOM
+        const commissionElement = document.getElementById('commission-display-value');
+        if (commissionElement && commissionElement.dataset.commissionAmount) {
+          const displayedCommission = parseFloat(commissionElement.dataset.commissionAmount);
+          if (!isNaN(displayedCommission)) {
+            commissionAmount = displayedCommission;
+            console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          } else {
+            // Fallback en cas d'erreur de parsing
+            commissionAmount = financedAmount * 0.03; // 3% par défaut
+            console.log("Commission par défaut calculée (échec parsing):", commissionAmount);
+          }
+        } else {
+          // Fallback si l'élément n'existe pas
+          commissionAmount = financedAmount * 0.03; // 3% par défaut
+          console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
+        }
+      }
+
+      // Vérifier que la commission est un nombre valide
+      if (isNaN(commissionAmount) || commissionAmount === undefined) {
+        commissionAmount = financedAmount * 0.03; // Fallback en dernier recours
+        console.log("Commission par défaut (valeur invalide détectée):", commissionAmount);
       }
 
       const offerData = {
@@ -308,7 +319,6 @@ const CreateOffer = () => {
                       />
                     </div>
                     
-                    {/* Switch remplaçant la case à cocher pour les offres internes */}
                     <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg shadow-sm">
                       <div className="flex items-center justify-between">
                         <div>

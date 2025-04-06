@@ -295,6 +295,7 @@ const EquipmentList = ({
                 <div 
                   className="text-green-600 font-medium"
                   data-commission-amount={commission.amount.toFixed(2)}
+                  id="commission-display-value"
                 >
                   {formatCurrency(commission.amount)}
                   {commission.rate > 0 && (
