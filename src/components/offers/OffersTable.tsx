@@ -46,9 +46,10 @@ import { useAuth } from "@/context/AuthContext";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Offer } from "@/hooks/offers/useFetchOffers";
 
 interface OffersTableProps {
-  offers: any[];
+  offers: Offer[];
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
   onResendOffer?: (offerId: string) => void;
@@ -149,20 +150,20 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   // Fonction pour calculer ou extraire la marge d'une offre
-  const calculateMargin = (offer) => {
+  const calculateMargin = (offer: Offer) => {
     // Si la marge est déjà stockée dans l'offre
-    if (offer.margin) {
+    if (offer.margin !== undefined) {
       return offer.margin;
     }
     
     // Si nous avons les montants nécessaires pour calculer
-    if (offer.financed_amount && offer.amount) {
+    if (offer.financed_amount !== undefined && offer.amount) {
       const margin = offer.financed_amount - offer.amount;
       return margin > 0 ? margin : 0;
     }
     
     // Si on a le montant mensuel et le coef, on peut estimer
-    if (offer.monthly_payment && offer.coefficient) {
+    if (offer.monthly_payment && offer.coefficient !== undefined) {
       const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
       const margin = financedAmount - (offer.amount || 0);
       return margin > 0 ? margin : 0;

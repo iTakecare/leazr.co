@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,18 +52,18 @@ const OfferCard: React.FC<OfferCardProps> = ({
   // Calcul de la marge
   const calculateMargin = () => {
     // Si la marge est déjà stockée dans l'offre
-    if (offer.margin) {
+    if (offer.margin !== undefined) {
       return offer.margin;
     }
     
     // Si nous avons les montants nécessaires pour calculer
-    if (offer.financed_amount && offer.amount) {
+    if (offer.financed_amount !== undefined && offer.amount) {
       const margin = offer.financed_amount - offer.amount;
       return margin > 0 ? margin : 0;
     }
     
     // Si on a le montant mensuel et le coef, on peut estimer
-    if (offer.monthly_payment && offer.coefficient) {
+    if (offer.monthly_payment && offer.coefficient !== undefined) {
       const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
       const margin = financedAmount - (offer.amount || 0);
       return margin > 0 ? margin : 0;
