@@ -49,6 +49,9 @@ const OffersView = ({
     }
   };
 
+  // Hide financial details for ambassadors
+  const hideFinancialDetails = owner.type === "ambassador";
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="overflow-y-auto sm:max-w-xl">
