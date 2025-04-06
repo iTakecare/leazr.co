@@ -176,31 +176,25 @@ const CreateOffer = () => {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // Récupérer l'élément qui affiche la commission
-        // Cette méthode est la plus fiable pour obtenir la valeur exacte affichée dans l'interface
+        // MÉTHODE DIRECTE: Récupérer l'élément qui affiche la commission avec son ID unique
         const commissionElement = document.getElementById('commission-display-value');
-        
-        console.log("Commission element found:", commissionElement);
         
         if (commissionElement && commissionElement.dataset.commissionAmount) {
           try {
             commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
+            console.log("Commission extraite directement de l'UI:", commissionAmount);
             
-            if (!isNaN(commissionAmount)) {
-              console.log("Commission récupérée depuis l'interface:", commissionAmount);
-            } else {
-              throw new Error("Commission value is NaN");
+            if (isNaN(commissionAmount)) {
+              console.warn("La commission extraite est NaN, utilisation de la valeur par défaut");
+              commissionAmount = Math.round(financedAmount * 0.03);
             }
           } catch (error) {
-            console.error("Error parsing commission:", error);
-            // Fallback calculé: 3% du montant financé, arrondi
+            console.error("Erreur lors de l'extraction de la commission:", error);
             commissionAmount = Math.round(financedAmount * 0.03);
-            console.log("Commission par défaut calculée (échec parsing):", commissionAmount);
           }
         } else {
-          // Fallback si l'élément n'existe pas ou n'a pas l'attribut
+          console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
           commissionAmount = Math.round(financedAmount * 0.03);
-          console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
         }
       }
 
