@@ -99,6 +99,25 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
             console.error("Erreur lors de la récupération des taux de commission:", ratesError);
           } else {
             console.log("Taux de commission trouvés:", rates);
+            
+            // Debug: Vérifier si le montant financé correspond à un de ces taux
+            if (rates && rates.length > 0) {
+              const applicableRate = rates.find(rate => 
+                financedAmount >= rate.min_amount && 
+                (financedAmount <= rate.max_amount || rate.max_amount === null)
+              );
+              
+              if (applicableRate) {
+                console.log(`Taux applicable trouvé: ${applicableRate.rate}% pour le montant ${financedAmount}€`);
+                console.log(`Min: ${applicableRate.min_amount}€, Max: ${applicableRate.max_amount || 'illimité'}€`);
+                
+                // Calcul manuel de la commission pour vérification
+                const manualCommission = (financedAmount * applicableRate.rate) / 100;
+                console.log(`Calcul manuel de la commission: ${financedAmount}€ * ${applicableRate.rate}% = ${manualCommission}€`);
+              } else {
+                console.warn(`Aucun taux applicable trouvé pour le montant ${financedAmount}€`);
+              }
+            }
           }
           
           // Calculer la commission basée sur le niveau de l'ambassadeur
@@ -119,12 +138,16 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
               data.commission = commissionData.amount;
               
               // Mettre à jour la commission dans la base de données
-              await supabase
+              const updateResult = await supabase
                 .from('offers')
                 .update({ commission: commissionData.amount })
                 .eq('id', id);
                 
-              console.log("Commission mise à jour dans la base de données");
+              if (updateResult.error) {
+                console.error("Erreur lors de la mise à jour de la commission:", updateResult.error);
+              } else {
+                console.log("Commission mise à jour dans la base de données");
+              }
             }
           }
         } else {
@@ -210,6 +233,38 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
         }
         
         if (commissionLevelId) {
+          // Récupérer les taux de commission pour le niveau spécifique
+          const { data: rates, error: ratesError } = await supabase
+            .from('commission_rates')
+            .select('*')
+            .eq('commission_level_id', commissionLevelId)
+            .order('min_amount', { ascending: true });
+            
+          if (ratesError) {
+            console.error("Erreur lors de la récupération des taux de commission:", ratesError);
+          } else {
+            console.log("Taux de commission trouvés:", rates);
+            
+            // Debug: Vérifier si le montant financé correspond à un de ces taux
+            if (rates && rates.length > 0) {
+              const applicableRate = rates.find(rate => 
+                financedAmount >= rate.min_amount && 
+                (financedAmount <= rate.max_amount || rate.max_amount === null)
+              );
+              
+              if (applicableRate) {
+                console.log(`Taux applicable trouvé: ${applicableRate.rate}% pour le montant ${financedAmount}€`);
+                console.log(`Min: ${applicableRate.min_amount}€, Max: ${applicableRate.max_amount || 'illimité'}€`);
+                
+                // Calcul manuel de la commission pour vérification
+                const manualCommission = (financedAmount * applicableRate.rate) / 100;
+                console.log(`Calcul manuel de la commission: ${financedAmount}€ * ${applicableRate.rate}% = ${manualCommission}€`);
+              } else {
+                console.warn(`Aucun taux applicable trouvé pour le montant ${financedAmount}€`);
+              }
+            }
+          }
+          
           const commissionData = await calculateCommissionByLevel(
             financedAmount,
             commissionLevelId,
@@ -219,6 +274,7 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
           
           if (commissionData && typeof commissionData.amount === 'number') {
             console.log("Nouvelle commission calculée:", commissionData.amount);
+            console.log("Détails de calcul:", commissionData);
             dataToSave.commission = commissionData.amount;
           }
         }
@@ -246,4 +302,3 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
     return { error };
   }
 };
-
