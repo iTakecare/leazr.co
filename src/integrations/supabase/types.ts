@@ -859,6 +859,8 @@ export type Database = {
           equipment_description: string | null
           financed_amount: number | null
           id: string
+          margin: number | null
+          margin_difference: number | null
           monthly_payment: number
           previous_status: string | null
           remarks: string | null
@@ -866,6 +868,7 @@ export type Database = {
           signed_at: string | null
           signer_name: string | null
           status: string
+          total_margin_with_difference: number | null
           type: string | null
           updated_at: string | null
           user_id: string | null
@@ -886,6 +889,8 @@ export type Database = {
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
+          margin?: number | null
+          margin_difference?: number | null
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
@@ -893,6 +898,7 @@ export type Database = {
           signed_at?: string | null
           signer_name?: string | null
           status?: string
+          total_margin_with_difference?: number | null
           type?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -913,6 +919,8 @@ export type Database = {
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
+          margin?: number | null
+          margin_difference?: number | null
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
@@ -920,6 +928,7 @@ export type Database = {
           signed_at?: string | null
           signer_name?: string | null
           status?: string
+          total_margin_with_difference?: number | null
           type?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1790,6 +1799,8 @@ export type Database = {
           equipment_description: string | null
           financed_amount: number | null
           id: string
+          margin: number | null
+          margin_difference: number | null
           monthly_payment: number
           previous_status: string | null
           remarks: string | null
@@ -1797,6 +1808,7 @@ export type Database = {
           signed_at: string | null
           signer_name: string | null
           status: string
+          total_margin_with_difference: number | null
           type: string | null
           updated_at: string | null
           user_id: string | null
@@ -1887,6 +1899,10 @@ export type Database = {
           translation: string
           updated_at: string
         }
+      }
+      update_offer_margins: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_product_attributes: {
         Args: {

@@ -16,8 +16,13 @@ export const createOffer = async (offerData: OfferData) => {
         undefined
     };
 
-    // Ajout de ambassador_id à l'offre si c'est une offre d'ambassadeur
-    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+    // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
+    // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
+    if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
+      console.log(`Utilisation de la commission fournie dans les données: ${offerDataToSave.commission}`);
+    }
+    // Sinon, essayons de calculer la commission en fonction du type d'offre
+    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
       // Récupérer l'ambassador_id associé à cet utilisateur
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
@@ -45,6 +50,7 @@ export const createOffer = async (offerData: OfferData) => {
             
             if (commissionData && commissionData.amount) {
               offerDataToSave.commission = commissionData.amount;
+              console.log(`Commission calculée pour l'ambassadeur: ${commissionData.amount}`);
             }
           } catch (commError) {
             console.error("Error calculating commission during offer creation:", commError);

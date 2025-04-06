@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -285,7 +286,10 @@ const EquipmentList = ({
             {ambassadorId && commissionLevelId && commission.amount > 0 && (
               <div className="flex justify-between items-center pt-2">
                 <div className="font-medium">Votre commission :</div>
-                <div className="text-green-600 font-medium">
+                <div 
+                  className="text-green-600 font-medium"
+                  data-commission-amount={commission.amount}
+                >
                   {formatCurrency(commission.amount)}
                 </div>
               </div>

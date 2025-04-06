@@ -168,7 +168,27 @@ const CreateOffer = () => {
 
       // Déterminer si l'offre est interne (sans commission) ou normale
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-      const commissionAmount = isInternalOffer ? 0 : totalMonthlyPayment * 0.1;
+      
+      // Vérifier si une commission est affichée dans l'interface utilisateur
+      let commissionAmount = 0;
+      
+      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM
+      const commissionElement = document.querySelector('[data-commission-amount]');
+      if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
+        const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
+        if (!isNaN(displayedCommission)) {
+          commissionAmount = displayedCommission;
+          console.log("Commission récupérée depuis l'interface:", commissionAmount);
+        }
+      } else if (isInternalOffer) {
+        // Si c'est une offre interne, la commission est de 0
+        commissionAmount = 0;
+        console.log("Offre interne - commission à 0");
+      } else {
+        // Pour les autres types d'offres, utilisez la valeur par défaut
+        commissionAmount = totalMonthlyPayment * 0.1;
+        console.log("Commission par défaut:", commissionAmount);
+      }
 
       const offerData = {
         client_id: client.id,

@@ -19,14 +19,19 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       monthly_payment: offerData.monthly_payment ? 
         (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment) : 
         null,
-      commission: offerData.commission ? 
+      commission: offerData.commission !== undefined ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         null
     };
 
+    // Priorité à la commission fournie dans les données d'entrée
+    if (offerData.commission !== undefined) {
+      console.log(`Commission fournie utilisée: ${dataToSave.commission}€`);
+    }
     // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
-    if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
+    else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
       dataToSave.commission = 0;
+      console.log("Type d'offre sans commission, valeur fixée à 0");
     }
 
     // Calculer et ajouter le montant financé
