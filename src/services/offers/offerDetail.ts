@@ -8,7 +8,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
   try {
     const { data, error } = await supabase
       .from('offers')
-      .select('*')
+      .select('*, clients(*), ambassador:ambassador_id(id, name, email, commission_level_id)')
       .eq('id', id)
       .single();
 
@@ -52,22 +52,29 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
             .eq('id', id);
         }
         
-        // Récupérer l'ambassadeur pour vérifier son email
-        const { data: ambassador } = await supabase
-          .from('ambassadors')
-          .select('commission_level_id, email')
-          .eq('id', data.ambassador_id)
-          .single();
+        // Vérifier si les infos d'ambassadeur sont disponibles directement dans les données jointes
+        let ambassadorData = data.ambassador;
+        
+        // Si les données d'ambassadeur ne sont pas disponibles à partir de la jointure, les récupérer directement
+        if (!ambassadorData && data.ambassador_id) {
+          const { data: fetchedAmbassador } = await supabase
+            .from('ambassadors')
+            .select('id, name, email, commission_level_id')
+            .eq('id', data.ambassador_id)
+            .single();
+            
+          ambassadorData = fetchedAmbassador;
+        }
 
-        if (ambassador) {
-          console.log("Informations ambassadeur:", ambassador);
-          console.log("Email de l'ambassadeur:", ambassador.email);
-          console.log("Niveau de commission:", ambassador.commission_level_id);
+        if (ambassadorData) {
+          console.log("Informations ambassadeur:", ambassadorData);
+          console.log("Email de l'ambassadeur:", ambassadorData.email);
+          console.log("Niveau de commission:", ambassadorData.commission_level_id);
           
           // Calculer la commission basée sur le niveau de l'ambassadeur
           const commissionData = await calculateCommissionByLevel(
             financedAmount,
-            ambassador.commission_level_id,
+            ambassadorData.commission_level_id,
             'ambassador',
             data.ambassador_id
           );

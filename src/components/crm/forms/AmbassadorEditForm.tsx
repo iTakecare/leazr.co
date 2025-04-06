@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -26,144 +26,17 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-
-const ambassadorSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
-  region: z.string().min(2, "La région est requise"),
-  status: z.enum(["active", "inactive"]),
-  notes: z.string().optional(),
-});
+import { 
+  Ambassador, 
+  AmbassadorFormValues, 
+  ambassadorSchema, 
+  getAmbassadorById, 
+  updateAmbassador 
+} from "@/services/ambassadorService";
+import { CommissionLevel, getCommissionLevels } from "@/services/commissionService";
+import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
 export type AmbassadorFormData = z.infer<typeof ambassadorSchema>;
-
-interface Ambassador {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  region: string;
-  status: string;
-  commissionsTotal: number;
-  clientsCount?: number;
-  lastCommission?: number;
-  notes?: string;
-}
-
-// Base de données mockée plus complète
-const mockAmbassadors: Record<string, Ambassador> = {
-  "1": {
-    id: '1',
-    name: 'Sophie Laurent',
-    email: 'sophie.laurent@example.com',
-    phone: '+33 6 12 34 56 78',
-    region: 'Île-de-France',
-    status: 'active',
-    commissionsTotal: 4500,
-    clientsCount: 12,
-    lastCommission: 750,
-    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.'
-  },
-  "2": {
-    id: '2',
-    name: 'Marc Dubois',
-    email: 'marc.dubois@example.com',
-    phone: '+33 6 23 45 67 89',
-    region: 'Auvergne-Rhône-Alpes',
-    status: 'active',
-    commissionsTotal: 3200,
-    clientsCount: 8,
-    lastCommission: 550,
-    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.'
-  },
-  "3": {
-    id: '3',
-    name: 'Émilie Moreau',
-    email: 'emilie.moreau@example.com',
-    phone: '+33 6 34 56 78 90',
-    region: 'Provence-Alpes-Côte d\'Azur',
-    status: 'inactive',
-    commissionsTotal: 1800,
-    clientsCount: 5,
-    lastCommission: 0,
-    notes: 'En pause temporaire pour congé maternité.'
-  },
-  "4": {
-    id: '4',
-    name: 'Thomas Bernard',
-    email: 'thomas.bernard@example.com',
-    phone: '+33 6 45 67 89 01',
-    region: 'Grand Est',
-    status: 'active',
-    commissionsTotal: 2800,
-    clientsCount: 7,
-    lastCommission: 420,
-    notes: 'Spécialisé dans les équipements de rééducation.'
-  },
-  "5": {
-    id: '5',
-    name: 'Lucie Petit',
-    email: 'lucie.petit@example.com',
-    phone: '+33 6 56 78 90 12',
-    region: 'Bretagne',
-    status: 'active',
-    commissionsTotal: 2100,
-    clientsCount: 6,
-    lastCommission: 350,
-    notes: 'Excellente connaissance du tissu médical local.'
-  }
-};
-
-// Fonction pour récupérer un ambassadeur par son ID
-const getAmbassadorById = (id: string): Promise<Ambassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const ambassador = mockAmbassadors[id];
-      if (ambassador) {
-        console.log(`Récupération de l'ambassadeur ID: ${id}`, ambassador);
-        resolve(ambassador);
-      } else {
-        console.error(`Ambassadeur avec ID ${id} non trouvé`);
-        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
-      }
-    }, 500);
-  });
-};
-
-// Fonction pour mettre à jour un ambassadeur
-const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      console.log('Mise à jour de l\'ambassadeur:', id, data);
-      
-      const existingAmbassador = mockAmbassadors[id];
-      if (!existingAmbassador) {
-        console.error(`Ambassadeur avec ID ${id} non trouvé lors de la mise à jour`);
-        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
-        return;
-      }
-      
-      // Créer un objet ambassadeur mis à jour en conservant les données existantes
-      const updatedAmbassador: Ambassador = {
-        ...existingAmbassador,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        region: data.region,
-        status: data.status,
-        notes: data.notes
-      };
-      
-      // Mettre à jour la base de données mockée
-      mockAmbassadors[id] = updatedAmbassador;
-      
-      console.log(`Ambassadeur ID ${id} mis à jour avec succès:`, updatedAmbassador);
-      toast.success(`L'ambassadeur ${data.name} a été mis à jour avec succès`);
-      resolve(updatedAmbassador);
-    }, 800);
-  });
-};
 
 const AmbassadorEditForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -171,6 +44,8 @@ const AmbassadorEditForm = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
+  const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
+  const [selectedCommissionLevel, setSelectedCommissionLevel] = useState<string>("");
 
   const form = useForm<AmbassadorFormData>({
     resolver: zodResolver(ambassadorSchema),
@@ -181,10 +56,31 @@ const AmbassadorEditForm = () => {
       region: "",
       status: "active",
       notes: "",
+      company: "",
+      vat_number: "",
+      address: "",
+      postal_code: "",
+      city: "",
+      country: "",
     },
   });
 
-  React.useEffect(() => {
+  // Charger les barèmes de commission
+  useEffect(() => {
+    const loadCommissionLevels = async () => {
+      try {
+        const levels = await getCommissionLevels("ambassador");
+        setCommissionLevels(levels);
+      } catch (error) {
+        console.error("Erreur lors du chargement des barèmes de commission:", error);
+        toast.error("Erreur lors du chargement des barèmes de commission");
+      }
+    };
+    
+    loadCommissionLevels();
+  }, []);
+
+  useEffect(() => {
     if (!id) {
       console.error("Aucun ID d'ambassadeur fourni");
       toast.error("Erreur: Ambassadeur non identifié");
@@ -204,15 +100,26 @@ const AmbassadorEditForm = () => {
         form.reset({
           name: data.name,
           email: data.email,
-          phone: data.phone,
-          region: data.region,
+          phone: data.phone || "",
+          region: data.region || "",
           status: data.status as "active" | "inactive",
           notes: data.notes || "",
+          company: data.company || "",
+          vat_number: data.vat_number || "",
+          address: data.address || "",
+          postal_code: data.postal_code || "",
+          city: data.city || "",
+          country: data.country || "",
         });
+        
+        // Définir le niveau de commission
+        if (data.commission_level_id) {
+          setSelectedCommissionLevel(data.commission_level_id);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement de l'ambassadeur:", error);
         toast.error("Erreur lors du chargement des données de l'ambassadeur");
-        navigate("/");
+        navigate("/ambassadors");
       } finally {
         setIsLoading(false);
       }
@@ -229,12 +136,19 @@ const AmbassadorEditForm = () => {
     
     setIsSaving(true);
     try {
-      const updatedAmbassador = await updateAmbassador(id, data);
-      setAmbassador(updatedAmbassador);
-      console.log(`Ambassadeur ID ${id} sauvegardé avec succès:`, updatedAmbassador);
+      // Ajouter le niveau de commission aux données
+      const updateData = {
+        ...data,
+        commission_level_id: selectedCommissionLevel || undefined
+      };
+      
+      await updateAmbassador(id, updateData);
+      
+      console.log(`Ambassadeur ID ${id} sauvegardé avec succès`);
+      toast.success("Ambassadeur mis à jour avec succès");
       
       // Rediriger vers la page de détail après sauvegarde
-      navigate(`/ambassadors/${id}`);
+      navigate(`/ambassadors`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'ambassadeur:", error);
       toast.error("Erreur lors de la mise à jour de l'ambassadeur");
@@ -257,7 +171,7 @@ const AmbassadorEditForm = () => {
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
-          onClick={() => navigate(`/ambassadors/${id}`)}
+          onClick={() => navigate(`/ambassadors`)}
           className="mr-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -266,6 +180,40 @@ const AmbassadorEditForm = () => {
         <h1 className="text-2xl font-bold">Modifier l'ambassadeur</h1>
       </div>
 
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Barème de commissionnement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <FormLabel>Sélectionner un barème de commissionnement</FormLabel>
+              <Select
+                value={selectedCommissionLevel}
+                onValueChange={setSelectedCommissionLevel}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un barème" />
+                </SelectTrigger>
+                <SelectContent>
+                  {commissionLevels.map((level) => (
+                    <SelectItem key={level.id} value={level.id}>
+                      {level.name} {level.is_default && "(Par défaut)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="p-4 bg-gray-50 rounded-md">
+              <CommissionDisplay 
+                commissionLevelId={selectedCommissionLevel} 
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Informations de l'ambassadeur</CardTitle>
@@ -273,87 +221,179 @@ const AmbassadorEditForm = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom complet</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Sophie Laurent" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="sophie.laurent@example.com" type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Téléphone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+33 6 12 34 56 78" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="region"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Région</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Île-de-France" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Statut</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Informations de contact</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom complet</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez un statut" />
-                          </SelectTrigger>
+                          <Input placeholder="Nom de l'ambassadeur" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Actif</SelectItem>
-                          <SelectItem value="inactive">Inactif</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="email@exemple.com" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Téléphone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+32 0123456789" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Région</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Région d'activité" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Statut</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionnez un statut" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Actif</SelectItem>
+                            <SelectItem value="inactive">Inactif</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Informations société</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Société</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nom de la société" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="vat_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Numéro de TVA</FormLabel>
+                        <FormControl>
+                          <Input placeholder="BE0123456789" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Adresse</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Adresse postale" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ville</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ville" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="postal_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Code postal</FormLabel>
+                        <FormControl>
+                          <Input placeholder="1000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pays</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Belgique" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
               
               <FormField
@@ -381,7 +421,7 @@ const AmbassadorEditForm = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => navigate(`/ambassadors/${id}`)}
+                  onClick={() => navigate(`/ambassadors`)}
                   disabled={isSaving}
                 >
                   Annuler
