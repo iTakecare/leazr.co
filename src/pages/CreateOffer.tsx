@@ -1,4 +1,4 @@
-// First lines of imports from your file
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { Switch } from "@/components/ui/switch";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [isInternalOffer, setIsInternalOffer] = useState(false);
+  const [isInternalOffer, setIsInternalOffer] = useState(true); // Default to true
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -286,25 +287,27 @@ const CreateOffer = () => {
                         onOpen={handleOpenLeaserSelector} 
                       />
                     </div>
-                    <div className="mb-4">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
+                    
+                    {/* Switch remplaçant la case à cocher pour les offres internes */}
+                    <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label htmlFor="is_internal_offer" className="text-base font-medium text-blue-800">
+                            Offre interne (sans commission)
+                          </label>
+                          <p className="text-sm text-blue-600 mt-1">
+                            Cette offre sera marquée comme interne et n'aura pas de commission associée.
+                          </p>
+                        </div>
+                        <Switch
                           id="is_internal_offer"
                           checked={isInternalOffer}
-                          onChange={(e) => setIsInternalOffer(e.target.checked)}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                          onCheckedChange={setIsInternalOffer}
+                          className="data-[state=checked]:bg-blue-600"
                         />
-                        <label htmlFor="is_internal_offer" className="text-sm font-medium">
-                          Offre interne (sans commission)
-                        </label>
                       </div>
-                      {isInternalOffer && (
-                        <p className="text-xs text-muted-foreground mt-1 ml-6">
-                          Cette offre sera marquée comme interne et n'aura pas de commission associée.
-                        </p>
-                      )}
                     </div>
+                    
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}
