@@ -22,7 +22,6 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
-import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();

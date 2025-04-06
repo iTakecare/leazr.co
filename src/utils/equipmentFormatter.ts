@@ -1,40 +1,43 @@
 
-/**
- * Format equipment list for display
- * @param equipmentList Array of equipment items or JSON string representation
- * @returns Formatted string representation of equipment
- */
-export const formatEquipmentDisplay = (equipmentList: any[] | string): string => {
+export const formatEquipmentDisplay = (equipmentDescription: any): string => {
+  if (!equipmentDescription) return "Équipement non détaillé";
+  
   try {
-    // If it's already a string but not JSON, return it as is
-    if (typeof equipmentList === 'string' && !equipmentList.startsWith('[')) {
-      return equipmentList;
+    if (typeof equipmentDescription === 'string') {
+      if (equipmentDescription.startsWith('[') || equipmentDescription.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(equipmentDescription);
+          if (Array.isArray(parsed)) {
+            return parsed.map(item => 
+              typeof item === 'object' 
+                ? (item.title || item.name || item.model || JSON.stringify(item)) 
+                : String(item)
+            ).join(", ");
+          } else if (parsed && typeof parsed === 'object') {
+            return parsed.title || parsed.name || parsed.model || JSON.stringify(parsed);
+          }
+        } catch (e) {
+          console.log("L'equipment_description n'est pas un JSON valide, utilisation en l'état");
+          return equipmentDescription;
+        }
+      } else {
+        return equipmentDescription;
+      }
+    } else if (Array.isArray(equipmentDescription)) {
+      return equipmentDescription.map((item: any) => 
+        typeof item === 'object' 
+          ? (item.title || item.name || item.model || JSON.stringify(item)) 
+          : String(item)
+      ).join(", ");
+    } else if (typeof equipmentDescription === 'object' && equipmentDescription !== null) {
+      return JSON.stringify(equipmentDescription);
     }
-    
-    // Parse string to array if needed
-    const items = typeof equipmentList === 'string' 
-      ? JSON.parse(equipmentList) 
-      : equipmentList;
-    
-    if (!Array.isArray(items) || items.length === 0) {
-      return "Aucun équipement spécifié";
-    }
-    
-    // Format each item
-    return items.map(item => {
-      const title = item.title || 'Équipement';
-      const quantity = item.quantity || 1;
-      
-      return `${title} (Quantité: ${quantity})`;
-    }).join('\n');
-  } catch (error) {
-    console.error("Error formatting equipment display:", error);
-    
-    // Return original string if parsing fails
-    if (typeof equipmentList === 'string') {
-      return equipmentList;
-    }
-    
-    return "Erreur de formatage de l'équipement";
+  } catch (e) {
+    console.error("Erreur lors du parsing de l'équipement:", e);
+    return typeof equipmentDescription === 'string' 
+      ? equipmentDescription 
+      : "Équipement non détaillé (erreur de format)";
   }
+  
+  return "Équipement non détaillé";
 };
