@@ -314,6 +314,7 @@ const PartnerOfferDetail = () => {
   }
 
   const isInternalOffer = offer.type === 'internal_offer';
+  const hideFinancialDetails = offer?.type === 'ambassador_offer';
   const availableNextSteps = getAvailableNextSteps();
 
   return (
@@ -563,16 +564,18 @@ const PartnerOfferDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Montant financé:</span>
-                      <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
-                    </div>
+                    {!hideFinancialDetails && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Montant financé:</span>
+                        <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mensualité:</span>
                       <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                     </div>
                     
-                    {isAdmin() && (
+                    {isAdmin() && !hideFinancialDetails && (
                       <>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Montant total:</span>

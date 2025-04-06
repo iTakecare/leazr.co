@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -272,18 +273,20 @@ const EquipmentList = ({
               </>
             )}
             
-            <div className="pt-2 flex items-center justify-between border-t mt-3">
-              <label htmlFor="adapt-monthly" className="cursor-pointer">
-                Adapter la mensualité au nouveau coefficient
-              </label>
-              <Switch
-                id="adapt-monthly"
-                checked={globalMarginAdjustment.active}
-                onCheckedChange={toggleAdaptMonthlyPayment}
-              />
-            </div>
+            {!hideFinancialDetails && (
+              <div className="pt-2 flex items-center justify-between border-t mt-3">
+                <label htmlFor="adapt-monthly" className="cursor-pointer">
+                  Adapter la mensualité au nouveau coefficient
+                </label>
+                <Switch
+                  id="adapt-monthly"
+                  checked={globalMarginAdjustment.active}
+                  onCheckedChange={toggleAdaptMonthlyPayment}
+                />
+              </div>
+            )}
             
-            <div className="flex justify-between items-center pt-4 border-t mt-3">
+            <div className={`flex justify-between items-center ${!hideFinancialDetails ? "pt-4 border-t mt-3" : ""}`}>
               <div className="text-lg font-medium text-blue-600">Mensualité totale :</div>
               <div className="text-lg font-bold text-blue-600">{formatCurrency(totalMonthlyPayment)}</div>
             </div>

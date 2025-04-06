@@ -68,7 +68,7 @@ const OffersView = ({
               <TableRow>
                 <TableHead>Offre</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Montant</TableHead>
+                {!hideFinancialDetails && <TableHead>Montant</TableHead>}
                 <TableHead>Statut</TableHead>
               </TableRow>
             </TableHeader>
@@ -87,11 +87,13 @@ const OffersView = ({
                       {offer.clientName}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {formatCurrency(offer.amount)}
-                    </div>
-                  </TableCell>
+                  {!hideFinancialDetails && (
+                    <TableCell>
+                      <div className="font-medium">
+                        {formatCurrency(offer.amount)}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell>
                     {getStatusBadge(offer.status)}
                   </TableCell>
