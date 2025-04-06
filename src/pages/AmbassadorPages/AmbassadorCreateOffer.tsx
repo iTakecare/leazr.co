@@ -205,17 +205,26 @@ const AmbassadorCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Récupérer la commission depuis l'interface utilisateur
+      // Variable pour stocker la commission
       let commissionAmount = 0;
       
-      // Tenter de récupérer la commission directement depuis l'élément DOM
+      // Récupérer la commission depuis l'interface utilisateur
+      // C'est la méthode la plus fiable pour obtenir la valeur exacte affichée
       const commissionElement = document.getElementById('commission-display-value');
+      
+      console.log("Commission element found:", commissionElement);
+      
       if (commissionElement && commissionElement.dataset.commissionAmount) {
-        const displayedCommission = parseFloat(commissionElement.dataset.commissionAmount);
-        if (!isNaN(displayedCommission)) {
-          commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'interface:", commissionAmount);
-        } else {
+        try {
+          commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
+          if (!isNaN(commissionAmount)) {
+            console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          } else {
+            throw new Error("Commission is NaN");
+          }
+        } catch (error) {
+          console.error("Error parsing commission from UI:", error);
+          
           // Méthode de secours : calculer la commission
           const currentAmbassadorId = ambassadorId || user?.ambassador_id;
           const commissionLevelId = ambassador?.commission_level_id;
@@ -247,20 +256,21 @@ const AmbassadorCreateOffer = () => {
         }
       } else {
         // Fallback si l'élément n'existe pas
+        console.warn("Commission element not found in DOM");
         commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
         console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
       }
       
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
       
-      // On s'assure que la commission n'est pas 0, undefined ou NaN
-      if (commissionAmount <= 0 || isNaN(commissionAmount)) {
+      // On s'assure que la commission n'est pas invalide
+      if (commissionAmount === 0 || isNaN(commissionAmount)) {
         console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.05); // Valeur de secours de 5%, arrondie
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
       }
       
-      // S'assurer que la valeur est un nombre et pas une chaîne
-      commissionAmount = Number(commissionAmount);
+      // Log final de la commission à sauvegarder
+      console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
       
       const offerData = {
         client_id: client.id,

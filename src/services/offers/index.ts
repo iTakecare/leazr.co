@@ -7,6 +7,13 @@ import { hasCommission } from "@/utils/offerTypeTranslator";
 // Fonction pour créer une offre
 export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data?: any; error?: any }> => {
   try {
+    // For debugging purposes, log all commission-related data
+    console.log("Commission data received:", {
+      rawCommission: offerData.commission,
+      type: typeof offerData.commission,
+      offerType: offerData.type
+    });
+
     // Convertir les valeurs numériques si nécessaire
     const dataToSave = {
       ...offerData,
@@ -24,8 +31,8 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
         null
     };
 
-    // Log the commission value for debugging
-    console.log(`Commission value being saved: ${dataToSave.commission}€`);
+    // Log the commission value being saved
+    console.log(`Commission value being saved: ${dataToSave.commission}€ (type: ${typeof dataToSave.commission})`);
 
     // Priorité à la commission fournie dans les données d'entrée
     if (offerData.commission !== undefined && offerData.commission !== null) {

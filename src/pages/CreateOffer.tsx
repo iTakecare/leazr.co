@@ -168,7 +168,7 @@ const CreateOffer = () => {
       // Déterminer si l'offre est interne (sans commission) ou normale
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
       
-      // Vérifier si une commission est affichée dans l'interface utilisateur
+      // Variable pour stocker la commission
       let commissionAmount = 0;
       
       // Pour les offres internes, la commission est toujours 0
@@ -176,33 +176,36 @@ const CreateOffer = () => {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // Pour les autres types d'offres, récupérer la commission de l'élément DOM
+        // Récupérer l'élément qui affiche la commission
+        // Cette méthode est la plus fiable pour obtenir la valeur exacte affichée dans l'interface
         const commissionElement = document.getElementById('commission-display-value');
+        
+        console.log("Commission element found:", commissionElement);
+        
         if (commissionElement && commissionElement.dataset.commissionAmount) {
-          const displayedCommission = parseFloat(commissionElement.dataset.commissionAmount);
-          if (!isNaN(displayedCommission)) {
-            commissionAmount = displayedCommission;
-            console.log("Commission récupérée depuis l'interface:", commissionAmount);
-          } else {
-            // Fallback en cas d'erreur de parsing
-            commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut, arrondi
+          try {
+            commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
+            
+            if (!isNaN(commissionAmount)) {
+              console.log("Commission récupérée depuis l'interface:", commissionAmount);
+            } else {
+              throw new Error("Commission value is NaN");
+            }
+          } catch (error) {
+            console.error("Error parsing commission:", error);
+            // Fallback calculé: 3% du montant financé, arrondi
+            commissionAmount = Math.round(financedAmount * 0.03);
             console.log("Commission par défaut calculée (échec parsing):", commissionAmount);
           }
         } else {
-          // Fallback si l'élément n'existe pas
-          commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut, arrondi
+          // Fallback si l'élément n'existe pas ou n'a pas l'attribut
+          commissionAmount = Math.round(financedAmount * 0.03);
           console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
         }
       }
 
-      // Vérifier que la commission est un nombre valide
-      if (isNaN(commissionAmount) || commissionAmount === undefined) {
-        commissionAmount = Math.round(financedAmount * 0.03); // Fallback en dernier recours, arrondi
-        console.log("Commission par défaut (valeur invalide détectée):", commissionAmount);
-      }
-
-      // S'assurer que la valeur est un nombre et pas une chaîne
-      commissionAmount = Number(commissionAmount);
+      // Log final de la commission à sauvegarder
+      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
 
       const offerData = {
         client_id: client.id,

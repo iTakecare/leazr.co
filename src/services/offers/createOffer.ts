@@ -5,6 +5,9 @@ import { calculateCommissionByLevel } from "@/utils/calculator";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
+    // Log for debugging - critical point
+    console.log("COMMISSION FROM OFFER DATA:", offerData.commission);
+    
     // Ensure numeric values are properly converted
     const offerDataToSave = {
       ...offerData,
@@ -16,9 +19,13 @@ export const createOffer = async (offerData: OfferData) => {
         undefined
     };
 
+    // Debugging logs
+    console.log("Parsed commission value:", offerDataToSave.commission);
+    console.log("Commission type:", typeof offerDataToSave.commission);
+
     // Vérification pour commission invalide (NaN)
     if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
-      console.warn("Commission invalide détectée (NaN), définition à 0");
+      console.warn("Commission invalide détectée (NaN) dans createOffer.ts, définition à 0");
       offerDataToSave.commission = 0;
     }
 
