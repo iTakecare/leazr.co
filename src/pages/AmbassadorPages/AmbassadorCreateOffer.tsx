@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -209,7 +208,7 @@ const AmbassadorCreateOffer = () => {
       // Récupérer la commission depuis l'interface utilisateur
       let commissionAmount = 0;
       
-      // Essayer de récupérer la commission directement de l'élément DOM
+      // Tenter de récupérer la commission directement depuis l'élément DOM
       const commissionElement = document.getElementById('commission-display-value');
       if (commissionElement && commissionElement.dataset.commissionAmount) {
         const displayedCommission = parseFloat(commissionElement.dataset.commissionAmount);
@@ -235,20 +234,20 @@ const AmbassadorCreateOffer = () => {
                 console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
               } else {
                 console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-                commissionAmount = financedAmount * 0.05; // 5% par défaut
+                commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
               }
             } catch (commError) {
               console.error("Erreur lors du calcul de la commission:", commError);
-              commissionAmount = financedAmount * 0.05; // 5% par défaut
+              commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
             }
           } else {
             console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
-            commissionAmount = financedAmount * 0.05; // 5% par défaut
+            commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
           }
         }
       } else {
         // Fallback si l'élément n'existe pas
-        commissionAmount = financedAmount * 0.05; // 5% par défaut pour les ambassadeurs
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
         console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
       }
       
@@ -257,8 +256,11 @@ const AmbassadorCreateOffer = () => {
       // On s'assure que la commission n'est pas 0, undefined ou NaN
       if (commissionAmount <= 0 || isNaN(commissionAmount)) {
         console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
-        commissionAmount = financedAmount * 0.05; // Valeur de secours de 5%
+        commissionAmount = Math.round(financedAmount * 0.05); // Valeur de secours de 5%, arrondie
       }
+      
+      // S'assurer que la valeur est un nombre et pas une chaîne
+      commissionAmount = Number(commissionAmount);
       
       const offerData = {
         client_id: client.id,
@@ -278,6 +280,7 @@ const AmbassadorCreateOffer = () => {
       };
       
       console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
       
       const { data, error } = await createOffer(offerData);
       

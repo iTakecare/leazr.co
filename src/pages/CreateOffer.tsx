@@ -171,12 +171,12 @@ const CreateOffer = () => {
       // Vérifier si une commission est affichée dans l'interface utilisateur
       let commissionAmount = 0;
       
-      // Pour les offres internes, la commission est de 0
+      // Pour les offres internes, la commission est toujours 0
       if (isInternalOffer) {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // Pour les autres types d'offres, essayons de récupérer la commission de l'élément DOM
+        // Pour les autres types d'offres, récupérer la commission de l'élément DOM
         const commissionElement = document.getElementById('commission-display-value');
         if (commissionElement && commissionElement.dataset.commissionAmount) {
           const displayedCommission = parseFloat(commissionElement.dataset.commissionAmount);
@@ -185,21 +185,24 @@ const CreateOffer = () => {
             console.log("Commission récupérée depuis l'interface:", commissionAmount);
           } else {
             // Fallback en cas d'erreur de parsing
-            commissionAmount = financedAmount * 0.03; // 3% par défaut
+            commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut, arrondi
             console.log("Commission par défaut calculée (échec parsing):", commissionAmount);
           }
         } else {
           // Fallback si l'élément n'existe pas
-          commissionAmount = financedAmount * 0.03; // 3% par défaut
+          commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut, arrondi
           console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
         }
       }
 
       // Vérifier que la commission est un nombre valide
       if (isNaN(commissionAmount) || commissionAmount === undefined) {
-        commissionAmount = financedAmount * 0.03; // Fallback en dernier recours
+        commissionAmount = Math.round(financedAmount * 0.03); // Fallback en dernier recours, arrondi
         console.log("Commission par défaut (valeur invalide détectée):", commissionAmount);
       }
+
+      // S'assurer que la valeur est un nombre et pas une chaîne
+      commissionAmount = Number(commissionAmount);
 
       const offerData = {
         client_id: client.id,
@@ -218,6 +221,7 @@ const CreateOffer = () => {
       };
 
       console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
 
       const { data, error } = await createOffer(offerData);
 

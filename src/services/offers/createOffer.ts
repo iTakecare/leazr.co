@@ -11,10 +11,16 @@ export const createOffer = async (offerData: OfferData) => {
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
-      commission: offerData.commission ? 
+      commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined
     };
+
+    // Vérification pour commission invalide (NaN)
+    if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
+      console.warn("Commission invalide détectée (NaN), définition à 0");
+      offerDataToSave.commission = 0;
+    }
 
     // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
     // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur

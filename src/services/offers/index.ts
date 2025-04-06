@@ -29,7 +29,13 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
 
     // Priorité à la commission fournie dans les données d'entrée
     if (offerData.commission !== undefined && offerData.commission !== null) {
-      console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
+      // Vérification supplémentaire pour s'assurer que commission n'est pas NaN
+      if (isNaN(Number(dataToSave.commission))) {
+        console.warn("Commission invalide détectée (NaN), définition à 0");
+        dataToSave.commission = 0;
+      } else {
+        console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
+      }
     }
     // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
     else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
@@ -37,9 +43,9 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       console.log("Type d'offre sans commission, valeur fixée à 0");
     }
 
-    // Vérification supplémentaire pour s'assurer que commission n'est pas NaN ou undefined
-    if (isNaN(Number(dataToSave.commission)) || dataToSave.commission === undefined) {
-      console.warn("Commission invalide détectée, définition à 0");
+    // Vérification supplémentaire pour s'assurer que commission n'est pas undefined
+    if (dataToSave.commission === undefined) {
+      console.warn("Commission undefined détectée, définition à 0");
       dataToSave.commission = 0;
     }
 
