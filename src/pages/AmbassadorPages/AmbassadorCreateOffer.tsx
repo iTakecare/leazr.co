@@ -191,18 +191,16 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      const equipmentDataWithMargin = {
-        items: equipmentList.map(eq => ({
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        })),
-        marginDifference: globalMarginAdjustment.marginDifference || 0,
-        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
-      };
+        }))
+      );
       
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
@@ -241,15 +239,12 @@ const AmbassadorCreateOffer = () => {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: JSON.stringify(equipmentDataWithMargin),
+        equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
-        margin: globalMarginAdjustment.amount,
-        margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",

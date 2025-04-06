@@ -1,4 +1,4 @@
-
+// First lines of imports from your file
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
-import { Switch } from "@/components/ui/switch";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -36,7 +35,7 @@ const CreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [isInternalOffer, setIsInternalOffer] = useState(true); // Default to true
+  const [isInternalOffer, setIsInternalOffer] = useState(false);
 
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
 
@@ -152,19 +151,16 @@ const CreateOffer = () => {
         0
       );
 
-      // Inclure les informations de marge dans equipment_description
-      const equipmentDataWithMargin = {
-        items: equipmentList.map(eq => ({
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        })),
-        marginDifference: globalMarginAdjustment.marginDifference || 0,
-        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
-      };
+        }))
+      );
 
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
@@ -177,15 +173,12 @@ const CreateOffer = () => {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: JSON.stringify(equipmentDataWithMargin),
+        equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
-        margin: globalMarginAdjustment.amount,
-        margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: offerType,
         user_id: user?.id || "",
@@ -293,27 +286,25 @@ const CreateOffer = () => {
                         onOpen={handleOpenLeaserSelector} 
                       />
                     </div>
-                    
-                    {/* Switch remplaçant la case à cocher pour les offres internes */}
-                    <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label htmlFor="is_internal_offer" className="text-base font-medium text-blue-800">
-                            Offre interne (sans commission)
-                          </label>
-                          <p className="text-sm text-blue-600 mt-1">
-                            Cette offre sera marquée comme interne et n'aura pas de commission associée.
-                          </p>
-                        </div>
-                        <Switch
+                    <div className="mb-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
                           id="is_internal_offer"
                           checked={isInternalOffer}
-                          onCheckedChange={setIsInternalOffer}
-                          className="data-[state=checked]:bg-blue-600"
+                          onChange={(e) => setIsInternalOffer(e.target.checked)}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
                         />
+                        <label htmlFor="is_internal_offer" className="text-sm font-medium">
+                          Offre interne (sans commission)
+                        </label>
                       </div>
+                      {isInternalOffer && (
+                        <p className="text-xs text-muted-foreground mt-1 ml-6">
+                          Cette offre sera marquée comme interne et n'aura pas de commission associée.
+                        </p>
+                      )}
                     </div>
-                    
                     <div className="mt-6">
                       <EquipmentForm
                         equipment={equipment}

@@ -285,21 +285,16 @@ const PartnerCreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Inclure les informations de marge dans equipment_description
-      const equipmentDataWithMargin = {
-        items: equipmentList.map(eq => ({
-          id: eq.id,
-          title: eq.title,
-          purchasePrice: eq.purchasePrice,
-          quantity: eq.quantity,
-          margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        })),
-        marginDifference: globalMarginAdjustment.marginDifference || 0,
-        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
-      };
+      const equipmentData = equipmentList.map(eq => ({
+        id: eq.id,
+        title: eq.title,
+        purchasePrice: eq.purchasePrice,
+        quantity: eq.quantity,
+        margin: eq.margin,
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+      }));
       
-      console.log("Saving equipment data with preserved margins and additional margin info:", equipmentDataWithMargin);
+      console.log("Saving equipment data with preserved margins:", equipmentData);
       
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
@@ -318,16 +313,13 @@ const PartnerCreateOffer = () => {
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
-        equipment_description: JSON.stringify(equipmentDataWithMargin),
+        equipment_description: JSON.stringify(equipmentData),
         equipment_text: equipmentDescription,
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
-        margin: globalMarginAdjustment.amount,
-        margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         additional_info: remarks,
         type: 'partner_offer'
       };
