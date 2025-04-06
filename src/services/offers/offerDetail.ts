@@ -52,17 +52,15 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
             .eq('id', id);
         }
         
-        // Récupérer l'ambassadeur pour vérifier son email
+        // Récupérer le niveau de commission de l'ambassadeur
         const { data: ambassador } = await supabase
           .from('ambassadors')
-          .select('commission_level_id, email')
+          .select('commission_level_id')
           .eq('id', data.ambassador_id)
           .single();
 
-        if (ambassador) {
-          console.log("Informations ambassadeur:", ambassador);
-          console.log("Email de l'ambassadeur:", ambassador.email);
-          console.log("Niveau de commission:", ambassador.commission_level_id);
+        if (ambassador?.commission_level_id) {
+          console.log("Niveau de commission trouvé:", ambassador.commission_level_id);
           
           // Calculer la commission basée sur le niveau de l'ambassadeur
           const commissionData = await calculateCommissionByLevel(
@@ -77,7 +75,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
           // Mettre à jour la commission dans les données
           if (commissionData && typeof commissionData.amount === 'number') {
             // Vérifier si la commission a changé
-            if (Math.abs((data.commission || 0) - commissionData.amount) > 0.01) {
+            if (Math.abs(data.commission - commissionData.amount) > 0.01) {
               console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
               data.commission = commissionData.amount;
               
