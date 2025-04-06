@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -6,11 +5,15 @@ import LeaserManager from "@/components/settings/LeaserManager";
 import CommissionManager from "@/components/settings/CommissionManager";
 import EmailSettings from "@/components/settings/EmailSettings";
 import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
-import PDFTemplateSettings from "@/components/settings/PDFTemplateSettings";
+import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
+import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
 import UserManager from "@/components/settings/UserManager";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import GeneralSettings from "@/components/settings/GeneralSettings";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -29,6 +32,9 @@ const Settings = () => {
     setActiveTab(value);
     setSearchParams({ tab: value });
   };
+
+  // Récupère le template ID s'il est spécifié dans l'URL
+  const selectedTemplateId = searchParams.get("template") || "default";
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -82,7 +88,17 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="pdf">
-          <PDFTemplateSettings />
+          <div className="space-y-6">
+            <PDFTemplateList 
+              onSelectTemplate={(templateId) => {
+                // Mettre à jour l'URL avec le template sélectionné
+                setSearchParams({ tab: 'pdf', template: templateId });
+              }}
+            />
+            
+            {/* Afficher le PDFTemplateManager avec le template sélectionné */}
+            <PDFTemplateManager templateId={selectedTemplateId} />
+          </div>
         </TabsContent>
 
         <TabsContent value="email">

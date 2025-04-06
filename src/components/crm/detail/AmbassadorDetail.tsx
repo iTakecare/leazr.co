@@ -22,13 +22,11 @@ import {
   updateAmbassadorCommissionLevel 
 } from "@/services/commissionService";
 import { toast } from "sonner";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import ContactInfoSection from "./sections/ContactInfoSection";
 import CompanyInfoSection from "./sections/CompanyInfoSection";
 import CommissionLevelSelector from "./sections/CommissionLevelSelector";
 import StatsSummary from "./sections/StatsSummary";
 import NotesSection from "./sections/NotesSection";
-import { Client } from "@/types/client";
 
 interface AmbassadorDetailProps {
   isOpen: boolean;
@@ -49,18 +47,12 @@ const AmbassadorDetail = ({
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [loading, setLoading] = useState(false);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
       loadCommissionLevels();
-      
-      if (ambassador?.id) {
-        fetchAmbassadorClients(ambassador.id);
-      }
-      
       if (ambassador?.commission_level_id) {
         setCurrentLevelId(ambassador.commission_level_id);
         loadCommissionLevel(ambassador.commission_level_id);
@@ -71,22 +63,8 @@ const AmbassadorDetail = ({
     } else {
       setCommissionLevel(null);
       setCurrentLevelId("");
-      setClients([]);
     }
   }, [isOpen, ambassador]);
-
-  const fetchAmbassadorClients = async (ambassadorId: string) => {
-    try {
-      setClientsLoading(true);
-      const clientsData = await getAmbassadorClients(ambassadorId);
-      console.log("Ambassador clients loaded:", clientsData);
-      setClients(clientsData);
-    } catch (error) {
-      console.error("Error fetching ambassador clients:", error);
-    } finally {
-      setClientsLoading(false);
-    }
-  };
 
   const loadCommissionLevels = async () => {
     try {
@@ -211,19 +189,12 @@ const AmbassadorDetail = ({
           </TabsContent>
 
           <TabsContent value="clients">
-            {clientsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="ml-2">Chargement des clients...</span>
-              </div>
-            ) : (
-              <ClientsView 
-                owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
-                clients={clients}
-                isOpen={tab === "clients"}
-                onClose={() => setTab("overview")}
-              />
-            )}
+            <ClientsView 
+              owner={{ id: ambassador.id, name: ambassador.name, type: 'ambassador' }}
+              clients={clients}
+              isOpen={tab === "clients"}
+              onClose={() => setTab("overview")}
+            />
           </TabsContent>
 
           <TabsContent value="commissions">

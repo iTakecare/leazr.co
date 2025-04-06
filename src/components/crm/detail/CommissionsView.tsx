@@ -1,7 +1,6 @@
 
 import React from 'react';
 import PartnerCommissionsTable from '@/components/partners/PartnerCommissionsTable';
-import AmbassadorCommissionsTable from '@/components/ambassadors/AmbassadorCommissionsTable';
 
 interface CommissionsViewProps {
   isOpen: boolean;
@@ -36,7 +35,9 @@ const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owne
           {owner.type === 'partner' ? (
             <PartnerCommissionsTable partnerId={owner.id} />
           ) : (
-            <AmbassadorCommissionsTable ambassadorId={owner.id} />
+            <div className="p-4 text-center">
+              <p className="text-gray-500">Commissions ambassadeur en cours de développement</p>
+            </div>
           )}
         </div>
         

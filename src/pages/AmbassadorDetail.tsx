@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
@@ -23,9 +22,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { formatDateToFrench } from "@/utils/formatters";
 import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
-import AmbassadorCommissionsTable from "@/components/ambassadors/AmbassadorCommissionsTable";
-import { Client } from "@/types/client";
 
 const AmbassadorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,8 +32,8 @@ const AmbassadorDetail = () => {
   const [tab, setTab] = useState("overview");
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [commissions, setCommissions] = useState<any[]>([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
 
   const fetchAmbassador = async () => {
@@ -68,7 +64,26 @@ const AmbassadorDetail = () => {
       }
       
       loadCommissionLevels();
-      fetchAmbassadorClients(id);
+      
+      // Simulation de clients pour l'ambassadeur
+      // Dans un cas réel, vous chargeriez ces données depuis une API
+      setClients([
+        {
+          id: "client1",
+          name: "Client 1",
+          company: "Entreprise A",
+          status: "active",
+          createdAt: "2023-10-15T14:30:00.000Z",
+        },
+        {
+          id: "client2",
+          name: "Client 2",
+          company: "Entreprise B",
+          status: "inactive",
+          createdAt: "2023-11-20T09:15:00.000Z",
+        }
+      ]);
+      
     } catch (error: any) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       
@@ -89,19 +104,6 @@ const AmbassadorDetail = () => {
   useEffect(() => {
     fetchAmbassador();
   }, [id, navigate]);
-
-  const fetchAmbassadorClients = async (ambassadorId: string) => {
-    try {
-      setClientsLoading(true);
-      const clientsData = await getAmbassadorClients(ambassadorId);
-      console.log("Ambassador clients loaded:", clientsData);
-      setClients(clientsData);
-    } catch (error) {
-      console.error("Error fetching ambassador clients:", error);
-    } finally {
-      setClientsLoading(false);
-    }
-  };
 
   const loadCommissionLevels = async () => {
     try {
@@ -276,12 +278,7 @@ const AmbassadorDetail = () => {
                       <div className="space-y-4">
                         <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
                         
-                        {clientsLoading ? (
-                          <div className="flex justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                            <span className="ml-2">Chargement des clients...</span>
-                          </div>
-                        ) : clients.length > 0 ? (
+                        {clients.length > 0 ? (
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -312,7 +309,7 @@ const AmbassadorDetail = () => {
                                     </Badge>
                                   </TableCell>
                                   <TableCell>
-                                    {formatDateToFrench(new Date(client.created_at || Date.now()))}
+                                    {formatDateToFrench(new Date(client.createdAt))}
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -329,7 +326,9 @@ const AmbassadorDetail = () => {
                     <TabsContent value="commissions">
                       <div className="space-y-4">
                         <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
-                        <AmbassadorCommissionsTable ambassadorId={id} />
+                        <div className="p-8 text-center bg-gray-50 rounded-md">
+                          <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                        </div>
                       </div>
                     </TabsContent>
                   </Tabs>
