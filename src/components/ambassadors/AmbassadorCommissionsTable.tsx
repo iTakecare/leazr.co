@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -33,10 +34,9 @@ import { getAmbassadorCommissions, updateAmbassadorCommissionStatus, AmbassadorC
 
 interface AmbassadorCommissionsTableProps {
   ambassadorId?: string;
-  refreshTrigger?: number; // Added refreshTrigger prop
 }
 
-const AmbassadorCommissionsTable: React.FC<AmbassadorCommissionsTableProps> = ({ ambassadorId, refreshTrigger = 0 }) => {
+const AmbassadorCommissionsTable: React.FC<AmbassadorCommissionsTableProps> = ({ ambassadorId }) => {
   const { user } = useAuth();
   const [commissions, setCommissions] = useState<AmbassadorCommission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ const AmbassadorCommissionsTable: React.FC<AmbassadorCommissionsTableProps> = ({
 
   useEffect(() => {
     fetchCommissions();
-  }, [ambassadorId, user, refreshTrigger]); // Added refreshTrigger to the dependency array
+  }, [ambassadorId, user]);
 
   const exportCommissions = () => {
     // Cette fonction exporterait les commissions en CSV/Excel
