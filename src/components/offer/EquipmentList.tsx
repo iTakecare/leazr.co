@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Equipment } from "@/types/equipment";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, PencilIcon, DollarSign, Percent } from "lucide-react";
+import { Trash2Icon, PencilIcon } from "lucide-react";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 
-// Ajout d'un attribut data pour stocker la valeur de commission dans le DOM
 const EquipmentList = ({
   equipmentList,
   editingId,
@@ -15,7 +14,7 @@ const EquipmentList = ({
   totalMonthlyPayment,
   globalMarginAdjustment,
   toggleAdaptMonthlyPayment,
-  hideFinancialDetails,
+  hideFinancialDetails = false,
   ambassadorId,
   commissionLevelId
 }: {
@@ -102,6 +101,12 @@ const EquipmentList = ({
     );
   };
 
+  const formatEquipmentDisplay = () => {
+    return equipmentList.map(eq => 
+      `${eq.title} - Quantité: ${eq.quantity}`
+    ).join('\n');
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Liste des équipements</h2>
@@ -115,9 +120,11 @@ const EquipmentList = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Équipement
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prix d'achat
-                </th>
+                {!hideFinancialDetails && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Prix d'achat
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Quantité
                 </th>
@@ -140,7 +147,9 @@ const EquipmentList = ({
               {equipmentList.map((eq) => (
                 <tr key={eq.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{eq.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{eq.purchasePrice}€</td>
+                  {!hideFinancialDetails && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{eq.purchasePrice}€</td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <Input
                       type="number"

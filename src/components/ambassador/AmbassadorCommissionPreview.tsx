@@ -10,13 +10,15 @@ interface AmbassadorCommissionPreviewProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   equipmentList: any[];
+  hideFinancialDetails?: boolean;
 }
 
 const AmbassadorCommissionPreview = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentList
+  equipmentList,
+  hideFinancialDetails = false
 }: AmbassadorCommissionPreviewProps) => {
   const [commission, setCommission] = useState<{ amount: number; rate: number; levelName: string }>({
     amount: 0,
@@ -97,7 +99,7 @@ const AmbassadorCommissionPreview = ({
     
     // Nettoyage
     return () => clearTimeout(timer);
-  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]); // Ajout de totalMonthlyPayment aux dépendances
+  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]);
 
   return (
     <Card className="border border-gray-200 shadow-sm">
