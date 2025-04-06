@@ -74,8 +74,10 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
           
           // Mettre à jour la commission dans les données
           if (commissionData && typeof commissionData.amount === 'number') {
-            // Vérifier si la commission a changé
-            if (Math.abs(data.commission - commissionData.amount) > 0.01) {
+            // Vérifier si la commission a changé de façon significative
+            const significantChange = Math.abs(data.commission - commissionData.amount) > 0.01;
+            
+            if (significantChange || data.commission === 0 || data.commission === null) {
               console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
               data.commission = commissionData.amount;
               
@@ -84,6 +86,27 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
                 .from('offers')
                 .update({ commission: commissionData.amount })
                 .eq('id', id);
+                
+              // Mettre à jour également le total des commissions de l'ambassadeur
+              try {
+                const { data: ambassadorData } = await supabase
+                  .from('ambassadors')
+                  .select('commissions_total')
+                  .eq('id', data.ambassador_id)
+                  .single();
+                  
+                if (ambassadorData) {
+                  await supabase
+                    .from('ambassadors')
+                    .update({ 
+                      commissions_total: (ambassadorData.commissions_total || 0) + commissionData.amount,
+                      last_commission: commissionData.amount
+                    })
+                    .eq('id', data.ambassador_id);
+                }
+              } catch (e) {
+                console.error("Erreur lors de la mise à jour des commissions de l'ambassadeur:", e);
+              }
             }
           }
         }
@@ -127,6 +150,35 @@ export const updateOffer = async (id: string, data: Partial<OfferData>): Promise
       );
       console.log(`Calcul du montant financé pour la mise à jour: ${financedAmount}€`);
       dataToSave.financed_amount = financedAmount;
+      
+      // Si c'est une offre d'ambassadeur, recalculer également la commission
+      if (dataToSave.type === 'ambassador_offer' && dataToSave.ambassador_id) {
+        try {
+          // Récupérer le niveau de commission de l'ambassadeur
+          const { data: ambassador } = await supabase
+            .from('ambassadors')
+            .select('commission_level_id')
+            .eq('id', dataToSave.ambassador_id)
+            .single();
+          
+          if (ambassador?.commission_level_id) {
+            // Calculer la commission basée sur le niveau de l'ambassadeur et le nouveau montant financé
+            const commissionData = await calculateCommissionByLevel(
+              financedAmount,
+              ambassador.commission_level_id,
+              'ambassador',
+              dataToSave.ambassador_id
+            );
+            
+            if (commissionData && typeof commissionData.amount === 'number') {
+              console.log(`Mise à jour de la commission: ${dataToSave.commission || 0}€ -> ${commissionData.amount}€`);
+              dataToSave.commission = commissionData.amount;
+            }
+          }
+        } catch (error) {
+          console.error("Erreur lors du recalcul de la commission:", error);
+        }
+      }
     }
     
     const result = await supabase

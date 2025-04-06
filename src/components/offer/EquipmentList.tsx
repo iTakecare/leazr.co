@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
@@ -98,7 +99,7 @@ const EquipmentList = ({
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       {editingId === eq.id ? (
                         <button
-                          onClick={cancelEditing}
+                          onClick={() => startEditing('')}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           Annuler

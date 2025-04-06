@@ -23,10 +23,12 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
+import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
 import { 
   getCommissionLevelWithRates, 
   getCommissionLevels
 } from "@/services/commissionService";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -44,6 +46,7 @@ const AmbassadorCreateOffer = () => {
   const [remarks, setRemarks] = useState("");
   const [commissionRate, setCommissionRate] = useState<number>(0.1); // Default 10%
   const [commissionLevelId, setCommissionLevelId] = useState<string | null>(null);
+  const [calculatedCommission, setCalculatedCommission] = useState<number>(0);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -192,6 +195,45 @@ const AmbassadorCreateOffer = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
   
+  // Calculate commission based on financial amount and commission level
+  useEffect(() => {
+    const calculateCommission = async () => {
+      if (!commissionLevelId || !totalMonthlyPayment || totalMonthlyPayment <= 0) {
+        setCalculatedCommission(0);
+        return;
+      }
+      
+      try {
+        // Calculate financed amount based on monthly payment and coefficient
+        const financedAmount = calculateFinancedAmount(
+          totalMonthlyPayment, 
+          globalMarginAdjustment.newCoef || coefficient || 3.27
+        );
+        
+        // Dynamically import calculator to avoid circular dependencies
+        const { calculateCommissionByLevel } = await import('@/utils/calculator');
+        
+        // Get full commission data based on level
+        const commissionData = await calculateCommissionByLevel(
+          financedAmount,
+          commissionLevelId,
+          'ambassador',
+          ambassadorId || user?.ambassador_id
+        );
+        
+        console.log("Commission calculated:", commissionData);
+        
+        if (commissionData && typeof commissionData.amount === 'number') {
+          setCalculatedCommission(commissionData.amount);
+        }
+      } catch (error) {
+        console.error("Error calculating commission:", error);
+      }
+    };
+    
+    calculateCommission();
+  }, [totalMonthlyPayment, commissionLevelId, globalMarginAdjustment.newCoef, coefficient]);
+  
   const handleSaveOffer = async () => {
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
@@ -206,19 +248,6 @@ const AmbassadorCreateOffer = () => {
     try {
       setIsSubmitting(true);
       
-      const totalMonthlyPayment = equipmentList.reduce(
-        (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
-        0
-      );
-      
-      const totalPurchasePrice = equipmentList.reduce(
-        (sum, item) => sum + (item.purchasePrice * item.quantity),
-        0
-      );
-      
-      // Calculate commission based on totalMonthlyPayment and commission rate
-      const calculatedCommission = totalMonthlyPayment * commissionRate;
-      
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -230,19 +259,25 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
+      // Calculate financed amount based on monthly payment and coefficient
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      // Use the calculated commission amount from our commission calculator
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-        coefficient: globalMarginAdjustment.newCoef,
+        coefficient: currentCoefficient,
         monthly_payment: totalMonthlyPayment,
-        commission: calculatedCommission, // Use the calculated commission
+        commission: calculatedCommission, // Use the calculated commission amount
+        financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
-        ambassador_id: ambassadorId || user?.ambassador_id, // Make sure ambassador_id is properly set
+        ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks
       };
       
@@ -323,16 +358,6 @@ const AmbassadorCreateOffer = () => {
   
   const hideFinancialDetails = true;
   const isPageLoading = loading || loadingLeasers;
-  
-  useEffect(() => {
-    if (ambassador) {
-      console.log("Ambassador state updated:", ambassador);
-      console.log("Commission level ID:", ambassador.commission_level_id);
-    }
-  }, [ambassador]);
-
-  // Calculate commission amount based on totalMonthlyPayment
-  const commissionAmount = totalMonthlyPayment * commissionRate;
   
   return (
     <PageTransition>
@@ -416,7 +441,7 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
                       commissionLevelId={commissionLevelId}
-                      commissionAmount={commissionAmount}
+                      commissionAmount={calculatedCommission}
                     />
                     
                     <ClientInfo

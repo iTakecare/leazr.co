@@ -12,6 +12,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/formatters';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface CommissionsViewProps {
   isOpen: boolean;
@@ -27,12 +29,13 @@ interface CommissionsViewProps {
 const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owner, commissions }) => {
   const [totalCommissions, setTotalCommissions] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
   useEffect(() => {
     if (isOpen && owner && owner.id) {
       fetchCommissionsTotal();
     }
-  }, [isOpen, owner]);
+  }, [isOpen, owner, refreshTrigger]);
 
   const fetchCommissionsTotal = async () => {
     try {
@@ -58,24 +61,39 @@ const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owne
       setLoading(false);
     }
   };
+  
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md md:max-w-xl overflow-y-auto">
-        <SheetHeader className="pb-6">
-          <SheetTitle>
-            Commissions - {owner.name}
+        <SheetHeader className="pb-4">
+          <SheetTitle className="flex justify-between items-center">
+            <span>Commissions - {owner.name}</span>
+            <Button size="sm" variant="outline" onClick={handleRefresh} className="h-8 px-2">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </SheetTitle>
-          <SheetDescription>
-            Total des commissions: {formatCurrency(totalCommissions)}
+          <SheetDescription className="flex items-center">
+            Total des commissions: 
+            {loading ? (
+              <div className="ml-2 flex items-center">
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <span>Chargement...</span>
+              </div>
+            ) : (
+              <span className="ml-2 font-semibold text-green-600">{formatCurrency(totalCommissions)}</span>
+            )}
           </SheetDescription>
         </SheetHeader>
         
-        <div className="overflow-auto flex-grow">
+        <div className="overflow-auto flex-grow mt-4">
           {owner.type === 'partner' ? (
-            <PartnerCommissionsTable partnerId={owner.id} />
+            <PartnerCommissionsTable partnerId={owner.id} refreshTrigger={refreshTrigger} />
           ) : (
-            <AmbassadorCommissionsTable ambassadorId={owner.id} />
+            <AmbassadorCommissionsTable ambassadorId={owner.id} refreshTrigger={refreshTrigger} />
           )}
         </div>
       </SheetContent>
