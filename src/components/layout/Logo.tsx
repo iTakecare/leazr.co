@@ -15,8 +15,8 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   
-  // Image fixe à utiliser comme logo (peut être une URL ou une image importée)
-  const fixedLogoUrl = "/site-logo.png"; // Cette image devra être placée dans le dossier "public"
+  // Image fixe à utiliser comme logo depuis le bucket Supabase
+  const fixedLogoUrl = "https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/site-settings/logos/ITC-Icone-t512.png";
   
   // Fetch site info on component mount (uniquement pour le nom du site)
   useEffect(() => {
