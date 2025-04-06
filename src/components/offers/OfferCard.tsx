@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offerService";
+import { useAuth } from "@/context/AuthContext";
 
 interface OfferCardProps {
   offer: Offer;
@@ -29,6 +30,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   isUpdatingStatus 
 }) => {
   const navigate = useNavigate();
+  const { isAdmin, isAmbassador } = useAuth();
   
   // Formatage de la date
   const formatDate = (dateString: string) => {
@@ -160,9 +162,11 @@ const OfferCard: React.FC<OfferCardProps> = ({
             <Clock className="h-3 w-3 mr-1" />
             {formatDate(offer.created_at)}
           </div>
-          <div className="text-xs text-green-600 font-medium">
-            Marge: {formatCurrency(calculateMargin())}
-          </div>
+          {!isAmbassador() && (
+            <div className="text-xs text-green-600 font-medium">
+              Marge: {formatCurrency(calculateMargin())}
+            </div>
+          )}
         </div>
         
         {isConverted && (

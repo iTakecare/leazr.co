@@ -75,7 +75,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
           // Mettre à jour la commission dans les données
           if (commissionData && typeof commissionData.amount === 'number') {
             // Vérifier si la commission a changé
-            if (Math.abs(data.commission - commissionData.amount) > 0.01) {
+            if (Math.abs((data.commission || 0) - commissionData.amount) > 0.01) {
               console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
               data.commission = commissionData.amount;
               

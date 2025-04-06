@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -184,7 +185,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Type d'offre</TableHead>
-                <TableHead className="text-right">Marge</TableHead>
+                {!isAmbassador() && (
+                  <TableHead className="text-right">Marge</TableHead>
+                )}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
@@ -197,9 +200,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
                   <TableCell>{getOfferTypeBadge(offer.type)}</TableCell>
-                  <TableCell className="text-right font-medium text-green-600">
-                    {formatCurrency(calculateMargin(offer))}
-                  </TableCell>
+                  {!isAmbassador() && (
+                    <TableCell className="text-right font-medium text-green-600">
+                      {formatCurrency(calculateMargin(offer))}
+                    </TableCell>
+                  )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
                       {formatCurrency(offer.financed_amount)}
