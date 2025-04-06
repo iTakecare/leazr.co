@@ -24,9 +24,12 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
         null
     };
 
+    // Log the commission value for debugging
+    console.log(`Commission value being saved: ${dataToSave.commission}€`);
+
     // Priorité à la commission fournie dans les données d'entrée
     if (offerData.commission !== undefined) {
-      console.log(`Commission fournie utilisée: ${dataToSave.commission}€`);
+      console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
     }
     // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
     else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
@@ -47,7 +50,10 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);
     const { data, error } = await supabase.from('offers').insert([dataToSave]).select('*');
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur lors de l'insertion:", error);
+      throw error;
+    }
 
     return { data: data[0] };
   } catch (error) {

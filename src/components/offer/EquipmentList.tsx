@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,9 +287,14 @@ const EquipmentList = ({
                 <div className="font-medium">Votre commission :</div>
                 <div 
                   className="text-green-600 font-medium"
-                  data-commission-amount={commission.amount}
+                  data-commission-amount={commission.amount.toFixed(2)}
                 >
                   {formatCurrency(commission.amount)}
+                  {commission.rate > 0 && (
+                    <span className="text-sm text-muted-foreground ml-1">
+                      ({commission.rate.toFixed(2)}%)
+                    </span>
+                  )}
                 </div>
               </div>
             )}

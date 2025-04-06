@@ -19,7 +19,7 @@ export const createOffer = async (offerData: OfferData) => {
     // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
     // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
     if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
-      console.log(`Utilisation de la commission fournie dans les données: ${offerDataToSave.commission}`);
+      console.log(`Utilisation de la commission fournie explicitement dans les données: ${offerDataToSave.commission}`);
     }
     // Sinon, essayons de calculer la commission en fonction du type d'offre
     else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
@@ -59,13 +59,28 @@ export const createOffer = async (offerData: OfferData) => {
       }
     }
     
+    // Log the final data being saved
+    console.log("Données finales de l'offre avant sauvegarde:", {
+      amount: offerDataToSave.amount,
+      coefficient: offerDataToSave.coefficient,
+      monthly_payment: offerDataToSave.monthly_payment,
+      commission: offerDataToSave.commission,
+      type: offerDataToSave.type
+    });
+    
     const { data, error } = await supabase
       .from('offers')
       .insert(offerDataToSave)
       .select()
       .single();
     
-    return { data, error };
+    if (error) {
+      console.error("Erreur lors de l'insertion de l'offre:", error);
+      return { data: null, error };
+    }
+    
+    console.log("Offre créée avec succès, données:", data);
+    return { data, error: null };
   } catch (error) {
     console.error("Error in createOffer:", error);
     return { data: null, error };

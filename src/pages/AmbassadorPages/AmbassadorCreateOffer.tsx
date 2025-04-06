@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -236,7 +235,6 @@ const AmbassadorCreateOffer = () => {
               console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
             } else {
               console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-              toast.error("Erreur lors du calcul de la commission");
               commissionAmount = totalMonthlyPayment * 0.1;
             }
           } catch (commError) {
