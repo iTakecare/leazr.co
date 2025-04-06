@@ -172,7 +172,7 @@ const CreateOffer = () => {
       // Vérifier si une commission est affichée dans l'interface utilisateur
       let commissionAmount = 0;
       
-      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM
+      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM avec l'attribut data
       const commissionElement = document.querySelector('[data-commission-amount]');
       if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
         const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
@@ -185,9 +185,9 @@ const CreateOffer = () => {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // Pour les autres types d'offres, utilisez la valeur par défaut
-        commissionAmount = totalMonthlyPayment * 0.1;
-        console.log("Commission par défaut:", commissionAmount);
+        // Pour les autres types d'offres, utilisez un pourcentage du montant financé
+        commissionAmount = financedAmount * 0.03; // 3% par défaut
+        console.log("Commission par défaut calculée:", commissionAmount);
       }
 
       const offerData = {

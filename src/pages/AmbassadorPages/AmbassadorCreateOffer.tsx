@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -208,7 +209,7 @@ const AmbassadorCreateOffer = () => {
       // Récupérer la commission depuis l'interface utilisateur
       let commissionAmount = 0;
       
-      // Essayer de récupérer la commission de l'élément DOM
+      // Essayer de récupérer la commission directement de l'élément DOM avec l'attribut data
       const commissionElement = document.querySelector('[data-commission-amount]');
       if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
         const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
@@ -248,6 +249,12 @@ const AmbassadorCreateOffer = () => {
       }
       
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      
+      // On s'assure que la commission n'est pas 0 ou undefined
+      if (commissionAmount <= 0 || isNaN(commissionAmount)) {
+        console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
+        commissionAmount = financedAmount * 0.03; // Valeur de secours de 3%
+      }
       
       const offerData = {
         client_id: client.id,

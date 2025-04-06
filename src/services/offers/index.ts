@@ -55,6 +55,7 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       throw error;
     }
 
+    console.log("Offre créée avec succès:", data[0]);
     return { data: data[0] };
   } catch (error) {
     console.error("Erreur lors de la création de l'offre:", error);

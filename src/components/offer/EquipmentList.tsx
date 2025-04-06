@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,13 +84,19 @@ const EquipmentList = ({
           ambassadorId
         );
         
-        setCommission({ 
-          amount: commissionData.amount, 
-          rate: commissionData.rate,
-          levelName: commissionData.levelName || ""
-        });
+        if (commissionData && typeof commissionData.amount === 'number') {
+          setCommission({ 
+            amount: commissionData.amount, 
+            rate: commissionData.rate || 0,
+            levelName: commissionData.levelName || ""
+          });
+        } else {
+          console.error("Données de commission invalides", commissionData);
+          setCommission({ amount: 0, rate: 0, levelName: "" });
+        }
       } catch (error) {
         console.error("Error calculating commission:", error);
+        setCommission({ amount: 0, rate: 0, levelName: "" });
       } finally {
         setIsCalculating(false);
         calculationTimerRef.current = null;
