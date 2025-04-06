@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import LogoUploader from './LogoUploader';
 
 interface SiteSettings {
   site_name: string;
@@ -18,7 +18,6 @@ interface SiteSettings {
   company_address: string;
   company_phone: string;
   company_email: string;
-  logo_url: string;
 }
 
 const getSiteSettings = async (): Promise<SiteSettings> => {
@@ -29,7 +28,6 @@ const getSiteSettings = async (): Promise<SiteSettings> => {
     company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
     company_phone: '+32 71 49 16 85',
     company_email: 'hello@itakecare.be',
-    logo_url: '',
   };
 };
 
@@ -82,7 +80,6 @@ const GeneralSettings = () => {
         company_address: settings.company_address,
         company_phone: settings.company_phone,
         company_email: settings.company_email,
-        logo_url: settings.logo_url,
       };
       
       const { updateSiteSettings } = await import('@/services/settingsService');
@@ -100,16 +97,6 @@ const GeneralSettings = () => {
       toast.error("Erreur lors de l'enregistrement des paramètres");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleLogoUploaded = (url: string) => {
-    if (settings) {
-      console.log("Logo uploaded, new URL:", url);
-      setSettings({
-        ...settings,
-        logo_url: url,
-      });
     }
   };
 
@@ -152,88 +139,71 @@ const GeneralSettings = () => {
       )}
       
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-4 md:col-span-2">
-            <div className="space-y-2">
-              <Label htmlFor="site_name">Nom du site</Label>
-              <Input
-                id="site_name"
-                name="site_name"
-                value={settings?.site_name || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="site_description">Description du site</Label>
-              <Textarea
-                id="site_description"
-                name="site_description"
-                value={settings?.site_description || ''}
-                onChange={handleInputChange}
-                rows={3}
-              />
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Nom de l'entreprise</Label>
-              <Input
-                id="company_name"
-                name="company_name"
-                value={settings?.company_name || ''}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="company_address">Adresse</Label>
-              <Textarea
-                id="company_address"
-                name="company_address"
-                value={settings?.company_address || ''}
-                onChange={handleInputChange}
-                rows={2}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_phone">Téléphone</Label>
-                <Input
-                  id="company_phone"
-                  name="company_phone"
-                  value={settings?.company_phone || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="company_email">Email</Label>
-                <Input
-                  id="company_email"
-                  name="company_email"
-                  type="email"
-                  value={settings?.company_email || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="site_name">Nom du site</Label>
+            <Input
+              id="site_name"
+              name="site_name"
+              value={settings?.site_name || ''}
+              onChange={handleInputChange}
+            />
           </div>
           
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Logo</h3>
-            <div className="flex flex-col items-center p-4 border rounded-md">
-              <LogoUploader
-                initialLogoUrl={settings?.logo_url}
-                onLogoUploaded={handleLogoUploaded}
-                bucketName="site-settings"
-                folderPath="logos"
+          <div className="space-y-2">
+            <Label htmlFor="site_description">Description du site</Label>
+            <Textarea
+              id="site_description"
+              name="site_description"
+              value={settings?.site_description || ''}
+              onChange={handleInputChange}
+              rows={3}
+            />
+          </div>
+          
+          <Separator className="my-4" />
+          
+          <div className="space-y-2">
+            <Label htmlFor="company_name">Nom de l'entreprise</Label>
+            <Input
+              id="company_name"
+              name="company_name"
+              value={settings?.company_name || ''}
+              onChange={handleInputChange}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="company_address">Adresse</Label>
+            <Textarea
+              id="company_address"
+              name="company_address"
+              value={settings?.company_address || ''}
+              onChange={handleInputChange}
+              rows={2}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_phone">Téléphone</Label>
+              <Input
+                id="company_phone"
+                name="company_phone"
+                value={settings?.company_phone || ''}
+                onChange={handleInputChange}
               />
-              <p className="text-xs text-muted-foreground mt-4 text-center">
-                Téléchargez une image au format PNG, JPG, WebP ou SVG pour votre logo.
-              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company_email">Email</Label>
+              <Input
+                id="company_email"
+                name="company_email"
+                type="email"
+                value={settings?.company_email || ''}
+                onChange={handleInputChange}
+              />
             </div>
           </div>
         </div>
