@@ -1,7 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PartnerCommissionsTable from '@/components/partners/PartnerCommissionsTable';
 import AmbassadorCommissionsTable from '@/components/ambassadors/AmbassadorCommissionsTable';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/formatters';
 
 interface CommissionsViewProps {
   isOpen: boolean;
@@ -15,41 +25,61 @@ interface CommissionsViewProps {
 }
 
 const CommissionsView: React.FC<CommissionsViewProps> = ({ isOpen, onClose, owner, commissions }) => {
-  if (!isOpen) return null;
+  const [totalCommissions, setTotalCommissions] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && owner && owner.id) {
+      fetchCommissionsTotal();
+    }
+  }, [isOpen, owner]);
+
+  const fetchCommissionsTotal = async () => {
+    try {
+      setLoading(true);
+      
+      // Table name based on owner type
+      const tableName = owner.type === 'partner' ? 'partners' : 'ambassadors';
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('commissions_total')
+        .eq('id', owner.id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      setTotalCommissions(data?.commissions_total || 0);
+    } catch (error) {
+      console.error(`Error fetching ${owner.type} commissions total:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-md md:max-w-xl overflow-y-auto">
+        <SheetHeader className="pb-6">
+          <SheetTitle>
             Commissions - {owner.name}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ×
-          </button>
-        </div>
+          </SheetTitle>
+          <SheetDescription>
+            Total des commissions: {formatCurrency(totalCommissions)}
+          </SheetDescription>
+        </SheetHeader>
         
-        <div className="p-4 overflow-auto flex-grow">
+        <div className="overflow-auto flex-grow">
           {owner.type === 'partner' ? (
             <PartnerCommissionsTable partnerId={owner.id} />
           ) : (
             <AmbassadorCommissionsTable ambassadorId={owner.id} />
           )}
         </div>
-        
-        <div className="p-4 border-t flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-          >
-            Fermer
-          </button>
-        </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,10 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
+import { 
+  getCommissionLevelWithRates, 
+  getCommissionLevels
+} from "@/services/commissionService";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -37,6 +42,8 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [commissionRate, setCommissionRate] = useState<number>(0.1); // Default 10%
+  const [commissionLevelId, setCommissionLevelId] = useState<string | null>(null);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -110,11 +117,30 @@ const AmbassadorCreateOffer = () => {
       if (error) throw error;
       setAmbassador(data);
       console.log("Ambassador data loaded:", data);
+      
+      // Load commission level if available
+      if (data.commission_level_id) {
+        setCommissionLevelId(data.commission_level_id);
+        loadCommissionRate(data.commission_level_id);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       toast.error("Impossible de charger les informations de l'ambassadeur");
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadCommissionRate = async (levelId: string) => {
+    try {
+      const level = await getCommissionLevelWithRates(levelId);
+      if (level && level.rates && level.rates.length > 0) {
+        // Find the appropriate rate based on the amount
+        // For now, we'll just use the first rate as default
+        setCommissionRate(level.rates[0].rate / 100);
+      }
+    } catch (error) {
+      console.error("Error loading commission level rates:", error);
     }
   };
   
@@ -190,6 +216,9 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
+      // Calculate commission based on totalMonthlyPayment and commission rate
+      const calculatedCommission = totalMonthlyPayment * commissionRate;
+      
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -209,10 +238,11 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: calculatedCommission, // Use the calculated commission
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
+        ambassador_id: ambassadorId || user?.ambassador_id, // Make sure ambassador_id is properly set
         remarks: remarks
       };
       
@@ -227,6 +257,34 @@ const AmbassadorCreateOffer = () => {
       }
       
       toast.success("Offre créée avec succès!");
+      
+      // Update ambassador commission totals after offer creation
+      if (ambassadorId || user?.ambassador_id) {
+        try {
+          const ambId = ambassadorId || user?.ambassador_id;
+          const { data: ambassadorData, error: ambassadorError } = await supabase
+            .from("ambassadors")
+            .select("commissions_total")
+            .eq("id", ambId)
+            .single();
+          
+          if (!ambassadorError && ambassadorData) {
+            const newTotal = (ambassadorData.commissions_total || 0) + calculatedCommission;
+            
+            await supabase
+              .from("ambassadors")
+              .update({ 
+                commissions_total: newTotal,
+                last_commission: calculatedCommission
+              })
+              .eq("id", ambId);
+            
+            console.log("Ambassador commissions updated:", newTotal);
+          }
+        } catch (err) {
+          console.error("Error updating ambassador commission totals:", err);
+        }
+      }
       
       navigate("/ambassador/offers");
     } catch (error) {
@@ -272,6 +330,9 @@ const AmbassadorCreateOffer = () => {
       console.log("Commission level ID:", ambassador.commission_level_id);
     }
   }, [ambassador]);
+
+  // Calculate commission amount based on totalMonthlyPayment
+  const commissionAmount = totalMonthlyPayment * commissionRate;
   
   return (
     <PageTransition>
@@ -354,7 +415,8 @@ const AmbassadorCreateOffer = () => {
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
-                      commissionLevelId={ambassador?.commission_level_id}
+                      commissionLevelId={commissionLevelId}
+                      commissionAmount={commissionAmount}
                     />
                     
                     <ClientInfo
