@@ -91,8 +91,9 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
       </div>
       
       {showText && (
-        <div className="overflow-hidden">
+        <div className="overflow-hidden flex flex-col">
           <h1 className="text-lg font-bold">{siteInfo.siteName}</h1>
+          <span className="text-xs text-muted-foreground -mt-1">Hub de gestion</span>
         </div>
       )}
     </div>
