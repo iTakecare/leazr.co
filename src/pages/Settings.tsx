@@ -56,17 +56,7 @@ const Settings = () => {
         </TabsList>
 
         <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres généraux</CardTitle>
-              <CardDescription>
-                Configurez les paramètres globaux de l'application, comme le logo et les informations générales
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <GeneralSettings />
-            </CardContent>
-          </Card>
+          <GeneralSettings />
         </TabsContent>
 
         <TabsContent value="leasers">
