@@ -8,7 +8,7 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
   try {
     const { data, error } = await supabase
       .from('offers')
-      .select('*, clients(*), ambassador:ambassador_id(id, name, email, commission_level_id)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -52,69 +52,38 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
             .eq('id', id);
         }
         
-        // Vérifier si les infos d'ambassadeur sont disponibles directement dans les données jointes
-        let ambassadorData = data.ambassador;
-        
-        // Si les données d'ambassadeur ne sont pas disponibles à partir de la jointure, les récupérer directement
-        if (!ambassadorData && data.ambassador_id) {
-          const { data: fetchedAmbassador } = await supabase
-            .from('ambassadors')
-            .select('id, name, email, commission_level_id')
-            .eq('id', data.ambassador_id)
-            .single();
-            
-          ambassadorData = fetchedAmbassador;
-        }
+        // Récupérer le niveau de commission de l'ambassadeur
+        const { data: ambassador } = await supabase
+          .from('ambassadors')
+          .select('commission_level_id')
+          .eq('id', data.ambassador_id)
+          .single();
 
-        if (ambassadorData) {
-          console.log("Informations ambassadeur:", ambassadorData);
+        if (ambassador?.commission_level_id) {
+          console.log("Niveau de commission trouvé:", ambassador.commission_level_id);
           
-          let commission_level_id = ambassadorData.commission_level_id;
+          // Calculer la commission basée sur le niveau de l'ambassadeur
+          const commissionData = await calculateCommissionByLevel(
+            financedAmount,
+            ambassador.commission_level_id,
+            'ambassador',
+            data.ambassador_id
+          );
+
+          console.log("Données de commission calculées:", commissionData);
           
-          // Si l'ambassadeur n'a pas de niveau de commission assigné, récupérer le niveau par défaut
-          if (!commission_level_id) {
-            console.log("Aucun niveau de commission assigné, recherche du niveau par défaut");
-            const { data: defaultLevel, error: defaultLevelError } = await supabase
-              .from('commission_levels')
-              .select('id')
-              .eq('type', 'ambassador')
-              .eq('is_default', true)
-              .single();
+          // Mettre à jour la commission dans les données
+          if (commissionData && typeof commissionData.amount === 'number') {
+            // Vérifier si la commission a changé
+            if (Math.abs((data.commission || 0) - commissionData.amount) > 0.01) {
+              console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
+              data.commission = commissionData.amount;
               
-            if (!defaultLevelError && defaultLevel) {
-              commission_level_id = defaultLevel.id;
-              console.log("Niveau de commission par défaut utilisé:", commission_level_id);
-            } else {
-              console.error("Impossible de trouver un niveau de commission par défaut:", defaultLevelError);
-            }
-          } else {
-            console.log("Niveau de commission de l'ambassadeur:", commission_level_id);
-          }
-          
-          if (commission_level_id) {
-            // Calculer la commission basée sur le niveau de l'ambassadeur
-            const commissionData = await calculateCommissionByLevel(
-              financedAmount,
-              commission_level_id,
-              'ambassador',
-              data.ambassador_id
-            );
-
-            console.log("Données de commission calculées:", commissionData);
-            
-            // Mettre à jour la commission dans les données
-            if (commissionData && typeof commissionData.amount === 'number') {
-              // Vérifier si la commission a changé
-              if (Math.abs((data.commission || 0) - commissionData.amount) > 0.01) {
-                console.log(`Mise à jour de la commission: ${data.commission || 0}€ -> ${commissionData.amount}€`);
-                data.commission = commissionData.amount;
-                
-                // Mettre à jour la commission dans la base de données
-                await supabase
-                  .from('offers')
-                  .update({ commission: commissionData.amount })
-                  .eq('id', id);
-              }
+              // Mettre à jour la commission dans la base de données
+              await supabase
+                .from('offers')
+                .update({ commission: commissionData.amount })
+                .eq('id', id);
             }
           }
         }
