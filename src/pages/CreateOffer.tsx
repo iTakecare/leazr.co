@@ -152,68 +152,40 @@ const CreateOffer = () => {
         0
       );
 
-      const equipmentDescription = JSON.stringify(
-        equipmentList.map(eq => ({
+      // Inclure les informations de marge dans equipment_description
+      const equipmentDataWithMargin = {
+        items: equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        }))
-      );
+        })),
+        marginDifference: globalMarginAdjustment.marginDifference || 0,
+        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
+      };
 
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
       // Déterminer si l'offre est interne (sans commission) ou normale
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-      
-      // Vérifier si une commission est affichée dans l'interface utilisateur
-      let commissionAmount = 0;
-      
-      // Tentative 1: Récupérer la commission par l'élément avec ID spécifique
-      const commissionElement = document.getElementById('commission-display');
-      if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
-        const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
-        if (!isNaN(displayedCommission)) {
-          commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'élément avec ID:", commissionAmount);
-        }
-      } 
-      // Tentative 2: Récupérer la commission par sélecteur d'attribut
-      else {
-        const commissionByAttr = document.querySelector('[data-commission-amount]');
-        if (commissionByAttr && commissionByAttr.getAttribute('data-commission-amount')) {
-          const displayedCommission = parseFloat(commissionByAttr.getAttribute('data-commission-amount') || '0');
-          if (!isNaN(displayedCommission)) {
-            commissionAmount = displayedCommission;
-            console.log("Commission récupérée par sélecteur d'attribut:", commissionAmount);
-          }
-        } else if (isInternalOffer) {
-          // Si c'est une offre interne, la commission est de 0
-          commissionAmount = 0;
-          console.log("Offre interne - commission à 0");
-        } else {
-          // Pour les autres types d'offres, utilisez un pourcentage du montant financé
-          commissionAmount = financedAmount * 0.03; // 3% par défaut
-          console.log("Commission par défaut calculée:", commissionAmount);
-        }
-      }
-
-      // Log final de la commission qui sera utilisée
-      console.log(`Commission finale qui sera sauvegardée: ${commissionAmount}€ (type: ${offerType})`);
+      const commissionAmount = isInternalOffer ? 0 : totalMonthlyPayment * 0.1;
 
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: equipmentDescription,
+        equipment_description: JSON.stringify(equipmentDataWithMargin),
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
+        margin: globalMarginAdjustment.amount,
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: offerType,
         user_id: user?.id || "",

@@ -18,6 +18,11 @@ export interface Offer {
   converted_to_contract: boolean;
   ambassador_id?: string;
   ambassador_name?: string;
+  margin?: number;
+  financed_amount?: number;
+  coefficient?: number;
+  margin_difference?: number;
+  total_margin_with_difference?: number;
   clients?: {
     id?: string;
     name?: string;

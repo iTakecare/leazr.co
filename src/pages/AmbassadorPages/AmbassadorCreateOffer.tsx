@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -192,95 +191,65 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      const equipmentDescription = JSON.stringify(
-        equipmentList.map(eq => ({
+      const equipmentDataWithMargin = {
+        items: equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        }))
-      );
+        })),
+        marginDifference: globalMarginAdjustment.marginDifference || 0,
+        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
+      };
       
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Récupérer la commission depuis l'interface utilisateur
       let commissionAmount = 0;
       
-      // Tentative 1: Récupérer la commission par l'élément avec ID spécifique
-      const commissionElement = document.getElementById('commission-display');
-      if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
-        const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
-        if (!isNaN(displayedCommission)) {
-          commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'élément avec ID:", commissionAmount);
-        }
-      } 
-      // Tentative 2: Récupérer la commission par sélecteur d'attribut
-      else {
-        const commissionByAttr = document.querySelector('[data-commission-amount]');
-        if (commissionByAttr && commissionByAttr.getAttribute('data-commission-amount')) {
-          const displayedCommission = parseFloat(commissionByAttr.getAttribute('data-commission-amount') || '0');
-          if (!isNaN(displayedCommission)) {
-            commissionAmount = displayedCommission;
-            console.log("Commission récupérée par sélecteur d'attribut:", commissionAmount);
-          }
-        } 
-        // Tentative 3: Calcul manuel de la commission si aucune récupération possible
-        else {
-          const currentAmbassadorId = ambassadorId || user?.ambassador_id;
-          const commissionLevelId = ambassador?.commission_level_id;
-          
-          if (currentAmbassadorId && commissionLevelId) {
-            try {
-              const commissionData = await calculateCommissionByLevel(
-                financedAmount,
-                commissionLevelId,
-                'ambassador',
-                currentAmbassadorId
-              );
-              
-              if (commissionData && typeof commissionData.amount === 'number') {
-                commissionAmount = commissionData.amount;
-                console.log(`Commission calculée manuellement: ${commissionAmount}€ (${commissionData.rate}%)`);
-              } else {
-                console.warn("Calcul de commission a retourné un résultat invalide, utilisation d'une valeur par défaut");
-                commissionAmount = financedAmount * 0.03; // 3% par défaut
-              }
-            } catch (commError) {
-              console.error("Erreur lors du calcul manuel de la commission:", commError);
-              commissionAmount = financedAmount * 0.03; // 3% par défaut en cas d'erreur
-            }
-          } else {
-            console.warn("Impossible de calculer la commission: données d'ambassadeur manquantes");
-            commissionAmount = financedAmount * 0.03; // 3% par défaut
-          }
-        }
-      }
-      
-      // Validation finale de la commission
-      if (commissionAmount <= 0 || isNaN(commissionAmount)) {
-        console.warn("Commission invalide après toutes les tentatives, application d'une valeur par défaut");
-        commissionAmount = financedAmount * 0.03; // Valeur de secours de 3%
-      }
-      
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      const commissionLevelId = ambassador?.commission_level_id;
       
-      // Log final de la commission qui sera utilisée
-      console.log(`Commission finale qui sera sauvegardée: ${commissionAmount}€`);
+      if (currentAmbassadorId && commissionLevelId) {
+        try {
+          const commissionData = await calculateCommissionByLevel(
+            financedAmount,
+            commissionLevelId,
+            'ambassador',
+            currentAmbassadorId
+          );
+          
+          if (commissionData && typeof commissionData.amount === 'number') {
+            commissionAmount = commissionData.amount;
+            console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
+          } else {
+            console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
+            toast.error("Erreur lors du calcul de la commission");
+          }
+        } catch (commError) {
+          console.error("Erreur lors du calcul de la commission:", commError);
+          commissionAmount = totalMonthlyPayment * 0.1;
+        }
+      } else {
+        console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
+        commissionAmount = totalMonthlyPayment * 0.1;
+      }
       
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: equipmentDescription,
+        equipment_description: JSON.stringify(equipmentDataWithMargin),
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: commissionAmount, // Utiliser la commission récupérée ou calculée
+        commission: commissionAmount,
         financed_amount: financedAmount,
+        margin: globalMarginAdjustment.amount,
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",

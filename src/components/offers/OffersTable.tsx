@@ -35,15 +35,21 @@ import {
   Send, 
   Eye, 
   FileDown, 
-  ExternalLink
+  ExternalLink,
+  Building,
+  Users,
+  User,
+  Factory
 } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Offer } from "@/hooks/offers/useFetchOffers";
 
 interface OffersTableProps {
-  offers: any[];
+  offers: Offer[];
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
   onResendOffer?: (offerId: string) => void;
@@ -102,6 +108,73 @@ const OffersTable: React.FC<OffersTableProps> = ({
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
+  const getOfferTypeBadge = (type: string) => {
+    switch(type) {
+      case 'ambassador_offer':
+        return (
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            <span>Ambassadeur</span>
+          </Badge>
+        );
+      case 'partner_offer':
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+            <Building className="h-3 w-3" />
+            <span>Partenaire</span>
+          </Badge>
+        );
+      case 'client_request':
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
+            <User className="h-3 w-3" />
+            <span>Demande client</span>
+          </Badge>
+        );
+      case 'internal_offer':
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+            <Factory className="h-3 w-3" />
+            <span>Interne</span>
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 flex items-center gap-1">
+            <Building className="h-3 w-3" />
+            <span>Admin</span>
+          </Badge>
+        );
+    }
+  };
+
+  const calculateMargin = (offer: Offer) => {
+    if (offer.total_margin_with_difference !== undefined) {
+      return offer.total_margin_with_difference;
+    }
+    
+    if (offer.margin !== undefined && offer.margin_difference !== undefined) {
+      return offer.margin + offer.margin_difference;
+    }
+    
+    if (offer.margin !== undefined) {
+      return offer.margin;
+    }
+    
+    if (offer.financed_amount !== undefined && offer.amount) {
+      const margin = offer.financed_amount - offer.amount;
+      return margin > 0 ? margin : 0;
+    }
+    
+    if (offer.monthly_payment && offer.coefficient !== undefined) {
+      const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
+      const margin = financedAmount - (offer.amount || 0);
+      return margin > 0 ? margin : 0;
+    }
+    
+    return 0;
+  };
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
@@ -111,7 +184,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Équipement</TableHead>
+                <TableHead>Type d'offre</TableHead>
+                {!isAmbassador() && (
+                  <TableHead className="text-right">Marge</TableHead>
+                )}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
@@ -123,28 +199,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableRow key={offer.id}>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
-                  <TableCell className="max-w-[180px] truncate">
-                    {offer.equipment_description &&
-                      typeof offer.equipment_description === "string" &&
-                      (offer.equipment_description.startsWith("[") ||
-                        offer.equipment_description.startsWith("{"))
-                      ? (() => {
-                          try {
-                            const equipmentData = JSON.parse(
-                              offer.equipment_description
-                            );
-                            if (Array.isArray(equipmentData)) {
-                              return equipmentData
-                                .map((item) => item.title)
-                                .join(", ");
-                            }
-                            return equipmentData.title || "Équipement sans titre";
-                          } catch (e) {
-                            return "Format d'équipement non valide";
-                          }
-                        })()
-                      : offer.equipment_description || "Non spécifié"}
-                  </TableCell>
+                  <TableCell>{getOfferTypeBadge(offer.type)}</TableCell>
+                  {!isAmbassador() && (
+                    <TableCell className="text-right font-medium text-green-600">
+                      {formatCurrency(calculateMargin(offer))}
+                    </TableCell>
+                  )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
                       {formatCurrency(offer.financed_amount)}
