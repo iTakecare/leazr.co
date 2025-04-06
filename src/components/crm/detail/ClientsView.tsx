@@ -11,18 +11,13 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { User, Building2 } from "lucide-react";
 import { formatDateToFrench } from "@/utils/formatters";
+import { Client } from "@/types/client";
 
 interface ClientsViewProps {
   isOpen: boolean;
   onClose: () => void;
   owner: { id: string; name: string; type: "ambassador" | "partner" };
-  clients: Array<{
-    id: string;
-    name: string;
-    company?: string;
-    status: string;
-    createdAt: string;
-  }>;
+  clients: Client[];
 }
 
 const ClientsView = ({
@@ -76,7 +71,7 @@ const ClientsView = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {formatDateToFrench(new Date(client.createdAt))}
+                    {formatDateToFrench(new Date(client.created_at || Date.now()))}
                   </TableCell>
                 </TableRow>
               ))}
