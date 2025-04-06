@@ -52,7 +52,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
 
   // Calcul de la marge
   const calculateMargin = () => {
-    // Si la marge totale avec différence est disponible, l'utiliser en priorité
+    // Si la marge totale avec différence est disponible dans la base de données, l'utiliser en priorité
     if (offer.total_margin_with_difference !== undefined) {
       return offer.total_margin_with_difference;
     }
