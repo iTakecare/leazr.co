@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -34,9 +33,10 @@ import { getPartnerCommissions, updateCommissionStatus, PartnerCommission, calcu
 
 interface PartnerCommissionsTableProps {
   partnerId?: string;
+  refreshTrigger?: number; // Added refreshTrigger prop
 }
 
-const PartnerCommissionsTable: React.FC<PartnerCommissionsTableProps> = ({ partnerId }) => {
+const PartnerCommissionsTable: React.FC<PartnerCommissionsTableProps> = ({ partnerId, refreshTrigger = 0 }) => {
   const { user } = useAuth();
   const [commissions, setCommissions] = useState<PartnerCommission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ const PartnerCommissionsTable: React.FC<PartnerCommissionsTableProps> = ({ partn
 
   useEffect(() => {
     fetchCommissions();
-  }, [partnerId, user]);
+  }, [partnerId, user, refreshTrigger]); // Added refreshTrigger to the dependency array
 
   const exportCommissions = () => {
     // Cette fonction exporterait les commissions en CSV/Excel
