@@ -11,10 +11,13 @@ export const createOffer = async (offerData: OfferData) => {
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
-      commission: offerData.commission ? 
+      commission: offerData.commission !== undefined ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined
     };
+
+    // Log the commission value for debugging
+    console.log(`Commission value in createOffer.ts: ${offerDataToSave.commission}€`, typeof offerDataToSave.commission);
 
     // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
     // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
@@ -57,6 +60,13 @@ export const createOffer = async (offerData: OfferData) => {
           }
         }
       }
+    }
+    
+    // Ensure commission is a number and not NaN or undefined
+    if (offerDataToSave.commission === undefined || offerDataToSave.commission === null || isNaN(Number(offerDataToSave.commission))) {
+      // Apply default fallback
+      offerDataToSave.commission = 0;
+      console.log("Commission undefined, applying default value: 0");
     }
     
     // Log the final data being saved

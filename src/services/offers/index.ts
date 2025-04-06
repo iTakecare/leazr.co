@@ -25,16 +25,19 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     };
 
     // Log the commission value for debugging
-    console.log(`Commission value being saved: ${dataToSave.commission}€`);
+    console.log(`Commission value being saved: ${dataToSave.commission}€`, typeof dataToSave.commission);
 
-    // Priorité à la commission fournie dans les données d'entrée
-    if (offerData.commission !== undefined) {
-      console.log(`Commission explicite utilisée: ${dataToSave.commission}€`);
-    }
-    // Pour les offres internes ou types sans commission, s'assurer que la commission est à zéro
-    else if (offerData.type === 'internal_offer' || !hasCommission(offerData.type)) {
-      dataToSave.commission = 0;
-      console.log("Type d'offre sans commission, valeur fixée à 0");
+    // Ensure commission is always a number or null, not undefined
+    if (dataToSave.commission === undefined) {
+      // If undefined, set a default based on type
+      if (offerData.type === 'internal_offer' || !hasCommission(offerData.type as OfferType)) {
+        dataToSave.commission = 0;
+        console.log("Type d'offre sans commission, valeur fixée à 0");
+      } else if (dataToSave.monthly_payment) {
+        // Default fallback calculation (3% of monthly payment * 36)
+        dataToSave.commission = Number(dataToSave.monthly_payment) * 0.03 * 36;
+        console.log(`Commission calculée par défaut: ${dataToSave.commission}€`);
+      }
     }
 
     // Calculer et ajouter le montant financé
@@ -48,6 +51,13 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     }
 
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);
+    
+    // Make sure to sanitize null values that should be 0
+    if (dataToSave.commission === null || dataToSave.commission === undefined || isNaN(Number(dataToSave.commission))) {
+      dataToSave.commission = 0;
+      console.log("Commission sanitized to 0 from null/undefined/NaN");
+    }
+    
     const { data, error } = await supabase.from('offers').insert([dataToSave]).select('*');
 
     if (error) {

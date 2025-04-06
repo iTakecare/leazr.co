@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,6 +89,7 @@ const EquipmentList = ({
             rate: commissionData.rate || 0,
             levelName: commissionData.levelName || ""
           });
+          console.log(`Commission calculée et mise à jour: ${commissionData.amount}€ (${commissionData.rate || 0}%)`);
         } else {
           console.error("Données de commission invalides", commissionData);
           setCommission({ amount: 0, rate: 0, levelName: "" });
@@ -295,6 +295,7 @@ const EquipmentList = ({
                 <div 
                   className="text-green-600 font-medium"
                   data-commission-amount={commission.amount.toFixed(2)}
+                  id="commission-display"
                 >
                   {formatCurrency(commission.amount)}
                   {commission.rate > 0 && (

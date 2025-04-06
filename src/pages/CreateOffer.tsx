@@ -172,23 +172,37 @@ const CreateOffer = () => {
       // Vérifier si une commission est affichée dans l'interface utilisateur
       let commissionAmount = 0;
       
-      // Pour les ambassadeurs, essayons de récupérer la commission de l'élément DOM avec l'attribut data
-      const commissionElement = document.querySelector('[data-commission-amount]');
+      // Tentative 1: Récupérer la commission par l'élément avec ID spécifique
+      const commissionElement = document.getElementById('commission-display');
       if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
         const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
         if (!isNaN(displayedCommission)) {
           commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          console.log("Commission récupérée depuis l'élément avec ID:", commissionAmount);
         }
-      } else if (isInternalOffer) {
-        // Si c'est une offre interne, la commission est de 0
-        commissionAmount = 0;
-        console.log("Offre interne - commission à 0");
-      } else {
-        // Pour les autres types d'offres, utilisez un pourcentage du montant financé
-        commissionAmount = financedAmount * 0.03; // 3% par défaut
-        console.log("Commission par défaut calculée:", commissionAmount);
+      } 
+      // Tentative 2: Récupérer la commission par sélecteur d'attribut
+      else {
+        const commissionByAttr = document.querySelector('[data-commission-amount]');
+        if (commissionByAttr && commissionByAttr.getAttribute('data-commission-amount')) {
+          const displayedCommission = parseFloat(commissionByAttr.getAttribute('data-commission-amount') || '0');
+          if (!isNaN(displayedCommission)) {
+            commissionAmount = displayedCommission;
+            console.log("Commission récupérée par sélecteur d'attribut:", commissionAmount);
+          }
+        } else if (isInternalOffer) {
+          // Si c'est une offre interne, la commission est de 0
+          commissionAmount = 0;
+          console.log("Offre interne - commission à 0");
+        } else {
+          // Pour les autres types d'offres, utilisez un pourcentage du montant financé
+          commissionAmount = financedAmount * 0.03; // 3% par défaut
+          console.log("Commission par défaut calculée:", commissionAmount);
+        }
       }
+
+      // Log final de la commission qui sera utilisée
+      console.log(`Commission finale qui sera sauvegardée: ${commissionAmount}€ (type: ${offerType})`);
 
       const offerData = {
         client_id: client.id,

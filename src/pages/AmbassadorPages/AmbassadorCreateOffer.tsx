@@ -209,52 +209,67 @@ const AmbassadorCreateOffer = () => {
       // Récupérer la commission depuis l'interface utilisateur
       let commissionAmount = 0;
       
-      // Essayer de récupérer la commission directement de l'élément DOM avec l'attribut data
-      const commissionElement = document.querySelector('[data-commission-amount]');
+      // Tentative 1: Récupérer la commission par l'élément avec ID spécifique
+      const commissionElement = document.getElementById('commission-display');
       if (commissionElement && commissionElement.getAttribute('data-commission-amount')) {
         const displayedCommission = parseFloat(commissionElement.getAttribute('data-commission-amount') || '0');
         if (!isNaN(displayedCommission)) {
           commissionAmount = displayedCommission;
-          console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          console.log("Commission récupérée depuis l'élément avec ID:", commissionAmount);
         }
-      } else {
-        // Méthode de secours : calculer la commission
-        const currentAmbassadorId = ambassadorId || user?.ambassador_id;
-        const commissionLevelId = ambassador?.commission_level_id;
-        
-        if (currentAmbassadorId && commissionLevelId) {
-          try {
-            const commissionData = await calculateCommissionByLevel(
-              financedAmount,
-              commissionLevelId,
-              'ambassador',
-              currentAmbassadorId
-            );
-            
-            if (commissionData && typeof commissionData.amount === 'number') {
-              commissionAmount = commissionData.amount;
-              console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
-            } else {
-              console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-              commissionAmount = totalMonthlyPayment * 0.1;
-            }
-          } catch (commError) {
-            console.error("Erreur lors du calcul de la commission:", commError);
-            commissionAmount = totalMonthlyPayment * 0.1;
+      } 
+      // Tentative 2: Récupérer la commission par sélecteur d'attribut
+      else {
+        const commissionByAttr = document.querySelector('[data-commission-amount]');
+        if (commissionByAttr && commissionByAttr.getAttribute('data-commission-amount')) {
+          const displayedCommission = parseFloat(commissionByAttr.getAttribute('data-commission-amount') || '0');
+          if (!isNaN(displayedCommission)) {
+            commissionAmount = displayedCommission;
+            console.log("Commission récupérée par sélecteur d'attribut:", commissionAmount);
           }
-        } else {
-          console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
-          commissionAmount = totalMonthlyPayment * 0.1;
+        } 
+        // Tentative 3: Calcul manuel de la commission si aucune récupération possible
+        else {
+          const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+          const commissionLevelId = ambassador?.commission_level_id;
+          
+          if (currentAmbassadorId && commissionLevelId) {
+            try {
+              const commissionData = await calculateCommissionByLevel(
+                financedAmount,
+                commissionLevelId,
+                'ambassador',
+                currentAmbassadorId
+              );
+              
+              if (commissionData && typeof commissionData.amount === 'number') {
+                commissionAmount = commissionData.amount;
+                console.log(`Commission calculée manuellement: ${commissionAmount}€ (${commissionData.rate}%)`);
+              } else {
+                console.warn("Calcul de commission a retourné un résultat invalide, utilisation d'une valeur par défaut");
+                commissionAmount = financedAmount * 0.03; // 3% par défaut
+              }
+            } catch (commError) {
+              console.error("Erreur lors du calcul manuel de la commission:", commError);
+              commissionAmount = financedAmount * 0.03; // 3% par défaut en cas d'erreur
+            }
+          } else {
+            console.warn("Impossible de calculer la commission: données d'ambassadeur manquantes");
+            commissionAmount = financedAmount * 0.03; // 3% par défaut
+          }
         }
+      }
+      
+      // Validation finale de la commission
+      if (commissionAmount <= 0 || isNaN(commissionAmount)) {
+        console.warn("Commission invalide après toutes les tentatives, application d'une valeur par défaut");
+        commissionAmount = financedAmount * 0.03; // Valeur de secours de 3%
       }
       
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
       
-      // On s'assure que la commission n'est pas 0 ou undefined
-      if (commissionAmount <= 0 || isNaN(commissionAmount)) {
-        console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
-        commissionAmount = financedAmount * 0.03; // Valeur de secours de 3%
-      }
+      // Log final de la commission qui sera utilisée
+      console.log(`Commission finale qui sera sauvegardée: ${commissionAmount}€`);
       
       const offerData = {
         client_id: client.id,
@@ -264,7 +279,7 @@ const AmbassadorCreateOffer = () => {
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: commissionAmount,
+        commission: commissionAmount, // Utiliser la commission récupérée ou calculée
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
