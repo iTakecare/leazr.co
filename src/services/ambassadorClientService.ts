@@ -73,10 +73,6 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
     
     if (!data || data.length === 0) {
       console.log("No clients found for this ambassador");
-      
-      // Update the ambassador's client count to ensure it's accurate
-      await updateAmbassadorClientCount(ambassadorIdToUse);
-      
       return [];
     }
     
@@ -90,10 +86,6 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
       }));
     
     console.log("Processed clients:", processedClients.length, processedClients);
-    
-    // Update the ambassador's client count to ensure it matches
-    await updateAmbassadorClientCount(ambassadorIdToUse, processedClients.length);
-    
     return processedClients;
   } catch (error) {
     console.error("Error loading ambassador clients:", error);
@@ -164,24 +156,17 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
 };
 
 // Mettre à jour le compteur de clients d'un ambassadeur
-export const updateAmbassadorClientCount = async (ambassadorId: string, knownCount?: number): Promise<boolean> => {
+export const updateAmbassadorClientCount = async (ambassadorId: string): Promise<boolean> => {
   try {
-    let count = knownCount;
+    // Compter le nombre de clients liés à cet ambassadeur
+    const { count, error: countError } = await supabase
+      .from("ambassador_clients")
+      .select("*", { count: "exact", head: true })
+      .eq("ambassador_id", ambassadorId);
     
-    // If count not provided, query the database
-    if (count === undefined) {
-      // Compter le nombre de clients liés à cet ambassadeur
-      const { count: countResult, error: countError } = await supabase
-        .from("ambassador_clients")
-        .select("*", { count: "exact", head: true })
-        .eq("ambassador_id", ambassadorId);
-      
-      if (countError) {
-        console.error("Error counting ambassador clients:", countError);
-        return false;
-      }
-      
-      count = countResult || 0;
+    if (countError) {
+      console.error("Error counting ambassador clients:", countError);
+      return false;
     }
     
     console.log(`Ambassador ${ambassadorId} has ${count} clients`);
@@ -189,7 +174,7 @@ export const updateAmbassadorClientCount = async (ambassadorId: string, knownCou
     // Mettre à jour le compteur dans la table ambassadors
     const { error: updateError } = await supabase
       .from("ambassadors")
-      .update({ clients_count: count })
+      .update({ clients_count: count || 0 })
       .eq("id", ambassadorId);
     
     if (updateError) {

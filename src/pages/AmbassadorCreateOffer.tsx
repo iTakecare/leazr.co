@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,12 +22,6 @@ import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
-import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
-import { 
-  getCommissionLevelWithRates, 
-  getCommissionLevels
-} from "@/services/commissionService";
-import { calculateFinancedAmount } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -44,9 +37,6 @@ const AmbassadorCreateOffer = () => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [commissionRate, setCommissionRate] = useState<number>(0.1); // Default 10%
-  const [commissionLevelId, setCommissionLevelId] = useState<string | null>(null);
-  const [calculatedCommission, setCalculatedCommission] = useState<number>(0);
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   
@@ -120,30 +110,11 @@ const AmbassadorCreateOffer = () => {
       if (error) throw error;
       setAmbassador(data);
       console.log("Ambassador data loaded:", data);
-      
-      // Load commission level if available
-      if (data.commission_level_id) {
-        setCommissionLevelId(data.commission_level_id);
-        loadCommissionRate(data.commission_level_id);
-      }
     } catch (error) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       toast.error("Impossible de charger les informations de l'ambassadeur");
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const loadCommissionRate = async (levelId: string) => {
-    try {
-      const level = await getCommissionLevelWithRates(levelId);
-      if (level && level.rates && level.rates.length > 0) {
-        // Find the appropriate rate based on the amount
-        // For now, we'll just use the first rate as default
-        setCommissionRate(level.rates[0].rate / 100);
-      }
-    } catch (error) {
-      console.error("Error loading commission level rates:", error);
     }
   };
   
@@ -195,45 +166,6 @@ const AmbassadorCreateOffer = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
   
-  // Calculate commission based on financial amount and commission level
-  useEffect(() => {
-    const calculateCommission = async () => {
-      if (!commissionLevelId || !totalMonthlyPayment || totalMonthlyPayment <= 0) {
-        setCalculatedCommission(0);
-        return;
-      }
-      
-      try {
-        // Calculate financed amount based on monthly payment and coefficient
-        const financedAmount = calculateFinancedAmount(
-          totalMonthlyPayment, 
-          globalMarginAdjustment.newCoef || coefficient || 3.27
-        );
-        
-        // Dynamically import calculator to avoid circular dependencies
-        const { calculateCommissionByLevel } = await import('@/utils/calculator');
-        
-        // Get full commission data based on level
-        const commissionData = await calculateCommissionByLevel(
-          financedAmount,
-          commissionLevelId,
-          'ambassador',
-          ambassadorId || user?.ambassador_id
-        );
-        
-        console.log("Commission calculated:", commissionData);
-        
-        if (commissionData && typeof commissionData.amount === 'number') {
-          setCalculatedCommission(commissionData.amount);
-        }
-      } catch (error) {
-        console.error("Error calculating commission:", error);
-      }
-    };
-    
-    calculateCommission();
-  }, [totalMonthlyPayment, commissionLevelId, globalMarginAdjustment.newCoef, coefficient]);
-  
   const handleSaveOffer = async () => {
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
@@ -248,6 +180,16 @@ const AmbassadorCreateOffer = () => {
     try {
       setIsSubmitting(true);
       
+      const totalMonthlyPayment = equipmentList.reduce(
+        (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
+        0
+      );
+      
+      const totalPurchasePrice = equipmentList.reduce(
+        (sum, item) => sum + (item.purchasePrice * item.quantity),
+        0
+      );
+      
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -259,25 +201,18 @@ const AmbassadorCreateOffer = () => {
         }))
       );
       
-      // Calculate financed amount based on monthly payment and coefficient
-      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
-      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
-      
-      // Use the calculated commission amount from our commission calculator
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
-        coefficient: currentCoefficient,
+        coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: calculatedCommission, // Use the calculated commission amount
-        financed_amount: financedAmount,
+        commission: totalMonthlyPayment * 0.1,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
-        ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks
       };
       
@@ -292,34 +227,6 @@ const AmbassadorCreateOffer = () => {
       }
       
       toast.success("Offre créée avec succès!");
-      
-      // Update ambassador commission totals after offer creation
-      if (ambassadorId || user?.ambassador_id) {
-        try {
-          const ambId = ambassadorId || user?.ambassador_id;
-          const { data: ambassadorData, error: ambassadorError } = await supabase
-            .from("ambassadors")
-            .select("commissions_total")
-            .eq("id", ambId)
-            .single();
-          
-          if (!ambassadorError && ambassadorData) {
-            const newTotal = (ambassadorData.commissions_total || 0) + calculatedCommission;
-            
-            await supabase
-              .from("ambassadors")
-              .update({ 
-                commissions_total: newTotal,
-                last_commission: calculatedCommission
-              })
-              .eq("id", ambId);
-            
-            console.log("Ambassador commissions updated:", newTotal);
-          }
-        } catch (err) {
-          console.error("Error updating ambassador commission totals:", err);
-        }
-      }
       
       navigate("/ambassador/offers");
     } catch (error) {
@@ -358,6 +265,13 @@ const AmbassadorCreateOffer = () => {
   
   const hideFinancialDetails = true;
   const isPageLoading = loading || loadingLeasers;
+  
+  useEffect(() => {
+    if (ambassador) {
+      console.log("Ambassador state updated:", ambassador);
+      console.log("Commission level ID:", ambassador.commission_level_id);
+    }
+  }, [ambassador]);
   
   return (
     <PageTransition>
@@ -440,8 +354,7 @@ const AmbassadorCreateOffer = () => {
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={hideFinancialDetails}
                       ambassadorId={ambassadorId || user?.ambassador_id}
-                      commissionLevelId={commissionLevelId}
-                      commissionAmount={calculatedCommission}
+                      commissionLevelId={ambassador?.commission_level_id}
                     />
                     
                     <ClientInfo

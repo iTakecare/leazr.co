@@ -52,7 +52,6 @@ const AmbassadorDetail = ({
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [currentLevelId, setCurrentLevelId] = useState<string>("");
-  const [clientCount, setClientCount] = useState<number>(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -82,8 +81,6 @@ const AmbassadorDetail = ({
       const clientsData = await getAmbassadorClients(ambassadorId);
       console.log("Ambassador clients loaded:", clientsData);
       setClients(clientsData);
-      // Update the client count based on actual data
-      setClientCount(clientsData.length);
     } catch (error) {
       console.error("Error fetching ambassador clients:", error);
     } finally {
@@ -205,7 +202,7 @@ const AmbassadorDetail = ({
               />
 
               <StatsSummary 
-                clientsCount={clientCount || clients.length || ambassador.clients_count || 0}
+                clientsCount={ambassador.clients_count || 0}
                 commissionsTotal={ambassador.commissions_total || 0}
               />
 
