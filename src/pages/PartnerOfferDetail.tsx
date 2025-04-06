@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -255,14 +254,6 @@ const PartnerOfferDetail = () => {
     return [];
   };
 
-  const calculatedMargin = offer.amount && offer.financed_amount 
-    ? offer.amount - offer.financed_amount 
-    : 0;
-  
-  const marginPercentage = offer.amount && offer.financed_amount && offer.amount > 0
-    ? ((calculatedMargin / offer.financed_amount) * 100).toFixed(2)
-    : 0;
-
   if (loading) {
     return (
       <PageTransition>
@@ -318,7 +309,6 @@ const PartnerOfferDetail = () => {
   const hideFinancialDetails = offer?.type === 'ambassador_offer';
   const availableNextSteps = getAvailableNextSteps();
   
-  // Calculate margin data only if not hiding financial details
   const calculatedMargin = !hideFinancialDetails && offer.amount && offer.financed_amount 
     ? offer.amount - offer.financed_amount 
     : 0;
@@ -574,7 +564,6 @@ const PartnerOfferDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {/* For ambassador view, only show monthly payment and commission */}
                     {hideFinancialDetails ? (
                       <>
                         <div className="flex justify-between">

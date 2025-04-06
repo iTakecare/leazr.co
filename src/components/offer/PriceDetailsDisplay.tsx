@@ -16,7 +16,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   priceWithMargin,
   coefficient,
   displayMonthlyPayment,
-  hideFinancialDetails = true,
+  hideFinancialDetails = false,
   calculatedMargin
 }) => {
   // Vérification et calculs sécurisés
