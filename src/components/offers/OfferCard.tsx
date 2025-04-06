@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
-  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
+  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users, Factory
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,29 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const isConverted = offer.converted_to_contract;
 
+  // Calcul de la marge
+  const calculateMargin = () => {
+    // Si la marge est déjà stockée dans l'offre
+    if (offer.margin) {
+      return offer.margin;
+    }
+    
+    // Si nous avons les montants nécessaires pour calculer
+    if (offer.financed_amount && offer.amount) {
+      const margin = offer.financed_amount - offer.amount;
+      return margin > 0 ? margin : 0;
+    }
+    
+    // Si on a le montant mensuel et le coef, on peut estimer
+    if (offer.monthly_payment && offer.coefficient) {
+      const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
+      const margin = financedAmount - (offer.amount || 0);
+      return margin > 0 ? margin : 0;
+    }
+    
+    return 0; // Valeur par défaut
+  };
+
   const getOfferTypeBadge = () => {
     switch(offer.type) {
       case 'ambassador_offer':
@@ -70,7 +93,14 @@ const OfferCard: React.FC<OfferCardProps> = ({
         return (
           <Badge variant="outline" className="bg-amber-50 text-amber-700 text-xs">
             <User className="h-3 w-3 mr-1" />
-            Demande
+            Demande client
+          </Badge>
+        );
+      case 'internal_offer':
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
+            <Factory className="h-3 w-3 mr-1" />
+            Interne
           </Badge>
         );
       default:
@@ -111,14 +141,17 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
         </div>
         
-        <div className="flex items-center justify-between mb-2">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-2">
           <div className="text-sm font-medium">
             {formatCurrency(offer.monthly_payment)}
             <span className="text-xs text-muted-foreground">/mois</span>
           </div>
-          <div className="text-xs text-muted-foreground flex items-center">
+          <div className="text-xs text-muted-foreground flex items-center justify-end">
             <Clock className="h-3 w-3 mr-1" />
             {formatDate(offer.created_at)}
+          </div>
+          <div className="text-xs text-green-600 font-medium">
+            Marge: {formatCurrency(calculateMargin())}
           </div>
         </div>
         
