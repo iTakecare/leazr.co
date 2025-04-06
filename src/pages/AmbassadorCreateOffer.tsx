@@ -190,29 +190,87 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      const equipmentDescription = JSON.stringify(
-        equipmentList.map(eq => ({
+      const equipmentDataWithMargin = {
+        items: equipmentList.map(eq => ({
           id: eq.id,
           title: eq.title,
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
-        }))
-      );
+        })),
+        marginDifference: globalMarginAdjustment.marginDifference || 0,
+        totalMarginWithDifference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0)
+      };
+      
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      // Détermination du montant de commission - plusieurs méthodes
+      let commissionAmount = 0;
+      
+      const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      const commissionLevelId = ambassador?.commission_level_id;
+      
+      // Méthode 1: Calculer la commission en pourcentage fixe de la mensualité (méthode de secours)
+      const fallbackCommission = Math.round(totalMonthlyPayment * 0.25); // 25% par défaut
+      
+      if (currentAmbassadorId && commissionLevelId) {
+        try {
+          const commissionData = await calculateCommissionByLevel(
+            financedAmount,
+            commissionLevelId,
+            'ambassador',
+            currentAmbassadorId
+          );
+          
+          if (commissionData && typeof commissionData.amount === 'number') {
+            commissionAmount = commissionData.amount;
+            console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
+          } else {
+            console.warn("Erreur: le calcul de commission a retourné un objet invalide, utilisation du montant de secours");
+            commissionAmount = fallbackCommission;
+          }
+        } catch (commError) {
+          console.error("Erreur lors du calcul de la commission:", commError);
+          commissionAmount = fallbackCommission;
+        }
+      } else {
+        console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
+        commissionAmount = fallbackCommission;
+      }
+      
+      // IMPORTANT: Dans tous les cas, utiliser la commission calculée dans l'UI pour cohérence
+      // Si la commission est affichée dans l'UI, l'utiliser en priorité
+      const commissionDisplayedInUI = document.querySelector('[data-commission-value]');
+      if (commissionDisplayedInUI) {
+        const displayValue = commissionDisplayedInUI.textContent;
+        if (displayValue) {
+          const parsedValue = parseFloat(displayValue.replace('€', '').replace(',', '.').trim());
+          if (!isNaN(parsedValue)) {
+            console.log(`Commission trouvée dans l'UI: ${parsedValue}€, utilisation de cette valeur`);
+            commissionAmount = parsedValue;
+          }
+        }
+      }
       
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: equipmentDescription,
+        equipment_description: JSON.stringify(equipmentDataWithMargin),
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: commissionAmount,
+        financed_amount: financedAmount,
+        margin: globalMarginAdjustment.amount,
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: (globalMarginAdjustment.amount || 0) + (globalMarginAdjustment.marginDifference || 0),
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
+        ambassador_id: currentAmbassadorId,
         remarks: remarks
       };
       

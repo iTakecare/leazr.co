@@ -1,3 +1,4 @@
+
 /**
  * Calcule le montant financé à partir de la mensualité et du coefficient
  */
