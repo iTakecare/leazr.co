@@ -21,6 +21,8 @@ export interface Offer {
   margin?: number;
   financed_amount?: number;
   coefficient?: number;
+  margin_difference?: number; // Ajout du champ pour la différence de marge
+  total_margin_with_difference?: number; // Ajout du champ pour la marge totale avec différence
   clients?: {
     id?: string;
     name?: string;
@@ -84,10 +86,38 @@ export const useFetchOffers = () => {
             console.error("Erreur lors de la récupération de l'ambassadeur:", err);
           }
         }
+
+        // Traitement pour extraire la différence de marge et la marge totale depuis equipment_description
+        let margin_difference = 0;
+        let total_margin_with_difference = 0;
+
+        if (offer.equipment_description) {
+          try {
+            // Tenter de parser la description de l'équipement
+            const equipmentData = JSON.parse(offer.equipment_description);
+            
+            // Vérifier si nous avons des informations de marge supplémentaires
+            if (typeof equipmentData === 'object' && equipmentData.marginDifference !== undefined) {
+              margin_difference = equipmentData.marginDifference;
+              
+              // Calculer la marge totale avec différence si ce n'est pas déjà défini
+              if (equipmentData.totalMarginWithDifference !== undefined) {
+                total_margin_with_difference = equipmentData.totalMarginWithDifference;
+              } else if (offer.margin !== undefined) {
+                total_margin_with_difference = offer.margin + margin_difference;
+              }
+            }
+          } catch (err) {
+            // En cas d'erreur de parsing, nous continuons sans ces informations supplémentaires
+            console.log("Information de marge supplémentaire non disponible dans l'equipment_description");
+          }
+        }
         
         return {
           ...offer,
-          ambassador_name
+          ambassador_name,
+          margin_difference,
+          total_margin_with_difference
         };
       }));
       

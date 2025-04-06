@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -108,7 +107,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
-  // Fonction pour déterminer le type d'offre et afficher un badge approprié
   const getOfferTypeBadge = (type: string) => {
     switch(type) {
       case 'ambassador_offer':
@@ -149,27 +147,31 @@ const OffersTable: React.FC<OffersTableProps> = ({
     }
   };
 
-  // Fonction pour calculer ou extraire la marge d'une offre
   const calculateMargin = (offer: Offer) => {
-    // Si la marge est déjà stockée dans l'offre
+    if (offer.total_margin_with_difference !== undefined) {
+      return offer.total_margin_with_difference;
+    }
+    
+    if (offer.margin !== undefined && offer.margin_difference !== undefined) {
+      return offer.margin + offer.margin_difference;
+    }
+    
     if (offer.margin !== undefined) {
       return offer.margin;
     }
     
-    // Si nous avons les montants nécessaires pour calculer
     if (offer.financed_amount !== undefined && offer.amount) {
       const margin = offer.financed_amount - offer.amount;
       return margin > 0 ? margin : 0;
     }
     
-    // Si on a le montant mensuel et le coef, on peut estimer
     if (offer.monthly_payment && offer.coefficient !== undefined) {
       const financedAmount = offer.monthly_payment * (offer.coefficient || 36);
       const margin = financedAmount - (offer.amount || 0);
       return margin > 0 ? margin : 0;
     }
     
-    return 0; // Valeur par défaut
+    return 0;
   };
 
   return (

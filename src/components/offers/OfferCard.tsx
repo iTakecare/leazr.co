@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,16 @@ const OfferCard: React.FC<OfferCardProps> = ({
 
   // Calcul de la marge
   const calculateMargin = () => {
+    // Si la marge totale avec différence est disponible, l'utiliser en priorité
+    if (offer.total_margin_with_difference !== undefined) {
+      return offer.total_margin_with_difference;
+    }
+    
+    // Si la marge de base est disponible et la différence de marge aussi, les additionner
+    if (offer.margin !== undefined && offer.margin_difference !== undefined) {
+      return offer.margin + offer.margin_difference;
+    }
+    
     // Si la marge est déjà stockée dans l'offre
     if (offer.margin !== undefined) {
       return offer.margin;
