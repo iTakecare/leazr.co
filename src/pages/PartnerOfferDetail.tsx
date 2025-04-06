@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -316,6 +317,15 @@ const PartnerOfferDetail = () => {
   const isInternalOffer = offer.type === 'internal_offer';
   const hideFinancialDetails = offer?.type === 'ambassador_offer';
   const availableNextSteps = getAvailableNextSteps();
+  
+  // Calculate margin data only if not hiding financial details
+  const calculatedMargin = !hideFinancialDetails && offer.amount && offer.financed_amount 
+    ? offer.amount - offer.financed_amount 
+    : 0;
+  
+  const marginPercentage = !hideFinancialDetails && offer.amount && offer.financed_amount && offer.amount > 0
+    ? ((calculatedMargin / offer.financed_amount) * 100).toFixed(2)
+    : 0;
 
   return (
     <PageTransition>
@@ -564,43 +574,63 @@ const PartnerOfferDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {!hideFinancialDetails && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Montant financé:</span>
-                        <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mensualité:</span>
-                      <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
-                    </div>
-                    
-                    {isAdmin() && !hideFinancialDetails && (
+                    {/* For ambassador view, only show monthly payment and commission */}
+                    {hideFinancialDetails ? (
                       <>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Montant total:</span>
-                          <span className="font-medium">{formatCurrency(offer.amount)}</span>
+                          <span className="text-muted-foreground">Mensualité:</span>
+                          <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Marge générée:</span>
-                          <span className="font-medium text-green-600">
-                            {formatCurrency(calculatedMargin)} ({marginPercentage}%)
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Coefficient:</span>
-                          <span className="font-medium">{offer.coefficient || 'N/A'}</span>
-                        </div>
+                        
+                        {shouldShowCommission(offer) && (
+                          <>
+                            <div className="border-t my-2"></div>
+                            <div className="flex justify-between font-medium">
+                              <span>Votre commission:</span>
+                              <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                            </div>
+                          </>
+                        )}
                       </>
-                    )}
-                    
-                    {shouldShowCommission(offer) && (
+                    ) : (
                       <>
-                        <div className="border-t my-2"></div>
-                        <div className="flex justify-between font-medium">
-                          <span>Votre commission:</span>
-                          <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Montant financé:</span>
+                          <span className="font-medium">{formatCurrency(offer.financed_amount)}</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mensualité:</span>
+                          <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
+                        </div>
+                        
+                        {isAdmin() && (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Montant total:</span>
+                              <span className="font-medium">{formatCurrency(offer.amount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Marge générée:</span>
+                              <span className="font-medium text-green-600">
+                                {formatCurrency(calculatedMargin)} ({marginPercentage}%)
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Coefficient:</span>
+                              <span className="font-medium">{offer.coefficient || 'N/A'}</span>
+                            </div>
+                          </>
+                        )}
+                        
+                        {shouldShowCommission(offer) && (
+                          <>
+                            <div className="border-t my-2"></div>
+                            <div className="flex justify-between font-medium">
+                              <span>Votre commission:</span>
+                              <span className="text-green-600">{formatCurrency(offer.commission)}</span>
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

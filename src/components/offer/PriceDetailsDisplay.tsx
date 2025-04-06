@@ -67,19 +67,14 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
             <span className="text-gray-600">Prix avec marge :</span>
             <span className="font-medium">{formattedPriceWithMargin}</span>
           </div>
-          {/* Coefficient and financed amount are now hidden from ambassadors */}
-          {!hideFinancialDetails && (
-            <>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Coefficient appliqué :</span>
-                <span className="font-medium">{coefficient.toFixed(3)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Montant financé :</span>
-                <span className="font-medium">{formattedFinancedAmount}</span>
-              </div>
-            </>
-          )}
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Coefficient appliqué :</span>
+            <span className="font-medium">{coefficient.toFixed(3)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Montant financé :</span>
+            <span className="font-medium">{formattedFinancedAmount}</span>
+          </div>
         </>
       )}
       <div className="flex justify-between items-center border-t pt-2 mt-2">
