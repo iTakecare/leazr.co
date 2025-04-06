@@ -53,19 +53,44 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
         }
         
         // Récupérer le niveau de commission de l'ambassadeur
-        const { data: ambassador } = await supabase
+        const { data: ambassador, error: ambassadorError } = await supabase
           .from('ambassadors')
-          .select('commission_level_id')
+          .select('commission_level_id, name')
           .eq('id', data.ambassador_id)
           .single();
 
-        if (ambassador?.commission_level_id) {
-          console.log("Niveau de commission trouvé:", ambassador.commission_level_id);
+        if (ambassadorError) {
+          console.error("Erreur lors de la récupération des données de l'ambassadeur:", ambassadorError);
+        }
+
+        // Utiliser l'ID du niveau de commission de l'ambassadeur ou obtenir le niveau par défaut
+        let commissionLevelId = ambassador?.commission_level_id;
+        
+        if (!commissionLevelId) {
+          console.log("Aucun niveau de commission trouvé pour l'ambassadeur, recherche du niveau par défaut");
           
+          const { data: defaultLevel, error: defaultLevelError } = await supabase
+            .from('commission_levels')
+            .select('id')
+            .eq('type', 'ambassador')
+            .eq('is_default', true)
+            .single();
+            
+          if (defaultLevelError) {
+            console.error("Erreur lors de la recherche du niveau de commission par défaut:", defaultLevelError);
+          } else if (defaultLevel) {
+            commissionLevelId = defaultLevel.id;
+            console.log("Niveau de commission par défaut utilisé:", commissionLevelId);
+          }
+        } else {
+          console.log("Niveau de commission de l'ambassadeur trouvé:", commissionLevelId);
+        }
+
+        if (commissionLevelId) {
           // Calculer la commission basée sur le niveau de l'ambassadeur
           const commissionData = await calculateCommissionByLevel(
             financedAmount,
-            ambassador.commission_level_id,
+            commissionLevelId,
             'ambassador',
             data.ambassador_id
           );
@@ -86,6 +111,8 @@ export const getOfferById = async (id: string): Promise<OfferData | null> => {
                 .eq('id', id);
             }
           }
+        } else {
+          console.error("Impossible de trouver un niveau de commission valide pour calculer la commission");
         }
       } catch (commError) {
         console.error("Erreur lors du calcul de la commission:", commError);
