@@ -63,7 +63,21 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <AmbassadorSidebar />
+      {/* Afficher la sidebar desktop */}
+      <div className="hidden md:block">
+        <AmbassadorSidebar />
+      </div>
+      
+      {/* Afficher la sidebar mobile si ouverte */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-y-0 left-0 w-64 bg-background">
+            <AmbassadorSidebar />
+          </div>
+        </div>
+      )}
+      
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar onMenuClick={handleMenuClick} />
         <main className="flex-1 overflow-auto">
