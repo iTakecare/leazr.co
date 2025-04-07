@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,6 +15,7 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
+    // Only attempt redirection if user is authenticated and roles have been checked
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
         role: user?.role,
@@ -23,6 +25,16 @@ const Index = () => {
         isAdmin: isAdmin(),
         email: user?.email
       });
+      
+      // Prevent redirection if we're already on a dashboard page
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/dashboard') || 
+          currentPath.includes('/ambassador/') || 
+          currentPath.includes('/client/') || 
+          currentPath.includes('/partner/')) {
+        console.log("Déjà sur une page de tableau de bord, pas de redirection nécessaire");
+        return;
+      }
       
       // Redirection basée sur le rôle défini dans les métadonnées utilisateur
       if (isAmbassador()) {
