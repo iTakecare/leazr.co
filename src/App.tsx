@@ -15,6 +15,7 @@ import CartPage from "@/pages/CartPage";
 import PublicSignOffer from "@/pages/client/PublicSignOffer";
 import ClientRoutes from "@/components/layout/ClientRoutes";
 import { useAuth } from "@/context/AuthContext";
+import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,7 +27,7 @@ const queryClient = new QueryClient({
 
 // Create an AppContent component to use the AuthContext
 const AppContent = () => {
-  const { isLoggedIn, setRole, setUser, setLoggedIn } = useAuth();
+  const { user, isLoading, userRoleChecked, isLoggedIn, setRole, setUser, setLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -84,6 +85,9 @@ const AppContent = () => {
       
       {/* Routes protégées pour l'espace client */}
       <Route path="/client/*" element={isLoggedIn ? <ClientRoutes /> : <Login />} />
+      
+      {/* Route spécifique pour le dashboard ambassadeur */}
+      <Route path="/ambassador/dashboard" element={<AmbassadorDashboardPage />} />
       
       {/* Toutes les autres routes non définies redirigent vers la page d'accueil */}
       <Route path="*" element={<Index />} />
