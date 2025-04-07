@@ -23,12 +23,21 @@ const PDFFooter: React.FC<PDFFooterProps> = ({
   zoomLevel = 1
 }) => {
   return (
-    <div className="w-full bg-gray-50 border-t pt-2">
+    <div className="w-full" style={{ 
+      background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
+      borderTop: '3px solid #FFB74D',
+      color: 'white',
+      padding: `${10 * zoomLevel}px ${15 * zoomLevel}px`
+    }}>
       <div className="text-center">
-        <p className="text-xs font-bold">{pageNumber} / {totalPages}</p>
-        <p className="text-xs text-center mt-1 font-bold">{footerText}</p>
-        <div className="flex justify-center items-center mt-1">
-          <p className="text-[8px] text-center text-gray-600">
+        <p className="text-xs font-medium text-white opacity-80 mb-1">
+          {pageNumber} / {totalPages}
+        </p>
+        <p className="text-xs text-center mt-1 font-bold text-white">
+          {footerText}
+        </p>
+        <div className="flex justify-center items-center mt-2">
+          <p className="text-[8px] text-center text-white opacity-80">
             {companyName} - {companyAddress}<br />
             {companySiret} - {companyContact}
           </p>
