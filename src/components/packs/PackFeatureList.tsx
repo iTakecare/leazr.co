@@ -1,12 +1,19 @@
 
 import React from "react";
-import { Check, X, HelpCircle } from "lucide-react";
+import { Check, X, HelpCircle, Clock } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger, 
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type PackTier = {
   id: string;
@@ -21,9 +28,17 @@ type PackTier = {
 
 type PackFeatureListProps = {
   pack: PackTier;
+  onSupportHoursChange?: (hours: string) => void;
+  selectedSupportHours?: string;
+  supportHourOptions?: Array<{ hours: number; price: number }>;
 };
 
-const PackFeatureList = ({ pack }: PackFeatureListProps) => {
+const PackFeatureList = ({ 
+  pack, 
+  onSupportHoursChange,
+  selectedSupportHours,
+  supportHourOptions = []
+}: PackFeatureListProps) => {
   const featureLabels: Record<string, string> = {
     dashboard: "Tableau de bord client",
     insurance: "Assurance matériel",
@@ -42,6 +57,29 @@ const PackFeatureList = ({ pack }: PackFeatureListProps) => {
   };
 
   const renderFeatureValue = (key: string, value: boolean | string | number) => {
+    // Cas spécial pour le support technique des packs silver et gold
+    if (key === "support" && (pack.id === "silver" || pack.id === "gold") && onSupportHoursChange) {
+      return (
+        <div className="flex items-center space-x-2">
+          <Select
+            value={selectedSupportHours}
+            onValueChange={onSupportHoursChange}
+          >
+            <SelectTrigger className="w-[170px] h-8">
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              {supportHourOptions.map((option) => (
+                <SelectItem key={option.hours} value={option.hours.toString()}>
+                  {option.hours}h ({option.price}€)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
     if (typeof value === "boolean") {
       return value ? (
         <Check className="h-5 w-5 text-green-600" />
@@ -72,6 +110,20 @@ const PackFeatureList = ({ pack }: PackFeatureListProps) => {
                   <TooltipContent>
                     <p className="w-[200px]">
                       Les horaires du support technique disponible.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {key === "support" && (pack.id === "silver" || pack.id === "gold") && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Clock className="h-4 w-4 ml-1 text-blue-400" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="w-[200px]">
+                      Sélectionnez le nombre d'heures de support incluses dans votre pack.
                     </p>
                   </TooltipContent>
                 </Tooltip>

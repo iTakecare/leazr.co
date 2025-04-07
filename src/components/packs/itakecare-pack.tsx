@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -449,32 +448,6 @@ const ITakecarePack = () => {
                     getDiscountedMonthlyPrice={getDiscountedMonthlyPrice}
                     contractDuration={contractDuration}
                   />
-                  
-                  {shouldShowSupportHoursSelector && (
-                    <div className="mt-6 border-t pt-4">
-                      <h3 className="text-lg font-medium mb-4">Support technique</h3>
-                      <div className="flex items-center gap-4">
-                        <Label htmlFor="supportHours" className="min-w-32">
-                          Nombre d'heures incluses:
-                        </Label>
-                        <Select
-                          value={selectedSupportHours}
-                          onValueChange={handleSupportHoursChange}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Sélectionner..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {supportHourOptions.map((option) => (
-                              <SelectItem key={option.hours} value={option.hours.toString()}>
-                                {option.hours}h ({option.price}€)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -503,7 +476,12 @@ const ITakecarePack = () => {
                   <div className="flex flex-col md:flex-row gap-8">
                     <div className="flex-1">
                       <h3 className="text-lg font-medium mb-4">Caractéristiques incluses</h3>
-                      <PackFeatureList pack={currentPack} />
+                      <PackFeatureList 
+                        pack={currentPack} 
+                        onSupportHoursChange={shouldShowSupportHoursSelector ? handleSupportHoursChange : undefined}
+                        selectedSupportHours={selectedSupportHours}
+                        supportHourOptions={supportHourOptions}
+                      />
                       
                       {totalDevices > 0 && (
                         <div className="mt-6">
@@ -540,6 +518,7 @@ const ITakecarePack = () => {
                         </div>
                       )}
                     </div>
+                    
                     <div className="w-full md:w-72 bg-gray-50 p-6 rounded-lg border">
                       <div className="text-left">
                         <h3 className="font-bold text-xl mb-1">{currentPack.name}</h3>
