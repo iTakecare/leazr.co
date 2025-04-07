@@ -77,7 +77,15 @@ serve(async (req) => {
     }
 
     console.log("Clé API Resend récupérée avec succès");
-    const resend = new Resend(smtpSettings.resend_api_key);
+    
+    // Vérifier si la clé API n'est pas vide et ne contient pas de placeholder comme "YOUR_API_KEY"
+    const apiKey = smtpSettings.resend_api_key.trim();
+    if (apiKey === "" || apiKey.includes("YOUR_API_KEY") || apiKey.includes("RESEND_API_KEY")) {
+      console.error("Clé API Resend invalide ou non configurée correctement");
+      throw new Error("Clé API Resend invalide");
+    }
+    
+    const resend = new Resend(apiKey);
 
     // Format d'expéditeur par défaut si non fourni
     const fromName = reqData.from?.name || smtpSettings.from_name || "iTakecare";
@@ -101,6 +109,9 @@ serve(async (req) => {
     
     // Traiter les chaînes JSON potentielles dans le contenu HTML
     htmlContent = cleanupJsonStrings(htmlContent);
+    
+    // Log Deno env variables pour le débogage
+    console.log("RESEND_API environment variable check:", !!Deno.env.get("RESEND_API"));
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({

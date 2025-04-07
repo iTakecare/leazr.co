@@ -17,6 +17,12 @@ serve(async (req) => {
   }
 
   try {
+    // Log pour le débogage des variables d'environnement
+    console.log("Environment variables check:");
+    console.log("SUPABASE_URL exists:", !!Deno.env.get('SUPABASE_URL'));
+    console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    console.log("RESEND_API exists:", !!Deno.env.get('RESEND_API'));
+    
     // Créer un client Supabase avec la clé de service
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') || '',
@@ -53,8 +59,21 @@ serve(async (req) => {
       );
     }
 
+    // Vérifier si la clé API est valide
+    const apiKey = smtpSettings.resend_api_key.trim();
+    if (apiKey === "" || apiKey.includes("YOUR_API_KEY") || apiKey.includes("RESEND_API_KEY")) {
+      console.error("Clé API Resend invalide ou non configurée correctement");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Clé API Resend invalide. Veuillez configurer une clé API valide."
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // Initialiser Resend avec la clé API
-    const resend = new Resend(smtpSettings.resend_api_key);
+    const resend = new Resend(apiKey);
     
     // Format d'expéditeur
     const fromName = smtpSettings.from_name || "iTakecare";
