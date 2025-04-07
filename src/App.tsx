@@ -17,7 +17,7 @@ import ITakecarePage from "./pages/ITakecarePage";
 import { ThemeProvider } from "./components/providers/theme-provider";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "@/components/ui/sonner";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { ShadcnToaster } from "@/components/ui/toaster";
 import ClientRoutes from "./components/layout/ClientRoutes";
 import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";
@@ -51,6 +51,7 @@ import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import SignOffer from "./pages/client/SignOffer";
+import PublicOfferView from "./pages/client/PublicOfferView";
 import PublicCatalog from "./pages/PublicCatalog";
 import ProductEditPage from "./pages/ProductEditPage";
 import CartPage from './pages/CartPage';
@@ -90,7 +91,9 @@ const App = () => {
                   <Route path="/products/:id" element={<ProductDetailPage />} />
                   <Route path="/produits/:id" element={<ProductDetailPage />} />
                   
+                  {/* Routes publiques pour les offres */}
                   <Route path="/client/sign-offer/:id" element={<SignOffer />} />
+                  <Route path="/client/offers/:id" element={<PublicOfferView />} />
                   
                   <Route path="/" element={<Index />} />
                   
