@@ -51,7 +51,9 @@ serve(async (req) => {
       throw new Error("Variables d'environnement Supabase non configurées");
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false } // Important: désactive la persistance de session
+    });
     
     // Récupérer les paramètres SMTP depuis la base de données
     const { data: smtpSettings, error: settingsError } = await supabase
