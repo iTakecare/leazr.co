@@ -29,6 +29,7 @@ serve(async (req) => {
   
   // Vérification de la méthode
   if (req.method !== 'POST') {
+    console.error("Méthode non supportée:", req.method);
     return new Response(JSON.stringify({ error: 'Méthode non supportée' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405
@@ -43,6 +44,9 @@ serve(async (req) => {
       from: reqData.from?.email || "default-from@email.com"
     });
 
+    // Afficher un extrait du contenu HTML pour débogage
+    console.log("Extrait du HTML à envoyer:", reqData.html.substring(0, 150) + "...");
+
     // Créer un client Supabase avec les variables d'environnement
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -51,7 +55,9 @@ serve(async (req) => {
       throw new Error("Variables d'environnement Supabase non configurées");
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false } // Important: désactive la persistance de session
+    });
     
     // Récupérer les paramètres SMTP depuis la base de données
     const { data: smtpSettings, error: settingsError } = await supabase
@@ -85,12 +91,23 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
+    // Vérifier et corriger le contenu HTML si nécessaire
+    let htmlContent = reqData.html;
+    if (!htmlContent.trim().startsWith('<')) {
+      // Si le contenu HTML ne commence pas par une balise, on l'enveloppe dans un div
+      htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${htmlContent}</div>`;
+      console.log("HTML ajusté pour s'assurer du bon format");
+    }
+    
+    // Traiter les chaînes JSON potentielles dans le contenu HTML
+    htmlContent = cleanupJsonStrings(htmlContent);
+    
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
       from,
       to: reqData.to,
       subject: reqData.subject,
-      html: reqData.html,
+      html: htmlContent,
       text: textContent,
     });
 
@@ -128,4 +145,54 @@ serve(async (req) => {
 // Utilitaire pour supprimer les balises HTML d'une chaîne
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
+}
+
+// Fonction pour nettoyer les chaînes JSON dans le contenu HTML
+function cleanupJsonStrings(html: string): string {
+  // Rechercher les chaînes qui ressemblent à du JSON en considérant les caractères d'échappement
+  const jsonPattern = /(\[{&#34;|\[{")(.*?)("}\]|&#34;}\])/g;
+  
+  return html.replace(jsonPattern, (match) => {
+    try {
+      // Convertir les caractères HTML en leurs équivalents
+      let cleaned = match
+        .replace(/&#34;/g, '"')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      
+      // Tentative de parsing JSON
+      const jsonData = JSON.parse(cleaned);
+      
+      // Si c'est un tableau d'objets avec des détails d'équipement
+      if (Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].title) {
+        // Formater en HTML lisible
+        let formattedHtml = '<ul style="list-style-type:none; padding:0; margin:10px 0; background-color:#f9f9f9; border-radius:5px; padding:15px;">';
+        
+        jsonData.forEach(item => {
+          formattedHtml += `
+            <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee;">
+              <strong>${item.title || 'Équipement'}</strong><br>
+              ${item.quantity ? `Quantité: ${item.quantity}<br>` : ''}
+              ${item.purchasePrice ? `Prix: ${item.purchasePrice}€<br>` : ''}
+              ${item.monthlyPayment ? `Mensualité: ${item.monthlyPayment}€` : ''}
+            </li>`;
+        });
+        
+        formattedHtml += '</ul>';
+        return formattedHtml;
+      }
+      
+      // Si on ne peut pas formater spécifiquement, au moins rendre lisible
+      return JSON.stringify(jsonData, null, 2)
+        .replace(/\n/g, '<br>')
+        .replace(/ /g, '&nbsp;');
+        
+    } catch (e) {
+      console.log("Erreur lors du traitement JSON:", e);
+      // Si erreur de parsing, laisser tel quel
+      return match;
+    }
+  });
 }

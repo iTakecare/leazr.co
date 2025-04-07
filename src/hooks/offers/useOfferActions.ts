@@ -73,6 +73,36 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
+      console.log("Tentative d'envoi d'email pour l'offre:", id);
+      console.log("Destinataire:", offer.client_email);
+      
+      // Formatter la description de l'équipement si nécessaire
+      let equipmentDescription = offer.equipment_description || "Votre équipement";
+      
+      // Vérifier si la description est un JSON et le formater proprement
+      try {
+        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
+          const equipmentItems = JSON.parse(equipmentDescription);
+          if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+            if (equipmentItems.length === 1) {
+              equipmentDescription = equipmentItems[0].title || "Votre équipement";
+            } else {
+              equipmentDescription = `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Erreur lors du parsing de la description de l'équipement:", e);
+        // En cas d'erreur, conserver la description originale
+      }
+      
+      console.log("Détails de l'offre:", {
+        id: offer.id,
+        description: equipmentDescription,
+        amount: offer.amount || 0,
+        monthlyPayment: offer.monthly_payment || 0
+      });
+      
       // Mettre à jour le statut de l'offre si nécessaire
       if (offer.workflow_status === 'draft') {
         await handleUpdateWorkflowStatus(id, 'sent', 'Offre envoyée au client');
@@ -84,7 +114,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         offer.client_name,
         {
           id: offer.id,
-          description: offer.equipment_description || "Votre équipement",
+          description: equipmentDescription,
           amount: offer.amount || 0,
           monthlyPayment: offer.monthly_payment || 0
         }
