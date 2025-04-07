@@ -19,10 +19,6 @@ interface AuthContextType {
   user: ExtendedUser | null;
   session: Session | null;
   isLoading: boolean;
-  isLoggedIn: boolean;
-  setLoggedIn: (value: boolean) => void;
-  setUser: (user: ExtendedUser | null) => void;
-  setRole: (role: string | null) => void;
   signUp: (email: string, password: string) => Promise<{ user: ExtendedUser | null; session: Session | null; error: any }>;
   signIn: (email: string, password: string) => Promise<{ user: ExtendedUser | null; session: Session | null; error: any }>;
   signOut: () => Promise<void>;
@@ -51,8 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoleChecked, setUserRoleChecked] = useState(false);
-  const [isLoggedIn, setLoggedIn] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const logUserInfo = (prefix: string, userData: any) => {
@@ -424,10 +418,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         session,
         isLoading,
-        isLoggedIn,
-        setLoggedIn,
-        setUser,
-        setRole,
         signUp,
         signIn,
         signOut,

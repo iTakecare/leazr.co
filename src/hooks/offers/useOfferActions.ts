@@ -10,14 +10,6 @@ import {
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
 
-interface OfferEmailData {
-  id: string;
-  description: string;
-  amount: number;
-  monthlyPayment: number;
-  signatureLink?: string;
-}
-
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
@@ -83,8 +75,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       console.log("Tentative d'envoi d'email pour l'offre:", id);
       console.log("Destinataire:", offer.client_email);
       
+      // Formatter la description de l'équipement si nécessaire
       let equipmentDescription = offer.equipment_description || "Votre équipement";
       
+      // Vérifier si la description est un JSON et le formater proprement
       try {
         if (typeof equipmentDescription === 'string' && equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
           const equipmentItems = JSON.parse(equipmentDescription);
@@ -98,6 +92,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         }
       } catch (e) {
         console.error("Erreur lors du parsing de la description de l'équipement:", e);
+        // En cas d'erreur, conserver la description originale
       }
       
       console.log("Détails de l'offre:", {
@@ -107,24 +102,21 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         monthlyPayment: offer.monthly_payment || 0
       });
       
+      // Mettre à jour le statut de l'offre si nécessaire
       if (offer.workflow_status === 'draft') {
         await handleUpdateWorkflowStatus(id, 'sent', 'Offre envoyée au client');
       }
       
-      const publicSignUrl = `${window.location.origin}/client/sign-offer/${id}`;
-      
-      const emailData: OfferEmailData = {
-        id: offer.id,
-        description: equipmentDescription,
-        amount: offer.amount || 0,
-        monthlyPayment: offer.monthly_payment || 0,
-        signatureLink: publicSignUrl
-      };
-      
+      // Envoyer l'email "offre prête à consulter"
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
-        emailData
+        {
+          id: offer.id,
+          description: equipmentDescription,
+          amount: offer.amount || 0,
+          monthlyPayment: offer.monthly_payment || 0
+        }
       );
       
       if (success) {
