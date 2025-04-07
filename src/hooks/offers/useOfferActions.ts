@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -107,7 +108,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         await handleUpdateWorkflowStatus(id, 'sent', 'Offre envoyée au client');
       }
       
-      // Envoyer l'email "offre prête à consulter"
+      // Générer l'URL publique pour la signature (sans authentification)
+      const publicSignUrl = `${window.location.origin}/client/sign-offer/${id}`;
+      
+      // Envoyer l'email "offre prête à consulter" avec le lien public
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
@@ -115,7 +119,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
           id: offer.id,
           description: equipmentDescription,
           amount: offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
+          monthlyPayment: offer.monthly_payment || 0,
+          signatureLink: publicSignUrl
         }
       );
       
