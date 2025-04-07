@@ -102,6 +102,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
+  // Only admins can see the margin column
+  const showMarginColumn = isAdmin();
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
@@ -112,6 +115,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Équipement</TableHead>
+                {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
@@ -145,6 +149,14 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         })()
                       : offer.equipment_description || "Non spécifié"}
                   </TableCell>
+                  {/* Show margin column only for admins */}
+                  {showMarginColumn && (
+                    <TableCell className="text-right">
+                      <div className="font-medium text-green-600">
+                        {offer.margin ? formatCurrency(offer.margin) : "N/A"}
+                      </div>
+                    </TableCell>
+                  )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
                       {formatCurrency(offer.financed_amount)}

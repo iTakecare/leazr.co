@@ -11,6 +11,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { FileText, User } from "lucide-react";
 import { formatCurrency, formatDateToFrench } from "@/utils/formatters";
+import { useAuth } from "@/context/AuthContext";
 
 interface OffersViewProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface OffersViewProps {
     amount: number;
     status: string;
     createdAt: string;
-    margin?: number; // Added margin property as optional
+    margin?: number; // Optional margin property
   }>;
 }
 
@@ -33,6 +34,8 @@ const OffersView = ({
   owner,
   offers,
 }: OffersViewProps) => {
+  const { isAdmin } = useAuth();
+  
   const title = owner.type === "partner" 
     ? `Offres du partenaire ${owner.name}` 
     : `Offres commercialisées par ${owner.name}`;
@@ -52,6 +55,9 @@ const OffersView = ({
 
   // Hide financial details for ambassadors
   const hideFinancialDetails = owner.type === "ambassador";
+  
+  // Only admins can see margin column
+  const showMarginColumn = isAdmin();
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -69,8 +75,7 @@ const OffersView = ({
               <TableRow>
                 <TableHead>Offre</TableHead>
                 <TableHead>Client</TableHead>
-                {/* Show margin column for ambassadors */}
-                {owner.type === "ambassador" && <TableHead>Marge</TableHead>}
+                {showMarginColumn && <TableHead>Marge</TableHead>}
                 {!hideFinancialDetails && <TableHead>Montant</TableHead>}
                 <TableHead>Statut</TableHead>
               </TableRow>
@@ -90,8 +95,8 @@ const OffersView = ({
                       {offer.clientName}
                     </div>
                   </TableCell>
-                  {/* Display margin for ambassadors */}
-                  {owner.type === "ambassador" && (
+                  {/* Show margin column only for admins */}
+                  {showMarginColumn && (
                     <TableCell>
                       <div className="font-medium text-green-600">
                         {offer.margin ? formatCurrency(offer.margin) : "N/A"}
