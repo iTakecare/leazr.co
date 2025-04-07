@@ -386,8 +386,9 @@ export const sendOfferReadyEmail = async (
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
     
-    // Préparer l'URL de l'offre
-    const offerLink = `${window.location.origin}/client/offers/${offerInfo.id}`;
+    // Préparer l'URL de l'offre - IMPORTANT: Utiliser le lien vers la page de signature publique
+    const offerLink = `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
+    console.log("Lien de signature généré:", offerLink);
     
     let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
     let htmlContent = `
@@ -431,6 +432,7 @@ export const sendOfferReadyEmail = async (
         .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
         .replace(/{{offer_link}}/g, offerLink);
         
+      console.log("Lien dans le modèle d'email:", offerLink);
       console.log("HTML du template après remplacement des variables:", htmlContent.substring(0, 150) + "...");
     }
     

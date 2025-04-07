@@ -91,11 +91,29 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
-    // IMPORTANT: Ne pas modifier ou reformater le HTML ici
-    // Nous prenons directement le HTML fourni par le client
-    // Traiter uniquement les chaînes JSON potentielles dans le contenu HTML
+    // IMPORTANT: Préserver intégralement le HTML fourni par le client
+    // Ne rien modifier ici pour respecter le formatage du template
     let htmlContent = reqData.html;
+    
+    // S'assurer que le HTML soit complet avec doctype, head et body si nécessaire
+    if (!htmlContent.includes('<!DOCTYPE html>') && !htmlContent.includes('<html')) {
+      htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${reqData.subject}</title>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
+    }
+    
+    // Formater uniquement le contenu JSON si présent
     htmlContent = formatJsonContent(htmlContent);
+    
+    console.log("HTML final formaté:", htmlContent.substring(0, 150) + "...");
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
