@@ -24,7 +24,8 @@ const queryClient = new QueryClient({
   }
 });
 
-function App() {
+// Create an AppContent component to use the AuthContext
+const AppContent = () => {
   const { isLoggedIn, setRole, setUser, setLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
 
@@ -72,27 +73,33 @@ function App() {
   }
 
   return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/cart" element={<CartPage />} />
+      
+      {/* Route publique pour consulter et signer une offre sans authentification */}
+      <Route path="/client/sign-offer/:id" element={<PublicSignOffer />} />
+      
+      {/* Routes protégées pour l'espace client */}
+      <Route path="/client/*" element={isLoggedIn ? <ClientRoutes /> : <Login />} />
+      
+      {/* Toutes les autres routes non définies redirigent vers la page d'accueil */}
+      <Route path="*" element={<Index />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
     <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
       <Toaster richColors />
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
             <CartProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/cart" element={<CartPage />} />
-                
-                {/* Route publique pour consulter et signer une offre sans authentification */}
-                <Route path="/client/sign-offer/:id" element={<PublicSignOffer />} />
-                
-                {/* Routes protégées pour l'espace client */}
-                <Route path="/client/*" element={isLoggedIn ? <ClientRoutes /> : <Login />} />
-                
-                {/* Toutes les autres routes non définies redirigent vers la page d'accueil */}
-                <Route path="*" element={<Index />} />
-              </Routes>
+              <AppContent />
             </CartProvider>
           </AuthProvider>
         </BrowserRouter>
