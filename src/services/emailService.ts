@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -114,13 +113,17 @@ export const sendEmail = async (
     
     console.log("Utilisation de Resend pour l'envoi d'email");
     
+    // S'assurer que le contenu HTML est bien formaté
+    const formattedHtml = ensureHtmlFormat(htmlContent);
+    console.log("Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
+    
     // Appeler la fonction Supabase pour envoyer l'email via Resend
     const { data, error } = await supabase.functions.invoke('send-resend-email', {
       body: {
         to,
         subject,
-        html: htmlContent,
-        text: textContent || stripHtml(htmlContent),
+        html: formattedHtml,
+        text: textContent || stripHtml(formattedHtml),
         from: {
           email: settings.from_email,
           name: settings.from_name
@@ -145,6 +148,37 @@ export const sendEmail = async (
     console.error("Exception lors de l'envoi de l'email:", error);
     return false;
   }
+};
+
+/**
+ * S'assure que le contenu HTML est correctement formaté
+ */
+const ensureHtmlFormat = (html: string): string => {
+  // Si le contenu ne commence pas par un tag HTML, l'envelopper dans un div
+  if (!html.trim().startsWith('<')) {
+    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${html}</div>`;
+  }
+  
+  // Si le contenu ne contient pas de balises body ou html, s'assurer qu'il a une structure de base
+  if (!html.includes('<body') && !html.includes('<html')) {
+    // S'assurer que le style de base est appliqué au contenu existant
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333;">
+    ${html}
+  </div>
+</body>
+</html>`;
+  }
+  
+  // Retourner le HTML tel quel s'il semble déjà formaté correctement
+  return html;
 };
 
 /**
@@ -387,6 +421,7 @@ export const sendOfferReadyEmail = async (
     }
     
     console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    console.log("Aperçu du contenu HTML:", htmlContent.substring(0, 150) + "...");
     
     // Envoyer l'email
     const success = await sendEmail(

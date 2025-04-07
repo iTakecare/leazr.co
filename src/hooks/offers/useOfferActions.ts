@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -74,6 +75,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       
       console.log("Tentative d'envoi d'email pour l'offre:", id);
       console.log("Destinataire:", offer.client_email);
+      console.log("Détails de l'offre:", {
+        id: offer.id,
+        description: offer.equipment_description || "Votre équipement", 
+        amount: offer.amount || 0,
+        monthlyPayment: offer.monthly_payment || 0
+      });
       
       // Mettre à jour le statut de l'offre si nécessaire
       if (offer.workflow_status === 'draft') {

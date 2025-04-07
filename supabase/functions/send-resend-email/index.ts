@@ -29,6 +29,7 @@ serve(async (req) => {
   
   // Vérification de la méthode
   if (req.method !== 'POST') {
+    console.error("Méthode non supportée:", req.method);
     return new Response(JSON.stringify({ error: 'Méthode non supportée' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405
@@ -42,6 +43,9 @@ serve(async (req) => {
       subject: reqData.subject,
       from: reqData.from?.email || "default-from@email.com"
     });
+
+    // Afficher un extrait du contenu HTML pour débogage
+    console.log("Extrait du HTML à envoyer:", reqData.html.substring(0, 150) + "...");
 
     // Créer un client Supabase avec les variables d'environnement
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
@@ -87,12 +91,20 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
+    // Vérifier et corriger le contenu HTML si nécessaire
+    let htmlContent = reqData.html;
+    if (!htmlContent.trim().startsWith('<')) {
+      // Si le contenu HTML ne commence pas par une balise, on l'enveloppe dans un div
+      htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${htmlContent}</div>`;
+      console.log("HTML ajusté pour s'assurer du bon format");
+    }
+    
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
       from,
       to: reqData.to,
       subject: reqData.subject,
-      html: reqData.html,
+      html: htmlContent,
       text: textContent,
     });
 
