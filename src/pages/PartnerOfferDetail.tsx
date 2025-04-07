@@ -196,6 +196,8 @@ const PartnerOfferDetail = () => {
         // En cas d'erreur, conserver la description originale
       }
       
+      console.log("Envoi d'email avec la description d'équipement formatée:", equipmentDescription);
+      
       // Envoyer l'email "offre prête à consulter"
       const success = await sendOfferReadyEmail(
         offer.client_email,

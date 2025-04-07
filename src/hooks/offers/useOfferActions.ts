@@ -95,7 +95,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         // En cas d'erreur, conserver la description originale
       }
       
-      console.log("Détails de l'offre:", {
+      console.log("Détails de l'offre après formatage:", {
         id: offer.id,
         description: equipmentDescription,
         amount: offer.amount || 0,
