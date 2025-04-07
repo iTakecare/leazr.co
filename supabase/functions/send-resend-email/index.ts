@@ -91,29 +91,11 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
-    // IMPORTANT: Préserver intégralement le HTML fourni par le client
-    // Ne rien modifier ici pour respecter le formatage du template
-    let htmlContent = reqData.html;
+    // Vérifier et améliorer le format HTML
+    let htmlContent = ensureProperHtmlFormat(reqData.html);
     
-    // S'assurer que le HTML soit complet avec doctype, head et body si nécessaire
-    if (!htmlContent.includes('<!DOCTYPE html>') && !htmlContent.includes('<html')) {
-      htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${reqData.subject}</title>
-</head>
-<body>
-    ${htmlContent}
-</body>
-</html>`;
-    }
-    
-    // Formater uniquement le contenu JSON si présent
+    // Traiter les chaînes JSON potentielles dans le contenu HTML
     htmlContent = formatJsonContent(htmlContent);
-    
-    console.log("HTML final formaté:", htmlContent.substring(0, 150) + "...");
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
@@ -158,6 +140,63 @@ serve(async (req) => {
 // Utilitaire pour supprimer les balises HTML d'une chaîne
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
+}
+
+// Fonction pour garantir un format HTML complet et correct
+function ensureProperHtmlFormat(html: string): string {
+  // Vérifier si le contenu est vide ou null
+  if (!html || html.trim() === '') {
+    return '<html><body><p>Email sans contenu</p></body></html>';
+  }
+  
+  // Détection si c'est déjà un document HTML complet (contient <html> et <body>)
+  const hasHtmlTag = /<html[^>]*>/i.test(html);
+  const hasBodyTag = /<body[^>]*>/i.test(html);
+  
+  // Si c'est un document HTML complet, retourner tel quel
+  if (hasHtmlTag && hasBodyTag) {
+    return html;
+  }
+  
+  // Si le contenu commence par une balise (comme <div>), l'envelopper dans html/body
+  if (html.trim().startsWith('<') && html.trim().endsWith('>')) {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${html}
+  </div>
+</body>
+</html>`;
+  }
+  
+  // Si c'est juste du texte, l'envelopper dans des balises HTML
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p>${html}</p>
+  </div>
+</body>
+</html>`;
 }
 
 // Fonction pour formater le contenu JSON en HTML lisible

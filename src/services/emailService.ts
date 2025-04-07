@@ -113,16 +113,17 @@ export const sendEmail = async (
     
     console.log("Utilisation de Resend pour l'envoi d'email");
     
-    // Envoyer le HTML tel qu'il est, sans formatage additionnel
-    console.log("Extrait du HTML:", htmlContent.substring(0, 150) + "...");
+    // S'assurer que le contenu HTML est bien formaté
+    const formattedHtml = ensureHtmlFormat(htmlContent);
+    console.log("Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
     
     // Appeler la fonction Supabase pour envoyer l'email via Resend
     const { data, error } = await supabase.functions.invoke('send-resend-email', {
       body: {
         to,
         subject,
-        html: htmlContent,
-        text: textContent || stripHtml(htmlContent),
+        html: formattedHtml,
+        text: textContent || stripHtml(formattedHtml),
         from: {
           email: settings.from_email,
           name: settings.from_name
@@ -386,9 +387,8 @@ export const sendOfferReadyEmail = async (
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
     
-    // Préparer l'URL de l'offre - IMPORTANT: Utiliser le lien vers la page de signature publique
-    const offerLink = `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
-    console.log("Lien de signature généré:", offerLink);
+    // Préparer l'URL de l'offre
+    const offerLink = `${window.location.origin}/client/offers/${offerInfo.id}`;
     
     let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
     let htmlContent = `
@@ -424,19 +424,16 @@ export const sendOfferReadyEmail = async (
         .replace(/{{client_name}}/g, clientName)
         .replace(/{{equipment_description}}/g, formattedDescription);
         
-      // Prendre le HTML exact du template et remplacer uniquement les variables
       htmlContent = template.html_content
         .replace(/{{client_name}}/g, clientName)
         .replace(/{{equipment_description}}/g, formattedDescription)
         .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
         .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
         .replace(/{{offer_link}}/g, offerLink);
-        
-      console.log("Lien dans le modèle d'email:", offerLink);
-      console.log("HTML du template après remplacement des variables:", htmlContent.substring(0, 150) + "...");
     }
     
     console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    console.log("Aperçu du contenu HTML:", htmlContent.substring(0, 150) + "...");
     
     // Envoyer l'email
     const success = await sendEmail(
