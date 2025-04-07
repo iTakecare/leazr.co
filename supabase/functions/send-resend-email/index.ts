@@ -91,16 +91,11 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
-    // Vérifier et corriger le contenu HTML si nécessaire
-    let htmlContent = reqData.html;
-    if (!htmlContent.trim().startsWith('<')) {
-      // Si le contenu HTML ne commence pas par une balise, on l'enveloppe dans un div
-      htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${htmlContent}</div>`;
-      console.log("HTML ajusté pour s'assurer du bon format");
-    }
+    // Vérifier et améliorer le format HTML
+    let htmlContent = ensureProperHtmlFormat(reqData.html);
     
     // Traiter les chaînes JSON potentielles dans le contenu HTML
-    htmlContent = cleanupJsonStrings(htmlContent);
+    htmlContent = formatJsonContent(htmlContent);
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
@@ -147,52 +142,122 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
 }
 
-// Fonction pour nettoyer les chaînes JSON dans le contenu HTML
-function cleanupJsonStrings(html: string): string {
-  // Rechercher les chaînes qui ressemblent à du JSON en considérant les caractères d'échappement
-  const jsonPattern = /(\[{&#34;|\[{")(.*?)("}\]|&#34;}\])/g;
+// Fonction pour garantir un format HTML complet et correct
+function ensureProperHtmlFormat(html: string): string {
+  // Vérifier si le contenu est vide ou null
+  if (!html || html.trim() === '') {
+    return '<html><body><p>Email sans contenu</p></body></html>';
+  }
   
-  return html.replace(jsonPattern, (match) => {
+  // Détection si c'est déjà un document HTML complet (contient <html> et <body>)
+  const hasHtmlTag = /<html[^>]*>/i.test(html);
+  const hasBodyTag = /<body[^>]*>/i.test(html);
+  
+  // Si c'est un document HTML complet, retourner tel quel
+  if (hasHtmlTag && hasBodyTag) {
+    return html;
+  }
+  
+  // Si le contenu commence par une balise (comme <div>), l'envelopper dans html/body
+  if (html.trim().startsWith('<') && html.trim().endsWith('>')) {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${html}
+  </div>
+</body>
+</html>`;
+  }
+  
+  // Si c'est juste du texte, l'envelopper dans des balises HTML
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p>${html}</p>
+  </div>
+</body>
+</html>`;
+}
+
+// Fonction pour formater le contenu JSON en HTML lisible
+function formatJsonContent(html: string): string {
+  // Fonction pour convertir une chaîne JSON en HTML formatté
+  function formatJsonToHtml(jsonString: string): string {
     try {
-      // Convertir les caractères HTML en leurs équivalents
-      let cleaned = match
+      // Nettoyer la chaîne pour faciliter le parsing
+      const cleaned = jsonString
         .replace(/&#34;/g, '"')
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'")
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
       
-      // Tentative de parsing JSON
-      const jsonData = JSON.parse(cleaned);
+      // Analyser le JSON
+      const data = JSON.parse(cleaned);
       
-      // Si c'est un tableau d'objets avec des détails d'équipement
-      if (Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].title) {
-        // Formater en HTML lisible
-        let formattedHtml = '<ul style="list-style-type:none; padding:0; margin:10px 0; background-color:#f9f9f9; border-radius:5px; padding:15px;">';
+      // Formatter l'équipement
+      if (Array.isArray(data) && data.length > 0 && data[0].title) {
+        let result = '<div style="background-color: #f9f9f9; border-radius: 8px; padding: 15px; margin: 15px 0;">';
+        result += '<h3 style="margin-top: 0; color: #2d618f;">Détails de l\'équipement</h3>';
+        result += '<ul style="list-style-type: none; padding: 0; margin: 0;">';
         
-        jsonData.forEach(item => {
-          formattedHtml += `
-            <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee;">
-              <strong>${item.title || 'Équipement'}</strong><br>
-              ${item.quantity ? `Quantité: ${item.quantity}<br>` : ''}
-              ${item.purchasePrice ? `Prix: ${item.purchasePrice}€<br>` : ''}
-              ${item.monthlyPayment ? `Mensualité: ${item.monthlyPayment}€` : ''}
-            </li>`;
+        data.forEach((item: any) => {
+          result += `<li style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee;">`;
+          result += `<strong>${item.title || 'Équipement'}</strong><br>`;
+          if (item.quantity) result += `Quantité: ${item.quantity}<br>`;
+          if (item.purchasePrice) result += `Prix: ${item.purchasePrice}€<br>`;
+          if (item.monthlyPayment) result += `Mensualité: ${item.monthlyPayment}€`;
+          result += '</li>';
         });
         
-        formattedHtml += '</ul>';
-        return formattedHtml;
+        result += '</ul></div>';
+        return result;
       }
       
-      // Si on ne peut pas formater spécifiquement, au moins rendre lisible
-      return JSON.stringify(jsonData, null, 2)
-        .replace(/\n/g, '<br>')
-        .replace(/ /g, '&nbsp;');
-        
+      // Pour d'autres types de JSON
+      return '<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">' + 
+        JSON.stringify(data, null, 2) + 
+        '</pre>';
     } catch (e) {
-      console.log("Erreur lors du traitement JSON:", e);
-      // Si erreur de parsing, laisser tel quel
-      return match;
+      console.log("Erreur formatage JSON:", e);
+      return jsonString; // Retourner la chaîne originale en cas d'erreur
     }
+  }
+  
+  // Patterns pour détecter le JSON dans le HTML
+  const patterns = [
+    /(\[{&#34;|\[{")(.*?)("}\]|&#34;}\])/g,  // Format avec caractères d'échappement HTML
+    /\[\{.*?\}\]/g  // Format JSON brut
+  ];
+  
+  let result = html;
+  
+  // Appliquer chaque pattern
+  patterns.forEach(pattern => {
+    result = result.replace(pattern, (match) => {
+      return formatJsonToHtml(match);
+    });
   });
+  
+  return result;
 }

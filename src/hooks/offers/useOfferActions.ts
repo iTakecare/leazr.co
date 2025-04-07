@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -81,7 +80,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       
       // Vérifier si la description est un JSON et le formater proprement
       try {
-        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
+        if (typeof equipmentDescription === 'string' && equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
           const equipmentItems = JSON.parse(equipmentDescription);
           if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
             if (equipmentItems.length === 1) {

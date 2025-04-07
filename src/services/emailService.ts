@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -155,6 +154,11 @@ export const sendEmail = async (
  * S'assure que le contenu HTML est correctement formaté
  */
 const ensureHtmlFormat = (html: string): string => {
+  // Si le contenu est vide ou null
+  if (!html || html.trim() === '') {
+    return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">Email sans contenu</div>';
+  }
+  
   // Si le contenu ne commence pas par un tag HTML, l'envelopper dans un div
   if (!html.trim().startsWith('<')) {
     return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${html}</div>`;
@@ -169,9 +173,13 @@ const ensureHtmlFormat = (html: string): string => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333;">
+<body>
+  <div class="container">
     ${html}
   </div>
 </body>
