@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -415,8 +414,6 @@ const AmbassadorOfferDetail = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* La carte "Montant financé" a été supprimée */}
-              
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center">
@@ -662,16 +659,9 @@ const AmbassadorOfferDetail = () => {
                           <div>
                             <h3 className="font-medium mb-2">Détails de paiement</h3>
                             <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                              
-                              
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">Paiement mensuel:</span>
                                 <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
-                              </div>
-                              
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Coefficient:</span>
-                                <span className="font-medium">{offer.coefficient}</span>
                               </div>
                             </div>
                           </div>
@@ -718,13 +708,6 @@ const AmbassadorOfferDetail = () => {
                             </div>
                           </div>
                         )}
-                        
-                        <div className="mt-6">
-                          <h3 className="font-medium mb-2">Type d'offre</h3>
-                          <div className="p-3 bg-slate-50 rounded-md">
-                            <p>{translateOfferType(offer.type)}</p>
-                          </div>
-                        </div>
                       </TabsContent>
                       
                       <TabsContent value="equipment" className="mt-4">
