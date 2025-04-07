@@ -152,29 +152,52 @@ const PartnerOfferDetail = () => {
     }
   };
 
-  const shareSignatureLink = () => {
+  const shareSignatureLink = async () => {
     if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
       toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
       return;
     }
     
-    if (offer.workflow_status === 'draft') {
-      supabase
-        .from('offers')
-        .update({ workflow_status: 'sent' })
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error updating offer status:", error);
-            toast.error("Erreur lors de la mise à jour du statut de l'offre");
-          } else {
-            setOffer({ ...offer, workflow_status: 'sent' });
-            toast.success("Statut de l'offre mis à jour à 'Envoyée'");
-          }
-        });
+    try {
+      // Mettre à jour le statut si l'offre est en brouillon
+      if (offer.workflow_status === 'draft') {
+        const { error } = await supabase
+          .from('offers')
+          .update({ workflow_status: 'sent' })
+          .eq('id', id);
+          
+        if (error) {
+          console.error("Error updating offer status:", error);
+          toast.error("Erreur lors de la mise à jour du statut de l'offre");
+          return;
+        }
+        
+        setOffer({ ...offer, workflow_status: 'sent' });
+      }
+      
+      // Envoyer l'email "offre prête à consulter"
+      const success = await sendOfferReadyEmail(
+        offer.client_email,
+        offer.client_name,
+        {
+          id: offer.id,
+          description: offer.equipment_description || "Votre équipement",
+          amount: offer.amount || 0,
+          monthlyPayment: offer.monthly_payment || 0
+        }
+      );
+      
+      if (success) {
+        toast.success("Lien de signature envoyé au client avec succès");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'email au client");
+        return;
+      }
+      
+    } catch (error) {
+      console.error("Error sending offer ready email:", error);
+      toast.error("Erreur lors de l'envoi de l'email");
     }
-    
-    toast.success("Lien de signature envoyé au client");
   };
 
   const shouldShowCommission = (offer: any): boolean => {

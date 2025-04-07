@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface OfferNote {
   id: string;
@@ -39,5 +40,39 @@ export const getOfferNotes = async (offerId: string): Promise<OfferNote[]> => {
   } catch (error) {
     console.error("Error fetching offer notes:", error);
     return [];
+  }
+};
+
+/**
+ * Adds a note to an offer
+ * @param offerId The ID of the offer
+ * @param content Content of the note
+ * @param type Type of the note (e.g., "system", "user", "info")
+ * @returns Boolean indicating success or failure
+ */
+export const addOfferNote = async (
+  offerId: string,
+  content: string,
+  type: string = "user"
+): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('offer_notes')
+      .insert({
+        offer_id: offerId,
+        content,
+        type,
+        created_by: (await supabase.auth.getUser()).data.user?.id
+      });
+
+    if (error) {
+      console.error("Error adding offer note:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error adding offer note:", error);
+    return false;
   }
 };
