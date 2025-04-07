@@ -38,7 +38,9 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   
   useEffect(() => {
     // Ensure we're working with a clean object
-    setAttributes(initialAttributes || {});
+    if (initialAttributes) {
+      setAttributes(initialAttributes);
+    }
   }, [initialAttributes]);
   
   const updateAttributes = useMutation({
@@ -60,16 +62,26 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
           return false;
         }
         
-        await updateProductVariationAttributes(productId, cleanedAttributes);
-        return true;
+        // Log debug info to help diagnose the issue
+        console.log("Updating product variation attributes for product:", productId);
+        console.log("New attributes:", cleanedAttributes);
+        
+        // Make sure we send the productId as a string to ensure consistent type
+        const result = await updateProductVariationAttributes(productId.toString(), cleanedAttributes);
+        return result;
       } catch (error) {
         console.error("Error in mutation function:", error);
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Successfully updated product attributes for ID:", productId);
       toast.success("Attributs de variation mis à jour avec succès");
-      if (onAttributesUpdated) onAttributesUpdated();
+      
+      // Make sure to call the onAttributesUpdated callback
+      if (onAttributesUpdated) {
+        onAttributesUpdated();
+      }
     },
     onError: (error: any) => {
       console.error("Error updating attributes:", error);
