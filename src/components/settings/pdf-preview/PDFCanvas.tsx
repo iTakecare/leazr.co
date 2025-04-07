@@ -89,6 +89,8 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
             onLoad={handlePageLoad}
             width={canvasWidth}
             height={canvasHeight}
+            currentPage={currentPage}
+            setPageLoaded={setPageLoaded}
           />
 
           {/* Display PDF fields */}
@@ -103,7 +105,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
                   scaleFactor={scaleFactor}
                   isDraggable={isDraggable}
                   sampleData={sampleData}
-                  onStartDrag={(offsetX, offsetY) =>
+                  onStartDrag={(offsetX: number, offsetY: number) =>
                     onStartDrag(field.id, offsetX, offsetY)
                   }
                   onDrag={onDrag}
@@ -116,6 +118,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
           {currentPage === totalPages && (
             <SignatureSection
               pageHeight={canvasHeight}
+              scaleFactor={scaleFactor}
             />
           )}
         </div>
@@ -130,7 +133,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       {process.env.NODE_ENV === "development" && (
         <DebugInfo
           currentPage={currentPage}
-          zoomLevel={zoomLevel / 100}
+          zoomLevel={zoomLevel}
           pageWidth={canvasWidth}
           pageHeight={canvasHeight}
           fields={localTemplate?.fields?.filter((f: any) => f.page === currentPage) || []}

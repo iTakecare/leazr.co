@@ -121,11 +121,11 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                   <td style={{ border: '1px solid #d1d5db', padding: '4px 6px', textAlign: 'right' }}>90,00 €</td>
                 </tr>
               )}
-              <tr>
-                <td colSpan={2} style={{ border: '1px solid #d1d5db', padding: '4px 6px', textAlign: 'right', fontWeight: '600' }}>
+              <tr style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>
+                <td colSpan={2} style={{ border: '1px solid #d1d5db', padding: '4px 6px', textAlign: 'right' }}>
                   Total mensualité:
                 </td>
-                <td style={{ border: '1px solid #d1d5db', padding: '4px 6px', textAlign: 'right', fontWeight: '600' }}>
+                <td style={{ border: '1px solid #d1d5db', padding: '4px 6px', textAlign: 'right' }}>
                   {equipment.length > 0 
                     ? formatCurrency(totalMonthly) 
                     : "90,00 €"}
@@ -135,12 +135,27 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </table>
         </div>
         
-        {/* Total Final - Bleu avec format "/mois" */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2563EB', fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '30px' }}>
-          <p>Total mensualité:</p>
-          <p>{equipment.length > 0 
-            ? `${formatCurrency(totalMonthly)} HTVA /mois` 
-            : "90,00 € HTVA /mois"}</p>
+        {/* Total Final - Bleu avec format "/mois" - placé directement sous le tableau */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', color: '#2563EB', fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '30px' }}>
+          <p>
+            {equipment.length > 0 
+              ? `Total mensualité: ${formatCurrency(totalMonthly)} HTVA /mois` 
+              : "Total mensualité: 90,00 € HTVA /mois"}
+          </p>
+        </div>
+        
+        {/* Section signature */}
+        <div style={{ marginTop: '60px', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+          <h3 style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '10px', fontSize: '0.85rem' }}>
+            Signature client
+          </h3>
+          <div style={{ 
+            width: '300px', 
+            height: '100px', 
+            border: '1px dashed #94a3b8', 
+            borderRadius: '4px', 
+            margin: '0 auto'
+          }}></div>
         </div>
       </main>
       
