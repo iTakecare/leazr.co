@@ -3,10 +3,10 @@ import React from "react";
 
 interface PDFFieldDisplayProps {
   field: any;
-  scaleFactor: number;
+  scaleFactor: number; // Added this prop
   isDraggable: boolean;
   sampleData: any;
-  onStartDrag: (offsetX: number, offsetY: number) => void;
+  onStartDrag: (offsetX: number, offsetY: number) => void; // Fixed type to number
   onDrag: (clientX: number, clientY: number) => void;
   onEndDrag: () => void;
   useRealData?: boolean;

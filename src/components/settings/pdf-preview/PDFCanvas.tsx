@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, memo } from "react";
 import PageNavigation from "./PageNavigation";
 import PageImage from "./PageImage";
-import PDFFieldDisplay from "../PDFFieldDisplay";
+import PDFFieldDisplay from "./PDFFieldDisplay";
 import SignatureSection from "./SignatureSection";
 import PDFFooter from "./PDFFooter";
 import DebugInfo from "./DebugInfo";
@@ -115,7 +115,6 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
           {/* Signature section */}
           {currentPage === totalPages && (
             <SignatureSection
-              scaleFactor={scaleFactor}
               pageHeight={canvasHeight}
             />
           )}
@@ -125,7 +124,6 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       <PDFFooter 
         pageNumber={currentPage} 
         totalPages={totalPages}
-        zoomLevel={zoomLevel / 100}
       />
 
       {/* Debug information */}
@@ -135,6 +133,8 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
           zoomLevel={zoomLevel / 100}
           pageWidth={canvasWidth}
           pageHeight={canvasHeight}
+          fields={localTemplate?.fields?.filter((f: any) => f.page === currentPage) || []}
+          localTemplate={localTemplate}
         />
       )}
     </div>

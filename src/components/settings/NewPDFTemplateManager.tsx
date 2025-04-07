@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,6 +183,29 @@ const NewPDFTemplateManager = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const PageImage = ({ pageImage, currentPage, setPageLoaded }) => {
+    if (!pageImage) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-gray-400">No image available</p>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={pageImage.url}
+        alt={`Template page ${currentPage + 1}`}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          console.error("Image loading error:", e);
+          e.currentTarget.src = "/placeholder.svg";
+        }}
+        onLoad={() => setPageLoaded(true)}
+      />
+    );
   };
 
   useEffect(() => {
