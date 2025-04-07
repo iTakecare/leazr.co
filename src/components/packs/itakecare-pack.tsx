@@ -92,6 +92,7 @@ const ITakecarePack = () => {
   });
 
   const supportHourOptions = [
+    { hours: 0, price: 0 },
     { hours: 1, price: 65 },
     { hours: 3, price: 180 },
     { hours: 5, price: 275 },
@@ -408,7 +409,11 @@ const ITakecarePack = () => {
       const hours = parseInt(selectedSupportHours);
       const option = supportHourOptions.find(opt => opt.hours === hours);
       if (option) {
-        packs.silver.features.support = `${option.hours}h (${option.price}€)`;
+        if (option.hours === 0) {
+          packs.silver.features.support = "Sans support";
+        } else {
+          packs.silver.features.support = `${option.hours}h (${option.price}€)`;
+        }
       }
     }
   }, [selectedSupportHours, selectedPack]);

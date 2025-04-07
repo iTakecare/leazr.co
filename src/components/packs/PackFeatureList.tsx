@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Check, X, HelpCircle, Clock } from "lucide-react";
 import { 
@@ -57,7 +56,6 @@ const PackFeatureList = ({
   };
 
   const renderFeatureValue = (key: string, value: boolean | string | number) => {
-    // Cas spécial pour le support technique des packs silver et gold
     if (key === "support" && (pack.id === "silver" || pack.id === "gold") && onSupportHoursChange) {
       return (
         <div className="flex items-center space-x-2">
@@ -71,7 +69,7 @@ const PackFeatureList = ({
             <SelectContent>
               {supportHourOptions.map((option) => (
                 <SelectItem key={option.hours} value={option.hours.toString()}>
-                  {option.hours}h ({option.price}€)
+                  {option.hours === 0 ? "Sans support" : `${option.hours}h (${option.price}€)`}
                 </SelectItem>
               ))}
             </SelectContent>
