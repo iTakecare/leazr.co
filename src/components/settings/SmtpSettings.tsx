@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,7 @@ const ResendSettings = () => {
       setSaving(true);
       setSaveError(null);
       
+      // Création de l'objet à enregistrer dans la base de données
       const settingsToSave = {
         ...settings,
         updated_at: new Date().toISOString()
@@ -85,6 +87,7 @@ const ResendSettings = () => {
       
       console.log("Saving email settings with Resend API key");
       
+      // Enregistrement dans la table smtp_settings
       const { error } = await supabase
         .from('smtp_settings')
         .upsert(settingsToSave);
@@ -114,11 +117,8 @@ const ResendSettings = () => {
       toast.info("Test d'envoi d'email en cours...");
       console.log("Testing Resend email sending");
       
-      const { data: userData } = await supabase.auth.getUser();
-      const userEmail = userData?.user?.email;
-      
       const { data, error } = await supabase.functions.invoke('test-resend', {
-        body: { email: userEmail }
+        body: {}  // No need to send API key, it will be fetched from the database
       });
       
       console.log("Réponse du test:", data, error);

@@ -34,7 +34,6 @@ import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 import { updateOfferStatus } from "@/services/offerService";
-import { sendOfferReadyEmail } from "@/services/emailService";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -153,74 +152,29 @@ const PartnerOfferDetail = () => {
     }
   };
 
-  const shareSignatureLink = async () => {
+  const shareSignatureLink = () => {
     if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
       toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
       return;
     }
     
-    try {
-      // Mettre à jour le statut si l'offre est en brouillon
-      if (offer.workflow_status === 'draft') {
-        const { error } = await supabase
-          .from('offers')
-          .update({ workflow_status: 'sent' })
-          .eq('id', id);
-          
-        if (error) {
-          console.error("Error updating offer status:", error);
-          toast.error("Erreur lors de la mise à jour du statut de l'offre");
-          return;
-        }
-        
-        setOffer({ ...offer, workflow_status: 'sent' });
-      }
-      
-      // Formatter la description de l'équipement si nécessaire
-      let equipmentDescription = offer.equipment_description || "Votre équipement";
-      
-      // Vérifier si la description est un JSON et le formater proprement
-      try {
-        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
-          const equipmentItems = JSON.parse(equipmentDescription);
-          if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
-            if (equipmentItems.length === 1) {
-              equipmentDescription = equipmentItems[0].title || "Votre équipement";
-            } else {
-              equipmentDescription = `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
-            }
+    if (offer.workflow_status === 'draft') {
+      supabase
+        .from('offers')
+        .update({ workflow_status: 'sent' })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error updating offer status:", error);
+            toast.error("Erreur lors de la mise à jour du statut de l'offre");
+          } else {
+            setOffer({ ...offer, workflow_status: 'sent' });
+            toast.success("Statut de l'offre mis à jour à 'Envoyée'");
           }
-        }
-      } catch (e) {
-        console.error("Erreur lors du parsing de la description de l'équipement:", e);
-        // En cas d'erreur, conserver la description originale
-      }
-      
-      console.log("Envoi d'email avec la description d'équipement formatée:", equipmentDescription);
-      
-      // Envoyer l'email "offre prête à consulter"
-      const success = await sendOfferReadyEmail(
-        offer.client_email,
-        offer.client_name,
-        {
-          id: offer.id,
-          description: equipmentDescription,
-          amount: offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
-        }
-      );
-      
-      if (success) {
-        toast.success("Lien de signature envoyé au client avec succès");
-      } else {
-        toast.error("Erreur lors de l'envoi de l'email au client");
-        return;
-      }
-      
-    } catch (error) {
-      console.error("Error sending offer ready email:", error);
-      toast.error("Erreur lors de l'envoi de l'email");
+        });
     }
+    
+    toast.success("Lien de signature envoyé au client");
   };
 
   const shouldShowCommission = (offer: any): boolean => {

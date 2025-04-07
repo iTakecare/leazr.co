@@ -61,41 +61,28 @@ serve(async (req) => {
     const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
     const from = `${fromName} <${fromEmail}>`;
     
-    // Récupérer l'email de l'utilisateur depuis les headers d'autorisation
-    // Au lieu d'utiliser getUser qui nécessite une session authentifiée
-    // On récupère l'email directement depuis la requête
-    const authHeader = req.headers.get('Authorization');
-    let userEmail = "admin@itakecare.app"; // Email par défaut si pas d'authentification
+    // Email de test
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser();
     
-    if (authHeader) {
-      try {
-        // Tentative de récupération de l'identité depuis le token
-        const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-        if (!userError && userData.user) {
-          userEmail = userData.user.email || userEmail;
-        }
-      } catch (err) {
-        console.log("Impossible de récupérer l'utilisateur depuis le token:", err);
-        // Continue avec l'email par défaut
-      }
+    if (userError) {
+      console.error("Erreur lors de la récupération de l'utilisateur:", userError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `Erreur d'authentification: ${userError.message}`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
     
-    // Utiliser l'email fourni dans le corps de la requête s'il existe
-    try {
-      const body = await req.json();
-      if (body && body.email) {
-        userEmail = body.email;
-      }
-    } catch (e) {
-      // Ignorer les erreurs de parsing JSON
-    }
+    const testEmail = userData.user.email;
     
-    console.log(`Tentative d'envoi d'email de test à ${userEmail}`);
+    console.log(`Tentative d'envoi d'email de test à ${testEmail}`);
     
     // Envoyer l'email de test
     const { data, error } = await resend.emails.send({
       from,
-      to: userEmail,
+      to: testEmail,
       subject: "Test d'envoi d'email depuis iTakecare",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
@@ -125,7 +112,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Email de test envoyé avec succès à ${userEmail}`,
+        message: `Email de test envoyé avec succès à ${testEmail}`,
         data: data
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -113,9 +114,6 @@ export const sendEmail = async (
     
     console.log("Utilisation de Resend pour l'envoi d'email");
     
-    // Envoyer le HTML tel qu'il est, sans formatage additionnel
-    console.log("Extrait du HTML:", htmlContent.substring(0, 150) + "...");
-    
     // Appeler la fonction Supabase pour envoyer l'email via Resend
     const { data, error } = await supabase.functions.invoke('send-resend-email', {
       body: {
@@ -147,46 +145,6 @@ export const sendEmail = async (
     console.error("Exception lors de l'envoi de l'email:", error);
     return false;
   }
-};
-
-/**
- * S'assure que le contenu HTML est correctement formaté
- */
-const ensureHtmlFormat = (html: string): string => {
-  // Si le contenu est vide ou null
-  if (!html || html.trim() === '') {
-    return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">Email sans contenu</div>';
-  }
-  
-  // Si le contenu ne commence pas par un tag HTML, l'envelopper dans un div
-  if (!html.trim().startsWith('<')) {
-    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${html}</div>`;
-  }
-  
-  // Si le contenu ne contient pas de balises body ou html, s'assurer qu'il a une structure de base
-  if (!html.includes('<body') && !html.includes('<html')) {
-    // S'assurer que le style de base est appliqué au contenu existant
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Email</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; color: #333333; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${html}
-  </div>
-</body>
-</html>`;
-  }
-  
-  // Retourner le HTML tel quel s'il semble déjà formaté correctement
-  return html;
 };
 
 /**
@@ -381,106 +339,38 @@ export const sendOfferReadyEmail = async (
   }
 ): Promise<boolean> => {
   try {
-    console.log(`Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
-    
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
+    
+    if (!template) {
+      console.error("Modèle d'email 'offer_ready' non trouvé");
+      return false;
+    }
     
     // Préparer l'URL de l'offre
     const offerLink = `${window.location.origin}/client/offers/${offerInfo.id}`;
     
-    let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
-    let htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
-        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation.</p>
-        <p><strong>Détails de l'offre:</strong></p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement: ${formatEquipmentDescription(offerInfo.description)}</li>
-          <li>Montant: ${offerInfo.amount.toLocaleString('fr-FR')} €</li>
-          <li>Mensualité estimée: ${offerInfo.monthlyPayment.toLocaleString('fr-FR')} €</li>
-        </ul>
-        <p>Pour consulter les détails complets et signer votre offre, veuillez cliquer sur le lien ci-dessous:</p>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${offerLink}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            Consulter et signer votre offre
-          </a>
-        </p>
-        <p>Ce lien vous permet d'accéder à votre offre et de la signer électroniquement si elle vous convient.</p>
-        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-      </div>
-    `;
-    
-    // Utiliser le modèle personnalisé s'il existe
-    if (template) {
-      console.log("Utilisation du modèle d'email 'offer_ready'");
+    // Remplacer les variables dans le modèle
+    let subject = template.subject
+      .replace(/{{client_name}}/g, clientName)
+      .replace(/{{equipment_description}}/g, offerInfo.description);
       
-      // Formater la description de l'équipement pour éviter l'affichage de JSON brut
-      const formattedDescription = formatEquipmentDescription(offerInfo.description);
-      
-      subject = template.subject
-        .replace(/{{client_name}}/g, clientName)
-        .replace(/{{equipment_description}}/g, formattedDescription);
-        
-      // Prendre le HTML exact du template et remplacer uniquement les variables
-      htmlContent = template.html_content
-        .replace(/{{client_name}}/g, clientName)
-        .replace(/{{equipment_description}}/g, formattedDescription)
-        .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
-        .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
-        .replace(/{{offer_link}}/g, offerLink);
-        
-      console.log("HTML du template après remplacement des variables:", htmlContent.substring(0, 150) + "...");
-    }
-    
-    console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    let htmlContent = template.html_content
+      .replace(/{{client_name}}/g, clientName)
+      .replace(/{{equipment_description}}/g, offerInfo.description)
+      .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
+      .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
+      .replace(/{{offer_link}}/g, offerLink);
     
     // Envoyer l'email
-    const success = await sendEmail(
+    return await sendEmail(
       clientEmail,
       subject,
       htmlContent
     );
-    
-    if (success) {
-      console.log(`Email "offre prête à consulter" envoyé avec succès à: ${clientEmail}`);
-      return true;
-    } else {
-      console.error(`Échec de l'envoi de l'email "offre prête à consulter" à: ${clientEmail}`);
-      return false;
-    }
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email d'offre prête:", error);
     return false;
-  }
-};
-
-/**
- * Formatte correctement la description de l'équipement pour l'email
- */
-const formatEquipmentDescription = (description: string): string => {
-  try {
-    // Vérifier si la description est un JSON (chaîne JSON)
-    if (description.startsWith('[{') && description.endsWith('}]')) {
-      const equipmentItems = JSON.parse(description);
-      
-      if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
-        if (equipmentItems.length === 1) {
-          // Si un seul élément, afficher simplement le titre
-          return equipmentItems[0].title || "Votre équipement";
-        } else {
-          // Si plusieurs éléments, créer un résumé
-          return `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
-        }
-      }
-    }
-    
-    // Si ce n'est pas un tableau JSON valide, renvoyer la description telle quelle
-    return description;
-  } catch (e) {
-    console.log("Erreur lors du parsing de la description:", e);
-    return description;
   }
 };
 

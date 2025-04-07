@@ -7,7 +7,6 @@ export interface Offer {
   id: string;
   client_name: string;
   client_id?: string;
-  client_email?: string; // Added this field
   amount: number;
   monthly_payment: number;
   commission?: number;

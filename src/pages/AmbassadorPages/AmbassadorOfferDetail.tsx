@@ -43,7 +43,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import { Timeline, TimelineItem, TimelineItemContent, TimelineItemIndicator, TimelineItemTitle } from "@/components/ui/timeline";
-import { sendOfferReadyEmail } from "@/services/emailService";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -205,56 +204,6 @@ const AmbassadorOfferDetail = () => {
       toast.error("Impossible d'envoyer l'email");
     } finally {
       setSendingEmail(false);
-    }
-  };
-  
-  const shareSignatureLink = async () => {
-    if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
-      toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
-      return;
-    }
-    
-    try {
-      // Mettre à jour le statut si l'offre est en brouillon
-      if (offer.workflow_status === 'draft') {
-        const { error } = await supabase
-          .from('offers')
-          .update({ workflow_status: 'sent' })
-          .eq('id', id);
-          
-        if (error) {
-          console.error("Error updating offer status:", error);
-          toast.error("Erreur lors de la mise à jour du statut de l'offre");
-          return;
-        }
-        
-        setOffer({ ...offer, workflow_status: 'sent' });
-      }
-      
-      console.log("Tentative d'envoi d'email depuis AmbassadorOfferDetail pour:", offer.client_email);
-      
-      // Envoyer l'email "offre prête à consulter"
-      const success = await sendOfferReadyEmail(
-        offer.client_email,
-        offer.client_name,
-        {
-          id: offer.id,
-          description: offer.equipment_description || "Votre équipement",
-          amount: offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
-        }
-      );
-      
-      if (success) {
-        toast.success("Lien de signature envoyé au client avec succès");
-      } else {
-        toast.error("Erreur lors de l'envoi de l'email au client");
-        return;
-      }
-      
-    } catch (error) {
-      console.error("Error sending offer ready email:", error);
-      toast.error("Erreur lors de l'envoi de l'email");
     }
   };
   
@@ -694,14 +643,6 @@ const AmbassadorOfferDetail = () => {
                         >
                           <Mail className="h-4 w-4 mr-2" />
                           {sendingEmail ? 'Envoi...' : "Envoyer au client"}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={shareSignatureLink}
-                        >
-                          <SendHorizontal className="h-4 w-4 mr-2" />
-                          Envoyer lien de signature
                         </Button>
                       </div>
                     </div>
