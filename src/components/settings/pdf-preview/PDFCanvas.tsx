@@ -68,7 +68,7 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
       <PageNavigation
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={setCurrentPage}
+        setCurrentPage={setCurrentPage}
       />
 
       <div
@@ -122,13 +122,17 @@ const PDFCanvas: React.FC<PDFCanvasProps> = ({
         </div>
       </div>
 
-      <PDFFooter pageNumber={currentPage} totalPages={totalPages} />
+      <PDFFooter 
+        pageNumber={currentPage} 
+        totalPages={totalPages}
+        zoomLevel={zoomLevel / 100}
+      />
 
       {/* Debug information */}
       {process.env.NODE_ENV === "development" && (
         <DebugInfo
           currentPage={currentPage}
-          zoomLevel={zoomLevel}
+          zoomLevel={zoomLevel / 100}
           pageWidth={canvasWidth}
           pageHeight={canvasHeight}
         />
