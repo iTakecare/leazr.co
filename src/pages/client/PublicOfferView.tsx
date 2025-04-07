@@ -9,6 +9,7 @@ import ClientInformation from "@/components/offers/ClientInformation";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import SignatureSection from "@/components/offers/SignatureSection";
 import SignedAlert from "@/components/offers/SignedAlert";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 
 const PublicOfferView = () => {
   const { id } = useParams<{ id: string }>();
@@ -96,16 +97,23 @@ const PublicOfferView = () => {
               </Card>
 
               {offer.equipment_description && (
-                <EquipmentDisplay equipmentData={offer.equipment_description} />
+                <EquipmentDisplay 
+                  equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
+                  monthlyPayment={offer.monthly_payment || 0}
+                  remarks={offer.remark}
+                />
               )}
 
               {!signed && (
                 <SignatureSection
+                  signed={signed}
+                  signature={signature}
                   signerName={signerName}
                   setSignerName={setSignerName}
-                  signature={signature}
                   isSigning={isSigning}
-                  handleSignature={handleSignature}
+                  onSign={handleSignature}
+                  isPrintingPdf={isPrintingPdf}
+                  onPrintPdf={handlePrintPdf}
                 />
               )}
 
