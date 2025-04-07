@@ -34,6 +34,7 @@ import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 import { updateOfferStatus } from "@/services/offerService";
+import { sendOfferReadyEmail } from "@/services/emailService";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
