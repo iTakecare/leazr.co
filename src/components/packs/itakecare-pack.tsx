@@ -91,12 +91,11 @@ const ITakecarePack = () => {
     },
   });
 
-  const supportHourOptions: SupportHourOption[] = [
-    { hours: 1, price: 50 },
-    { hours: 2, price: 100 },
-    { hours: 3, price: 150 },
-    { hours: 4, price: 200 },
-    { hours: 5, price: 250 },
+  const supportHourOptions = [
+    { hours: 1, price: 65 },
+    { hours: 3, price: 180 },
+    { hours: 5, price: 275 },
+    { hours: 10, price: 500 },
   ];
 
   const packs: Record<string, PackTier> = {
@@ -276,7 +275,6 @@ const ITakecarePack = () => {
     const discount = getDiscountPercentage(devices);
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     
-    // Add support hours cost to monthly price if not platinum
     const supportCost = getSupportHoursCost();
     const supportMonthly = supportCost / duration;
     const totalMonthlyWithSupport = discountedMonthly + (supportMonthly / Math.max(1, devices));
@@ -405,7 +403,6 @@ const ITakecarePack = () => {
 
   const shouldShowSupportHoursSelector = selectedPack === "silver" || selectedPack === "gold";
 
-  // Modifiez la description du support en fonction des heures sélectionnées
   useEffect(() => {
     if (selectedPack === "silver") {
       const hours = parseInt(selectedSupportHours);
