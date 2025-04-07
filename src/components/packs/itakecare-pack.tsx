@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, HelpCircle, Plus, Minus, Package, Shield, Monitor, Cpu, Smartphone, Clock, Sparkles } from "lucide-react";
@@ -15,6 +16,7 @@ import HardwareOptions from "./HardwareOptions";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type PackTier = {
   id: string;
@@ -33,6 +35,11 @@ type PackTier = {
   };
 };
 
+type SupportHourOption = {
+  hours: number;
+  price: number;
+};
+
 const ITakecarePack = () => {
   const [selectedPack, setSelectedPack] = useState<string>("silver");
   const [previousPack, setPreviousPack] = useState<string>("silver");
@@ -40,6 +47,7 @@ const ITakecarePack = () => {
   const [contractDuration, setContractDuration] = useState<number>(36);
   const [showComparison, setShowComparison] = useState<boolean>(false);
   const [lastPackId, setLastPackId] = useState<string | null>(null);
+  const [selectedSupportHours, setSelectedSupportHours] = useState<string>("1");
   const [selectedHardware, setSelectedHardware] = useState<{
     laptop: string | null;
     desktop: string | null;
@@ -80,8 +88,17 @@ const ITakecarePack = () => {
       packTier: "silver",
       contractLength: "36",
       deviceCount: "5",
+      supportHours: "1"
     },
   });
+
+  const supportHourOptions: SupportHourOption[] = [
+    { hours: 1, price: 50 },
+    { hours: 2, price: 100 },
+    { hours: 3, price: 150 },
+    { hours: 4, price: 200 },
+    { hours: 5, price: 250 },
+  ];
 
   const packs: Record<string, PackTier> = {
     silver: {
@@ -248,23 +265,37 @@ const ITakecarePack = () => {
     return 0;
   };
 
+  const getSupportHoursCost = () => {
+    if (selectedPack === "platinum") return 0; // Platinum already includes 8 hours
+    
+    const hours = parseInt(selectedSupportHours);
+    const option = supportHourOptions.find(opt => opt.hours === hours);
+    return option ? option.price : 0;
+  };
+
   const calculatePrice = (basePack: PackTier, devices: number, duration: number) => {
     const discount = getDiscountPercentage(devices);
     const discountedMonthly = basePack.monthlyPrice * (1 - discount / 100);
     
-    const totalMonthly = discountedMonthly * Math.max(1, devices);
+    // Add support hours cost to monthly price if not platinum
+    const supportCost = getSupportHoursCost();
+    const supportMonthly = supportCost / duration;
+    const totalMonthlyWithSupport = discountedMonthly + (supportMonthly / Math.max(1, devices));
+    
+    const totalMonthly = totalMonthlyWithSupport * Math.max(1, devices);
     
     const totalContract = totalMonthly * duration;
     
     const hardwareCosts = calculateHardwareCost();
 
     return {
-      monthly: discountedMonthly,
+      monthly: totalMonthlyWithSupport,
       totalMonthly: totalMonthly,
       totalContract: totalContract,
-      base: totalContract,
+      base: totalContract - (supportCost * Math.max(1, devices)),
       hardware: hardwareCosts,
       discount: discount,
+      supportCost: supportCost,
     };
   };
 
@@ -319,6 +350,11 @@ const ITakecarePack = () => {
     }
   };
 
+  const handleSupportHoursChange = (hours: string) => {
+    setSelectedSupportHours(hours);
+    form.setValue("supportHours", hours);
+  };
+
   const handleDeviceCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const count = parseInt(e.target.value);
     if (!isNaN(count) && count > 0) {
@@ -368,6 +404,19 @@ const ITakecarePack = () => {
     return basePack.monthlyPrice * (1 - discount / 100);
   };
 
+  const shouldShowSupportHoursSelector = selectedPack === "silver" || selectedPack === "gold";
+
+  // Modifiez la description du support en fonction des heures sélectionnées
+  useEffect(() => {
+    if (selectedPack === "silver") {
+      const hours = parseInt(selectedSupportHours);
+      const option = supportHourOptions.find(opt => opt.hours === hours);
+      if (option) {
+        packs.silver.features.support = `${option.hours}h (${option.price}€)`;
+      }
+    }
+  }, [selectedSupportHours, selectedPack]);
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col space-y-6 max-w-5xl mx-auto">
@@ -400,14 +449,38 @@ const ITakecarePack = () => {
                     getDiscountedMonthlyPrice={getDiscountedMonthlyPrice}
                     contractDuration={contractDuration}
                   />
+                  
+                  {shouldShowSupportHoursSelector && (
+                    <div className="mt-6 border-t pt-4">
+                      <h3 className="text-lg font-medium mb-4">Support technique</h3>
+                      <div className="flex items-center gap-4">
+                        <Label htmlFor="supportHours" className="min-w-32">
+                          Nombre d'heures incluses:
+                        </Label>
+                        <Select
+                          value={selectedSupportHours}
+                          onValueChange={handleSupportHoursChange}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Sélectionner..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {supportHourOptions.map((option) => (
+                              <SelectItem key={option.hours} value={option.hours.toString()}>
+                                {option.hours}h ({option.price}€)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">
-                    2. Sélectionnez votre matériel
-                  </CardTitle>
+                  <CardTitle className="text-xl">2. Sélectionnez votre matériel</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <HardwareOptions 
@@ -449,6 +522,20 @@ const ITakecarePack = () => {
                               }
                               return null;
                             })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {shouldShowSupportHoursSelector && (
+                        <div className="mt-6">
+                          <h3 className="text-lg font-medium mb-4">Support technique</h3>
+                          <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                            <p>
+                              <span className="font-medium">{selectedSupportHours}h</span> de support technique incluses
+                            </p>
+                            <p className="text-sm text-blue-700 mt-1">
+                              Coût: {formatCurrency(getSupportHoursCost())}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -516,6 +603,13 @@ const ITakecarePack = () => {
                             <div className="flex justify-between font-medium mt-2">
                               <span>Nombre d'équipements</span>
                               <span>{totalDevices}</span>
+                            </div>
+                          )}
+                          
+                          {shouldShowSupportHoursSelector && pricing.supportCost > 0 && (
+                            <div className="flex justify-between font-medium mt-2 text-blue-700">
+                              <span>Support technique ({selectedSupportHours}h)</span>
+                              <span>{formatCurrency(pricing.supportCost)}</span>
                             </div>
                           )}
                           

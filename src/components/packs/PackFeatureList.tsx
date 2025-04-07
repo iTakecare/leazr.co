@@ -1,75 +1,84 @@
 
 import React from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, HelpCircle } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger, 
+} from "@/components/ui/tooltip";
 
-interface PackFeatureListProps {
-  pack: {
-    id: string;
-    features: {
-      [key: string]: any;
-    };
+type PackTier = {
+  id: string;
+  name: string;
+  color: string;
+  price: number;
+  monthlyPrice: number;
+  features: {
+    [key: string]: boolean | string | number;
   };
-}
+};
 
-const PackFeatureList: React.FC<PackFeatureListProps> = ({ pack }) => {
-  // Définir les fonctionnalités à afficher avec leurs labels
-  const featureGroups = [
-    {
-      title: "Services de base",
-      features: [
-        { id: "dashboard", label: "Dashboard iTakecare" },
-        { id: "insurance", label: "Assurance" },
-        { id: "replacement", label: "Remplacement sous 24h" },
-        { id: "deviceReplacement", label: "Renouvellement matériel" },
-      ],
-    },
-    {
-      title: "Support",
-      features: [
-        { id: "supportHours", label: "Disponibilité" },
-        { id: "support", label: "Support technique" },
-      ],
-    },
-    {
-      title: "Sécurité",
-      features: [
-        { id: "backupRetention", label: "Sauvegarde Microsoft 365" },
-        { id: "authentication", label: "Authentication sécurisée" },
-        { id: "phishingAwareness", label: "Protection anti-hameçonnage" },
-        { id: "passwordManager", label: "Gestionnaire de mots de passe" },
-        { id: "externalBackup", label: "Sauvegarde des ordinateurs" },
-        { id: "incidentResponse", label: "Réponse aux incidents 24/7" },
-      ],
-    },
-  ];
+type PackFeatureListProps = {
+  pack: PackTier;
+};
 
-  const renderFeatureValue = (featureId: string) => {
-    const value = pack.features[featureId];
-    
-    if (value === true) {
-      return <Check className="h-5 w-5 text-green-600" />;
+const PackFeatureList = ({ pack }: PackFeatureListProps) => {
+  const featureLabels: Record<string, string> = {
+    dashboard: "Tableau de bord client",
+    insurance: "Assurance matériel",
+    support: "Support technique",
+    assistance: "Assistance à distance",
+    replacement: "Remplacement matériel",
+    deviceReplacement: "Nombre de remplacements",
+    supportHours: "Horaires du support",
+    supportValue: "Valeur du support",
+    backupRetention: "Rétention des sauvegardes",
+    authentication: "Niveau d'authentification",
+    phishingAwareness: "Formation anti-phishing",
+    passwordManager: "Gestionnaire de mots de passe",
+    externalBackup: "Sauvegarde externe",
+    incidentResponse: "Réponse aux incidents",
+  };
+
+  const renderFeatureValue = (key: string, value: boolean | string | number) => {
+    if (typeof value === "boolean") {
+      return value ? (
+        <Check className="h-5 w-5 text-green-600" />
+      ) : (
+        <X className="h-5 w-5 text-red-500" />
+      );
     }
-    
-    if (value === false) {
-      return <X className="h-5 w-5 text-gray-300" />;
+
+    if (key === "supportValue" && typeof value === "number" && value > 0) {
+      return <span className="text-green-600 font-medium">{value}€</span>;
     }
-    
-    return <span className="text-sm text-gray-800">{value}</span>;
+
+    return <span className="text-gray-800">{value}</span>;
   };
 
   return (
-    <div className="space-y-6">
-      {featureGroups.map((group) => (
-        <div key={group.title} className="space-y-3">
-          <h4 className="font-medium text-gray-700">{group.title}</h4>
-          <div className="space-y-2">
-            {group.features.map((feature) => (
-              <div key={feature.id} className="flex items-center justify-between border-b pb-2">
-                <span className="text-sm">{feature.label}</span>
-                <div>{renderFeatureValue(feature.id)}</div>
-              </div>
-            ))}
+    <div className="space-y-3">
+      {Object.entries(pack.features).map(([key, value]) => (
+        <div key={key} className="flex justify-between items-center py-1 border-b border-gray-100">
+          <div className="flex items-center">
+            <span className="text-gray-700">{featureLabels[key] || key}</span>
+            {key === "supportHours" && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-4 w-4 ml-1 text-gray-400" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="w-[200px]">
+                      Les horaires du support technique disponible.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
+          <div>{renderFeatureValue(key, value)}</div>
         </div>
       ))}
     </div>
