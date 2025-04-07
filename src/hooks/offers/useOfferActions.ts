@@ -9,11 +9,13 @@ import {
   generateAndDownloadOfferPdf 
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
+import { sendOfferReadyEmail } from "@/services/emailService";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleDeleteOffer = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette offre ? Cette action est irréversible.")) {
@@ -67,11 +69,37 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   
   const handleResendOffer = async (id: string) => {
     try {
-      toast.success("L'offre a été renvoyée au client");
-      // Implémentation pour renvoyer l'offre par email à intégrer ici
+      setIsSendingEmail(true);
+      const offer = offers.find(o => o.id === id);
+      if (!offer) throw new Error("Offre non trouvée");
+      
+      // Mettre à jour le statut de l'offre si nécessaire
+      if (offer.workflow_status === 'draft') {
+        await handleUpdateWorkflowStatus(id, 'sent', 'Offre envoyée au client');
+      }
+      
+      // Envoyer l'email "offre prête à consulter"
+      const success = await sendOfferReadyEmail(
+        offer.client_email,
+        offer.client_name,
+        {
+          id: offer.id,
+          description: offer.equipment_description || "Votre équipement",
+          amount: offer.amount || 0,
+          monthlyPayment: offer.monthly_payment || 0
+        }
+      );
+      
+      if (success) {
+        toast.success("L'offre a été envoyée au client avec succès");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'offre par email");
+      }
     } catch (error) {
-      console.error("Error resending offer:", error);
-      toast.error("Erreur lors du renvoi de l'offre");
+      console.error("Error sending offer:", error);
+      toast.error("Erreur lors de l'envoi de l'offre");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
   
@@ -166,6 +194,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     isUpdatingStatus,
     isRequestingInfo,
     isGeneratingPdf,
+    isSendingEmail,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
