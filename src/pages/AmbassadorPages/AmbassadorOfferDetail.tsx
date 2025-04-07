@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { getOfferById, updateOffer } from "@/services/offers/offerDetail";
+import { getOfferById, updateOffer, getWorkflowLogs, getOfferNotes } from "@/services/offerService";
 import { formatCurrency } from "@/utils/formatters";
 import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,7 +23,10 @@ import {
   Sparkle,
   Building,
   Star,
-  Euro
+  Euro,
+  History,
+  StickyNote,
+  MessageSquare
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,7 @@ import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
+import { Timeline, TimelineItem, TimelineItemContent, TimelineItemIndicator, TimelineItemTitle } from "@/components/ui/timeline";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,6 +56,10 @@ const AmbassadorOfferDetail = () => {
   const [activeTab, setActiveTab] = useState("status");
   const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
+  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
+  const [offerNotes, setOfferNotes] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [notesLoading, setNotesLoading] = useState(false);
   
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -91,6 +99,9 @@ const AmbassadorOfferDetail = () => {
         if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
           await updateCommission(offerData);
         }
+        
+        fetchWorkflowLogs(id);
+        fetchOfferNotes(id);
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
         setError("Impossible de charger les détails de l'offre");
@@ -193,6 +204,30 @@ const AmbassadorOfferDetail = () => {
       toast.error("Impossible d'envoyer l'email");
     } finally {
       setSendingEmail(false);
+    }
+  };
+  
+  const fetchWorkflowLogs = async (offerId: string) => {
+    try {
+      setLogsLoading(true);
+      const logs = await getWorkflowLogs(offerId);
+      setWorkflowLogs(logs);
+    } catch (error) {
+      console.error("Erreur lors du chargement des logs:", error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+  
+  const fetchOfferNotes = async (offerId: string) => {
+    try {
+      setNotesLoading(true);
+      const notes = await getOfferNotes(offerId);
+      setOfferNotes(notes);
+    } catch (error) {
+      console.error("Erreur lors du chargement des notes:", error);
+    } finally {
+      setNotesLoading(false);
     }
   };
   
@@ -468,6 +503,118 @@ const AmbassadorOfferDetail = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="md:col-span-2">
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <History className="h-4 w-4 mr-2 text-indigo-600" />
+                      Historique des modifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {logsLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="ml-2">Chargement de l'historique...</span>
+                      </div>
+                    ) : workflowLogs.length > 0 ? (
+                      <Timeline>
+                        {workflowLogs.map((log) => (
+                          <TimelineItem key={log.id}>
+                            <TimelineItemIndicator />
+                            <TimelineItemContent>
+                              <TimelineItemTitle>
+                                <span className="font-medium">
+                                  {log.profiles?.first_name 
+                                    ? `${log.profiles.first_name} ${log.profiles.last_name}` 
+                                    : "Système"}
+                                </span>
+                                
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  {formatDate(log.created_at)}
+                                </span>
+                              </TimelineItemTitle>
+                              <div>
+                                <span className="text-sm">
+                                  Statut changé de{' '}
+                                  <Badge variant="outline" className="bg-gray-100 text-gray-800">
+                                    {log.previous_status}
+                                  </Badge>
+                                  {' '}à{' '}
+                                  <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                                    {log.new_status}
+                                  </Badge>
+                                </span>
+                                {log.reason && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Raison: {log.reason}
+                                  </p>
+                                )}
+                              </div>
+                            </TimelineItemContent>
+                          </TimelineItem>
+                        ))}
+                      </Timeline>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <History className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                        <p>Aucun historique disponible</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="md:col-span-1">
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <StickyNote className="h-4 w-4 mr-2 text-amber-600" />
+                      Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {notesLoading ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="ml-2">Chargement des notes...</span>
+                      </div>
+                    ) : offerNotes.length > 0 ? (
+                      <div className="space-y-4">
+                        {offerNotes.map((note) => (
+                          <div key={note.id} className="bg-gray-50 p-3 rounded-md border border-gray-100">
+                            <div className="flex justify-between mb-2">
+                              <div className="flex items-center">
+                                <MessageSquare className="h-4 w-4 text-gray-500 mr-2" />
+                                <span className="text-sm font-medium">
+                                  {note.profiles?.first_name 
+                                    ? `${note.profiles.first_name} ${note.profiles.last_name}` 
+                                    : "Admin"}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {formatDate(note.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm whitespace-pre-line">{note.content}</p>
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              {note.type === 'admin_note' ? 'Note admin' : 'Note interne'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <StickyNote className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                        <p>Aucune note disponible</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">

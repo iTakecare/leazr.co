@@ -26,6 +26,11 @@ import {
   processInfoResponse
 } from './offers/offerWorkflow';
 
+// New imports for offer notes
+import {
+  getOfferNotes
+} from './offers/offerNotes';
+
 // Import and re-export from other offer service files
 export * from './offers';
 
@@ -41,7 +46,8 @@ export {
   updateOfferStatus,
   getWorkflowLogs,
   sendInfoRequest,
-  processInfoResponse
+  processInfoResponse,
+  getOfferNotes
 };
 
 // Export functions from offerDetail directly
