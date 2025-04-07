@@ -470,8 +470,8 @@ const AmbassadorOfferDetail = () => {
               )}
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+              <div>
                 <Card>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -762,59 +762,6 @@ const AmbassadorOfferDetail = () => {
                         )}
                       </TabsContent>
                     </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button 
-                      className="w-full justify-start" 
-                      onClick={handleSendEmail}
-                      disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      {sendingEmail ? "Envoi en cours..." : "Envoyer au client"}
-                    </Button>
-                    
-                    <Button
-                      className="w-full justify-start"
-                      variant="outline"
-                      onClick={() => navigate(`/ambassador/offers/edit/${offer.id}`)}
-                      disabled={offer.workflow_status !== 'draft'}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Modifier l'offre
-                    </Button>
-                    
-                    <Button
-                      className="w-full justify-start"
-                      variant="outline"
-                      onClick={() => window.open(`/client/offers/${offer.id}`, "_blank")}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Voir la vue client
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <Card className="mt-4">
-                  <CardHeader>
-                    <CardTitle className="text-base">État de l'offre</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Statut actuel:</span>
-                      <OfferStatusBadge status={offer.workflow_status} />
-                    </div>
-                    <Progress
-                      value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0}
-                      className="h-1.5 mt-2"
-                    />
                   </CardContent>
                 </Card>
               </div>
