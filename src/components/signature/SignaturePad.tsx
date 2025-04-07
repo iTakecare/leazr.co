@@ -1,132 +1,91 @@
 
-import React, { useRef, useState, useEffect } from "react";
-import SignaturePad from "react-signature-canvas";
-import { Button } from "@/components/ui/button";
-import { Eraser, Save, RotateCcw, Check } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import React, { useRef, useEffect } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
 
 interface SignaturePadProps {
-  onSave: (signature: string) => void;
+  onSignatureChange: (data: string) => void;
+  className?: string;
   width?: number | string;
   height?: number | string;
-  className?: string;
-  disabled?: boolean;
+  backgroundColor?: string;
+  penColor?: string;
 }
 
-const SignatureCanvas: React.FC<SignaturePadProps> = ({
-  onSave,
-  width = "100%",
-  height = 200,
-  className = "",
-  disabled = false
+const SignaturePad: React.FC<SignaturePadProps> = ({
+  onSignatureChange,
+  className = 'h-40',
+  width = '100%',
+  height = 150,
+  backgroundColor = 'white',
+  penColor = '#1a56db',
 }) => {
-  const sigCanvas = useRef<SignaturePad | null>(null);
-  const [isEmpty, setIsEmpty] = useState(true);
-  const [isTouched, setIsTouched] = useState(false);
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
-  // Vérifier si la signature est vide après chaque trait
-  useEffect(() => {
-    const checkIfEmpty = () => {
-      if (sigCanvas.current) {
-        setIsEmpty(sigCanvas.current.isEmpty());
-        setIsTouched(true);
-      }
-    };
-
-    const canvas = sigCanvas.current?.getCanvas();
-    if (canvas) {
-      canvas.addEventListener("mouseup", checkIfEmpty);
-      canvas.addEventListener("touchend", checkIfEmpty);
-
-      return () => {
-        canvas.removeEventListener("mouseup", checkIfEmpty);
-        canvas.removeEventListener("touchend", checkIfEmpty);
-      };
-    }
-  }, [sigCanvas]);
-
+  // Clear signature
   const clear = () => {
     if (sigCanvas.current) {
       sigCanvas.current.clear();
-      setIsEmpty(true);
-      setIsTouched(false);
+      onSignatureChange('');
     }
   };
 
-  const save = () => {
-    if (sigCanvas.current && !isEmpty) {
-      try {
-        const dataURL = sigCanvas.current.toDataURL("image/png");
-        onSave(dataURL);
-      } catch (err) {
-        console.error("Erreur lors de la génération de la signature:", err);
-        alert("Une erreur s'est produite lors de l'enregistrement de la signature. Veuillez réessayer.");
+  // Handle change in signature
+  const handleChange = () => {
+    if (sigCanvas.current) {
+      const isEmpty = sigCanvas.current.isEmpty();
+      if (!isEmpty) {
+        const dataUrl = sigCanvas.current.toDataURL();
+        onSignatureChange(dataUrl);
+      } else {
+        onSignatureChange('');
       }
     }
   };
 
+  // Set up canvas when component mounts
+  useEffect(() => {
+    // Handle window resize to redraw signature properly
+    const handleResize = () => {
+      if (sigCanvas.current) {
+        const data = sigCanvas.current.toData();
+        sigCanvas.current.clear();
+        if (data && data.length > 0) {
+          sigCanvas.current.fromData(data);
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   return (
-    <div className={`border rounded-md overflow-hidden ${className}`}>
-      <div className="bg-gray-50 p-3 border-b">
-        <p className="text-sm text-gray-700 font-medium">
-          Signez dans le cadre ci-dessous
-        </p>
-        <p className="text-xs text-gray-500">
-          Utilisez votre souris, trackpad ou écran tactile pour signer
-        </p>
-      </div>
-      
-      <div className="bg-white relative" style={{ touchAction: "none" }}>
-        <SignaturePad
-          ref={sigCanvas}
-          penColor="black"
-          canvasProps={{
-            width: typeof width === "number" ? width : "100%",
-            height,
-            className: "signature-canvas w-full border-b",
-            style: { width: "100%", height }
-          }}
-          backgroundColor="white"
-          dotSize={1.5}
-          velocityFilterWeight={0.6}
-          clearOnResize={false}
-          minWidth={1}
-          maxWidth={2.5}
-        />
-        
-        {isEmpty && isTouched && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-            <Alert variant="destructive" className="w-auto mx-auto">
-              <AlertDescription>
-                La signature ne peut pas être vide
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-      </div>
-      
-      <div className="flex justify-between gap-2 p-3 bg-gray-50 border-t">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={clear}
-          disabled={isEmpty || disabled}
-        >
-          <Eraser className="h-4 w-4 mr-1" />
-          Effacer
-        </Button>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={save}
-          disabled={isEmpty || disabled}
-        >
-          <Check className="h-4 w-4 mr-1" />
-          Valider
-        </Button>
-      </div>
+    <div className={`relative ${className}`}>
+      <SignatureCanvas
+        ref={sigCanvas}
+        penColor={penColor}
+        canvasProps={{
+          width: width,
+          height: height,
+          className: 'signature-canvas w-full h-full',
+          style: { 
+            backgroundColor: backgroundColor,
+            cursor: 'crosshair',
+          }
+        }}
+        onEnd={handleChange}
+      />
+      <button
+        type="button"
+        onClick={clear}
+        className="absolute bottom-2 right-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-2 py-1 rounded"
+      >
+        Effacer
+      </button>
     </div>
   );
 };
 
-export default SignatureCanvas;
+export default SignaturePad;

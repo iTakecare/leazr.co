@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -15,7 +16,6 @@ import PublicSignOffer from "@/pages/client/PublicSignOffer"; // Import de la pa
 import SignOffer from "@/pages/client/SignOffer"; // Page existante avec authentification
 import ClientRoutes from "@/components/layout/ClientRoutes";
 import AdminRoutes from "@/components/layout/AdminRoutes";
-import { useAuth } from "@/context/AuthContext";
 import { getUserRole } from "@/services/authService";
 
 const queryClient = new QueryClient({
@@ -26,8 +26,9 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
-  const { isLoggedIn, setRole, setUser } = useAuth();
+// Component to handle authentication checking
+const AuthenticatedApp = () => {
+  const { user, isAuthenticated, setRole, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,25 +47,21 @@ function App() {
             setRole(null);
             setUser(null);
           }
-          
-          setLoggedIn(true);
         } catch (error) {
           console.error("Erreur lors de l'analyse du token:", error);
           setRole(null);
           setUser(null);
-          setLoggedIn(false);
           localStorage.removeItem("sb-supabase-auth-token");
         }
       } else {
         setRole(null);
         setUser(null);
-        setLoggedIn(false);
       }
       setLoading(false);
     };
 
     checkAuthentication();
-  }, [setRole, setUser, setLoggedIn]);
+  }, [setRole, setUser]);
 
   if (loading) {
     return (
@@ -75,28 +72,34 @@ function App() {
   }
   
   return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/cart" element={<CartPage />} />
+      
+      {/* Page de signature publique (sans authentification) */}
+      <Route path="/client/sign-offer/:id" element={<PublicSignOffer />} />
+      
+      <Route path="/client/*" element={
+        isAuthenticated ? <ClientRoutes /> : <Login />
+      } />
+      <Route path="/admin/*" element={
+        isAuthenticated ? <AdminRoutes /> : <Login />
+      } />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
     <ThemeProvider defaultTheme="light" storageKey="itakecare-theme">
       <Toaster richColors />
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
             <CartProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/cart" element={<CartPage />} />
-                
-                {/* Page de signature publique (sans authentification) */}
-                <Route path="/client/sign-offer/:id" element={<PublicSignOffer />} />
-                
-                <Route path="/client/*" element={
-                  isLoggedIn ? <ClientRoutes /> : <Login />
-                } />
-                <Route path="/admin/*" element={
-                  isLoggedIn ? <AdminRoutes /> : <Login />
-                } />
-              </Routes>
+              <AuthenticatedApp />
             </CartProvider>
           </AuthProvider>
         </BrowserRouter>

@@ -1,292 +1,372 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getOfferForClient, saveOfferSignature, isOfferSigned } from "@/services/offers/offerSignature";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, Save, Printer, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getOfferForClient, saveOfferSignature, isOfferSigned, generateAndDownloadOfferPdf } from "@/services/offers/offerSignature";
+import { formatCurrency } from "@/utils/formatters";
 import SignaturePad from "@/components/signature/SignaturePad";
-import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
-import OfferHeader from "@/components/offers/OfferHeader";
-import { Info, X, Check, AlertCircle, Loader2 } from "lucide-react";
+import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 
-interface OfferData {
-  id: string;
-  client_name: string;
-  client_email: string;
-  equipment_description?: string;
-  amount?: number;
-  monthly_payment?: number;
-  workflow_status?: string;
-  signature_data?: string;
-  signed_at?: string;
-}
-
+// Public version of the SignOffer page - does not require authentication
 const PublicSignOffer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [offer, setOffer] = useState<OfferData | null>(null);
+  
+  const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string>("");
   const [signerName, setSignerName] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [alreadySigned, setAlreadySigned] = useState(false);
-
+  const [isSigning, setIsSigning] = useState(false);
+  const [signed, setSigned] = useState(false);
+  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
+  
+  // Load offer data
   useEffect(() => {
-    const loadOffer = async () => {
+    const fetchOffer = async () => {
       if (!id) {
-        setError("ID d'offre manquant");
+        setError("Identifiant d'offre manquant");
         setLoading(false);
         return;
       }
-
+      
       try {
         setLoading(true);
         
-        // Vérifier si l'offre est déjà signée
-        const signed = await isOfferSigned(id);
-        if (signed) {
-          setAlreadySigned(true);
-        }
+        // Check if the offer is already signed
+        const alreadySigned = await isOfferSigned(id);
+        setSigned(alreadySigned);
         
-        // Charger les données de l'offre
+        // Get offer details
         const offerData = await getOfferForClient(id);
-        console.log("Données de l'offre récupérées:", offerData);
         
-        if (offerData) {
-          setOffer(offerData);
-          // Préremplir le nom du signataire avec le nom du client
-          if (offerData.client_name) {
-            setSignerName(offerData.client_name);
-          }
-        } else {
-          setError("Offre non trouvée");
+        if (!offerData) {
+          setError("Cette offre n'existe pas ou n'est plus disponible");
+          return;
         }
-      } catch (err) {
+        
+        setOffer(offerData);
+        
+        // Pre-fill signer name if available
+        if (offerData.client_name) {
+          setSignerName(offerData.client_name);
+        }
+        
+        // If the offer is already signed, we need to disable signature
+        if (alreadySigned && offerData.signer_name) {
+          setSignerName(offerData.signer_name);
+        }
+        
+        setDebugInfo(`Offre chargée avec succès: ${offerData.id}`);
+      } catch (err: any) {
         console.error("Erreur lors du chargement de l'offre:", err);
-        setError(err instanceof Error ? err.message : "Erreur inconnue lors du chargement de l'offre");
+        setError(`Erreur: ${err.message || "Impossible de charger l'offre"}`);
+        setDebugInfo(`Erreur: ${JSON.stringify(err)}`);
       } finally {
         setLoading(false);
       }
     };
-
-    loadOffer();
+    
+    fetchOffer();
   }, [id]);
-
+  
+  // Handle signature change
   const handleSignatureChange = (data: string) => {
-    setSignatureData(data);
+    setSignature(data);
   };
-
-  const handleSignerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSignerName(e.target.value);
-  };
-
-  const handleSubmit = async () => {
-    if (!id || !signatureData || !signerName.trim()) {
-      toast.error("Veuillez fournir votre signature et votre nom complet.");
+  
+  // Handle signature submission
+  const handleSignature = async () => {
+    if (!id || !signature || !signerName.trim()) {
+      toast.error("Veuillez fournir une signature et un nom");
       return;
     }
-
+    
     try {
-      setIsSaving(true);
-      const success = await saveOfferSignature(id, signatureData, signerName);
+      setIsSigning(true);
+      
+      // Save the signature
+      const success = await saveOfferSignature(id, signature, signerName);
       
       if (success) {
         toast.success("Offre signée avec succès");
-        setAlreadySigned(true);
+        setSigned(true);
       } else {
         toast.error("Erreur lors de la signature de l'offre");
       }
     } catch (err) {
-      console.error("Erreur lors de la signature de l'offre:", err);
-      toast.error("Erreur lors de la signature de l'offre");
+      console.error("Erreur lors de la signature:", err);
+      toast.error("Une erreur est survenue lors de la signature");
     } finally {
-      setIsSaving(false);
+      setIsSigning(false);
     }
   };
-
+  
+  // Handle PDF generation and download
+  const handlePrintPdf = async () => {
+    if (!id) return;
+    
+    try {
+      setIsPrintingPdf(true);
+      await generateAndDownloadOfferPdf(id);
+    } catch (err) {
+      console.error("Erreur lors de la génération du PDF:", err);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsPrintingPdf(false);
+    }
+  };
+  
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg">Chargement de l'offre...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-600">Chargement de l'offre...</p>
       </div>
     );
   }
-
-  if (error) {
+  
+  if (error || !offer) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Alert variant="destructive" className="max-w-2xl w-full">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={() => window.location.href = '/'}
-        >
-          Retour à l'accueil
-        </Button>
-      </div>
-    );
-  }
-
-  if (!offer) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Alert variant="destructive" className="max-w-2xl w-full">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Offre non trouvée</AlertTitle>
-          <AlertDescription>
-            L'offre que vous recherchez n'existe pas ou n'est plus disponible.
-          </AlertDescription>
-        </Alert>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={() => window.location.href = '/'}
-        >
-          Retour à l'accueil
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex justify-center items-start min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-4xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">
-              {alreadySigned ? "Offre signée" : "Signer votre offre"}
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="bg-red-50">
+            <CardTitle className="text-xl text-red-700 flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5" />
+              Erreur
             </CardTitle>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => window.location.href = '/'}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <CardDescription>
-            {alreadySigned 
-              ? "Cette offre a déjà été signée avec succès."
-              : "Veuillez vérifier les détails et signer l'offre ci-dessous."}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Détails du client</h3>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p><strong>Nom :</strong> {offer.client_name}</p>
-              <p><strong>Email :</strong> {offer.client_email}</p>
-            </div>
-          </div>
-
-          {offer.equipment_description && (
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Équipement</h3>
-              <EquipmentDisplay equipmentDescription={offer.equipment_description} />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Détails financiers</h3>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p><strong>Montant total :</strong> {offer.amount?.toLocaleString('fr-FR')} €</p>
-              <p><strong>Mensualité :</strong> {offer.monthly_payment?.toLocaleString('fr-FR')} €</p>
-            </div>
-          </div>
-
-          {alreadySigned ? (
-            <Alert className="bg-green-50">
-              <Check className="h-4 w-4 text-green-600" />
-              <AlertTitle>Offre signée</AlertTitle>
-              <AlertDescription>
-                Cette offre a été signée le {new Date(offer.signed_at || new Date()).toLocaleDateString('fr-FR')}. 
-                Un email de confirmation a été envoyé.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <>
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Signature électronique</h3>
-                
-                <div className="flex flex-col space-y-2">
-                  <label htmlFor="signerName" className="text-sm font-medium">
-                    Votre nom complet
-                  </label>
-                  <input
-                    id="signerName"
-                    type="text"
-                    value={signerName}
-                    onChange={handleSignerNameChange}
-                    className="border rounded-md p-2"
-                    placeholder="Entrez votre nom complet"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Votre signature
-                  </label>
-                  <SignaturePad 
-                    onChange={handleSignatureChange}
-                    className="border rounded-md h-40 bg-white"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Utilisez votre souris ou votre doigt pour dessiner votre signature.
-                  </p>
-                </div>
-                
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    En signant électroniquement ce document, vous acceptez les conditions 
-                    générales et vous vous engagez à respecter les termes du contrat.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-between">
-          {alreadySigned ? (
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/'}
-            >
+            <CardDescription className="text-red-600">
+              {error || "Cette offre n'existe pas ou n'est plus disponible."}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="pb-6 pt-4 flex justify-center">
+            <Button onClick={() => navigate("/")} variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
               Retour à l'accueil
             </Button>
-          ) : (
-            <>
+          </CardFooter>
+        </Card>
+        
+        {debugInfo && (
+          <div className="mt-8 text-xs text-gray-400 max-w-2xl overflow-auto p-4 bg-gray-100 rounded">
+            <p>Détails techniques (pour le support):</p>
+            <pre>{debugInfo}</pre>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  const equipmentDisplay = formatEquipmentDisplay(offer.equipment_description);
+  
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Offre #{id?.substring(0, 8).toUpperCase()}</h1>
+            <p className="text-gray-500 text-sm">Veuillez lire attentivement l'offre avant de la signer</p>
+          </div>
+          
+          <div className="mt-4 sm:mt-0">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePrintPdf}
+              disabled={isPrintingPdf}
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              {isPrintingPdf ? 'Génération...' : 'Télécharger PDF'}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Signed Alert */}
+        {signed && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-green-800">
+                Cette offre a été signée
+              </p>
+              <p className="text-green-700 text-sm">
+                {offer.signer_name && `Signée par ${offer.signer_name}`}
+                {offer.signed_at && ` le ${new Date(offer.signed_at).toLocaleDateString()}`}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Client Information */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Informations client</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Nom</p>
+                <p className="font-medium">{offer.client_name || 'Non spécifié'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium">{offer.client_email || 'Non spécifié'}</p>
+              </div>
+              {offer.clients?.company && (
+                <div>
+                  <p className="text-sm text-gray-500">Société</p>
+                  <p className="font-medium">{offer.clients.company}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Equipment Details */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Détails de l'équipement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Array.isArray(equipmentDisplay) ? (
+              <div className="space-y-4">
+                {equipmentDisplay.map((item, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                    <p className="font-medium">{item.title}</p>
+                    {item.description && <p className="text-sm text-gray-600">{item.description}</p>}
+                    <div className="mt-2 flex flex-wrap gap-4">
+                      {item.quantity && <span className="text-sm">Quantité: {item.quantity}</span>}
+                      {item.purchasePrice && <span className="text-sm">Prix: {formatCurrency(item.purchasePrice)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">{equipmentDisplay || 'Aucun détail disponible'}</p>
+            )}
+            
+            {offer.monthly_payment > 0 && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
+                <p className="font-medium text-blue-800">Mensualités</p>
+                <p className="text-xl font-bold text-blue-900">{formatCurrency(offer.monthly_payment)}</p>
+              </div>
+            )}
+            
+            {offer.remarks && (
+              <div className="mt-4 p-3 bg-amber-50 rounded-md border border-amber-100">
+                <p className="font-medium text-amber-800">Remarques</p>
+                <p className="text-sm text-amber-900">{offer.remarks}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Signature Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {signed ? 'Document signé' : 'Signature électronique'}
+            </CardTitle>
+            <CardDescription>
+              {signed 
+                ? 'Cette offre a été signée électroniquement et ne peut plus être modifiée.' 
+                : 'Veuillez signer ci-dessous pour accepter cette offre.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!signed ? (
+              <>
+                <div className="mb-4">
+                  <Label htmlFor="signerName">Nom du signataire</Label>
+                  <Input 
+                    id="signerName"
+                    value={signerName} 
+                    onChange={(e) => setSignerName(e.target.value)}
+                    placeholder="Entrez votre nom complet"
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <Label>Signature</Label>
+                  <div className="mt-1 border border-gray-300 rounded-md overflow-hidden">
+                    <SignaturePad onSignatureChange={handleSignatureChange} className="h-48" />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Utilisez votre souris ou votre doigt pour signer dans la zone ci-dessus.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center">
+                {offer.signature_data ? (
+                  <div className="border border-gray-200 rounded-md p-2 bg-gray-50 w-full max-w-md">
+                    <img 
+                      src={offer.signature_data} 
+                      alt="Signature"
+                      className="max-h-32 mx-auto" 
+                    />
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">Signature électronique validée</p>
+                )}
+                
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    Signé par <span className="font-medium">{offer.signer_name}</span>
+                  </p>
+                  {offer.signed_at && (
+                    <p className="text-xs text-gray-500">
+                      le {new Date(offer.signed_at).toLocaleDateString()} à {new Date(offer.signed_at).toLocaleTimeString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+          
+          <CardFooter className="flex flex-col sm:flex-row gap-3 justify-between">
+            {!signed ? (
+              <>
+                <Button 
+                  onClick={() => navigate("/")}
+                  variant="outline"
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour
+                </Button>
+                
+                <Button
+                  onClick={handleSignature}
+                  disabled={!signature || !signerName.trim() || isSigning}
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {isSigning ? 'Signature en cours...' : 'Signer le document'}
+                </Button>
+              </>
+            ) : (
               <Button 
-                variant="outline" 
-                onClick={() => window.location.href = '/'}
+                onClick={handlePrintPdf}
+                disabled={isPrintingPdf}
+                className="w-full sm:w-auto gap-2"
               >
-                Annuler
+                <Printer className="h-4 w-4" />
+                {isPrintingPdf ? 'Génération en cours...' : 'Télécharger le document'}
               </Button>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={isSaving || !signatureData || !signerName.trim()}
-              >
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Signer l'offre
-              </Button>
-            </>
-          )}
-        </CardFooter>
-      </Card>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 };
