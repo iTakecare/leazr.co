@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -388,7 +389,7 @@ export const sendOfferReadyEmail = async (
         <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation.</p>
         <p><strong>Détails de l'offre:</strong></p>
         <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement: ${offerInfo.description}</li>
+          <li>Équipement: ${formatEquipmentDescription(offerInfo.description)}</li>
           <li>Montant: ${offerInfo.amount.toLocaleString('fr-FR')} €</li>
           <li>Mensualité estimée: ${offerInfo.monthlyPayment.toLocaleString('fr-FR')} €</li>
         </ul>
@@ -408,13 +409,16 @@ export const sendOfferReadyEmail = async (
     if (template) {
       console.log("Utilisation du modèle d'email 'offer_ready'");
       
+      // Formater la description de l'équipement pour éviter l'affichage de JSON brut
+      const formattedDescription = formatEquipmentDescription(offerInfo.description);
+      
       subject = template.subject
         .replace(/{{client_name}}/g, clientName)
-        .replace(/{{equipment_description}}/g, offerInfo.description);
+        .replace(/{{equipment_description}}/g, formattedDescription);
         
       htmlContent = template.html_content
         .replace(/{{client_name}}/g, clientName)
-        .replace(/{{equipment_description}}/g, offerInfo.description)
+        .replace(/{{equipment_description}}/g, formattedDescription)
         .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
         .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
         .replace(/{{offer_link}}/g, offerLink);
@@ -440,6 +444,34 @@ export const sendOfferReadyEmail = async (
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email d'offre prête:", error);
     return false;
+  }
+};
+
+/**
+ * Formatte correctement la description de l'équipement pour l'email
+ */
+const formatEquipmentDescription = (description: string): string => {
+  try {
+    // Vérifier si la description est un JSON (chaîne JSON)
+    if (description.startsWith('[{') && description.endsWith('}]')) {
+      const equipmentItems = JSON.parse(description);
+      
+      if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+        if (equipmentItems.length === 1) {
+          // Si un seul élément, afficher simplement le titre
+          return equipmentItems[0].title || "Votre équipement";
+        } else {
+          // Si plusieurs éléments, créer un résumé
+          return `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
+        }
+      }
+    }
+    
+    // Si ce n'est pas un tableau JSON valide, renvoyer la description telle quelle
+    return description;
+  } catch (e) {
+    console.log("Erreur lors du parsing de la description:", e);
+    return description;
   }
 };
 

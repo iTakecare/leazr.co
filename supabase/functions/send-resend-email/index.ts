@@ -99,6 +99,9 @@ serve(async (req) => {
       console.log("HTML ajusté pour s'assurer du bon format");
     }
     
+    // Traiter les chaînes JSON potentielles dans le contenu HTML
+    htmlContent = cleanupJsonStrings(htmlContent);
+    
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
       from,
@@ -142,4 +145,54 @@ serve(async (req) => {
 // Utilitaire pour supprimer les balises HTML d'une chaîne
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
+}
+
+// Fonction pour nettoyer les chaînes JSON dans le contenu HTML
+function cleanupJsonStrings(html: string): string {
+  // Rechercher les chaînes qui ressemblent à du JSON en considérant les caractères d'échappement
+  const jsonPattern = /(\[{&#34;|\[{")(.*?)("}\]|&#34;}\])/g;
+  
+  return html.replace(jsonPattern, (match) => {
+    try {
+      // Convertir les caractères HTML en leurs équivalents
+      let cleaned = match
+        .replace(/&#34;/g, '"')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      
+      // Tentative de parsing JSON
+      const jsonData = JSON.parse(cleaned);
+      
+      // Si c'est un tableau d'objets avec des détails d'équipement
+      if (Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].title) {
+        // Formater en HTML lisible
+        let formattedHtml = '<ul style="list-style-type:none; padding:0; margin:10px 0; background-color:#f9f9f9; border-radius:5px; padding:15px;">';
+        
+        jsonData.forEach(item => {
+          formattedHtml += `
+            <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee;">
+              <strong>${item.title || 'Équipement'}</strong><br>
+              ${item.quantity ? `Quantité: ${item.quantity}<br>` : ''}
+              ${item.purchasePrice ? `Prix: ${item.purchasePrice}€<br>` : ''}
+              ${item.monthlyPayment ? `Mensualité: ${item.monthlyPayment}€` : ''}
+            </li>`;
+        });
+        
+        formattedHtml += '</ul>';
+        return formattedHtml;
+      }
+      
+      // Si on ne peut pas formater spécifiquement, au moins rendre lisible
+      return JSON.stringify(jsonData, null, 2)
+        .replace(/\n/g, '<br>')
+        .replace(/ /g, '&nbsp;');
+        
+    } catch (e) {
+      console.log("Erreur lors du traitement JSON:", e);
+      // Si erreur de parsing, laisser tel quel
+      return match;
+    }
+  });
 }
