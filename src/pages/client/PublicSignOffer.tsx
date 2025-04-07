@@ -1,250 +1,292 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useParams, useNavigate } from "react-router-dom";
+import { getOfferForClient, saveOfferSignature, isOfferSigned } from "@/services/offers/offerSignature";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { getOfferById } from "@/services/offerService";
-import SignatureSection from "@/components/offers/SignatureSection";
-import { signOffer, generateOfferPdf } from "@/services/offerSignature";
-import { formatCurrency, formatDate } from "@/utils/formatters";
-import { Loader2, Users, Calendar, Printer, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import SignaturePad from "@/components/signature/SignaturePad";
+import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
+import OfferHeader from "@/components/offers/OfferHeader";
+import { Info, X, Check, AlertCircle, Loader2 } from "lucide-react";
+
+interface OfferData {
+  id: string;
+  client_name: string;
+  client_email: string;
+  equipment_description?: string;
+  amount?: number;
+  monthly_payment?: number;
+  workflow_status?: string;
+  signature_data?: string;
+  signed_at?: string;
+}
 
 const PublicSignOffer = () => {
   const { id } = useParams<{ id: string }>();
-  const [offer, setOffer] = useState<any>(null);
+  const navigate = useNavigate();
+  const [offer, setOffer] = useState<OfferData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [signerName, setSignerName] = useState("");
-  const [isSigning, setIsSigning] = useState(false);
-  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signerName, setSignerName] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [alreadySigned, setAlreadySigned] = useState(false);
 
   useEffect(() => {
-    const fetchOffer = async () => {
-      if (!id) return;
-      
+    const loadOffer = async () => {
+      if (!id) {
+        setError("ID d'offre manquant");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const offerData = await getOfferById(id);
         
-        if (!offerData) {
-          setError("L'offre demandée n'existe pas ou a été supprimée.");
-          return;
+        // Vérifier si l'offre est déjà signée
+        const signed = await isOfferSigned(id);
+        if (signed) {
+          setAlreadySigned(true);
         }
         
-        setOffer(offerData);
+        // Charger les données de l'offre
+        const offerData = await getOfferForClient(id);
+        console.log("Données de l'offre récupérées:", offerData);
         
-        // Préremplir le nom du signataire avec le nom du client
-        if (offerData.client_name) {
-          setSignerName(offerData.client_name);
+        if (offerData) {
+          setOffer(offerData);
+          // Préremplir le nom du signataire avec le nom du client
+          if (offerData.client_name) {
+            setSignerName(offerData.client_name);
+          }
+        } else {
+          setError("Offre non trouvée");
         }
-      } catch (error) {
-        console.error("Erreur lors du chargement de l'offre:", error);
-        setError("Impossible de charger les détails de l'offre.");
+      } catch (err) {
+        console.error("Erreur lors du chargement de l'offre:", err);
+        setError(err instanceof Error ? err.message : "Erreur inconnue lors du chargement de l'offre");
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchOffer();
+
+    loadOffer();
   }, [id]);
 
-  const handleSign = async (signatureData: string) => {
-    if (!id || !signerName) {
-      toast.error("Veuillez renseigner votre nom avant de signer.");
-      return;
-    }
-    
-    try {
-      setIsSigning(true);
-      
-      await signOffer(id, {
-        signature: signatureData,
-        name: signerName
-      });
-      
-      // Mise à jour locale de l'offre pour afficher la signature
-      setOffer(prev => ({
-        ...prev,
-        signature: signatureData,
-        signature_name: signerName,
-        signed_at: new Date().toISOString(),
-        status: "signed"
-      }));
-      
-      toast.success("L'offre a été signée avec succès !");
-    } catch (error) {
-      console.error("Erreur lors de la signature:", error);
-      toast.error("Une erreur est survenue lors de la signature.");
-    } finally {
-      setIsSigning(false);
-    }
+  const handleSignatureChange = (data: string) => {
+    setSignatureData(data);
   };
 
-  const handlePrintPdf = async () => {
-    if (!id) return;
-    
+  const handleSignerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSignerName(e.target.value);
+  };
+
+  const handleSubmit = async () => {
+    if (!id || !signatureData || !signerName.trim()) {
+      toast.error("Veuillez fournir votre signature et votre nom complet.");
+      return;
+    }
+
     try {
-      setIsPrintingPdf(true);
-      const pdfUrl = await generateOfferPdf(id);
+      setIsSaving(true);
+      const success = await saveOfferSignature(id, signatureData, signerName);
       
-      // Ouvrir le PDF dans un nouvel onglet
-      window.open(pdfUrl, '_blank');
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Impossible de générer le PDF de l'offre.");
+      if (success) {
+        toast.success("Offre signée avec succès");
+        setAlreadySigned(true);
+      } else {
+        toast.error("Erreur lors de la signature de l'offre");
+      }
+    } catch (err) {
+      console.error("Erreur lors de la signature de l'offre:", err);
+      toast.error("Erreur lors de la signature de l'offre");
     } finally {
-      setIsPrintingPdf(false);
+      setIsSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg">Chargement de l'offre...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-bold mb-4">Erreur</h1>
-          <p className="text-muted-foreground">{error}</p>
-          <Button className="mt-6" onClick={() => window.location.href = "/"}>
-            Retourner à l'accueil
-          </Button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive" className="max-w-2xl w-full">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.href = '/'}
+        >
+          Retour à l'accueil
+        </Button>
       </div>
     );
   }
 
   if (!offer) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive" className="max-w-2xl w-full">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Offre non trouvée</AlertTitle>
+          <AlertDescription>
+            L'offre que vous recherchez n'existe pas ou n'est plus disponible.
+          </AlertDescription>
+        </Alert>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.href = '/'}
+        >
+          Retour à l'accueil
+        </Button>
+      </div>
+    );
   }
 
-  const equipmentList = typeof offer.equipment_description === 'string'
-    ? JSON.parse(offer.equipment_description)
-    : offer.equipment_description || [];
-
-  const isSigned = !!offer.signature;
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="container max-w-4xl mx-auto">
-        <Card className="mb-6">
-          <CardHeader className="bg-primary/5 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Offre de leasing iTakecare</CardTitle>
+    <div className="flex justify-center items-start min-h-screen bg-gray-50 p-4">
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl">
+              {alreadySigned ? "Offre signée" : "Signer votre offre"}
+            </CardTitle>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => window.location.href = '/'}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>
+            {alreadySigned 
+              ? "Cette offre a déjà été signée avec succès."
+              : "Veuillez vérifier les détails et signer l'offre ci-dessous."}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Détails du client</h3>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p><strong>Nom :</strong> {offer.client_name}</p>
+              <p><strong>Email :</strong> {offer.client_email}</p>
             </div>
-            <div className="h-10">
-              <img src="/logo.svg" alt="iTakecare Logo" className="h-full" />
+          </div>
+
+          {offer.equipment_description && (
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Équipement</h3>
+              <EquipmentDisplay equipmentDescription={offer.equipment_description} />
             </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-2">Client</h3>
-                <div className="flex items-start gap-2">
-                  <Users className="h-5 w-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="font-medium">{offer.client_name}</p>
-                    <p className="text-sm text-gray-600">{offer.client_email}</p>
-                    {offer.client_company && (
-                      <p className="text-sm text-gray-600">{offer.client_company}</p>
-                    )}
-                  </div>
+          )}
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Détails financiers</h3>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p><strong>Montant total :</strong> {offer.amount?.toLocaleString('fr-FR')} €</p>
+              <p><strong>Mensualité :</strong> {offer.monthly_payment?.toLocaleString('fr-FR')} €</p>
+            </div>
+          </div>
+
+          {alreadySigned ? (
+            <Alert className="bg-green-50">
+              <Check className="h-4 w-4 text-green-600" />
+              <AlertTitle>Offre signée</AlertTitle>
+              <AlertDescription>
+                Cette offre a été signée le {new Date(offer.signed_at || new Date()).toLocaleDateString('fr-FR')}. 
+                Un email de confirmation a été envoyé.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Signature électronique</h3>
+                
+                <div className="flex flex-col space-y-2">
+                  <label htmlFor="signerName" className="text-sm font-medium">
+                    Votre nom complet
+                  </label>
+                  <input
+                    id="signerName"
+                    type="text"
+                    value={signerName}
+                    onChange={handleSignerNameChange}
+                    className="border rounded-md p-2"
+                    placeholder="Entrez votre nom complet"
+                  />
                 </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-2">Détails de l'offre</h3>
+                
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-gray-400" />
-                    <p className="text-sm">
-                      Créée le {formatDate(offer.created_at)}
-                    </p>
-                  </div>
-                  {offer.status && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-gray-400" />
-                      <p className="text-sm">
-                        Statut: <span className="font-medium">{offer.status === 'signed' ? 'Signée' : 'En attente de signature'}</span>
-                      </p>
-                    </div>
-                  )}
+                  <label className="text-sm font-medium">
+                    Votre signature
+                  </label>
+                  <SignaturePad 
+                    onChange={handleSignatureChange}
+                    className="border rounded-md h-40 bg-white"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Utilisez votre souris ou votre doigt pour dessiner votre signature.
+                  </p>
                 </div>
+                
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription>
+                    En signant électroniquement ce document, vous acceptez les conditions 
+                    générales et vous vous engagez à respecter les termes du contrat.
+                  </AlertDescription>
+                </Alert>
               </div>
-            </div>
+            </>
+          )}
+        </CardContent>
 
-            <div className="border-t pt-6">
-              <h2 className="text-lg font-bold mb-4">Équipements inclus</h2>
-              <div className="overflow-hidden border rounded-lg">
-                <table className="min-w-full divide-y">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qté</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y">
-                    {equipmentList.map((item: any, index: number) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{item.title}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{item.quantity || 1}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="mt-6 bg-blue-50 rounded-lg p-4 flex flex-col md:flex-row justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Mensualité totale</p>
-                <p className="text-xl font-bold text-blue-800">{formatCurrency(offer.monthly_payment)} /mois</p>
-                <p className="text-xs text-gray-500 mt-1">Durée de {offer.duration || 36} mois</p>
-              </div>
-              {isSigned && (
-                <Button
-                  variant="outline"
-                  onClick={handlePrintPdf}
-                  disabled={isPrintingPdf}
-                  className="mt-3 md:mt-0 self-start"
-                >
-                  {isPrintingPdf ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Printer className="h-4 w-4 mr-2" />
-                  )}
-                  Imprimer l'offre
-                </Button>
-              )}
-            </div>
-
-            {offer.remarks && (
-              <div className="mt-6 border-t pt-4">
-                <h3 className="font-semibold mb-2">Remarques:</h3>
-                <p className="text-sm text-gray-600 whitespace-pre-line">{offer.remarks}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <SignatureSection
-          signed={isSigned}
-          signature={offer.signature}
-          signerName={signerName}
-          setSignerName={setSignerName}
-          isSigning={isSigning}
-          signedAt={offer.signed_at}
-          onSign={handleSign}
-          isPrintingPdf={isPrintingPdf}
-          onPrintPdf={handlePrintPdf}
-        />
-      </div>
+        <CardFooter className="flex justify-between">
+          {alreadySigned ? (
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/'}
+            >
+              Retour à l'accueil
+            </Button>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = '/'}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isSaving || !signatureData || !signerName.trim()}
+              >
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Signer l'offre
+              </Button>
+            </>
+          )}
+        </CardFooter>
+      </Card>
     </div>
   );
 };
