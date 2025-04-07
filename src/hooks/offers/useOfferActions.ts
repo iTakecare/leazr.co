@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -72,6 +71,9 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       setIsSendingEmail(true);
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
+      
+      console.log("Tentative d'envoi d'email pour l'offre:", id);
+      console.log("Destinataire:", offer.client_email);
       
       // Mettre à jour le statut de l'offre si nécessaire
       if (offer.workflow_status === 'draft') {

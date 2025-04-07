@@ -339,35 +339,69 @@ export const sendOfferReadyEmail = async (
   }
 ): Promise<boolean> => {
   try {
+    console.log(`Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
+    
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
-    
-    if (!template) {
-      console.error("Modèle d'email 'offer_ready' non trouvé");
-      return false;
-    }
     
     // Préparer l'URL de l'offre
     const offerLink = `${window.location.origin}/client/offers/${offerInfo.id}`;
     
-    // Remplacer les variables dans le modèle
-    let subject = template.subject
-      .replace(/{{client_name}}/g, clientName)
-      .replace(/{{equipment_description}}/g, offerInfo.description);
+    let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
+    let htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
+        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation.</p>
+        <p><strong>Détails de l'offre:</strong></p>
+        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+          <li>Équipement: ${offerInfo.description}</li>
+          <li>Montant: ${offerInfo.amount.toLocaleString('fr-FR')} €</li>
+          <li>Mensualité estimée: ${offerInfo.monthlyPayment.toLocaleString('fr-FR')} €</li>
+        </ul>
+        <p>Pour consulter les détails complets et signer votre offre, veuillez cliquer sur le lien ci-dessous:</p>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${offerLink}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            Consulter et signer votre offre
+          </a>
+        </p>
+        <p>Ce lien vous permet d'accéder à votre offre et de la signer électroniquement si elle vous convient.</p>
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+      </div>
+    `;
+    
+    // Utiliser le modèle personnalisé s'il existe
+    if (template) {
+      console.log("Utilisation du modèle d'email 'offer_ready'");
       
-    let htmlContent = template.html_content
-      .replace(/{{client_name}}/g, clientName)
-      .replace(/{{equipment_description}}/g, offerInfo.description)
-      .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
-      .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
-      .replace(/{{offer_link}}/g, offerLink);
+      subject = template.subject
+        .replace(/{{client_name}}/g, clientName)
+        .replace(/{{equipment_description}}/g, offerInfo.description);
+        
+      htmlContent = template.html_content
+        .replace(/{{client_name}}/g, clientName)
+        .replace(/{{equipment_description}}/g, offerInfo.description)
+        .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
+        .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
+        .replace(/{{offer_link}}/g, offerLink);
+    }
+    
+    console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
     
     // Envoyer l'email
-    return await sendEmail(
+    const success = await sendEmail(
       clientEmail,
       subject,
       htmlContent
     );
+    
+    if (success) {
+      console.log(`Email "offre prête à consulter" envoyé avec succès à: ${clientEmail}`);
+      return true;
+    } else {
+      console.error(`Échec de l'envoi de l'email "offre prête à consulter" à: ${clientEmail}`);
+      return false;
+    }
   } catch (error) {
     console.error("Exception lors de l'envoi de l'email d'offre prête:", error);
     return false;
