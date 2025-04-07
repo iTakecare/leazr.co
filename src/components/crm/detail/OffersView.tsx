@@ -23,6 +23,7 @@ interface OffersViewProps {
     amount: number;
     status: string;
     createdAt: string;
+    margin?: number; // Added margin property as optional
   }>;
 }
 
@@ -68,6 +69,8 @@ const OffersView = ({
               <TableRow>
                 <TableHead>Offre</TableHead>
                 <TableHead>Client</TableHead>
+                {/* Show margin column for ambassadors */}
+                {owner.type === "ambassador" && <TableHead>Marge</TableHead>}
                 {!hideFinancialDetails && <TableHead>Montant</TableHead>}
                 <TableHead>Statut</TableHead>
               </TableRow>
@@ -87,6 +90,14 @@ const OffersView = ({
                       {offer.clientName}
                     </div>
                   </TableCell>
+                  {/* Display margin for ambassadors */}
+                  {owner.type === "ambassador" && (
+                    <TableCell>
+                      <div className="font-medium text-green-600">
+                        {offer.margin ? formatCurrency(offer.margin) : "N/A"}
+                      </div>
+                    </TableCell>
+                  )}
                   {!hideFinancialDetails && (
                     <TableCell>
                       <div className="font-medium">
