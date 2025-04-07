@@ -12,6 +12,7 @@ interface ExtendedUser extends User {
   client_id?: string | null;
   first_name?: string | null;
   last_name?: string | null;
+  company?: string | null;
 }
 
 // Define the auth context type
@@ -20,10 +21,17 @@ export interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   role: string | null;
+  isLoading: boolean;
+  userRoleChecked: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  signUp: (email: string, password: string, data?: any) => Promise<{error: Error | null}>;
   setRole: (role: string | null) => void;
   setUser: (user: ExtendedUser | null) => void;
+  isAdmin: () => boolean;
+  isClient: () => boolean;
+  isPartner: () => boolean;
+  isAmbassador: () => boolean;
 }
 
 // Create the context with a default value
@@ -32,10 +40,17 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isAuthenticated: false,
   role: null,
+  isLoading: true,
+  userRoleChecked: false,
   signIn: async () => ({ error: null }),
   signOut: async () => {},
+  signUp: async () => ({ error: null }),
   setRole: () => {},
   setUser: () => {},
+  isAdmin: () => false,
+  isClient: () => false,
+  isPartner: () => false,
+  isAmbassador: () => false,
 });
 
 // Define the provider props type
@@ -49,6 +64,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoleChecked, setUserRoleChecked] = useState(false);
 
   useEffect(() => {
     // Check for an active session on initial load
@@ -66,6 +82,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       setLoading(false);
+      setUserRoleChecked(true);
     };
     
     checkSession();
@@ -80,6 +97,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_OUT') {
           setRole(null);
         }
+        
+        setUserRoleChecked(true);
       }
     );
     
@@ -112,6 +131,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
+  // Sign up function
+  const signUp = async (email: string, password: string, userData?: any) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData || {}
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Exception during sign up:', error);
+      return { error: error as Error };
+    }
+  };
+  
   // Sign out function
   const signOut = async () => {
     try {
@@ -129,16 +171,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
+  // Role checking functions
+  const isAdmin = () => {
+    return role === 'admin';
+  };
+  
+  const isClient = () => {
+    return role === 'client';
+  };
+  
+  const isPartner = () => {
+    return role === 'partner';
+  };
+  
+  const isAmbassador = () => {
+    return role === 'ambassador';
+  };
+  
   // The value to be provided to consumers of this context
   const value: AuthContextType = {
     user,
     session,
     isAuthenticated: !!user,
     role,
+    isLoading: loading,
+    userRoleChecked,
     signIn,
     signOut,
+    signUp,
     setRole,
     setUser,
+    isAdmin,
+    isClient,
+    isPartner,
+    isAmbassador,
   };
   
   return (
