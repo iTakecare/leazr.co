@@ -414,17 +414,8 @@ const AmbassadorOfferDetail = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Euro className="h-4 w-4 mr-2 text-blue-600" />
-                    Montant financé
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                </CardContent>
-              </Card>
+              {/* La carte "Montant financé" a été supprimée */}
+              
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center">
@@ -670,10 +661,7 @@ const AmbassadorOfferDetail = () => {
                           <div>
                             <h3 className="font-medium mb-2">Détails de paiement</h3>
                             <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                              <div className="flex justify-between items-center pb-3 border-b border-blue-100">
-                                <span className="text-sm text-gray-600">Montant financé:</span>
-                                <span className="font-semibold text-lg">{formatCurrency(offer.financed_amount || 0)}</span>
-                              </div>
+                              
                               
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">Paiement mensuel:</span>
@@ -805,68 +793,4 @@ const AmbassadorOfferDetail = () => {
                       onClick={handleSendEmail}
                       disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
                     >
-                      <Mail className="mr-2 h-4 w-4" />
-                      Envoyer au client
-                    </Button>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Statut actuel</h3>
-                      <div className="p-3 bg-slate-50 rounded-md flex items-center">
-                        <OfferStatusBadge status={offer.workflow_status} className="mr-2" />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Commission</h3>
-                      <div className={`p-3 border rounded-md ${getCommissionBoxColor(offer.commission_status)}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
-                          {getCommissionStatusBadge(offer.commission_status)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Résumé financier</h3>
-                      <div className="border rounded-md p-4 bg-blue-50">
-                        <div className="grid grid-cols-2 gap-2 mb-2">
-                          <div>
-                            <p className="text-xs text-gray-600">Montant financé</p>
-                            <p className="font-medium text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-600">Coefficient</p>
-                            <p className="font-medium">{offer.coefficient || '-'}</p>
-                          </div>
-                        </div>
-                        <div className="pt-2 border-t border-blue-200">
-                          <p className="text-xs text-gray-600">Mensualité</p>
-                          <p className="font-bold text-lg text-blue-700">
-                            {formatCurrency(offer.monthly_payment)}
-                            <span className="text-xs font-normal text-blue-600">/mois</span>
-                          </p>
-                        </div>
-                        {isAdmin() && (
-                          <div className="pt-2 mt-2 border-t border-blue-200">
-                            <p className="text-xs text-gray-600">Marge générée</p>
-                            <p className="font-bold text-blue-700">
-                              {formatCurrency(calculatedMargin)} <span className="text-xs font-normal">({marginPercentage}%)</span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </TooltipProvider>
-      </Container>
-    </PageTransition>
-  );
-};
-
-export default AmbassadorOfferDetail;
+                      <
