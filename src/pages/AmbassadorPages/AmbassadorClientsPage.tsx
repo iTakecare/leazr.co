@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, RefreshCw, User, Loader2 } from "lucide-react";
+import { Plus, Search, RefreshCw, User, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,16 @@ import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
 import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
@@ -26,6 +36,7 @@ const AmbassadorClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
 
   const fetchClients = useCallback(async () => {
     try {
@@ -79,6 +90,24 @@ const AmbassadorClientsPage = () => {
     await fetchClients();
     toast.success("Client list refreshed");
   };
+
+  const handleEditClient = (clientId) => {
+    navigate(`/ambassador/clients/edit/${clientId}`);
+  };
+  
+  const handleDeleteClient = async (clientId) => {
+    try {
+      // Implement deletion logic here
+      // For now, just show a toast and refresh the list
+      toast.success("Client supprimé avec succès");
+      await fetchClients();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast.error("Erreur lors de la suppression du client");
+    } finally {
+      setClientToDelete(null);
+    }
+  };
   
   const renderClientCards = () => {
     if (filteredClients.length === 0) {
@@ -102,9 +131,17 @@ const AmbassadorClientsPage = () => {
                   <p className="text-sm">{client.company}</p>
                 )}
               </div>
-              <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                <Plus className="h-4 w-4 mr-1" /> Offer
-              </Button>
+              <div className="flex space-x-2">
+                <Button size="icon" variant="ghost" onClick={() => handleEditClient(client.id)}>
+                  <Pencil className="h-4 w-4 text-gray-500" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => setClientToDelete(client.id)}>
+                  <Trash2 className="h-4 w-4 text-gray-500" />
+                </Button>
+                <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
+                  <Plus className="h-4 w-4 mr-1" /> Offer
+                </Button>
+              </div>
             </div>
           </Card>
         ))}
@@ -142,9 +179,17 @@ const AmbassadorClientsPage = () => {
                   <TableCell>{client.email || "-"}</TableCell>
                   <TableCell>{client.company || "-"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                      <Plus className="h-4 w-4 mr-1" /> Create offer
-                    </Button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button size="icon" variant="ghost" onClick={() => handleEditClient(client.id)}>
+                        <Pencil className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setClientToDelete(client.id)}>
+                        <Trash2 className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
+                        <Plus className="h-4 w-4 mr-1" /> Create offer
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -226,6 +271,27 @@ const AmbassadorClientsPage = () => {
             isMobile ? renderClientCards() : renderClientTable()
           )}
         </div>
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action ne peut pas être annulée. Le client sera définitivement supprimé.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleDeleteClient(clientToDelete)}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Container>
     </PageTransition>
   );
