@@ -1,6 +1,8 @@
 
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
+import PDFFooter from "../settings/pdf-preview/PDFFooter";
+import SignatureSection from "../settings/pdf-preview/SignatureSection";
 
 interface EquipmentItem {
   title: string;
@@ -60,136 +62,199 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   }, 0);
   
   return (
-    <div className="bg-white" style={{ width: '100%', minHeight: '100vh', maxWidth: '210mm', margin: '0 auto', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
-      {/* En-tête avec dégradé bleu */}
+    <div className="bg-white" style={{ 
+      width: '100%', 
+      height: '100%', 
+      position: 'relative', 
+      fontFamily: 'Arial, sans-serif',
+      boxSizing: 'border-box',
+      margin: 0,
+      padding: 0
+    }}>
+      {/* En-tête */}
       <header style={{ 
         background: 'linear-gradient(to right, #1A2C3A, #2C4356)', 
         color: 'white', 
-        padding: '20px', 
+        padding: '20px 30px', 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
         borderBottom: '3px solid #FFB74D'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/lovable-uploads/7e711eae-90de-40ce-806c-21ffa5c9d7b6.png" alt="iTakecare Logo" style={{ height: '40px' }} />
+        <div>
+          <img 
+            src="/lovable-uploads/7e711eae-90de-40ce-806c-21ffa5c9d7b6.png" 
+            alt="iTakecare Logo" 
+            style={{ height: '40px' }} 
+          />
         </div>
-        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', letterSpacing: '1px' }}>
+        <div style={{ 
+          fontSize: '24px', 
+          fontWeight: 'bold', 
+          letterSpacing: '1px',
+          textTransform: 'uppercase'
+        }}>
           OFFRE COMMERCIALE
         </div>
       </header>
       
-      {/* Contenu principal avec plus d'espace */}
-      <main style={{ padding: '30px', backgroundColor: '#FFFFFF' }}>
-        {/* Référence de l'offre dans une boîte distincte */}
+      {/* Contenu principal */}
+      <main style={{ 
+        padding: '30px',
+        backgroundColor: '#FFFFFF',
+        minHeight: 'calc(100% - 240px)'
+      }}>
+        {/* Référence et date */}
         <div style={{ 
-          textAlign: 'center', 
-          marginBottom: '25px',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
-          padding: '12px',
-          background: '#F9FAFB'
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginBottom: '30px'
         }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0', color: '#1A2C3A' }}>
-            RÉFÉRENCE: {offerId}
-          </h1>
-        </div>
-      
-        {/* Information client et référence - Design modernisé */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          marginBottom: '30px', 
-          padding: '15px',
-          background: '#F3F4F6', 
-          borderRadius: '8px'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '10px', color: '#1A2C3A', textTransform: 'uppercase' }}>Informations client</h2>
-            <p style={{ fontWeight: '600', margin: '5px 0', fontSize: '0.95rem', color: '#4B5563' }}>{offer.client_company || "Client Company"}</p>
-            <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#6B7280' }}>{offer.client_name || "Client Name"}</p>
-            <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#6B7280' }}>{offer.client_email || "client@example.com"}</p>
+          <div style={{ 
+            padding: '15px',
+            backgroundColor: '#1A2C3A',
+            color: 'white',
+            borderRadius: '6px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{ margin: '0', fontSize: '20px' }}>
+              {formatDate(offer.created_at)}
+            </h2>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#6B7280' }}>Date: <span style={{ fontWeight: '500' }}>{formatDate(offer.created_at) || "21/03/2025"}</span></p>
-            <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#6B7280' }}>Validité: <span style={{ fontWeight: '500' }}>30 jours</span></p>
+          <div style={{ 
+            padding: '15px',
+            backgroundColor: '#F3F4F6',
+            borderRadius: '6px',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
+          }}>
+            <h2 style={{ margin: '0', fontSize: '20px', color: '#1A2C3A' }}>
+              RÉF: {offerId}
+            </h2>
           </div>
         </div>
         
-        {/* Liste d'équipements avec design amélioré */}
+        {/* Information client */}
+        <div style={{ 
+          marginBottom: '30px', 
+          padding: '20px',
+          background: '#F9FAFB', 
+          borderRadius: '8px',
+          border: '1px solid #E5E7EB'
+        }}>
+          <h2 style={{ 
+            fontSize: '18px', 
+            fontWeight: 'bold', 
+            marginTop: '0',
+            marginBottom: '15px', 
+            color: '#1A2C3A', 
+            textTransform: 'uppercase',
+            borderBottom: '2px solid #E5E7EB',
+            paddingBottom: '8px' 
+          }}>Client</h2>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ 
+                fontWeight: '600', 
+                margin: '5px 0', 
+                fontSize: '16px', 
+                color: '#4B5563' 
+              }}>
+                {offer.client_company || "Client Company"}
+              </p>
+              <p style={{ 
+                margin: '5px 0', 
+                fontSize: '14px', 
+                color: '#6B7280' 
+              }}>
+                {offer.client_name || "Client Name"}
+              </p>
+              <p style={{ 
+                margin: '5px 0', 
+                fontSize: '14px', 
+                color: '#6B7280' 
+              }}>
+                {offer.client_email || "client@example.com"}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Liste d'équipements */}
         <div style={{ marginBottom: '30px' }}>
           <h2 style={{ 
-            fontSize: '1.1rem', 
+            fontSize: '18px', 
             fontWeight: 'bold', 
             marginBottom: '15px', 
             color: '#1A2C3A', 
             textTransform: 'uppercase',
             borderBottom: '2px solid #E5E7EB',
             paddingBottom: '8px'
-          }}>Détail des équipements</h2>
+          }}>
+            Détail des équipements
+          </h2>
           
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table style={{ 
+            width: '100%', 
+            borderCollapse: 'collapse', 
+            fontSize: '14px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            overflow: 'hidden'
+          }}>
             <thead>
               <tr style={{ backgroundColor: '#1A2C3A', color: 'white' }}>
-                <th style={{ padding: '10px 15px', textAlign: 'left', borderRadius: '8px 0 0 0' }}>Désignation</th>
-                <th style={{ padding: '10px 15px', textAlign: 'center', width: '70px' }}>Qté</th>
-                <th style={{ padding: '10px 15px', textAlign: 'right', width: '120px', borderRadius: '0 8px 0 0' }}>Mensualité</th>
+                <th style={{ padding: '12px 15px', textAlign: 'left' }}>Désignation</th>
+                <th style={{ padding: '12px 15px', textAlign: 'center', width: '70px' }}>Qté</th>
+                <th style={{ padding: '12px 15px', textAlign: 'right', width: '120px' }}>Mensualité</th>
               </tr>
             </thead>
             <tbody>
               {equipment.length > 0 ? (
-                equipment.map((item, index) => {
-                  const isLast = index === equipment.length - 1;
-                  return (
-                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#F9FAFB' : '#FFFFFF' }}>
-                      <td style={{ 
-                        padding: '10px 15px', 
-                        borderBottom: '1px solid #E5E7EB'
-                      }}>{item.title}</td>
-                      <td style={{ 
-                        padding: '10px 15px', 
-                        textAlign: 'center', 
-                        borderBottom: '1px solid #E5E7EB'
-                      }}>{item.quantity}</td>
-                      <td style={{ 
-                        padding: '10px 15px', 
-                        textAlign: 'right', 
-                        borderBottom: '1px solid #E5E7EB',
-                        fontWeight: 500
-                      }}>{formatCurrency(item.monthlyPayment)}</td>
-                    </tr>
-                  );
-                })
+                equipment.map((item, index) => (
+                  <tr key={index} style={{ 
+                    backgroundColor: index % 2 === 0 ? '#F9FAFB' : '#FFFFFF',
+                    borderBottom: '1px solid #E5E7EB'
+                  }}>
+                    <td style={{ padding: '10px 15px' }}>{item.title}</td>
+                    <td style={{ padding: '10px 15px', textAlign: 'center' }}>{item.quantity}</td>
+                    <td style={{ padding: '10px 15px', textAlign: 'right', fontWeight: 500 }}>
+                      {formatCurrency(item.monthlyPayment * item.quantity)}
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr style={{ backgroundColor: '#F9FAFB' }}>
-                  <td style={{ padding: '10px 15px', borderBottom: '1px solid #E5E7EB' }}>Produit Test</td>
-                  <td style={{ padding: '10px 15px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>1</td>
-                  <td style={{ padding: '10px 15px', textAlign: 'right', borderBottom: '1px solid #E5E7EB', fontWeight: 500 }}>90,00 €</td>
+                  <td style={{ padding: '10px 15px' }}>Produit Test</td>
+                  <td style={{ padding: '10px 15px', textAlign: 'center' }}>1</td>
+                  <td style={{ padding: '10px 15px', textAlign: 'right', fontWeight: 500 }}>90,00 €</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
         
-        {/* Résumé financier dans une boîte distincte */}
+        {/* Résumé financier */}
         <div style={{ 
           marginBottom: '40px',
           padding: '20px',
           backgroundColor: '#F3F4F6',
           borderRadius: '8px',
-          border: '1px solid #E5E7EB'
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: '1rem', margin: '0 0 5px 0', color: '#1A2C3A' }}>Récapitulatif</h3>
-              <p style={{ fontSize: '0.85rem', margin: '0', color: '#6B7280' }}>Engagement sur 36 mois</p>
+              <h3 style={{ fontSize: '16px', margin: '0 0 5px 0', color: '#1A2C3A' }}>Récapitulatif</h3>
+              <p style={{ fontSize: '14px', margin: '0', color: '#6B7280' }}>Engagement sur 36 mois</p>
             </div>
             <div style={{ 
-              fontSize: '1.2rem', 
+              fontSize: '18px', 
               fontWeight: 'bold', 
               color: '#2563EB', 
               backgroundColor: 'white',
-              padding: '10px 20px',
+              padding: '12px 20px',
               borderRadius: '6px',
               border: '1px solid #E5E7EB'
             }}>
@@ -200,18 +265,19 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </div>
         </div>
         
-        {/* Avantages du leasing - Nouvelle section */}
+        {/* Avantages du leasing */}
         <div style={{ 
           marginBottom: '30px',
-          padding: '15px',
+          padding: '20px',
           border: '1px solid #E5E7EB',
           borderRadius: '8px',
           backgroundColor: '#FAFAFA'
         }}>
           <h3 style={{ 
-            fontSize: '1rem', 
+            fontSize: '16px', 
             fontWeight: 'bold', 
-            marginBottom: '10px', 
+            marginTop: '0',
+            marginBottom: '15px', 
             color: '#1A2C3A', 
             textTransform: 'uppercase'
           }}>
@@ -220,72 +286,36 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
             <div style={{ flex: '1 1 45%', minWidth: '200px' }}>
-              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '0.9rem', color: '#4B5563' }}>✓ Optimisation fiscale</p>
-              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '0.9rem', color: '#4B5563' }}>✓ Préservation de trésorerie</p>
+              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+                ✓ Optimisation fiscale
+              </p>
+              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+                ✓ Préservation de trésorerie
+              </p>
             </div>
             <div style={{ flex: '1 1 45%', minWidth: '200px' }}>
-              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '0.9rem', color: '#4B5563' }}>✓ Matériel toujours à jour</p>
-              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '0.9rem', color: '#4B5563' }}>✓ Service et support inclus</p>
+              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+                ✓ Matériel toujours à jour
+              </p>
+              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+                ✓ Service et support inclus
+              </p>
             </div>
           </div>
         </div>
         
-        {/* Section signature avec design amélioré */}
-        <div style={{ 
-          marginTop: '40px', 
-          borderTop: '2px solid #E5E7EB', 
-          paddingTop: '20px'
-        }}>
-          <h3 style={{ 
-            textAlign: 'center', 
-            fontWeight: 'bold', 
-            marginBottom: '15px', 
-            fontSize: '1rem', 
-            color: '#1A2C3A'
-          }}>
-            Signature client
-          </h3>
-          <div style={{ 
-            width: '300px', 
-            height: '100px', 
-            border: '1px dashed #94a3b8', 
-            borderRadius: '8px', 
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <p style={{ color: '#9CA3AF', fontSize: '0.8rem', fontStyle: 'italic' }}>Signature précédée de "Bon pour accord"</p>
-          </div>
+        {/* Section signature avec positionnement fixe */}
+        <div style={{ marginTop: '40px' }}>
+          <SignatureSection pageHeight={0} scaleFactor={1} />
         </div>
       </main>
       
-      {/* Pied de page amélioré */}
-      <footer style={{ 
-        position: 'absolute', 
-        bottom: '0', 
-        left: '0', 
-        right: '0', 
-        width: '100%', 
-        borderTop: '3px solid #FFB74D', 
-        background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
-        color: 'white',
-        padding: '15px 20px'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontWeight: '500', marginBottom: '10px', fontSize: '0.9rem' }}>
-            Cette offre est valable 30 jours à compter de sa date d'émission.
-          </p>
-          <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>
-            <p style={{ margin: '2px 0' }}>
-              iTakecare - Avenue du Général Michel 1E, 6000 Charleroi, Belgique
-            </p>
-            <p style={{ margin: '2px 0' }}>
-              TVA: BE 0795.642.894 - Tel: +32 471 511 121 - Email: hello@itakecare.be
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Pied de page */}
+      <PDFFooter 
+        pageNumber={1} 
+        totalPages={1} 
+        zoomLevel={1}
+      />
     </div>
   );
 };

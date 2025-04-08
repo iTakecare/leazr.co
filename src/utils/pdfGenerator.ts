@@ -18,7 +18,7 @@ export const generateOfferPdf = async (offerData) => {
     
     // Configurer les options de génération du PDF
     const options = {
-      margin: [10, 10, 10, 10], // Marge légère pour éviter les coupures
+      margin: [5, 5, 5, 5], // Marge légère pour éviter les coupures
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -42,9 +42,13 @@ export const generateOfferPdf = async (offerData) => {
     // Créer un div temporaire pour le rendu avec une hauteur fixe
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
-    tempDiv.style.height = '297mm'; // Hauteur A4
     tempDiv.style.width = '210mm';  // Largeur A4
+    tempDiv.style.height = '297mm'; // Hauteur A4
     tempDiv.style.position = 'relative';
+    tempDiv.style.margin = '0';
+    tempDiv.style.padding = '0';
+    tempDiv.style.overflow = 'hidden';
+    tempDiv.style.boxSizing = 'border-box';
     document.body.appendChild(tempDiv);
     
     // Générer le PDF

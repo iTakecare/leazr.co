@@ -10,23 +10,19 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   pageHeight,
   scaleFactor = 1
 }) => {
-  // Calculer la position bottom pour l'espace de signature
-  const bottomPosition = 40 * scaleFactor;
-  
   return (
     <div
-      className="absolute left-0 right-0 p-4 border-t"
+      className="relative p-4 border-t"
       style={{
-        bottom: `${bottomPosition}px`,
         padding: `${12 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
-        zIndex: 10,
         backgroundColor: "rgba(255, 255, 255, 0.8)",
+        marginTop: "20px"
       }}
     >
       <h3 
-        className="text-center font-bold mb-2" 
+        className="text-center font-bold mb-4" 
         style={{ 
           fontSize: `${16 * scaleFactor}px`,
           color: "#1A2C3A",
@@ -39,8 +35,6 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
         style={{
           width: `${300 * scaleFactor}px`,
           height: `${100 * scaleFactor}px`,
-          transform: `scale(${scaleFactor})`,
-          transformOrigin: "center",
           backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderColor: "#94a3b8",
           borderRadius: "8px",
@@ -48,7 +42,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       >
         <p style={{ 
           color: "#9CA3AF", 
-          fontSize: `${10 * scaleFactor}px`, 
+          fontSize: `${12 * scaleFactor}px`, 
           fontStyle: "italic" 
         }}>
           Signature précédée de "Bon pour accord"
