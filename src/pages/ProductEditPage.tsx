@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import {
@@ -17,7 +18,8 @@ import {
   Layers,
   Copy,
   Trash2,
-  Save
+  Save,
+  EyeOff
 } from "lucide-react";
 import { 
   Tabs, 
@@ -104,7 +106,8 @@ const ProductEditPage = () => {
     price: 0,
     monthly_price: 0,
     stock: 0,
-    active: true
+    active: true,
+    admin_only: false
   });
   
   const [activeTab, setActiveTab] = useState("details");
@@ -125,7 +128,8 @@ const ProductEditPage = () => {
         active: product.active !== undefined ? product.active : true,
         specifications: product.specifications || {},
         is_parent: product.is_parent || false,
-        variation_attributes: product.variation_attributes || {}
+        variation_attributes: product.variation_attributes || {},
+        admin_only: product.admin_only || false
       });
     }
   }, [product, id]);
@@ -171,6 +175,13 @@ const ProductEditPage = () => {
         [name]: value
       }));
     }
+  };
+  
+  const handleSwitchChange = (name: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: checked
+    }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -415,6 +426,25 @@ const ProductEditPage = () => {
                     onChange={handleChange}
                     rows={6}
                   />
+                </div>
+                
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="admin-only"
+                      checked={formData.admin_only || false}
+                      onCheckedChange={(checked) => handleSwitchChange('admin_only', checked)}
+                    />
+                    <div>
+                      <Label htmlFor="admin-only" className="flex items-center">
+                        <EyeOff className="h-4 w-4 mr-2 text-muted-foreground" />
+                        Uniquement visible par admin
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ce produit et ses variantes ne seront visibles que pour les administrateurs
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="flex justify-end">
