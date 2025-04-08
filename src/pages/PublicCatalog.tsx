@@ -54,6 +54,14 @@ const PublicCatalog = () => {
     if (products && products.length > 0) {
       console.log("Total products loaded:", products.length);
       
+      // Log to debug price ranges
+      const prices = products.map(p => p.price).filter(p => p !== undefined);
+      console.log("Price range:", {
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+        average: prices.reduce((a, b) => a + b, 0) / prices.length
+      });
+      
       const productsWithVariants = products.filter(p => 
         p.variants && p.variants.length > 0 || 
         p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
@@ -67,9 +75,13 @@ const PublicCatalog = () => {
   const groupedProducts = React.useMemo(() => {
     if (!filteredProducts) return [];
     
+    console.log("Filtered products count:", filteredProducts.length);
+    
     const parentProducts = filteredProducts.filter(p => 
       !p.parent_id && !p.is_variation
     );
+    
+    console.log("Parent products count:", parentProducts.length);
     
     const variantMap = new Map<string, Product[]>();
     
