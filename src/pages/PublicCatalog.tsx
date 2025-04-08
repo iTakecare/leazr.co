@@ -35,6 +35,12 @@ const PublicCatalog = () => {
     queryFn: getProducts,
   });
 
+  // Ajout d'un log pour voir ce qui se passe avec les produits
+  useEffect(() => {
+    console.log("Produits chargés:", products);
+    console.log("Nombre total de produits:", products.length);
+  }, [products]);
+
   // Utilisation du hook useProductFilter pour la filtration
   const {
     searchQuery,
@@ -55,25 +61,24 @@ const PublicCatalog = () => {
   } = useProductFilter(products);
 
   useEffect(() => {
-    if (products && products.length > 0) {
-      console.log("Total products loaded:", products.length);
-      
-      const productsWithVariants = products.filter(p => 
-        p.variants && p.variants.length > 0 || 
-        p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
-        p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0
-      );
-      
-      console.log("Products with variants:", productsWithVariants.length);
+    if (filteredProducts && filteredProducts.length > 0) {
+      console.log("Produits filtrés:", filteredProducts.length);
     }
-  }, [products]);
+  }, [filteredProducts]);
 
   const groupedProducts = React.useMemo(() => {
     if (!filteredProducts) return [];
     
-    const parentProducts = filteredProducts.filter(p => 
-      !p.parent_id && !p.is_variation
-    );
+    console.log("Filtration en cours. Produits filtrés à traiter:", filteredProducts.length);
+    
+    // Ne filtrer que les produits qui ne sont pas des variantes et qui n'ont pas de parent_id
+    const parentProducts = filteredProducts.filter(p => {
+      const isVariation = p.is_variation === true || p.parent_id != null;
+      console.log(`Produit ${p.name} (${p.id}): isVariation=${isVariation}, parent_id=${p.parent_id}`);
+      return !isVariation;
+    });
+    
+    console.log("Nombre de produits parents trouvés:", parentProducts.length);
     
     const variantMap = new Map<string, Product[]>();
     
@@ -101,6 +106,19 @@ const PublicCatalog = () => {
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
   };
+
+  // Plus de logs pour déboguer
+  useEffect(() => {
+    console.log("Produits groupés:", groupedProducts.length);
+    
+    if (groupedProducts.length > 0) {
+      console.log("Premier produit:", groupedProducts[0]);
+    }
+    
+    if (groupedProducts.length <= 1) {
+      console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
+    }
+  }, [groupedProducts]);
 
   return (
     <div className="min-h-screen bg-gray-50">

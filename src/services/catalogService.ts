@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -6,26 +7,38 @@ import { Product } from "@/types/catalog";
  */
 export const getProducts = async () => {
   try {
-    // Récupérer tous les produits
+    console.log("Appel de getProducts()");
+    
+    // Récupérer tous les produits, y compris ceux qui sont cachés aux ambassadeurs
     const { data: productsData, error: productsError } = await supabase
       .from("products")
       .select("*")
+      .eq("active", true)
       .order("created_at", { ascending: false });
     
-    if (productsError) throw productsError;
+    if (productsError) {
+      console.error("Erreur lors de la récupération des produits:", productsError);
+      throw productsError;
+    }
+    
+    console.log(`Produits récupérés: ${productsData?.length || 0}`);
     
     // Récupérer tous les prix de variantes
     const { data: variantPricesData, error: variantPricesError } = await supabase
       .from("product_variant_prices")
       .select("*");
     
-    if (variantPricesError) throw variantPricesError;
+    if (variantPricesError) {
+      console.error("Erreur lors de la récupération des prix de variantes:", variantPricesError);
+      throw variantPricesError;
+    }
+    
+    console.log(`Prix de variantes récupérés: ${variantPricesData?.length || 0}`);
     
     // Associer les prix de variantes aux produits correspondants
     const productsWithVariants = productsData.map((product) => {
       // Filtrer les prix de variantes pour ce produit
       const productVariantPrices = variantPricesData.filter((price) => price.product_id === product.id);
-      console.log(`Product ${product.name}: Found ${productVariantPrices.length} variant prices`);
       
       // Déterminer si c'est un produit parent
       const isParent = product.is_parent || 
@@ -39,6 +52,13 @@ export const getProducts = async () => {
         createdAt: product.created_at,
         updatedAt: product.updated_at
       };
+    });
+    
+    console.log(`Produits traités et retournés: ${productsWithVariants.length}`);
+    
+    // Log des produits pour le débogage
+    productsWithVariants.forEach((product, index) => {
+      console.log(`Produit ${index + 1}: ${product.name} (ID: ${product.id})`);
     });
     
     return productsWithVariants;

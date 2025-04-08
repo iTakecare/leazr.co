@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
-import { Leaf } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
@@ -34,12 +32,19 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   
   useEffect(() => {
+    console.log(`Rendering ProductGridCard for: ${product.name} (${product.id})`);
+    
+    if (product.is_variation || product.parent_id) {
+      console.log(`Skipping variant product: ${product.name}`);
+    }
+    
     setImageUrl(getProductImage());
     setIsLoading(true);
     setHasError(false);
   }, [product]);
   
   if (product.is_variation || product.parent_id) {
+    console.log(`Product ${product.name} est une variante, ne pas l'afficher directement`);
     return null;
   }
 
@@ -49,33 +54,27 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     let minPrice = product.monthly_price || 0;
     
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
-        console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
-          console.log(`Using combination price: ${minPrice}`);
         }
       }
     }
     
     else if (product.variants && product.variants.length > 0) {
-      console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
-        console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
-          console.log(`Using variant price: ${minPrice}`);
         }
       }
     }
@@ -141,12 +140,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       accessories: "Accessoire"
     };
     
-    return categoryMap[category] || "Autre";
+    return categoryMap[category.toLowerCase()] || category;
   };
 
   const countExistingVariants = (): number => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
       return product.variant_combination_prices.length;
     }
     
@@ -167,12 +165,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       (product.variant_combination_prices && product.variant_combination_prices.length > 0) || 
       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
       (product.variants && product.variants.length > 0);
-    
-    console.log(`Product ${product.name}: hasVariants = ${result}`);
-    console.log(`- is_parent: ${product.is_parent}`);
-    console.log(`- has variant_combination_prices: ${product.variant_combination_prices?.length > 0}`);
-    console.log(`- has variation_attributes: ${product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0}`);
-    console.log(`- has variants: ${product.variants?.length > 0}`);
     
     return result;
   };
