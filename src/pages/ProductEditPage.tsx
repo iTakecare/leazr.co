@@ -17,8 +17,7 @@ import {
   Layers,
   Copy,
   Trash2,
-  Save,
-  Shield
+  Save
 } from "lucide-react";
 import { 
   Tabs, 
@@ -40,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import ProductImageManager from "@/components/catalog/ProductImageManager";
 
@@ -106,8 +104,7 @@ const ProductEditPage = () => {
     price: 0,
     monthly_price: 0,
     stock: 0,
-    active: true,
-    admin_only: false
+    active: true
   });
   
   const [activeTab, setActiveTab] = useState("details");
@@ -128,8 +125,7 @@ const ProductEditPage = () => {
         active: product.active !== undefined ? product.active : true,
         specifications: product.specifications || {},
         is_parent: product.is_parent || false,
-        variation_attributes: product.variation_attributes || {},
-        admin_only: product.admin_only || false
+        variation_attributes: product.variation_attributes || {}
       });
     }
   }, [product, id]);
@@ -230,13 +226,6 @@ const ProductEditPage = () => {
     } finally {
       setUpdatingMainImage(false);
     }
-  };
-
-  const handleToggleChange = (field: string, value: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   if (isLoading) {
@@ -414,25 +403,6 @@ const ProductEditPage = () => {
                     onChange={handleChange}
                     min="0"
                     step="1"
-                  />
-                </div>
-                
-                <div className="flex items-center space-x-2 py-2 border-t">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <Shield className="h-4 w-4 text-amber-500" />
-                      <Label htmlFor="admin_only" className="font-medium">
-                        Uniquement visible par admin
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Si activé, ce produit ne sera visible que par les administrateurs et n'apparaîtra pas dans le catalogue public.
-                    </p>
-                  </div>
-                  <Switch
-                    id="admin_only"
-                    checked={formData.admin_only || false}
-                    onCheckedChange={(checked) => handleToggleChange('admin_only', checked)}
                   />
                 </div>
                 

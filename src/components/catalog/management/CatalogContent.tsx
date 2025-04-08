@@ -3,7 +3,6 @@ import React from "react";
 import { Product } from "@/types/catalog";
 import AccordionProductList from "@/components/catalog/AccordionProductList";
 import ProductGrid from "@/components/catalog/ProductGrid";
-import { useAuth } from "@/context/AuthContext";
 
 interface CatalogContentProps {
   products: Product[];
@@ -22,31 +21,22 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   groupingOption,
   onProductDeleted
 }) => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
-  
-  // Filter products based on admin_only flag
-  const visibleProducts = isAdmin 
-    ? products 
-    : products.filter(p => !p.admin_only);
-
   // Debug log to check products data
-  console.log("CatalogContent: Products count:", visibleProducts.length);
-  console.log("CatalogContent: Products with variants:", visibleProducts.filter(p => 
+  console.log("CatalogContent: Products count:", products.length);
+  console.log("CatalogContent: Products with variants:", products.filter(p => 
     p.is_parent || 
     (p.variant_combination_prices && p.variant_combination_prices.length > 0) ||
     (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
   ).length);
 
   // Log specific details for each product to help debugging
-  visibleProducts.forEach(p => {
+  products.forEach(p => {
     console.log(`CatalogContent: Product "${p.name}" (${p.id}):`, {
       isParent: p.is_parent,
       hasVariantPrices: p.variant_combination_prices?.length > 0,
       variantPricesCount: p.variant_combination_prices?.length || 0,
       hasVariationAttrs: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
-      variationAttrs: p.variation_attributes,
-      isAdminOnly: p.admin_only
+      variationAttrs: p.variation_attributes
     });
   });
 
@@ -72,12 +62,12 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
     <>
       {viewMode === "accordion" ? (
         <AccordionProductList 
-          products={visibleProducts} 
+          products={products} 
           onProductDeleted={onProductDeleted} 
           groupingOption={groupingOption} 
         />
       ) : (
-        <ProductGrid products={visibleProducts} />
+        <ProductGrid products={products} />
       )}
     </>
   );
