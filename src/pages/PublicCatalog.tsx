@@ -46,6 +46,7 @@ const PublicCatalog = () => {
       console.log(`Produit ${index + 1}: ${p.name} (ID: ${p.id})`);
       console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}, active: ${p.active}`);
       console.log(`- variant_combination_prices: ${p.variant_combination_prices?.length || 0}`);
+      console.log(`- monthly_price: ${p.monthly_price}, price: ${p.price}`);
     });
   }, [products]);
 
@@ -67,6 +68,14 @@ const PublicCatalog = () => {
     priceRangeLimits,
     resetFilters
   } = useProductFilter(products);
+  
+  // Au chargement initial, forcer une réinitialisation des filtres
+  useEffect(() => {
+    if (products && products.length > 0) {
+      console.log("Réinitialisation des filtres au chargement initial");
+      resetFilters();
+    }
+  }, [products.length]);
 
   useEffect(() => {
     if (filteredProducts && filteredProducts.length > 0) {
@@ -75,6 +84,7 @@ const PublicCatalog = () => {
       filteredProducts.forEach((p, index) => {
         console.log(`Produit filtré ${index + 1}: ${p.name} (ID: ${p.id})`);
         console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}`);
+        console.log(`- monthly_price: ${p.monthly_price}, price: ${p.price}`);
       });
     } else {
       console.log("Aucun produit filtré ou tableau vide");
@@ -143,7 +153,8 @@ const PublicCatalog = () => {
     
     if (groupedProducts.length <= 1) {
       console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
-      toast.error("Problème d'affichage des produits. Contactez l'administrateur.");
+      // Ne pas afficher ce toast automatiquement
+      // toast.error("Problème d'affichage des produits. Contactez l'administrateur.");
     }
   }, [groupedProducts]);
 
@@ -221,7 +232,10 @@ const PublicCatalog = () => {
               <div className="flex justify-between items-center">
                 <h3 className="font-medium text-lg">Filtres</h3>
                 <Button 
-                  onClick={resetFilters} 
+                  onClick={() => {
+                    resetFilters();
+                    console.log("Filtres réinitialisés manuellement");
+                  }} 
                   variant="outline" 
                   size="sm"
                   className="text-xs h-8"
@@ -285,7 +299,10 @@ const PublicCatalog = () => {
                             max={priceRangeLimits[1]}
                             min={priceRangeLimits[0]}
                             step={10}
-                            onValueChange={(values) => setPriceRange(values as [number, number])}
+                            onValueChange={(values) => {
+                              setPriceRange(values as [number, number]);
+                              console.log("Nouvelle plage de prix sélectionnée:", values);
+                            }}
                             className="mb-6"
                           />
                         </div>
@@ -449,6 +466,18 @@ const PublicCatalog = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <p className="text-gray-600">
                 {groupedProducts.length} produit{groupedProducts.length > 1 ? 's' : ''} trouvé{groupedProducts.length > 1 ? 's' : ''}
+                {groupedProducts.length <= 1 && (
+                  <Button 
+                    onClick={() => {
+                      resetFilters();
+                      toast.info("Filtres réinitialisés");
+                    }} 
+                    variant="link" 
+                    className="text-[#33638e] p-0 h-auto font-medium ml-2"
+                  >
+                    Réinitialiser les filtres
+                  </Button>
+                )}
               </p>
               <Button variant="outline" className="flex items-center">
                 <ArrowUpDown className="h-4 w-4 mr-2" />

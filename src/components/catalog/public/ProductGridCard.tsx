@@ -40,6 +40,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     }
     
     console.log(`Rendering ProductGridCard for: ${product.name} (${product.id})`);
+    console.log(`Product details - monthly_price: ${product.monthly_price}, price: ${product.price}`);
     
     // Vérification explicite des variantes
     if (product.is_variation || product.parent_id) {
@@ -98,7 +99,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
   
   const monthlyPrice = getMinimumMonthlyPrice();
-  const hasPrice = monthlyPrice > 0;
+  const hasPrice = monthlyPrice > 0 || (product.price && product.price > 0);
   
   const getProductImage = (): string => {
     if (product?.image_url && typeof product.image_url === 'string' && 
