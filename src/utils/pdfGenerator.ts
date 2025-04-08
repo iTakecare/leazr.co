@@ -43,6 +43,8 @@ export const generateOfferPdf = async (offerData) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     tempDiv.style.width = '210mm'; // Largeur A4
+    tempDiv.style.height = '297mm'; // Hauteur A4
+    tempDiv.style.overflow = 'hidden'; // Empêcher le dépassement qui pourrait créer une nouvelle page
     document.body.appendChild(tempDiv);
     
     console.log("Conversion en PDF...");

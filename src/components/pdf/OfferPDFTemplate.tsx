@@ -1,8 +1,6 @@
 
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
-import PDFFooter from "../settings/pdf-preview/PDFFooter";
-import SignatureSection from "../settings/pdf-preview/SignatureSection";
 
 interface EquipmentItem {
   title: string;
@@ -64,20 +62,21 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   return (
     <div style={{ 
       width: '210mm', 
-      minHeight: '297mm',
+      height: '297mm',
       margin: '0',
       padding: '0',
       backgroundColor: 'white',
       position: 'relative',
       fontFamily: 'Arial, sans-serif',
       color: '#1A2C3A',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflowY: 'hidden' // Empêcher le dépassement vertical
     }}>
       {/* En-tête */}
       <div style={{ 
         background: 'linear-gradient(to right, #1A2C3A, #2C4356)', 
         color: 'white', 
-        padding: '20px 30px', 
+        padding: '15px 20px', 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
@@ -91,7 +90,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           />
         </div>
         <div style={{ 
-          fontSize: '24px', 
+          fontSize: '22px', 
           fontWeight: 'bold', 
           letterSpacing: '1px',
           textTransform: 'uppercase'
@@ -100,37 +99,38 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         </div>
       </div>
       
-      {/* Contenu principal */}
+      {/* Corps du document */}
       <div style={{ 
-        padding: '30px',
-        backgroundColor: '#FFFFFF',
-        minHeight: 'calc(100% - 200px)'
+        display: 'flex', 
+        flexDirection: 'column',
+        padding: '20px',
+        height: 'calc(100% - 140px)' // Hauteur restante moins en-tête et pied de page
       }}>
         {/* Référence et date */}
         <div style={{ 
           display: 'flex',
           justifyContent: 'space-between',
-          marginBottom: '30px'
+          marginBottom: '20px'
         }}>
           <div style={{ 
-            padding: '15px',
+            padding: '10px 15px',
             backgroundColor: '#1A2C3A',
             color: 'white',
             borderRadius: '6px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
           }}>
-            <h2 style={{ margin: '0', fontSize: '20px' }}>
+            <h2 style={{ margin: '0', fontSize: '16px' }}>
               {formatDate(offer.created_at)}
             </h2>
           </div>
           <div style={{ 
-            padding: '15px',
+            padding: '10px 15px',
             backgroundColor: '#F3F4F6',
             borderRadius: '6px',
             border: '1px solid #E5E7EB',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
           }}>
-            <h2 style={{ margin: '0', fontSize: '20px', color: '#1A2C3A' }}>
+            <h2 style={{ margin: '0', fontSize: '16px', color: '#1A2C3A' }}>
               RÉF: {offerId}
             </h2>
           </div>
@@ -138,61 +138,59 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         
         {/* Information client */}
         <div style={{ 
-          marginBottom: '30px', 
-          padding: '20px',
+          marginBottom: '20px', 
+          padding: '15px',
           background: '#F9FAFB', 
           borderRadius: '8px',
           border: '1px solid #E5E7EB'
         }}>
           <h2 style={{ 
-            fontSize: '18px', 
+            fontSize: '16px', 
             fontWeight: 'bold', 
             marginTop: '0',
-            marginBottom: '15px', 
+            marginBottom: '10px', 
             color: '#1A2C3A', 
             textTransform: 'uppercase',
             borderBottom: '2px solid #E5E7EB',
-            paddingBottom: '8px' 
+            paddingBottom: '5px' 
           }}>Client</h2>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ 
-                fontWeight: '600', 
-                margin: '5px 0', 
-                fontSize: '16px', 
-                color: '#4B5563' 
-              }}>
-                {offer.client_company || "Client Company"}
-              </p>
-              <p style={{ 
-                margin: '5px 0', 
-                fontSize: '14px', 
-                color: '#6B7280' 
-              }}>
-                {offer.client_name || "Client Name"}
-              </p>
-              <p style={{ 
-                margin: '5px 0', 
-                fontSize: '14px', 
-                color: '#6B7280' 
-              }}>
-                {offer.client_email || "client@example.com"}
-              </p>
-            </div>
+          <div>
+            <p style={{ 
+              fontWeight: '600', 
+              margin: '3px 0', 
+              fontSize: '14px', 
+              color: '#4B5563' 
+            }}>
+              {offer.client_company || "Client Company"}
+            </p>
+            <p style={{ 
+              margin: '3px 0', 
+              fontSize: '13px', 
+              color: '#6B7280' 
+            }}>
+              {offer.client_name || "Client Name"}
+            </p>
+            <p style={{ 
+              margin: '3px 0', 
+              fontSize: '13px', 
+              color: '#6B7280' 
+            }}>
+              {offer.client_email || "client@example.com"}
+            </p>
           </div>
         </div>
         
-        {/* Liste d'équipements */}
-        <div style={{ marginBottom: '30px' }}>
+        {/* Détail des équipements */}
+        <div style={{ marginBottom: '20px' }}>
           <h2 style={{ 
-            fontSize: '18px', 
+            fontSize: '16px', 
             fontWeight: 'bold', 
-            marginBottom: '15px', 
+            marginBottom: '10px', 
             color: '#1A2C3A', 
             textTransform: 'uppercase',
             borderBottom: '2px solid #E5E7EB',
-            paddingBottom: '8px'
+            paddingBottom: '5px'
           }}>
             Détail des équipements
           </h2>
@@ -200,16 +198,16 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           <table style={{ 
             width: '100%', 
             borderCollapse: 'collapse', 
-            fontSize: '14px',
+            fontSize: '13px',
             border: '1px solid #E5E7EB',
             borderRadius: '8px',
             overflow: 'hidden'
           }}>
             <thead>
               <tr style={{ backgroundColor: '#1A2C3A', color: 'white' }}>
-                <th style={{ padding: '12px 15px', textAlign: 'left' }}>Désignation</th>
-                <th style={{ padding: '12px 15px', textAlign: 'center', width: '70px' }}>Qté</th>
-                <th style={{ padding: '12px 15px', textAlign: 'right', width: '120px' }}>Mensualité</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left' }}>Désignation</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center', width: '50px' }}>Qté</th>
+                <th style={{ padding: '8px 10px', textAlign: 'right', width: '100px' }}>Mensualité</th>
               </tr>
             </thead>
             <tbody>
@@ -219,18 +217,18 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                     backgroundColor: index % 2 === 0 ? '#F9FAFB' : '#FFFFFF',
                     borderBottom: '1px solid #E5E7EB'
                   }}>
-                    <td style={{ padding: '10px 15px' }}>{item.title}</td>
-                    <td style={{ padding: '10px 15px', textAlign: 'center' }}>{item.quantity}</td>
-                    <td style={{ padding: '10px 15px', textAlign: 'right', fontWeight: 500 }}>
+                    <td style={{ padding: '8px 10px' }}>{item.title}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'center' }}>{item.quantity}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 500 }}>
                       {formatCurrency(item.monthlyPayment * item.quantity)}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr style={{ backgroundColor: '#F9FAFB' }}>
-                  <td style={{ padding: '10px 15px' }}>Produit Test</td>
-                  <td style={{ padding: '10px 15px', textAlign: 'center' }}>1</td>
-                  <td style={{ padding: '10px 15px', textAlign: 'right', fontWeight: 500 }}>90,00 €</td>
+                  <td style={{ padding: '8px 10px' }}>Produit Test</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}>1</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 500 }}>90,00 €</td>
                 </tr>
               )}
               <tr style={{ 
@@ -238,8 +236,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 borderTop: '2px solid #C7D2FE',
                 fontWeight: 'bold'
               }}>
-                <td colSpan={2} style={{ padding: '12px 15px', textAlign: 'right' }}>Total mensualité:</td>
-                <td style={{ padding: '12px 15px', textAlign: 'right', color: '#2563EB' }}>
+                <td colSpan={2} style={{ padding: '8px 10px', textAlign: 'right' }}>Total mensualité:</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#2563EB' }}>
                   {equipment.length > 0 ? formatCurrency(totalMonthly) : "90,00 €"}
                 </td>
               </tr>
@@ -249,24 +247,23 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         
         {/* Résumé financier */}
         <div style={{ 
-          marginBottom: '40px',
-          padding: '20px',
+          marginBottom: '20px',
+          padding: '15px',
           backgroundColor: '#F3F4F6',
           borderRadius: '8px',
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
+          border: '1px solid #E5E7EB'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: '16px', margin: '0 0 5px 0', color: '#1A2C3A' }}>Récapitulatif</h3>
-              <p style={{ fontSize: '14px', margin: '0', color: '#6B7280' }}>Engagement sur 36 mois</p>
+              <h3 style={{ fontSize: '14px', margin: '0 0 3px 0', color: '#1A2C3A' }}>Récapitulatif</h3>
+              <p style={{ fontSize: '12px', margin: '0', color: '#6B7280' }}>Engagement sur 36 mois</p>
             </div>
             <div style={{ 
-              fontSize: '18px', 
+              fontSize: '16px', 
               fontWeight: 'bold', 
               color: '#2563EB', 
               backgroundColor: 'white',
-              padding: '12px 20px',
+              padding: '8px 15px',
               borderRadius: '6px',
               border: '1px solid #E5E7EB'
             }}>
@@ -279,37 +276,37 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         
         {/* Avantages du leasing */}
         <div style={{ 
-          marginBottom: '30px',
-          padding: '20px',
+          marginBottom: '20px',
+          padding: '15px',
           border: '1px solid #E5E7EB',
           borderRadius: '8px',
           backgroundColor: '#FAFAFA'
         }}>
           <h3 style={{ 
-            fontSize: '16px', 
+            fontSize: '14px', 
             fontWeight: 'bold', 
             marginTop: '0',
-            marginBottom: '15px', 
+            marginBottom: '10px', 
             color: '#1A2C3A', 
             textTransform: 'uppercase'
           }}>
             Les avantages de notre solution de leasing
           </h3>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ flex: '1 1 45%', minWidth: '200px' }}>
-              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '12px', color: '#4B5563' }}>
                 ✓ Optimisation fiscale
               </p>
-              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '12px', color: '#4B5563' }}>
                 ✓ Préservation de trésorerie
               </p>
             </div>
             <div style={{ flex: '1 1 45%', minWidth: '200px' }}>
-              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '12px', color: '#4B5563' }}>
                 ✓ Matériel toujours à jour
               </p>
-              <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '14px', color: '#4B5563' }}>
+              <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '12px', color: '#4B5563' }}>
                 ✓ Service et support inclus
               </p>
             </div>
@@ -317,9 +314,9 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         </div>
         
         {/* Section signature */}
-        <div style={{ marginTop: '40px' }}>
+        <div style={{ marginTop: 'auto' }}>
           <div style={{
-            padding: '20px',
+            padding: '15px',
             borderTop: '2px solid #E5E7EB',
             borderColor: '#E5E7EB',
             backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -327,8 +324,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             <h3 style={{ 
               textAlign: 'center', 
               fontWeight: 'bold', 
-              marginBottom: '16px',
-              fontSize: '16px',
+              marginBottom: '10px',
+              fontSize: '14px',
               color: '#1A2C3A',
             }}>
               Signature client
@@ -336,8 +333,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             <div style={{
               border: '1px dashed #94a3b8',
               borderRadius: '8px',
-              width: '300px',
-              height: '100px',
+              width: '250px',
+              height: '80px',
               margin: '0 auto',
               display: 'flex',
               alignItems: 'center',
@@ -346,7 +343,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             }}>
               <p style={{ 
                 color: '#9CA3AF', 
-                fontSize: '12px', 
+                fontSize: '11px', 
                 fontStyle: 'italic' 
               }}>
                 Signature précédée de "Bon pour accord"
@@ -365,7 +362,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
         borderTop: '3px solid #FFB74D',
         color: 'white',
-        padding: '12px 15px'
+        padding: '10px'
       }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ 
@@ -373,7 +370,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             textAlign: 'center', 
             fontWeight: 'bold', 
             color: 'white', 
-            marginBottom: '8px' 
+            marginBottom: '5px',
+            margin: '0'
           }}>
             Cette offre est valable 30 jours à compter de sa date d'émission.
           </p>
@@ -382,7 +380,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
               textAlign: 'center', 
               color: 'white', 
               opacity: 0.8, 
-              fontSize: '9px' 
+              fontSize: '9px',
+              margin: '3px 0' 
             }}>
               iTakecare - Avenue du Général Michel 1E, 6000 Charleroi, Belgique<br />
               TVA: BE 0795.642.894 - Tel: +32 471 511 121 - Email: hello@itakecare.be
@@ -393,7 +392,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             fontWeight: 'medium', 
             color: 'white', 
             opacity: 0.8, 
-            marginTop: '8px' 
+            margin: '3px 0' 
           }}>
             1 / 1
           </p>
