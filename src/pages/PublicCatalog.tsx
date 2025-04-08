@@ -19,7 +19,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
 import { 
   Collapsible,
   CollapsibleContent,
@@ -41,8 +40,6 @@ const PublicCatalog = () => {
     setSearchQuery,
     selectedCategory,
     setSelectedCategory,
-    priceRange,
-    setPriceRange,
     selectedBrands,
     setSelectedBrands,
     showInStock,
@@ -50,7 +47,6 @@ const PublicCatalog = () => {
     filteredProducts,
     categories,
     brands,
-    priceRangeLimits,
     resetFilters
   } = useProductFilter(products);
 
@@ -222,42 +218,6 @@ const PublicCatalog = () => {
                 </Accordion>
               </div>
               
-              {/* Price Range */}
-              <div className="border rounded-md overflow-hidden">
-                <Accordion type="single" collapsible defaultValue="price">
-                  <AccordionItem value="price" className="border-0">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <span>Prix</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-4">
-                        <div className="pt-2">
-                          <Slider
-                            defaultValue={priceRangeLimits}
-                            value={priceRange}
-                            max={priceRangeLimits[1]}
-                            min={priceRangeLimits[0]}
-                            step={10}
-                            onValueChange={(values) => setPriceRange(values as [number, number])}
-                            className="mb-6"
-                          />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <div className="bg-gray-100 px-2 py-1 rounded">
-                            {priceRange[0]} €
-                          </div>
-                          <div className="bg-gray-100 px-2 py-1 rounded">
-                            {priceRange[1]} €
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-              
               {/* Brands */}
               <div className="border rounded-md overflow-hidden">
                 <Accordion type="single" collapsible defaultValue="brands">
@@ -367,19 +327,6 @@ const PublicCatalog = () => {
                       </Button>
                     </Badge>
                   ))}
-                  {(priceRange[0] > priceRangeLimits[0] || priceRange[1] < priceRangeLimits[1]) && (
-                    <Badge variant="secondary" className="flex gap-1 items-center">
-                      Prix: {priceRange[0]}€ - {priceRange[1]}€
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => setPriceRange(priceRangeLimits)}
-                      >
-                        <XSquare className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
                   {showInStock !== null && (
                     <Badge variant="secondary" className="flex gap-1 items-center">
                       {showInStock ? "En stock" : "Hors stock"}

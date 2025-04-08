@@ -8,7 +8,6 @@ export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("tous");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
   
@@ -26,13 +25,6 @@ export const useProductFilter = (products: Product[] = []) => {
     }
   });
   
-  // Reset price range when products change
-  useEffect(() => {
-    if (products && products.length > 0) {
-      setPriceRange(getPriceRange());
-    }
-  }, [products]);
-  
   const getFilteredProducts = () => {
     if (!products || products.length === 0) return [];
     
@@ -42,7 +34,6 @@ export const useProductFilter = (products: Product[] = []) => {
       searchQuery,
       selectedTab,
       selectedCategory,
-      priceRange,
       selectedBrands,
       showInStock
     });
@@ -87,13 +78,6 @@ export const useProductFilter = (products: Product[] = []) => {
       );
       console.log(`After category filter (${selectedCategory}): ${filtered.length} products`);
     }
-    
-    // Filter by price range
-    filtered = filtered.filter(product => {
-      const price = product.price ? parseFloat(product.price.toString()) : 0;
-      return price >= priceRange[0] && price <= priceRange[1];
-    });
-    console.log(`After price range filter: ${filtered.length} products`);
     
     // Filter by brand
     if (selectedBrands.length > 0) {
@@ -146,23 +130,6 @@ export const useProductFilter = (products: Product[] = []) => {
     return [...new Set(brands)].sort();
   };
   
-  // Get min and max prices for price range
-  const getPriceRange = (): [number, number] => {
-    if (!products || products.length === 0) return [0, 5000];
-    
-    const prices = products
-      .map(product => product.price ? parseFloat(product.price.toString()) : 0)
-      .filter(price => !isNaN(price) && price > 0);
-    
-    if (prices.length === 0) return [0, 5000];
-    
-    const min = Math.floor(Math.min(...prices));
-    const max = Math.ceil(Math.max(...prices));
-    
-    console.log(`Price range: ${min} - ${max}`);
-    return [min, max];
-  };
-  
   return {
     searchQuery,
     setSearchQuery,
@@ -170,8 +137,6 @@ export const useProductFilter = (products: Product[] = []) => {
     setSelectedTab,
     selectedCategory,
     setSelectedCategory,
-    priceRange,
-    setPriceRange,
     selectedBrands,
     setSelectedBrands,
     showInStock,
@@ -179,12 +144,10 @@ export const useProductFilter = (products: Product[] = []) => {
     filteredProducts: getFilteredProducts(),
     categories: getCategoriesFromProducts(),
     brands: getBrands(),
-    priceRangeLimits: getPriceRange(),
     resetFilters: () => {
       setSearchQuery("");
       setSelectedTab("tous");
       setSelectedCategory(null);
-      setPriceRange(getPriceRange());
       setSelectedBrands([]);
       setShowInStock(null);
     }
