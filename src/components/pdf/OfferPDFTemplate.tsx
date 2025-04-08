@@ -62,17 +62,19 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   }, 0);
   
   return (
-    <div className="bg-white" style={{ 
-      width: '100%', 
-      height: '100%', 
-      position: 'relative', 
+    <div style={{ 
+      width: '210mm', 
+      minHeight: '297mm',
+      margin: '0',
+      padding: '0',
+      backgroundColor: 'white',
+      position: 'relative',
       fontFamily: 'Arial, sans-serif',
-      boxSizing: 'border-box',
-      margin: 0,
-      padding: 0
+      color: '#1A2C3A',
+      boxSizing: 'border-box'
     }}>
       {/* En-tête */}
-      <header style={{ 
+      <div style={{ 
         background: 'linear-gradient(to right, #1A2C3A, #2C4356)', 
         color: 'white', 
         padding: '20px 30px', 
@@ -96,13 +98,13 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         }}>
           OFFRE COMMERCIALE
         </div>
-      </header>
+      </div>
       
       {/* Contenu principal */}
-      <main style={{ 
+      <div style={{ 
         padding: '30px',
         backgroundColor: '#FFFFFF',
-        minHeight: 'calc(100% - 240px)'
+        minHeight: 'calc(100% - 200px)'
       }}>
         {/* Référence et date */}
         <div style={{ 
@@ -231,6 +233,16 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                   <td style={{ padding: '10px 15px', textAlign: 'right', fontWeight: 500 }}>90,00 €</td>
                 </tr>
               )}
+              <tr style={{ 
+                backgroundColor: '#EEF2FF', 
+                borderTop: '2px solid #C7D2FE',
+                fontWeight: 'bold'
+              }}>
+                <td colSpan={2} style={{ padding: '12px 15px', textAlign: 'right' }}>Total mensualité:</td>
+                <td style={{ padding: '12px 15px', textAlign: 'right', color: '#2563EB' }}>
+                  {equipment.length > 0 ? formatCurrency(totalMonthly) : "90,00 €"}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -304,18 +316,89 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </div>
         </div>
         
-        {/* Section signature avec positionnement fixe */}
+        {/* Section signature */}
         <div style={{ marginTop: '40px' }}>
-          <SignatureSection pageHeight={0} scaleFactor={1} />
+          <div style={{
+            padding: '20px',
+            borderTop: '2px solid #E5E7EB',
+            borderColor: '#E5E7EB',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          }}>
+            <h3 style={{ 
+              textAlign: 'center', 
+              fontWeight: 'bold', 
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: '#1A2C3A',
+            }}>
+              Signature client
+            </h3>
+            <div style={{
+              border: '1px dashed #94a3b8',
+              borderRadius: '8px',
+              width: '300px',
+              height: '100px',
+              margin: '0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            }}>
+              <p style={{ 
+                color: '#9CA3AF', 
+                fontSize: '12px', 
+                fontStyle: 'italic' 
+              }}>
+                Signature précédée de "Bon pour accord"
+              </p>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
       
       {/* Pied de page */}
-      <PDFFooter 
-        pageNumber={1} 
-        totalPages={1} 
-        zoomLevel={1}
-      />
+      <div style={{ 
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
+        borderTop: '3px solid #FFB74D',
+        color: 'white',
+        padding: '12px 15px'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ 
+            fontSize: '11px', 
+            textAlign: 'center', 
+            fontWeight: 'bold', 
+            color: 'white', 
+            marginBottom: '8px' 
+          }}>
+            Cette offre est valable 30 jours à compter de sa date d'émission.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <p style={{ 
+              textAlign: 'center', 
+              color: 'white', 
+              opacity: 0.8, 
+              fontSize: '9px' 
+            }}>
+              iTakecare - Avenue du Général Michel 1E, 6000 Charleroi, Belgique<br />
+              TVA: BE 0795.642.894 - Tel: +32 471 511 121 - Email: hello@itakecare.be
+            </p>
+          </div>
+          <p style={{ 
+            fontSize: '9px', 
+            fontWeight: 'medium', 
+            color: 'white', 
+            opacity: 0.8, 
+            marginTop: '8px' 
+          }}>
+            1 / 1
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

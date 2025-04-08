@@ -12,9 +12,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
 }) => {
   return (
     <div
-      className="relative p-4 border-t"
+      className="relative"
       style={{
-        padding: `${12 * scaleFactor}px`,
+        padding: `${20 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
