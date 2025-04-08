@@ -14,7 +14,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
     <div
       className="relative"
       style={{
-        padding: `${8 * scaleFactor}px`,
+        padding: `${10 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -24,9 +24,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       <h3 
         className="text-center font-bold mb-2" 
         style={{ 
-          fontSize: `${13 * scaleFactor}px`,
+          fontSize: `${14 * scaleFactor}px`,
           color: "#1A2C3A",
-          margin: `0 0 ${6 * scaleFactor}px 0`
+          margin: `0 0 ${8 * scaleFactor}px 0`
         }}
       >
         Signature client
@@ -34,8 +34,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       <div
         className="border border-dashed rounded-md mx-auto flex items-center justify-center"
         style={{
-          width: `${200 * scaleFactor}px`,
-          height: `${65 * scaleFactor}px`,
+          width: `${220 * scaleFactor}px`,
+          height: `${70 * scaleFactor}px`,
           backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderColor: "#94a3b8",
           borderRadius: "8px",
@@ -43,7 +43,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       >
         <p style={{ 
           color: "#9CA3AF", 
-          fontSize: `${10 * scaleFactor}px`, 
+          fontSize: `${11 * scaleFactor}px`, 
           fontStyle: "italic",
           margin: 0
         }}>
