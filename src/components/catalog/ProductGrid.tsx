@@ -3,9 +3,10 @@ import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ShieldAlert } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductGridProps {
   products: Product[];
@@ -13,6 +14,8 @@ interface ProductGridProps {
 
 const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -39,8 +42,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
         <motion.div key={product.id} variants={itemVariants}>
           <Link
             to={`/products/${product.id}`}
-            className="block h-full"
+            className="block h-full relative"
           >
+            {isAdmin && product.admin_only && (
+              <div className="absolute top-2 right-2 z-10 bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs flex items-center">
+                <ShieldAlert className="h-3 w-3 mr-1" />
+                Admin uniquement
+              </div>
+            )}
             <ProductCard product={product} />
           </Link>
         </motion.div>

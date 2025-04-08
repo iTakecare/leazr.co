@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   Loader2, 
   Save, 
@@ -22,13 +22,13 @@ import {
   Tag,
   Image as ImageIcon,
   Layers,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 
-// Liste des catégories de produits
 const productCategories = [
   "laptop",
   "desktop",
@@ -44,7 +44,6 @@ const productCategories = [
   "other"
 ];
 
-// Traductions des catégories
 const categoryTranslations: Record<string, string> = {
   "laptop": "Ordinateur portable",
   "desktop": "Ordinateur de bureau",
@@ -60,7 +59,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Liste des marques populaires
 const popularBrands = [
   "Apple",
   "Samsung",
@@ -95,16 +93,15 @@ const ProductCreationPage = () => {
     stock: 0,
     active: true,
     is_parent: false,
-    variation_attributes: {}
+    variation_attributes: {},
+    admin_only: false
   });
   
-  // Create product mutation
   const createMutation = useMutation({
     mutationFn: createProduct,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produit créé avec succès!");
-      // Redirect to edit page
       navigate(`/catalog/edit/${data.id}`);
     },
     onError: (error: any) => {
@@ -115,7 +112,6 @@ const ProductCreationPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle numeric fields
     if (type === "number") {
       setFormData(prev => ({
         ...prev,
@@ -138,6 +134,13 @@ const ProductCreationPage = () => {
     }
     
     createMutation.mutate(formData as Product);
+  };
+  
+  const handleToggleChange = (field: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
   
   return (
@@ -283,17 +286,36 @@ const ProductCreationPage = () => {
                       Activez cette option si vous souhaitez créer des variantes (tailles, couleurs, etc.)
                     </p>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description || ""}
-                    onChange={handleChange}
-                    rows={5}
-                  />
+                  
+                  <div className="col-span-2 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Shield className="h-4 w-4 text-amber-500" />
+                          <Label htmlFor="admin_only" className="font-medium">Uniquement visible par admin</Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Si activé, ce produit ne sera visible que par les administrateurs.
+                        </p>
+                      </div>
+                      <Switch
+                        id="admin_only"
+                        checked={formData.admin_only || false}
+                        onCheckedChange={(checked) => handleToggleChange('admin_only', checked)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description || ""}
+                      onChange={handleChange}
+                      rows={5}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
