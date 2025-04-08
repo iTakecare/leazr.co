@@ -26,6 +26,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
         style={{ 
           fontSize: `${14 * scaleFactor}px`,
           color: "#1A2C3A",
+          margin: `0 0 ${8 * scaleFactor}px 0`
         }}
       >
         Signature client
@@ -43,7 +44,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
         <p style={{ 
           color: "#9CA3AF", 
           fontSize: `${11 * scaleFactor}px`, 
-          fontStyle: "italic" 
+          fontStyle: "italic",
+          margin: 0
         }}>
           Signature précédée de "Bon pour accord"
         </p>

@@ -62,7 +62,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   return (
     <div style={{ 
       width: '210mm', 
-      height: '297mm',
+      minHeight: '297mm',
+      maxHeight: '297mm',
       margin: '0',
       padding: '0',
       backgroundColor: 'white',
@@ -70,7 +71,9 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
       fontFamily: 'Arial, sans-serif',
       color: '#1A2C3A',
       boxSizing: 'border-box',
-      overflowY: 'hidden' // Empêcher le dépassement vertical
+      overflowY: 'hidden', // Empêcher le dépassement vertical
+      pageBreakAfter: 'avoid',
+      pageBreakInside: 'avoid'
     }}>
       {/* En-tête */}
       <div style={{ 
@@ -82,11 +85,11 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         alignItems: 'center',
         borderBottom: '3px solid #FFB74D'
       }}>
-        <div>
+        <div style={{ height: '40px', width: '40px' }}>
           <img 
-            src="/lovable-uploads/7e711eae-90de-40ce-806c-21ffa5c9d7b6.png" 
+            src="/lovable-uploads/f1bca5b0-e4e1-4736-88a0-e9a4bcc711d1.png" 
             alt="iTakecare Logo" 
-            style={{ height: '40px' }} 
+            style={{ height: '40px', objectFit: 'contain' }} 
           />
         </div>
         <div style={{ 
@@ -327,6 +330,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
               marginBottom: '10px',
               fontSize: '14px',
               color: '#1A2C3A',
+              margin: '0 0 10px 0'
             }}>
               Signature client
             </h3>
@@ -344,7 +348,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
               <p style={{ 
                 color: '#9CA3AF', 
                 fontSize: '11px', 
-                fontStyle: 'italic' 
+                fontStyle: 'italic',
+                margin: 0
               }}>
                 Signature précédée de "Bon pour accord"
               </p>

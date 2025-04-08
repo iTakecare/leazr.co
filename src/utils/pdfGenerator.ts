@@ -36,7 +36,7 @@ export const generateOfferPdf = async (offerData) => {
         compress: true,
         putOnlyUsedFonts: true
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      pagebreak: { mode: ['css', 'avoid-all'] } // Changed to avoid extra page breaks
     };
     
     // Créer un div temporaire pour le rendu
@@ -44,6 +44,7 @@ export const generateOfferPdf = async (offerData) => {
     tempDiv.innerHTML = htmlContent;
     tempDiv.style.width = '210mm'; // Largeur A4
     tempDiv.style.height = '297mm'; // Hauteur A4
+    tempDiv.style.position = 'relative'; // Ensure positioning works correctly
     tempDiv.style.overflow = 'hidden'; // Empêcher le dépassement qui pourrait créer une nouvelle page
     document.body.appendChild(tempDiv);
     
@@ -52,8 +53,19 @@ export const generateOfferPdf = async (offerData) => {
     
     // Générer le PDF
     const pdf = await html2pdf()
-      .from(tempDiv)
       .set(options)
+      .from(tempDiv)
+      .toPdf() // Use chain method
+      .get('pdf')
+      .then(function(pdfObject) {
+        // Force to one page only
+        if (pdfObject.internal.getNumberOfPages() > 1) {
+          for (let i = pdfObject.internal.getNumberOfPages(); i > 1; i--) {
+            pdfObject.deletePage(i);
+          }
+        }
+        return pdfObject;
+      })
       .save();
     
     // Nettoyage
