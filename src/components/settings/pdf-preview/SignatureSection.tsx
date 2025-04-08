@@ -12,20 +12,21 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
 }) => {
   return (
     <div
-      className="relative p-4 border-t"
+      className="relative"
       style={{
-        padding: `${12 * scaleFactor}px`,
+        padding: `${8 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
-        marginTop: "20px"
+        marginTop: "10px"
       }}
     >
       <h3 
-        className="text-center font-bold mb-4" 
+        className="text-center font-bold mb-2" 
         style={{ 
-          fontSize: `${16 * scaleFactor}px`,
+          fontSize: `${13 * scaleFactor}px`,
           color: "#1A2C3A",
+          margin: `0 0 ${6 * scaleFactor}px 0`
         }}
       >
         Signature client
@@ -33,8 +34,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       <div
         className="border border-dashed rounded-md mx-auto flex items-center justify-center"
         style={{
-          width: `${300 * scaleFactor}px`,
-          height: `${100 * scaleFactor}px`,
+          width: `${200 * scaleFactor}px`,
+          height: `${65 * scaleFactor}px`,
           backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderColor: "#94a3b8",
           borderRadius: "8px",
@@ -42,8 +43,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       >
         <p style={{ 
           color: "#9CA3AF", 
-          fontSize: `${12 * scaleFactor}px`, 
-          fontStyle: "italic" 
+          fontSize: `${10 * scaleFactor}px`, 
+          fontStyle: "italic",
+          margin: 0
         }}>
           Signature précédée de "Bon pour accord"
         </p>

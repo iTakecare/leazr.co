@@ -31,19 +31,28 @@ const PDFFooter: React.FC<PDFFooterProps> = ({
       background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
       borderTop: '3px solid #FFB74D',
       color: 'white',
-      padding: `${12 * zoomLevel}px ${15 * zoomLevel}px`
+      padding: `${10 * zoomLevel}px`
     }}>
       <div className="text-center">
-        <p className="text-xs text-center font-bold text-white mb-2" style={{ fontSize: `${11 * zoomLevel}px` }}>
+        <p className="text-xs text-center font-bold text-white mb-1" style={{ 
+          fontSize: `${11 * zoomLevel}px`,
+          margin: 0
+        }}>
           {footerText}
         </p>
         <div className="flex justify-center items-center">
-          <p className="text-center text-white opacity-80" style={{ fontSize: `${9 * zoomLevel}px` }}>
+          <p className="text-center text-white opacity-80" style={{ 
+            fontSize: `${9 * zoomLevel}px`,
+            margin: '3px 0'
+          }}>
             {companyName} - {companyAddress}<br />
             {companySiret} - {companyContact}
           </p>
         </div>
-        <p className="text-xs font-medium text-white opacity-80 mt-2" style={{ fontSize: `${9 * zoomLevel}px` }}>
+        <p className="text-xs font-medium text-white opacity-80 mt-1" style={{ 
+          fontSize: `${9 * zoomLevel}px`,
+          margin: '3px 0'
+        }}>
           {pageNumber} / {totalPages}
         </p>
       </div>
