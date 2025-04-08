@@ -32,15 +32,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
   }
 
   console.log("Rendering products grid with", products.length, "products");
-  
-  // Vérifier que chaque produit a un ID unique avant de les afficher
-  const validProducts = products.filter(product => product && product.id);
-  console.log("Valid products count:", validProducts.length);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-      {validProducts.map((product) => (
-        <motion.div key={product.id} variants={itemVariants} initial="hidden" animate="visible">
+      {products.map((product) => (
+        <motion.div key={product.id} variants={itemVariants}>
           <Link
             to={`/products/${product.id}`}
             className="block h-full"

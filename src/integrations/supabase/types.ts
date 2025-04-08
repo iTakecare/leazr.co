@@ -1356,7 +1356,6 @@ export type Database = {
       products: {
         Row: {
           active: boolean | null
-          admin_only: boolean | null
           attributes: Json | null
           brand: string | null
           category: string | null
@@ -1386,7 +1385,6 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
-          admin_only?: boolean | null
           attributes?: Json | null
           brand?: string | null
           category?: string | null
@@ -1416,7 +1414,6 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
-          admin_only?: boolean | null
           attributes?: Json | null
           brand?: string | null
           category?: string | null

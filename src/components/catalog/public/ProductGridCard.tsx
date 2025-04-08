@@ -5,6 +5,7 @@ import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
+import { Leaf } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
@@ -32,35 +33,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   
-  // Vérification de sécurité pour le produit
   useEffect(() => {
-    if (!product || !product.id) {
-      console.error("ProductGridCard: Produit invalide reçu", product);
-      return;
-    }
-    
-    console.log(`Rendering ProductGridCard for: ${product.name} (${product.id})`);
-    console.log(`Product details - monthly_price: ${product.monthly_price}, price: ${product.price}`);
-    
-    // Vérification explicite des variantes
-    if (product.is_variation || product.parent_id) {
-      console.log(`Skipping variant product: ${product.name}`);
-    }
-    
     setImageUrl(getProductImage());
     setIsLoading(true);
     setHasError(false);
   }, [product]);
   
-  // Protection supplémentaire contre les produits invalides
-  if (!product || !product.id) {
-    console.error("ProductGridCard: Produit null ou sans ID");
-    return null;
-  }
-  
-  // Vérification avec une garde stricte pour les variantes
-  if ((product.is_variation === true) || (product.parent_id !== null && product.parent_id !== undefined && product.parent_id !== '')) {
-    console.log(`Product ${product.name} est une variante, ne pas l'afficher directement`);
+  if (product.is_variation || product.parent_id) {
     return null;
   }
 
@@ -70,27 +49,33 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     let minPrice = product.monthly_price || 0;
     
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`Product ${product.name} has ${product.variant_combination_prices.length} variant combinations`);
       const combinationPrices = product.variant_combination_prices
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
+        console.log(`Minimum combination price found: ${minCombinationPrice}`);
         if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
           minPrice = minCombinationPrice;
+          console.log(`Using combination price: ${minPrice}`);
         }
       }
     }
     
     else if (product.variants && product.variants.length > 0) {
+      console.log(`Product ${product.name} has ${product.variants.length} variants`);
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
+        console.log(`Minimum variant price found: ${minVariantPrice}`);
         if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
           minPrice = minVariantPrice;
+          console.log(`Using variant price: ${minPrice}`);
         }
       }
     }
@@ -99,7 +84,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
   
   const monthlyPrice = getMinimumMonthlyPrice();
-  const hasPrice = monthlyPrice > 0 || (product.price && product.price > 0);
+  const hasPrice = monthlyPrice > 0;
   
   const getProductImage = (): string => {
     if (product?.image_url && typeof product.image_url === 'string' && 
@@ -156,11 +141,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       accessories: "Accessoire"
     };
     
-    return categoryMap[category.toLowerCase()] || category;
+    return categoryMap[category] || "Autre";
   };
 
   const countExistingVariants = (): number => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
       return product.variant_combination_prices.length;
     }
     
@@ -181,6 +167,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       (product.variant_combination_prices && product.variant_combination_prices.length > 0) || 
       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
       (product.variants && product.variants.length > 0);
+    
+    console.log(`Product ${product.name}: hasVariants = ${result}`);
+    console.log(`- is_parent: ${product.is_parent}`);
+    console.log(`- has variant_combination_prices: ${product.variant_combination_prices?.length > 0}`);
+    console.log(`- has variation_attributes: ${product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0}`);
+    console.log(`- has variants: ${product.variants?.length > 0}`);
     
     return result;
   };

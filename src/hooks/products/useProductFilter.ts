@@ -8,7 +8,7 @@ export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("tous");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]); // Valeur initiale plus large
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
   
@@ -29,18 +29,7 @@ export const useProductFilter = (products: Product[] = []) => {
   // Reset price range when products change
   useEffect(() => {
     if (products && products.length > 0) {
-      // Calcul de la plage de prix et application avec un délai
-      const newPriceRange = getPriceRange();
-      
-      // Si la plage est trop restrictive, on l'élargit
-      if (newPriceRange[0] === newPriceRange[1] || (newPriceRange[1] - newPriceRange[0] < 10)) {
-        // Élargir la plage pour éviter une restriction excessive
-        newPriceRange[0] = Math.max(0, newPriceRange[0] - 100);
-        newPriceRange[1] = newPriceRange[1] + 1000;
-      }
-      
-      console.log("Nouvelle plage de prix calculée:", newPriceRange);
-      setPriceRange(newPriceRange);
+      setPriceRange(getPriceRange());
     }
   }, [products]);
   
@@ -99,14 +88,10 @@ export const useProductFilter = (products: Product[] = []) => {
       console.log(`After category filter (${selectedCategory}): ${filtered.length} products`);
     }
     
-    // Filter by price range - avec plus de flexibilité pour les prix proches des limites
+    // Filter by price range
     filtered = filtered.filter(product => {
-      // Obtenir le prix le plus pertinent (soit mensuel, soit unique)
-      const price = getRelevantPrice(product);
-      
-      // Ajouter une marge de tolérance pour les valeurs proches des limites (0.1 euro)
-      const margin = 0.1;
-      return (price >= priceRange[0] - margin) && (price <= priceRange[1] + margin);
+      const price = product.price ? parseFloat(product.price.toString()) : 0;
+      return price >= priceRange[0] && price <= priceRange[1];
     });
     console.log(`After price range filter: ${filtered.length} products`);
     
@@ -127,17 +112,6 @@ export const useProductFilter = (products: Product[] = []) => {
     }
     
     return filtered;
-  };
-
-  // Fonction pour obtenir le prix le plus pertinent d'un produit (mensuel ou unique)
-  const getRelevantPrice = (product: Product): number => {
-    // Préférer le prix mensuel s'il existe, sinon utiliser le prix normal
-    if (product.monthly_price && product.monthly_price > 0) {
-      return parseFloat(product.monthly_price.toString());
-    } else if (product.price) {
-      return parseFloat(product.price.toString());
-    }
-    return 0;
   };
 
   // Get unique categories from products with translations
@@ -172,27 +146,21 @@ export const useProductFilter = (products: Product[] = []) => {
     return [...new Set(brands)].sort();
   };
   
-  // Get min and max prices for price range, avec une valeur par défaut plus étendue
+  // Get min and max prices for price range
   const getPriceRange = (): [number, number] => {
     if (!products || products.length === 0) return [0, 5000];
     
-    // Collecter tous les prix pertinents (mensuels ou uniques)
     const prices = products
-      .map(product => getRelevantPrice(product))
+      .map(product => product.price ? parseFloat(product.price.toString()) : 0)
       .filter(price => !isNaN(price) && price > 0);
     
     if (prices.length === 0) return [0, 5000];
     
-    // Calculer le min et max avec une marge
     const min = Math.floor(Math.min(...prices));
     const max = Math.ceil(Math.max(...prices));
     
-    // S'assurer que la plage n'est pas trop restrictive
-    const adjustedMin = Math.max(0, min);
-    const adjustedMax = Math.max(max, min + 1000); // Garantir un écart d'au moins 1000
-    
-    console.log(`Price range raw: ${min} - ${max}, adjusted: ${adjustedMin} - ${adjustedMax}`);
-    return [adjustedMin, adjustedMax];
+    console.log(`Price range: ${min} - ${max}`);
+    return [min, max];
   };
   
   return {

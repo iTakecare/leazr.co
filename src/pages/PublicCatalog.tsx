@@ -25,7 +25,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { toast } from "sonner";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
@@ -35,20 +34,6 @@ const PublicCatalog = () => {
     queryKey: ["products"],
     queryFn: getProducts,
   });
-
-  // Ajout d'un log pour voir ce qui se passe avec les produits
-  useEffect(() => {
-    console.log("Produits chargés:", products);
-    console.log("Nombre total de produits:", products.length);
-    
-    // Afficher les détails de chaque produit pour le débogage
-    products.forEach((p, index) => {
-      console.log(`Produit ${index + 1}: ${p.name} (ID: ${p.id})`);
-      console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}, active: ${p.active}`);
-      console.log(`- variant_combination_prices: ${p.variant_combination_prices?.length || 0}`);
-      console.log(`- monthly_price: ${p.monthly_price}, price: ${p.price}`);
-    });
-  }, [products]);
 
   // Utilisation du hook useProductFilter pour la filtration
   const {
@@ -68,53 +53,27 @@ const PublicCatalog = () => {
     priceRangeLimits,
     resetFilters
   } = useProductFilter(products);
-  
-  // Au chargement initial, forcer une réinitialisation des filtres
+
   useEffect(() => {
     if (products && products.length > 0) {
-      console.log("Réinitialisation des filtres au chargement initial");
-      resetFilters();
+      console.log("Total products loaded:", products.length);
+      
+      const productsWithVariants = products.filter(p => 
+        p.variants && p.variants.length > 0 || 
+        p.variant_combination_prices && p.variant_combination_prices.length > 0 ||
+        p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0
+      );
+      
+      console.log("Products with variants:", productsWithVariants.length);
     }
-  }, [products.length]);
-
-  useEffect(() => {
-    if (filteredProducts && filteredProducts.length > 0) {
-      console.log("Produits filtrés:", filteredProducts.length);
-      // Afficher les détails des produits filtrés
-      filteredProducts.forEach((p, index) => {
-        console.log(`Produit filtré ${index + 1}: ${p.name} (ID: ${p.id})`);
-        console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}`);
-        console.log(`- monthly_price: ${p.monthly_price}, price: ${p.price}`);
-      });
-    } else {
-      console.log("Aucun produit filtré ou tableau vide");
-    }
-  }, [filteredProducts]);
+  }, [products]);
 
   const groupedProducts = React.useMemo(() => {
-    if (!filteredProducts) {
-      console.log("filteredProducts est null ou undefined");
-      return [];
-    }
+    if (!filteredProducts) return [];
     
-    console.log("Filtration en cours. Produits filtrés à traiter:", filteredProducts.length);
-    
-    // IMPORTANT: Désactivons temporairement le filtre pour voir tous les produits
-    // Nous allons afficher tous les produits sauf ceux qui sont explicitement des variantes
-    // Avant, nous filtrions trop strictement
-    const parentProducts = filteredProducts.filter(p => {
-      const isVariant = p.is_variation === true || p.parent_id !== null && p.parent_id !== undefined && p.parent_id !== '';
-      console.log(`Vérification filtrage: ${p.name} (${p.id}) - isVariant=${isVariant}, parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}`);
-      return !isVariant;
-    });
-    
-    console.log("Nombre de produits parents après filtrage:", parentProducts.length);
-    if (parentProducts.length <= 1) {
-      console.log("ALERTE: Moins de 2 produits après filtrage. Liste complète des produits filtrés:");
-      filteredProducts.forEach((p, idx) => {
-        console.log(`  ${idx+1}. ${p.name} (${p.id}) - parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}`);
-      });
-    }
+    const parentProducts = filteredProducts.filter(p => 
+      !p.parent_id && !p.is_variation
+    );
     
     const variantMap = new Map<string, Product[]>();
     
@@ -142,21 +101,6 @@ const PublicCatalog = () => {
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
   };
-
-  // Plus de logs pour déboguer
-  useEffect(() => {
-    console.log("Produits groupés:", groupedProducts.length);
-    
-    if (groupedProducts.length > 0) {
-      console.log("Premier produit groupé:", groupedProducts[0].name);
-    }
-    
-    if (groupedProducts.length <= 1) {
-      console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
-      // Ne pas afficher ce toast automatiquement
-      // toast.error("Problème d'affichage des produits. Contactez l'administrateur.");
-    }
-  }, [groupedProducts]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -232,10 +176,7 @@ const PublicCatalog = () => {
               <div className="flex justify-between items-center">
                 <h3 className="font-medium text-lg">Filtres</h3>
                 <Button 
-                  onClick={() => {
-                    resetFilters();
-                    console.log("Filtres réinitialisés manuellement");
-                  }} 
+                  onClick={resetFilters} 
                   variant="outline" 
                   size="sm"
                   className="text-xs h-8"
@@ -299,10 +240,7 @@ const PublicCatalog = () => {
                             max={priceRangeLimits[1]}
                             min={priceRangeLimits[0]}
                             step={10}
-                            onValueChange={(values) => {
-                              setPriceRange(values as [number, number]);
-                              console.log("Nouvelle plage de prix sélectionnée:", values);
-                            }}
+                            onValueChange={(values) => setPriceRange(values as [number, number])}
                             className="mb-6"
                           />
                         </div>
@@ -466,18 +404,6 @@ const PublicCatalog = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <p className="text-gray-600">
                 {groupedProducts.length} produit{groupedProducts.length > 1 ? 's' : ''} trouvé{groupedProducts.length > 1 ? 's' : ''}
-                {groupedProducts.length <= 1 && (
-                  <Button 
-                    onClick={() => {
-                      resetFilters();
-                      toast.info("Filtres réinitialisés");
-                    }} 
-                    variant="link" 
-                    className="text-[#33638e] p-0 h-auto font-medium ml-2"
-                  >
-                    Réinitialiser les filtres
-                  </Button>
-                )}
               </p>
               <Button variant="outline" className="flex items-center">
                 <ArrowUpDown className="h-4 w-4 mr-2" />

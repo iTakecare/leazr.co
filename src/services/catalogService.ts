@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -7,46 +6,26 @@ import { Product } from "@/types/catalog";
  */
 export const getProducts = async () => {
   try {
-    console.log("Appel de getProducts()");
-    
-    // Récupérer tous les produits, y compris ceux qui sont cachés aux ambassadeurs
-    // Assurons-nous de ne prendre que les produits actifs
+    // Récupérer tous les produits
     const { data: productsData, error: productsError } = await supabase
       .from("products")
       .select("*")
-      .eq("active", true)
       .order("created_at", { ascending: false });
     
-    if (productsError) {
-      console.error("Erreur lors de la récupération des produits:", productsError);
-      throw productsError;
-    }
-    
-    console.log(`Produits récupérés de la base: ${productsData?.length || 0}`);
-    
-    // Log détaillé des produits
-    if (productsData) {
-      productsData.forEach((p, idx) => {
-        console.log(`Produit DB ${idx+1}: ${p.name} (${p.id}) - parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}, active=${p.active}`);
-      });
-    }
+    if (productsError) throw productsError;
     
     // Récupérer tous les prix de variantes
     const { data: variantPricesData, error: variantPricesError } = await supabase
       .from("product_variant_prices")
       .select("*");
     
-    if (variantPricesError) {
-      console.error("Erreur lors de la récupération des prix de variantes:", variantPricesError);
-      throw variantPricesError;
-    }
-    
-    console.log(`Prix de variantes récupérés: ${variantPricesData?.length || 0}`);
+    if (variantPricesError) throw variantPricesError;
     
     // Associer les prix de variantes aux produits correspondants
     const productsWithVariants = productsData.map((product) => {
       // Filtrer les prix de variantes pour ce produit
       const productVariantPrices = variantPricesData.filter((price) => price.product_id === product.id);
+      console.log(`Product ${product.name}: Found ${productVariantPrices.length} variant prices`);
       
       // Déterminer si c'est un produit parent
       const isParent = product.is_parent || 
@@ -61,15 +40,6 @@ export const getProducts = async () => {
         updatedAt: product.updated_at
       };
     });
-    
-    console.log(`Produits traités et retournés: ${productsWithVariants.length}`);
-    
-    // Vérification supplémentaire
-    if (productsWithVariants.length <= 1) {
-      console.error("ALERTE: Moins de 2 produits retournés par getProducts(). Voici les détails de la requête:");
-      console.error("URL de la base:", supabase.supabaseUrl);
-      console.error("Requête SQL équivalente:", `SELECT * FROM products WHERE active = true ORDER BY created_at DESC`);
-    }
     
     return productsWithVariants;
   } catch (error) {
