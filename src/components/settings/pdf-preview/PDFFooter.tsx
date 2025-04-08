@@ -15,7 +15,7 @@ interface PDFFooterProps {
 const PDFFooter: React.FC<PDFFooterProps> = ({
   pageNumber,
   totalPages,
-  companyName = "iTakeCare",
+  companyName = "iTakecare",
   companyAddress = "Avenue du Général Michel 1E, 6000 Charleroi, Belgique",
   companySiret = "TVA: BE 0795.642.894",
   companyContact = "Tel: +32 471 511 121 - Email: hello@itakecare.be",
@@ -23,16 +23,38 @@ const PDFFooter: React.FC<PDFFooterProps> = ({
   zoomLevel = 1
 }) => {
   return (
-    <div className="w-full bg-gray-50 border-t pt-2">
+    <div className="w-full" style={{ 
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: 'linear-gradient(to right, #1A2C3A, #2C4356)',
+      borderTop: '3px solid #FFB74D',
+      color: 'white',
+      padding: `${10 * zoomLevel}px`
+    }}>
       <div className="text-center">
-        <p className="text-xs font-bold">{pageNumber} / {totalPages}</p>
-        <p className="text-xs text-center mt-1 font-bold">{footerText}</p>
-        <div className="flex justify-center items-center mt-1">
-          <p className="text-[8px] text-center text-gray-600">
+        <p className="text-xs text-center font-bold text-white mb-1" style={{ 
+          fontSize: `${11 * zoomLevel}px`,
+          margin: 0
+        }}>
+          {footerText}
+        </p>
+        <div className="flex justify-center items-center">
+          <p className="text-center text-white opacity-80" style={{ 
+            fontSize: `${9 * zoomLevel}px`,
+            margin: '3px 0'
+          }}>
             {companyName} - {companyAddress}<br />
             {companySiret} - {companyContact}
           </p>
         </div>
+        <p className="text-xs font-medium text-white opacity-80 mt-1" style={{ 
+          fontSize: `${9 * zoomLevel}px`,
+          margin: '3px 0'
+        }}>
+          {pageNumber} / {totalPages}
+        </p>
       </div>
     </div>
   );
