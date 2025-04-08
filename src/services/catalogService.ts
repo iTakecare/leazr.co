@@ -10,6 +10,7 @@ export const getProducts = async () => {
     console.log("Appel de getProducts()");
     
     // Récupérer tous les produits, y compris ceux qui sont cachés aux ambassadeurs
+    // Assurons-nous de ne prendre que les produits actifs
     const { data: productsData, error: productsError } = await supabase
       .from("products")
       .select("*")
@@ -21,7 +22,14 @@ export const getProducts = async () => {
       throw productsError;
     }
     
-    console.log(`Produits récupérés: ${productsData?.length || 0}`);
+    console.log(`Produits récupérés de la base: ${productsData?.length || 0}`);
+    
+    // Log détaillé des produits
+    if (productsData) {
+      productsData.forEach((p, idx) => {
+        console.log(`Produit DB ${idx+1}: ${p.name} (${p.id}) - parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}, active=${p.active}`);
+      });
+    }
     
     // Récupérer tous les prix de variantes
     const { data: variantPricesData, error: variantPricesError } = await supabase
@@ -56,10 +64,12 @@ export const getProducts = async () => {
     
     console.log(`Produits traités et retournés: ${productsWithVariants.length}`);
     
-    // Log des produits pour le débogage
-    productsWithVariants.forEach((product, index) => {
-      console.log(`Produit ${index + 1}: ${product.name} (ID: ${product.id})`);
-    });
+    // Vérification supplémentaire
+    if (productsWithVariants.length <= 1) {
+      console.error("ALERTE: Moins de 2 produits retournés par getProducts(). Voici les détails de la requête:");
+      console.error("URL de la base:", supabase.supabaseUrl);
+      console.error("Requête SQL équivalente:", `SELECT * FROM products WHERE active = true ORDER BY created_at DESC`);
+    }
     
     return productsWithVariants;
   } catch (error) {

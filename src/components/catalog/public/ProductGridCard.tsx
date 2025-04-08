@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -31,9 +32,16 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   
+  // Vérification de sécurité pour le produit
   useEffect(() => {
+    if (!product || !product.id) {
+      console.error("ProductGridCard: Produit invalide reçu", product);
+      return;
+    }
+    
     console.log(`Rendering ProductGridCard for: ${product.name} (${product.id})`);
     
+    // Vérification explicite des variantes
     if (product.is_variation || product.parent_id) {
       console.log(`Skipping variant product: ${product.name}`);
     }
@@ -43,7 +51,14 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     setHasError(false);
   }, [product]);
   
-  if (product.is_variation || product.parent_id) {
+  // Protection supplémentaire contre les produits invalides
+  if (!product || !product.id) {
+    console.error("ProductGridCard: Produit null ou sans ID");
+    return null;
+  }
+  
+  // Vérification avec une garde stricte pour les variantes
+  if ((product.is_variation === true) || (product.parent_id !== null && product.parent_id !== undefined && product.parent_id !== '')) {
     console.log(`Product ${product.name} est une variante, ne pas l'afficher directement`);
     return null;
   }

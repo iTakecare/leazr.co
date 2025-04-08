@@ -25,6 +25,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { toast } from "sonner";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
@@ -39,6 +40,13 @@ const PublicCatalog = () => {
   useEffect(() => {
     console.log("Produits chargés:", products);
     console.log("Nombre total de produits:", products.length);
+    
+    // Afficher les détails de chaque produit pour le débogage
+    products.forEach((p, index) => {
+      console.log(`Produit ${index + 1}: ${p.name} (ID: ${p.id})`);
+      console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}, active: ${p.active}`);
+      console.log(`- variant_combination_prices: ${p.variant_combination_prices?.length || 0}`);
+    });
   }, [products]);
 
   // Utilisation du hook useProductFilter pour la filtration
@@ -63,22 +71,40 @@ const PublicCatalog = () => {
   useEffect(() => {
     if (filteredProducts && filteredProducts.length > 0) {
       console.log("Produits filtrés:", filteredProducts.length);
+      // Afficher les détails des produits filtrés
+      filteredProducts.forEach((p, index) => {
+        console.log(`Produit filtré ${index + 1}: ${p.name} (ID: ${p.id})`);
+        console.log(`- is_variation: ${p.is_variation}, parent_id: ${p.parent_id}`);
+      });
+    } else {
+      console.log("Aucun produit filtré ou tableau vide");
     }
   }, [filteredProducts]);
 
   const groupedProducts = React.useMemo(() => {
-    if (!filteredProducts) return [];
+    if (!filteredProducts) {
+      console.log("filteredProducts est null ou undefined");
+      return [];
+    }
     
     console.log("Filtration en cours. Produits filtrés à traiter:", filteredProducts.length);
     
-    // Ne filtrer que les produits qui ne sont pas des variantes et qui n'ont pas de parent_id
+    // IMPORTANT: Désactivons temporairement le filtre pour voir tous les produits
+    // Nous allons afficher tous les produits sauf ceux qui sont explicitement des variantes
+    // Avant, nous filtrions trop strictement
     const parentProducts = filteredProducts.filter(p => {
-      const isVariation = p.is_variation === true || p.parent_id != null;
-      console.log(`Produit ${p.name} (${p.id}): isVariation=${isVariation}, parent_id=${p.parent_id}`);
-      return !isVariation;
+      const isVariant = p.is_variation === true || p.parent_id !== null && p.parent_id !== undefined && p.parent_id !== '';
+      console.log(`Vérification filtrage: ${p.name} (${p.id}) - isVariant=${isVariant}, parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}`);
+      return !isVariant;
     });
     
-    console.log("Nombre de produits parents trouvés:", parentProducts.length);
+    console.log("Nombre de produits parents après filtrage:", parentProducts.length);
+    if (parentProducts.length <= 1) {
+      console.log("ALERTE: Moins de 2 produits après filtrage. Liste complète des produits filtrés:");
+      filteredProducts.forEach((p, idx) => {
+        console.log(`  ${idx+1}. ${p.name} (${p.id}) - parent_id=${p.parent_id || 'none'}, is_variation=${p.is_variation || false}`);
+      });
+    }
     
     const variantMap = new Map<string, Product[]>();
     
@@ -112,11 +138,12 @@ const PublicCatalog = () => {
     console.log("Produits groupés:", groupedProducts.length);
     
     if (groupedProducts.length > 0) {
-      console.log("Premier produit:", groupedProducts[0]);
+      console.log("Premier produit groupé:", groupedProducts[0].name);
     }
     
     if (groupedProducts.length <= 1) {
       console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
+      toast.error("Problème d'affichage des produits. Contactez l'administrateur.");
     }
   }, [groupedProducts]);
 
