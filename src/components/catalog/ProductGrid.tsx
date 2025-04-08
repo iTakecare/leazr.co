@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import ProductCard from "@/components/ui/ProductCard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/hooks/auth/useAuth"; 
 
 interface ProductGridProps {
   products: Product[];
@@ -14,20 +13,13 @@ interface ProductGridProps {
 
 const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
   const isMobile = useIsMobile();
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  
-  // Filtre les produits admin_only si l'utilisateur n'est pas admin
-  const filteredProducts = isAdmin 
-    ? products 
-    : products.filter(p => !p.admin_only);
   
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
 
-  if (!filteredProducts || filteredProducts.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-md p-6">
         <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
@@ -39,11 +31,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
     );
   }
 
-  console.log("Rendering products grid with", filteredProducts.length, "products");
+  console.log("Rendering products grid with", products.length, "products");
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-      {filteredProducts.map((product) => (
+      {products.map((product) => (
         <motion.div key={product.id} variants={itemVariants}>
           <Link
             to={`/products/${product.id}`}
