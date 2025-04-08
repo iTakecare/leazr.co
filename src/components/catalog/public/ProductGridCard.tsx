@@ -2,7 +2,7 @@
 import React from "react";
 import { Product } from "@/types/catalog";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 interface ProductGridCardProps {
@@ -65,13 +65,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
             <div>
               <div className="font-semibold text-lg text-[#33638e]">
                 {hasVariants 
-                  ? `À partir de ${formatPrice(product.price)}` 
-                  : formatPrice(product.price)
+                  ? `À partir de ${formatCurrency(product.price)}` 
+                  : formatCurrency(product.price)
                 }
               </div>
               {product.monthly_price > 0 && (
                 <div className="text-sm text-gray-600">
-                  soit {formatPrice(product.monthly_price)}/mois
+                  soit {formatCurrency(product.monthly_price)}/mois
                 </div>
               )}
             </div>
