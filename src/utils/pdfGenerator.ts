@@ -32,7 +32,7 @@ export const generateOfferPdf = async (offerData) => {
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait',
+        orientation: 'portrait' as 'portrait', // Explicitly type as literal 'portrait'
         compress: true,
         putOnlyUsedFonts: true
       },
