@@ -1,4 +1,3 @@
-
 import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
@@ -36,7 +35,7 @@ export const generateOfferPdf = async (offerData) => {
         compress: true,
         putOnlyUsedFonts: true
       },
-      pagebreak: { mode: ['css', 'avoid-all'] } // Changed to avoid extra page breaks
+      pagebreak: { mode: ['css', 'avoid-all'] } // Éviter les sauts de page
     };
     
     // Créer un div temporaire pour le rendu
@@ -44,21 +43,21 @@ export const generateOfferPdf = async (offerData) => {
     tempDiv.innerHTML = htmlContent;
     tempDiv.style.width = '210mm'; // Largeur A4
     tempDiv.style.height = '297mm'; // Hauteur A4
-    tempDiv.style.position = 'relative'; // Ensure positioning works correctly
-    tempDiv.style.overflow = 'hidden'; // Empêcher le dépassement qui pourrait créer une nouvelle page
+    tempDiv.style.position = 'relative'; // Pour le positionnement correct
+    tempDiv.style.overflow = 'hidden'; // Empêcher le dépassement
     document.body.appendChild(tempDiv);
     
     console.log("Conversion en PDF...");
-    console.log("Contenu HTML:", tempDiv.innerHTML.substring(0, 500) + "...");
     
-    // Générer le PDF
+    // Générer le PDF en utilisant une chaîne de méthodes plus claire
+    // et en forçant explicitement à une seule page
     const pdf = await html2pdf()
       .set(options)
       .from(tempDiv)
-      .toPdf() // Use chain method
+      .toPdf()
       .get('pdf')
       .then(function(pdfObject) {
-        // Force to one page only
+        // Forcer à une seule page
         if (pdfObject.internal.getNumberOfPages() > 1) {
           for (let i = pdfObject.internal.getNumberOfPages(); i > 1; i--) {
             pdfObject.deletePage(i);

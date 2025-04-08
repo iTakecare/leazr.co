@@ -14,7 +14,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
     <div
       className="relative"
       style={{
-        padding: `${15 * scaleFactor}px`,
+        padding: `${10 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -34,8 +34,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       <div
         className="border border-dashed rounded-md mx-auto flex items-center justify-center"
         style={{
-          width: `${250 * scaleFactor}px`,
-          height: `${80 * scaleFactor}px`,
+          width: `${220 * scaleFactor}px`,
+          height: `${70 * scaleFactor}px`,
           backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderColor: "#94a3b8",
           borderRadius: "8px",
