@@ -17,6 +17,7 @@ export interface Product {
   active: boolean;
   model?: string;
   stock?: number;
+  admin_only?: boolean; // Added for admin-only products
   
   // WooCommerce compatibility fields
   slug?: string;
