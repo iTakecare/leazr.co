@@ -194,7 +194,7 @@ const ProductEditPage = () => {
       
       const dataToUpdate = {
         ...formData,
-        admin_only: formData.admin_only || false
+        admin_only: formData.admin_only === true
       };
       
       console.log("Submitting data with admin_only:", dataToUpdate.admin_only);
@@ -251,7 +251,22 @@ const ProductEditPage = () => {
     
     setFormData(prev => ({ ...prev, admin_only: checked }));
     
-    updateMutation.mutate({ admin_only: checked });
+    if (id) {
+      toast.loading("Mise à jour du statut admin...");
+      updateMutation.mutate({ 
+        admin_only: checked 
+      }, {
+        onSuccess: () => {
+          toast.dismiss();
+          toast.success(`Produit ${checked ? 'réservé' : 'accessible'} aux administrateurs`);
+        },
+        onError: (err) => {
+          toast.dismiss();
+          toast.error(`Erreur lors de la mise à jour: ${err.message}`);
+          setFormData(prev => ({ ...prev, admin_only: !checked }));
+        }
+      });
+    }
   };
 
   if (isLoading) {
@@ -351,7 +366,7 @@ const ProductEditPage = () => {
                     </div>
                   </div>
                   <Switch 
-                    checked={formData.admin_only || false}
+                    checked={!!formData.admin_only}
                     onCheckedChange={handleAdminOnlyChange}
                   />
                 </div>
