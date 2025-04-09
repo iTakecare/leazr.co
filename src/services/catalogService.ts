@@ -1,16 +1,29 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/catalog";
 
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-export const getProducts = async () => {
+export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnly?: boolean }) => {
   try {
+    // Normalize the parameter
+    let showAdminOnly = false;
+    if (typeof includeAdminOnly === 'boolean') {
+      showAdminOnly = includeAdminOnly;
+    } else if (includeAdminOnly && typeof includeAdminOnly === 'object' && 'includeAdminOnly' in includeAdminOnly) {
+      showAdminOnly = !!includeAdminOnly.includeAdminOnly;
+    }
+
     // Récupérer tous les produits
-    const { data: productsData, error: productsError } = await supabase
+    let query = supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
+    
+    // Filter out admin_only products unless explicitly requested
+    if (!showAdminOnly) {
+      query = query.or('admin_only.is.null,admin_only.eq.false');
+    }
+    
+    const { data: productsData, error: productsError } = await query;
     
     if (productsError) throw productsError;
     
