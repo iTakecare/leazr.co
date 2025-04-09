@@ -68,7 +68,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products-catalog", isOpen],
-    queryFn: () => getProducts(), // Update to use function call pattern
+    queryFn: getProducts,
     enabled: isOpen,
   });
 

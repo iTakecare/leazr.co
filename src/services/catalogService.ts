@@ -2,30 +2,14 @@
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/catalog";
-
-export const getProducts = async (params?: any) => {
+export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnly?: boolean }) => {
   try {
-    // Normalize the parameter - handles both direct boolean and object parameter styles
+    // Normalize the parameter
     let showAdminOnly = false;
-    if (typeof params === 'boolean') {
-      showAdminOnly = params;
-    } else if (params && typeof params === 'object') {
-      // Handle both object styles: {includeAdminOnly: true} and QueryFunctionContext
-      if ('includeAdminOnly' in params) {
-        showAdminOnly = !!params.includeAdminOnly;
-      } else if (params.queryKey && Array.isArray(params.queryKey)) {
-        // Support for QueryFunctionContext when used directly with useQuery's queryFn
-        const includeAdminOnlyParam = params.queryKey.find(key => typeof key === 'boolean' || 
-          (typeof key === 'object' && key !== null && 'includeAdminOnly' in key));
-        
-        if (typeof includeAdminOnlyParam === 'boolean') {
-          showAdminOnly = includeAdminOnlyParam;
-        } else if (includeAdminOnlyParam && typeof includeAdminOnlyParam === 'object') {
-          showAdminOnly = !!includeAdminOnlyParam.includeAdminOnly;
-        }
-      }
+    if (typeof includeAdminOnly === 'boolean') {
+      showAdminOnly = includeAdminOnly;
+    } else if (includeAdminOnly && typeof includeAdminOnly === 'object' && 'includeAdminOnly' in includeAdminOnly) {
+      showAdminOnly = !!includeAdminOnly.includeAdminOnly;
     }
 
     // Récupérer tous les produits

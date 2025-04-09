@@ -32,7 +32,7 @@ const PublicCatalog = () => {
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: () => getProducts(), // Update to use function call pattern
+    queryFn: getProducts,
   });
 
   // Utilisation du hook useProductFilter pour la filtration
