@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { formatCurrency } from "@/utils/formatters";
 import ProductDescription from "@/components/product-detail/ProductDescription";
 import ProductSpecificationsTable from "@/components/product-detail/ProductSpecificationsTable";
 import { motion } from "framer-motion";
+import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 
 const AmbassadorProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -20,12 +22,19 @@ const AmbassadorProductDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId!),
     enabled: !!productId,
   });
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1) {
+      setQuantity(newQuantity);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -127,6 +136,15 @@ const AmbassadorProductDetail = () => {
                 </Badge>
               )}
             </div>
+
+            {product.category && (
+              <div className="mb-4">
+                <CO2SavingsCalculator 
+                  category={product.category} 
+                  quantity={quantity}
+                />
+              </div>
+            )}
 
             <div className="mb-6">
               {product.monthly_price ? (

@@ -376,26 +376,10 @@ const ProductDetailPage = () => {
                 
                 {productCategory && (
                   <div className="mb-3">
-                    <div className="bg-blue-50 rounded-md p-2 border border-blue-100">
-                      <div className="flex items-center gap-1 mb-1 text-blue-700 text-xs font-medium">
-                        <Info className="h-3 w-3" />
-                        Impact environnemental positif
-                      </div>
-                      <div className="grid grid-cols-3 gap-1 text-xs">
-                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
-                          <span className="font-bold text-green-600">170 kg</span>
-                          <span className="text-gray-500 text-[10px]">CO2</span>
-                        </div>
-                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
-                          <span className="font-bold text-blue-600">1020 km</span>
-                          <span className="text-gray-500 text-[10px]">en voiture</span>
-                        </div>
-                        <div className="flex flex-col items-center justify-center p-1 bg-white rounded">
-                          <span className="font-bold text-amber-600">9 mois</span>
-                          <span className="text-gray-500 text-[10px]">d'un arbre</span>
-                        </div>
-                      </div>
-                    </div>
+                    <CO2SavingsCalculator 
+                      category={productCategory} 
+                      quantity={quantity}
+                    />
                   </div>
                 )}
                 
