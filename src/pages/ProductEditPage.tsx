@@ -112,6 +112,7 @@ const ProductEditPage = () => {
   
   const [activeTab, setActiveTab] = useState("details");
   const [updatingMainImage, setUpdatingMainImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { product, isLoading, error, updateLocalProduct } = useProductById(id || "");
   
@@ -146,7 +147,8 @@ const ProductEditPage = () => {
     },
     onError: (error: any) => {
       console.error("Error in updateProduct:", error);
-      toast.error(`Erreur lors de la mise à jour: ${error.message || "Erreur inconnue"}`);
+      toast.error(`Erreur lors de la mise à jour: ${error.message || "Produit introuvable ou problème de connexion"}`);
+      setIsSubmitting(false);
     }
   });
   
@@ -180,14 +182,17 @@ const ProductEditPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!id) return;
+    if (!id) {
+      toast.error("ID du produit manquant");
+      return;
+    }
     
     try {
       toast.info("Mise à jour du produit en cours...");
+      setIsSubmitting(true);
       await updateMutation.mutateAsync(formData);
     } catch (error: any) {
       console.error("Error updating product:", error);
-      toast.error(`Erreur lors de la mise à jour: ${error.message}`);
     }
   };
   
