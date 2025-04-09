@@ -42,6 +42,8 @@ const PartnerOffersTable = () => {
           equipment_description,
           amount,
           monthly_payment,
+          coefficient,
+          financed_amount,
           status
         `)
         .eq('user_id', user.id)
@@ -50,7 +52,20 @@ const PartnerOffersTable = () => {
 
       if (error) throw error;
       
-      setOffers(data || []);
+      // Process offers to calculate financed_amount if missing
+      const processedOffers = (data || []).map(offer => {
+        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
+          const coefficient = offer.coefficient || 3.27;
+          const calculatedAmount = (offer.monthly_payment * 100) / coefficient;
+          return {
+            ...offer,
+            financed_amount: calculatedAmount
+          };
+        }
+        return offer;
+      });
+      
+      setOffers(processedOffers);
     } catch (error) {
       console.error("Error fetching offers:", error);
       toast.error("Erreur lors du chargement des offres");

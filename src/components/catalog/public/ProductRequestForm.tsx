@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -71,6 +70,11 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
 
       const equipmentDescription = `${product?.name} ${quantity > 1 ? `(${quantity} unités)` : ''} - ${optionsDescription ? `Options: ${optionsDescription}` : 'Configuration standard'} - Durée: ${duration} mois`;
 
+      // Calculer le montant financé à partir de la mensualité
+      // Utiliser le coefficient standard 3.27 pour les demandes client
+      const defaultCoefficient = 3.27;
+      const financedAmount = (monthlyPrice * 100) / defaultCoefficient;
+
       const requestData = {
         client_name: formData.name,
         client_email: formData.email,
@@ -80,6 +84,8 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         message: formData.message,
         amount: ((product?.price || 0) * quantity),
         monthly_payment: monthlyPrice,
+        financed_amount: financedAmount,
+        coefficient: defaultCoefficient,
         quantity: quantity,
         duration: duration,
         phone: formData.phone

@@ -159,7 +159,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
-                      {formatCurrency(offer.financed_amount)}
+                      {offer.financed_amount ? formatCurrency(offer.financed_amount) : 
+                        offer.monthly_payment ? formatCurrency((offer.monthly_payment * 100) / (offer.coefficient || 3.27)) : "N/A"}
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium">

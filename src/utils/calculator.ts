@@ -162,7 +162,10 @@ export const calculateFinancedAmount = (monthlyPayment: number, coefficient: num
   if (!coefficient || coefficient <= 0 || !monthlyPayment) return 0;
   
   // Application stricte de la formule: (mensualité × 100) ÷ coefficient
-  return (monthlyPayment * 100) / coefficient;
+  const financedAmount = (monthlyPayment * 100) / coefficient;
+  
+  // Arrondir à 2 décimales pour éviter les problèmes d'imprécision
+  return Math.round(financedAmount * 100) / 100;
 };
 
 // Cache de calcul de commission pour éviter les calculs répétitifs

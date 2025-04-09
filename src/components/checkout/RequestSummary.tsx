@@ -61,6 +61,9 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       let formattedPhone = contactData.phone || '';
       formattedPhone = formattedPhone.replace(/^\+(\d+)\s0/, '+$1 ');
       
+      const defaultCoefficient = 3.27;
+      const financedAmount = (totalMonthly * 100) / defaultCoefficient;
+      
       const requestData = {
         client_name: contactData.name,
         client_email: contactData.email || companyData.email,
@@ -72,6 +75,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         equipment_description: equipmentDescription,
         amount: totalMonthly * 36,
         monthly_payment: totalMonthly,
+        financed_amount: financedAmount,
+        coefficient: defaultCoefficient,
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         duration: 36,
         address: contactData.address,

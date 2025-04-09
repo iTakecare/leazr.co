@@ -1,108 +1,85 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-export interface Offer {
-  id: string;
-  client_name: string;
-  client_id?: string;
-  client_email?: string; // Added this field
-  amount: number;
-  monthly_payment: number;
-  commission?: number;
-  workflow_status: string;
-  equipment_description?: string;
-  created_at: string;
-  user_id: string;
-  type: string;
-  converted_to_contract: boolean;
-  ambassador_id?: string;
-  ambassador_name?: string;
-  clients?: {
-    id?: string;
-    name?: string;
-    email?: string;
-    company?: string;
-  };
-}
+import { getAllOffers } from "@/services/offers";
+import { supabase } from "@/integrations/supabase/client";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 export const useFetchOffers = () => {
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
-  
+
   const fetchOffers = async () => {
+    setLoading(true);
+    setLoadingError(null);
+
     try {
-      setLoading(true);
-      setLoadingError(null);
-      
-      let query = supabase
-        .from('offers')
-        .select(`
-          *,
-          clients:client_id (
-            id,
-            name,
-            email,
-            company
-          )
-        `)
-        .order('created_at', { ascending: false });
-      
-      // Si on ne veut pas inclure les offres converties en contrat
-      if (!includeConverted) {
-        query = query.eq('converted_to_contract', false);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await getAllOffers();
       
       if (error) {
-        throw error;
+        console.error("Error fetching offers:", error);
+        setLoadingError(error);
+        toast.error("Erreur lors du chargement des offres");
+        return;
       }
       
-      // Si nous avons des offres d'ambassadeurs, récupérer les informations des ambassadeurs
-      const transformedOffers = await Promise.all((data || []).map(async (offer) => {
-        let ambassador_name = null;
-        
-        // Si c'est une offre d'ambassadeur et qu'on a un ID d'ambassadeur
-        if (offer.type === 'ambassador_offer' && offer.ambassador_id) {
-          try {
-            const { data: ambassadorData, error: ambassadorError } = await supabase
-              .from('ambassadors')
-              .select('name')
-              .eq('id', offer.ambassador_id)
-              .single();
-              
-            if (!ambassadorError && ambassadorData) {
-              ambassador_name = ambassadorData.name;
-            }
-          } catch (err) {
-            console.error("Erreur lors de la récupération de l'ambassadeur:", err);
+      if (data) {
+        // Process each offer to ensure financed_amount is calculated if not present
+        const processedOffers = data.map(offer => {
+          // If financed_amount is missing or zero but we have monthly_payment
+          if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
+            // Get coefficient - either from the offer or use a default of 3.27
+            const coefficient = offer.coefficient || 3.27;
+            
+            // Calculate and add financed amount
+            const calculatedAmount = calculateFinancedAmount(offer.monthly_payment, coefficient);
+            
+            console.log(`Calculated missing financed amount for offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
+            
+            return {
+              ...offer,
+              financed_amount: calculatedAmount
+            };
           }
-        }
+          return offer;
+        });
         
-        return {
-          ...offer,
-          ambassador_name
-        };
-      }));
-      
-      setOffers(transformedOffers);
-    } catch (error: any) {
-      console.error("Error fetching offers:", error);
-      setLoadingError(`Erreur lors du chargement des offres: ${error.message}`);
+        setOffers(processedOffers);
+      } else {
+        setOffers([]);
+      }
+    } catch (err: any) {
+      console.error("Error in fetchOffers:", err);
+      setLoadingError(err);
       toast.error("Erreur lors du chargement des offres");
     } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchOffers();
+    
+    // Listen for real-time updates
+    const channel = supabase
+      .channel('offers-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'offers' 
+      }, () => {
+        console.log('Offer change detected, refreshing...');
+        fetchOffers();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [includeConverted]);
-  
+
   return {
     offers,
     loading,

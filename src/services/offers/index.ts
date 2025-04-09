@@ -64,6 +64,23 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       );
       console.log(`Calcul du montant financé pour la création: ${financedAmount}€`);
       dataToSave.financed_amount = financedAmount;
+    } else if (dataToSave.monthly_payment) {
+      // Si nous avons seulement la mensualité mais pas le coefficient, utiliser la valeur par défaut 3.27
+      const defaultCoefficient = 3.27;
+      console.log(`Aucun coefficient fourni, utilisation de la valeur par défaut: ${defaultCoefficient}`);
+      
+      const financedAmount = calculateFinancedAmount(
+        Number(dataToSave.monthly_payment),
+        defaultCoefficient
+      );
+      
+      console.log(`Calcul du montant financé avec coefficient par défaut: ${financedAmount}€`);
+      dataToSave.financed_amount = financedAmount;
+      
+      // Définir également le coefficient par défaut dans les données à sauvegarder
+      if (!dataToSave.coefficient) {
+        dataToSave.coefficient = defaultCoefficient;
+      }
     }
 
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);

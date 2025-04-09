@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 const supabase = getSupabaseClient();
 
@@ -14,6 +15,8 @@ export interface ClientOffer {
   status: string;
   workflow_status?: string;
   type: string;
+  financed_amount?: number;
+  coefficient?: number;
 }
 
 export const useClientOffers = (includeActive = true) => {
@@ -42,7 +45,27 @@ export const useClientOffers = (includeActive = true) => {
         throw new Error(error.message);
       }
 
-      setOffers(data || []);
+      // Process the data to ensure financed_amount is calculated for all offers
+      const processedData = (data || []).map(offer => {
+        // If financed_amount is missing or zero but we have monthly_payment
+        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
+          // Get coefficient - either from the offer or use a default of 3.27
+          const coefficient = offer.coefficient || 3.27;
+          
+          // Calculate and add financed amount
+          const calculatedAmount = calculateFinancedAmount(offer.monthly_payment, coefficient);
+          
+          console.log(`Calculated missing financed amount for client offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
+          
+          return {
+            ...offer,
+            financed_amount: calculatedAmount
+          };
+        }
+        return offer;
+      });
+
+      setOffers(processedData || []);
     } catch (err: any) {
       setError(err.message);
       console.error("Erreur lors de la récupération des offres:", err);
