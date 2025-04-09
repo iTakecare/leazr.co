@@ -31,7 +31,7 @@ const PublicCatalog = () => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "public", false],
+    queryKey: ["products"],
     queryFn: getProducts,
   });
 

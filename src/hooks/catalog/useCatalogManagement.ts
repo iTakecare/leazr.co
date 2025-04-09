@@ -1,37 +1,59 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
-import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
-import { useNavigate } from "react-router-dom";
 
 export const useCatalogManagement = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const queryClient = useQueryClient();
-
-  const { 
-    data: products = [], 
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ["products", true],
-    queryFn: () => getProducts(true),
-  });
-
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("catalog");
   const [viewMode, setViewMode] = useState<"grid" | "accordion">("accordion");
   const [groupingOption, setGroupingOption] = useState<"model" | "brand">("model");
   
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  // Fetch products
+  const { data: productsData = [], isLoading, error, refetch } = useQuery({
+    queryKey: ["products"],
+    queryFn: getProducts,
+  });
   
   // Enhanced products processing with better variant detection
-  const productsData = useMemo(() => {
-    return products;
-  }, [products]);
+  const products = React.useMemo(() => {
+    // Add debug logging
+    console.log("Processing products in useCatalogManagement:", productsData.length);
+    
+    // Check each product for variants
+    const processedProducts = productsData.map(product => {
+      // Determine if this product has variants or is a variant
+      const isParent = product.is_parent || 
+                       (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+                       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
+                       
+      // Count variants if this is a parent product
+      const variantCount = product.variant_combination_prices?.length || 0;
+      
+      // Log details for debugging
+      console.log(`Product ${product.name} (${product.id}):`, {
+        isParent,
+        variantCount,
+        hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0,
+        hasCombinationPrices: product.variant_combination_prices && product.variant_combination_prices.length > 0
+      });
+      
+      return {
+        ...product,
+        is_parent: isParent
+      };
+    });
+    
+    console.log("Products with variants:", processedProducts.filter(p => p.is_parent).length);
+    
+    return processedProducts;
+  }, [productsData]);
   
   // Handle adding a new product
   const handleAddNewProduct = () => {
@@ -64,7 +86,7 @@ export const useCatalogManagement = () => {
   };
   
   return {
-    products: productsData,
+    products,
     isLoading,
     error,
     isAddProductOpen,

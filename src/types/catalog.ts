@@ -1,3 +1,4 @@
+
 // Product type definition
 export interface Product {
   id: string;
@@ -16,7 +17,6 @@ export interface Product {
   active: boolean;
   model?: string;
   stock?: number;
-  admin_only?: boolean; // Added admin_only property
   
   // WooCommerce compatibility fields
   slug?: string;

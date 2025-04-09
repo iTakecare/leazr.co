@@ -16,7 +16,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ category, currentProd
     queryKey: ["products", { category }],
     queryFn: async () => {
       // Get all products and filter by category
-      const allProducts = await getProducts(true); // Pass true to include admin-only products
+      const allProducts = await getProducts();
       return allProducts.filter(product => product.category === category);
     },
   });

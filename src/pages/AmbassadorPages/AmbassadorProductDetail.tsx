@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Container from "@/components/layout/Container";
-import { ArrowLeft, Layers, Check, Box, Info, Wrench, Shield, LifeBuoy, RefreshCw, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Layers, Check, Box, Info, Wrench, Shield, LifeBuoy, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/utils/formatters";
@@ -133,13 +133,6 @@ const AmbassadorProductDetail = () => {
                 <Badge variant="outline" className="bg-purple-100 text-purple-800 flex items-center gap-1">
                   <Layers className="h-3.5 w-3.5" />
                   {variants.length} configuration{variants.length > 1 ? 's' : ''}
-                </Badge>
-              )}
-              
-              {product.admin_only && (
-                <Badge variant="outline" className="bg-red-100 text-red-800 flex items-center gap-1">
-                  <ShieldAlert className="h-3.5 w-3.5" />
-                  Non public
                 </Badge>
               )}
             </div>
