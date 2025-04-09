@@ -39,9 +39,27 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     setHasError(false);
   }, [product]);
   
-  if (product.is_variation || product.parent_id) {
-    return null;
-  }
+  // Debug info
+  const debugProduct = () => {
+    console.log(`ProductGridCard ${product.name} (${product.id}):`);
+    console.log(`- parent_id: ${product.parent_id || 'none'}`);
+    console.log(`- is_parent: ${product.is_parent}`);
+    console.log(`- is_variation: ${product.is_variation}`);
+    console.log(`- variant_combination_prices: ${product.variant_combination_prices?.length || 0}`);
+    console.log(`- variation_attributes: ${JSON.stringify(product.variation_attributes)}`);
+    console.log(`- variants: ${product.variants?.length || 0}`);
+    console.log(`- price: ${product.price}, monthly_price: ${product.monthly_price}`);
+  };
+  
+  // Run debug on mount
+  useEffect(() => {
+    debugProduct();
+  }, []);
+
+  // Removed the filtering condition that prevented some products from displaying
+  // if (product.is_variation || product.parent_id) {
+  //   return null;
+  // }
 
   const brandLabel = product.brand || "Generic";
   
@@ -78,6 +96,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           console.log(`Using variant price: ${minPrice}`);
         }
       }
+    }
+    
+    // If we still don't have a monthly price, use the regular price
+    if (minPrice === 0 && product.price) {
+      minPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price.toString());
+      console.log(`Using regular price as fallback: ${minPrice}`);
     }
     
     return minPrice;
