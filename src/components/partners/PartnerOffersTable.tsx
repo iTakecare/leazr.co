@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +20,7 @@ import {
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
 const PartnerOffersTable = () => {
   const { user } = useAuth();
@@ -56,7 +56,10 @@ const PartnerOffersTable = () => {
       const processedOffers = (data || []).map(offer => {
         if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
           const coefficient = offer.coefficient || 3.27;
-          const calculatedAmount = (offer.monthly_payment * 100) / coefficient;
+          const calculatedAmount = calculateFinancedAmount(
+            Number(offer.monthly_payment), 
+            Number(coefficient)
+          );
           return {
             ...offer,
             financed_amount: calculatedAmount

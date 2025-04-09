@@ -52,8 +52,11 @@ export const useClientOffers = (includeActive = true) => {
           // Get coefficient - either from the offer or use a default of 3.27
           const coefficient = offer.coefficient || 3.27;
           
-          // Calculate and add financed amount
-          const calculatedAmount = calculateFinancedAmount(offer.monthly_payment, coefficient);
+          // Calculate and add financed amount - ensure we're using numbers
+          const calculatedAmount = calculateFinancedAmount(
+            Number(offer.monthly_payment), 
+            Number(coefficient)
+          );
           
           console.log(`Calculated missing financed amount for client offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
           

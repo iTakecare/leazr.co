@@ -5,8 +5,41 @@ import { getAllOffers } from "@/services/offers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 
+// Define and export the Offer interface
+export interface Offer {
+  id: string;
+  client_id?: string;
+  client_name: string;
+  client_email?: string;
+  client_company?: string;
+  equipment_description?: string;
+  amount?: number;
+  monthly_payment: number;
+  coefficient?: number;
+  commission?: number;
+  commission_status?: string;
+  commission_paid_at?: string;
+  ambassador_id?: string;
+  ambassador_name?: string;
+  type?: string;
+  workflow_status?: string;
+  status?: string;
+  remarks?: string;
+  additional_info?: string;
+  user_id?: string;
+  converted_to_contract?: boolean;
+  financed_amount?: number;
+  created_at: string;
+  clients?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    company?: string;
+  };
+}
+
 export const useFetchOffers = () => {
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
@@ -34,7 +67,11 @@ export const useFetchOffers = () => {
             const coefficient = offer.coefficient || 3.27;
             
             // Calculate and add financed amount
-            const calculatedAmount = calculateFinancedAmount(offer.monthly_payment, coefficient);
+            // We need to ensure we're passing a number to calculateFinancedAmount
+            const calculatedAmount = calculateFinancedAmount(
+              Number(offer.monthly_payment), 
+              Number(coefficient)
+            );
             
             console.log(`Calculated missing financed amount for offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
             
