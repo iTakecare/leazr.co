@@ -4,13 +4,21 @@ import { Product } from "@/types/catalog";
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-export const getProducts = async () => {
+export const getProducts = async (includeAdminOnly = false) => {
   try {
-    // Récupérer tous les produits
-    const { data: productsData, error: productsError } = await supabase
+    // Préparer la requête pour récupérer tous les produits
+    let query = supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
+    
+    // Filtrer les produits admin_only si demandé
+    if (!includeAdminOnly) {
+      query = query.or('admin_only.is.null,admin_only.eq.false');
+    }
+    
+    // Exécuter la requête
+    const { data: productsData, error: productsError } = await query;
     
     if (productsError) throw productsError;
     

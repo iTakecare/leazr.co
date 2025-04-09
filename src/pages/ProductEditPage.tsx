@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import ProductImageManager from "@/components/catalog/ProductImageManager";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const productCategories = [
   "laptop",
@@ -125,7 +126,8 @@ const ProductEditPage = () => {
         active: product.active !== undefined ? product.active : true,
         specifications: product.specifications || {},
         is_parent: product.is_parent || false,
-        variation_attributes: product.variation_attributes || {}
+        variation_attributes: product.variation_attributes || {},
+        admin_only: product.admin_only || false
       });
     }
   }, [product, id]);
@@ -404,6 +406,18 @@ const ProductEditPage = () => {
                     min="0"
                     step="1"
                   />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="admin_only" 
+                    checked={formData.admin_only} 
+                    onCheckedChange={(checked) => 
+                      setFormData(prev => ({ ...prev, admin_only: !!checked }))}
+                  />
+                  <Label htmlFor="admin_only" className="text-sm font-medium cursor-pointer">
+                    Réserver aux administrateurs et ambassadeurs
+                  </Label>
                 </div>
                 
                 <div className="space-y-2">
