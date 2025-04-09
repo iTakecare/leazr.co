@@ -16,8 +16,8 @@ const AmbassadorCatalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => getProducts(true), // Ambassador can see admin-only products
+    queryKey: ["products", true],
+    queryFn: () => getProducts({ includeAdminOnly: true }), // Ambassador can see admin-only products
   });
   
   const filteredProducts = searchQuery

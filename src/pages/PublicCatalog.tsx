@@ -32,7 +32,7 @@ const PublicCatalog = () => {
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: getProducts,
+    queryFn: () => getProducts({ includeAdminOnly: false }),
   });
 
   // Utilisation du hook useProductFilter pour la filtration

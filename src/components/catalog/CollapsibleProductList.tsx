@@ -25,15 +25,20 @@ import { toast } from "@/components/ui/use-toast";
 interface CollapsibleProductListProps {
   products?: Product[];
   onDeleteProduct: (productId: string) => void;
+  includeAdminOnly?: boolean;
 }
 
-const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }: CollapsibleProductListProps) => {
+const CollapsibleProductList = ({ 
+  products: providedProducts, 
+  onDeleteProduct,
+  includeAdminOnly = false 
+}: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   
   // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
-    queryKey: ["products"],
-    queryFn: getProducts,
+    queryKey: ["products", includeAdminOnly],
+    queryFn: () => getProducts({ includeAdminOnly }),
     enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
   });
 
@@ -114,7 +119,14 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                   />
                 </div>
                 <div>
-                  <h3 className="font-medium">{product.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium">{product.name}</h3>
+                    {product.admin_only && (
+                      <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">
+                        Admin uniquement
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {product.category} • 
                     {!product.is_parent && formatCurrency(product.price || 0)}
@@ -175,6 +187,10 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
                           <li><span className="text-muted-foreground">Mensualité:</span> {formatCurrency(product.monthly_price || 0)}/mois</li>
                         </>
                       )}
+                      <li>
+                        <span className="text-muted-foreground">Visibilité:</span> 
+                        {product.admin_only ? " Administrateurs et ambassadeurs uniquement" : " Public"}
+                      </li>
                     </ul>
                   </div>
                 </div>

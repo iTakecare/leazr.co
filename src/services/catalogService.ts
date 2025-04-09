@@ -1,4 +1,7 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/catalog";
+
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
