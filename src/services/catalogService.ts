@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -439,10 +438,20 @@ export const updateProduct = async (id: string, product: Partial<Product>) => {
       throw new Error(`Product with ID ${id} not found`);
     }
     
+    // Enregistrer la valeur admin_only dans une variable séparée pour le debugging
+    const adminOnly = product.admin_only !== undefined ? product.admin_only : existingProduct.admin_only;
+    console.log(`Updating product ${id} with admin_only:`, adminOnly);
+    
+    // S'assurer que admin_only est inclus dans les données de mise à jour
+    const updatedData = {
+      ...product,
+      admin_only: adminOnly
+    };
+    
     // Procéder à la mise à jour
     const { error } = await supabase
       .from('products')
-      .update(product)
+      .update(updatedData)
       .eq('id', id);
     
     if (error) {
@@ -461,10 +470,10 @@ export const updateProduct = async (id: string, product: Partial<Product>) => {
       console.error('Error fetching updated product:', fetchError);
       // On ne lance pas d'erreur ici car la mise à jour a réussi
       // mais plutôt on retourne le produit original avec les mises à jour appliquées
-      return { ...existingProduct, ...product };
+      return { ...existingProduct, ...updatedData };
     }
     
-    return updatedProduct || { ...existingProduct, ...product };
+    return updatedProduct || { ...existingProduct, ...updatedData };
   } catch (error) {
     console.error('Error in updateProduct:', error);
     throw error;

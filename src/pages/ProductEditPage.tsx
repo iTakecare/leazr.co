@@ -144,6 +144,7 @@ const ProductEditPage = () => {
         updateLocalProduct(updatedProduct);
       }
       toast.success("Produit mis à jour avec succès");
+      setIsSubmitting(false);
     },
     onError: (error: any) => {
       console.error("Error in updateProduct:", error);
@@ -190,7 +191,15 @@ const ProductEditPage = () => {
     try {
       toast.info("Mise à jour du produit en cours...");
       setIsSubmitting(true);
-      await updateMutation.mutateAsync(formData);
+      
+      const dataToUpdate = {
+        ...formData,
+        admin_only: formData.admin_only || false
+      };
+      
+      console.log("Submitting data with admin_only:", dataToUpdate.admin_only);
+      
+      await updateMutation.mutateAsync(dataToUpdate);
     } catch (error: any) {
       console.error("Error updating product:", error);
     }
@@ -235,6 +244,14 @@ const ProductEditPage = () => {
     } finally {
       setUpdatingMainImage(false);
     }
+  };
+
+  const handleAdminOnlyChange = (checked: boolean) => {
+    console.log("Admin only switch changed to:", checked);
+    
+    setFormData(prev => ({ ...prev, admin_only: checked }));
+    
+    updateMutation.mutate({ admin_only: checked });
   };
 
   if (isLoading) {
@@ -335,7 +352,7 @@ const ProductEditPage = () => {
                   </div>
                   <Switch 
                     checked={formData.admin_only || false}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, admin_only: checked }))}
+                    onCheckedChange={handleAdminOnlyChange}
                   />
                 </div>
                 
