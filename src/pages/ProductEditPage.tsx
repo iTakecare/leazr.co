@@ -411,7 +411,7 @@ const ProductEditPage = () => {
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="admin_only" 
-                    checked={formData.admin_only} 
+                    checked={!!formData.admin_only} 
                     onCheckedChange={(checked) => 
                       setFormData(prev => ({ ...prev, admin_only: !!checked }))}
                   />

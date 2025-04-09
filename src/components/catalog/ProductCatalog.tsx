@@ -67,7 +67,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [hasVariantSupport, setHasVariantSupport] = useState(false);
   
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products-catalog", isOpen],
+    queryKey: ["products-catalog", isOpen, true],
     queryFn: getProducts,
     enabled: isOpen,
   });

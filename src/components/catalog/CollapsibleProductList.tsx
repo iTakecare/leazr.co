@@ -32,7 +32,7 @@ const CollapsibleProductList = ({ products: providedProducts, onDeleteProduct }:
   
   // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", true],
     queryFn: getProducts,
     enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
   });

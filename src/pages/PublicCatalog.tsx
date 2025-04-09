@@ -31,8 +31,8 @@ const PublicCatalog = () => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "public"],
-    queryFn: () => getProducts(false), // false pour exclure les admin_only
+    queryKey: ["products", "public", false],
+    queryFn: getProducts,
   });
 
   // Utilisation du hook useProductFilter pour la filtration

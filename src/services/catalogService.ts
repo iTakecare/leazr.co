@@ -4,7 +4,8 @@ import { Product } from "@/types/catalog";
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-export const getProducts = async (includeAdminOnly = false) => {
+export const getProducts = async ({ queryKey }: { queryKey: Array<string | boolean> }) => {
+  const [_, includeAdminOnly = false] = queryKey;
   try {
     // Préparer la requête pour récupérer tous les produits
     let query = supabase

@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import ProductGrid from "@/components/catalog/ProductGrid";
@@ -7,8 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const AmbassadorCatalog = () => {
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products", "ambassador"],
-    queryFn: () => getProducts(true), // true inclut les produits admin_only
+    queryKey: ["products", "ambassador", true],
+    queryFn: getProducts,
   });
 
   if (isLoading) {
