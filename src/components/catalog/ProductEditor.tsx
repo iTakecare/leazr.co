@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info } from "lucide-react";
+import { Upload, X, Plus, Image, Euro, Tag, Layers, ArrowRight, Info, ShieldAlert, Switch } from "lucide-react";
 import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,6 +83,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdminOnly, setIsAdminOnly] = useState(false);
   
   const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
   const [newAttributeName, setNewAttributeName] = useState("");
@@ -102,6 +103,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     setNewAttributeName("");
     setNewAttributeValues("");
     setIsParentProduct(false);
+    setIsAdminOnly(false);
     setActiveTab("basic");
   };
 
@@ -200,6 +202,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
         specifications: {},
         active: true,
         is_parent: isParentProduct,
+        admin_only: isAdminOnly,
         stock: isParentProduct ? 0 : undefined,
         variation_attributes: isParentProduct ? variationAttributes : {}
       };
@@ -303,6 +306,22 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
           <ScrollArea className="h-[calc(100vh-200px)] px-6 py-4">
             <form onSubmit={handleSubmit} className="space-y-6">
               <TabsContent value="basic" className="space-y-6 mt-0">
+                <div className="flex items-center justify-between p-4 border rounded-md bg-amber-50">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <h3 className="font-medium">Produit réservé aux administrateurs</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Si activé, ce produit sera visible uniquement pour les administrateurs et ambassadeurs
+                      </p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={isAdminOnly}
+                    onCheckedChange={setIsAdminOnly}
+                  />
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="name" className="required">Nom du produit</Label>
                   <Input
@@ -611,4 +630,3 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
 };
 
 export default ProductEditor;
-

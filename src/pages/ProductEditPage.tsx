@@ -17,7 +17,8 @@ import {
   Layers,
   Copy,
   Trash2,
-  Save
+  Save,
+  ShieldAlert
 } from "lucide-react";
 import { 
   Tabs, 
@@ -39,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import ProductImageManager from "@/components/catalog/ProductImageManager";
 
@@ -104,7 +106,8 @@ const ProductEditPage = () => {
     price: 0,
     monthly_price: 0,
     stock: 0,
-    active: true
+    active: true,
+    admin_only: false
   });
   
   const [activeTab, setActiveTab] = useState("details");
@@ -125,7 +128,8 @@ const ProductEditPage = () => {
         active: product.active !== undefined ? product.active : true,
         specifications: product.specifications || {},
         is_parent: product.is_parent || false,
-        variation_attributes: product.variation_attributes || {}
+        variation_attributes: product.variation_attributes || {},
+        admin_only: product.admin_only || false
       });
     }
   }, [product, id]);
@@ -312,6 +316,22 @@ const ProductEditPage = () => {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Supprimer
                   </Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-md bg-amber-50">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <h3 className="font-medium">Produit réservé aux administrateurs</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Si activé, ce produit sera visible uniquement pour les administrateurs et ambassadeurs
+                      </p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={formData.admin_only || false}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, admin_only: checked }))}
+                  />
                 </div>
                 
                 <div className="space-y-2">

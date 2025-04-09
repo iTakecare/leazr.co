@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   Loader2, 
   Save, 
@@ -22,13 +22,13 @@ import {
   Tag,
   Image as ImageIcon,
   Layers,
+  ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 
-// Liste des catégories de produits
 const productCategories = [
   "laptop",
   "desktop",
@@ -44,7 +44,6 @@ const productCategories = [
   "other"
 ];
 
-// Traductions des catégories
 const categoryTranslations: Record<string, string> = {
   "laptop": "Ordinateur portable",
   "desktop": "Ordinateur de bureau",
@@ -60,7 +59,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-// Liste des marques populaires
 const popularBrands = [
   "Apple",
   "Samsung",
@@ -95,16 +93,15 @@ const ProductCreationPage = () => {
     stock: 0,
     active: true,
     is_parent: false,
+    admin_only: false,
     variation_attributes: {}
   });
   
-  // Create product mutation
   const createMutation = useMutation({
     mutationFn: createProduct,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produit créé avec succès!");
-      // Redirect to edit page
       navigate(`/catalog/edit/${data.id}`);
     },
     onError: (error: any) => {
@@ -115,7 +112,6 @@ const ProductCreationPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle numeric fields
     if (type === "number") {
       setFormData(prev => ({
         ...prev,
@@ -183,6 +179,22 @@ const ProductCreationPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-md bg-amber-50">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <h3 className="font-medium">Produit réservé aux administrateurs</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Si activé, ce produit sera visible uniquement pour les administrateurs et ambassadeurs
+                      </p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={formData.admin_only || false}
+                    onCheckedChange={(checked) => setFormData({...formData, admin_only: checked})}
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="required">Nom du produit</Label>
