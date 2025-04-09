@@ -11,6 +11,7 @@ export const useProductFilter = (products: Product[] = []) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
+  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
   
   // Fetch categories with translations from the database
   const { data: categoriesData = [] } = useQuery({
@@ -32,6 +33,7 @@ export const useProductFilter = (products: Product[] = []) => {
       const range = getPriceRange();
       console.log("Setting initial price range:", range);
       setPriceRange(range);
+      setIsPriceFilterActive(false); // Reset price filter active state
     }
   }, [products]);
   
@@ -83,19 +85,19 @@ export const useProductFilter = (products: Product[] = []) => {
       console.log(`Après filtrage par catégorie (${selectedCategory}): ${filtered.length} produits`);
     }
     
-    // Filter by price range - only if the price range is not at min/max values
+    // Filter by price range - only if the price filter is active
     const [minPrice, maxPrice] = getPriceRange();
-    if (priceRange[0] > minPrice || priceRange[1] < maxPrice) {
+    if (isPriceFilterActive && (priceRange[0] > minPrice || priceRange[1] < maxPrice)) {
       console.log(`Filtrage par prix actif: ${priceRange[0]} - ${priceRange[1]} (limites: ${minPrice} - ${maxPrice})`);
       filtered = filtered.filter(product => {
-        const price = product.price ? parseFloat(product.price.toString()) : 0;
-        const monthlyPrice = product.monthly_price ? parseFloat(product.monthly_price.toString()) : 0;
+        const price = product.price ? parseFloat(String(product.price)) : 0;
+        const monthlyPrice = product.monthly_price ? parseFloat(String(product.monthly_price)) : 0;
         const actualPrice = monthlyPrice > 0 ? monthlyPrice : price;
         return actualPrice >= priceRange[0] && actualPrice <= priceRange[1];
       });
       console.log(`Après filtrage par prix: ${filtered.length} produits`);
     } else {
-      console.log("Pas de filtrage par prix (plage complète)");
+      console.log("Pas de filtrage par prix (filtre désactivé ou plage complète)");
     }
     
     // Filter by brand
@@ -163,19 +165,19 @@ export const useProductFilter = (products: Product[] = []) => {
     
     products.forEach(product => {
       // Check monthly price first, then regular price
-      if (product.monthly_price && !isNaN(parseFloat(product.monthly_price.toString()))) {
-        allPrices.push(parseFloat(product.monthly_price.toString()));
-      } else if (product.price && !isNaN(parseFloat(product.price.toString()))) {
-        allPrices.push(parseFloat(product.price.toString()));
+      if (product.monthly_price && !isNaN(parseFloat(String(product.monthly_price)))) {
+        allPrices.push(parseFloat(String(product.monthly_price)));
+      } else if (product.price && !isNaN(parseFloat(String(product.price)))) {
+        allPrices.push(parseFloat(String(product.price)));
       }
       
       // Also check variant prices if available
       if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
         product.variant_combination_prices.forEach(variant => {
-          if (variant.monthly_price && !isNaN(parseFloat(variant.monthly_price.toString()))) {
-            allPrices.push(parseFloat(variant.monthly_price.toString()));
-          } else if (variant.price && !isNaN(parseFloat(variant.price.toString()))) {
-            allPrices.push(parseFloat(variant.price.toString()));
+          if (variant.monthly_price && !isNaN(parseFloat(String(variant.monthly_price)))) {
+            allPrices.push(parseFloat(String(variant.monthly_price)));
+          } else if (variant.price && !isNaN(parseFloat(String(variant.price)))) {
+            allPrices.push(parseFloat(String(variant.price)));
           }
         });
       }
@@ -193,6 +195,11 @@ export const useProductFilter = (products: Product[] = []) => {
     return [min, max];
   };
   
+  const handlePriceRangeChange = (newRange: [number, number]) => {
+    setPriceRange(newRange);
+    setIsPriceFilterActive(true);
+  };
+  
   return {
     searchQuery,
     setSearchQuery,
@@ -201,7 +208,9 @@ export const useProductFilter = (products: Product[] = []) => {
     selectedCategory,
     setSelectedCategory,
     priceRange,
-    setPriceRange,
+    setPriceRange: handlePriceRangeChange,
+    isPriceFilterActive,
+    setIsPriceFilterActive,
     selectedBrands,
     setSelectedBrands,
     showInStock,
@@ -217,6 +226,7 @@ export const useProductFilter = (products: Product[] = []) => {
       const fullRange = getPriceRange();
       console.log(`Réinitialisation des filtres. Nouvelle plage de prix: ${fullRange[0]} - ${fullRange[1]}`);
       setPriceRange(fullRange);
+      setIsPriceFilterActive(false);
       setSelectedBrands([]);
       setShowInStock(null);
     }

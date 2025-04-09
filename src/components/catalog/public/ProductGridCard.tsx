@@ -100,7 +100,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     
     // If we still don't have a monthly price, use the regular price
     if (minPrice === 0 && product.price) {
-      minPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price.toString());
+      minPrice = typeof product.price === 'number' ? product.price : parseFloat(String(product.price));
       console.log(`Using regular price as fallback: ${minPrice}`);
     }
     
@@ -306,3 +306,4 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 };
 
 export default ProductGridCard;
+

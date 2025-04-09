@@ -43,6 +43,8 @@ const PublicCatalog = () => {
     setSelectedCategory,
     priceRange,
     setPriceRange,
+    isPriceFilterActive,
+    setIsPriceFilterActive,
     selectedBrands,
     setSelectedBrands,
     showInStock,
@@ -95,11 +97,24 @@ const PublicCatalog = () => {
       }
     });
     
+    if (parentProducts.length <= 1) {
+      console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
+      if (parentProducts.length === 1) {
+        console.log(`Seul produit: ${parentProducts[0].name} (${parentProducts[0].id})`);
+      }
+    }
+    
     return parentProducts;
   }, [filteredProducts]);
 
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
+  };
+
+  const handlePriceRangeChange = (values: number[]) => {
+    setPriceRange(values as [number, number]);
+    // Activate price filter when slider is changed
+    setIsPriceFilterActive(true);
   };
 
   return (
@@ -240,14 +255,23 @@ const PublicCatalog = () => {
                             max={priceRangeLimits[1]}
                             min={priceRangeLimits[0]}
                             step={10}
-                            onValueChange={(values) => setPriceRange(values as [number, number])}
+                            onValueChange={handlePriceRangeChange}
                             className="mb-6"
                           />
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex items-center justify-between">
                           <div className="bg-gray-100 px-2 py-1 rounded">
                             {priceRange[0]} €
                           </div>
+                          <Checkbox 
+                            id="price-filter-active"
+                            checked={isPriceFilterActive}
+                            onCheckedChange={(checked) => setIsPriceFilterActive(!!checked)}
+                            className="mx-2"
+                          />
+                          <label htmlFor="price-filter-active" className="text-xs text-gray-500">
+                            Filtre actif
+                          </label>
                           <div className="bg-gray-100 px-2 py-1 rounded">
                             {priceRange[1]} €
                           </div>
@@ -367,14 +391,17 @@ const PublicCatalog = () => {
                       </Button>
                     </Badge>
                   ))}
-                  {(priceRange[0] > priceRangeLimits[0] || priceRange[1] < priceRangeLimits[1]) && (
+                  {isPriceFilterActive && (
                     <Badge variant="secondary" className="flex gap-1 items-center">
                       Prix: {priceRange[0]}€ - {priceRange[1]}€
                       <Button 
                         variant="ghost" 
                         size="icon" 
                         className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => setPriceRange(priceRangeLimits)}
+                        onClick={() => {
+                          setPriceRange(priceRangeLimits);
+                          setIsPriceFilterActive(false);
+                        }}
                       >
                         <XSquare className="h-3 w-3" />
                       </Button>
