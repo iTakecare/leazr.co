@@ -41,11 +41,11 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     background: isDraggable ? 'rgba(255, 255, 255, 0.5)' : 'transparent'
   };
 
-  // Function to resolve field value from sample data
+  // Function to resolve field value from sample data - improved version
   const resolveValue = (value: string) => {
     if (!value) return '';
     
-    // If using real data and we have sample data available
+    // For demonstration, just show the pattern
     if (useRealData && sampleData) {
       try {
         // Pattern replacement logic
@@ -86,7 +86,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
     onStartDrag(offsetX, offsetY);
   };
 
-  // Specific handling for equipment table field
+  // Specific handling for equipment table to ensure it displays properly
   if (field.id === 'equipment_table' || field.value?.includes('equipment_description')) {
     const renderEquipmentTable = () => {
       try {
@@ -109,7 +109,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
           return "<Aucun équipement>";
         }
         
-        // Create a simple HTML table structure
+        // Create a simple HTML table structure as a string
         const tableRows = equipment.map((item: any, index: number) => {
           const qty = item.quantity || 1;
           const monthly = item.monthlyPayment || 0;
@@ -178,7 +178,7 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
       onDrag={(e) => onDrag(e.clientX, e.clientY)}
       onDragEnd={onEndDrag}
     >
-      {resolveValue(field.value)}
+      <span>{resolveValue(field.value)}</span>
     </div>
   );
 };

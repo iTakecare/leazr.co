@@ -33,20 +33,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   const [hasError, setHasError] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg");
   
-  // Loggons les informations du produit pour le débogage
   useEffect(() => {
-    console.log(`ProductGridCard: Rendering product ${product.name} (${product.id})`);
-    console.log(`- is_variation: ${product.is_variation}, parent_id: ${product.parent_id || 'null'}, active: ${product.active}`);
-    console.log(`- variant_combination_prices: ${product.variant_combination_prices?.length || 0}`);
-    
     setImageUrl(getProductImage());
     setIsLoading(true);
     setHasError(false);
   }, [product]);
   
-  // Ne pas afficher les produits qui sont des variations
   if (product.is_variation || product.parent_id) {
-    console.log(`ProductGridCard: Skipping variant product ${product.name}`);
     return null;
   }
 
@@ -144,12 +137,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       tablet: "Tablette",
       smartphone: "Smartphone",
       monitor: "Écran",
-      ecran: "Écran",
       printer: "Imprimante",
       accessories: "Accessoire"
     };
     
-    return categoryMap[category.toLowerCase()] || category || "Autre";
+    return categoryMap[category] || "Autre";
   };
 
   const countExistingVariants = (): number => {
@@ -175,6 +167,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       (product.variant_combination_prices && product.variant_combination_prices.length > 0) || 
       (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0) ||
       (product.variants && product.variants.length > 0);
+    
+    console.log(`Product ${product.name}: hasVariants = ${result}`);
+    console.log(`- is_parent: ${product.is_parent}`);
+    console.log(`- has variant_combination_prices: ${product.variant_combination_prices?.length > 0}`);
+    console.log(`- has variation_attributes: ${product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0}`);
+    console.log(`- has variants: ${product.variants?.length > 0}`);
     
     return result;
   };

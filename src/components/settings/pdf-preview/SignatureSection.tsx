@@ -10,23 +10,26 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   pageHeight,
   scaleFactor = 1
 }) => {
+  // Calculer la position bottom pour l'espace de signature
+  const bottomPosition = 40 * scaleFactor;
+  
   return (
     <div
-      className="relative"
+      className="absolute left-0 right-0 p-4 border-t"
       style={{
-        padding: `${10 * scaleFactor}px`,
+        bottom: `${bottomPosition}px`,
+        padding: `${12 * scaleFactor}px`,
         borderTop: `2px solid #E5E7EB`,
         borderColor: "#E5E7EB",
+        zIndex: 10,
         backgroundColor: "rgba(255, 255, 255, 0.8)",
-        marginTop: "10px"
       }}
     >
       <h3 
         className="text-center font-bold mb-2" 
         style={{ 
-          fontSize: `${14 * scaleFactor}px`,
+          fontSize: `${16 * scaleFactor}px`,
           color: "#1A2C3A",
-          margin: `0 0 ${8 * scaleFactor}px 0`
         }}
       >
         Signature client
@@ -34,8 +37,10 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       <div
         className="border border-dashed rounded-md mx-auto flex items-center justify-center"
         style={{
-          width: `${220 * scaleFactor}px`,
-          height: `${70 * scaleFactor}px`,
+          width: `${300 * scaleFactor}px`,
+          height: `${100 * scaleFactor}px`,
+          transform: `scale(${scaleFactor})`,
+          transformOrigin: "center",
           backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderColor: "#94a3b8",
           borderRadius: "8px",
@@ -43,9 +48,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       >
         <p style={{ 
           color: "#9CA3AF", 
-          fontSize: `${11 * scaleFactor}px`, 
-          fontStyle: "italic",
-          margin: 0
+          fontSize: `${10 * scaleFactor}px`, 
+          fontStyle: "italic" 
         }}>
           Signature précédée de "Bon pour accord"
         </p>

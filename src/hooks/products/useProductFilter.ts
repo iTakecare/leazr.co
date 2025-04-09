@@ -11,7 +11,6 @@ export const useProductFilter = (products: Product[] = []) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
-  const [initialPriceRangeSet, setInitialPriceRangeSet] = useState(false);
   
   // Fetch categories with translations from the database
   const { data: categoriesData = [] } = useQuery({
@@ -27,13 +26,10 @@ export const useProductFilter = (products: Product[] = []) => {
     }
   });
   
-  // Calculate and set initial price range when products load
+  // Reset price range when products change
   useEffect(() => {
-    if (products && products.length > 0 && !initialPriceRangeSet) {
-      const range = getPriceRange();
-      console.log("Initializing price range to:", range);
-      setPriceRange(range);
-      setInitialPriceRangeSet(true);
+    if (products && products.length > 0) {
+      setPriceRange(getPriceRange());
     }
   }, [products]);
   
@@ -92,19 +88,12 @@ export const useProductFilter = (products: Product[] = []) => {
       console.log(`After category filter (${selectedCategory}): ${filtered.length} products`);
     }
     
-    // Filter by price range - only if price range has been manually adjusted
-    if (initialPriceRangeSet && 
-        (priceRange[0] > 0 || priceRange[1] < 5000)) {
-      const [minPrice, maxPrice] = priceRange;
-      console.log(`Applying price filter: ${minPrice} - ${maxPrice}`);
-      
-      filtered = filtered.filter(product => {
-        // Get product price (monthly price preferred, otherwise regular price)
-        const price = getProductPrice(product);
-        return price >= minPrice && price <= maxPrice;
-      });
-      console.log(`After price range filter: ${filtered.length} products`);
-    }
+    // Filter by price range
+    filtered = filtered.filter(product => {
+      const price = product.price ? parseFloat(product.price.toString()) : 0;
+      return price >= priceRange[0] && price <= priceRange[1];
+    });
+    console.log(`After price range filter: ${filtered.length} products`);
     
     // Filter by brand
     if (selectedBrands.length > 0) {
@@ -121,38 +110,8 @@ export const useProductFilter = (products: Product[] = []) => {
       );
       console.log(`After stock filter: ${filtered.length} products`);
     }
-
-    if (filtered.length <= 1) {
-      console.log("ATTENTION: Nombre de produits limité à 1 ou 0!");
-      console.log("ALERTE: Moins de 2 produits après filtrage. Liste complète des produits filtrés:");
-      filtered.forEach((product, index) => {
-        console.log(`  ${index + 1}. ${product.name} (${product.id}) - parent_id=${product.parent_id || 'none'}, is_variation=${product.is_variation}`);
-      });
-    }
     
     return filtered;
-  };
-
-  // Helper to get product price (monthly price or regular price)
-  const getProductPrice = (product: Product): number => {
-    // Prioritize monthly price
-    if (product.monthly_price && product.monthly_price > 0) {
-      return product.monthly_price;
-    }
-    
-    // Check variants for min monthly price
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const variantPrices = product.variant_combination_prices
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        return Math.min(...variantPrices);
-      }
-    }
-    
-    // Fall back to regular price
-    return product.price || 0;
   };
 
   // Get unique categories from products with translations
@@ -191,34 +150,16 @@ export const useProductFilter = (products: Product[] = []) => {
   const getPriceRange = (): [number, number] => {
     if (!products || products.length === 0) return [0, 5000];
     
-    const prices = products.map(product => {
-      // Prioritize monthly price if available
-      if (product.monthly_price && product.monthly_price > 0) {
-        return product.monthly_price;
-      }
-      
-      // Check for variant monthly prices
-      if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-        const variantPrices = product.variant_combination_prices
-          .map(variant => variant.monthly_price || 0)
-          .filter(price => price > 0);
-          
-        if (variantPrices.length > 0) {
-          return Math.min(...variantPrices);
-        }
-      }
-      
-      // Fall back to regular price
-      return product.price || 0;
-    }).filter(price => !isNaN(price) && price > 0);
+    const prices = products
+      .map(product => product.price ? parseFloat(product.price.toString()) : 0)
+      .filter(price => !isNaN(price) && price > 0);
     
     if (prices.length === 0) return [0, 5000];
     
-    // Round min down and max up to nearest whole number
     const min = Math.floor(Math.min(...prices));
     const max = Math.ceil(Math.max(...prices));
     
-    console.log(`Price range calculated: ${min} - ${max}`);
+    console.log(`Price range: ${min} - ${max}`);
     return [min, max];
   };
   
@@ -246,8 +187,6 @@ export const useProductFilter = (products: Product[] = []) => {
       setPriceRange(getPriceRange());
       setSelectedBrands([]);
       setShowInStock(null);
-      setInitialPriceRangeSet(false); // Reset so that price range will be recalculated
-      console.log("Filtres réinitialisés");
     }
   };
 };
