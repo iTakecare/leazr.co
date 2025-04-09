@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const AmbassadorCatalog = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "ambassador", true],
-    queryFn: getProducts,
+    queryFn: () => getProducts(true),
   });
 
   if (isLoading) {

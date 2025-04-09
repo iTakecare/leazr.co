@@ -1,8 +1,10 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
+import { useNavigate } from "react-router-dom";
 
 export const useCatalogManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export const useCatalogManagement = () => {
     refetch
   } = useQuery({
     queryKey: ["products", true],
-    queryFn: getProducts,
+    queryFn: () => getProducts(true),
   });
 
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -27,7 +29,7 @@ export const useCatalogManagement = () => {
   const navigate = useNavigate();
   
   // Enhanced products processing with better variant detection
-  const productsData = React.useMemo(() => {
+  const productsData = useMemo(() => {
     return products;
   }, [products]);
   
