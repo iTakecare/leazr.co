@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateOfferPdf } from "@/utils/pdfGenerator";
 
 const supabase = getSupabaseClient();
 
@@ -378,8 +379,3 @@ export const getOfferDataForPdf = async (offerId: string) => {
     return null;
   }
 };
-
-// Utility function to get supabase client
-function getSupabaseClient() {
-  return supabase;
-}

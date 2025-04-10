@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
