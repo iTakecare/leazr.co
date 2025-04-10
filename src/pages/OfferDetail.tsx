@@ -133,10 +133,10 @@ const OfferDetail = () => {
       );
     }
 
-    const totalMargin = offer.margin ? parseFloat(offer.margin) : 0;
+    const totalMargin = offer.margin ? parseFloat(offer.margin.toString()) : 0;
     const marginDifference = offer.margin_difference || 0;
     const totalMarginWithDifference = offer.total_margin_with_difference 
-      ? parseFloat(offer.total_margin_with_difference) 
+      ? parseFloat(offer.total_margin_with_difference.toString()) 
       : totalMargin + marginDifference;
 
     const totalMonthly = offer.monthly_payment || 0;

@@ -3,9 +3,9 @@ import React from 'react';
 import { formatCurrency } from '@/utils/formatters';
 
 type EquipmentItem = {
-  id?: string; // Changed from 'id: string' to make it optional
+  id?: string; // Optional
   title: string;
-  purchasePrice: number;
+  purchasePrice?: number; // Made optional to match useOfferDetail.ts
   quantity: number;
   margin: number;
   monthlyPayment?: number;
