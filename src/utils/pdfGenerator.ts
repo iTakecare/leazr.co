@@ -22,10 +22,10 @@ export const generateOfferPdf = async (offerData) => {
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2,
+        scale: 2, // Augmenter la résolution pour une meilleure qualité
         useCORS: true,
         logging: false,
-        windowWidth: 1024,
+        windowWidth: 1024, // Largeur fixe pour un meilleur rendu
         scrollY: 0,
         scrollX: 0
       },
@@ -39,7 +39,7 @@ export const generateOfferPdf = async (offerData) => {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Options correctes pour les sauts de page
     };
     
-    // Créer un div temporaire pour le rendu avec une hauteur fixe
+    // Créer un div temporaire pour le rendu avec une hauteur fixe correspondant à A4
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     tempDiv.style.height = '297mm'; // Hauteur A4
