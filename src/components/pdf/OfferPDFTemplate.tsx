@@ -62,12 +62,13 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   return (
     <div style={{ 
       width: '210mm', 
-      height: '297mm', 
-      margin: '0 auto', 
+      minHeight: '297mm', 
+      padding: '0',
+      margin: '0',
       fontFamily: 'Arial, sans-serif',
       boxSizing: 'border-box',
-      padding: '0',
-      position: 'relative'
+      position: 'relative',
+      backgroundColor: 'white'
     }}>
       {/* En-tête */}
       <div style={{ 
@@ -78,7 +79,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         justifyContent: 'space-between', 
         alignItems: 'center'
       }}>
-        <div>
+        <div style={{ height: '30px' }}>
           <img src="/lovable-uploads/7e711eae-90de-40ce-806c-21ffa5c9d7b6.png" alt="iTakecare Logo" style={{ height: '30px' }} />
         </div>
         <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
@@ -87,9 +88,9 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
       </div>
       
       {/* Contenu principal */}
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '15px' }}>
         {/* Référence de l'offre */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
           <h1 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0' }}>
             RÉFÉRENCE: {offerId}
           </h1>
@@ -99,33 +100,33 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
-          marginBottom: '20px', 
+          marginBottom: '15px', 
           padding: '10px',
           border: '1px solid #e5e7eb',
           borderRadius: '5px'
         }}>
           <div>
             <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>Informations client</h2>
-            <p style={{ margin: '5px 0', fontSize: '12px' }}>{offer.client_company || "Client Company"}</p>
-            <p style={{ margin: '5px 0', fontSize: '12px' }}>{offer.client_name || "Client Name"}</p>
-            <p style={{ margin: '5px 0', fontSize: '12px' }}>{offer.client_email || "client@example.com"}</p>
+            <p style={{ margin: '3px 0', fontSize: '12px' }}>{offer.client_company || "Client Company"}</p>
+            <p style={{ margin: '3px 0', fontSize: '12px' }}>{offer.client_name || "Client Name"}</p>
+            <p style={{ margin: '3px 0', fontSize: '12px' }}>{offer.client_email || "client@example.com"}</p>
           </div>
           <div>
-            <p style={{ margin: '5px 0', fontSize: '12px' }}>Date: {formatDate(offer.created_at) || "21/03/2025"}</p>
-            <p style={{ margin: '5px 0', fontSize: '12px' }}>Validité: 30 jours</p>
+            <p style={{ margin: '3px 0', fontSize: '12px' }}>Date: {formatDate(offer.created_at) || "21/03/2025"}</p>
+            <p style={{ margin: '3px 0', fontSize: '12px' }}>Validité: 30 jours</p>
           </div>
         </div>
         
         {/* Liste d'équipements */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '15px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>Détail des équipements</h2>
           
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
               <tr style={{ backgroundColor: '#f3f4f6' }}>
                 <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb', width: '60%' }}>Désignation</th>
-                <th style={{ padding: '8px', textAlign: 'center', border: '1px solid #e5e7eb', width: '15%' }}>Qté</th>
-                <th style={{ padding: '8px', textAlign: 'right', border: '1px solid #e5e7eb', width: '25%' }}>Mensualité</th>
+                <th style={{ padding: '8px', textAlign: 'center', border: '1px solid #e5e7eb', width: '10%' }}>Qté</th>
+                <th style={{ padding: '8px', textAlign: 'right', border: '1px solid #e5e7eb', width: '30%' }}>Mensualité</th>
               </tr>
             </thead>
             <tbody>
@@ -152,8 +153,8 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         
         {/* Résumé financier */}
         <div style={{ 
-          marginBottom: '30px',
-          padding: '15px',
+          marginBottom: '20px',
+          padding: '10px',
           backgroundColor: '#f9fafb',
           borderRadius: '5px',
           border: '1px solid #e5e7eb'
@@ -174,7 +175,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         {/* Avantages du leasing */}
         <div style={{ 
           marginBottom: '20px',
-          padding: '15px',
+          padding: '10px',
           border: '1px solid #e5e7eb',
           borderRadius: '5px'
         }}>
@@ -195,7 +196,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         </div>
         
         {/* Section signature */}
-        <div style={{ marginTop: '20px' }}>
+        <div style={{ marginTop: '15px' }}>
           <h3 style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '10px', fontSize: '14px' }}>
             Signature client
           </h3>
@@ -216,15 +217,14 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
       {/* Pied de page */}
       <div style={{ 
         position: 'absolute', 
-        bottom: '0', 
+        bottom: '10px', 
         left: '0', 
         right: '0', 
         borderTop: '1px solid #e5e7eb', 
         padding: '10px', 
         textAlign: 'center',
         fontSize: '10px',
-        color: '#6b7280',
-        backgroundColor: '#f9fafb'
+        color: '#6b7280'
       }}>
         <p style={{ margin: '0 0 5px 0' }}>
           Cette offre est valable 30 jours à compter de sa date d'émission.

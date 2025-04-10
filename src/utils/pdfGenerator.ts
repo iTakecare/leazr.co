@@ -18,14 +18,14 @@ export const generateOfferPdf = async (offerData) => {
     
     // Configuration précise pour le PDF
     const options = {
-      margin: [10, 10, 10, 10],
+      margin: [5, 5, 5, 5], // Réduire les marges pour maximiser l'espace
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2,
+        scale: 2, // Augmenter la résolution
         useCORS: true,
         logging: true,
-        windowWidth: 800,
+        windowWidth: 1000, // Augmenter la largeur de la fenêtre pour éviter les problèmes de mise en page
         scrollY: 0,
         scrollX: 0
       },
@@ -36,8 +36,12 @@ export const generateOfferPdf = async (offerData) => {
       }
     };
     
-    // Créer un conteneur temporaire pour le rendu
+    // Créer un conteneur temporaire avec style fixe pour A4
     const container = document.createElement('div');
+    container.style.width = '210mm';
+    container.style.margin = '0';
+    container.style.padding = '0';
+    container.style.boxSizing = 'border-box';
     container.innerHTML = htmlContent;
     document.body.appendChild(container);
     
