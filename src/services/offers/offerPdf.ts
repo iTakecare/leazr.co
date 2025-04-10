@@ -35,7 +35,7 @@ export const getOfferDataForPdf = async (offerId: string) => {
         )
       `)
       .eq('id', offerId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Erreur lors de la récupération de l\'offre pour le PDF:', error);
@@ -147,6 +147,11 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
     
     // Générer le PDF
     const filename = await generateOfferPdf(offerData);
+    
+    if (!filename) {
+      toast.error("Erreur lors de la génération du PDF");
+      return null;
+    }
     
     toast.success(`PDF généré avec succès: ${filename}`);
     return filename;

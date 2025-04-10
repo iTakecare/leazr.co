@@ -82,23 +82,17 @@ export const generateOfferPdf = async (offerData) => {
     document.body.style.overflow = 'hidden';
     
     // Générer le PDF avec promesse pour assurer la complétion
+    console.log("Génération du PDF en cours...");
     const pdf = await html2pdf()
       .from(container)
       .set(options)
-      .toPdf()
-      .output('datauristring');
+      .save();
     
     // Restaurer les styles du document
     document.body.style.overflow = originalBodyOverflow;
     
     // Nettoyer le DOM
     document.body.removeChild(container);
-    
-    // Créer et télécharger automatiquement le PDF
-    const link = document.createElement('a');
-    link.href = pdf;
-    link.download = options.filename;
-    link.click();
     
     console.log("PDF généré avec succès");
     return options.filename;

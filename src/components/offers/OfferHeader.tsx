@@ -36,6 +36,7 @@ const OfferHeader: React.FC<OfferHeaderProps> = ({
           size="sm" 
           onClick={onPrintPdf}
           disabled={isPrintingPdf}
+          className="whitespace-nowrap"
         >
           {isPrintingPdf ? (
             <span className="flex items-center">
