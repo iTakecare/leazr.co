@@ -1,10 +1,10 @@
+
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
   Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
 } from "lucide-react";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offerService";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface OfferCardProps {
   offer: Offer;
