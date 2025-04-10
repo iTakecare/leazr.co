@@ -16,6 +16,13 @@ export const saveOfferSignature = async (
 ): Promise<boolean> => {
   try {
     console.log("Début de l'enregistrement de la signature pour l'offre:", offerId);
+    console.log("Taille des données de signature:", signatureData.length, "caractères");
+    
+    // Vérification de la validité de la signature
+    if (!signatureData || !signatureData.startsWith('data:image/')) {
+      console.error("Données de signature invalides");
+      return false;
+    }
     
     // 1. Mettre à jour le statut de l'offre en "approved"
     const { error: updateError } = await supabase

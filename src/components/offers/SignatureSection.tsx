@@ -95,18 +95,21 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
                 placeholder="Entrez votre nom complet"
                 disabled={isSigning}
                 required
+                className="border border-gray-300"
               />
               <p className="text-xs text-gray-500">
                 Votre nom sera utilisé comme identification légale pour cette signature électronique.
               </p>
             </div>
             
-            <SignatureCanvas 
-              onSave={onSign}
-              disabled={isSigning}
-              height={200}
-              className="mt-4"
-            />
+            <div className="touch-none">
+              <SignatureCanvas 
+                onSave={onSign}
+                disabled={isSigning}
+                height={200}
+                className="mt-4 signature-container"
+              />
+            </div>
             
             <Alert>
               <Info className="h-4 w-4" />

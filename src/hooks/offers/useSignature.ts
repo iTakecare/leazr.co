@@ -35,6 +35,8 @@ export const useSignature = (
       setSignature(signatureData);
       
       console.log("Tentative d'enregistrement de la signature pour l'offre:", offerId);
+      console.log("Données de signature reçues:", signatureData ? "OK (données présentes)" : "NON (données vides)");
+      
       const success = await saveOfferSignature(offerId, signatureData, signerName);
       
       if (success) {

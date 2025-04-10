@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import SignaturePad from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
-import { Eraser, Save, RotateCcw, Check } from "lucide-react";
+import { Eraser, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SignaturePadProps {
@@ -33,17 +33,32 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
       }
     };
 
-    const canvas = sigCanvas.current?.getCanvas();
-    if (canvas) {
+    // Mettre en place les écouteurs d'événements
+    if (sigCanvas.current) {
+      const canvas = sigCanvas.current.getCanvas();
+      
+      // Nettoyer le canvas au démarrage
+      setTimeout(() => {
+        if (sigCanvas.current) {
+          sigCanvas.current.clear();
+        }
+      }, 100);
+      
       canvas.addEventListener("mouseup", checkIfEmpty);
       canvas.addEventListener("touchend", checkIfEmpty);
+      
+      // Ajouter des événements pour le début du dessin
+      canvas.addEventListener("mousedown", () => setIsTouched(true));
+      canvas.addEventListener("touchstart", () => setIsTouched(true));
 
       return () => {
         canvas.removeEventListener("mouseup", checkIfEmpty);
         canvas.removeEventListener("touchend", checkIfEmpty);
+        canvas.removeEventListener("mousedown", () => setIsTouched(true));
+        canvas.removeEventListener("touchstart", () => setIsTouched(true));
       };
     }
-  }, [sigCanvas]);
+  }, [sigCanvas.current]);
 
   const clear = () => {
     if (sigCanvas.current) {
@@ -77,22 +92,33 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
       </div>
       
       <div className="bg-white relative" style={{ touchAction: "none" }}>
-        <SignaturePad
-          ref={sigCanvas}
-          penColor="black"
-          canvasProps={{
-            width: typeof width === "number" ? width : "100%",
-            height,
-            className: "signature-canvas w-full border-b",
-            style: { width: "100%", height }
-          }}
-          backgroundColor="white"
-          dotSize={1.5}
-          velocityFilterWeight={0.6}
-          clearOnResize={false}
-          minWidth={1}
-          maxWidth={2.5}
-        />
+        <div style={{ 
+          width: typeof width === "number" ? `${width}px` : width,
+          height: typeof height === "number" ? `${height}px` : height,
+          position: "relative"
+        }}>
+          <SignaturePad
+            ref={sigCanvas}
+            penColor="black"
+            canvasProps={{
+              width: typeof width === "number" ? width : "100%",
+              height,
+              className: "signature-canvas w-full border-b",
+              style: { 
+                width: "100%", 
+                height,
+                cursor: "crosshair",
+                touchAction: "none"
+              }
+            }}
+            backgroundColor="white"
+            dotSize={2}
+            velocityFilterWeight={0.7}
+            clearOnResize={false}
+            minWidth={1.5}
+            maxWidth={3}
+          />
+        </div>
         
         {isEmpty && isTouched && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
@@ -111,6 +137,7 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
           size="sm" 
           onClick={clear}
           disabled={isEmpty || disabled}
+          type="button"
         >
           <Eraser className="h-4 w-4 mr-1" />
           Effacer
@@ -120,6 +147,7 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
           size="sm" 
           onClick={save}
           disabled={isEmpty || disabled}
+          type="button"
         >
           <Check className="h-4 w-4 mr-1" />
           Valider
