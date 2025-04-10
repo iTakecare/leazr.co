@@ -3,7 +3,7 @@ import React from 'react';
 import { formatCurrency } from '@/utils/formatters';
 
 type EquipmentItem = {
-  id: string;
+  id?: string; // Changed from 'id: string' to make it optional
   title: string;
   purchasePrice: number;
   quantity: number;
@@ -49,12 +49,12 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {equipment.map((item) => {
+            {equipment.map((item, index) => {
               const monthlyPayment = item.monthlyPayment || 0;
               const totalItemMonthly = monthlyPayment * item.quantity;
               
               return (
-                <tr key={item.id} className="border-b border-gray-100">
+                <tr key={item.id || index} className="border-b border-gray-100">
                   <td className="py-4 px-4">{item.title}</td>
                   <td className="py-4 px-4 text-center">{item.quantity}</td>
                   <td className="py-4 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
@@ -70,7 +70,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
           <span className="text-gray-600 mb-1">Quantité totale</span>
-          <span className="text-xl font-semibold">{equipment.length} articles</span>
+          <span className="text-xl font-semibold">{totalArticles} articles</span>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
           <span className="text-gray-600 mb-1">Mensualité totale</span>

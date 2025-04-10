@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -134,14 +133,12 @@ const OfferDetail = () => {
       );
     }
 
-    // Calculer la marge totale à partir des articles ou utiliser la marge globale
     const totalMargin = offer.margin ? parseFloat(offer.margin) : 0;
     const marginDifference = offer.margin_difference || 0;
     const totalMarginWithDifference = offer.total_margin_with_difference 
       ? parseFloat(offer.total_margin_with_difference) 
       : totalMargin + marginDifference;
 
-    // Calculer le mensuel total à partir des articles ou utiliser la mensualité globale
     const totalMonthly = offer.monthly_payment || 0;
 
     return (
@@ -303,7 +300,6 @@ const OfferDetail = () => {
                           </div>
                         </div>
                         
-                        {/* Tableau détaillé des équipements */}
                         {offer.parsedEquipment && offer.parsedEquipment.length > 0 ? (
                           <EquipmentDetailTable 
                             equipment={offer.parsedEquipment} 
@@ -322,7 +318,6 @@ const OfferDetail = () => {
                           </div>
                         ) : null}
                         
-                        {/* Informations financières */}
                         <Card className="border-green-100 bg-green-50/50">
                           <CardHeader className="pb-3 border-b border-green-100">
                             <CardTitle className="text-base flex items-center">
