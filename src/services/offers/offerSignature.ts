@@ -1,6 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateOfferPdf } from "@/utils/pdfGenerator";
+
+const supabase = getSupabaseClient();
 
 /**
  * Enregistre la signature d'une offre
@@ -288,12 +289,10 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
  */
 export const getOfferDataForPdf = async (offerId: string) => {
   try {
-    const supabaseClient = getSupabaseClient();
-    
     console.log("Récupération des données de l'offre:", offerId);
     
     // Récupérer l'offre avec les données client associées
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('offers')
       .select(`
         *,
@@ -381,6 +380,6 @@ export const getOfferDataForPdf = async (offerId: string) => {
 };
 
 // Utility function to get supabase client
-const getSupabaseClient = () => {
+function getSupabaseClient() {
   return supabase;
-};
+}

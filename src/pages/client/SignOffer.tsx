@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useClientOffer } from "@/hooks/offers/useClientOffer";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
@@ -30,6 +30,23 @@ const SignOffer = () => {
     handlePrintPdf
   } = useClientOffer(id);
   
+  // Log debugging information to console
+  useEffect(() => {
+    if (debugInfo) {
+      console.log("Debug info:", debugInfo);
+    }
+    
+    if (offer) {
+      console.log("Offer data loaded:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        hasEquipmentData: !!offer.equipment_description,
+        equipmentDataType: offer.equipment_description ? typeof offer.equipment_description : 'none',
+        monthlyPayment: offer.monthly_payment
+      });
+    }
+  }, [debugInfo, offer]);
+  
   if (loading) {
     return <LoadingState />;
   }
@@ -42,14 +59,15 @@ const SignOffer = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      {/* Client Offers Sidebar - Hidden on mobile, shown on tablet and up */}
-      <div className="hidden md:block">
-        <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
-      </div>
+      {/* Client Offers Sidebar */}
+      <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
-      {/* Main Content */}
-      <div className="flex-1 py-4 md:py-8 px-3 md:px-4 overflow-auto">
+      {/* Main Content - Full width on mobile, flex-1 on desktop */}
+      <div className="flex-1 py-4 md:py-8 px-4 md:px-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
+          {/* Mobile spacing to account for the menu button */}
+          <div className="h-10 md:hidden"></div>
+          
           <OfferHeader 
             offerId={id || ''} 
             signed={signed} 

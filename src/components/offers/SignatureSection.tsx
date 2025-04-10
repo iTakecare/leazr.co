@@ -105,12 +105,18 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             </div>
             
             <div className="w-full">
-              <SignatureCanvas 
-                onSave={onSign}
-                disabled={isSigning}
-                height={180}
-                className="mt-2 signature-container w-full"
-              />
+              <Label className="mb-2 block">Votre signature</Label>
+              <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+                <SignatureCanvas 
+                  onSave={onSign}
+                  disabled={isSigning}
+                  height={180}
+                  className="w-full signature-container touch-none"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Utilisez votre doigt ou la souris pour signer dans le cadre ci-dessus.
+              </p>
             </div>
             
             <Alert className="text-xs md:text-sm">

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { generateAndDownloadOfferPdf } from "@/services/offerService";
+import { generateAndDownloadOfferPdf } from "@/services/offers/offerPdf";
 
 export const usePdfGeneration = (offerId: string | undefined) => {
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
