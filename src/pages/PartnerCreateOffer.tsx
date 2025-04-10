@@ -131,7 +131,6 @@ const PartnerCreateOffer = () => {
             setRemarks(offer.additional_info || '');
             
             if (offer.coefficient && offer.amount) {
-              // Convert string values to numbers as needed
               const coefficient = typeof offer.coefficient === 'string' 
                 ? parseFloat(offer.coefficient) 
                 : offer.coefficient || 0;
@@ -299,15 +298,12 @@ const PartnerCreateOffer = () => {
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
 
-      // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
       
-      // Calculate financed amount
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      // Récupérer la valeur de marge totale avec différence
       const totalMarginWithDifference = globalMarginAdjustment.marginDifference
         ? parseFloat(globalMarginAdjustment.marginDifference) + parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2))
         : parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2));
@@ -331,7 +327,7 @@ const PartnerCreateOffer = () => {
         type: 'partner_offer',
         margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: String(totalMarginWithDifference || "0")
+        total_margin_with_difference: totalMarginWithDifference ? totalMarginWithDifference.toString() : "0"
       };
 
       console.log("Saving offer with the following data:", offerData);

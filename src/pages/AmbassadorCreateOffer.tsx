@@ -241,7 +241,7 @@ const AmbassadorCreateOffer = () => {
         ? parseFloat(globalMarginAdjustment.marginDifference) + parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2))
         : parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2));
 
-      console.log("Marge totale avec différence pour l'ambassadeur:", totalMarginWithDifference);
+      console.log("Marge totale avec différence:", totalMarginWithDifference);
       
       const offerData = {
         client_id: client.id,
@@ -261,7 +261,7 @@ const AmbassadorCreateOffer = () => {
         remarks: remarks,
         margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: String(totalMarginWithDifference || "0")
+        total_margin_with_difference: totalMarginWithDifference ? totalMarginWithDifference.toString() : "0"
       };
       
       console.log("Saving offer with the following data:", offerData);
