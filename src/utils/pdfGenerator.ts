@@ -11,73 +11,46 @@ export const generateOfferPdf = async (offerData) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
     
-    // Utiliser le nouveau template pour générer le HTML
+    // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
       React.createElement(OfferPDFTemplate, { offer: offerData })
     );
     
-    // Configurer les options de génération du PDF
+    // Configuration précise pour le PDF
     const options = {
-      margin: [15, 15, 15, 15], // Marges plus généreuses pour éviter les coupes de texte
+      margin: [10, 10, 10, 10],
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
-      image: { type: 'jpeg', quality: 1.0 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 3, // Augmentation de la résolution pour une meilleure qualité
+        scale: 2,
         useCORS: true,
-        logging: true, // Activer les logs pour identifier les problèmes
-        windowWidth: 1200, // Augmentation de la largeur pour éviter les coupes
+        logging: true,
+        windowWidth: 800,
         scrollY: 0,
-        scrollX: 0,
-        allowTaint: true,
-        foreignObjectRendering: true
+        scrollX: 0
       },
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait' as 'portrait' | 'landscape',
-        compress: true,
-        putOnlyUsedFonts: true,
-        precision: 16 // Augmenter la précision
-      },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        orientation: 'portrait'
+      }
     };
     
-    // Préparation du DOM pour le rendu
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    tempDiv.style.height = '297mm'; // Hauteur A4
-    tempDiv.style.width = '210mm';  // Largeur A4
-    tempDiv.style.position = 'relative';
-    tempDiv.style.margin = '0';
-    tempDiv.style.padding = '0';
-    tempDiv.style.overflow = 'hidden';
-    tempDiv.style.fontSize = '11pt'; // Taille de police standard
-    document.body.appendChild(tempDiv);
+    // Créer un conteneur temporaire pour le rendu
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
     
     // Générer le PDF
-    console.log("Conversion en PDF avec options:", JSON.stringify(options, null, 2));
     const pdf = await html2pdf()
-      .from(tempDiv)
+      .from(container)
       .set(options)
-      .toPdf()
-      .get('pdf')
-      .then(pdf => {
-        // S'assurer qu'il n'y a qu'une seule page
-        if (pdf.internal.getNumberOfPages() > 1) {
-          console.log(`PDF généré avec ${pdf.internal.getNumberOfPages()} pages, conservation de la première page uniquement`);
-          // Supprimer les pages supplémentaires si elles existent
-          while (pdf.internal.getNumberOfPages() > 1) {
-            pdf.deletePage(pdf.internal.getNumberOfPages());
-          }
-        }
-        return pdf;
-      })
       .save();
     
-    // Nettoyage
-    document.body.removeChild(tempDiv);
+    // Nettoyer le DOM
+    document.body.removeChild(container);
     
-    console.log("PDF généré avec succès:", options.filename);
+    console.log("PDF généré avec succès");
     return options.filename;
   } catch (error) {
     console.error("Erreur lors de la génération du PDF:", error);
