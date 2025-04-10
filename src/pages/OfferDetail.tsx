@@ -385,6 +385,11 @@ const OfferDetail = () => {
                       <span className="text-sm text-gray-600">Montant total</span>
                       <span className="font-medium text-blue-700">{formatCurrency((offer.monthly_payment || 0) * (offer.duration || 36))}</span>
                     </div>
+                    
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                      <span className="text-sm text-gray-600">Marge générée</span>
+                      <span className="font-medium text-green-600">{formatCurrency(totalMarginWithDifference || totalMargin)}</span>
+                    </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Date de création</span>
