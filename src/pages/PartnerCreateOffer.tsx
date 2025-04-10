@@ -331,7 +331,7 @@ const PartnerCreateOffer = () => {
         type: 'partner_offer',
         margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: String(totalMarginWithDifference || 0)
+        total_margin_with_difference: String(totalMarginWithDifference || "0")
       };
 
       console.log("Saving offer with the following data:", offerData);
