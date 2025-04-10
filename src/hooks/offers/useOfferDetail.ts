@@ -61,11 +61,10 @@ export const useOfferDetail = (offerId: string) => {
           margin: Number(item.margin) || 0,
           monthlyPayment: Number(item.monthlyPayment) || 0,
           serialNumber: item.serialNumber || undefined,
-          // S'assurer que attributes est bien un objet et pas une chaîne
-          attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
-          // S'assurer que specifications est bien un objet et pas une chaîne
-          specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
-          // Support pour variants (ancienne structure)
+          // Make sure to preserve attributes and specifications exactly as they are
+          attributes: item.attributes || {},
+          specifications: item.specifications || {},
+          // Support for variants (old structure)
           ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
         }));
       }
@@ -82,11 +81,10 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(item.margin) || 0,
             monthlyPayment: Number(item.monthlyPayment) || 0,
             serialNumber: item.serialNumber || undefined,
-            // S'assurer que attributes est bien un objet et pas une chaîne
-            attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
-            // S'assurer que specifications est bien un objet et pas une chaîne
-            specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
-            // Support pour variants (ancienne structure)
+            // Make sure to preserve attributes and specifications exactly as they are
+            attributes: item.attributes || {},
+            specifications: item.specifications || {},
+            // Support for variants (old structure)
             ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
           }));
         }
@@ -100,11 +98,10 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(equipmentData.margin) || 0,
             monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
             serialNumber: equipmentData.serialNumber,
-            // S'assurer que attributes est bien un objet et pas une chaîne
-            attributes: equipmentData.attributes && typeof equipmentData.attributes === 'object' ? equipmentData.attributes : {},
-            // S'assurer que specifications est bien un objet et pas une chaîne
-            specifications: equipmentData.specifications && typeof equipmentData.specifications === 'object' ? equipmentData.specifications : {},
-            // Support pour variants (ancienne structure)
+            // Make sure to preserve attributes and specifications exactly as they are
+            attributes: equipmentData.attributes || {},
+            specifications: equipmentData.specifications || {},
+            // Support for variants (old structure)
             ...(equipmentData.variants && typeof equipmentData.variants === 'object' && { specifications: equipmentData.variants })
           }];
         }

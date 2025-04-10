@@ -158,34 +158,30 @@ const CreateOffer = () => {
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+          attributes: eq.attributes || {},
+          specifications: eq.specifications || {}
         }))
       );
 
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      // Déterminer si l'offre est interne (sans commission) ou normale
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
       
-      // Variable pour stocker la commission
       let commissionAmount = 0;
       
-      // Pour les offres internes, la commission est toujours 0
       if (isInternalOffer) {
         commissionAmount = 0;
         console.log("Offre interne - commission à 0");
       } else {
-        // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
         const commissionElement = document.querySelector('.commission-value');
         
         console.log("Recherche de l'élément de commission:", commissionElement);
         
         if (commissionElement) {
           try {
-            // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
             const commissionText = commissionElement.textContent || '';
-            // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
             const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
             commissionAmount = parseFloat(numericValue);
             
@@ -193,7 +189,7 @@ const CreateOffer = () => {
             
             if (isNaN(commissionAmount)) {
               console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-              commissionAmount = Math.round(financedAmount * 0.03); // 3% par défaut
+              commissionAmount = Math.round(financedAmount * 0.03);
             }
           } catch (error) {
             console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
@@ -205,16 +201,12 @@ const CreateOffer = () => {
         }
       }
 
-      // Log final de la commission à sauvegarder
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
 
-      // Récupérer la marge totale générée (sans la différence)
       const marginAmount = globalMarginAdjustment.amount || 0;
       
-      // Récupérer la différence de marge 
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
       
-      // Calculer le total de marge avec différence
       const totalMarginWithDifference = marginAmount + marginDifference;
       
       console.log("Marge totale:", marginAmount);
@@ -236,7 +228,7 @@ const CreateOffer = () => {
         user_id: user?.id || "",
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)  // Marge générée
+        margin: String(marginAmount)
       };
 
       console.log("Saving offer with the following data:", offerData);

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData, OfferType } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
@@ -14,9 +13,34 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       offerType: offerData.type
     });
 
+    // Make sure we don't lose equipment description details by storing them exactly as provided
+    let equipmentDescription = offerData.equipment_description;
+    if (equipmentDescription && typeof equipmentDescription === 'string') {
+      try {
+        // Ensure we're not mangling the JSON by parsing and stringifying
+        const parsedEquipment = JSON.parse(equipmentDescription);
+        console.log("Equipment description parsed successfully:", parsedEquipment);
+        
+        // Verify that attributes and specifications are preserved
+        if (Array.isArray(parsedEquipment)) {
+          parsedEquipment.forEach((item, index) => {
+            console.log(`Item ${index} - attributes:`, item.attributes);
+            console.log(`Item ${index} - specifications:`, item.specifications);
+          });
+        }
+        
+        // Re-stringify with proper formatting to ensure no data loss
+        equipmentDescription = JSON.stringify(parsedEquipment);
+      } catch (parseError) {
+        console.error("Error parsing equipment description:", parseError);
+        // If it's not valid JSON, we keep it as is
+      }
+    }
+
     // Convertir les valeurs numériques si nécessaire
     const dataToSave = {
       ...offerData,
+      equipment_description: equipmentDescription,
       amount: offerData.amount ? 
         (typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount) : 
         null,
