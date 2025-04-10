@@ -20,7 +20,8 @@ import {
   Clock,
   Banknote,
   MessageSquare,
-  CheckCircle
+  CheckCircle,
+  BarChart3
 } from "lucide-react";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import { generateAndDownloadOfferPdf } from "@/services/offerService";
@@ -32,6 +33,7 @@ import { formatCurrency } from "@/utils/formatters";
 import ClientInformation from "@/components/offers/ClientInformation";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -131,6 +133,16 @@ const OfferDetail = () => {
         </div>
       );
     }
+
+    // Calculer la marge totale à partir des articles ou utiliser la marge globale
+    const totalMargin = offer.parsedEquipment && offer.parsedEquipment.length > 0
+      ? offer.parsedEquipment.reduce((sum, item) => sum + ((item.margin || 0) * (item.quantity || 1)), 0)
+      : (offer.margin || 0);
+
+    // Calculer le mensuel total à partir des articles ou utiliser la mensualité globale
+    const totalMonthly = offer.parsedEquipment && offer.parsedEquipment.length > 0
+      ? offer.parsedEquipment.reduce((sum, item) => sum + ((item.monthlyPayment || 0) * (item.quantity || 1)), 0)
+      : (offer.monthly_payment || 0);
 
     return (
       <div className="space-y-6">
@@ -291,15 +303,56 @@ const OfferDetail = () => {
                           </div>
                         </div>
                         
-                        <div>
-                          <h3 className="font-medium mb-2 flex items-center">
-                            <Package className="h-4 w-4 mr-2 text-blue-600" />
-                            Description de l'équipement
-                          </h3>
-                          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
-                            <p className="whitespace-pre-line">{offer.equipment_description}</p>
+                        {/* Tableau détaillé des équipements */}
+                        {offer.parsedEquipment && offer.parsedEquipment.length > 0 ? (
+                          <EquipmentDetailTable 
+                            equipment={offer.parsedEquipment} 
+                            totalMonthly={totalMonthly}
+                            totalMargin={totalMargin}
+                          />
+                        ) : offer.equipment_description ? (
+                          <div>
+                            <h3 className="font-medium mb-2 flex items-center">
+                              <Package className="h-4 w-4 mr-2 text-blue-600" />
+                              Description de l'équipement
+                            </h3>
+                            <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
+                              <p className="whitespace-pre-line">{offer.equipment_description}</p>
+                            </div>
                           </div>
-                        </div>
+                        ) : null}
+                        
+                        {/* Informations financières supplémentaires */}
+                        <Card className="border-blue-100">
+                          <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-green-50">
+                            <CardTitle className="text-base flex items-center">
+                              <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
+                              Informations financières
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="pt-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              <div>
+                                <p className="text-sm text-muted-foreground">Marge générée</p>
+                                <p className="text-lg font-semibold text-green-600">{formatCurrency(totalMargin)}</p>
+                              </div>
+                              
+                              {offer.margin_difference !== undefined && offer.margin_difference !== null && (
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Différence de marge</p>
+                                  <p className="text-lg font-semibold text-orange-600">{formatCurrency(offer.margin_difference)}</p>
+                                </div>
+                              )}
+                              
+                              {offer.total_margin_with_difference !== undefined && offer.total_margin_with_difference !== null && (
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Marge totale avec différence</p>
+                                  <p className="text-lg font-semibold text-green-700">{formatCurrency(offer.total_margin_with_difference)}</p>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
                         
                         {offer.remarks && (
                           <div>
@@ -367,6 +420,11 @@ const OfferDetail = () => {
                       <span className="text-sm text-gray-600">Montant total</span>
                       <span className="font-medium text-blue-700">{formatCurrency((offer.monthly_payment || 0) * (offer.duration || 36))}</span>
                     </div>
+
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                      <span className="text-sm text-gray-600">Marge générée</span>
+                      <span className="font-medium text-green-600">{formatCurrency(totalMargin)}</span>
+                    </div>
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Date de création</span>
@@ -408,4 +466,3 @@ const OfferDetail = () => {
 };
 
 export default OfferDetail;
-
