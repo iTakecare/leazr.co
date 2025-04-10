@@ -30,7 +30,9 @@ export const generateOfferPdf = async (offerData) => {
         windowWidth: 794,
         letterRendering: true,
         scrollX: 0,
-        scrollY: 0
+        scrollY: 0,
+        imageTimeout: 15000, // Temps supplémentaire pour charger les images
+        allowTaint: true // Permettre les images cross-origin
       },
       jsPDF: { 
         unit: 'mm', 
@@ -55,6 +57,22 @@ export const generateOfferPdf = async (offerData) => {
     container.style.backgroundColor = 'white';
     container.style.fontFamily = 'Arial, sans-serif';
     container.innerHTML = htmlContent;
+    
+    // Précharger l'image du logo avant de générer le PDF
+    const preloadLogo = async () => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => {
+          console.error("Erreur lors du chargement du logo");
+          resolve(); // Continuer même en cas d'erreur
+        };
+        img.src = "/lovable-uploads/3adf9af1-b4a0-4b3f-9603-1e04cf6deeb0.png";
+      });
+    };
+    
+    // Attendre que l'image soit préchargée
+    await preloadLogo();
     
     // Ajouter le container temporairement au document
     document.body.appendChild(container);
