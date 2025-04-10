@@ -35,7 +35,10 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
     const updateCanvasSize = () => {
       if (canvasContainerRef.current) {
         const containerWidth = canvasContainerRef.current.clientWidth;
-        const containerHeight = typeof height === 'number' ? height : 200;
+        // On mobile, limit height to ensure it's visible without scrolling too much
+        const containerHeight = typeof height === 'number' 
+          ? (window.innerWidth < 640 ? Math.min(height, 180) : height) 
+          : 180;
         
         setCanvasSize({
           width: containerWidth,
@@ -65,12 +68,16 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
     const resizeObserver = new ResizeObserver(updateCanvasSize);
     resizeObserver.observe(canvasContainerRef.current);
     
-    // Clean up observer on unmount
+    // Also listen for window resize events (especially important for mobile orientation changes)
+    window.addEventListener('resize', updateCanvasSize);
+    
+    // Clean up observer and event listener on unmount
     return () => {
       if (canvasContainerRef.current) {
         resizeObserver.unobserve(canvasContainerRef.current);
       }
       resizeObserver.disconnect();
+      window.removeEventListener('resize', updateCanvasSize);
     };
   }, [height, canvasContainerRef.current]);
 
@@ -175,12 +182,12 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
 
   return (
     <div className={`border rounded-md overflow-hidden ${className}`}>
-      <div className="bg-gray-50 p-3 border-b">
+      <div className="bg-gray-50 p-2 md:p-3 border-b">
         <p className="text-sm text-gray-700 font-medium">
           Signez dans le cadre ci-dessous
         </p>
-        <p className="text-xs text-gray-500">
-          Utilisez votre souris, trackpad ou écran tactile pour signer
+        <p className="text-xs text-gray-500 mt-1">
+          Utilisez votre doigt, souris ou stylet pour signer
         </p>
       </div>
       
@@ -229,15 +236,16 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
         )}
       </div>
       
-      <div className="flex justify-between gap-2 p-3 bg-gray-50 border-t">
+      <div className="flex justify-between gap-2 p-2 md:p-3 bg-gray-50 border-t">
         <Button 
           variant="outline" 
           size="sm" 
           onClick={clear}
           disabled={isEmpty || disabled}
           type="button"
+          className="text-xs h-8 md:h-9"
         >
-          <Eraser className="h-4 w-4 mr-1" />
+          <Eraser className="h-3 w-3 md:h-4 md:w-4 mr-1" />
           Effacer
         </Button>
         <Button 
@@ -246,8 +254,9 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
           onClick={save}
           disabled={isEmpty || disabled}
           type="button"
+          className="text-xs h-8 md:h-9"
         >
-          <Check className="h-4 w-4 mr-1" />
+          <Check className="h-3 w-3 md:h-4 md:w-4 mr-1" />
           Valider
         </Button>
       </div>

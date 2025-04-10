@@ -45,18 +45,20 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   onPrintPdf
 }) => {
   return (
-    <Card className="mb-6">
-      <CardHeader className="bg-primary/5">
-        <CardTitle>{signed ? "Signature" : "Signer l'offre"}</CardTitle>
+    <Card className="mb-6 w-full overflow-hidden">
+      <CardHeader className="bg-primary/5 py-3 px-4 md:px-6">
+        <CardTitle className="text-lg md:text-xl">
+          {signed ? "Signature" : "Signer l'offre"}
+        </CardTitle>
         <CardDescription>
           {signed 
             ? "Cette offre a déjà été signée électroniquement."
             : "Veuillez signer ci-dessous pour accepter l'offre."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
         {signed ? (
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             <div className="border rounded-md overflow-hidden">
               <div className="bg-gray-50 p-2 border-b">
                 <p className="text-sm text-gray-500">Signature</p>
@@ -77,7 +79,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             </div>
             
             <div className="flex items-center space-x-2">
-              <Check className="text-green-500 h-5 w-5" />
+              <Check className="text-green-500 h-5 w-5 flex-shrink-0" />
               <span className="text-sm text-gray-600">
                 Signé par {signerName || "le client"} 
                 {signedAt ? ` le ${formatDate(signedAt)}` : ""}
@@ -85,7 +87,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6 w-full">
             <div className="space-y-2">
               <Label htmlFor="signer-name">Votre nom complet</Label>
               <Input 
@@ -95,7 +97,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
                 placeholder="Entrez votre nom complet"
                 disabled={isSigning}
                 required
-                className="border border-gray-300"
+                className="border border-gray-300 w-full"
               />
               <p className="text-xs text-gray-500">
                 Votre nom sera utilisé comme identification légale pour cette signature électronique.
@@ -106,13 +108,13 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               <SignatureCanvas 
                 onSave={onSign}
                 disabled={isSigning}
-                height={200}
-                className="mt-4 signature-container w-full"
+                height={180}
+                className="mt-2 signature-container w-full"
               />
             </div>
             
-            <Alert>
-              <Info className="h-4 w-4" />
+            <Alert className="text-xs md:text-sm">
+              <Info className="h-4 w-4 flex-shrink-0" />
               <AlertDescription>
                 En signant cette offre, vous acceptez les conditions générales de leasing et confirmez
                 que les informations fournies sont exactes.
@@ -123,12 +125,17 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       </CardContent>
       
       {signed && (
-        <CardFooter className="border-t bg-gray-50 flex justify-between">
-          <div className="text-sm text-gray-500">
+        <CardFooter className="border-t bg-gray-50 flex flex-col sm:flex-row justify-between px-3 md:px-6 py-3 gap-2">
+          <div className="text-xs sm:text-sm text-gray-500">
             <FileText className="inline h-4 w-4 mr-1" />
             Une confirmation a été envoyée par email
           </div>
-          <Button variant="outline" onClick={onPrintPdf} disabled={isPrintingPdf}>
+          <Button 
+            variant="outline" 
+            onClick={onPrintPdf} 
+            disabled={isPrintingPdf}
+            className="w-full sm:w-auto"
+          >
             {isPrintingPdf ? (
               <span className="flex items-center">
                 <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>

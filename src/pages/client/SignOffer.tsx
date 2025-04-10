@@ -41,12 +41,14 @@ const SignOffer = () => {
   const equipmentDisplay = formatEquipmentDisplay(offer.equipment_description);
   
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Client Offers Sidebar */}
-      <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      {/* Client Offers Sidebar - Hidden on mobile, shown on tablet and up */}
+      <div className="hidden md:block">
+        <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
+      </div>
       
       {/* Main Content */}
-      <div className="flex-1 py-8 px-4 overflow-auto">
+      <div className="flex-1 py-4 md:py-8 px-3 md:px-4 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <OfferHeader 
             offerId={id || ''} 
