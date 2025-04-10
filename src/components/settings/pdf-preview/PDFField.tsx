@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useDragState, useDragActions } from "./PDFPreviewDragContext";
-import { getOfferEquipment } from "@/services/offerService";
+import { getOfferEquipment, forceMigrateEquipmentData } from "@/services/offerService";
 import { OfferEquipment } from "@/types/offerEquipment";
 
 interface PDFFieldProps {
@@ -28,9 +28,9 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
         </tr>
       </thead>
       <tbody>
-        {equipment.map((item: any, index: number) => {
-          const quantity = parseInt(item.quantity || 1, 10);
-          const monthlyPayment = parseFloat(item.monthly_payment || 0);
+        {equipment.map((item: OfferEquipment, index: number) => {
+          const quantity = parseInt(String(item.quantity) || "1", 10);
+          const monthlyPayment = parseFloat(String(item.monthly_payment) || "0");
           const totalMonthlyPayment = monthlyPayment * quantity;
           
           // Créer une chaîne détaillée pour les attributs et spécifications
@@ -70,9 +70,9 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
         <tr className="font-bold bg-gray-50">
           <td className="border px-1 py-0.5 text-right" colSpan={2}>Total mensualité :</td>
           <td className="border px-1 py-0.5 text-right">
-            {formatCurrency(equipment.reduce((total: number, item: any) => {
-              const monthlyPayment = parseFloat(item.monthly_payment || 0);
-              const quantity = parseInt(item.quantity || 1, 10);
+            {formatCurrency(equipment.reduce((total: number, item: OfferEquipment) => {
+              const monthlyPayment = parseFloat(String(item.monthly_payment) || "0");
+              const quantity = parseInt(String(item.quantity) || "1", 10);
               return total + (monthlyPayment * quantity);
             }, 0))}
           </td>
@@ -87,6 +87,7 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
   const { startDrag } = useDragActions();
   const [equipmentData, setEquipmentData] = useState<OfferEquipment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [migrationAttempted, setMigrationAttempted] = useState(false);
   
   // Charger les données d'équipement si nécessaire
   useEffect(() => {
@@ -96,7 +97,28 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
           setIsLoading(true);
           // Récupérer les équipements depuis la BD
           const dbEquipment = await getOfferEquipment(sampleData.id);
-          setEquipmentData(dbEquipment);
+          
+          // Si aucun équipement trouvé, essayer de forcer la migration
+          if (dbEquipment.length === 0 && !migrationAttempted && sampleData.equipment_description) {
+            console.log("Aucun équipement trouvé, tentative de migration forcée...");
+            setMigrationAttempted(true);
+            const migrationSuccess = await forceMigrateEquipmentData(sampleData.id);
+            
+            if (migrationSuccess) {
+              console.log("Migration forcée réussie, récupération des équipements...");
+              const migratedEquipment = await getOfferEquipment(sampleData.id);
+              setEquipmentData(migratedEquipment);
+            } else {
+              console.error("Échec de la migration forcée, utilisation des données JSON");
+              parseJSONEquipment();
+            }
+          } else {
+            setEquipmentData(dbEquipment);
+            
+            if (dbEquipment.length === 0) {
+              parseJSONEquipment();
+            }
+          }
         } catch (error) {
           console.error("Erreur lors de la récupération des équipements:", error);
           parseJSONEquipment();
@@ -124,7 +146,7 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
     };
     
     fetchEquipmentData();
-  }, [field.id, sampleData]);
+  }, [field.id, sampleData, migrationAttempted]);
   
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   

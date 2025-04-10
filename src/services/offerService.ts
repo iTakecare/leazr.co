@@ -39,7 +39,8 @@ import {
   getOfferEquipment,
   saveEquipment,
   migrateEquipmentFromJson,
-  convertEquipmentToJson
+  convertEquipmentToJson,
+  forceMigrateEquipmentData
 } from './offers/offerEquipment';
 
 // Import and re-export from other offer service files
@@ -62,11 +63,12 @@ export {
   processInfoResponse,
   getOfferNotes,
   addOfferNote,
-  // Export les nouvelles fonctions d'équipement
+  // Export les fonctions d'équipement
   getOfferEquipment,
   saveEquipment,
   migrateEquipmentFromJson,
-  convertEquipmentToJson
+  convertEquipmentToJson,
+  forceMigrateEquipmentData
 };
 
 // Export functions from offerDetail directly
