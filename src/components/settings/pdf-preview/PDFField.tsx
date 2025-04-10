@@ -13,7 +13,7 @@ interface PDFFieldProps {
 }
 
 // Composant pour afficher le tableau d'équipement
-const EquipmentTable = ({ equipment, zoomLevel }) => {
+const EquipmentTable = ({ equipment, zoomLevel }: { equipment: OfferEquipment[], zoomLevel: number }) => {
   if (!equipment || equipment.length === 0) {
     return <p className="text-sm italic">Aucun équipement disponible</p>;
   }
@@ -29,35 +29,36 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
       </thead>
       <tbody>
         {equipment.map((item: OfferEquipment, index: number) => {
+          // Extraire les données nécessaires pour l'affichage
           const quantity = parseInt(String(item.quantity) || "1", 10);
           const monthlyPayment = parseFloat(String(item.monthly_payment) || "0");
           const totalMonthlyPayment = monthlyPayment * quantity;
           
           // Créer une chaîne détaillée pour les attributs et spécifications
-          const detailsArray = [];
-          
-          if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
-            item.attributes.forEach(attr => {
-              detailsArray.push(`${attr.key}: ${attr.value}`);
-            });
-          }
+          const specsList: string[] = [];
           
           if (item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0) {
             item.specifications.forEach(spec => {
-              detailsArray.push(`${spec.key}: ${spec.value}`);
+              specsList.push(`${spec.key}: ${spec.value}`);
             });
           }
           
-          const detailsString = detailsArray.join(' • ');
+          if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
+            item.attributes.forEach(attr => {
+              specsList.push(`${attr.key}: ${attr.value}`);
+            });
+          }
           
           return (
             <React.Fragment key={index}>
               <tr>
                 <td className="border px-1 py-0.5 text-left">
                   <div>
-                    <div>{item.title}</div>
-                    {detailsString && (
-                      <div className="text-xs text-gray-500">{detailsString}</div>
+                    <div className="font-medium">{item.title}</div>
+                    {specsList.length > 0 && (
+                      <div className="text-xs text-gray-500">
+                        {specsList.join(' • ')}
+                      </div>
                     )}
                   </div>
                 </td>
@@ -95,13 +96,17 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
       if (field.id === 'equipment_table' && sampleData && sampleData.id) {
         try {
           setIsLoading(true);
+          console.log("Chargement des équipements pour l'offre:", sampleData.id);
+          
           // Récupérer les équipements depuis la BD
           const dbEquipment = await getOfferEquipment(sampleData.id);
+          console.log("Équipements récupérés:", dbEquipment);
           
           // Si aucun équipement trouvé, essayer de forcer la migration
-          if (dbEquipment.length === 0 && !migrationAttempted && sampleData.equipment_description) {
+          if ((!dbEquipment || dbEquipment.length === 0) && !migrationAttempted && sampleData.equipment_description) {
             console.log("Aucun équipement trouvé, tentative de migration forcée...");
             setMigrationAttempted(true);
+            
             const migrationSuccess = await forceMigrateEquipmentData(sampleData.id);
             
             if (migrationSuccess) {
@@ -113,9 +118,10 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
               parseJSONEquipment();
             }
           } else {
-            setEquipmentData(dbEquipment);
-            
-            if (dbEquipment.length === 0) {
+            if (dbEquipment && dbEquipment.length > 0) {
+              setEquipmentData(dbEquipment);
+            } else {
+              console.log("Aucun équipement trouvé dans la base de données, utilisation des données JSON");
               parseJSONEquipment();
             }
           }
@@ -137,8 +143,63 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
           return;
         }
         
-        const parsed = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-        setEquipmentData(Array.isArray(parsed) ? parsed : []);
+        let parsed;
+        try {
+          parsed = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+        } catch (e) {
+          console.error("Erreur de parsing JSON:", e);
+          setEquipmentData([]);
+          return;
+        }
+        
+        // Traiter différents formats possibles
+        let equipmentArray = parsed;
+        
+        if (!Array.isArray(parsed)) {
+          if (parsed && typeof parsed === 'object' && parsed.items && Array.isArray(parsed.items)) {
+            equipmentArray = parsed.items;
+          } else {
+            equipmentArray = [];
+          }
+        }
+        
+        // Convertir dans le format attendu
+        const formattedEquipment = equipmentArray.map((item: any) => {
+          // Extraire les attributs et spécifications
+          const attributes = [];
+          const specifications = [];
+          
+          if (item.attributes && typeof item.attributes === 'object') {
+            for (const [key, value] of Object.entries(item.attributes)) {
+              attributes.push({ key, value: String(value), equipment_id: item.id || 'temp' });
+            }
+          }
+          
+          if (item.specifications && typeof item.specifications === 'object') {
+            for (const [key, value] of Object.entries(item.specifications)) {
+              specifications.push({ key, value: String(value), equipment_id: item.id || 'temp' });
+            }
+          } else if (item.variants && typeof item.variants === 'object') {
+            for (const [key, value] of Object.entries(item.variants)) {
+              specifications.push({ key, value: String(value), equipment_id: item.id || 'temp' });
+            }
+          }
+          
+          return {
+            id: item.id || `temp-${Math.random().toString(36).substring(2, 9)}`,
+            offer_id: sampleData.id,
+            title: item.title || "Produit sans nom",
+            purchase_price: Number(item.purchasePrice || item.purchase_price) || 0,
+            quantity: Number(item.quantity) || 1,
+            margin: Number(item.margin) || 0,
+            monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
+            serial_number: item.serialNumber || item.serial_number,
+            attributes,
+            specifications
+          };
+        });
+        
+        setEquipmentData(formattedEquipment);
       } catch (error) {
         console.error("Erreur lors du parsing des données JSON:", error);
         setEquipmentData([]);

@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import { formatCurrency } from '@/utils/formatters';
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip } from "@/components/ui/tooltip";
 
 type EquipmentItem = {
   id?: string; 
@@ -11,8 +11,8 @@ type EquipmentItem = {
   quantity: number;
   margin?: number;
   monthlyPayment?: number;
-  attributes?: Record<string, string>;
-  specifications?: Record<string, string | number>;
+  attributes?: Record<string, string> | { key: string; value: string }[];
+  specifications?: Record<string, string | number> | { key: string; value: string }[];
 };
 
 interface EquipmentDetailTableProps {
@@ -47,16 +47,45 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   
   // Fonction pour vérifier si un équipement a des attributs ou des spécifications
   const hasDetails = (item: EquipmentItem): boolean => {
-    return (
-      (item.attributes && Object.keys(item.attributes).length > 0) || 
-      (item.specifications && Object.keys(item.specifications).length > 0)
-    );
+    // Vérifier les attributs
+    if (item.attributes) {
+      if (Array.isArray(item.attributes)) {
+        if (item.attributes.length > 0) return true;
+      } else if (Object.keys(item.attributes).length > 0) {
+        return true;
+      }
+    }
+    
+    // Vérifier les spécifications
+    if (item.specifications) {
+      if (Array.isArray(item.specifications)) {
+        if (item.specifications.length > 0) return true;
+      } else if (Object.keys(item.specifications).length > 0) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   // Fonction pour afficher les spécifications et attributs
   const renderDetailsRow = (item: EquipmentItem, itemId: string) => {
-    const hasAttributes = item.attributes && Object.keys(item.attributes).length > 0;
-    const hasSpecifications = item.specifications && Object.keys(item.specifications).length > 0;
+    // Normaliser les attributs en tableau d'objets {key, value}
+    const normalizedAttributes = item.attributes 
+      ? Array.isArray(item.attributes) 
+        ? item.attributes 
+        : Object.entries(item.attributes).map(([key, value]) => ({ key, value: String(value) }))
+      : [];
+      
+    // Normaliser les spécifications en tableau d'objets {key, value}
+    const normalizedSpecs = item.specifications 
+      ? Array.isArray(item.specifications) 
+        ? item.specifications 
+        : Object.entries(item.specifications).map(([key, value]) => ({ key, value: String(value) }))
+      : [];
+    
+    const hasAttributes = normalizedAttributes.length > 0;
+    const hasSpecifications = normalizedSpecs.length > 0;
 
     // Vérifier s'il y a des détails à afficher
     if (!hasAttributes && !hasSpecifications) {
@@ -83,10 +112,10 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Object.entries(item.attributes || {}).map(([key, value]) => (
-                      <TableRow key={`attr-${key}`}>
-                        <TableCell className="font-medium capitalize">{key}</TableCell>
-                        <TableCell>{value}</TableCell>
+                    {normalizedAttributes.map((attr, index) => (
+                      <TableRow key={`attr-${index}`}>
+                        <TableCell className="font-medium capitalize">{attr.key}</TableCell>
+                        <TableCell>{attr.value}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -105,10 +134,10 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Object.entries(item.specifications || {}).map(([key, value]) => (
-                      <TableRow key={`spec-${key}`}>
-                        <TableCell className="font-medium capitalize">{key}</TableCell>
-                        <TableCell>{value}</TableCell>
+                    {normalizedSpecs.map((spec, index) => (
+                      <TableRow key={`spec-${index}`}>
+                        <TableCell className="font-medium capitalize">{spec.key}</TableCell>
+                        <TableCell>{spec.value}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -123,10 +152,21 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   
   // Fonction pour créer une chaîne de caractères à partir des attributs et spécifications
   const createDetailsString = (item: EquipmentItem): string => {
-    const attributesArray = item.attributes ? Object.entries(item.attributes).map(([key, value]) => `${key}: ${value}`) : [];
-    const specificationsArray = item.specifications ? Object.entries(item.specifications).map(([key, value]) => `${key}: ${value}`) : [];
+    // Normaliser les attributs
+    const attributesList = item.attributes 
+      ? Array.isArray(item.attributes) 
+        ? item.attributes.map(attr => `${attr.key}: ${attr.value}`)
+        : Object.entries(item.attributes).map(([key, value]) => `${key}: ${value}`)
+      : [];
     
-    return [...attributesArray, ...specificationsArray].join(' • ');
+    // Normaliser les spécifications
+    const specsList = item.specifications 
+      ? Array.isArray(item.specifications) 
+        ? item.specifications.map(spec => `${spec.key}: ${spec.value}`)
+        : Object.entries(item.specifications).map(([key, value]) => `${key}: ${value}`)
+      : [];
+    
+    return [...attributesList, ...specsList].join(' • ');
   };
   
   return (

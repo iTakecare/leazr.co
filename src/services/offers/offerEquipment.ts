@@ -152,6 +152,119 @@ export const saveEquipment = async (
 };
 
 /**
+ * Analyse une chaîne JSON d'équipement pour extraire les spécifications
+ */
+const parseEquipmentSpecsFromText = (text: string): { specs: Record<string, string>; attributes: Record<string, string> } => {
+  // Résultat par défaut
+  const result = {
+    specs: {},
+    attributes: {}
+  };
+  
+  // Patterns courants pour les spécifications
+  const specPatterns = [
+    // Format: "RAM: 8Go, Disque Dur: 256Go"
+    /([^:,]+):\s*([^,]+)/g,
+    
+    // Format: "RAM 8Go - SSD 256Go - Écran 15""
+    /([^\s-]+)\s+([^-]+)/g
+  ];
+  
+  try {
+    // Essai 1: Rechercher des patterns de spécifications dans le texte
+    let matches;
+    for (const pattern of specPatterns) {
+      // Réinitialiser le regex pour chaque pattern
+      pattern.lastIndex = 0;
+      
+      // Rechercher toutes les correspondances
+      while ((matches = pattern.exec(text)) !== null) {
+        const key = matches[1].trim();
+        const value = matches[2].trim();
+        
+        // Déterminer si c'est une spécification ou un attribut
+        if (key.toLowerCase().match(/ram|mémoire|disque|ssd|écran|screen|processor|processeur|gpu|cpu|bluetooth|wifi/i)) {
+          result.specs[key] = value;
+        } else {
+          result.attributes[key] = value;
+        }
+      }
+    }
+    
+    // Essai 2: Rechercher des spécifications classiques
+    if (Object.keys(result.specs).length === 0) {
+      // RAM
+      const ramMatch = text.match(/(\d+)\s*(Go|GB|G)\s*(RAM|Mémoire)/i) || 
+                       text.match(/(RAM|Mémoire)\s*:?\s*(\d+)\s*(Go|GB|G)/i);
+      if (ramMatch) {
+        result.specs["RAM"] = ramMatch[0];
+      }
+      
+      // Stockage
+      const storageMatch = text.match(/(\d+)\s*(Go|GB|G|To|TB|T)\s*(SSD|HDD|Disque)/i) || 
+                           text.match(/(SSD|HDD|Disque)\s*:?\s*(\d+)\s*(Go|GB|G|To|TB|T)/i);
+      if (storageMatch) {
+        result.specs["Stockage"] = storageMatch[0];
+      }
+      
+      // Écran
+      const screenMatch = text.match(/(\d+[,.]\d+||\d+)\s*("|pouces|inch)/i) || 
+                          text.match(/(Écran|Screen)\s*:?\s*(\d+[,.]\d+||\d+)\s*("|pouces|inch)/i);
+      if (screenMatch) {
+        result.specs["Écran"] = screenMatch[0];
+      }
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'analyse des spécifications:", error);
+  }
+  
+  return result;
+};
+
+/**
+ * Extrait les attributs et spécifications à partir de l'ancien format JSON
+ */
+const extractAttributesAndSpecs = (item: any): { attributes: Record<string, string>, specifications: Record<string, string> } => {
+  const attributes: Record<string, string> = {};
+  const specifications: Record<string, string> = {};
+  
+  // Cas 1: L'élément a déjà des attributs et spécifications structurés
+  if (item.attributes && typeof item.attributes === 'object') {
+    Object.entries(item.attributes).forEach(([key, value]) => {
+      attributes[key] = String(value);
+    });
+  }
+  
+  if (item.specifications && typeof item.specifications === 'object') {
+    Object.entries(item.specifications).forEach(([key, value]) => {
+      specifications[key] = String(value);
+    });
+  } else if (item.variants && typeof item.variants === 'object') {
+    // Compatible avec l'ancien format qui utilisait "variants"
+    Object.entries(item.variants).forEach(([key, value]) => {
+      specifications[key] = String(value);
+    });
+  }
+  
+  // Cas 2: Analyser le titre pour en extraire des spécifications si nécessaire
+  if (Object.keys(specifications).length === 0 && item.title) {
+    const { specs, attributes: parsedAttrs } = parseEquipmentSpecsFromText(item.title);
+    
+    // Ajouter les spécifications analysées
+    Object.entries(specs).forEach(([key, value]) => {
+      specifications[key] = value;
+    });
+    
+    // Ajouter les attributs analysés
+    Object.entries(parsedAttrs).forEach(([key, value]) => {
+      attributes[key] = value;
+    });
+  }
+  
+  return { attributes, specifications };
+};
+
+/**
  * Migre les équipements existants du format JSON vers la nouvelle structure de tables
  */
 export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: string | any): Promise<boolean> => {
@@ -170,9 +283,15 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       equipmentData = equipmentJson;
     }
     
+    // Gérer différents formats de données
     if (!Array.isArray(equipmentData)) {
-      console.error("Le format JSON n'est pas un tableau d'équipements");
-      return false;
+      // Si ce n'est pas un tableau, essayons de vérifier si c'est un objet avec une propriété "items"
+      if (equipmentData && typeof equipmentData === 'object' && equipmentData.items && Array.isArray(equipmentData.items)) {
+        equipmentData = equipmentData.items;
+      } else {
+        console.error("Le format JSON n'est pas un tableau d'équipements");
+        return false;
+      }
     }
     
     console.log("Données d'équipement à migrer:", equipmentData);
@@ -197,29 +316,7 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       };
       
       // Extraire les attributs et spécifications
-      const attributes = {};
-      const specifications = {};
-      
-      // Traiter les attributs s'ils existent
-      if (item.attributes && typeof item.attributes === 'object') {
-        Object.entries(item.attributes).forEach(([key, value]) => {
-          attributes[key] = String(value);
-        });
-      }
-      
-      // Traiter les spécifications s'ils existent
-      if (item.specifications && typeof item.specifications === 'object') {
-        Object.entries(item.specifications).forEach(([key, value]) => {
-          specifications[key] = String(value);
-        });
-      }
-      
-      // Compatibilité avec l'ancien format qui utilisait "variants" au lieu de "specifications"
-      if (item.variants && typeof item.variants === 'object') {
-        Object.entries(item.variants).forEach(([key, value]) => {
-          specifications[key] = String(value);
-        });
-      }
+      const { attributes, specifications } = extractAttributesAndSpecs(item);
       
       // Sauvegarder l'équipement avec ses attributs et spécifications
       await saveEquipment(newEquipment, attributes, specifications);
