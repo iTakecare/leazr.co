@@ -59,6 +59,14 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   const offerId = offer.offer_id || `OFF-${offer.id?.substring(0, 8).toUpperCase()}`;
   const isOfferSigned = !!offer.signature_data;
   
+  // Débug pour voir si la signature est bien présente
+  console.log("Rendu du template PDF, signature présente:", isOfferSigned);
+  if (isOfferSigned) {
+    console.log("Longueur de la signature:", offer.signature_data?.length);
+    console.log("Nom du signataire:", offer.signer_name);
+    console.log("Date de signature:", offer.signed_at);
+  }
+  
   return (
     <div style={{ 
       width: "190mm", 

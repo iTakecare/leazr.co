@@ -10,6 +10,7 @@ import ReactDOMServer from 'react-dom/server';
 export const generateOfferPdf = async (offerData) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
+    console.log("Signature présente:", offerData.signature_data ? 'Oui' : 'Non');
     
     // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
@@ -57,22 +58,6 @@ export const generateOfferPdf = async (offerData) => {
     container.style.backgroundColor = 'white';
     container.style.fontFamily = 'Arial, sans-serif';
     container.innerHTML = htmlContent;
-    
-    // Précharger l'image du logo avant de générer le PDF
-    const preloadLogo = async () => {
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => {
-          console.error("Erreur lors du chargement du logo");
-          resolve(); // Continuer même en cas d'erreur
-        };
-        img.src = "/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png";
-      });
-    };
-    
-    // Attendre que l'image soit préchargée
-    await preloadLogo();
     
     // Ajouter le container temporairement au document
     document.body.appendChild(container);
