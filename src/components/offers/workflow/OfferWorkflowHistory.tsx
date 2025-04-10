@@ -1,11 +1,12 @@
 
 import React from "react";
 import { format } from "date-fns";
-import { Clock, User, ArrowRight } from "lucide-react";
+import { Clock, User, ArrowRight, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OFFER_STATUSES } from "../OfferStatusBadge";
+import { Badge } from "@/components/ui/badge";
 
 interface WorkflowLog {
   id: string;
@@ -87,6 +88,11 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     return log.user_email || log.profiles?.email || 'Utilisateur';
   };
 
+  // Get user email for display
+  const getUserEmail = (log: WorkflowLog) => {
+    return log.user_email || log.profiles?.email || '';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -105,15 +111,26 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
                 </Avatar>
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      {getDisplayName(log)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">
+                        {getDisplayName(log)}
+                      </p>
+                      <Badge variant="outline" className="text-xs">Utilisateur</Badge>
+                    </div>
                     <span className="text-xs text-muted-foreground flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
                       {format(new Date(log.created_at), "dd/MM/yyyy à HH:mm")}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
+                  
+                  {getUserEmail(log) && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3 mr-1" />
+                      {getUserEmail(log)}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-sm mt-2">
                     <span className="text-muted-foreground">{getStatusLabel(log.previous_status)}</span>
                     <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     <span className="font-medium">{getStatusLabel(log.new_status)}</span>
