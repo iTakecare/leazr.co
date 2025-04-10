@@ -209,6 +209,9 @@ const CreateOffer = () => {
       // Log final de la commission à sauvegarder
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
 
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -222,11 +225,13 @@ const CreateOffer = () => {
         workflow_status: "draft",
         type: offerType,
         user_id: user?.id || "",
-        remarks: remarks
+        remarks: remarks,
+        total_margin_with_difference: totalMarginWithDifferenceString
       };
 
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
 
       const { data, error } = await createOffer(offerData);
 

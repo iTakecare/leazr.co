@@ -308,6 +308,9 @@ const PartnerCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+
       const offerData = {
         user_id: user.id,
         client_name: clientName,
@@ -321,8 +324,12 @@ const PartnerCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         additional_info: remarks,
-        type: 'partner_offer'
+        type: 'partner_offer',
+        total_margin_with_difference: totalMarginWithDifferenceString
       };
+
+      console.log("Saving offer with the following data:", offerData);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
 
       let result;
       

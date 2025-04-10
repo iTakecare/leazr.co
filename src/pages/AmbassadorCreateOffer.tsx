@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -237,6 +236,9 @@ const AmbassadorCreateOffer = () => {
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -251,11 +253,13 @@ const AmbassadorCreateOffer = () => {
         type: "ambassador_offer",
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
-        remarks: remarks
+        remarks: remarks,
+        total_margin_with_difference: totalMarginWithDifferenceString
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
       
       const { data, error } = await createOffer(offerData);
       
