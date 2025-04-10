@@ -26,6 +26,8 @@ interface SignatureSectionProps {
   signature: string | null;
   signerName: string;
   setSignerName: (name: string) => void;
+  approvalText: string;
+  setApprovalText: (text: string) => void;
   isSigning: boolean;
   signedAt?: string;
   onSign: (signatureData: string) => void;
@@ -38,12 +40,16 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   signature,
   signerName,
   setSignerName,
+  approvalText,
+  setApprovalText,
   isSigning,
   signedAt,
   onSign,
   isPrintingPdf,
   onPrintPdf
 }) => {
+  const isApprovalTextValid = approvalText.trim().toLowerCase() === "bon pour accord";
+  
   return (
     <Card className="mb-6 w-full overflow-hidden">
       <CardHeader className="bg-primary/5 py-3 px-4 md:px-6">
@@ -65,11 +71,14 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </div>
               <div className="p-4 bg-white flex justify-center">
                 {signature ? (
-                  <img 
-                    src={signature} 
-                    alt="Signature" 
-                    className="max-h-40 object-contain border" 
-                  />
+                  <div className="flex flex-col items-center">
+                    <p className="mb-2 text-sm font-medium text-gray-600">{approvalText}</p>
+                    <img 
+                      src={signature} 
+                      alt="Signature" 
+                      className="max-h-40 object-contain border" 
+                    />
+                  </div>
                 ) : (
                   <div className="text-gray-400 italic">
                     Signature électronique vérifiée
@@ -104,18 +113,41 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </p>
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="approval-text" className="flex justify-between">
+                <span>Mention obligatoire</span>
+                <span className={isApprovalTextValid ? "text-green-600 text-xs" : "text-red-500 text-xs"}>
+                  {isApprovalTextValid ? "✓ Valide" : 'Veuillez saisir "Bon pour accord"'}
+                </span>
+              </Label>
+              <Input 
+                id="approval-text"
+                value={approvalText}
+                onChange={(e) => setApprovalText(e.target.value)}
+                placeholder="Saisissez 'Bon pour accord'"
+                disabled={isSigning}
+                required
+                className={`border ${isApprovalTextValid ? 'border-green-300' : 'border-gray-300'} w-full`}
+              />
+              <p className="text-xs text-gray-500">
+                Veuillez saisir la mention "Bon pour accord" exactement comme indiqué.
+              </p>
+            </div>
+            
             <div className="w-full bg-white">
               <Label className="mb-2 block">Votre signature</Label>
               <div className="border border-gray-200 rounded-md overflow-hidden">
                 <SignatureCanvas 
                   onSave={onSign}
-                  disabled={isSigning}
+                  disabled={isSigning || !isApprovalTextValid || !signerName.trim()}
                   height={180}
                   className="w-full signature-container touch-none"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Utilisez votre doigt ou la souris pour signer dans le cadre ci-dessus.
+                {isApprovalTextValid && signerName.trim() 
+                  ? "Utilisez votre doigt ou la souris pour signer dans le cadre ci-dessus." 
+                  : "Saisissez votre nom et la mention 'Bon pour accord' avant de signer."}
               </p>
             </div>
             

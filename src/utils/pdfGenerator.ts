@@ -11,6 +11,14 @@ export const generateOfferPdf = async (offerData) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
     
+    // Vérifier si nous avons des données de signature
+    const hasSignature = !!offerData.signature_data;
+    console.log("L'offre contient-elle une signature?", hasSignature ? "Oui" : "Non");
+    if (hasSignature) {
+      console.log("Mention d'approbation:", offerData.approval_text || "Non spécifiée");
+      console.log("Nom du signataire:", offerData.signer_name || "Non spécifié");
+    }
+    
     // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
       React.createElement(OfferPDFTemplate, { offer: offerData })
@@ -58,9 +66,12 @@ export const generateOfferPdf = async (offerData) => {
     container.style.fontFamily = 'Arial, sans-serif';
     container.innerHTML = htmlContent;
     
-    // Précharger l'image du logo avant de générer le PDF
-    const preloadLogo = async () => {
-      return new Promise<void>((resolve) => {
+    // Si nous avons une signature, précharger l'image de signature
+    const preloadImages = async () => {
+      const promises = [];
+      
+      // Toujours précharger le logo
+      promises.push(new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => resolve();
         img.onerror = () => {
@@ -68,11 +79,29 @@ export const generateOfferPdf = async (offerData) => {
           resolve(); // Continuer même en cas d'erreur
         };
         img.src = "/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png";
-      });
+      }));
+      
+      // Précharger l'image de signature si elle existe
+      if (hasSignature && offerData.signature_data) {
+        promises.push(new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            console.log("Image de signature préchargée avec succès");
+            resolve();
+          };
+          img.onerror = () => {
+            console.error("Erreur lors du chargement de l'image de signature");
+            resolve(); // Continuer même en cas d'erreur
+          };
+          img.src = offerData.signature_data;
+        }));
+      }
+      
+      await Promise.all(promises);
     };
     
-    // Attendre que l'image soit préchargée
-    await preloadLogo();
+    // Attendre que les images soient préchargées
+    await preloadImages();
     
     // Ajouter le container temporairement au document
     document.body.appendChild(container);
