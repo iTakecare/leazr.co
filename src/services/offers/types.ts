@@ -6,6 +6,8 @@ export interface RequestInfoData {
   previousStatus: string;
 }
 
+export type OfferType = 'admin_offer' | 'internal_offer' | 'partner_offer' | 'ambassador_offer';
+
 export interface OfferData {
   client_id: string;
   client_name: string;
@@ -25,7 +27,11 @@ export interface OfferData {
   id?: string;
   created_at?: string;
   ambassador_id?: string;
+  previous_status?: string;
+  signature_data?: string;
+  signer_name?: string;
+  signer_ip?: string;
+  signed_at?: string;
+  commission_status?: string;
+  status?: string;
 }
-
-export type OfferType = 'admin_offer' | 'internal_offer' | 'partner_offer' | 'ambassador_offer';
-
