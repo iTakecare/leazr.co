@@ -128,7 +128,7 @@ export const updateOfferStatus = async (
 
 export const getWorkflowHistory = async (offerId: string) => {
   try {
-    // First try to get data with profiles relation
+    // D'abord essayer d'obtenir les données avec la relation profiles
     const { data: dataWithProfiles, error: errorWithProfiles } = await supabase
       .from('offer_workflow_logs')
       .select(`
@@ -137,7 +137,8 @@ export const getWorkflowHistory = async (offerId: string) => {
           first_name,
           last_name,
           email,
-          avatar_url
+          avatar_url,
+          role
         )
       `)
       .eq('offer_id', offerId)
@@ -150,7 +151,7 @@ export const getWorkflowHistory = async (offerId: string) => {
     
     console.error("Error fetching workflow history:", errorWithProfiles);
     
-    // If relation query fails, try to get basic log data
+    // Si la requête de relation échoue, essayer d'obtenir les données de journal de base
     const { data: basicLogs, error: basicError } = await supabase
       .from('offer_workflow_logs')
       .select('*')
@@ -162,15 +163,15 @@ export const getWorkflowHistory = async (offerId: string) => {
       throw basicError;
     }
     
-    // Get user details separately if needed
+    // Obtenir les détails de l'utilisateur séparément si nécessaire
     const logsWithUserInfo = await Promise.all(
       (basicLogs || []).map(async (log) => {
         if (!log.user_id) return log;
         
-        // Try to get user info
+        // Essayer d'obtenir les informations utilisateur
         const { data: userData, error: userError } = await supabase
           .from('profiles')
-          .select('first_name, last_name, email, avatar_url')
+          .select('first_name, last_name, email, avatar_url, role')
           .eq('id', log.user_id)
           .single();
           
@@ -181,7 +182,7 @@ export const getWorkflowHistory = async (offerId: string) => {
           };
         }
         
-        // If that fails, try to get just the email from auth.users
+        // Si cela échoue, essayer d'obtenir juste l'email des auth.users
         try {
           const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(log.user_id);
           
@@ -192,8 +193,8 @@ export const getWorkflowHistory = async (offerId: string) => {
           if (authUser && authUser.user) {
             const email = authUser.user.email;
             const fullName = authUser.user.user_metadata?.full_name || 
-                           authUser.user.user_metadata?.name || 
-                           (email ? email.split('@')[0] : 'Administrateur');
+                          authUser.user.user_metadata?.name || 
+                          (email ? email.split('@')[0] : 'Administrateur');
             
             return {
               ...log,
@@ -205,7 +206,7 @@ export const getWorkflowHistory = async (offerId: string) => {
           console.warn("Could not get user details:", authError);
         }
         
-        // If we still don't have user info, use a generic name based on user ID
+        // Si nous n'avons toujours pas d'informations utilisateur, utiliser un nom générique basé sur l'ID utilisateur
         return {
           ...log,
           user_name: `Administrateur (${log.user_id.substring(0, 6)})`
