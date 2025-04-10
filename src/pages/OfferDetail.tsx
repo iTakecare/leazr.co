@@ -305,6 +305,7 @@ const OfferDetail = () => {
                             equipment={offer.parsedEquipment} 
                             totalMonthly={totalMonthly}
                             totalMargin={totalMargin}
+                            totalMarginWithDifference={totalMarginWithDifference}
                           />
                         ) : offer.equipment_description ? (
                           <div>
@@ -317,33 +318,6 @@ const OfferDetail = () => {
                             </div>
                           </div>
                         ) : null}
-                        
-                        <Card className="border-green-100 bg-green-50/50">
-                          <CardHeader className="pb-3 border-b border-green-100">
-                            <CardTitle className="text-base flex items-center">
-                              <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
-                              Informations financières
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                              <div>
-                                <p className="text-sm text-gray-500 mb-1">Marge générée</p>
-                                <p className="text-xl font-semibold text-green-600">{formatCurrency(totalMargin)}</p>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-gray-500 mb-1">Différence de marge</p>
-                                <p className="text-xl font-semibold text-orange-500">{formatCurrency(marginDifference)}</p>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-gray-500 mb-1">Marge totale avec différence</p>
-                                <p className="text-xl font-semibold text-green-700">{formatCurrency(totalMarginWithDifference)}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
                         
                         {offer.remarks && (
                           <div>

@@ -7,7 +7,7 @@ type EquipmentItem = {
   title: string;
   purchasePrice?: number; // Made optional to match useOfferDetail.ts
   quantity: number;
-  margin: number;
+  margin?: number; // Made optional to match useOfferDetail.ts
   monthlyPayment?: number;
 };
 
@@ -15,15 +15,20 @@ interface EquipmentDetailTableProps {
   equipment: EquipmentItem[];
   totalMonthly: number;
   totalMargin: number;
+  totalMarginWithDifference?: number; // Ajout du total avec différence
 }
 
 const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   equipment,
   totalMonthly,
-  totalMargin
+  totalMargin,
+  totalMarginWithDifference
 }) => {
   // Calcul du nombre total d'articles
   const totalArticles = equipment.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // Utiliser la marge totale avec différence si disponible, sinon utiliser la marge normale
+  const finalMargin = totalMarginWithDifference !== undefined ? totalMarginWithDifference : totalMargin;
   
   return (
     <div className="space-y-4">
@@ -83,7 +88,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
             </svg>
             <span className="text-gray-600">Marge générée</span>
           </div>
-          <span className="text-xl font-semibold text-green-600">{formatCurrency(totalMargin)}</span>
+          <span className="text-xl font-semibold text-green-600">{formatCurrency(finalMargin)}</span>
         </div>
       </div>
     </div>
