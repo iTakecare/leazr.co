@@ -8,9 +8,14 @@ import { toast } from "sonner";
  */
 export const getOfferDataForPdf = async (offerId: string) => {
   try {
+    if (!offerId) {
+      console.error("ID d'offre manquant pour la récupération des données PDF");
+      return null;
+    }
+    
     const supabase = getSupabaseClient();
     
-    console.log("Récupération des données de l'offre:", offerId);
+    console.log("Récupération des données de l'offre pour PDF:", offerId);
     
     // Récupérer l'offre avec les données client associées
     const { data, error } = await supabase
@@ -37,7 +42,12 @@ export const getOfferDataForPdf = async (offerId: string) => {
       return null;
     }
 
-    console.log("Données d'offre récupérées:", data ? "Oui" : "Non");
+    if (!data) {
+      console.error("Aucune donnée d'offre trouvée pour l'ID:", offerId);
+      return null;
+    }
+
+    console.log("Données d'offre récupérées avec succès:", data.id);
     
     // Traiter les données d'équipement
     if (data && data.equipment_description) {
@@ -106,14 +116,23 @@ export const getOfferDataForPdf = async (offerId: string) => {
  * Génère et télécharge un PDF pour une offre
  */
 export const generateAndDownloadOfferPdf = async (offerId: string) => {
+  if (!offerId) {
+    console.error("ID d'offre manquant pour la génération du PDF");
+    toast.error("Impossible de générer le PDF: identifiant d'offre manquant");
+    return null;
+  }
+  
   try {
     // Afficher un toast de chargement
     toast.info("Génération du PDF en cours...");
+    
+    console.log(`Début de la génération du PDF pour l'offre: ${offerId}`);
     
     // Récupérer les données de l'offre
     const offerData = await getOfferDataForPdf(offerId);
     
     if (!offerData) {
+      console.error(`Aucune donnée récupérée pour l'offre: ${offerId}`);
       toast.error("Impossible de récupérer les données de l'offre");
       return null;
     }

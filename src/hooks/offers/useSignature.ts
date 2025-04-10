@@ -49,23 +49,33 @@ export const useSignature = (
       const success = await saveOfferSignature(offerId, signatureData, signerName);
       
       if (success) {
+        // Mettre à jour l'état local et l'offre
+        const now = new Date().toISOString();
         setSigned(true);
-        toast.success("Offre signée avec succès !");
         
-        setOffer({
+        const updatedOffer = {
           ...offer,
           signature_data: signatureData,
           signer_name: signerName,
-          signed_at: new Date().toISOString(),
+          signed_at: now,
           workflow_status: 'approved'
-        });
+        };
         
-        // Générer automatiquement le PDF après la signature
-        setTimeout(() => {
-          handlePrintPdf();
+        setOffer(updatedOffer);
+        toast.success("Offre signée avec succès !");
+        
+        console.log("Signature enregistrée avec succès, offre mise à jour:", updatedOffer.id);
+        
+        // Donner un peu de temps à l'interface pour se mettre à jour avant de générer le PDF
+        setTimeout(async () => {
+          try {
+            console.log("Démarrage de la génération du PDF après signature");
+            await handlePrintPdf();
+          } catch (pdfError) {
+            console.error("Erreur lors de la génération du PDF après signature:", pdfError);
+            toast.error("La signature a été enregistrée mais une erreur est survenue lors de la génération du PDF.");
+          }
         }, 1500);
-        
-        console.log("Signature enregistrée avec succès");
       } else {
         console.error("Échec de l'enregistrement de la signature");
         toast.error("Erreur lors de l'enregistrement de la signature.");
