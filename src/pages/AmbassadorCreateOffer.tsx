@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -236,18 +237,10 @@ const AmbassadorCreateOffer = () => {
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
-      // Récupérer la valeur de marge totale avec différence
-      const totalMarginWithDifference = globalMarginAdjustment.marginDifference
-        ? parseFloat(globalMarginAdjustment.marginDifference) + parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2))
-        : parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2));
-
-      console.log("Marge totale avec différence:", totalMarginWithDifference);
-      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        client_company: client.company || "",
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
@@ -258,16 +251,11 @@ const AmbassadorCreateOffer = () => {
         type: "ambassador_offer",
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
-        remarks: remarks,
-        margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
-        margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalMarginWithDifference ? totalMarginWithDifference.toString() : "0"
+        remarks: remarks
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
-      console.log("Margin difference being saved:", globalMarginAdjustment.marginDifference);
-      console.log("Total margin with difference being saved:", totalMarginWithDifference);
       
       const { data, error } = await createOffer(offerData);
       
