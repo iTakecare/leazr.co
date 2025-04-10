@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
-import { generateSignatureLink } from "@/services/offerService";
+import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 
