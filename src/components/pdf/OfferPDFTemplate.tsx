@@ -19,6 +19,9 @@ interface OfferPDFTemplateProps {
     created_at: string;
     equipment_description: string;
     monthly_payment: number;
+    signature_data?: string;
+    signer_name?: string;
+    signed_at?: string;
   };
 }
 
@@ -54,6 +57,7 @@ const formatDate = (dateString: string | Date | null | undefined): string => {
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   const equipment = parseEquipmentData(offer.equipment_description);
   const offerId = offer.offer_id || `OFF-${offer.id?.substring(0, 8).toUpperCase()}`;
+  const isOfferSigned = !!offer.signature_data;
   
   return (
     <div style={{ 
@@ -335,23 +339,63 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           }}>
             Signature client
           </h3>
-          <div style={{ 
-            width: "40mm", 
-            height: "20mm", 
-            border: "0.2mm dashed #ccc",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}>
-            <p style={{ 
-              color: "#9ca3af", 
-              fontSize: "7pt", 
-              fontStyle: "italic",
-              textAlign: "center"
+          {isOfferSigned ? (
+            <div style={{ 
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              width: "100%",
+              marginTop: "2mm"
             }}>
-              Signature précédée de<br/>"Bon pour accord"
-            </p>
-          </div>
+              <div style={{ 
+                textAlign: "center", 
+                fontSize: "8pt", 
+                fontStyle: "italic",
+                marginBottom: "2mm",
+                color: "#4B5563"
+              }}>
+                Bon pour accord
+              </div>
+              <img 
+                src={offer.signature_data} 
+                alt="Signature du client" 
+                style={{ 
+                  maxWidth: "70mm",
+                  maxHeight: "30mm",
+                  border: "0.2mm solid #E5E7EB",
+                  padding: "2mm",
+                  backgroundColor: "white"
+                }} 
+              />
+              <div style={{ 
+                textAlign: "center", 
+                fontSize: "8pt", 
+                marginTop: "2mm",
+                color: "#4B5563" 
+              }}>
+                Signé électroniquement par {offer.signer_name || "le client"} 
+                {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : ""}
+              </div>
+            </div>
+          ) : (
+            <div style={{ 
+              width: "40mm", 
+              height: "20mm", 
+              border: "0.2mm dashed #ccc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              <p style={{ 
+                color: "#9ca3af", 
+                fontSize: "7pt", 
+                fontStyle: "italic",
+                textAlign: "center"
+              }}>
+                Signature précédée de<br/>"Bon pour accord"
+              </p>
+            </div>
+          )}
         </div>
         
         {/* Espacement flexible pour éviter les débordements */}
