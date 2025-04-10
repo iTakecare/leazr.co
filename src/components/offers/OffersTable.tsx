@@ -149,11 +149,15 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         })()
                       : offer.equipment_description || "Non spécifié"}
                   </TableCell>
-                  {/* Show margin column only for admins */}
+                  {/* Show margin column only for admins - Display total_margin_with_difference if available */}
                   {showMarginColumn && (
                     <TableCell className="text-right">
                       <div className="font-medium text-green-600">
-                        {offer.margin ? formatCurrency(offer.margin) : "N/A"}
+                        {offer.total_margin_with_difference 
+                          ? formatCurrency(offer.total_margin_with_difference)
+                          : offer.margin 
+                            ? formatCurrency(offer.margin) 
+                            : "N/A"}
                       </div>
                     </TableCell>
                   )}
