@@ -44,6 +44,38 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
     }));
   };
   
+  // Fonction pour rendre les attributs sous forme de chaîne de texte
+  const renderAttributes = (attributes?: Record<string, string>) => {
+    if (!attributes || Object.keys(attributes).length === 0) return null;
+    
+    return (
+      <div className="mt-1 text-xs text-gray-500">
+        {Object.entries(attributes).map(([key, value], index) => (
+          <span key={`attr-${key}`} className="mr-2">
+            {key}: <span className="font-medium">{value}</span>
+            {index < Object.keys(attributes).length - 1 ? ' • ' : ''}
+          </span>
+        ))}
+      </div>
+    );
+  };
+  
+  // Fonction pour rendre les spécifications sous forme de chaîne de texte
+  const renderSpecifications = (specs?: Record<string, string | number>) => {
+    if (!specs || Object.keys(specs).length === 0) return null;
+    
+    return (
+      <div className="mt-1 text-xs text-gray-500">
+        {Object.entries(specs).map(([key, value], index) => (
+          <span key={`spec-${key}`} className="mr-2">
+            {key}: <span className="font-medium">{value}</span>
+            {index < Object.keys(specs).length - 1 ? ' • ' : ''}
+          </span>
+        ))}
+      </div>
+    );
+  };
+  
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -82,16 +114,22 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                 <React.Fragment key={itemId}>
                   <tr className="border-b border-gray-100">
                     <td className="py-4 px-4">
-                      <div className="flex items-center">
-                        {hasDetails && (
-                          <button 
-                            onClick={() => toggleExpand(itemId)}
-                            className="mr-2 text-blue-600 p-1 rounded-full hover:bg-blue-50"
-                          >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        )}
-                        <span>{item.title}</span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          {hasDetails && (
+                            <button 
+                              onClick={() => toggleExpand(itemId)}
+                              className="mr-2 text-blue-600 p-1 rounded-full hover:bg-blue-50"
+                            >
+                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                          )}
+                          <span className="font-medium">{item.title}</span>
+                        </div>
+                        
+                        {/* Afficher attributs et spécifications en plus petit sous le titre */}
+                        {!isExpanded && renderAttributes(item.attributes)}
+                        {!isExpanded && renderSpecifications(item.specifications)}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">{item.quantity}</td>

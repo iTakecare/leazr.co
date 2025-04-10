@@ -61,8 +61,12 @@ export const useOfferDetail = (offerId: string) => {
           margin: Number(item.margin) || 0,
           monthlyPayment: Number(item.monthlyPayment) || 0,
           serialNumber: item.serialNumber || undefined,
-          attributes: item.attributes || {},
-          specifications: item.specifications || {}
+          // Assurer que attributes est bien un objet et pas une chaîne
+          attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
+          // Assurer que specifications est bien un objet et pas une chaîne
+          specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
+          // Support pour variants (ancienne structure)
+          ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
         }));
       }
       
@@ -78,8 +82,12 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(item.margin) || 0,
             monthlyPayment: Number(item.monthlyPayment) || 0,
             serialNumber: item.serialNumber || undefined,
-            attributes: item.attributes || {},
-            specifications: item.specifications || {}
+            // Assurer que attributes est bien un objet et pas une chaîne
+            attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
+            // Assurer que specifications est bien un objet et pas une chaîne
+            specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
+            // Support pour variants (ancienne structure)
+            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
           }));
         }
         
@@ -92,8 +100,12 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(equipmentData.margin) || 0,
             monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
             serialNumber: equipmentData.serialNumber,
-            attributes: equipmentData.attributes || {},
-            specifications: equipmentData.specifications || {}
+            // Assurer que attributes est bien un objet et pas une chaîne
+            attributes: equipmentData.attributes && typeof equipmentData.attributes === 'object' ? equipmentData.attributes : {},
+            // Assurer que specifications est bien un objet et pas une chaîne
+            specifications: equipmentData.specifications && typeof equipmentData.specifications === 'object' ? equipmentData.specifications : {},
+            // Support pour variants (ancienne structure)
+            ...(equipmentData.variants && typeof equipmentData.variants === 'object' && { specifications: equipmentData.variants })
           }];
         }
       }
@@ -102,14 +114,18 @@ export const useOfferDetail = (offerId: string) => {
       return [{
         title: 'Description équipement',
         quantity: 1,
-        monthlyPayment: 0
+        monthlyPayment: 0,
+        attributes: {},
+        specifications: {}
       }];
     } catch (e) {
       // If it's not valid JSON, treat it as a text string
       return [{
         title: description,
         quantity: 1,
-        monthlyPayment: 0
+        monthlyPayment: 0,
+        attributes: {},
+        specifications: {}
       }];
     }
   };
