@@ -125,3 +125,55 @@ export const updateOfferStatus = async (
     return false;
   }
 };
+
+export const getWorkflowHistory = async (offerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('offer_workflow_logs')
+      .select(`
+        *,
+        profiles (
+          first_name,
+          last_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching workflow history:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getWorkflowHistory:", error);
+    return [];
+  }
+};
+
+export const getCompletedStatuses = async (offerId: string): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('offer_workflow_logs')
+      .select('new_status')
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching completed statuses:", error);
+      throw error;
+    }
+    
+    // Extraire les statuts uniques dans l'ordre chronologique
+    const uniqueStatuses = new Set<string>();
+    data?.forEach(log => uniqueStatuses.add(log.new_status));
+    
+    return Array.from(uniqueStatuses);
+  } catch (error) {
+    console.error("Error in getCompletedStatuses:", error);
+    return [];
+  }
+};

@@ -17,7 +17,9 @@ import {
 
 import {
   deleteOffer,
-  updateOfferStatus
+  updateOfferStatus,
+  getWorkflowHistory,
+  getCompletedStatuses
 } from './offers/offerStatus';
 
 import {
@@ -45,6 +47,8 @@ export {
   generateSignatureLink,
   deleteOffer,
   updateOfferStatus,
+  getWorkflowHistory,
+  getCompletedStatuses,
   getWorkflowLogs,
   sendInfoRequest,
   processInfoResponse,
