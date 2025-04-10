@@ -13,6 +13,25 @@ export const useSignature = (
   const [signerName, setSignerName] = useState("");
   const [isSigning, setIsSigning] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
+  const [clientIp, setClientIp] = useState<string | null>(null);
+
+  // Récupérer l'adresse IP du client
+  useEffect(() => {
+    const fetchIpAddress = async () => {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        if (data && data.ip) {
+          setClientIp(data.ip);
+          console.log("Adresse IP récupérée:", data.ip);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération de l'adresse IP:", error);
+      }
+    };
+
+    fetchIpAddress();
+  }, []);
 
   // Initialiser le nom du signataire si disponible dans l'offre
   useEffect(() => {
@@ -45,11 +64,13 @@ export const useSignature = (
       console.log("Tentative d'enregistrement de la signature pour l'offre:", offerId);
       console.log("Données de signature reçues:", 
         signatureData ? `Longueur: ${signatureData.length} caractères` : "NON (données vides)");
+      console.log("Adresse IP du signataire:", clientIp || "Non disponible");
       
       // Créer un timestamp ISO 8601 précis avec millisecondes pour la valeur légale
       const now = new Date().toISOString();
       
-      const success = await saveOfferSignature(offerId, signatureData, signerName);
+      // Enregistrer la signature avec l'adresse IP
+      const success = await saveOfferSignature(offerId, signatureData, signerName, clientIp || undefined);
       
       if (success) {
         // Mettre à jour l'état local et l'offre
@@ -60,6 +81,7 @@ export const useSignature = (
           signature_data: signatureData,
           signer_name: signerName,
           signed_at: now,
+          signer_ip: clientIp,
           workflow_status: 'approved'
         };
         
@@ -96,6 +118,7 @@ export const useSignature = (
     setSignerName,
     isSigning,
     signature,
-    handleSignature
+    handleSignature,
+    clientIp
   };
 };

@@ -27,7 +27,8 @@ const SignOffer = () => {
     isPrintingPdf,
     debugInfo,
     handleSignature,
-    handlePrintPdf
+    handlePrintPdf,
+    clientIp
   } = useClientOffer(id);
   
   // Log debugging information to console
@@ -42,7 +43,8 @@ const SignOffer = () => {
         client_name: offer.client_name,
         hasEquipmentData: !!offer.equipment_description,
         equipmentDataType: offer.equipment_description ? typeof offer.equipment_description : 'none',
-        monthlyPayment: offer.monthly_payment
+        monthlyPayment: offer.monthly_payment,
+        signerIp: offer.signer_ip
       });
     }
   }, [debugInfo, offer]);
@@ -78,7 +80,8 @@ const SignOffer = () => {
           {signed && (
             <SignedAlert 
               signerName={offer.signer_name} 
-              signedAt={offer.signed_at} 
+              signedAt={offer.signed_at}
+              signerIp={offer.signer_ip || clientIp} 
             />
           )}
           
@@ -101,6 +104,7 @@ const SignOffer = () => {
             setSignerName={setSignerName}
             isSigning={isSigning}
             signedAt={offer.signed_at}
+            signerIp={offer.signer_ip || clientIp}
             onSign={handleSignature}
             isPrintingPdf={isPrintingPdf}
             onPrintPdf={handlePrintPdf}

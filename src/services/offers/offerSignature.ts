@@ -10,12 +10,14 @@ const supabase = getSupabaseClient();
  * @param offerId ID de l'offre
  * @param signatureData URL de données de la signature
  * @param signerName Nom du signataire
+ * @param ipAddress Adresse IP du signataire (optionnelle)
  * @returns Succès de l'opération
  */
 export const saveOfferSignature = async (
   offerId: string, 
   signatureData: string,
-  signerName: string
+  signerName: string,
+  ipAddress?: string
 ): Promise<boolean> => {
   try {
     console.log("Début de l'enregistrement de la signature pour l'offre:", offerId);
@@ -37,7 +39,8 @@ export const saveOfferSignature = async (
         workflow_status: 'approved',
         signature_data: signatureData,
         signer_name: signerName,
-        signed_at: now
+        signed_at: now,
+        signer_ip: ipAddress || null // Stocker l'adresse IP du signataire
       })
       .eq('id', offerId);
 
@@ -53,8 +56,7 @@ export const saveOfferSignature = async (
         offer_id: offerId,
         previous_status: 'sent', // On suppose que l'offre était en statut "sent"
         new_status: 'approved',
-        user_id: null, // Signature par le client, pas par un utilisateur
-        reason: `Offre signée électroniquement par ${signerName} le ${now}`
+        reason: `Offre signée électroniquement par ${signerName}${ipAddress ? ` depuis l'adresse IP ${ipAddress}` : ''}`
       });
 
     if (logError) {
@@ -64,6 +66,7 @@ export const saveOfferSignature = async (
 
     console.log("Signature enregistrée avec succès pour l'offre:", offerId);
     console.log("Timestamp précis:", now);
+    console.log("Adresse IP du signataire:", ipAddress || "Non disponible");
     return true;
   } catch (error) {
     console.error("Erreur lors de l'enregistrement de la signature:", error);

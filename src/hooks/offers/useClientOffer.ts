@@ -27,7 +27,8 @@ export const useClientOffer = (offerId: string | undefined) => {
     setSignerName,
     isSigning,
     signature,
-    handleSignature
+    handleSignature,
+    clientIp
   } = useSignature(offerId, offer, setSigned, setOffer, handlePrintPdf);
 
   return {
@@ -42,6 +43,7 @@ export const useClientOffer = (offerId: string | undefined) => {
     isPrintingPdf,
     debugInfo,
     handleSignature,
-    handlePrintPdf
+    handlePrintPdf,
+    clientIp
   };
 };

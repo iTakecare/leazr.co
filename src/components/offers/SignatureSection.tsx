@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -18,8 +17,8 @@ import {
   Printer 
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import SignatureCanvas from "@/components/signature/SignaturePad";
 import { formatLegalTimestamp } from "@/utils/formatters";
+import SignatureCanvas from "@/components/signature/SignaturePad";
 
 interface SignatureSectionProps {
   signed: boolean;
@@ -28,6 +27,7 @@ interface SignatureSectionProps {
   setSignerName: (name: string) => void;
   isSigning: boolean;
   signedAt?: string;
+  signerIp?: string;
   onSign: (signatureData: string) => void;
   isPrintingPdf: boolean;
   onPrintPdf: () => void;
@@ -40,6 +40,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   setSignerName,
   isSigning,
   signedAt,
+  signerIp,
   onSign,
   isPrintingPdf,
   onPrintPdf
@@ -88,12 +89,22 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Check className="text-green-500 h-5 w-5 flex-shrink-0" />
-              <span className="text-sm text-gray-600">
-                Signé par {signerName || "le client"} 
-                {signedAt ? ` le ${formatLegalTimestamp(signedAt)}` : ""}
-              </span>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <Check className="text-green-500 h-5 w-5 flex-shrink-0" />
+                <span className="text-sm text-gray-600">
+                  Signé par {signerName || "le client"} 
+                  {signedAt ? ` le ${formatLegalTimestamp(signedAt)}` : ""}
+                </span>
+              </div>
+              
+              {signerIp && (
+                <div className="flex items-center space-x-2 ml-7">
+                  <span className="text-xs text-gray-500">
+                    Adresse IP: {signerIp}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ) : (
