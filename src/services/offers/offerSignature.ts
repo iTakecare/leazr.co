@@ -1,3 +1,4 @@
+
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
@@ -26,6 +27,9 @@ export const saveOfferSignature = async (
       return false;
     }
     
+    // Créer un timestamp ISO 8601 précis avec millisecondes pour la valeur légale
+    const now = new Date().toISOString();
+    
     // 1. Mettre à jour le statut de l'offre en "approved"
     const { error: updateError } = await supabase
       .from('offers')
@@ -33,7 +37,7 @@ export const saveOfferSignature = async (
         workflow_status: 'approved',
         signature_data: signatureData,
         signer_name: signerName,
-        signed_at: new Date().toISOString()
+        signed_at: now
       })
       .eq('id', offerId);
 
@@ -50,7 +54,7 @@ export const saveOfferSignature = async (
         previous_status: 'sent', // On suppose que l'offre était en statut "sent"
         new_status: 'approved',
         user_id: null, // Signature par le client, pas par un utilisateur
-        reason: `Offre signée électroniquement par ${signerName}`
+        reason: `Offre signée électroniquement par ${signerName} le ${now}`
       });
 
     if (logError) {
@@ -59,6 +63,7 @@ export const saveOfferSignature = async (
     }
 
     console.log("Signature enregistrée avec succès pour l'offre:", offerId);
+    console.log("Timestamp précis:", now);
     return true;
   } catch (error) {
     console.error("Erreur lors de l'enregistrement de la signature:", error);

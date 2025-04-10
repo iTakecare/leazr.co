@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -73,7 +72,7 @@ export const formatPercentage = (value: number | string): string => {
 export const formatDate = (dateString: string): string => {
   if (!dateString) return "Date inconnue";
   try {
-    return format(new Date(dateString), "dd MMMM yyyy à HH:mm", { locale: fr });
+    return format(new Date(dateString), "dd MMMM yyyy à HH:mm:ss", { locale: fr });
   } catch {
     return "Date incorrecte";
   }
@@ -122,5 +121,23 @@ export const formatPercentageWithComma = (value: number | null | undefined): str
   } catch (error) {
     console.error("Error formatting percentage with comma:", error);
     return "0,00%";
+  }
+};
+
+// Nouvelle fonction pour formater les dates avec timezone pour la valeur légale
+export const formatLegalTimestamp = (dateString: string | Date | null | undefined): string => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    
+    // Format avec date complète, heure avec secondes et timezone
+    const formattedDate = format(date, "dd MMMM yyyy", { locale: fr });
+    const formattedTime = format(date, "HH:mm:ss", { locale: fr });
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    return `${formattedDate} à ${formattedTime} (${timezone})`;
+  } catch (e) {
+    console.error("Erreur de formatage de date:", e);
+    return "";
   }
 };

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import SignatureCanvas from "@/components/signature/SignaturePad";
-import { formatDate } from "@/utils/formatters";
+import { formatLegalTimestamp } from "@/utils/formatters";
 
 interface SignatureSectionProps {
   signed: boolean;
@@ -92,7 +92,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               <Check className="text-green-500 h-5 w-5 flex-shrink-0" />
               <span className="text-sm text-gray-600">
                 Signé par {signerName || "le client"} 
-                {signedAt ? ` le ${formatDate(signedAt)}` : ""}
+                {signedAt ? ` le ${formatLegalTimestamp(signedAt)}` : ""}
               </span>
             </div>
           </div>

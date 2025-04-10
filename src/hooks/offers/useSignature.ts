@@ -46,11 +46,13 @@ export const useSignature = (
       console.log("Données de signature reçues:", 
         signatureData ? `Longueur: ${signatureData.length} caractères` : "NON (données vides)");
       
+      // Créer un timestamp ISO 8601 précis avec millisecondes pour la valeur légale
+      const now = new Date().toISOString();
+      
       const success = await saveOfferSignature(offerId, signatureData, signerName);
       
       if (success) {
         // Mettre à jour l'état local et l'offre
-        const now = new Date().toISOString();
         setSigned(true);
         
         const updatedOffer = {
@@ -65,6 +67,7 @@ export const useSignature = (
         toast.success("Offre signée avec succès !");
         
         console.log("Signature enregistrée avec succès, offre mise à jour:", updatedOffer.id);
+        console.log("Timestamp de signature:", now);
         
         // Donner un peu de temps à l'interface pour se mettre à jour avant de générer le PDF
         setTimeout(async () => {

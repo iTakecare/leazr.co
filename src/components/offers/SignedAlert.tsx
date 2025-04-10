@@ -2,7 +2,7 @@
 import React from "react";
 import { CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { formatDate } from "@/utils/formatters";
+import { formatLegalTimestamp } from "@/utils/formatters";
 
 interface SignedAlertProps {
   signerName?: string;
@@ -16,7 +16,7 @@ const SignedAlert: React.FC<SignedAlertProps> = ({ signerName, signedAt }) => {
       <AlertTitle>Offre signée</AlertTitle>
       <AlertDescription>
         {signerName ? `Cette offre a été signée par ${signerName}` : "Cette offre a été signée"} 
-        {signedAt ? ` le ${formatDate(signedAt)}` : "."}
+        {signedAt ? ` le ${formatLegalTimestamp(signedAt)}` : "."}
       </AlertDescription>
     </Alert>
   );

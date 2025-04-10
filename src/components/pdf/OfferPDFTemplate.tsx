@@ -54,6 +54,29 @@ const formatDate = (dateString: string | Date | null | undefined): string => {
   }
 };
 
+// Nouvelle fonction pour formater les dates avec timezone pour la valeur légale dans le PDF
+const formatLegalTimestamp = (dateString: string | Date | null | undefined): string => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    
+    // Format avec date, heure avec secondes et timezone
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    };
+    
+    return new Intl.DateTimeFormat('fr-FR', options).format(date);
+  } catch (e) {
+    return "";
+  }
+};
+
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
   const equipment = parseEquipmentData(offer.equipment_description);
   const offerId = offer.offer_id || `OFF-${offer.id?.substring(0, 8).toUpperCase()}`;
@@ -374,7 +397,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 color: "#4B5563" 
               }}>
                 Signé électroniquement par {offer.signer_name || "le client"} 
-                {offer.signed_at ? ` le ${formatDate(offer.signed_at)}` : ""}
+                {offer.signed_at ? ` le ${formatLegalTimestamp(offer.signed_at)}` : ""}
               </div>
             </div>
           ) : (
