@@ -17,7 +17,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
   const { offers, loading, error } = useClientOffers(clientEmail);
   
   return (
-    <div className="w-64 min-h-screen bg-slate-50 border-r border-slate-200 p-4 flex flex-col">
+    <div className="w-64 min-h-screen bg-slate-50 border-r border-slate-200 p-4 flex flex-col md:relative fixed left-0 top-0 z-10 transform transition-transform duration-300 ease-in-out">
       <div className="mb-6">
         <h2 className="text-xl font-medium text-slate-900 mb-1">Vos offres</h2>
         <p className="text-sm text-slate-500">
@@ -57,7 +57,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
                   </span>
                   <div className="flex-1 overflow-hidden">
                     <div className="font-medium text-sm text-slate-800 truncate">
-                      {offer.equipment_data && offer.equipment_data[0]?.title 
+                      {offer.equipment_data && offer.equipment_data.length > 0 && offer.equipment_data[0]?.title 
                         ? offer.equipment_data[0].title 
                         : 'Offre de financement'}
                     </div>

@@ -8,6 +8,7 @@ const supabase = getSupabaseClient();
 export interface ClientOffer {
   id: string;
   client_name: string;
+  client_email?: string;
   amount: number;
   monthly_payment: number;
   equipment_description?: string;
@@ -17,9 +18,13 @@ export interface ClientOffer {
   type: string;
   financed_amount?: number;
   coefficient?: number;
+  signature_data?: string;
+  signed_at?: string;
+  signer_name?: string;
+  equipment_data?: any[]; // Adding equipment_data property
 }
 
-export const useClientOffers = (includeActive = true) => {
+export const useClientOffers = (clientEmail?: string) => {
   const [offers, setOffers] = useState<ClientOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +37,11 @@ export const useClientOffers = (includeActive = true) => {
       let query = supabase
         .from('offers')
         .select('*')
-        .eq('type', 'client_request')
         .order('created_at', { ascending: false });
 
-      if (!includeActive) {
-        query = query.eq('converted_to_contract', false);
+      // If clientEmail is provided, filter offers by client_email
+      if (clientEmail) {
+        query = query.eq('client_email', clientEmail);
       }
 
       const { data, error } = await query;
@@ -47,6 +52,16 @@ export const useClientOffers = (includeActive = true) => {
 
       // Process the data to ensure financed_amount is calculated for all offers
       const processedData = (data || []).map(offer => {
+        // Parse equipment_description if it's a JSON string
+        let equipment_data = null;
+        if (offer.equipment_description && typeof offer.equipment_description === 'string') {
+          try {
+            equipment_data = JSON.parse(offer.equipment_description);
+          } catch (e) {
+            console.log('Error parsing equipment data:', e);
+          }
+        }
+
         // If financed_amount is missing or zero but we have monthly_payment
         if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
           // Get coefficient - either from the offer or use a default of 3.27
@@ -62,10 +77,14 @@ export const useClientOffers = (includeActive = true) => {
           
           return {
             ...offer,
-            financed_amount: calculatedAmount
+            financed_amount: calculatedAmount,
+            equipment_data: equipment_data
           };
         }
-        return offer;
+        return {
+          ...offer,
+          equipment_data: equipment_data
+        };
       });
 
       setOffers(processedData || []);
@@ -79,7 +98,7 @@ export const useClientOffers = (includeActive = true) => {
 
   useEffect(() => {
     fetchOffers();
-  }, [includeActive]);
+  }, [clientEmail]);
 
   const refresh = () => {
     fetchOffers();
