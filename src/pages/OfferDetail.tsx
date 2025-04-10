@@ -111,7 +111,7 @@ const OfferDetail = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex justify-center items-center min-h-[300px]">
+        <div className="flex items-center justify-center min-h-[300px]">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
           <span className="ml-3 text-muted-foreground">Chargement des détails...</span>
         </div>
@@ -135,14 +135,14 @@ const OfferDetail = () => {
     }
 
     // Calculer la marge totale à partir des articles ou utiliser la marge globale
-    const totalMargin = offer.parsedEquipment && offer.parsedEquipment.length > 0
-      ? offer.parsedEquipment.reduce((sum, item) => sum + ((item.margin || 0) * (item.quantity || 1)), 0)
-      : (offer.margin || 0);
+    const totalMargin = offer.margin ? parseFloat(offer.margin) : 0;
+    const marginDifference = offer.margin_difference || 0;
+    const totalMarginWithDifference = offer.total_margin_with_difference 
+      ? parseFloat(offer.total_margin_with_difference) 
+      : totalMargin + marginDifference;
 
     // Calculer le mensuel total à partir des articles ou utiliser la mensualité globale
-    const totalMonthly = offer.parsedEquipment && offer.parsedEquipment.length > 0
-      ? offer.parsedEquipment.reduce((sum, item) => sum + ((item.monthlyPayment || 0) * (item.quantity || 1)), 0)
-      : (offer.monthly_payment || 0);
+    const totalMonthly = offer.monthly_payment || 0;
 
     return (
       <div className="space-y-6">
@@ -283,19 +283,19 @@ const OfferDetail = () => {
                     
                     <TabsContent value="equipment">
                       <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                        <div className="bg-blue-50 rounded-lg p-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-white/80 rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
+                            <div className="bg-white rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
                               <Banknote className="h-6 w-6 text-blue-600 mb-2" />
                               <h3 className="text-sm font-medium text-gray-500">Montant financé</h3>
                               <p className="text-lg font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
                             </div>
-                            <div className="bg-white/80 rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
+                            <div className="bg-white rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
                               <Clock className="h-6 w-6 text-indigo-600 mb-2" />
                               <h3 className="text-sm font-medium text-gray-500">Mensualité</h3>
                               <p className="text-lg font-bold text-indigo-700">{formatCurrency(offer.monthly_payment || 0)}</p>
                             </div>
-                            <div className="bg-white/80 rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
+                            <div className="bg-white rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
                               <Calendar className="h-6 w-6 text-purple-600 mb-2" />
                               <h3 className="text-sm font-medium text-gray-500">Durée</h3>
                               <p className="text-lg font-bold text-purple-700">{offer.duration || 36} mois</p>
@@ -322,34 +322,30 @@ const OfferDetail = () => {
                           </div>
                         ) : null}
                         
-                        {/* Informations financières supplémentaires */}
-                        <Card className="border-blue-100">
-                          <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-green-50">
+                        {/* Informations financières */}
+                        <Card className="border-green-100 bg-green-50/50">
+                          <CardHeader className="pb-3 border-b border-green-100">
                             <CardTitle className="text-base flex items-center">
                               <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
                               Informations financières
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="pt-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div>
-                                <p className="text-sm text-muted-foreground">Marge générée</p>
-                                <p className="text-lg font-semibold text-green-600">{formatCurrency(totalMargin)}</p>
+                                <p className="text-sm text-gray-500 mb-1">Marge générée</p>
+                                <p className="text-xl font-semibold text-green-600">{formatCurrency(totalMargin)}</p>
                               </div>
                               
-                              {offer.margin_difference !== undefined && offer.margin_difference !== null && (
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Différence de marge</p>
-                                  <p className="text-lg font-semibold text-orange-600">{formatCurrency(offer.margin_difference)}</p>
-                                </div>
-                              )}
+                              <div>
+                                <p className="text-sm text-gray-500 mb-1">Différence de marge</p>
+                                <p className="text-xl font-semibold text-orange-500">{formatCurrency(marginDifference)}</p>
+                              </div>
                               
-                              {offer.total_margin_with_difference !== undefined && offer.total_margin_with_difference !== null && (
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Marge totale avec différence</p>
-                                  <p className="text-lg font-semibold text-green-700">{formatCurrency(offer.total_margin_with_difference)}</p>
-                                </div>
-                              )}
+                              <div>
+                                <p className="text-sm text-gray-500 mb-1">Marge totale avec différence</p>
+                                <p className="text-xl font-semibold text-green-700">{formatCurrency(totalMarginWithDifference)}</p>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -421,11 +417,6 @@ const OfferDetail = () => {
                       <span className="font-medium text-blue-700">{formatCurrency((offer.monthly_payment || 0) * (offer.duration || 36))}</span>
                     </div>
 
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Marge générée</span>
-                      <span className="font-medium text-green-600">{formatCurrency(totalMargin)}</span>
-                    </div>
-                    
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Date de création</span>
                       <span className="font-medium">{formatDate(offer.created_at)}</span>
