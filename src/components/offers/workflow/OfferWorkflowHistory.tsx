@@ -85,12 +85,25 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     }
     
     // Fallback to email
-    return log.user_email || log.profiles?.email || 'Utilisateur';
+    return log.user_email || log.profiles?.email || 'Utilisateur inconnu';
   };
 
   // Get user email for display
   const getUserEmail = (log: WorkflowLog) => {
     return log.user_email || log.profiles?.email || '';
+  };
+
+  // Get user role or type
+  const getUserRole = (log: WorkflowLog) => {
+    // This could be expanded to determine specific roles
+    // For now we use a simplified approach
+    if (log.profiles) {
+      return "Admin";
+    } else if (log.user_name) {
+      return log.user_name.includes("admin") ? "Admin" : "Utilisateur";
+    } else {
+      return "Utilisateur";
+    }
   };
 
   return (
@@ -115,7 +128,7 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
                       <p className="text-sm font-medium">
                         {getDisplayName(log)}
                       </p>
-                      <Badge variant="outline" className="text-xs">Utilisateur</Badge>
+                      <Badge variant="outline" className="text-xs">{getUserRole(log)}</Badge>
                     </div>
                     <span className="text-xs text-muted-foreground flex items-center">
                       <Clock className="h-3 w-3 mr-1" />

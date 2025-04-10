@@ -144,6 +144,7 @@ export const getWorkflowHistory = async (offerId: string) => {
       .order('created_at', { ascending: false });
     
     if (!errorWithProfiles) {
+      console.log("Successfully fetched workflow logs with profiles:", dataWithProfiles);
       return dataWithProfiles || [];
     }
     
@@ -182,22 +183,37 @@ export const getWorkflowHistory = async (offerId: string) => {
         
         // If that fails, try to get just the email from auth.users
         try {
-          const { data: authUser } = await supabase.auth.admin.getUserById(log.user_id);
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(log.user_id);
+          
+          if (authError) {
+            console.warn("Could not get auth user details:", authError);
+          }
+          
           if (authUser && authUser.user) {
+            const email = authUser.user.email;
+            const fullName = authUser.user.user_metadata?.full_name || 
+                           authUser.user.user_metadata?.name || 
+                           (email ? email.split('@')[0] : 'Administrateur');
+            
             return {
               ...log,
-              user_email: authUser.user.email,
-              user_name: authUser.user.user_metadata?.full_name || authUser.user.email
+              user_email: email,
+              user_name: fullName
             };
           }
         } catch (authError) {
           console.warn("Could not get user details:", authError);
         }
         
-        return log;
+        // If we still don't have user info, use a generic name based on user ID
+        return {
+          ...log,
+          user_name: `Administrateur (${log.user_id.substring(0, 6)})`
+        };
       })
     );
     
+    console.log("Fetched logs with user info:", logsWithUserInfo);
     return logsWithUserInfo;
   } catch (error) {
     console.error("Error in getWorkflowHistory:", error);
