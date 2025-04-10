@@ -29,6 +29,85 @@ export const isOfferSigned = async (offerId: string): Promise<boolean> => {
 };
 
 /**
+ * Récupère les données d'une offre pour un client
+ */
+export const getOfferForClient = async (offerId: string) => {
+  try {
+    if (!offerId) {
+      console.error("Identifiant d'offre manquant");
+      return null;
+    }
+    
+    const supabase = getSupabaseClient();
+    
+    console.log("Récupération des données de l'offre pour le client:", offerId);
+    
+    // Récupérer l'offre avec les données client associées
+    const { data, error } = await supabase
+      .from('offers')
+      .select(`
+        *,
+        clients:client_id (
+          id, 
+          name,
+          email, 
+          company,
+          phone,
+          address,
+          postal_code,
+          city,
+          vat_number
+        )
+      `)
+      .eq('id', offerId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Erreur lors de la récupération de l\'offre pour le client:', error);
+      return null;
+    }
+
+    if (!data) {
+      console.error("Aucune donnée d'offre trouvée pour l'ID:", offerId);
+      return null;
+    }
+
+    console.log("Données d'offre récupérées avec succès pour le client:", data.id);
+    
+    // Traiter les données d'équipement
+    if (data && data.equipment_description) {
+      try {
+        // Parser les données d'équipement
+        const equipmentData = typeof data.equipment_description === 'string' 
+          ? JSON.parse(data.equipment_description)
+          : data.equipment_description;
+        
+        // Conversion explicite des types numériques
+        if (Array.isArray(equipmentData)) {
+          data.equipment_data = equipmentData.map(item => ({
+            ...item,
+            purchasePrice: parseFloat(item.purchasePrice) || 0,
+            quantity: parseInt(item.quantity, 10) || 1,
+            margin: parseFloat(item.margin) || 20,
+            monthlyPayment: parseFloat(item.monthlyPayment || 0)
+          }));
+        } else {
+          data.equipment_data = equipmentData;
+        }
+      } catch (e) {
+        console.error("Les données d'équipement ne sont pas un JSON valide:", e);
+        console.log("Contenu brut:", data.equipment_description);
+      }
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'offre pour le client:', error);
+    return null;
+  }
+};
+
+/**
  * Enregistre la signature d'une offre
  */
 export const saveOfferSignature = async (
