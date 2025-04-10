@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -312,6 +311,8 @@ const PartnerCreateOffer = () => {
       // Convertir le montant de total_margin_with_difference en chaîne de caractères
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
 
+      const offerType: OfferType = 'partner_offer';
+
       const offerData = {
         user_id: user.id,
         client_name: clientName,
@@ -325,7 +326,8 @@ const PartnerCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         additional_info: remarks,
-        type: 'partner_offer',
+        type: offerType,
+        workflow_status: "draft",
         total_margin_with_difference: totalMarginWithDifferenceString
       };
 

@@ -250,6 +250,8 @@ const AmbassadorCreateOffer = () => {
       console.log("Différence de marge:", marginDifference);
       console.log("Total marge avec différence:", totalMarginWithDifference);
       
+      const offerType: OfferType = "ambassador_offer";
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -261,12 +263,12 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: "ambassador_offer",
+        type: offerType,
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)  // Marge générée
+        margin: String(marginAmount)
       };
       
       console.log("Saving offer with the following data:", offerData);
