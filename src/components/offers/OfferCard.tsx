@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
   Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
 } from "lucide-react";
@@ -12,9 +13,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
-import { generateSignatureLink } from "@/services/offers/offerSignature";
-import { toast } from "sonner";
-import { Offer } from "@/hooks/offers/useFetchOffers";
+import { generateSignatureLink } from "@/services/offerService";
 
 interface OfferCardProps {
   offer: Offer;
@@ -31,6 +30,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
 }) => {
   const navigate = useNavigate();
   
+  // Formatage de la date
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
@@ -45,19 +45,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const openOnlineOffer = () => {
     const link = generateSignatureLink(offer.id);
-    console.log("Opening online offer link:", link);
     window.open(link, '_blank', 'noopener,noreferrer');
-  };
-  
-  const handleCopySignatureLink = () => {
-    try {
-      const signatureLink = generateSignatureLink(offer.id);
-      navigator.clipboard.writeText(signatureLink);
-      toast.success("Lien de signature copié dans le presse-papier");
-    } catch (error) {
-      console.error("Error copying signature link:", error);
-      toast.error("Impossible de copier le lien de signature");
-    }
   };
   
   const isConverted = offer.converted_to_contract;

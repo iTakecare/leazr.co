@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -60,7 +61,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
   if (!offers.length) {
     return (
@@ -98,21 +99,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const openOnlineOffer = (offerId: string) => {
     const link = generateSignatureLink(offerId);
-    console.log("Opening link from OffersTable:", link);
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
-  const handleCopySignatureLink = (offer: any) => {
-    try {
-      const signatureLink = generateSignatureLink(offer.id);
-      navigator.clipboard.writeText(signatureLink);
-      toast.success("Lien de signature copié dans le presse-papier");
-    } catch (error) {
-      console.error("Erreur lors de la copie du lien de signature:", error);
-      toast.error("Impossible de copier le lien de signature");
-    }
-  };
-
+  // Only admins can see the margin column
   const showMarginColumn = isAdmin();
 
   return (
@@ -159,6 +149,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         })()
                       : offer.equipment_description || "Non spécifié"}
                   </TableCell>
+                  {/* Show margin column only for admins */}
                   {showMarginColumn && (
                     <TableCell className="text-right">
                       <div className="font-medium text-green-600">

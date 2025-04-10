@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -116,9 +115,7 @@ const PartnerOfferDetail = () => {
       const baseUrl = window.location.origin;
       setShareUrl(`${baseUrl}/client/offers/${data.id}`);
       
-      // Fix: Use the non-async version of generateSignatureLink
-      const signatureUrl = generateSignatureLink(data.id);
-      setSignatureUrl(signatureUrl);
+      setSignatureUrl(generateSignatureLink(data.id));
     } catch (error) {
       console.error("Error fetching offer details:", error);
       toast.error("Erreur lors du chargement des détails de l'offre");

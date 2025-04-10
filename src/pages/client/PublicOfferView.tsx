@@ -20,8 +20,6 @@ const PublicOfferView = () => {
     error,
     signerName,
     setSignerName,
-    approvalText,
-    setApprovalText,
     isSigning,
     signed,
     signature,
@@ -112,8 +110,6 @@ const PublicOfferView = () => {
                   signature={signature}
                   signerName={signerName}
                   setSignerName={setSignerName}
-                  approvalText={approvalText}
-                  setApprovalText={setApprovalText}
                   isSigning={isSigning}
                   onSign={handleSignature}
                   isPrintingPdf={isPrintingPdf}

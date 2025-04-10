@@ -12,8 +12,7 @@ import {
 import { 
   isOfferSigned, 
   saveOfferSignature, 
-  generateSignatureLink,
-  getOfferForClient
+  generateSignatureLink 
 } from './offers/offerSignature';
 
 import {
@@ -44,7 +43,6 @@ export {
   isOfferSigned,
   saveOfferSignature,
   generateSignatureLink,
-  getOfferForClient,
   deleteOffer,
   updateOfferStatus,
   getWorkflowLogs,
