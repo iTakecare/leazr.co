@@ -84,8 +84,20 @@ export const generateOfferPdf = async (offerData) => {
     // Générer le PDF et le télécharger automatiquement
     console.log("Début de la génération du PDF...");
     try {
+      // Désactiver les warnings lorsque html2pdf s'exécute
+      const originalConsoleWarn = console.warn;
+      console.warn = (msg) => {
+        if (msg && typeof msg === 'string' && msg.includes('jsPDF')) {
+          return; // Ignorer les avertissements de jsPDF
+        }
+        originalConsoleWarn(msg);
+      };
+      
       // Utiliser la méthode save() pour télécharger automatiquement
       await html2pdf().from(container).set(options).save();
+      
+      // Rétablir console.warn
+      console.warn = originalConsoleWarn;
       console.log("PDF généré et téléchargé avec succès");
     } catch (pdfError) {
       console.error("Erreur durant la génération du PDF:", pdfError);
