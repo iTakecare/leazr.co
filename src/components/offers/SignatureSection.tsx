@@ -102,12 +102,12 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </p>
             </div>
             
-            <div className="touch-none">
+            <div className="w-full">
               <SignatureCanvas 
                 onSave={onSign}
                 disabled={isSigning}
                 height={200}
-                className="mt-4 signature-container"
+                className="mt-4 signature-container w-full"
               />
             </div>
             

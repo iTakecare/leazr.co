@@ -21,10 +21,58 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
   disabled = false
 }) => {
   const sigCanvas = useRef<SignaturePad | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [isTouched, setIsTouched] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [showEmptyError, setShowEmptyError] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  // Set up resize observer for responsive canvas sizing
+  useEffect(() => {
+    if (!canvasContainerRef.current) return;
+    
+    const updateCanvasSize = () => {
+      if (canvasContainerRef.current) {
+        const containerWidth = canvasContainerRef.current.clientWidth;
+        const containerHeight = typeof height === 'number' ? height : 200;
+        
+        setCanvasSize({
+          width: containerWidth,
+          height: containerHeight
+        });
+        
+        // Need to clear and resize when dimensions change
+        if (sigCanvas.current) {
+          const oldData = sigCanvas.current.toDataURL();
+          setTimeout(() => {
+            if (sigCanvas.current) {
+              sigCanvas.current.clear();
+              // Only try to restore data if it wasn't empty
+              if (oldData && oldData.length > 1000) {
+                sigCanvas.current.fromDataURL(oldData);
+              }
+            }
+          }, 100);
+        }
+      }
+    };
+
+    // Initialize canvas size
+    updateCanvasSize();
+    
+    // Set up resize observer for responsive behavior
+    const resizeObserver = new ResizeObserver(updateCanvasSize);
+    resizeObserver.observe(canvasContainerRef.current);
+    
+    // Clean up observer on unmount
+    return () => {
+      if (canvasContainerRef.current) {
+        resizeObserver.unobserve(canvasContainerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
+  }, [height, canvasContainerRef.current]);
 
   // Vérifier si la signature est vide après chaque trait
   useEffect(() => {
@@ -137,32 +185,37 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
       </div>
       
       <div className="bg-white relative" style={{ touchAction: "none" }}>
-        <div style={{ 
-          width: typeof width === "number" ? `${width}px` : width,
-          height: typeof height === "number" ? `${height}px` : height,
-          position: "relative"
-        }}>
-          <SignaturePad
-            ref={sigCanvas}
-            penColor="black"
-            canvasProps={{
-              width: typeof width === "number" ? width : "100%",
-              height,
-              className: "signature-canvas w-full border-b",
-              style: { 
-                width: "100%", 
-                height,
-                cursor: "crosshair",
-                touchAction: "none"
-              }
-            }}
-            backgroundColor="white"
-            dotSize={2}
-            velocityFilterWeight={0.7}
-            clearOnResize={false}
-            minWidth={1.5}
-            maxWidth={3}
-          />
+        <div 
+          ref={canvasContainerRef}
+          style={{ 
+            width: "100%",
+            height: typeof height === "number" ? `${height}px` : height,
+            position: "relative"
+          }}
+        >
+          {canvasSize.width > 0 && (
+            <SignaturePad
+              ref={sigCanvas}
+              penColor="black"
+              canvasProps={{
+                width: canvasSize.width,
+                height: canvasSize.height,
+                className: "signature-canvas w-full border-b",
+                style: { 
+                  width: "100%", 
+                  height: "100%",
+                  cursor: "crosshair",
+                  touchAction: "none"
+                }
+              }}
+              backgroundColor="white"
+              dotSize={2}
+              velocityFilterWeight={0.7}
+              clearOnResize={false}
+              minWidth={1.5}
+              maxWidth={3}
+            />
+          )}
         </div>
         
         {showEmptyError && (
