@@ -32,7 +32,7 @@ export const generateOfferPdf = async (offerData) => {
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait'
+        orientation: 'portrait' as 'portrait' | 'landscape'  // Fixed: explicitly cast to the correct union type
       }
     };
     
