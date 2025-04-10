@@ -11,6 +11,8 @@ export interface EquipmentItem {
   margin?: number;
   monthlyPayment: number;
   serialNumber?: string;
+  attributes?: Record<string, string>;
+  specifications?: Record<string, string | number>;
 }
 
 export interface OfferDetail {
@@ -58,7 +60,9 @@ export const useOfferDetail = (offerId: string) => {
           quantity: Number(item.quantity) || 1,
           margin: Number(item.margin) || 0,
           monthlyPayment: Number(item.monthlyPayment) || 0,
-          serialNumber: item.serialNumber || undefined
+          serialNumber: item.serialNumber || undefined,
+          attributes: item.attributes || {},
+          specifications: item.specifications || {}
         }));
       }
       
@@ -73,7 +77,9 @@ export const useOfferDetail = (offerId: string) => {
             quantity: Number(item.quantity) || 1,
             margin: Number(item.margin) || 0,
             monthlyPayment: Number(item.monthlyPayment) || 0,
-            serialNumber: item.serialNumber || undefined
+            serialNumber: item.serialNumber || undefined,
+            attributes: item.attributes || {},
+            specifications: item.specifications || {}
           }));
         }
         
@@ -85,7 +91,9 @@ export const useOfferDetail = (offerId: string) => {
             quantity: Number(equipmentData.quantity) || 1,
             margin: Number(equipmentData.margin) || 0,
             monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
-            serialNumber: equipmentData.serialNumber
+            serialNumber: equipmentData.serialNumber,
+            attributes: equipmentData.attributes || {},
+            specifications: equipmentData.specifications || {}
           }];
         }
       }
