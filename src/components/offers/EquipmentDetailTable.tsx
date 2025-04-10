@@ -44,35 +44,11 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
     }));
   };
   
-  // Fonction pour rendre les attributs sous forme de chaîne de texte
-  const renderAttributes = (attributes?: Record<string, string>) => {
-    if (!attributes || Object.keys(attributes).length === 0) return null;
-    
+  // Fonction pour vérifier si un équipement a des attributs ou des spécifications
+  const hasDetails = (item: EquipmentItem): boolean => {
     return (
-      <div className="mt-1 text-xs text-gray-500">
-        {Object.entries(attributes).map(([key, value], index) => (
-          <span key={`attr-${key}`} className="mr-2">
-            {key}: <span className="font-medium">{value}</span>
-            {index < Object.keys(attributes).length - 1 ? ' • ' : ''}
-          </span>
-        ))}
-      </div>
-    );
-  };
-  
-  // Fonction pour rendre les spécifications sous forme de chaîne de texte
-  const renderSpecifications = (specs?: Record<string, string | number>) => {
-    if (!specs || Object.keys(specs).length === 0) return null;
-    
-    return (
-      <div className="mt-1 text-xs text-gray-500">
-        {Object.entries(specs).map(([key, value], index) => (
-          <span key={`spec-${key}`} className="mr-2">
-            {key}: <span className="font-medium">{value}</span>
-            {index < Object.keys(specs).length - 1 ? ' • ' : ''}
-          </span>
-        ))}
-      </div>
+      (item.attributes && Object.keys(item.attributes).length > 0) || 
+      (item.specifications && Object.keys(item.specifications).length > 0)
     );
   };
   
@@ -106,9 +82,19 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
               const itemId = item.id || `item-${index}`;
               const isExpanded = expandedItems[itemId] || false;
               
-              // Vérifier si l'équipement a des attributs ou des spécifications
-              const hasDetails = (item.attributes && Object.keys(item.attributes).length > 0) || 
-                               (item.specifications && Object.keys(item.specifications).length > 0);
+              // Formatage des attributs en tant que chaîne pour affichage sous le titre
+              const attributesString = item.attributes && Object.keys(item.attributes).length > 0
+                ? Object.entries(item.attributes)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(', ')
+                : '';
+              
+              // Formatage des spécifications en tant que chaîne pour affichage sous le titre
+              const specificationsString = item.specifications && Object.keys(item.specifications).length > 0
+                ? Object.entries(item.specifications)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(', ')
+                : '';
               
               return (
                 <React.Fragment key={itemId}>
@@ -116,7 +102,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     <td className="py-4 px-4">
                       <div className="flex flex-col">
                         <div className="flex items-center">
-                          {hasDetails && (
+                          {hasDetails(item) && (
                             <button 
                               onClick={() => toggleExpand(itemId)}
                               className="mr-2 text-blue-600 p-1 rounded-full hover:bg-blue-50"
@@ -127,16 +113,26 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                           <span className="font-medium">{item.title}</span>
                         </div>
                         
-                        {/* Afficher attributs et spécifications en plus petit sous le titre */}
-                        {!isExpanded && renderAttributes(item.attributes)}
-                        {!isExpanded && renderSpecifications(item.specifications)}
+                        {/* Afficher les attributs directement sous le titre en petit */}
+                        {attributesString && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {attributesString}
+                          </div>
+                        )}
+                        
+                        {/* Afficher les spécifications directement sous le titre en petit */}
+                        {specificationsString && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {specificationsString}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">{item.quantity}</td>
                     <td className="py-4 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
                     <td className="py-4 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
                     <td className="py-4 px-4 text-right text-gray-500 text-sm">
-                      {hasDetails ? (
+                      {hasDetails(item) ? (
                         <button 
                           onClick={() => toggleExpand(itemId)}
                           className="text-blue-600 text-xs underline hover:text-blue-800"
@@ -147,7 +143,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </td>
                   </tr>
                   
-                  {isExpanded && hasDetails && (
+                  {isExpanded && hasDetails(item) && (
                     <tr className="bg-gray-50">
                       <td colSpan={5} className="py-2 px-8 text-sm">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

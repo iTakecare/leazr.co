@@ -61,9 +61,9 @@ export const useOfferDetail = (offerId: string) => {
           margin: Number(item.margin) || 0,
           monthlyPayment: Number(item.monthlyPayment) || 0,
           serialNumber: item.serialNumber || undefined,
-          // Assurer que attributes est bien un objet et pas une chaîne
+          // S'assurer que attributes est bien un objet et pas une chaîne
           attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
-          // Assurer que specifications est bien un objet et pas une chaîne
+          // S'assurer que specifications est bien un objet et pas une chaîne
           specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
           // Support pour variants (ancienne structure)
           ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
@@ -82,9 +82,9 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(item.margin) || 0,
             monthlyPayment: Number(item.monthlyPayment) || 0,
             serialNumber: item.serialNumber || undefined,
-            // Assurer que attributes est bien un objet et pas une chaîne
+            // S'assurer que attributes est bien un objet et pas une chaîne
             attributes: item.attributes && typeof item.attributes === 'object' ? item.attributes : {},
-            // Assurer que specifications est bien un objet et pas une chaîne
+            // S'assurer que specifications est bien un objet et pas une chaîne
             specifications: item.specifications && typeof item.specifications === 'object' ? item.specifications : {},
             // Support pour variants (ancienne structure)
             ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
@@ -100,9 +100,9 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(equipmentData.margin) || 0,
             monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
             serialNumber: equipmentData.serialNumber,
-            // Assurer que attributes est bien un objet et pas une chaîne
+            // S'assurer que attributes est bien un objet et pas une chaîne
             attributes: equipmentData.attributes && typeof equipmentData.attributes === 'object' ? equipmentData.attributes : {},
-            // Assurer que specifications est bien un objet et pas une chaîne
+            // S'assurer que specifications est bien un objet et pas une chaîne
             specifications: equipmentData.specifications && typeof equipmentData.specifications === 'object' ? equipmentData.specifications : {},
             // Support pour variants (ancienne structure)
             ...(equipmentData.variants && typeof equipmentData.variants === 'object' && { specifications: equipmentData.variants })
@@ -119,6 +119,7 @@ export const useOfferDetail = (offerId: string) => {
         specifications: {}
       }];
     } catch (e) {
+      console.error("Erreur lors du parsing de la description de l'équipement:", e);
       // If it's not valid JSON, treat it as a text string
       return [{
         title: description,
@@ -160,6 +161,8 @@ export const useOfferDetail = (offerId: string) => {
       
       // Parse equipment description if it exists
       const parsedEquipment = parseEquipmentDescription(data.equipment_description);
+      
+      console.log("Équipement analysé:", parsedEquipment);
       
       // Calculate total margin if not set
       if (!data.margin && parsedEquipment.length > 0) {
