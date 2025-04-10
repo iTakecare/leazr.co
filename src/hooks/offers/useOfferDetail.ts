@@ -51,6 +51,11 @@ export const useOfferDetail = (offerId: string) => {
         return;
       }
 
+      // Si la durée n'est pas définie, utiliser 36 mois par défaut
+      if (!data.duration) {
+        data.duration = 36;
+      }
+
       setOffer(data as OfferDetail);
     } catch (err) {
       console.error('Error in useOfferDetail:', err);
