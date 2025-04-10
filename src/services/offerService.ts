@@ -1,6 +1,24 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { OfferData } from './offers/types';
+import { sendInfoRequest, processInfoResponse, getWorkflowLogs } from './offers/offerWorkflow';
+import { getOfferById, updateOffer, deleteOffer, updateOfferStatus, generateAndDownloadOfferPdf, getOfferNotes } from './offers/offerDetail';
+import { generateSignatureLink } from './offers/offerSignature';
+import { migrateEquipmentFromJson } from './offers/offerEquipment';
+
+// Re-export functions from other modules
+export {
+  sendInfoRequest,
+  processInfoResponse,
+  getWorkflowLogs,
+  getOfferById,
+  updateOffer,
+  deleteOffer,
+  updateOfferStatus,
+  generateAndDownloadOfferPdf,
+  getOfferNotes,
+  generateSignatureLink
+};
 
 /**
  * Create a new offer
@@ -253,3 +271,4 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
     return false;
   }
 };
+

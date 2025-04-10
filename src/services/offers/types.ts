@@ -22,7 +22,10 @@ export interface OfferData {
   remarks?: string;
   total_margin_with_difference?: string | number;
   margin?: string | number;
+  id?: string;
+  created_at?: string;
+  ambassador_id?: string;
 }
 
-export type OfferType = 'admin_offer' | 'internal_offer' | 'partner_offer';
+export type OfferType = 'admin_offer' | 'internal_offer' | 'partner_offer' | 'ambassador_offer';
 
