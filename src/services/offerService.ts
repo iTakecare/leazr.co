@@ -34,6 +34,14 @@ import {
   addOfferNote
 } from './offers/offerNotes';
 
+// Import equipment service functions
+import {
+  getOfferEquipment,
+  saveEquipment,
+  migrateEquipmentFromJson,
+  convertEquipmentToJson
+} from './offers/offerEquipment';
+
 // Import and re-export from other offer service files
 export * from './offers';
 
@@ -53,7 +61,12 @@ export {
   sendInfoRequest,
   processInfoResponse,
   getOfferNotes,
-  addOfferNote
+  addOfferNote,
+  // Export les nouvelles fonctions d'équipement
+  getOfferEquipment,
+  saveEquipment,
+  migrateEquipmentFromJson,
+  convertEquipmentToJson
 };
 
 // Export functions from offerDetail directly

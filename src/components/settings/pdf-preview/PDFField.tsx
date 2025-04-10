@@ -1,7 +1,7 @@
-
 import React from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useDragState, useDragActions } from "./PDFPreviewDragContext";
+import { getOfferEquipment } from "@/services/offerService";
 
 interface PDFFieldProps {
   field: any;
@@ -10,9 +10,47 @@ interface PDFFieldProps {
   currentPage: number;
 }
 
-// Function to parse equipment data from JSON string
-const parseEquipmentData = (jsonString: string | any[]) => {
+// Fonction pour analyser les données d'équipement
+const parseEquipmentData = async (jsonString: string | any[], offerId?: string) => {
   try {
+    if (offerId) {
+      // Si l'ID de l'offre est fourni, essayer de récupérer les équipements depuis la BD
+      try {
+        const equipmentData = await getOfferEquipment(offerId);
+        if (equipmentData && equipmentData.length > 0) {
+          return equipmentData.map(item => {
+            // Convertir les attributs en objet
+            const attributes: Record<string, string> = {};
+            if (item.attributes && item.attributes.length > 0) {
+              item.attributes.forEach(attr => {
+                attributes[attr.key] = attr.value;
+              });
+            }
+            
+            // Convertir les spécifications en objet
+            const specifications: Record<string, string | number> = {};
+            if (item.specifications && item.specifications.length > 0) {
+              item.specifications.forEach(spec => {
+                specifications[spec.key] = spec.value;
+              });
+            }
+            
+            return {
+              title: item.title,
+              quantity: item.quantity,
+              monthlyPayment: item.monthly_payment,
+              attributes,
+              specifications
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des équipements depuis la BD:", error);
+        // Continuer avec la méthode de fallback
+      }
+    }
+    
+    // Méthode de fallback: analyser le JSON
     if (!jsonString) return [];
     
     if (Array.isArray(jsonString)) return jsonString;
@@ -24,7 +62,7 @@ const parseEquipmentData = (jsonString: string | any[]) => {
   }
 };
 
-// Function to render equipment table
+// Fonction pour rendre la table d'équipement
 const renderEquipmentTable = (sampleData: any, zoomLevel: number) => {
   const equipment = parseEquipmentData(sampleData.equipment_description);
   
@@ -47,7 +85,7 @@ const renderEquipmentTable = (sampleData: any, zoomLevel: number) => {
           const monthlyPayment = parseFloat(item.monthlyPayment || 0);
           const totalMonthlyPayment = monthlyPayment * quantity;
           
-          // Create detailed string for attributes and specifications
+          // Créer une chaîne détaillée pour les attributs et spécifications
           const detailsArray = [];
           
           if (item.attributes && Object.keys(item.attributes).length > 0) {
@@ -96,7 +134,7 @@ const renderEquipmentTable = (sampleData: any, zoomLevel: number) => {
   );
 };
 
-// Resolve field value based on pattern and sample data
+// Fonction pour résoudre la valeur du champ en fonction du modèle et des données de l'échantillon
 const resolveFieldValue = (pattern: string | undefined, sampleData: any): string => {
   if (!pattern || typeof pattern !== 'string') return '';
   

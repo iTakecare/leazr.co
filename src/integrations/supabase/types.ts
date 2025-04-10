@@ -723,6 +723,124 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_equipment: {
+        Row: {
+          created_at: string
+          id: string
+          margin: number
+          monthly_payment: number | null
+          offer_id: string
+          purchase_price: number
+          quantity: number
+          serial_number: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          margin?: number
+          monthly_payment?: number | null
+          offer_id: string
+          purchase_price?: number
+          quantity?: number
+          serial_number?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          margin?: number
+          monthly_payment?: number | null
+          offer_id?: string
+          purchase_price?: number
+          quantity?: number
+          serial_number?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_equipment_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pending_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_equipment_attributes: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          key?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_equipment_attributes_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_equipment_specifications: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          key?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_equipment_specifications_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_info_requests: {
         Row: {
           created_at: string

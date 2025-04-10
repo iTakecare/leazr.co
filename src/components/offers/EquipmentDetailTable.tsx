@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatCurrency } from '@/utils/formatters';
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';

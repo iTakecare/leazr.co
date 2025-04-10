@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OfferData, OfferType } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { hasCommission } from "@/utils/offerTypeTranslator";
+import { migrateEquipmentFromJson } from "./offerEquipment";
 
 // Fonction pour créer une offre
 export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data?: any; error?: any }> => {
@@ -121,6 +122,19 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     }
 
     console.log("Offre créée avec succès:", data[0]);
+    
+    // Si l'offre a été créée avec succès et qu'elle contient une description d'équipement,
+    // migrer les données d'équipement vers la nouvelle structure
+    if (data[0] && equipmentDescription) {
+      try {
+        await migrateEquipmentFromJson(data[0].id, equipmentDescription);
+        console.log("Migration des équipements effectuée avec succès");
+      } catch (migrationError) {
+        console.error("Erreur lors de la migration des équipements:", migrationError);
+        // Ne pas échouer l'opération si la migration échoue
+      }
+    }
+    
     return { data: data[0] };
   } catch (error) {
     console.error("Erreur lors de la création de l'offre:", error);
