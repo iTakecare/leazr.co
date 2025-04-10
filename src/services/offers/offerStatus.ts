@@ -130,7 +130,7 @@ export const getWorkflowHistory = async (offerId: string) => {
   try {
     console.log("Fetching workflow history for offer:", offerId);
     
-    // Récupérer les logs de base sans jointure avec profiles
+    // 1. Récupérer les logs de base sans jointure
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
       .select('*')
@@ -147,47 +147,42 @@ export const getWorkflowHistory = async (offerId: string) => {
       return [];
     }
     
-    // Pour chaque log, récupérer manuellement les informations du profil utilisateur
-    const enhancedLogs = await Promise.all(
-      logs.map(async (log) => {
-        try {
-          // Récupérer les informations du profil utilisateur si disponible
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, email, avatar_url, role')
-            .eq('id', log.user_id)
-            .single();
-          
-          if (!profileError && profileData) {
-            return {
-              ...log,
-              profiles: profileData
-            };
-          }
-          
-          // Si le profil n'est pas trouvé, essayer de récupérer les informations de l'utilisateur
-          const { data: userData, error: userError } = await supabase.auth
-            .admin.getUserById(log.user_id);
-          
-          if (!userError && userData && userData.user) {
-            return {
-              ...log,
-              user_email: userData.user.email,
-              user_name: userData.user.user_metadata?.full_name || userData.user.email
-            };
-          }
-          
-          // Utiliser un fallback si aucune information n'est disponible
-          return {
-            ...log,
-            user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
-          };
-        } catch (error) {
-          console.warn("Error getting user details for log:", error);
-          return log;
-        }
-      })
-    );
+    // 2. Extraire tous les user_ids uniques des logs
+    const userIds = [...new Set(logs.map(log => log.user_id))];
+    
+    // 3. Récupérer les informations de profil pour tous ces utilisateurs en une seule requête
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, avatar_url, role')
+      .in('id', userIds);
+      
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      // Continue with the logs we have, without profile information
+    }
+    
+    // 4. Créer un dictionnaire pour un accès facile aux données de profil
+    const profilesDict = (profilesData || []).reduce((acc, profile) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {} as Record<string, any>);
+    
+    // 5. Enrichir les logs avec les données de profil
+    const enhancedLogs = logs.map(log => {
+      // Si nous avons les données de profil pour cet utilisateur
+      if (profilesDict[log.user_id]) {
+        return {
+          ...log,
+          profiles: profilesDict[log.user_id]
+        };
+      }
+      
+      // Sinon, utiliser un fallback
+      return {
+        ...log,
+        user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
+      };
+    });
     
     console.log("Enhanced logs with user data:", enhancedLogs);
     return enhancedLogs;

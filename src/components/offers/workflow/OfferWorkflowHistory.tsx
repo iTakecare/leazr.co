@@ -24,6 +24,7 @@ interface WorkflowLog {
     email: string;
     avatar_url: string | null;
     role?: string;
+    id: string;
   };
 }
 
@@ -54,12 +55,12 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
 
   // Obtenir les initiales à partir du nom ou de l'email
   const getInitials = (log: WorkflowLog) => {
-    // Essayer d'abord d'obtenir depuis le profil
+    // Privilégier les données du profil
     if (log.profiles?.first_name && log.profiles?.last_name) {
       return log.profiles.first_name.charAt(0) + log.profiles.last_name.charAt(0);
     }
     
-    // Essayer d'obtenir à partir du nom d'utilisateur direct
+    // Fallback au nom d'utilisateur direct
     if (log.user_name) {
       const parts = log.user_name.split(' ');
       if (parts.length >= 2) {
@@ -68,30 +69,29 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
       return log.user_name.substring(0, 2).toUpperCase();
     }
     
-    // Fallback à l'email
-    const email = log.user_email || log.profiles?.email || 'U';
-    return email.substring(0, 2).toUpperCase();
+    // Fallback ultime à l'ID utilisateur
+    return log.user_id.substring(0, 2).toUpperCase();
   };
 
   // Obtenir le nom à afficher
   const getDisplayName = (log: WorkflowLog) => {
-    // Essayer d'abord d'obtenir depuis le profil
+    // Privilégier les données du profil
     if (log.profiles?.first_name && log.profiles?.last_name) {
       return `${log.profiles.first_name} ${log.profiles.last_name}`;
     }
     
-    // Fallback au nom d'utilisateur direct s'il existe
+    // Fallback au nom d'utilisateur direct
     if (log.user_name) {
       return log.user_name;
     }
     
-    // Si rien d'autre n'est disponible, afficher un nom basé sur l'ID utilisateur
-    return `Administrateur (${log.user_id.substring(0, 6)})`;
+    // Fallback ultime à l'ID utilisateur
+    return `Utilisateur (${log.user_id.substring(0, 6)})`;
   };
 
   // Obtenir l'email de l'utilisateur pour l'affichage
   const getUserEmail = (log: WorkflowLog) => {
-    return log.user_email || log.profiles?.email || '';
+    return log.profiles?.email || log.user_email || '';
   };
 
   // Obtenir le rôle de l'utilisateur
@@ -104,6 +104,8 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     // Fallback à un rôle générique
     return "Administrateur";
   };
+
+  console.log("Rendering logs:", logs);
 
   return (
     <Card>
