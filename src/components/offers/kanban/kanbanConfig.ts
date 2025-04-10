@@ -30,6 +30,14 @@ export const KANBAN_COLUMNS = [
     textColor: "text-orange-700",
   },
   {
+    id: OFFER_STATUSES.APPROVED.id,
+    title: "Approuvée client",
+    icon: CheckCircle,
+    color: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+    textColor: "text-emerald-700",
+  },
+  {
     id: OFFER_STATUSES.VALID_ITC.id,
     title: "Valid. ITC",
     icon: Sparkle,
@@ -44,14 +52,6 @@ export const KANBAN_COLUMNS = [
     color: "bg-amber-50",
     borderColor: "border-amber-200",
     textColor: "text-amber-700",
-  },
-  {
-    id: OFFER_STATUSES.APPROVED.id,
-    title: "Approuvées",
-    icon: CheckCircle,
-    color: "bg-emerald-50",
-    borderColor: "border-emerald-200",
-    textColor: "text-emerald-700",
   },
   {
     id: OFFER_STATUSES.LEASER_REVIEW.id,

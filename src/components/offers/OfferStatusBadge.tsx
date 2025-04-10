@@ -15,7 +15,7 @@ import {
 export const OFFER_STATUSES = {
   DRAFT: { id: "draft", label: "Brouillon", icon: Pencil },
   SENT: { id: "sent", label: "Envoyée", icon: SendHorizontal },
-  APPROVED: { id: "approved", label: "Approuvée", icon: CheckCircle },
+  APPROVED: { id: "approved", label: "Approuvée client", icon: CheckCircle },
   REJECTED: { id: "rejected", label: "Rejetée", icon: X },
   INFO_REQUESTED: { id: "info_requested", label: "Infos demandées", icon: HelpCircle },
   VALID_ITC: { id: "valid_itc", label: "Validée ITC", icon: Sparkle },

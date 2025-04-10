@@ -68,10 +68,10 @@ const getStatusBadge = (status: string) => {
 const WORKFLOW_STEPS = [
   { id: 'draft', label: 'Brouillon', description: 'L\'offre est en cours de création' },
   { id: 'sent', label: 'Envoyée', description: 'L\'offre a été envoyée au client' },
-  { id: 'info_requested', label: 'Infos demandées', description: 'Des informations supplémentaires ont été demandées' },
+  { id: 'approved', label: 'Approuvée client', description: 'L\'offre a été approuvée par le client' },
   { id: 'valid_itc', label: 'Validée ITC', description: 'L\'offre a été validée par ITC' },
+  { id: 'info_requested', label: 'Infos demandées', description: 'Des informations supplémentaires ont été demandées' },
   { id: 'leaser_review', label: 'Évaluation leaser', description: 'En cours d\'évaluation par le bailleur' },
-  { id: 'approved', label: 'Approuvée', description: 'L\'offre a été approuvée par le client' },
   { id: 'financed', label: 'Financée', description: 'Le financement a été accordé' },
   { id: 'rejected', label: 'Rejetée', description: 'L\'offre a été rejetée' }
 ];
