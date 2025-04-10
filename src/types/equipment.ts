@@ -11,6 +11,8 @@ export interface Equipment {
   assignedDate?: string;
   status?: string;
   serial?: string;
+  attributes?: Record<string, string>;
+  specifications?: Record<string, string | number>;
 }
 
 export interface Leaser {
