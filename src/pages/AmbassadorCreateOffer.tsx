@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import { getAmbassadorClients } from "@/services/ambassadorClientService";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
+import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
 const AmbassadorCreateOffer = () => {
@@ -236,11 +236,18 @@ const AmbassadorCreateOffer = () => {
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
-      // Convertir le montant de total_margin_with_difference en chaîne de caractères
-      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
-      
       // Récupérer la marge totale générée (sans la différence)
-      const marginAmount = String(globalMarginAdjustment.amount || 0);
+      const marginAmount = globalMarginAdjustment.amount || 0;
+      
+      // Récupérer la différence de marge 
+      const marginDifference = globalMarginAdjustment.marginDifference || 0;
+      
+      // Calculer le total de marge avec différence
+      const totalMarginWithDifference = marginAmount + marginDifference;
+      
+      console.log("Marge totale:", marginAmount);
+      console.log("Différence de marge:", marginDifference);
+      console.log("Total marge avec différence:", totalMarginWithDifference);
       
       const offerData = {
         client_id: client.id,
@@ -257,13 +264,13 @@ const AmbassadorCreateOffer = () => {
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks,
-        total_margin_with_difference: totalMarginWithDifferenceString,
-        margin: marginAmount  // Ajout de la marge générée
+        total_margin_with_difference: String(totalMarginWithDifference),
+        margin: String(marginAmount)  // Marge générée
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
       console.log("Margin generated value being saved:", marginAmount);
       
       const { data, error } = await createOffer(offerData);

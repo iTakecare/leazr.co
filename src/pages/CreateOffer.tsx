@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -209,11 +208,18 @@ const CreateOffer = () => {
       // Log final de la commission à sauvegarder
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
 
-      // Convertir le montant de total_margin_with_difference en chaîne de caractères
-      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
-      
       // Récupérer la marge totale générée (sans la différence)
-      const marginAmount = String(globalMarginAdjustment.amount || 0);
+      const marginAmount = globalMarginAdjustment.amount || 0;
+      
+      // Récupérer la différence de marge 
+      const marginDifference = globalMarginAdjustment.marginDifference || 0;
+      
+      // Calculer le total de marge avec différence
+      const totalMarginWithDifference = marginAmount + marginDifference;
+      
+      console.log("Marge totale:", marginAmount);
+      console.log("Différence de marge:", marginDifference);
+      console.log("Total marge avec différence:", totalMarginWithDifference);
 
       const offerData = {
         client_id: client.id,
@@ -229,13 +235,13 @@ const CreateOffer = () => {
         type: offerType,
         user_id: user?.id || "",
         remarks: remarks,
-        total_margin_with_difference: totalMarginWithDifferenceString,
-        margin: marginAmount  // Ajout de la marge générée
+        total_margin_with_difference: String(totalMarginWithDifference),
+        margin: String(marginAmount)  // Marge générée
       };
 
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
       console.log("Margin generated value being saved:", marginAmount);
 
       const { data, error } = await createOffer(offerData);
