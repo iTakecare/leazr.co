@@ -23,6 +23,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { OfferType } from "@/services/offers/types";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();

@@ -69,8 +69,8 @@ export const sendInfoRequest = async (requestData: RequestInfoData): Promise<boo
  */
 export const processInfoResponse = async (
   offerId: string, 
-  responseDocuments: any[], 
-  comments: string
+  responseDocuments: any[] = [], 
+  comments: string = ''
 ): Promise<boolean> => {
   try {
     // 1. Fetch the current request

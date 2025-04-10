@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { OfferType } from "@/services/offers/types";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -278,6 +278,8 @@ const AmbassadorCreateOffer = () => {
       // Récupérer la marge totale générée (sans la différence)
       const marginAmount = String(globalMarginAdjustment.amount || 0);
       
+      const offerType: OfferType = "ambassador_offer";
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -289,7 +291,7 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: "ambassador_offer",
+        type: offerType,
         user_id: user?.id || "",
         ambassador_id: currentAmbassadorId,
         remarks: remarks,

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -195,7 +196,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     try {
       setIsUpdatingStatus(true);
       
-      const success = await processInfoResponse(offerId, approve);
+      // Add an empty array as the second argument and an empty string as the third
+      const success = await processInfoResponse(offerId, [], approve ? "Approved" : "Rejected");
       
       if (success) {
         const newStatus = approve ? 'leaser_review' : 'rejected';

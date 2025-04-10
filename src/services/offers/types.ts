@@ -34,4 +34,6 @@ export interface OfferData {
   signed_at?: string;
   commission_status?: string;
   status?: string;
+  equipment_text?: string;
+  additional_info?: string;
 }

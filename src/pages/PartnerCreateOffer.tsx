@@ -16,6 +16,7 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { OfferType } from "@/services/offers/types";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
