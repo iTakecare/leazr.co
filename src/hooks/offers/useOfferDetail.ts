@@ -46,30 +46,58 @@ export const useOfferDetail = (offerId: string) => {
     if (!description) return [];
     
     try {
-      // Essayer de parser le JSON
+      // Try to parse JSON
       const equipmentData = JSON.parse(description);
       
-      // Vérifier si c'est un tableau
+      // Check if it's an array
       if (Array.isArray(equipmentData)) {
         return equipmentData.map(item => ({
           id: item.id || undefined,
           title: item.title || 'Produit sans nom',
-          purchasePrice: item.purchasePrice || 0,
-          quantity: item.quantity || 1,
-          margin: item.margin || 0,
-          monthlyPayment: item.monthlyPayment || 0,
+          purchasePrice: Number(item.purchasePrice) || 0,
+          quantity: Number(item.quantity) || 1,
+          margin: Number(item.margin) || 0,
+          monthlyPayment: Number(item.monthlyPayment) || 0,
           serialNumber: item.serialNumber || undefined
         }));
       }
       
-      // Si ce n'est pas un tableau, retourner un tableau avec un seul élément
+      // If it's not an array but a single object
+      if (typeof equipmentData === 'object' && equipmentData !== null) {
+        // Check if it has an 'items' array
+        if (Array.isArray(equipmentData.items)) {
+          return equipmentData.items.map(item => ({
+            id: item.id || undefined,
+            title: item.title || 'Produit sans nom',
+            purchasePrice: Number(item.purchasePrice) || 0,
+            quantity: Number(item.quantity) || 1,
+            margin: Number(item.margin) || 0,
+            monthlyPayment: Number(item.monthlyPayment) || 0,
+            serialNumber: item.serialNumber || undefined
+          }));
+        }
+        
+        // If it has a title, treat it as a single equipment item
+        if (equipmentData.title) {
+          return [{
+            title: equipmentData.title,
+            purchasePrice: Number(equipmentData.purchasePrice) || 0,
+            quantity: Number(equipmentData.quantity) || 1,
+            margin: Number(equipmentData.margin) || 0,
+            monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
+            serialNumber: equipmentData.serialNumber
+          }];
+        }
+      }
+      
+      // If it's not a recognized format, treat as a single item with the whole content
       return [{
         title: 'Description équipement',
         quantity: 1,
         monthlyPayment: 0
       }];
     } catch (e) {
-      // Si ce n'est pas un JSON valide, le traiter comme une chaîne de texte
+      // If it's not valid JSON, treat it as a text string
       return [{
         title: description,
         quantity: 1,
@@ -101,15 +129,25 @@ export const useOfferDetail = (offerId: string) => {
         return;
       }
 
-      // Si la durée n'est pas définie, utiliser 36 mois par défaut
+      // If duration is not defined, use 36 months as default
       if (!data.duration) {
         data.duration = 36;
       }
       
-      // Parser la description de l'équipement si elle existe
+      // Parse equipment description if it exists
       const parsedEquipment = parseEquipmentDescription(data.equipment_description);
       
-      // Mettre à jour l'offre avec les données analysées
+      // Calculate total margin if not set
+      if (!data.margin && parsedEquipment.length > 0) {
+        const totalMargin = parsedEquipment.reduce((sum, item) => {
+          const itemMargin = (item.margin || 0) * (item.quantity || 1);
+          return sum + itemMargin;
+        }, 0);
+        
+        data.margin = totalMargin;
+      }
+      
+      // Update offer with parsed data
       setOffer({
         ...data as OfferDetail,
         parsedEquipment

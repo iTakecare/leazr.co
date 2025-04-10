@@ -15,6 +15,8 @@ interface WorkflowLog {
   new_status: string;
   reason: string | null;
   created_at: string;
+  user_email?: string; // Add this field for direct user data
+  user_name?: string;  // Add this field for direct user data
   profiles?: {
     first_name: string;
     last_name: string;
@@ -48,6 +50,43 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     return status ? status.label : statusId;
   };
 
+  // Get initials from name or email
+  const getInitials = (log: WorkflowLog) => {
+    // Try to get from profiles
+    if (log.profiles?.first_name && log.profiles?.last_name) {
+      return log.profiles.first_name.charAt(0) + log.profiles.last_name.charAt(0);
+    }
+    
+    // Try to get from direct user name
+    if (log.user_name) {
+      const parts = log.user_name.split(' ');
+      if (parts.length >= 2) {
+        return parts[0].charAt(0) + parts[1].charAt(0);
+      }
+      return log.user_name.substring(0, 2).toUpperCase();
+    }
+    
+    // Fallback to email
+    const email = log.user_email || log.profiles?.email || 'U';
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  // Get display name
+  const getDisplayName = (log: WorkflowLog) => {
+    // Try to get from profiles
+    if (log.profiles?.first_name && log.profiles?.last_name) {
+      return `${log.profiles.first_name} ${log.profiles.last_name}`;
+    }
+    
+    // Try to get from direct user name
+    if (log.user_name) {
+      return log.user_name;
+    }
+    
+    // Fallback to email
+    return log.user_email || log.profiles?.email || 'Utilisateur';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -61,14 +100,13 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={log.profiles?.avatar_url || ""} alt="Avatar" />
                   <AvatarFallback className="bg-primary/10 text-primary">
-                    {log.profiles?.first_name?.charAt(0) || 'U'}
-                    {log.profiles?.last_name?.charAt(0) || 'U'}
+                    {getInitials(log)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">
-                      {log.profiles?.first_name} {log.profiles?.last_name}
+                      {getDisplayName(log)}
                     </p>
                     <span className="text-xs text-muted-foreground flex items-center">
                       <Clock className="h-3 w-3 mr-1" />

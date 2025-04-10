@@ -128,7 +128,8 @@ export const updateOfferStatus = async (
 
 export const getWorkflowHistory = async (offerId: string) => {
   try {
-    const { data, error } = await supabase
+    // First try to get data with profiles relation
+    const { data: dataWithProfiles, error: errorWithProfiles } = await supabase
       .from('offer_workflow_logs')
       .select(`
         *,
@@ -142,12 +143,62 @@ export const getWorkflowHistory = async (offerId: string) => {
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error fetching workflow history:", error);
-      throw error;
+    if (!errorWithProfiles) {
+      return dataWithProfiles || [];
     }
     
-    return data || [];
+    console.error("Error fetching workflow history:", errorWithProfiles);
+    
+    // If relation query fails, try to get basic log data
+    const { data: basicLogs, error: basicError } = await supabase
+      .from('offer_workflow_logs')
+      .select('*')
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: false });
+    
+    if (basicError) {
+      console.error("Error fetching basic workflow logs:", basicError);
+      throw basicError;
+    }
+    
+    // Get user details separately if needed
+    const logsWithUserInfo = await Promise.all(
+      (basicLogs || []).map(async (log) => {
+        if (!log.user_id) return log;
+        
+        // Try to get user info
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, avatar_url')
+          .eq('id', log.user_id)
+          .single();
+          
+        if (!userError && userData) {
+          return {
+            ...log,
+            profiles: userData
+          };
+        }
+        
+        // If that fails, try to get just the email from auth.users
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(log.user_id);
+          if (authUser && authUser.user) {
+            return {
+              ...log,
+              user_email: authUser.user.email,
+              user_name: authUser.user.user_metadata?.full_name || authUser.user.email
+            };
+          }
+        } catch (authError) {
+          console.warn("Could not get user details:", authError);
+        }
+        
+        return log;
+      })
+    );
+    
+    return logsWithUserInfo;
   } catch (error) {
     console.error("Error in getWorkflowHistory:", error);
     return [];
