@@ -211,6 +211,9 @@ const CreateOffer = () => {
 
       // Convertir le montant de total_margin_with_difference en chaîne de caractères
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      
+      // Récupérer la marge totale générée (sans la différence)
+      const marginAmount = String(globalMarginAdjustment.amount || 0);
 
       const offerData = {
         client_id: client.id,
@@ -226,12 +229,14 @@ const CreateOffer = () => {
         type: offerType,
         user_id: user?.id || "",
         remarks: remarks,
-        total_margin_with_difference: totalMarginWithDifferenceString
+        total_margin_with_difference: totalMarginWithDifferenceString,
+        margin: marginAmount  // Ajout de la marge générée
       };
 
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
       console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Margin generated value being saved:", marginAmount);
 
       const { data, error } = await createOffer(offerData);
 
