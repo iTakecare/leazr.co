@@ -16,9 +16,6 @@ export const usePdfGeneration = (offerId: string | undefined) => {
       setIsPrintingPdf(true);
       console.log("Début du processus de génération de PDF pour l'offre:", offerId);
       
-      // Ajouter un délai pour assurer que les données sont bien mises à jour dans la base de données
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const pdfFilename = await generateAndDownloadOfferPdf(offerId);
       
       if (pdfFilename) {

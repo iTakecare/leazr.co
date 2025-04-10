@@ -103,13 +103,6 @@ export const getOfferDataForPdf = async (offerId: string) => {
       if (!data.offer_id) {
         data.offer_id = `OFF-${offerId.substring(0, 8).toUpperCase()}`;
       }
-      
-      // Assurer que la signature est bien récupérée (très important)
-      if (data.signature_data) {
-        console.log("Signature trouvée pour l'offre, longueur:", data.signature_data.length);
-      } else {
-        console.log("Aucune signature trouvée pour cette offre");
-      }
     }
 
     return data;
@@ -149,8 +142,7 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
       client_name: offerData.client_name,
       client_email: offerData.client_email,
       amount: offerData.amount,
-      monthly_payment: offerData.monthly_payment,
-      signature: offerData.signature_data ? "Présente" : "Absente"
+      monthly_payment: offerData.monthly_payment
     });
     
     // Générer le PDF
@@ -201,9 +193,6 @@ export const generateSamplePdf = async (sampleData: any) => {
           monthlyPayment: 90.00
         }
       ]),
-      signature_data: sampleData.signature_data || null,
-      signer_name: sampleData.signer_name || null,
-      signed_at: sampleData.signed_at || null,
       ...sampleData // Conserver toutes les autres propriétés
     };
     

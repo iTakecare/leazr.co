@@ -75,7 +75,7 @@ export const useSignature = (
             console.error("Erreur lors de la génération du PDF après signature:", pdfError);
             toast.error("La signature a été enregistrée mais une erreur est survenue lors de la génération du PDF.");
           }
-        }, 2000); // Augmenter le délai à 2 secondes pour être sûr
+        }, 1500);
       } else {
         console.error("Échec de l'enregistrement de la signature");
         toast.error("Erreur lors de l'enregistrement de la signature.");
