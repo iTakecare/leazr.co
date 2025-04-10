@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -153,13 +152,15 @@ export const getWorkflowHistory = async (offerId: string) => {
     // 3. Récupérer les informations de profil pour tous ces utilisateurs en une seule requête
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, email, avatar_url, role')
+      .select('id, first_name, last_name, role')
       .in('id', userIds);
       
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
       // Continue with the logs we have, without profile information
     }
+    
+    console.log("Retrieved profiles data:", profilesData);
     
     // 4. Créer un dictionnaire pour un accès facile aux données de profil
     const profilesDict = (profilesData || []).reduce((acc, profile) => {

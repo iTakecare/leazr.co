@@ -21,8 +21,8 @@ interface WorkflowLog {
   profiles?: {
     first_name: string;
     last_name: string;
-    email: string;
-    avatar_url: string | null;
+    email?: string;
+    avatar_url?: string | null;
     role?: string;
     id: string;
   };
@@ -104,8 +104,6 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     // Fallback à un rôle générique
     return "Administrateur";
   };
-
-  console.log("Rendering logs:", logs);
 
   return (
     <Card>
