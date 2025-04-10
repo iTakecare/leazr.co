@@ -30,12 +30,21 @@ export const useSignature = (
       return;
     }
     
+    // Vérification simple pour s'assurer que la signature n'est pas vide ou juste un fond blanc
+    if (!signatureData || signatureData.length < 1000) {
+      console.error("Données de signature potentiellement invalides:", 
+        signatureData ? `Longueur: ${signatureData.length}` : "Signature vide");
+      toast.error("La signature semble vide. Veuillez signer dans le cadre prévu.");
+      return;
+    }
+    
     try {
       setIsSigning(true);
       setSignature(signatureData);
       
       console.log("Tentative d'enregistrement de la signature pour l'offre:", offerId);
-      console.log("Données de signature reçues:", signatureData ? "OK (données présentes)" : "NON (données vides)");
+      console.log("Données de signature reçues:", 
+        signatureData ? `Longueur: ${signatureData.length} caractères` : "NON (données vides)");
       
       const success = await saveOfferSignature(offerId, signatureData, signerName);
       

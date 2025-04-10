@@ -23,13 +23,23 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
   const sigCanvas = useRef<SignaturePad | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [isTouched, setIsTouched] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [showEmptyError, setShowEmptyError] = useState(false);
 
   // Vérifier si la signature est vide après chaque trait
   useEffect(() => {
     const checkIfEmpty = () => {
       if (sigCanvas.current) {
-        setIsEmpty(sigCanvas.current.isEmpty());
-        setIsTouched(true);
+        const isCanvasEmpty = sigCanvas.current.isEmpty();
+        setIsEmpty(isCanvasEmpty);
+        
+        // Si l'utilisateur a terminé un trait et que la canvas est vide,
+        // on considère qu'il a essayé de signer mais n'a rien dessiné
+        if (isCanvasEmpty && hasDrawn) {
+          setShowEmptyError(true);
+        } else if (!isCanvasEmpty) {
+          setShowEmptyError(false);
+        }
       }
     };
 
@@ -41,30 +51,62 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
       setTimeout(() => {
         if (sigCanvas.current) {
           sigCanvas.current.clear();
+          setIsEmpty(true);
+          setShowEmptyError(false);
+          setHasDrawn(false);
+          setIsTouched(false);
         }
       }, 100);
       
+      // Événements pour la fin d'un trait
       canvas.addEventListener("mouseup", checkIfEmpty);
       canvas.addEventListener("touchend", checkIfEmpty);
       
-      // Ajouter des événements pour le début du dessin
-      canvas.addEventListener("mousedown", () => setIsTouched(true));
-      canvas.addEventListener("touchstart", () => setIsTouched(true));
+      // Événements pour le début d'un trait
+      canvas.addEventListener("mousedown", () => {
+        setIsTouched(true);
+        setHasDrawn(true);
+        setShowEmptyError(false);
+      });
+      canvas.addEventListener("touchstart", () => {
+        setIsTouched(true);
+        setHasDrawn(true);
+        setShowEmptyError(false);
+      });
+
+      // Événements pendant le dessin
+      const handleDrawing = () => {
+        if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+          setShowEmptyError(false);
+        }
+      };
+      canvas.addEventListener("mousemove", handleDrawing);
+      canvas.addEventListener("touchmove", handleDrawing);
 
       return () => {
         canvas.removeEventListener("mouseup", checkIfEmpty);
         canvas.removeEventListener("touchend", checkIfEmpty);
-        canvas.removeEventListener("mousedown", () => setIsTouched(true));
-        canvas.removeEventListener("touchstart", () => setIsTouched(true));
+        canvas.removeEventListener("mousedown", () => {
+          setIsTouched(true);
+          setHasDrawn(true);
+        });
+        canvas.removeEventListener("touchstart", () => {
+          setIsTouched(true);
+          setHasDrawn(true);
+        });
+        canvas.removeEventListener("mousemove", handleDrawing);
+        canvas.removeEventListener("touchmove", handleDrawing);
       };
     }
-  }, [sigCanvas.current]);
+  }, [sigCanvas.current, hasDrawn]);
 
   const clear = () => {
     if (sigCanvas.current) {
       sigCanvas.current.clear();
       setIsEmpty(true);
       setIsTouched(false);
+      setHasDrawn(false);
+      setShowEmptyError(false);
     }
   };
 
@@ -77,6 +119,9 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
         console.error("Erreur lors de la génération de la signature:", err);
         alert("Une erreur s'est produite lors de l'enregistrement de la signature. Veuillez réessayer.");
       }
+    } else {
+      // Afficher le message d'erreur si l'utilisateur tente de sauvegarder une signature vide
+      setShowEmptyError(true);
     }
   };
 
@@ -120,7 +165,7 @@ const SignatureCanvas: React.FC<SignaturePadProps> = ({
           />
         </div>
         
-        {isEmpty && isTouched && (
+        {showEmptyError && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
             <Alert variant="destructive" className="w-auto mx-auto">
               <AlertDescription>
