@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -128,30 +127,37 @@ export const updateOfferStatus = async (
 
 export const getWorkflowHistory = async (offerId: string) => {
   try {
-    // D'abord essayer d'obtenir les données avec la relation profiles
-    const { data: dataWithProfiles, error: errorWithProfiles } = await supabase
+    console.log("Fetching workflow history for offer:", offerId);
+    
+    // Obtenir les logs avec la relation profiles
+    const { data: logsWithProfiles, error: profilesError } = await supabase
       .from('offer_workflow_logs')
       .select(`
         *,
-        profiles (
-          first_name,
-          last_name,
-          email,
-          avatar_url,
+        profiles:user_id (
+          first_name, 
+          last_name, 
+          email, 
+          avatar_url, 
           role
         )
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
-    if (!errorWithProfiles) {
-      console.log("Successfully fetched workflow logs with profiles:", dataWithProfiles);
-      return dataWithProfiles || [];
+    if (profilesError) {
+      console.error("Error fetching workflow logs with profiles:", profilesError);
+      throw profilesError;
     }
     
-    console.error("Error fetching workflow history:", errorWithProfiles);
+    console.log("Workflow logs with profiles:", logsWithProfiles);
     
-    // Si la requête de relation échoue, essayer d'obtenir les données de journal de base
+    // Si nous avons des logs avec des profiles, les retourner
+    if (logsWithProfiles && logsWithProfiles.length > 0) {
+      return logsWithProfiles;
+    }
+    
+    // Si aucun log n'a été trouvé, essayer de récupérer les logs de base
     const { data: basicLogs, error: basicError } = await supabase
       .from('offer_workflow_logs')
       .select('*')
@@ -163,59 +169,57 @@ export const getWorkflowHistory = async (offerId: string) => {
       throw basicError;
     }
     
-    // Obtenir les détails de l'utilisateur séparément si nécessaire
-    const logsWithUserInfo = await Promise.all(
-      (basicLogs || []).map(async (log) => {
-        if (!log.user_id) return log;
-        
-        // Essayer d'obtenir les informations utilisateur
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email, avatar_url, role')
-          .eq('id', log.user_id)
-          .single();
-          
-        if (!userError && userData) {
-          return {
-            ...log,
-            profiles: userData
-          };
-        }
-        
-        // Si cela échoue, essayer d'obtenir juste l'email des auth.users
+    // Si nous n'avons pas de logs du tout
+    if (!basicLogs || basicLogs.length === 0) {
+      return [];
+    }
+    
+    // Pour chaque log, essayer d'obtenir les informations du profil utilisateur
+    const enhancedLogs = await Promise.all(
+      basicLogs.map(async (log) => {
         try {
-          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(log.user_id);
+          // Essayer d'obtenir le profil utilisateur
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, email, avatar_url, role')
+            .eq('id', log.user_id)
+            .single();
           
-          if (authError) {
-            console.warn("Could not get auth user details:", authError);
-          }
-          
-          if (authUser && authUser.user) {
-            const email = authUser.user.email;
-            const fullName = authUser.user.user_metadata?.full_name || 
-                          authUser.user.user_metadata?.name || 
-                          (email ? email.split('@')[0] : 'Administrateur');
-            
+          if (!profileError && profileData) {
             return {
               ...log,
-              user_email: email,
-              user_name: fullName
+              profiles: profileData
             };
           }
-        } catch (authError) {
-          console.warn("Could not get user details:", authError);
+          
+          // Si le profil n'a pas pu être récupéré, essayer d'obtenir les données utilisateur
+          const { data: userData, error: userError } = await supabase
+            .from('users') // Si une table users existe
+            .select('email, full_name')
+            .eq('id', log.user_id)
+            .single();
+          
+          if (!userError && userData) {
+            return {
+              ...log,
+              user_email: userData.email,
+              user_name: userData.full_name
+            };
+          }
+          
+          // Utiliser un fallback si aucune autre information n'est disponible
+          return {
+            ...log,
+            user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
+          };
+        } catch (error) {
+          console.warn("Error getting user details for log:", error);
+          return log;
         }
-        
-        // Si nous n'avons toujours pas d'informations utilisateur, utiliser un nom générique basé sur l'ID utilisateur
-        return {
-          ...log,
-          user_name: `Administrateur (${log.user_id.substring(0, 6)})`
-        };
       })
     );
     
-    console.log("Fetched logs with user info:", logsWithUserInfo);
-    return logsWithUserInfo;
+    return enhancedLogs;
   } catch (error) {
     console.error("Error in getWorkflowHistory:", error);
     return [];

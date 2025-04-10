@@ -80,13 +80,13 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
       return `${log.profiles.first_name} ${log.profiles.last_name}`;
     }
     
-    // Essayer d'obtenir à partir du nom d'utilisateur direct
+    // Fallback au nom d'utilisateur direct s'il existe
     if (log.user_name) {
       return log.user_name;
     }
     
-    // Fallback à l'email
-    return log.user_email || log.profiles?.email || 'Utilisateur inconnu';
+    // Si rien d'autre n'est disponible, afficher un nom basé sur l'ID utilisateur
+    return `Utilisateur (${log.user_id.substring(0, 6)})`;
   };
 
   // Obtenir l'email de l'utilisateur pour l'affichage
