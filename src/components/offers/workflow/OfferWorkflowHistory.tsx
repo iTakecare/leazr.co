@@ -86,7 +86,7 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     }
     
     // Si rien d'autre n'est disponible, afficher un nom basé sur l'ID utilisateur
-    return `Utilisateur (${log.user_id.substring(0, 6)})`;
+    return `Administrateur (${log.user_id.substring(0, 6)})`;
   };
 
   // Obtenir l'email de l'utilisateur pour l'affichage
@@ -101,14 +101,8 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
       return log.profiles.role === 'admin' ? 'Admin' : log.profiles.role;
     }
     
-    // Essayer de déterminer à partir d'autres informations
-    if (log.profiles) {
-      return "Admin";
-    } else if (log.user_name) {
-      return log.user_name.includes("admin") ? "Admin" : "Utilisateur";
-    } else {
-      return "Utilisateur";
-    }
+    // Fallback à un rôle générique
+    return "Administrateur";
   };
 
   return (

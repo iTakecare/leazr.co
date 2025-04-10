@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -129,56 +130,28 @@ export const getWorkflowHistory = async (offerId: string) => {
   try {
     console.log("Fetching workflow history for offer:", offerId);
     
-    // Obtenir les logs avec la relation profiles
-    const { data: logsWithProfiles, error: profilesError } = await supabase
-      .from('offer_workflow_logs')
-      .select(`
-        *,
-        profiles:user_id (
-          first_name, 
-          last_name, 
-          email, 
-          avatar_url, 
-          role
-        )
-      `)
-      .eq('offer_id', offerId)
-      .order('created_at', { ascending: false });
-    
-    if (profilesError) {
-      console.error("Error fetching workflow logs with profiles:", profilesError);
-      throw profilesError;
-    }
-    
-    console.log("Workflow logs with profiles:", logsWithProfiles);
-    
-    // Si nous avons des logs avec des profiles, les retourner
-    if (logsWithProfiles && logsWithProfiles.length > 0) {
-      return logsWithProfiles;
-    }
-    
-    // Si aucun log n'a été trouvé, essayer de récupérer les logs de base
-    const { data: basicLogs, error: basicError } = await supabase
+    // Récupérer les logs de base sans jointure avec profiles
+    const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
       .select('*')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
-    if (basicError) {
-      console.error("Error fetching basic workflow logs:", basicError);
-      throw basicError;
+    if (logsError) {
+      console.error("Error fetching workflow logs:", logsError);
+      throw logsError;
     }
     
     // Si nous n'avons pas de logs du tout
-    if (!basicLogs || basicLogs.length === 0) {
+    if (!logs || logs.length === 0) {
       return [];
     }
     
-    // Pour chaque log, essayer d'obtenir les informations du profil utilisateur
+    // Pour chaque log, récupérer manuellement les informations du profil utilisateur
     const enhancedLogs = await Promise.all(
-      basicLogs.map(async (log) => {
+      logs.map(async (log) => {
         try {
-          // Essayer d'obtenir le profil utilisateur
+          // Récupérer les informations du profil utilisateur si disponible
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('first_name, last_name, email, avatar_url, role')
@@ -192,22 +165,19 @@ export const getWorkflowHistory = async (offerId: string) => {
             };
           }
           
-          // Si le profil n'a pas pu être récupéré, essayer d'obtenir les données utilisateur
-          const { data: userData, error: userError } = await supabase
-            .from('users') // Si une table users existe
-            .select('email, full_name')
-            .eq('id', log.user_id)
-            .single();
+          // Si le profil n'est pas trouvé, essayer de récupérer les informations de l'utilisateur
+          const { data: userData, error: userError } = await supabase.auth
+            .admin.getUserById(log.user_id);
           
-          if (!userError && userData) {
+          if (!userError && userData && userData.user) {
             return {
               ...log,
-              user_email: userData.email,
-              user_name: userData.full_name
+              user_email: userData.user.email,
+              user_name: userData.user.user_metadata?.full_name || userData.user.email
             };
           }
           
-          // Utiliser un fallback si aucune autre information n'est disponible
+          // Utiliser un fallback si aucune information n'est disponible
           return {
             ...log,
             user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
@@ -219,6 +189,7 @@ export const getWorkflowHistory = async (offerId: string) => {
       })
     );
     
+    console.log("Enhanced logs with user data:", enhancedLogs);
     return enhancedLogs;
   } catch (error) {
     console.error("Error in getWorkflowHistory:", error);
