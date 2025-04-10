@@ -11,7 +11,6 @@ export const useSignature = (
   handlePrintPdf: () => Promise<void>
 ) => {
   const [signerName, setSignerName] = useState("");
-  const [approvalText, setApprovalText] = useState("");
   const [isSigning, setIsSigning] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
 
@@ -23,25 +22,11 @@ export const useSignature = (
     if (offer?.signature_data) {
       setSignature(offer.signature_data);
     }
-    if (offer?.approval_text) {
-      setApprovalText(offer.approval_text);
-    }
   }, [offer]);
 
   const handleSignature = async (signatureData: string) => {
-    if (!offerId) {
-      toast.error("Identifiant d'offre manquant pour la signature");
-      return;
-    }
-    
-    if (!signerName.trim()) {
+    if (!offerId || !signerName.trim()) {
       toast.error("Veuillez indiquer votre nom complet avant de signer.");
-      return;
-    }
-    
-    // Vérifier que la mention "Bon pour accord" a été saisie correctement
-    if (approvalText.trim().toLowerCase() !== "bon pour accord") {
-      toast.error("Veuillez saisir la mention exacte 'Bon pour accord'.");
       return;
     }
     
@@ -61,7 +46,7 @@ export const useSignature = (
       console.log("Données de signature reçues:", 
         signatureData ? `Longueur: ${signatureData.length} caractères` : "NON (données vides)");
       
-      const success = await saveOfferSignature(offerId, signatureData, signerName, approvalText);
+      const success = await saveOfferSignature(offerId, signatureData, signerName);
       
       if (success) {
         // Mettre à jour l'état local et l'offre
@@ -72,7 +57,6 @@ export const useSignature = (
           ...offer,
           signature_data: signatureData,
           signer_name: signerName,
-          approval_text: approvalText,
           signed_at: now,
           workflow_status: 'approved'
         };
@@ -94,15 +78,11 @@ export const useSignature = (
         }, 1500);
       } else {
         console.error("Échec de l'enregistrement de la signature");
-        toast.error("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
-        // Réinitialiser l'état de signature pour permettre une nouvelle tentative
-        setSignature(null);
+        toast.error("Erreur lors de l'enregistrement de la signature.");
       }
     } catch (err) {
       console.error("Erreur lors de la signature:", err);
-      toast.error("Une erreur s'est produite lors de la signature. Veuillez réessayer.");
-      // Réinitialiser l'état de signature pour permettre une nouvelle tentative
-      setSignature(null);
+      toast.error("Une erreur s'est produite lors de la signature.");
     } finally {
       setIsSigning(false);
     }
@@ -111,8 +91,6 @@ export const useSignature = (
   return {
     signerName,
     setSignerName,
-    approvalText,
-    setApprovalText,
     isSigning,
     signature,
     handleSignature

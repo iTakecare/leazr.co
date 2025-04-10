@@ -34,18 +34,6 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       >
         Signature client
       </h3>
-      
-      {/* Section pour le texte "Bon pour accord" */}
-      <div 
-        className="text-center mb-2" 
-        style={{ 
-          fontSize: `${12 * scaleFactor}px`,
-          color: "#4B5563",
-        }}
-      >
-        <em>Mention "Bon pour accord" + Signature</em>
-      </div>
-      
       <div
         className="border border-dashed rounded-md mx-auto flex items-center justify-center"
         style={{

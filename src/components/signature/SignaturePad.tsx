@@ -61,7 +61,6 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
       
       // Get the signature as a data URL
       const dataURL = sigCanvas.current.toDataURL('image/png');
-      console.log("Signature capture - length:", dataURL.length);
       onSave(dataURL);
     }
   };
@@ -75,7 +74,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
   
   return (
     <div className={`${className} flex flex-col touch-manipulation`} ref={containerRef}>
-      <div className={`border ${disabled ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white'} rounded-md overflow-hidden touch-none`}>
+      <div className="border border-gray-200 bg-white rounded-md overflow-hidden touch-none">
         {canvasWidth > 0 && (
           <SignatureCanvas
             ref={sigCanvas}
@@ -83,16 +82,16 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
             canvasProps={{
               width: canvasWidth,
               height: height,
-              className: `signature-canvas touch-none ${disabled ? 'cursor-not-allowed' : 'cursor-crosshair'}`,
+              className: 'signature-canvas touch-none',
               style: { 
                 width: '100%',
                 height: `${height}px`,
-                background: disabled ? '#f9fafb' : 'white',
+                background: 'white',
                 touchAction: 'none'
               }
             }}
             onEnd={handleEnd}
-            backgroundColor={disabled ? '#f9fafb' : 'white'}
+            backgroundColor="white"
           />
         )}
       </div>

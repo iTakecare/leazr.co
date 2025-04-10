@@ -23,7 +23,7 @@ export const usePdfGeneration = (offerId: string | undefined) => {
         toast.success("Le PDF a été généré et téléchargé avec succès");
       } else {
         console.error("Échec de génération du PDF - aucun nom de fichier retourné");
-        toast.error("Erreur lors de la génération du PDF. Veuillez réessayer.");
+        toast.error("Erreur lors de la génération du PDF");
       }
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);

@@ -11,14 +11,6 @@ export const generateOfferPdf = async (offerData) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
     
-    // Vérifier si nous avons des données de signature
-    const hasSignature = !!offerData.signature_data;
-    console.log("L'offre contient-elle une signature?", hasSignature ? "Oui" : "Non");
-    if (hasSignature) {
-      console.log("Mention d'approbation:", offerData.approval_text || "Non spécifiée");
-      console.log("Nom du signataire:", offerData.signer_name || "Non spécifié");
-    }
-    
     // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
       React.createElement(OfferPDFTemplate, { offer: offerData })
@@ -66,12 +58,9 @@ export const generateOfferPdf = async (offerData) => {
     container.style.fontFamily = 'Arial, sans-serif';
     container.innerHTML = htmlContent;
     
-    // Si nous avons une signature, précharger l'image de signature
-    const preloadImages = async () => {
-      const promises = [];
-      
-      // Toujours précharger le logo
-      promises.push(new Promise<void>((resolve) => {
+    // Précharger l'image du logo avant de générer le PDF
+    const preloadLogo = async () => {
+      return new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => resolve();
         img.onerror = () => {
@@ -79,29 +68,11 @@ export const generateOfferPdf = async (offerData) => {
           resolve(); // Continuer même en cas d'erreur
         };
         img.src = "/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png";
-      }));
-      
-      // Précharger l'image de signature si elle existe
-      if (hasSignature && offerData.signature_data) {
-        promises.push(new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            console.log("Image de signature préchargée avec succès");
-            resolve();
-          };
-          img.onerror = () => {
-            console.error("Erreur lors du chargement de l'image de signature");
-            resolve(); // Continuer même en cas d'erreur
-          };
-          img.src = offerData.signature_data;
-        }));
-      }
-      
-      await Promise.all(promises);
+      });
     };
     
-    // Attendre que les images soient préchargées
-    await preloadImages();
+    // Attendre que l'image soit préchargée
+    await preloadLogo();
     
     // Ajouter le container temporairement au document
     document.body.appendChild(container);
@@ -110,22 +81,20 @@ export const generateOfferPdf = async (offerData) => {
     const originalBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     
-    // Générer le PDF et le télécharger automatiquement
-    console.log("Début de la génération du PDF...");
-    try {
-      // Utiliser la méthode save() pour télécharger automatiquement
-      await html2pdf().from(container).set(options).save();
-      console.log("PDF généré et téléchargé avec succès");
-    } catch (pdfError) {
-      console.error("Erreur durant la génération du PDF:", pdfError);
-      throw pdfError;
-    } finally {
-      // Restaurer les styles du document
-      document.body.style.overflow = originalBodyOverflow;
-      // Nettoyer le DOM
-      document.body.removeChild(container);
-    }
+    // Générer le PDF avec promesse pour assurer la complétion
+    console.log("Génération du PDF en cours...");
+    const pdf = await html2pdf()
+      .from(container)
+      .set(options)
+      .save();
     
+    // Restaurer les styles du document
+    document.body.style.overflow = originalBodyOverflow;
+    
+    // Nettoyer le DOM
+    document.body.removeChild(container);
+    
+    console.log("PDF généré avec succès");
     return options.filename;
   } catch (error) {
     console.error("Erreur lors de la génération du PDF:", error);
