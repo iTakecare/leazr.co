@@ -1,24 +1,26 @@
 
 import React, { useState } from 'react';
 import { formatCurrency } from '@/utils/formatters';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type EquipmentItem = {
-  id?: string; // Optional
+  id?: string; 
   title: string;
-  purchasePrice?: number; // Made optional to match useOfferDetail.ts
+  purchasePrice?: number;
   quantity: number;
-  margin?: number; // Made optional to match useOfferDetail.ts
+  margin?: number;
   monthlyPayment?: number;
-  attributes?: Record<string, string>; // Ajout des attributs
-  specifications?: Record<string, string | number>; // Ajout des spécifications
+  attributes?: Record<string, string>;
+  specifications?: Record<string, string | number>;
 };
 
 interface EquipmentDetailTableProps {
   equipment: EquipmentItem[];
   totalMonthly: number;
   totalMargin: number;
-  totalMarginWithDifference?: number; // Ajout du total avec différence
+  totalMarginWithDifference?: number;
 }
 
 const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
@@ -51,6 +53,82 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
       (item.specifications && Object.keys(item.specifications).length > 0)
     );
   };
+
+  // Fonction pour afficher les spécifications et attributs
+  const renderDetailsRow = (item: EquipmentItem, itemId: string) => {
+    const hasAttributes = item.attributes && Object.keys(item.attributes).length > 0;
+    const hasSpecifications = item.specifications && Object.keys(item.specifications).length > 0;
+
+    // Vérifier s'il y a des détails à afficher
+    if (!hasAttributes && !hasSpecifications) {
+      return null;
+    }
+
+    // Vérifier si l'élément est développé
+    if (!expandedItems[itemId]) {
+      return null;
+    }
+
+    return (
+      <tr className="bg-gray-50 border-b border-gray-100">
+        <td colSpan={5} className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {hasAttributes && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Attributs</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-1/2">Attribut</TableHead>
+                      <TableHead className="w-1/2">Valeur</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(item.attributes || {}).map(([key, value]) => (
+                      <TableRow key={`attr-${key}`}>
+                        <TableCell className="font-medium capitalize">{key}</TableCell>
+                        <TableCell>{value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            
+            {hasSpecifications && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Spécifications</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-1/2">Spécification</TableHead>
+                      <TableHead className="w-1/2">Valeur</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(item.specifications || {}).map(([key, value]) => (
+                      <TableRow key={`spec-${key}`}>
+                        <TableCell className="font-medium capitalize">{key}</TableCell>
+                        <TableCell>{value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+  
+  // Fonction pour créer une chaîne de caractères à partir des attributs et spécifications
+  const createDetailsString = (item: EquipmentItem): string => {
+    const attributesArray = item.attributes ? Object.entries(item.attributes).map(([key, value]) => `${key}: ${value}`) : [];
+    const specificationsArray = item.specifications ? Object.entries(item.specifications).map(([key, value]) => `${key}: ${value}`) : [];
+    
+    return [...attributesArray, ...specificationsArray].join(' • ');
+  };
   
   return (
     <div className="space-y-4">
@@ -81,57 +159,37 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
               const totalItemMonthly = monthlyPayment * item.quantity;
               const itemId = item.id || `item-${index}`;
               const isExpanded = expandedItems[itemId] || false;
-              
-              // Formatage des attributs en tant que chaîne pour affichage sous le titre
-              const attributesString = item.attributes && Object.keys(item.attributes).length > 0
-                ? Object.entries(item.attributes)
-                    .map(([key, value]) => `${key}: ${value}`)
-                    .join(', ')
-                : '';
-              
-              // Formatage des spécifications en tant que chaîne pour affichage sous le titre
-              const specificationsString = item.specifications && Object.keys(item.specifications).length > 0
-                ? Object.entries(item.specifications)
-                    .map(([key, value]) => `${key}: ${value}`)
-                    .join(', ')
-                : '';
+              const detailsString = createDetailsString(item);
               
               return (
                 <React.Fragment key={itemId}>
                   <tr className="border-b border-gray-100">
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-4">
                       <div className="flex flex-col">
-                        <div className="flex items-center">
+                        <div className="flex items-start">
                           {hasDetails(item) && (
                             <button 
                               onClick={() => toggleExpand(itemId)}
-                              className="mr-2 text-blue-600 p-1 rounded-full hover:bg-blue-50"
+                              className="mr-2 mt-0.5 text-blue-600 p-1 rounded-full hover:bg-blue-50"
                             >
                               {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
                           )}
-                          <span className="font-medium">{item.title}</span>
+                          <div>
+                            <div className="font-medium">{item.title}</div>
+                            {detailsString && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {detailsString}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        
-                        {/* Afficher les attributs directement sous le titre en petit */}
-                        {attributesString && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {attributesString}
-                          </div>
-                        )}
-                        
-                        {/* Afficher les spécifications directement sous le titre en petit */}
-                        {specificationsString && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {specificationsString}
-                          </div>
-                        )}
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-center">{item.quantity}</td>
-                    <td className="py-4 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
-                    <td className="py-4 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
-                    <td className="py-4 px-4 text-right text-gray-500 text-sm">
+                    <td className="py-3 px-4 text-center">{item.quantity}</td>
+                    <td className="py-3 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
+                    <td className="py-3 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
+                    <td className="py-3 px-4 text-right text-gray-500 text-sm">
                       {hasDetails(item) ? (
                         <button 
                           onClick={() => toggleExpand(itemId)}
@@ -139,45 +197,13 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                         >
                           {isExpanded ? "Masquer" : "Afficher"}
                         </button>
-                      ) : "Non disponible"}
+                      ) : (
+                        <span className="text-gray-400">Non disponible</span>
+                      )}
                     </td>
                   </tr>
                   
-                  {isExpanded && hasDetails(item) && (
-                    <tr className="bg-gray-50">
-                      <td colSpan={5} className="py-2 px-8 text-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {item.attributes && Object.keys(item.attributes).length > 0 && (
-                            <div>
-                              <h4 className="font-medium text-gray-700 mb-1 text-xs">Attributs</h4>
-                              <div className="bg-white rounded p-2 border border-gray-200 text-xs">
-                                {Object.entries(item.attributes).map(([key, value]) => (
-                                  <div key={`attr-${key}`} className="flex justify-between mb-1 last:mb-0">
-                                    <span className="text-gray-600 capitalize">{key}:</span>
-                                    <span className="font-medium">{value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {item.specifications && Object.keys(item.specifications).length > 0 && (
-                            <div>
-                              <h4 className="font-medium text-gray-700 mb-1 text-xs">Spécifications</h4>
-                              <div className="bg-white rounded p-2 border border-gray-200 text-xs">
-                                {Object.entries(item.specifications).map(([key, value]) => (
-                                  <div key={`spec-${key}`} className="flex justify-between mb-1 last:mb-0">
-                                    <span className="text-gray-600 capitalize">{key}:</span>
-                                    <span className="font-medium">{value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  {renderDetailsRow(item, itemId)}
                 </React.Fragment>
               );
             })}

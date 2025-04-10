@@ -49,24 +49,47 @@ export const useOfferDetail = (offerId: string) => {
     
     try {
       // Try to parse JSON
-      const equipmentData = JSON.parse(description);
+      let equipmentData;
+      
+      try {
+        equipmentData = JSON.parse(description);
+      } catch (parseError) {
+        console.error("Erreur lors du parsing initial:", parseError);
+        return [{
+          title: description,
+          quantity: 1,
+          monthlyPayment: 0,
+          attributes: {},
+          specifications: {}
+        }];
+      }
+      
+      console.log("Données d'équipement brutes:", equipmentData);
       
       // Check if it's an array
       if (Array.isArray(equipmentData)) {
-        return equipmentData.map(item => ({
-          id: item.id || undefined,
-          title: item.title || 'Produit sans nom',
-          purchasePrice: Number(item.purchasePrice) || 0,
-          quantity: Number(item.quantity) || 1,
-          margin: Number(item.margin) || 0,
-          monthlyPayment: Number(item.monthlyPayment) || 0,
-          serialNumber: item.serialNumber || undefined,
-          // Make sure to preserve attributes and specifications exactly as they are
-          attributes: item.attributes || {},
-          specifications: item.specifications || {},
-          // Support for variants (old structure)
-          ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
-        }));
+        return equipmentData.map(item => {
+          console.log("Traitement de l'élément:", item);
+          
+          // Log attributes and specifications specifically
+          console.log("Attributs:", item.attributes);
+          console.log("Spécifications:", item.specifications);
+          
+          return {
+            id: item.id || undefined,
+            title: item.title || 'Produit sans nom',
+            purchasePrice: Number(item.purchasePrice) || 0,
+            quantity: Number(item.quantity) || 1,
+            margin: Number(item.margin) || 0,
+            monthlyPayment: Number(item.monthlyPayment) || 0,
+            serialNumber: item.serialNumber || undefined,
+            // Make sure to preserve attributes and specifications exactly as they are
+            attributes: item.attributes || {},
+            specifications: item.specifications || {},
+            // Support for variants (old structure)
+            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
+          };
+        });
       }
       
       // If it's not an array but a single object

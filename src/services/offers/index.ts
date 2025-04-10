@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData, OfferType } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
@@ -26,6 +27,10 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
           parsedEquipment.forEach((item, index) => {
             console.log(`Item ${index} - attributes:`, item.attributes);
             console.log(`Item ${index} - specifications:`, item.specifications);
+            
+            // Ensure these properties exist to prevent them from being lost
+            if (!item.attributes) item.attributes = {};
+            if (!item.specifications) item.specifications = {};
           });
         }
         

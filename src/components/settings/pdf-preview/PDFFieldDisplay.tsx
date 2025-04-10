@@ -114,9 +114,29 @@ const PDFFieldDisplay: React.FC<PDFFieldDisplayProps> = ({
           const qty = item.quantity || 1;
           const monthly = item.monthlyPayment || 0;
           
+          // Build details string for attributes and specifications
+          const detailsArray = [];
+          
+          if (item.attributes && Object.keys(item.attributes).length > 0) {
+            Object.entries(item.attributes).forEach(([key, value]) => {
+              detailsArray.push(`${key}: ${value}`);
+            });
+          }
+          
+          if (item.specifications && Object.keys(item.specifications).length > 0) {
+            Object.entries(item.specifications).forEach(([key, value]) => {
+              detailsArray.push(`${key}: ${value}`);
+            });
+          }
+          
+          const detailsString = detailsArray.join(' • ');
+          
           return `
             <tr>
-              <td style="border: 1px solid #ddd; padding: 4px;">${item.title || 'Produit'}</td>
+              <td style="border: 1px solid #ddd; padding: 4px;">
+                <div>${item.title || 'Produit'}</div>
+                ${detailsString ? `<div style="font-size: 85%; color: #666;">${detailsString}</div>` : ''}
+              </td>
               <td style="border: 1px solid #ddd; padding: 4px; text-align: center;">${qty}</td>
               <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${monthly.toFixed(2)} €</td>
             </tr>

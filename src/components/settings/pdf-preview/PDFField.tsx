@@ -47,12 +47,38 @@ const renderEquipmentTable = (sampleData: any, zoomLevel: number) => {
           const monthlyPayment = parseFloat(item.monthlyPayment || 0);
           const totalMonthlyPayment = monthlyPayment * quantity;
           
+          // Create detailed string for attributes and specifications
+          const detailsArray = [];
+          
+          if (item.attributes && Object.keys(item.attributes).length > 0) {
+            Object.entries(item.attributes).forEach(([key, value]) => {
+              detailsArray.push(`${key}: ${value}`);
+            });
+          }
+          
+          if (item.specifications && Object.keys(item.specifications).length > 0) {
+            Object.entries(item.specifications).forEach(([key, value]) => {
+              detailsArray.push(`${key}: ${value}`);
+            });
+          }
+          
+          const detailsString = detailsArray.join(' • ');
+          
           return (
-            <tr key={index}>
-              <td className="border px-1 py-0.5 text-left">{item.title}</td>
-              <td className="border px-1 py-0.5 text-center">{quantity}</td>
-              <td className="border px-1 py-0.5 text-right">{formatCurrency(totalMonthlyPayment)}</td>
-            </tr>
+            <React.Fragment key={index}>
+              <tr>
+                <td className="border px-1 py-0.5 text-left">
+                  <div>
+                    <div>{item.title}</div>
+                    {detailsString && (
+                      <div className="text-xs text-gray-500">{detailsString}</div>
+                    )}
+                  </div>
+                </td>
+                <td className="border px-1 py-0.5 text-center">{quantity}</td>
+                <td className="border px-1 py-0.5 text-right">{formatCurrency(totalMonthlyPayment)}</td>
+              </tr>
+            </React.Fragment>
           );
         })}
         <tr className="font-bold bg-gray-50">
