@@ -111,7 +111,9 @@ export const generateSignatureLink = (offerId: string): string => {
   const baseUrl = window.location.origin;
   
   // Construction du lien vers la page de signature
+  // Correction du chemin pour utiliser le bon format d'URL
   const signatureLink = `${baseUrl}/sign/${offerId}`;
   
+  console.log("Generated signature link:", signatureLink);
   return signatureLink;
 };

@@ -98,6 +98,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const openOnlineOffer = (offerId: string) => {
     const link = generateSignatureLink(offerId);
+    console.log("Opening link from OffersTable:", link);
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 

@@ -45,6 +45,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const openOnlineOffer = () => {
     const link = generateSignatureLink(offer.id);
+    console.log("Opening online offer link:", link);
     window.open(link, '_blank', 'noopener,noreferrer');
   };
   
