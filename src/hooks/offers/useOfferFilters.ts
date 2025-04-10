@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { Offer } from './useFetchOffers';
+import { useState, useEffect } from "react";
+import { Offer } from "./useFetchOffers";
 
 export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");

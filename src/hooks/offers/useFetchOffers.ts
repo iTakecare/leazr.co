@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getAllOffers } from "@/services/offers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { OfferData } from "@/services/offers/types";
 
 // Define and export the Offer interface
 export interface Offer {
@@ -83,7 +84,13 @@ export const useFetchOffers = () => {
           return offer;
         });
         
-        setOffers(processedOffers);
+        // Ensure each offer has a created_at field even if it's missing
+        const validOffers = processedOffers.map(offer => ({
+          ...offer,
+          created_at: offer.created_at || new Date().toISOString()
+        })) as Offer[];
+        
+        setOffers(validOffers);
       } else {
         setOffers([]);
       }

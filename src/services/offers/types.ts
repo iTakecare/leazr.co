@@ -1,4 +1,3 @@
-
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -21,6 +20,7 @@ export interface OfferData {
   user_id?: string;
   converted_to_contract?: boolean;
   financed_amount?: number; // Added this field
+  created_at?: string; // Make created_at optional in OfferData but include it
   clients?: {
     id?: string;
     name?: string;
