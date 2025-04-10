@@ -866,6 +866,7 @@ export type Database = {
           remarks: string | null
           signature_data: string | null
           signed_at: string | null
+          signer_ip: string | null
           signer_name: string | null
           status: string
           total_margin_with_difference: number | null
@@ -896,6 +897,7 @@ export type Database = {
           remarks?: string | null
           signature_data?: string | null
           signed_at?: string | null
+          signer_ip?: string | null
           signer_name?: string | null
           status?: string
           total_margin_with_difference?: number | null
@@ -926,6 +928,7 @@ export type Database = {
           remarks?: string | null
           signature_data?: string | null
           signed_at?: string | null
+          signer_ip?: string | null
           signer_name?: string | null
           status?: string
           total_margin_with_difference?: number | null
@@ -1785,6 +1788,7 @@ export type Database = {
           remarks: string | null
           signature_data: string | null
           signed_at: string | null
+          signer_ip: string | null
           signer_name: string | null
           status: string
           total_margin_with_difference: number | null
