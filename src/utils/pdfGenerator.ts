@@ -67,7 +67,7 @@ export const generateOfferPdf = async (offerData) => {
           console.error("Erreur lors du chargement du logo");
           resolve(); // Continuer même en cas d'erreur
         };
-        img.src = "/lovable-uploads/3adf9af1-b4a0-4b3f-9603-1e04cf6deeb0.png";
+        img.src = "/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png";
       });
     };
     
