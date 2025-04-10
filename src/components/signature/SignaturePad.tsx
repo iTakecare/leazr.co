@@ -62,12 +62,6 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
       // Get the signature as a data URL
       const dataURL = sigCanvas.current.toDataURL('image/png');
       console.log("Signature capture - length:", dataURL.length);
-      
-      if (dataURL.length < 1000) {
-        console.error("Signature captured but seems empty or very small:", dataURL.length);
-        return;
-      }
-      
       onSave(dataURL);
     }
   };
