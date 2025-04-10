@@ -18,44 +18,69 @@ export const generateOfferPdf = async (offerData) => {
     
     // Configuration optimisée pour le PDF A4 sur une seule page
     const options = {
-      margin: [10, 10, 10, 10], // Marges réduites uniformément
+      margin: [5, 5, 5, 5], // Marges minimales (haut, droite, bas, gauche) en mm
       filename: `offre-${offerData.id.substring(0, 8)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, // Meilleure résolution
         useCORS: true,
-        logging: true,
-        windowWidth: 794, // Largeur exacte A4 en pixels
-        scrollY: 0,
-        scrollX: 0
+        logging: false,
+        width: 794, // Largeur A4 en pixels (210mm à 96dpi)
+        height: 1123, // Hauteur A4 en pixels (297mm à 96dpi)
+        windowWidth: 794,
+        letterRendering: true,
+        scrollX: 0,
+        scrollY: 0
       },
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
         orientation: 'portrait' as 'portrait' | 'landscape',
-        compress: true // Compression pour optimiser la taille
-      }
+        compress: true,
+        precision: 16,
+        hotfixes: ["px_scaling"]
+      },
+      pagebreak: { mode: 'avoid-all' }
     };
     
-    // Créer un conteneur temporaire avec style fixe pour A4
+    // Créer un conteneur avec style optimisé pour A4
     const container = document.createElement('div');
-    container.style.width = '210mm'; // Largeur A4
-    container.style.height = '297mm'; // Hauteur A4
+    container.style.width = '210mm';
+    container.style.height = '297mm';
     container.style.margin = '0';
     container.style.padding = '0';
     container.style.boxSizing = 'border-box';
-    container.style.overflow = 'hidden'; // Empêcher tout débordement
+    container.style.overflow = 'hidden';
+    container.style.position = 'relative';
+    container.style.backgroundColor = 'white';
+    container.style.fontFamily = 'Arial, sans-serif';
     container.innerHTML = htmlContent;
+    
+    // Ajouter le container temporairement au document
     document.body.appendChild(container);
     
-    // Générer le PDF
+    // Réinitialiser les styles globaux qui pourraient interférer
+    const originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    
+    // Générer le PDF avec promesse pour assurer la complétion
     const pdf = await html2pdf()
       .from(container)
       .set(options)
-      .save();
+      .toPdf()
+      .output('datauristring');
+    
+    // Restaurer les styles du document
+    document.body.style.overflow = originalBodyOverflow;
     
     // Nettoyer le DOM
     document.body.removeChild(container);
+    
+    // Créer et télécharger automatiquement le PDF
+    const link = document.createElement('a');
+    link.href = pdf;
+    link.download = options.filename;
+    link.click();
     
     console.log("PDF généré avec succès");
     return options.filename;
