@@ -308,11 +308,19 @@ const PartnerCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
+      // Récupérer la valeur de marge totale avec différence
+      const totalMarginWithDifference = globalMarginAdjustment.marginDifference
+        ? parseFloat(globalMarginAdjustment.marginDifference) + parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2))
+        : parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2));
+
+      console.log("Marge totale avec différence pour le partenaire:", totalMarginWithDifference);
+
       const offerData = {
         user_id: user.id,
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
+        client_company: clientCompany || "",
         equipment_description: JSON.stringify(equipmentData),
         equipment_text: equipmentDescription,
         amount: totalAmount,
@@ -321,8 +329,14 @@ const PartnerCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         additional_info: remarks,
-        type: 'partner_offer'
+        type: 'partner_offer',
+        margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: totalMarginWithDifference || 0
       };
+
+      console.log("Saving offer with the following data:", offerData);
+      console.log("Total margin with difference being saved:", totalMarginWithDifference);
 
       let result;
       

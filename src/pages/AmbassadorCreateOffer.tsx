@@ -237,10 +237,18 @@ const AmbassadorCreateOffer = () => {
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
+      // Récupérer la valeur de marge totale avec différence
+      const totalMarginWithDifference = globalMarginAdjustment.marginDifference
+        ? parseFloat(globalMarginAdjustment.marginDifference) + parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2))
+        : parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2));
+
+      console.log("Marge totale avec différence pour l'ambassadeur:", totalMarginWithDifference);
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
+        client_company: client.company || "",
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
@@ -251,11 +259,16 @@ const AmbassadorCreateOffer = () => {
         type: "ambassador_offer",
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
-        remarks: remarks
+        remarks: remarks,
+        margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: totalMarginWithDifference || 0
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
+      console.log("Margin difference being saved:", globalMarginAdjustment.marginDifference);
+      console.log("Total margin with difference being saved:", totalMarginWithDifference);
       
       const { data, error } = await createOffer(offerData);
       
