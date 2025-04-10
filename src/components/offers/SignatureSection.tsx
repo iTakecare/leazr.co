@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   Card, 
   CardHeader, 
@@ -44,6 +44,16 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   isPrintingPdf,
   onPrintPdf
 }) => {
+  const [confirmation, setConfirmation] = useState("");
+  const isConfirmationValid = confirmation.trim().toLowerCase() === "bon pour accord";
+  
+  const handleSign = (signatureData: string) => {
+    if (!isConfirmationValid) {
+      return;
+    }
+    onSign(signatureData);
+  };
+
   return (
     <Card className="mb-6 w-full overflow-hidden">
       <CardHeader className="bg-primary/5 py-3 px-4 md:px-6">
@@ -104,19 +114,45 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </p>
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="confirmation" className="flex items-center">
+                <span className="text-red-500 mr-1">*</span>
+                Confirmation
+              </Label>
+              <Input
+                id="confirmation"
+                value={confirmation}
+                onChange={(e) => setConfirmation(e.target.value)}
+                placeholder='Veuillez taper "Bon pour accord"'
+                disabled={isSigning}
+                required
+                className={`border ${!confirmation || isConfirmationValid ? 'border-gray-300' : 'border-red-500'} w-full`}
+              />
+              {confirmation && !isConfirmationValid && (
+                <p className="text-xs text-red-500">
+                  Veuillez taper exactement "Bon pour accord"
+                </p>
+              )}
+            </div>
+            
             <div className="w-full">
               <Label className="mb-2 block">Votre signature</Label>
               <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
                 <SignatureCanvas 
-                  onSave={onSign}
-                  disabled={isSigning}
+                  onSave={handleSign}
+                  disabled={isSigning || !isConfirmationValid}
                   height={180}
-                  className="w-full signature-container touch-none"
+                  className={`w-full signature-container touch-none ${!isConfirmationValid ? 'opacity-50' : ''}`}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Utilisez votre doigt ou la souris pour signer dans le cadre ci-dessus.
               </p>
+              {!isConfirmationValid && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Veuillez d'abord taper "Bon pour accord" pour activer la signature.
+                </p>
+              )}
             </div>
             
             <Alert className="text-xs md:text-sm">

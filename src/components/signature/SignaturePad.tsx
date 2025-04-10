@@ -1,124 +1,102 @@
 
-import React, { useRef, useState, useEffect } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Check } from 'lucide-react';
+import React, { useRef, useState, useEffect } from "react";
+import SignatureCanvas from "react-signature-canvas";
+import { Button } from "@/components/ui/button";
+import { Undo2, Save } from "lucide-react";
 
 interface SignaturePadProps {
-  onSave: (data: string) => void;
+  onSave: (signatureData: string) => void;
   disabled?: boolean;
+  initialSignature?: string;
   height?: number;
   className?: string;
 }
 
-const SignaturePad: React.FC<SignaturePadProps> = ({ 
-  onSave, 
+const SignaturePad: React.FC<SignaturePadProps> = ({
+  onSave,
   disabled = false,
+  initialSignature,
   height = 200,
-  className = ''
+  className = ""
 }) => {
-  const sigCanvas = useRef<SignatureCanvas | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [canvasWidth, setCanvasWidth] = useState<number>(0);
+  const sigCanvas = useRef<SignatureCanvas>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   
-  // Handle window resize to update canvas width
   useEffect(() => {
-    const updateCanvasWidth = () => {
-      if (containerRef.current) {
-        const width = containerRef.current.offsetWidth;
-        setCanvasWidth(width);
-      }
-    };
-    
-    // Set initial width
-    updateCanvasWidth();
-    
-    // Update width on resize
-    window.addEventListener('resize', updateCanvasWidth);
-    
-    return () => {
-      window.removeEventListener('resize', updateCanvasWidth);
-    };
-  }, []);
-  
-  // Function to clear the signature
+    // Clear signature when component is disabled
+    if (disabled && sigCanvas.current) {
+      sigCanvas.current.clear();
+      setIsEmpty(true);
+    }
+  }, [disabled]);
+
+  useEffect(() => {
+    // Load initial signature if provided
+    if (initialSignature && sigCanvas.current) {
+      sigCanvas.current.fromDataURL(initialSignature);
+      setIsEmpty(false);
+    }
+  }, [initialSignature]);
+
   const clear = () => {
     if (sigCanvas.current) {
       sigCanvas.current.clear();
       setIsEmpty(true);
     }
   };
-  
-  // Function to save the signature
-  const save = () => {
-    if (sigCanvas.current && !disabled) {
-      if (sigCanvas.current.isEmpty()) {
-        // Show error or alert that signature is empty
-        console.log("Signature is empty");
-        return;
-      }
-      
-      // Get the signature as a data URL
-      const dataURL = sigCanvas.current.toDataURL('image/png');
-      onSave(dataURL);
+
+  const handleSave = () => {
+    if (sigCanvas.current && !isEmpty && !disabled) {
+      const signatureData = sigCanvas.current.toDataURL("image/png");
+      onSave(signatureData);
     }
   };
-  
-  // Check if canvas is empty after each end event
-  const handleEnd = () => {
-    if (sigCanvas.current) {
-      setIsEmpty(sigCanvas.current.isEmpty());
-    }
+
+  const handleBegin = () => {
+    setIsEmpty(false);
   };
-  
+
   return (
-    <div className={`${className} flex flex-col touch-manipulation`} ref={containerRef}>
-      <div className="border border-gray-200 bg-white rounded-md overflow-hidden touch-none">
-        {canvasWidth > 0 && (
-          <SignatureCanvas
-            ref={sigCanvas}
-            penColor="black"
-            canvasProps={{
-              width: canvasWidth,
-              height: height,
-              className: 'signature-canvas touch-none',
-              style: { 
-                width: '100%',
-                height: `${height}px`,
-                background: 'white',
-                touchAction: 'none'
-              }
-            }}
-            onEnd={handleEnd}
-            backgroundColor="white"
-          />
-        )}
+    <div className={`w-full ${className}`}>
+      <div 
+        className={`border rounded signature-pad-container ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+        style={{ pointerEvents: disabled ? 'none' : 'auto' }}
+      >
+        <SignatureCanvas
+          ref={sigCanvas}
+          canvasProps={{
+            className: "signature-canvas w-full",
+            style: { 
+              height: `${height}px`, 
+              background: disabled ? '#f3f4f6' : 'white',
+              cursor: disabled ? 'not-allowed' : 'crosshair'
+            }
+          }}
+          onBegin={handleBegin}
+          penColor="black"
+        />
       </div>
-      
-      <div className="flex justify-between mt-3">
+      <div className="flex justify-between mt-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={clear}
-          disabled={disabled || isEmpty}
-          className="flex items-center"
+          disabled={isEmpty || disabled}
+          className="text-xs h-8"
         >
-          <RefreshCw className="h-4 w-4 mr-1" />
+          <Undo2 className="h-3 w-3 mr-1" />
           Effacer
         </Button>
-        
         <Button
           type="button"
-          variant="default"
           size="sm"
-          onClick={save}
-          disabled={disabled || isEmpty}
-          className="flex items-center"
+          onClick={handleSave}
+          disabled={isEmpty || disabled}
+          className="text-xs h-8"
         >
-          <Check className="h-4 w-4 mr-1" />
-          Valider
+          <Save className="h-3 w-3 mr-1" />
+          Signer
         </Button>
       </div>
     </div>
@@ -126,3 +104,4 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
 };
 
 export default SignaturePad;
+
