@@ -104,9 +104,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </p>
             </div>
             
-            <div className="w-full">
+            <div className="w-full bg-white">
               <Label className="mb-2 block">Votre signature</Label>
-              <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+              <div className="border border-gray-200 rounded-md overflow-hidden">
                 <SignatureCanvas 
                   onSave={onSign}
                   disabled={isSigning}

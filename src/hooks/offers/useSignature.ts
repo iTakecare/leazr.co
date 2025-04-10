@@ -25,7 +25,12 @@ export const useSignature = (
   }, [offer]);
 
   const handleSignature = async (signatureData: string) => {
-    if (!offerId || !signerName.trim()) {
+    if (!offerId) {
+      toast.error("Identifiant d'offre manquant pour la signature");
+      return;
+    }
+    
+    if (!signerName.trim()) {
       toast.error("Veuillez indiquer votre nom complet avant de signer.");
       return;
     }
@@ -78,11 +83,15 @@ export const useSignature = (
         }, 1500);
       } else {
         console.error("Échec de l'enregistrement de la signature");
-        toast.error("Erreur lors de l'enregistrement de la signature.");
+        toast.error("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
+        // Réinitialiser l'état de signature pour permettre une nouvelle tentative
+        setSignature(null);
       }
     } catch (err) {
       console.error("Erreur lors de la signature:", err);
-      toast.error("Une erreur s'est produite lors de la signature.");
+      toast.error("Une erreur s'est produite lors de la signature. Veuillez réessayer.");
+      // Réinitialiser l'état de signature pour permettre une nouvelle tentative
+      setSignature(null);
     } finally {
       setIsSigning(false);
     }

@@ -81,20 +81,22 @@ export const generateOfferPdf = async (offerData) => {
     const originalBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     
-    // Générer le PDF avec promesse pour assurer la complétion
-    console.log("Génération du PDF en cours...");
-    const pdf = await html2pdf()
-      .from(container)
-      .set(options)
-      .save();
+    // Générer le PDF et le télécharger automatiquement
+    console.log("Début de la génération du PDF...");
+    try {
+      // Utiliser la méthode save() pour télécharger automatiquement
+      await html2pdf().from(container).set(options).save();
+      console.log("PDF généré et téléchargé avec succès");
+    } catch (pdfError) {
+      console.error("Erreur durant la génération du PDF:", pdfError);
+      throw pdfError;
+    } finally {
+      // Restaurer les styles du document
+      document.body.style.overflow = originalBodyOverflow;
+      // Nettoyer le DOM
+      document.body.removeChild(container);
+    }
     
-    // Restaurer les styles du document
-    document.body.style.overflow = originalBodyOverflow;
-    
-    // Nettoyer le DOM
-    document.body.removeChild(container);
-    
-    console.log("PDF généré avec succès");
     return options.filename;
   } catch (error) {
     console.error("Erreur lors de la génération du PDF:", error);

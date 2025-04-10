@@ -61,6 +61,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
       
       // Get the signature as a data URL
       const dataURL = sigCanvas.current.toDataURL('image/png');
+      console.log("Signature capture - length:", dataURL.length);
       onSave(dataURL);
     }
   };
