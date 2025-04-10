@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { getOfferEquipment, migrateEquipmentFromJson } from '@/services/offers/offerEquipment';
+import { forceMigrateEquipmentData } from '@/services/offerService';
 
 export interface EquipmentItem {
   id?: string;
@@ -111,9 +112,34 @@ export const useOfferDetail = (offerId: string) => {
         return equipmentData.map(item => {
           console.log("Traitement de l'élément:", item);
           
-          // Log attributes and specifications specifically
-          console.log("Attributs:", item.attributes);
-          console.log("Spécifications:", item.specifications);
+          // Normaliser les attributs et spécifications
+          let attributes: Record<string, string> = {};
+          let specifications: Record<string, string | number> = {};
+          
+          // Traiter les attributs
+          if (item.attributes) {
+            if (Array.isArray(item.attributes)) {
+              item.attributes.forEach((attr: any) => {
+                attributes[attr.key] = attr.value;
+              });
+            } else if (typeof item.attributes === 'object') {
+              attributes = { ...item.attributes };
+            }
+          }
+          
+          // Traiter les spécifications
+          if (item.specifications) {
+            if (Array.isArray(item.specifications)) {
+              item.specifications.forEach((spec: any) => {
+                specifications[spec.key] = spec.value;
+              });
+            } else if (typeof item.specifications === 'object') {
+              specifications = { ...item.specifications };
+            }
+          } else if (item.variants && typeof item.variants === 'object') {
+            // Support pour l'ancien format qui utilisait "variants"
+            specifications = { ...item.variants };
+          }
           
           return {
             id: item.id || undefined,
@@ -123,11 +149,8 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(item.margin) || 0,
             monthlyPayment: Number(item.monthlyPayment) || 0,
             serialNumber: item.serialNumber || undefined,
-            // Make sure to preserve attributes and specifications exactly as they are
-            attributes: item.attributes || {},
-            specifications: item.specifications || {},
-            // Support for variants (old structure)
-            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
+            attributes,
+            specifications
           };
         });
       }
@@ -136,22 +159,75 @@ export const useOfferDetail = (offerId: string) => {
       if (typeof equipmentData === 'object' && equipmentData !== null) {
         // Vérifier s'il contient un tableau 'items'
         if (Array.isArray(equipmentData.items)) {
-          return equipmentData.items.map(item => ({
-            id: item.id || undefined,
-            title: item.title || 'Produit sans nom',
-            purchasePrice: Number(item.purchasePrice) || 0,
-            quantity: Number(item.quantity) || 1,
-            margin: Number(item.margin) || 0,
-            monthlyPayment: Number(item.monthlyPayment) || 0,
-            serialNumber: item.serialNumber || undefined,
-            attributes: item.attributes || {},
-            specifications: item.specifications || {},
-            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
-          }));
+          return equipmentData.items.map(item => {
+            // Normaliser attributs et spécifications
+            let attributes: Record<string, string> = {};
+            let specifications: Record<string, string | number> = {};
+            
+            if (item.attributes) {
+              if (Array.isArray(item.attributes)) {
+                item.attributes.forEach((attr: any) => {
+                  attributes[attr.key] = attr.value;
+                });
+              } else if (typeof item.attributes === 'object') {
+                attributes = { ...item.attributes };
+              }
+            }
+            
+            if (item.specifications) {
+              if (Array.isArray(item.specifications)) {
+                item.specifications.forEach((spec: any) => {
+                  specifications[spec.key] = spec.value;
+                });
+              } else if (typeof item.specifications === 'object') {
+                specifications = { ...item.specifications };
+              }
+            } else if (item.variants && typeof item.variants === 'object') {
+              specifications = { ...item.variants };
+            }
+            
+            return {
+              id: item.id || undefined,
+              title: item.title || 'Produit sans nom',
+              purchasePrice: Number(item.purchasePrice) || 0,
+              quantity: Number(item.quantity) || 1,
+              margin: Number(item.margin) || 0,
+              monthlyPayment: Number(item.monthlyPayment) || 0,
+              serialNumber: item.serialNumber || undefined,
+              attributes,
+              specifications
+            };
+          });
         }
         
         // S'il a un titre, le traiter comme un seul équipement
         if (equipmentData.title) {
+          // Normaliser attributs et spécifications
+          let attributes: Record<string, string> = {};
+          let specifications: Record<string, string | number> = {};
+          
+          if (equipmentData.attributes) {
+            if (Array.isArray(equipmentData.attributes)) {
+              equipmentData.attributes.forEach((attr: any) => {
+                attributes[attr.key] = attr.value;
+              });
+            } else if (typeof equipmentData.attributes === 'object') {
+              attributes = { ...equipmentData.attributes };
+            }
+          }
+          
+          if (equipmentData.specifications) {
+            if (Array.isArray(equipmentData.specifications)) {
+              equipmentData.specifications.forEach((spec: any) => {
+                specifications[spec.key] = spec.value;
+              });
+            } else if (typeof equipmentData.specifications === 'object') {
+              specifications = { ...equipmentData.specifications };
+            }
+          } else if (equipmentData.variants && typeof equipmentData.variants === 'object') {
+            specifications = { ...equipmentData.variants };
+          }
+          
           return [{
             title: equipmentData.title,
             purchasePrice: Number(equipmentData.purchasePrice) || 0,
@@ -159,9 +235,8 @@ export const useOfferDetail = (offerId: string) => {
             margin: Number(equipmentData.margin) || 0,
             monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
             serialNumber: equipmentData.serialNumber,
-            attributes: equipmentData.attributes || {},
-            specifications: equipmentData.specifications || {},
-            ...(equipmentData.variants && typeof equipmentData.variants === 'object' && { specifications: equipmentData.variants })
+            attributes,
+            specifications
           }];
         }
       }
@@ -195,13 +270,18 @@ export const useOfferDetail = (offerId: string) => {
       setEquipmentData(equipment);
       
       if (equipment.length === 0 && offer?.equipment_description) {
-        // Si aucun équipement n'est trouvé, essayer de migrer depuis le JSON
-        const migrationSuccess = await migrateEquipmentFromJson(offerId, offer.equipment_description);
+        console.log("Aucun équipement trouvé, tentative de migration depuis JSON...");
+        
+        // Si aucun équipement n'est trouvé, tenter une migration forcée depuis JSON
+        const migrationSuccess = await forceMigrateEquipmentData(offerId);
         
         if (migrationSuccess) {
+          console.log("Migration forcée réussie, récupération des équipements...");
           // Récupérer à nouveau les équipements après la migration
           const migratedEquipment = await getOfferEquipment(offerId);
           setEquipmentData(migratedEquipment);
+        } else {
+          console.warn("Échec de la migration forcée, utilisation des données JSON");
         }
       }
     } catch (err) {
