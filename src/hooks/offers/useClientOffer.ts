@@ -25,6 +25,8 @@ export const useClientOffer = (offerId: string | undefined) => {
   const {
     signerName,
     setSignerName,
+    approvalText,
+    setApprovalText,
     isSigning,
     signature,
     handleSignature
@@ -36,6 +38,8 @@ export const useClientOffer = (offerId: string | undefined) => {
     error,
     signerName,
     setSignerName,
+    approvalText,
+    setApprovalText,
     isSigning,
     signed,
     signature,

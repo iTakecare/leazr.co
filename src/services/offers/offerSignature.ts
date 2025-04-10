@@ -3,6 +3,33 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
+ * Récupère les données d'une offre pour un client
+ */
+export const getOfferForClient = async (offerId: string): Promise<any> => {
+  try {
+    if (!offerId) return null;
+    
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*, clients(*)')
+      .eq('id', offerId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Erreur lors de la récupération de l\'offre:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'offre:', error);
+    return null;
+  }
+};
+
+/**
  * Vérifie si une offre a déjà été signée
  */
 export const isOfferSigned = async (offerId: string): Promise<boolean> => {
@@ -77,32 +104,14 @@ export const saveOfferSignature = async (
 /**
  * Génère un lien de signature pour une offre
  */
-export const generateSignatureLink = async (offerId: string): Promise<string | null> => {
-  try {
-    if (!offerId) return null;
-    
-    // Vérifier que l'offre existe
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('offers')
-      .select('id')
-      .eq('id', offerId)
-      .maybeSingle();
-    
-    if (error || !data) {
-      console.error('Erreur lors de la génération du lien de signature:', error);
-      return null;
-    }
-    
-    // Génération de l'URL de base du site
-    const baseUrl = window.location.origin;
-    
-    // Construction du lien vers la page de signature
-    const signatureLink = `${baseUrl}/sign/${offerId}`;
-    
-    return signatureLink;
-  } catch (error) {
-    console.error('Erreur lors de la génération du lien de signature:', error);
-    return null;
-  }
+export const generateSignatureLink = (offerId: string): string => {
+  if (!offerId) return '';
+  
+  // Génération de l'URL de base du site
+  const baseUrl = window.location.origin;
+  
+  // Construction du lien vers la page de signature
+  const signatureLink = `${baseUrl}/sign/${offerId}`;
+  
+  return signatureLink;
 };

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offerService";
+import { toast } from "react-toastify";
 
 interface OfferCardProps {
   offer: Offer;
@@ -30,7 +30,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
 }) => {
   const navigate = useNavigate();
   
-  // Formatage de la date
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
@@ -46,6 +45,17 @@ const OfferCard: React.FC<OfferCardProps> = ({
   const openOnlineOffer = () => {
     const link = generateSignatureLink(offer.id);
     window.open(link, '_blank', 'noopener,noreferrer');
+  };
+  
+  const handleCopySignatureLink = () => {
+    try {
+      const signatureLink = generateSignatureLink(offer.id);
+      navigator.clipboard.writeText(signatureLink);
+      toast.success("Lien de signature copié dans le presse-papier");
+    } catch (error) {
+      console.error("Error copying signature link:", error);
+      toast.error("Impossible de copier le lien de signature");
+    }
   };
   
   const isConverted = offer.converted_to_contract;
