@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -262,7 +261,7 @@ const AmbassadorCreateOffer = () => {
         remarks: remarks,
         margin: parseFloat(equipmentList.reduce((sum, eq) => sum + ((eq.margin || 0) * eq.quantity), 0).toFixed(2)),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalMarginWithDifference || 0
+        total_margin_with_difference: String(totalMarginWithDifference || 0) 
       };
       
       console.log("Saving offer with the following data:", offerData);
