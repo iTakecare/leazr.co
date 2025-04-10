@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
 import { generateSignatureLink } from "@/services/offerService";
 import { toast } from "sonner";
+import { Offer } from "@/hooks/offers/useFetchOffers";
 
 interface OfferCardProps {
   offer: Offer;
