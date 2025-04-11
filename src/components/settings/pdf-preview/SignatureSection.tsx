@@ -7,6 +7,7 @@ interface SignatureSectionProps {
   signatureData?: string;
   signerName?: string;
   signedAt?: string;
+  monthlyPayment?: number;
 }
 
 const SignatureSection: React.FC<SignatureSectionProps> = ({
@@ -14,7 +15,8 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   scaleFactor = 1,
   signatureData,
   signerName,
-  signedAt
+  signedAt,
+  monthlyPayment = 0
 }) => {
   // Calculer la position bottom pour l'espace de signature
   const bottomPosition = 40 * scaleFactor;
@@ -33,6 +35,11 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
     } catch (e) {
       return "";
     }
+  };
+
+  // Formater le montant
+  const formatAmount = (amount: number): string => {
+    return amount.toLocaleString('fr-FR');
   };
   
   return (
@@ -69,7 +76,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             className="text-center italic text-gray-500 mb-2"
             style={{ fontSize: `${10 * scaleFactor}px` }}
           >
-            Bon pour accord
+            Bon pour accord pour {formatAmount(monthlyPayment)}€ pendant 36 mois
           </div>
           <img 
             src={signatureData} 
@@ -108,7 +115,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             fontSize: `${10 * scaleFactor}px`, 
             fontStyle: "italic" 
           }}>
-            Signature précédée de "Bon pour accord"
+            Signature précédée de "Bon pour accord pour {formatAmount(monthlyPayment)}€ pendant 36 mois"
           </p>
         </div>
       )}

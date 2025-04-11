@@ -1,4 +1,3 @@
-
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 
@@ -54,13 +53,11 @@ const formatDate = (dateString: string | Date | null | undefined): string => {
   }
 };
 
-// Nouvelle fonction pour formater les dates avec timezone pour la valeur légale dans le PDF
 const formatLegalTimestamp = (dateString: string | Date | null | undefined): string => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
     
-    // Format avec date, heure avec secondes et timezone
     const options: Intl.DateTimeFormatOptions = {
       day: '2-digit',
       month: '2-digit',
@@ -98,7 +95,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
       position: "relative",
       backgroundColor: "white"
     }}>
-      {/* En-tête avec logo et titre */}
       <div style={{ 
         display: "flex", 
         justifyContent: "space-between", 
@@ -121,14 +117,12 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         </span>
       </div>
 
-      {/* Corps du document */}
       <div style={{ 
         padding: "5mm 10mm",
         flex: "1",
         display: "flex",
         flexDirection: "column"
       }}>
-        {/* Référence de l'offre */}
         <div style={{ 
           textAlign: "center", 
           margin: "2mm 0 5mm 0"
@@ -143,7 +137,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </h1>
         </div>
 
-        {/* Informations client et date */}
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between",
@@ -176,7 +169,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </div>
         </div>
 
-        {/* Tableau des équipements */}
         <div style={{ margin: "0 0 5mm 0" }}>
           <h2 style={{ 
             fontSize: "9pt", 
@@ -274,7 +266,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </table>
         </div>
 
-        {/* Récapitulatif financier */}
         <div style={{ 
           margin: "0 0 5mm 0",
           padding: "3mm",
@@ -305,7 +296,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </div>
         </div>
 
-        {/* Avantages leasing */}
         <div style={{ 
           display: "flex",
           margin: "0 0 5mm 0",
@@ -347,7 +337,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
           </div>
         </div>
 
-        {/* Zone signature */}
         <div style={{ 
           margin: "5mm 0",
           display: "flex",
@@ -377,7 +366,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 marginBottom: "2mm",
                 color: "#4B5563"
               }}>
-                Bon pour accord
+                Bon pour accord pour {formatCurrency(offer.monthly_payment)} pendant 36 mois
               </div>
               <img 
                 src={offer.signature_data} 
@@ -415,17 +404,15 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 fontStyle: "italic",
                 textAlign: "center"
               }}>
-                Signature précédée de<br/>"Bon pour accord"
+                Signature précédée de<br/>"Bon pour accord pour {formatCurrency(offer.monthly_payment)} pendant 36 mois"
               </p>
             </div>
           )}
         </div>
         
-        {/* Espacement flexible pour éviter les débordements */}
         <div style={{ flex: "1" }}></div>
       </div>
 
-      {/* Pied de page */}
       <div style={{ 
         borderTop: "0.2mm solid #e5e7eb",
         padding: "2mm",

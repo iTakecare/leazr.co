@@ -114,6 +114,7 @@ const PublicOfferView = () => {
                   onSign={handleSignature}
                   isPrintingPdf={isPrintingPdf}
                   onPrintPdf={handlePrintPdf}
+                  monthlyPayment={offer.monthly_payment || 0}
                 />
               )}
 

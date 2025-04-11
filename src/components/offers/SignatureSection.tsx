@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Card, 
@@ -31,6 +32,7 @@ interface SignatureSectionProps {
   onSign: (signatureData: string) => void;
   isPrintingPdf: boolean;
   onPrintPdf: () => void;
+  monthlyPayment?: number; // Ajout du montant mensuel
 }
 
 const SignatureSection: React.FC<SignatureSectionProps> = ({
@@ -43,10 +45,14 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   signerIp,
   onSign,
   isPrintingPdf,
-  onPrintPdf
+  onPrintPdf,
+  monthlyPayment = 0 // Valeur par défaut
 }) => {
   const [confirmation, setConfirmation] = useState("");
-  const isConfirmationValid = confirmation.trim().toLowerCase() === "bon pour accord";
+  
+  // Création du texte attendu en fonction du montant mensuel
+  const expectedConfirmation = `Bon pour accord pour ${monthlyPayment.toLocaleString('fr-FR')}€ pendant 36 mois`;
+  const isConfirmationValid = confirmation.trim().toLowerCase() === expectedConfirmation.toLowerCase();
   
   const handleSign = (signatureData: string) => {
     if (!isConfirmationValid) {
@@ -134,14 +140,14 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
                 id="confirmation"
                 value={confirmation}
                 onChange={(e) => setConfirmation(e.target.value)}
-                placeholder='Veuillez taper "Bon pour accord"'
+                placeholder={`Veuillez taper "${expectedConfirmation}"`}
                 disabled={isSigning}
                 required
                 className={`border ${!confirmation || isConfirmationValid ? 'border-gray-300' : 'border-red-500'} w-full`}
               />
               {confirmation && !isConfirmationValid && (
                 <p className="text-xs text-red-500">
-                  Veuillez taper exactement "Bon pour accord"
+                  Veuillez taper exactement "{expectedConfirmation}"
                 </p>
               )}
             </div>
@@ -161,7 +167,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
               </p>
               {!isConfirmationValid && (
                 <p className="text-xs text-amber-600 mt-1">
-                  Veuillez d'abord taper "Bon pour accord" pour activer la signature.
+                  Veuillez d'abord taper "{expectedConfirmation}" pour activer la signature.
                 </p>
               )}
             </div>

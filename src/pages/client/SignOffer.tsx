@@ -108,6 +108,7 @@ const SignOffer = () => {
             onSign={handleSignature}
             isPrintingPdf={isPrintingPdf}
             onPrintPdf={handlePrintPdf}
+            monthlyPayment={offer.monthly_payment}
           />
         </div>
       </div>
