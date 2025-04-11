@@ -5,13 +5,16 @@ import App from './App.tsx'
 import './index.css'
 import { CartProvider } from './context/CartContext.tsx'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AuthProvider } from './context/AuthContext.tsx'
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
-    <CartProvider>
-      <TooltipProvider>
-        <App />
-      </TooltipProvider>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
+      </CartProvider>
+    </AuthProvider>
   </BrowserRouter>
 );

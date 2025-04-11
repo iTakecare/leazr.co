@@ -70,7 +70,7 @@ const ProductDataTracker: React.FC = () => {
     console.log("Équipement créé:", newEquipment);
   };
 
-  // Fonction utilitaire pour convertir les attributs
+  // Fonction utilitaire pour convertir les attributs en Record<string, string>
   const convertAttributesToStringRecord = (attributes?: Record<string, any>): Record<string, string> => {
     if (!attributes) return {};
     
