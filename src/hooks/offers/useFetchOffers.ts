@@ -55,7 +55,7 @@ export const useFetchOffers = () => {
 
     try {
       console.log("Début de la récupération des offres...");
-      const { data, error } = await getAllOffers();
+      const { data, error } = await getAllOffers(includeConverted);
       
       if (error) {
         console.error("Error fetching offers:", error);

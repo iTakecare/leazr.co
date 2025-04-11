@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useClientOffers, ClientOffer } from "@/hooks/useClientOffers";
@@ -16,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 const ClientRequestsPage = () => {
   const { user } = useAuth();
   const { offers, loading, error, refresh } = useClientOffers();
+
+  console.log("ClientRequestsPage - user:", user);
+  console.log("ClientRequestsPage - offers:", offers);
 
   // Animation variants
   const containerVariants = {
@@ -45,7 +47,7 @@ const ClientRequestsPage = () => {
         event: 'UPDATE',
         schema: 'public',
         table: 'offers',
-        filter: `client_id=eq.${user.id}`,
+        filter: `client_id=eq.${user.client_id}`,
       }, (payload) => {
         console.log('Notification de mise à jour de statut:', payload);
         
@@ -67,7 +69,7 @@ const ClientRequestsPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refresh]);
+  }, [user?.id, user?.client_id, refresh]);
 
   if (loading) {
     return (
@@ -122,7 +124,6 @@ const ClientRequestsPage = () => {
             <RefreshCw className="h-4 w-4" />
             Actualiser
           </Button>
-          {/* Le bouton pour créer une nouvelle demande a été supprimé */}
         </div>
       </div>
       
@@ -135,7 +136,6 @@ const ClientRequestsPage = () => {
               <p className="text-muted-foreground mt-2 mb-6">
                 Vous n'avez pas encore de demandes actives.
               </p>
-              {/* Le bouton pour créer une nouvelle demande a été supprimé */}
             </div>
           </CardContent>
         </Card>
