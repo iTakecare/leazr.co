@@ -98,10 +98,10 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 <span className="truncate max-w-[140px]">{offer.clients.company}</span>
               </div>
             )}
-            {offer.ambassador_name && (
+            {offer.ambassador_id && (
               <div className="flex items-center text-xs text-purple-600">
                 <Users className="h-3 w-3 mr-1" />
-                <span className="truncate max-w-[140px]">{offer.ambassador_name}</span>
+                <span className="truncate max-w-[140px]">Ambassadeur: {offer.ambassador_id}</span>
               </div>
             )}
           </div>

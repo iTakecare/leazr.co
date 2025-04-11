@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
@@ -12,6 +11,7 @@ export interface Offer extends OfferData {
   client_name: string;
   monthly_payment: number;
   created_at: string;
+  ambassador_id?: string;
 }
 
 export const useFetchOffers = () => {
@@ -55,7 +55,8 @@ export const useFetchOffers = () => {
         // Ensure each offer has a created_at field even if it's missing
         const validOffers = processedOffers.map(offer => ({
           ...offer,
-          created_at: offer.created_at || new Date().toISOString()
+          created_at: offer.created_at || new Date().toISOString(),
+          monthly_payment: Number(offer.monthly_payment)
         })) as Offer[];
         
         setOffers(validOffers);
