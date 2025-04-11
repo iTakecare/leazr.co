@@ -285,16 +285,19 @@ const PartnerCreateOffer = () => {
     setIsSubmitting(true);
 
     try {
+      // Preserve attributes and specifications for each equipment
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
         purchasePrice: eq.purchasePrice,
         quantity: eq.quantity,
         margin: eq.margin,
-        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+        attributes: eq.attributes || {},
+        specifications: eq.specifications || {}
       }));
       
-      console.log("Saving equipment data with preserved margins:", equipmentData);
+      console.log("Saving equipment data with preserved attributes and specifications:", equipmentData);
       
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)

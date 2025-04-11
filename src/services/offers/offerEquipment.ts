@@ -316,12 +316,13 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         serial_number: item.serialNumber || item.serial_number
       };
       
-      // Extraire les attributs et spécifications de manière plus robuste
+      // Extraire les attributs directement depuis l'objet d'origine
       let attributes: Record<string, string> = {};
-      let specifications: Record<string, string | number> = {};
+      // Enregistrer explicitement les attributs pour le débogage
+      console.log("Item original avec attributs et spécifications:", item);
       
-      // Extraire les attributs directement
       if (item.attributes && typeof item.attributes === 'object') {
+        // Utiliser directement les attributs fournis
         attributes = Object.entries(item.attributes).reduce((acc, [key, value]) => {
           acc[key] = String(value);
           return acc;
@@ -330,7 +331,9 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       }
       
       // Extraire les spécifications directement
+      let specifications: Record<string, string | number> = {};
       if (item.specifications && typeof item.specifications === 'object') {
+        // Utiliser directement les spécifications fournies
         specifications = Object.entries(item.specifications).reduce((acc, [key, value]) => {
           acc[key] = String(value);
           return acc;
@@ -338,11 +341,14 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         console.log(`Spécifications extraites pour ${item.title}:`, specifications);
       }
       
-      // Si aucun attribut ou spécification n'a été trouvé, utilisez la méthode existante
+      // Si aucun attribut ou spécification n'a été trouvé, utiliser la méthode existante
       if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0) {
         const extracted = extractAttributesAndSpecs(item);
         attributes = extracted.attributes;
         specifications = extracted.specifications;
+        console.log("Utilisation de l'extracteur alternatif pour:", item.title);
+        console.log("Attributs alternatifs:", attributes);
+        console.log("Spécifications alternatives:", specifications);
       }
       
       // Sauvegarder l'équipement avec ses attributs et spécifications

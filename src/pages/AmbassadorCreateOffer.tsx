@@ -199,14 +199,15 @@ const AmbassadorCreateOffer = () => {
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+          attributes: eq.attributes || {},
+          specifications: eq.specifications || {}
         }))
       );
       
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
       const commissionElement = document.querySelector('.commission-value');
       let commissionAmount = 0;
       
@@ -214,9 +215,7 @@ const AmbassadorCreateOffer = () => {
       
       if (commissionElement) {
         try {
-          // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
           const commissionText = commissionElement.textContent || '';
-          // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
           const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
           commissionAmount = parseFloat(numericValue);
           
@@ -224,26 +223,21 @@ const AmbassadorCreateOffer = () => {
           
           if (isNaN(commissionAmount)) {
             console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-            commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+            commissionAmount = Math.round(financedAmount * 0.08);
           }
         } catch (error) {
           console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
-          commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+          commissionAmount = Math.round(financedAmount * 0.08);
         }
       } else {
         console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+        commissionAmount = Math.round(financedAmount * 0.08);
       }
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
-      // Récupérer la marge totale générée (sans la différence)
       const marginAmount = globalMarginAdjustment.amount || 0;
-      
-      // Récupérer la différence de marge 
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
-      
-      // Calculer le total de marge avec différence
       const totalMarginWithDifference = marginAmount + marginDifference;
       
       console.log("Marge totale:", marginAmount);
