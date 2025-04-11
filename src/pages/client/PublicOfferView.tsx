@@ -10,6 +10,7 @@ import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import SignatureSection from "@/components/offers/SignatureSection";
 import SignedAlert from "@/components/offers/SignedAlert";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
+import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 
 const PublicOfferView = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,6 +62,33 @@ const PublicOfferView = () => {
     );
   }
 
+  // Parse equipment if available
+  const renderEquipmentDetails = () => {
+    // Check for parsed equipment
+    if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
+      return (
+        <EquipmentDetailTable 
+          equipment={offer.parsedEquipment}
+          totalMonthly={offer.monthly_payment || 0}
+          totalMargin={offer.margin || 0}
+        />
+      );
+    }
+    
+    // Fallback to traditional equipment display
+    if (offer.equipment_description) {
+      return (
+        <EquipmentDisplay 
+          equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
+          monthlyPayment={offer.monthly_payment || 0}
+          remarks={offer.remarks}
+        />
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
@@ -96,13 +124,7 @@ const PublicOfferView = () => {
                 </CardContent>
               </Card>
 
-              {offer.equipment_description && (
-                <EquipmentDisplay 
-                  equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
-                  monthlyPayment={offer.monthly_payment || 0}
-                  remarks={offer.remark}
-                />
-              )}
+              {renderEquipmentDetails()}
 
               {!signed && (
                 <SignatureSection
