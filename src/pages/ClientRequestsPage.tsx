@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
-import { Loader2, RefreshCw, FileText, Clock, CalendarRange, X, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, FileText, Clock, CalendarRange, X, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -18,6 +18,7 @@ const ClientRequestsPage = () => {
 
   console.log("ClientRequestsPage - user:", user);
   console.log("ClientRequestsPage - offers:", offers);
+  console.log("ClientRequestsPage - error:", error);
 
   // Animation variants
   const containerVariants = {
@@ -38,7 +39,12 @@ const ClientRequestsPage = () => {
 
   // Écouter les notifications de nouvelles demandes en temps réel
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.client_id) {
+      console.log("Aucun utilisateur ou client_id trouvé pour la subscription aux changements");
+      return;
+    }
+
+    console.log("Mise en place de la subscription aux changements des offres pour client_id:", user.client_id);
 
     // S'abonner aux changements de statut des demandes
     const channel = supabase
@@ -63,10 +69,13 @@ const ClientRequestsPage = () => {
           toast.info("Le statut de votre demande a été mis à jour.");
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Statut de subscription aux changements:", status);
+      });
 
     // Nettoyage lors du démontage
     return () => {
+      console.log("Nettoyage de la subscription aux changements");
       supabase.removeChannel(channel);
     };
   }, [user?.id, user?.client_id, refresh]);
@@ -84,7 +93,40 @@ const ClientRequestsPage = () => {
   }
 
   if (error) {
-    return <ClientsError errorMessage={error} onRetry={refresh} />;
+    return (
+      <div className="w-full p-8">
+        <h1 className="text-3xl font-bold mb-6">Mes Demandes</h1>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+            <h3 className="text-xl font-medium text-red-700 mb-2">Impossible de charger vos offres</h3>
+            <p className="text-red-600 mb-4 text-center max-w-md">{error}</p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={refresh} 
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Réessayer
+              </Button>
+              {!user?.client_id && (
+                <Card className="p-3 bg-amber-50 border-amber-200 mt-4">
+                  <div className="flex gap-2 items-start">
+                    <Info className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-800">
+                        Aucun compte client n'est associé à votre profil. Veuillez contacter le support.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const getStatusBadge = (status) => {
@@ -136,6 +178,19 @@ const ClientRequestsPage = () => {
               <p className="text-muted-foreground mt-2 mb-6">
                 Vous n'avez pas encore de demandes actives.
               </p>
+              {!user?.client_id && (
+                <Card className="p-3 bg-amber-50 border-amber-200 mt-4">
+                  <div className="flex gap-2 items-start">
+                    <Info className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-800">
+                        Aucun compte client n'est associé à votre profil. 
+                        Vos offres ne peuvent pas être affichées.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
           </CardContent>
         </Card>
