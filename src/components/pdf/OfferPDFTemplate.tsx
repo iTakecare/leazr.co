@@ -291,7 +291,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
               fontWeight: "bold", 
               color: "#2563EB" 
             }}>
-              {formatCurrency(offer.monthly_payment)} /mois HTVA
+              {formatCurrency(offer.monthly_payment)} HTVA/mois
             </div>
           </div>
         </div>
