@@ -39,7 +39,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
               <div className="text-sm text-blue-700 mb-1">Mensualité</div>
               <div className="text-2xl font-bold text-blue-700">
                 {formatCurrency(monthlyPayment)}
-                <span className="text-sm font-normal text-blue-500">/mois</span>
+                <span className="text-sm font-normal text-blue-500">/mois HTVA</span>
               </div>
             </div>
           </div>
