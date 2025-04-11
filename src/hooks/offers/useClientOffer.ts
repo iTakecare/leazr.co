@@ -7,12 +7,12 @@ export const useClientOffer = (offerId: string | undefined) => {
   // Charger les données de l'offre
   const {
     offer,
-    setOffer,
     loading,
     error,
     signed,
     setSigned,
-    debugInfo
+    debugInfo,
+    setOffer
   } = useLoadClientOffer(offerId);
 
   // Gérer la génération de PDF

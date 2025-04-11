@@ -1,42 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getAllOffers } from "@/services/offers";
+import { getOffers } from "@/services/offers/getOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
 
 // Define and export the Offer interface
-export interface Offer {
+export interface Offer extends OfferData {
   id: string;
-  client_id?: string;
   client_name: string;
-  client_email?: string;
-  client_company?: string;
-  equipment_description?: string;
-  amount?: number;
   monthly_payment: number;
-  coefficient?: number;
-  commission?: number;
-  commission_status?: string;
-  commission_paid_at?: string;
-  ambassador_id?: string;
-  ambassador_name?: string;
-  type?: string;
-  workflow_status?: string;
-  status?: string;
-  remarks?: string;
-  additional_info?: string;
-  user_id?: string;
-  converted_to_contract?: boolean;
-  financed_amount?: number;
   created_at: string;
-  clients?: {
-    id?: string;
-    name?: string;
-    email?: string;
-    company?: string;
-  };
 }
 
 export const useFetchOffers = () => {
@@ -50,14 +25,7 @@ export const useFetchOffers = () => {
     setLoadingError(null);
 
     try {
-      const { data, error } = await getAllOffers();
-      
-      if (error) {
-        console.error("Error fetching offers:", error);
-        setLoadingError(error);
-        toast.error("Erreur lors du chargement des offres");
-        return;
-      }
+      const data = await getOffers(includeConverted);
       
       if (data) {
         // Process each offer to ensure financed_amount is calculated if not present

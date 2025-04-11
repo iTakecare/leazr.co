@@ -4,8 +4,8 @@
 
 // Import specific named exports from services
 import { 
-  generateAndDownloadOfferPdf, 
-  getOfferDataForPdf, 
+  generateAndDownloadOfferPdf as pdfGenerateAndDownload, 
+  getOfferDataForPdf as pdfGetOfferData, 
   generateSamplePdf 
 } from './offers/offerPdf';
 
@@ -46,10 +46,10 @@ import {
 // Import and re-export from other offer service files
 export * from './offers';
 
-// Explicitly re-export named exports that might conflict with star exports
+// Explicitly re-export named exports with aliases to avoid conflicts
 export {
-  generateAndDownloadOfferPdf,
-  getOfferDataForPdf,
+  pdfGenerateAndDownload as generateAndDownloadOfferPdf,
+  pdfGetOfferData as getOfferDataForPdf,
   generateSamplePdf,
   isOfferSigned,
   saveOfferSignature,
@@ -63,7 +63,7 @@ export {
   processInfoResponse,
   getOfferNotes,
   addOfferNote,
-  // Export les fonctions d'équipement
+  // Export functions related to equipment
   getOfferEquipment,
   saveEquipment,
   migrateEquipmentFromJson,

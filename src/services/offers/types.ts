@@ -27,6 +27,10 @@ export interface OfferData {
     email?: string;
     company?: string;
   };
+  signature_data?: string;
+  signer_name?: string;
+  signed_at?: string;
+  signer_ip?: string;
 }
 
 export enum OfferStatus {

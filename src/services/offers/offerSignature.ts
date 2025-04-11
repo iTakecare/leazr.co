@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
@@ -258,42 +257,6 @@ export const generateSignatureLink = (offerId: string): string => {
 };
 
 /**
- * Génère et télécharge un PDF pour une offre
- */
-export const generateAndDownloadOfferPdf = async (offerId: string) => {
-  try {
-    // Afficher un toast de chargement
-    toast.info("Génération du PDF en cours...");
-    
-    // Récupérer les données de l'offre
-    const offerData = await getOfferDataForPdf(offerId);
-    
-    if (!offerData) {
-      toast.error("Impossible de récupérer les données de l'offre");
-      return null;
-    }
-    
-    console.log("Données récupérées pour le PDF:", {
-      id: offerData.id,
-      client_name: offerData.client_name,
-      client_email: offerData.client_email,
-      amount: offerData.amount,
-      monthly_payment: offerData.monthly_payment
-    });
-    
-    // Générer le PDF
-    const filename = await generateOfferPdf(offerData);
-    
-    toast.success(`PDF généré avec succès: ${filename}`);
-    return filename;
-  } catch (error) {
-    console.error("Erreur lors de la génération du PDF:", error);
-    toast.error(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    return null;
-  }
-};
-
-/**
  * Récupère une offre complète avec les données client pour générer un PDF
  */
 export const getOfferDataForPdf = async (offerId: string) => {
@@ -318,10 +281,15 @@ export const getOfferDataForPdf = async (offerId: string) => {
         )
       `)
       .eq('id', offerId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Erreur lors de la récupération de l\'offre pour le PDF:', error);
+      return null;
+    }
+
+    if (!data) {
+      console.error("Aucune donnée d'offre trouvée pour l'ID:", offerId);
       return null;
     }
 
