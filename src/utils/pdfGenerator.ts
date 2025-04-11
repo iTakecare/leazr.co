@@ -37,7 +37,7 @@ export const generateOfferPdf = async (offerData) => {
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait' as 'portrait' | 'landscape', // Correction: utiliser type literal
+        orientation: 'portrait' as 'portrait' | 'landscape',
         compress: true,
         precision: 16,
         hotfixes: ["px_scaling"]
@@ -83,7 +83,7 @@ export const generateOfferPdf = async (offerData) => {
     
     // Générer le PDF avec promesse pour assurer la complétion
     console.log("Génération du PDF en cours...");
-    await html2pdf()
+    const pdf = await html2pdf()
       .from(container)
       .set(options)
       .save();

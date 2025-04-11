@@ -1,71 +1,101 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
+import { OfferData } from "./types";
+import { calculateCommissionByLevel } from "@/utils/calculator";
 
-// Interface pour les données d'offre
-export interface CreateOfferData {
-  client_id: string;
-  client_name: string;
-  client_email: string;
-  equipment_description: string;
-  amount: number;
-  coefficient: number;
-  monthly_payment: number;
-  commission?: number;
-  financed_amount?: number;
-  workflow_status: string;
-  type: string;
-  user_id: string;
-  remarks?: string;
-  total_margin_with_difference?: string;
-  margin?: string;
-}
-
-/**
- * Crée une nouvelle offre dans la base de données
- * @param data Les données de l'offre à créer
- * @returns Les données de l'offre créée ou une erreur
- */
-export const createOffer = async (data: CreateOfferData) => {
+export const createOffer = async (offerData: OfferData) => {
   try {
-    // Vérifier que les champs obligatoires sont présents
-    if (!data.client_id || !data.client_name || !data.equipment_description) {
-      throw new Error("Données d'offre incomplètes");
-    }
-
-    console.log("Création d'une nouvelle offre avec les données:", {
-      client_id: data.client_id,
-      client_name: data.client_name,
-      amount: data.amount,
-      monthly_payment: data.monthly_payment,
-      type: data.type
-    });
-
-    // Ajouter une valeur par défaut pour les champs facultatifs
-    const offerData = {
-      ...data,
-      id: uuidv4(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      converted_to_contract: false,
+    // Log for debugging - critical point
+    console.log("COMMISSION FROM OFFER DATA:", offerData.commission);
+    
+    // Ensure numeric values are properly converted
+    const offerDataToSave = {
+      ...offerData,
+      amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
+      coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
+      monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
+      commission: offerData.commission !== undefined && offerData.commission !== null ? 
+        (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
+        undefined
     };
 
-    // Insérer l'offre dans la base de données
-    const { data: newOffer, error } = await supabase
-      .from("offers")
-      .insert(offerData)
-      .select()
-      .single();
+    // Debugging logs
+    console.log("Parsed commission value:", offerDataToSave.commission);
+    console.log("Commission type:", typeof offerDataToSave.commission);
 
-    if (error) {
-      console.error("Erreur lors de la création de l'offre:", error);
-      throw error;
+    // Vérification pour commission invalide (NaN)
+    if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
+      console.warn("Commission invalide détectée (NaN) dans createOffer.ts, définition à 0");
+      offerDataToSave.commission = 0;
     }
 
-    console.log("Offre créée avec succès:", newOffer.id);
-    return { data: newOffer, error: null };
+    // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
+    // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
+    if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
+      console.log(`Utilisation de la commission fournie explicitement dans les données: ${offerDataToSave.commission}`);
+    }
+    // Sinon, essayons de calculer la commission en fonction du type d'offre
+    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+      // Récupérer l'ambassador_id associé à cet utilisateur
+      const { data: ambassadorData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id, commission_level_id')
+        .eq('user_id', offerData.user_id)
+        .single();
+        
+      if (!ambassadorError && ambassadorData) {
+        offerDataToSave.ambassador_id = ambassadorData.id;
+        
+        // Si nous avons un montant et un niveau de commission, recalculons la commission
+        if (offerDataToSave.amount && ambassadorData.commission_level_id) {
+          try {
+            // Ensure amount is a number for calculation
+            const amount = typeof offerDataToSave.amount === 'string' 
+              ? parseFloat(offerDataToSave.amount) 
+              : offerDataToSave.amount;
+              
+            const commissionData = await calculateCommissionByLevel(
+              Number(amount),
+              ambassadorData.commission_level_id,
+              'ambassador',
+              ambassadorData.id
+            );
+            
+            if (commissionData && commissionData.amount) {
+              offerDataToSave.commission = commissionData.amount;
+              console.log(`Commission calculée pour l'ambassadeur: ${commissionData.amount}`);
+            }
+          } catch (commError) {
+            console.error("Error calculating commission during offer creation:", commError);
+          }
+        }
+      }
+    }
+    
+    // Log the final data being saved
+    console.log("Données finales de l'offre avant sauvegarde:", {
+      amount: offerDataToSave.amount,
+      coefficient: offerDataToSave.coefficient,
+      monthly_payment: offerDataToSave.monthly_payment,
+      commission: offerDataToSave.commission,
+      type: offerDataToSave.type
+    });
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .insert(offerDataToSave)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erreur lors de l'insertion de l'offre:", error);
+      return { data: null, error };
+    }
+    
+    console.log("Offre créée avec succès, données:", data);
+    return { data, error: null };
   } catch (error) {
-    console.error("Erreur lors de la création de l'offre:", error);
+    console.error("Error in createOffer:", error);
     return { data: null, error };
   }
 };

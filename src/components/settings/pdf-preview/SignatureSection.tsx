@@ -8,7 +8,6 @@ interface SignatureSectionProps {
   signerName?: string;
   signedAt?: string;
   monthlyPayment?: number;
-  signerIp?: string;
 }
 
 const SignatureSection: React.FC<SignatureSectionProps> = ({
@@ -17,8 +16,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   signatureData,
   signerName,
   signedAt,
-  monthlyPayment = 0,
-  signerIp
+  monthlyPayment = 0
 }) => {
   // Calculer la position bottom pour l'espace de signature
   const bottomPosition = 40 * scaleFactor;
@@ -97,7 +95,6 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
           >
             Signé électroniquement par {signerName || "le client"}
             {signedAt ? ` le ${formatDate(signedAt)}` : ""}
-            {signerIp && <div style={{ fontSize: `${8 * scaleFactor}px` }}>IP: {signerIp}</div>}
           </div>
         </div>
       ) : (

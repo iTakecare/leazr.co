@@ -104,3 +104,4 @@ const SignaturePad: React.FC<SignaturePadProps> = ({
 };
 
 export default SignaturePad;
+

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 
@@ -22,7 +21,6 @@ interface OfferPDFTemplateProps {
     signature_data?: string;
     signer_name?: string;
     signed_at?: string;
-    signer_ip?: string;
   };
 }
 
@@ -389,11 +387,6 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
               }}>
                 Signé électroniquement par {offer.signer_name || "le client"} 
                 {offer.signed_at ? ` le ${formatLegalTimestamp(offer.signed_at)}` : ""}
-                {offer.signer_ip && (
-                  <div style={{ fontSize: "7pt", color: "#6B7280", marginTop: "1mm" }}>
-                    IP: {offer.signer_ip}
-                  </div>
-                )}
               </div>
             </div>
           ) : (

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getOffers } from "@/services/offers";
+import { getAllOffers } from "@/services/offers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
@@ -37,16 +37,12 @@ export interface Offer {
     email?: string;
     company?: string;
   };
-  signature_data?: string;
-  signer_name?: string;
-  signed_at?: string;
-  signer_ip?: string;
 }
 
 export const useFetchOffers = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
 
   const fetchOffers = async () => {
@@ -54,19 +50,16 @@ export const useFetchOffers = () => {
     setLoadingError(null);
 
     try {
-      console.log("Début de la récupération des offres...");
-      const { data, error } = await getOffers(includeConverted);
+      const { data, error } = await getAllOffers();
       
       if (error) {
         console.error("Error fetching offers:", error);
-        setLoadingError(error.message || "Erreur lors du chargement des offres");
+        setLoadingError(error);
         toast.error("Erreur lors du chargement des offres");
         return;
       }
       
       if (data) {
-        console.log(`${data.length} offres récupérées avec succès`);
-        
         // Process each offer to ensure financed_amount is calculated if not present
         const processedOffers = data.map(offer => {
           // If financed_amount is missing or zero but we have monthly_payment
@@ -99,12 +92,11 @@ export const useFetchOffers = () => {
         
         setOffers(validOffers);
       } else {
-        console.log("Aucune offre trouvée");
         setOffers([]);
       }
     } catch (err: any) {
       console.error("Error in fetchOffers:", err);
-      setLoadingError(err.message || "Erreur inconnue lors du chargement des offres");
+      setLoadingError(err);
       toast.error("Erreur lors du chargement des offres");
     } finally {
       setLoading(false);
@@ -112,7 +104,6 @@ export const useFetchOffers = () => {
   };
 
   useEffect(() => {
-    console.log("useFetchOffers: chargement initial des offres");
     fetchOffers();
     
     // Listen for real-time updates
