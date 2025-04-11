@@ -325,6 +325,7 @@ const PartnerCreateOffer = () => {
         financed_amount: financedAmount,
         additional_info: remarks,
         type: 'partner_offer',
+        workflow_status: 'draft', // Ajout du champ manquant
         total_margin_with_difference: totalMarginWithDifferenceString
       };
 

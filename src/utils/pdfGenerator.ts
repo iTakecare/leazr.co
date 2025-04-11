@@ -37,7 +37,7 @@ export const generateOfferPdf = async (offerData) => {
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait', // Correction: supprimer as 'portrait' | 'landscape'
+        orientation: 'portrait' as 'portrait' | 'landscape', // Correction: utiliser type literal
         compress: true,
         precision: 16,
         hotfixes: ["px_scaling"]

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getAllOffers } from "@/services/offers";
+import { getOffers } from "@/services/offers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
@@ -55,7 +55,7 @@ export const useFetchOffers = () => {
 
     try {
       console.log("Début de la récupération des offres...");
-      const { data, error } = await getAllOffers(includeConverted);
+      const { data, error } = await getOffers(includeConverted);
       
       if (error) {
         console.error("Error fetching offers:", error);

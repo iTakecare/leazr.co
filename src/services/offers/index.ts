@@ -4,7 +4,9 @@ export * from './getOffers';
 export * from './offerDetail';
 export * from './offerEquipment';
 export * from './offerNotes';
-export * from './offerPdf';
+// Nous supprimons l'export de offerPdf pour éviter les duplications
+// car offerSignature exporte déjà ces fonctions
+// export * from './offerPdf';
 export * from './offerSignature';
 export * from './offerStatus';
 export * from './offerWorkflow';
