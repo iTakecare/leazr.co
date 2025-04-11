@@ -1,83 +1,27 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const mockOffers = [
-  {
-    id: "1",
-    client_name: "Entreprise ABC",
-    amount: 25000,
-    monthly_payment: 720,
-    commission: 1250,
-    status: "accepted",
-    workflow_status: "client_approved",
-    created_at: "2025-03-01T09:30:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "2",
-    client_name: "Clinique Santé+",
-    amount: 18500,
-    monthly_payment: 540,
-    commission: 925,
-    status: "pending",
-    workflow_status: "client_waiting",
-    created_at: "2025-03-05T14:15:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "3",
-    client_name: "Cabinet Dentaire Sourire",
-    amount: 32000,
-    monthly_payment: 910,
-    commission: 1600,
-    status: "rejected",
-    workflow_status: "client_no_response",
-    created_at: "2025-02-22T11:20:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "4",
-    client_name: "Centre Imagerie Médicale",
-    amount: 45000,
-    monthly_payment: 1250,
-    commission: 2250,
-    status: "accepted",
-    workflow_status: "leaser_approved",
-    created_at: "2025-02-15T10:00:00Z",
-    type: "admin_offer"
-  }
-];
-
+// Note: cette fonction est conservée pour compatibilité mais n'est plus utilisée directement
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => {
-        console.log("Timeout atteint, utilisation des données mockées");
-        reject(new Error("Timeout lors de la récupération des offres"));
-      }, 5000)
-    );
+    console.log("Récupération des offres (includeConverted:", includeConverted, ")");
     
-    const fetchPromise = supabase
+    const { data, error } = await supabase
       .from('offers')
       .select('*, clients(name, email, company)')
-      .eq('converted_to_contract', includeConverted ? false : false)
+      .eq('converted_to_contract', includeConverted)
       .order('created_at', { ascending: false });
     
-    const { data, error } = await Promise.race([
-      fetchPromise,
-      timeoutPromise,
-    ]) as any;
+    if (error) {
+      console.error("Erreur lors de la récupération des offres:", error);
+      throw error;
+    }
     
-    if (error) throw error;
-    
+    console.log(`Récupération réussie: ${data?.length || 0} offres trouvées`);
     return data || [];
   } catch (error) {
-    console.error("Error fetching offers:", error);
-    const mockOffersWithType = mockOffers.map(offer => ({
-      ...offer,
-      type: 'admin_offer'
-    }));
-    return mockOffersWithType;
+    console.error("Erreur dans getOffers:", error);
+    throw error;
   }
 };
 
