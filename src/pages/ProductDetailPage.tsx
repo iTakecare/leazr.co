@@ -396,6 +396,7 @@ const ProductDetailPage = () => {
                       duration={duration}
                       currentPrice={currentPrice}
                       selectedOptions={selectedOptions}
+                      navigateToCart={false}
                     />
                     <Button 
                       variant="outline" 

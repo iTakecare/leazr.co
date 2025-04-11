@@ -37,6 +37,7 @@ const PriceBox: React.FC<PriceBoxProps> = ({
             quantity={quantity}
             duration={duration}
             selectedOptions={selectedOptions}
+            navigateToCart={false}
           />
         ) : (
           <Button 
