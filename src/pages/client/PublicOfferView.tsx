@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,17 @@ const PublicOfferView = () => {
     signature,
     isPrintingPdf,
     handleSignature,
-    handlePrintPdf
+    handlePrintPdf,
+    debugInfo
   } = useClientOffer(id);
+
+  // Ajout de logs pour debugger
+  useEffect(() => {
+    if (offer) {
+      console.log("Offer data:", offer);
+      console.log("Parsed equipment:", offer.parsedEquipment);
+    }
+  }, [offer]);
 
   if (loading) {
     return (
@@ -64,8 +73,11 @@ const PublicOfferView = () => {
 
   // Parse equipment if available
   const renderEquipmentDetails = () => {
+    console.log("Rendering equipment details...");
+    
     // Check for parsed equipment
     if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
+      console.log("Using parsedEquipment:", offer.parsedEquipment);
       return (
         <EquipmentDetailTable 
           equipment={offer.parsedEquipment}
@@ -77,6 +89,7 @@ const PublicOfferView = () => {
     
     // Fallback to traditional equipment display
     if (offer.equipment_description) {
+      console.log("Falling back to equipment_description:", offer.equipment_description);
       return (
         <EquipmentDisplay 
           equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
@@ -86,6 +99,7 @@ const PublicOfferView = () => {
       );
     }
     
+    console.log("No equipment data found");
     return null;
   };
 
@@ -158,6 +172,20 @@ const PublicOfferView = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Section de débogage */}
+        {debugInfo && (
+          <Card className="mb-6 overflow-hidden">
+            <CardHeader className="bg-orange-100 text-orange-800">
+              <CardTitle className="text-sm">Informations de débogage</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <pre className="text-xs overflow-auto p-2 bg-gray-100 rounded">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
