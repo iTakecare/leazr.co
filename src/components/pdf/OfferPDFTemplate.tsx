@@ -22,6 +22,7 @@ interface OfferPDFTemplateProps {
     signature_data?: string;
     signer_name?: string;
     signed_at?: string;
+    signer_ip?: string;
   };
 }
 
