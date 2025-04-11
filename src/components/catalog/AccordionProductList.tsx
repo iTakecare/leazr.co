@@ -107,17 +107,13 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       try {
         setIsDeleting(prev => ({ ...prev, [productId]: true }));
         await onProductDeleted(productId);
-        toast({
-          title: "Produit supprimé",
-          description: "Le produit a été supprimé avec succès",
-          variant: "default",
+        toast.success("Produit supprimé", {
+          description: "Le produit a été supprimé avec succès"
         });
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
-        toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors de la suppression",
-          variant: "destructive",
+        toast.error("Erreur", {
+          description: "Une erreur est survenue lors de la suppression"
         });
       } finally {
         setIsDeleting(prev => ({ ...prev, [productId]: false }));
@@ -136,24 +132,18 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     try {
       const duplicatedProduct = await duplicateProduct(product.id);
       
-      toast.success(
-        `Produit dupliqué avec succès`,
-        {
-          description: `"${product.name}" a été copié en "${duplicatedProduct.name}"`,
-          duration: 5000
-        }
-      );
+      toast.success(`Produit dupliqué avec succès`, {
+        description: `"${product.name}" a été copié en "${duplicatedProduct.name}"`,
+        duration: 5000
+      });
       
       window.location.reload();
     } catch (error) {
       console.error("Erreur lors de la duplication:", error);
-      toast.error(
-        "Erreur lors de la duplication",
-        {
-          description: "Une erreur est survenue. Veuillez réessayer.",
-          duration: 5000
-        }
-      );
+      toast.error("Erreur lors de la duplication", {
+        description: "Une erreur est survenue. Veuillez réessayer.",
+        duration: 5000
+      });
     } finally {
       setIsDuplicating(prev => ({ ...prev, [product.id]: false }));
     }
