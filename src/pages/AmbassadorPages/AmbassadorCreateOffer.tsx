@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const AmbassadorCreateOffer = () => {
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -166,7 +168,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleOpenCatalog = () => {
-    // Fonctionnalité à implémenter si nécessaire
+    setIsCatalogOpen(true);
   };
   
   const handleProductSelect = (product: any) => {

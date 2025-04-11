@@ -39,6 +39,7 @@ const AmbassadorCreateOffer = () => {
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -166,7 +167,38 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleOpenCatalog = () => {
-    // Fonctionnalité à implémenter si nécessaire
+    setIsCatalogOpen(true);
+  };
+  
+  const handleProductSelect = (product: any) => {
+    if (!selectedLeaser) return;
+    
+    console.log("Selected product:", product);
+    
+    const purchasePrice = product.price || 0;
+    const monthlyPrice = product.monthly_price || 0;
+    const coef = findCoefficient(purchasePrice);
+    const margin = 20;
+    
+    // Extract product attributes and specifications
+    const { attributes, specifications } = extractProductData(product);
+    
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: product.name,
+      purchasePrice: purchasePrice,
+      quantity: 1,
+      margin: Number(margin),
+      attributes,
+      specifications
+    });
+
+    if (monthlyPrice > 0) {
+      console.log("Setting target monthly payment:", monthlyPrice);
+      setTargetMonthlyPayment(monthlyPrice);
+    }
+    
+    setIsCatalogOpen(false);
   };
   
   const handleSaveOffer = async () => {
@@ -290,37 +322,6 @@ const AmbassadorCreateOffer = () => {
     }
   };
   
-  const handleProductSelect = (product: any) => {
-    if (!selectedLeaser) return;
-    
-    console.log("Selected product:", product);
-    
-    const purchasePrice = product.price || 0;
-    const monthlyPrice = product.monthly_price || 0;
-    const coef = findCoefficient(purchasePrice);
-    const margin = 20;
-    
-    // Extract product attributes and specifications
-    const { attributes, specifications } = extractProductData(product);
-    
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: product.name,
-      purchasePrice: purchasePrice,
-      quantity: 1,
-      margin: Number(margin),
-      attributes,
-      specifications
-    });
-
-    if (monthlyPrice > 0) {
-      console.log("Setting target monthly payment:", monthlyPrice);
-      setTargetMonthlyPayment(monthlyPrice);
-    }
-    
-    setIsCatalogOpen(false);
-  };
-
   const clientInfoProps = {
     clientId: client?.id || null,
     clientName: client?.name || "",

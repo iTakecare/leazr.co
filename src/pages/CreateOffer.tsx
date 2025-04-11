@@ -36,6 +36,7 @@ const CreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [isInternalOffer, setIsInternalOffer] = useState(true);
 
@@ -126,7 +127,7 @@ const CreateOffer = () => {
   };
 
   const handleOpenCatalog = () => {
-    // Fonctionnalité à implémenter si nécessaire
+    setIsCatalogOpen(true);
   };
 
   const handleProductSelect = (product: any) => {
