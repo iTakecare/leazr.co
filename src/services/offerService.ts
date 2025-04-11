@@ -46,6 +46,60 @@ import {
 // Import and re-export from other offer service files
 export * from './offers';
 
+/**
+ * Transforme un produit du catalogue en équipement pour une offre
+ */
+export const transformProductToEquipment = (
+  product: any, 
+  offerId: string,
+  margin: number = 20,
+  quantity: number = 1,
+  monthlyPayment?: number
+) => {
+  if (!product) return null;
+  
+  console.log("Transforming product to equipment:", product);
+  
+  // Données de base de l'équipement
+  const equipment = {
+    offer_id: offerId,
+    title: product.name,
+    purchase_price: Number(product.price) || 0,
+    quantity: quantity,
+    margin: margin,
+    monthly_payment: monthlyPayment || product.monthly_price,
+    serial_number: product.sku || null
+  };
+  
+  // Extraire les attributs du produit
+  const attributes: Record<string, string> = {};
+  if (product.attributes && typeof product.attributes === 'object') {
+    Object.entries(product.attributes).forEach(([key, value]) => {
+      attributes[key] = String(value);
+    });
+  }
+  
+  // Extraire les spécifications du produit
+  const specifications: Record<string, string> = {};
+  if (product.specifications && typeof product.specifications === 'object') {
+    Object.entries(product.specifications).forEach(([key, value]) => {
+      specifications[key] = String(value);
+    });
+  }
+  
+  console.log("Transformed equipment:", {
+    equipment,
+    attributes,
+    specifications
+  });
+  
+  return {
+    equipment,
+    attributes,
+    specifications
+  };
+};
+
 // Explicitly re-export named exports that might conflict with star exports
 export {
   generateAndDownloadOfferPdf,
@@ -68,7 +122,9 @@ export {
   saveEquipment,
   migrateEquipmentFromJson,
   convertEquipmentToJson,
-  forceMigrateEquipmentData
+  forceMigrateEquipmentData,
+  // Nouvel export
+  transformProductToEquipment
 };
 
 // Export functions from offerDetail directly

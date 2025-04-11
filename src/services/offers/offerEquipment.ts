@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   OfferEquipment, 
@@ -73,6 +72,12 @@ export const saveEquipment = async (
   specifications: Record<string, string | number> = {}
 ): Promise<OfferEquipment | null> => {
   try {
+    console.log("Saving equipment with data:", {
+      equipment,
+      attributes,
+      specifications
+    });
+    
     // 1. Insérer l'équipement principal
     const { data: equipmentData, error: equipmentError } = await supabase
       .from('offer_equipment')
@@ -104,6 +109,8 @@ export const saveEquipment = async (
         value: String(value)
       }));
       
+      console.log("Inserting attributes:", attributesToInsert);
+      
       const { error: attributesError } = await supabase
         .from('offer_equipment_attributes')
         .insert(attributesToInsert);
@@ -121,6 +128,8 @@ export const saveEquipment = async (
         key,
         value: String(value)
       }));
+      
+      console.log("Inserting specifications:", specificationsToInsert);
       
       const { error: specificationsError } = await supabase
         .from('offer_equipment_specifications')
@@ -302,8 +311,10 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       .delete()
       .eq('offer_id', offerId);
     
-    // Migrer chaque équipement
+    // Migrer chaque équipment
     for (const item of equipmentData) {
+      console.log("Traitement de l'élément:", item);
+      
       // Créer l'équipement de base
       const newEquipment = {
         offer_id: offerId,
@@ -315,8 +326,35 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         serial_number: item.serialNumber || item.serial_number
       };
       
-      // Extraire les attributs et spécifications
-      const { attributes, specifications } = extractAttributesAndSpecs(item);
+      // Extraire les attributs et spécifications en gardant un log
+      console.log("Extraction des attributs et spécifications pour:", newEquipment.title);
+      
+      let attributes: Record<string, string> = {};
+      let specifications: Record<string, string> = {};
+      
+      // Cas 1: Traiter les attributs et spécifications déjà structurés
+      if (item.attributes && typeof item.attributes === 'object') {
+        attributes = Object.entries(item.attributes).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>);
+        console.log("Attributs extraits directement:", attributes);
+      }
+      
+      if (item.specifications && typeof item.specifications === 'object') {
+        specifications = Object.entries(item.specifications).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>);
+        console.log("Spécifications extraites directement:", specifications);
+      } else if (item.variants && typeof item.variants === 'object') {
+        // Compatible avec l'ancien format qui utilisait "variants"
+        specifications = Object.entries(item.variants).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>);
+        console.log("Variantes converties en spécifications:", specifications);
+      }
       
       // Sauvegarder l'équipement avec ses attributs et spécifications
       await saveEquipment(newEquipment, attributes, specifications);
