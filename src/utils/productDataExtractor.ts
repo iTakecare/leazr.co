@@ -6,20 +6,24 @@ export const extractProductData = (product: any) => {
   const attributes: Record<string, string> = {};
   const specifications: Record<string, string | number> = {};
   
-  // Extract attributes from product
+  console.log("Extracting data from product:", product);
+  
+  // Extract attributes directly from product
   if (product.attributes && typeof product.attributes === 'object') {
     // Copy all attributes
     Object.entries(product.attributes).forEach(([key, value]) => {
       attributes[key] = String(value);
     });
+    console.log("Attributes extracted directly:", attributes);
   }
   
-  // Extract specifications from product
+  // Extract specifications directly from product
   if (product.specifications && typeof product.specifications === 'object') {
     // Copy all specifications
     Object.entries(product.specifications).forEach(([key, value]) => {
       specifications[key] = value as string | number;
     });
+    console.log("Specifications extracted directly:", specifications);
   }
   
   // For variant products, check for selected variant data
@@ -33,6 +37,7 @@ export const extractProductData = (product: any) => {
       Object.entries(selectedVariant.attributes).forEach(([key, value]) => {
         attributes[key] = String(value);
       });
+      console.log("Added variant-specific attributes:", selectedVariant.attributes);
     }
   }
   

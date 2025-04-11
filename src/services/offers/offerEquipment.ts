@@ -316,32 +316,43 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         serial_number: item.serialNumber || item.serial_number
       };
       
-      // Extraire les attributs directement depuis l'objet d'origine
-      let attributes: Record<string, string> = {};
-      // Enregistrer explicitement les attributs pour le débogage
-      console.log("Item original avec attributs et spécifications:", item);
+      console.log("Item original complet:", JSON.stringify(item, null, 2));
       
+      // Vérifier et loguer si item.attributes existe
+      if (item.attributes) {
+        console.log("Attributs détectés dans l'équipement:", typeof item.attributes, item.attributes);
+      } else {
+        console.log("Aucun attribut détecté dans l'équipement");
+      }
+      
+      // Vérifier et loguer si item.specifications existe
+      if (item.specifications) {
+        console.log("Spécifications détectées dans l'équipement:", typeof item.specifications, item.specifications);
+      } else {
+        console.log("Aucune spécification détectée dans l'équipement");
+      }
+      
+      // Extraire les attributs
+      let attributes: Record<string, string> = {};
       if (item.attributes && typeof item.attributes === 'object') {
-        // Utiliser directement les attributs fournis
         attributes = Object.entries(item.attributes).reduce((acc, [key, value]) => {
           acc[key] = String(value);
           return acc;
         }, {} as Record<string, string>);
-        console.log(`Attributs extraits pour ${item.title}:`, attributes);
+        console.log("Attributs extraits:", attributes);
       }
       
-      // Extraire les spécifications directement
+      // Extraire les spécifications
       let specifications: Record<string, string | number> = {};
       if (item.specifications && typeof item.specifications === 'object') {
-        // Utiliser directement les spécifications fournies
         specifications = Object.entries(item.specifications).reduce((acc, [key, value]) => {
           acc[key] = String(value);
           return acc;
         }, {} as Record<string, string | number>);
-        console.log(`Spécifications extraites pour ${item.title}:`, specifications);
+        console.log("Spécifications extraites:", specifications);
       }
       
-      // Si aucun attribut ou spécification n'a été trouvé, utiliser la méthode existante
+      // Si les attributs et spécifications sont vides, essayer l'extracteur alternatif
       if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0) {
         const extracted = extractAttributesAndSpecs(item);
         attributes = extracted.attributes;

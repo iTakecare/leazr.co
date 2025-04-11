@@ -242,6 +242,8 @@ const PartnerCreateOffer = () => {
     
     // Extract product attributes and specifications
     const { attributes, specifications } = extractProductData(product);
+    console.log("Partner offer - extracted attributes:", attributes);
+    console.log("Partner offer - extracted specifications:", specifications);
     
     setEquipment({
       id: crypto.randomUUID(),

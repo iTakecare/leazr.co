@@ -25,6 +25,7 @@ import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 import { OfferType } from "@/services/offers/types";
 import { extractProductData } from '@/utils/productDataExtractor';
+import ProductSelector from "@/components/ui/ProductSelector";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -182,6 +183,8 @@ const AmbassadorCreateOffer = () => {
     
     // Extract product attributes and specifications
     const { attributes, specifications } = extractProductData(product);
+    console.log("Extracted attributes for ambassador offer:", attributes);
+    console.log("Extracted specifications for ambassador offer:", specifications);
     
     setEquipment({
       id: crypto.randomUUID(),
@@ -220,10 +223,7 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      const totalPurchasePrice = equipmentList.reduce(
-        (sum, item) => sum + (item.purchasePrice * item.quantity),
-        0
-      );
+      console.log("Equipment list with attributes before saving:", equipmentList);
       
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
@@ -375,6 +375,14 @@ const AmbassadorCreateOffer = () => {
           onClose={() => setLeaserSelectorOpen(false)}
           onSelect={handleLeaserSelect}
           selectedLeaser={selectedLeaser}
+        />
+        
+        <ProductSelector
+          isOpen={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onSelectProduct={handleProductSelect}
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
         
         <div className="py-12 px-4">

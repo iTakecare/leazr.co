@@ -26,6 +26,7 @@ import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
 import { OfferType } from "@/services/offers/types";
 import { extractProductData } from '@/utils/productDataExtractor';
+import ProductSelector from "@/components/ui/ProductSelector";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -142,6 +143,8 @@ const CreateOffer = () => {
     
     // Extract product attributes and specifications
     const { attributes, specifications } = extractProductData(product);
+    console.log("Extracted attributes:", attributes);
+    console.log("Extracted specifications:", specifications);
     
     setEquipment({
       id: crypto.randomUUID(),
@@ -184,7 +187,10 @@ const CreateOffer = () => {
         (sum, item) => sum + (item.purchasePrice * item.quantity),
         0
       );
-
+      
+      // Make sure we preserve the attributes and specifications for each equipment
+      console.log("Equipment list with attributes and specs before saving:", equipmentList);
+      
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -333,6 +339,14 @@ const CreateOffer = () => {
           onClose={() => setLeaserSelectorOpen(false)}
           onSelect={handleLeaserSelect}
           selectedLeaser={selectedLeaser}
+        />
+        
+        <ProductSelector
+          isOpen={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onSelectProduct={handleProductSelect}
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
 
         <div className="py-12 px-4">
