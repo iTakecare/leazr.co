@@ -228,13 +228,14 @@ const extractAttributesAndSpecs = (item: any): { attributes: Record<string, stri
   const attributes: Record<string, string> = {};
   const specifications: Record<string, string> = {};
   
-  // Cas 1: L'élément a déjà des attributs et spécifications structurés
+  // Cas 1: L'élément a déjà des attributs structurés
   if (item.attributes && typeof item.attributes === 'object') {
     Object.entries(item.attributes).forEach(([key, value]) => {
       attributes[key] = String(value);
     });
   }
   
+  // Cas 2: L'élément a des spécifications structurées
   if (item.specifications && typeof item.specifications === 'object') {
     Object.entries(item.specifications).forEach(([key, value]) => {
       specifications[key] = String(value);
@@ -246,8 +247,8 @@ const extractAttributesAndSpecs = (item: any): { attributes: Record<string, stri
     });
   }
   
-  // Cas 2: Analyser le titre pour en extraire des spécifications si nécessaire
-  if (Object.keys(specifications).length === 0 && item.title) {
+  // Si aucun attribut ou spécification n'a été trouvé, essayons d'analyser le titre
+  if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0 && item.title) {
     const { specs, attributes: parsedAttrs } = parseEquipmentSpecsFromText(item.title);
     
     // Ajouter les spécifications analysées
@@ -315,8 +316,34 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         serial_number: item.serialNumber || item.serial_number
       };
       
-      // Extraire les attributs et spécifications
-      const { attributes, specifications } = extractAttributesAndSpecs(item);
+      // Extraire les attributs et spécifications de manière plus robuste
+      let attributes: Record<string, string> = {};
+      let specifications: Record<string, string | number> = {};
+      
+      // Extraire les attributs directement
+      if (item.attributes && typeof item.attributes === 'object') {
+        attributes = Object.entries(item.attributes).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>);
+        console.log(`Attributs extraits pour ${item.title}:`, attributes);
+      }
+      
+      // Extraire les spécifications directement
+      if (item.specifications && typeof item.specifications === 'object') {
+        specifications = Object.entries(item.specifications).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string | number>);
+        console.log(`Spécifications extraites pour ${item.title}:`, specifications);
+      }
+      
+      // Si aucun attribut ou spécification n'a été trouvé, utilisez la méthode existante
+      if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0) {
+        const extracted = extractAttributesAndSpecs(item);
+        attributes = extracted.attributes;
+        specifications = extracted.specifications;
+      }
       
       // Sauvegarder l'équipement avec ses attributs et spécifications
       await saveEquipment(newEquipment, attributes, specifications);
