@@ -51,7 +51,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   const [confirmation, setConfirmation] = useState("");
   
   // Création du texte attendu en fonction du montant mensuel
-  const expectedConfirmation = `Bon pour accord pour ${monthlyPayment.toLocaleString('fr-FR')}€ pendant 36 mois`;
+  const expectedConfirmation = `Bon pour accord pour ${monthlyPayment.toLocaleString('fr-FR')}€ hors TVA par mois pendant 36 mois`;
   const isConfirmationValid = confirmation.trim().toLowerCase() === expectedConfirmation.toLowerCase();
   
   const handleSign = (signatureData: string) => {

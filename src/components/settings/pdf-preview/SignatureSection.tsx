@@ -76,7 +76,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             className="text-center italic text-gray-500 mb-2"
             style={{ fontSize: `${10 * scaleFactor}px` }}
           >
-            Bon pour accord pour {formatAmount(monthlyPayment)}€ pendant 36 mois
+            Bon pour accord pour {formatAmount(monthlyPayment)}€ hors TVA par mois pendant 36 mois
           </div>
           <img 
             src={signatureData} 
@@ -115,7 +115,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
             fontSize: `${10 * scaleFactor}px`, 
             fontStyle: "italic" 
           }}>
-            Signature précédée de "Bon pour accord pour {formatAmount(monthlyPayment)}€ pendant 36 mois"
+            Signature précédée de "Bon pour accord pour {formatAmount(monthlyPayment)}€ hors TVA par mois pendant 36 mois"
           </p>
         </div>
       )}

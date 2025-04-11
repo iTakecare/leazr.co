@@ -366,7 +366,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 marginBottom: "2mm",
                 color: "#4B5563"
               }}>
-                Bon pour accord pour {formatCurrency(offer.monthly_payment)} pendant 36 mois
+                Bon pour accord pour {formatCurrency(offer.monthly_payment)} hors TVA par mois pendant 36 mois
               </div>
               <img 
                 src={offer.signature_data} 
@@ -404,7 +404,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                 fontStyle: "italic",
                 textAlign: "center"
               }}>
-                Signature précédée de<br/>"Bon pour accord pour {formatCurrency(offer.monthly_payment)} pendant 36 mois"
+                Signature précédée de<br/>"Bon pour accord pour {formatCurrency(offer.monthly_payment)} hors TVA par mois pendant 36 mois"
               </p>
             </div>
           )}
