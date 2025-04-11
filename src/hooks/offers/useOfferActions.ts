@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -115,8 +114,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         {
           id: offer.id,
           description: equipmentDescription,
-          amount: offer.amount || 0,
-          monthlyPayment: Number(offer.monthly_payment) || 0
+          amount: typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0),
+          monthlyPayment: Number(offer.monthly_payment || 0)
         }
       );
       
