@@ -61,13 +61,25 @@ const ProductDataTracker: React.FC = () => {
       quantity: 1,
       margin: 20,
       monthlyPayment: mockProduct.monthly_price,
-      // Préserver les attributs et spécifications
-      attributes: mockProduct.attributes as Record<string, string>,
-      specifications: mockProduct.specifications as Record<string, string>
+      // Préserver les attributs et spécifications - convertir en Record<string, string>
+      attributes: convertAttributesToStringRecord(mockProduct.attributes),
+      specifications: convertAttributesToStringRecord(mockProduct.specifications)
     };
     
     setEquipment(newEquipment);
     console.log("Équipement créé:", newEquipment);
+  };
+
+  // Fonction utilitaire pour convertir les attributs
+  const convertAttributesToStringRecord = (attributes?: Record<string, any>): Record<string, string> => {
+    if (!attributes) return {};
+    
+    const result: Record<string, string> = {};
+    Object.entries(attributes).forEach(([key, value]) => {
+      result[key] = String(value);
+    });
+    
+    return result;
   };
 
   // Simuler l'ajout de l'équipement à la liste (et sa transformation en JSON)
@@ -231,10 +243,10 @@ const ProductDataTracker: React.FC = () => {
             <div className="w-full">
               {reconstructedEquipment && (
                 <div className="flex flex-col gap-2">
-                  <Badge variant={reconstructedEquipment.attributes ? "success" : "destructive"} className="self-start">
+                  <Badge variant={reconstructedEquipment.attributes ? "secondary" : "destructive"} className="self-start">
                     {reconstructedEquipment.attributes ? "Attributs préservés ✓" : "Attributs perdus ✗"}
                   </Badge>
-                  <Badge variant={reconstructedEquipment.specifications ? "success" : "destructive"} className="self-start">
+                  <Badge variant={reconstructedEquipment.specifications ? "secondary" : "destructive"} className="self-start">
                     {reconstructedEquipment.specifications ? "Spécifications préservées ✓" : "Spécifications perdues ✗"}
                   </Badge>
                 </div>
