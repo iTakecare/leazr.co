@@ -1,4 +1,3 @@
-
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -30,13 +29,6 @@ export interface OfferData {
   };
 }
 
-export interface RequestInfoData {
-  offerId: string;
-  previousStatus: string;
-  requestedDocs: string[];
-  message?: string;
-}
-
 export enum OfferStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
@@ -52,6 +44,13 @@ export enum OfferWorkflowStatus {
   SIGNED = 'signed',
   ARCHIVED = 'archived',
   REJECTED = 'rejected'
+}
+
+export interface RequestInfoData {
+  offerId: string;
+  previousStatus: string;
+  requestedDocs: string[];
+  message?: string;
 }
 
 export interface OfferWorkflowStatusUpdate {
