@@ -12,7 +12,8 @@ import {
 import { 
   isOfferSigned, 
   saveOfferSignature, 
-  generateSignatureLink 
+  generateSignatureLink,
+  getOfferForClient
 } from './offers/offerSignature';
 
 import {
@@ -43,10 +44,7 @@ import {
   forceMigrateEquipmentData
 } from './offers/offerEquipment';
 
-// Import and re-export from other offer service files
-export * from './offers';
-
-// Explicitly re-export named exports that might conflict with star exports
+// Explicitly re-export the non-conflicting functions
 export {
   generateAndDownloadOfferPdf,
   getOfferDataForPdf,
@@ -54,6 +52,7 @@ export {
   isOfferSigned,
   saveOfferSignature,
   generateSignatureLink,
+  getOfferForClient,
   deleteOffer,
   updateOfferStatus,
   getWorkflowHistory,
@@ -63,7 +62,6 @@ export {
   processInfoResponse,
   getOfferNotes,
   addOfferNote,
-  // Export les fonctions d'équipement
   getOfferEquipment,
   saveEquipment,
   migrateEquipmentFromJson,
@@ -71,8 +69,11 @@ export {
   forceMigrateEquipmentData
 };
 
-// Export functions from offerDetail directly
-export * from './offers/offerDetail';
+// Now export the getOfferById function exclusively from offerDetail
+export { getOfferById, updateOffer } from './offers/offerDetail';
 
 // Export utility functions
 export { translateOfferType, hasCommission } from '@/utils/offerTypeTranslator';
+
+// Export from index separately but exclude the functions that might cause conflicts
+export * from './offers';

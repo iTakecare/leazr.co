@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData, OfferType } from "./types";
 import { calculateFinancedAmount } from "@/utils/calculator";
