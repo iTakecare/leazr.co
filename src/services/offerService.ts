@@ -43,7 +43,7 @@ import {
   forceMigrateEquipmentData
 } from './offers/offerEquipment';
 
-// Import createOffer from its module
+// Import createOffer from its own module
 import { createOffer } from './offers/createOffer';
 
 // Import and re-export from other offer service files
