@@ -141,7 +141,7 @@ const ProductDataTracker: React.FC = () => {
             
             <div className="mb-4">
               <h3 className="font-medium mb-2">Attributs</h3>
-              {renderProperties(mockProduct.attributes)}
+              {renderProperties(mockProduct.attributes as Record<string, string | number>)}
             </div>
             
             <Separator className="my-4" />
