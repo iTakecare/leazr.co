@@ -46,4 +46,16 @@ export interface OfferData {
     attributes?: Record<string, string>;
     specifications?: Record<string, string | number>;
   }[];
+  
+  // Propriété pour l'équipement parsé
+  parsedEquipment?: {
+    id?: string;
+    title: string;
+    purchasePrice: number;
+    quantity: number;
+    margin?: number;
+    monthlyPayment: number;
+    attributes: Record<string, string>;
+    specifications: Record<string, string | number>;
+  }[];
 }

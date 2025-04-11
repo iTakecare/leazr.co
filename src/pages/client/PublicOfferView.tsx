@@ -33,8 +33,8 @@ const PublicOfferView = () => {
   // Ajout de logs pour debugger
   useEffect(() => {
     if (offer) {
-      console.log("Offer data:", offer);
-      console.log("Parsed equipment:", offer.parsedEquipment);
+      console.log("Offer data in PublicOfferView:", offer);
+      console.log("Parsed equipment in PublicOfferView:", offer.parsedEquipment);
     }
   }, [offer]);
 
@@ -78,9 +78,17 @@ const PublicOfferView = () => {
     // Check for parsed equipment
     if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
       console.log("Using parsedEquipment:", offer.parsedEquipment);
+      
+      // Ensure each equipment has valid specifications and attributes
+      const validatedEquipment = offer.parsedEquipment.map((item: any) => ({
+        ...item,
+        specifications: item.specifications || {},
+        attributes: item.attributes || {}
+      }));
+      
       return (
         <EquipmentDetailTable 
-          equipment={offer.parsedEquipment}
+          equipment={validatedEquipment}
           totalMonthly={offer.monthly_payment || 0}
           totalMargin={offer.margin || 0}
         />
@@ -180,7 +188,7 @@ const PublicOfferView = () => {
               <CardTitle className="text-sm">Informations de débogage</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <pre className="text-xs overflow-auto p-2 bg-gray-100 rounded">
+              <pre className="text-xs overflow-auto p-2 bg-gray-100 rounded max-h-96">
                 {JSON.stringify(debugInfo, null, 2)}
               </pre>
             </CardContent>

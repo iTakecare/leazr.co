@@ -44,7 +44,14 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
         setSigned(hasSignature);
 
         // Fetch equipment details
-        const parsedEquipment = await fetchEquipmentDetails(offerId, offerData);
+        let parsedEquipment = await fetchEquipmentDetails(offerId, offerData);
+        
+        // Ensure each equipment item has attributes and specifications
+        parsedEquipment = parsedEquipment.map(item => ({
+          ...item,
+          attributes: item.attributes || {},
+          specifications: item.specifications || {}
+        }));
         
         // Store debug info
         setDebugInfo({
@@ -171,22 +178,27 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
     return result;
   };
 
-  // Parse equipment description JSON
+  // Parse equipment description JSON with detailed logging
   const parseEquipmentDescription = (description: string): EquipmentItem[] => {
     if (!description) return [];
     
     try {
+      console.log("Parsing equipment description:", description);
+      
       // Try to parse JSON
       let equipmentData;
       
       try {
         equipmentData = JSON.parse(description);
+        console.log("Successfully parsed as JSON:", equipmentData);
       } catch (parseError) {
         console.error("Error parsing JSON:", parseError);
         return [{
           title: description,
           quantity: 1,
           monthlyPayment: 0,
+          purchasePrice: 0,
+          margin: 0,
           attributes: {},
           specifications: {}
         }];
@@ -196,13 +208,17 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
       
       // Check if it's an array
       if (Array.isArray(equipmentData)) {
+        console.log("Equipment data is an array, processing items");
         return equipmentData.map(item => {
+          console.log("Processing equipment item:", item);
+          
           // Normalize attributes and specifications
           let attributes: Record<string, string> = {};
           let specifications: Record<string, string | number> = {};
           
           // Process attributes
           if (item.attributes) {
+            console.log("Processing attributes:", item.attributes);
             if (Array.isArray(item.attributes)) {
               item.attributes.forEach((attr: any) => {
                 attributes[attr.key] = attr.value;
@@ -214,6 +230,7 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
           
           // Process specifications
           if (item.specifications) {
+            console.log("Processing specifications:", item.specifications);
             if (Array.isArray(item.specifications)) {
               item.specifications.forEach((spec: any) => {
                 specifications[spec.key] = spec.value;
@@ -223,10 +240,11 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
             }
           } else if (item.variants && typeof item.variants === 'object') {
             // Support for old format that used "variants"
+            console.log("Using variants as specifications:", item.variants);
             specifications = { ...item.variants };
           }
           
-          return {
+          const result = {
             id: item.id || undefined,
             title: item.title || 'Produit sans nom',
             purchasePrice: Number(item.purchasePrice) || 0,
@@ -236,13 +254,19 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
             attributes,
             specifications
           };
+          
+          console.log("Normalized equipment item:", result);
+          return result;
         });
       }
       
       // If not an array but a single object
       if (typeof equipmentData === 'object' && equipmentData !== null) {
+        console.log("Equipment data is an object, checking for items array");
+        
         // Check if it contains an 'items' array
         if (Array.isArray(equipmentData.items)) {
+          console.log("Processing items array from object");
           return equipmentData.items.map((item: any) => {
             // Normalize attributes and specifications
             let attributes: Record<string, string> = {};
@@ -285,6 +309,7 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
         
         // If it has a title, treat it as a single equipment
         if (equipmentData.title) {
+          console.log("Treating as single equipment item with title");
           // Normalize attributes and specifications
           let attributes: Record<string, string> = {};
           let specifications: Record<string, string | number> = {};
@@ -324,10 +349,13 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
       }
       
       // If the format is not recognized, treat as a single item with all content
+      console.log("Format not recognized, returning generic item");
       return [{
         title: 'Description équipement',
         quantity: 1,
         monthlyPayment: 0,
+        purchasePrice: 0,
+        margin: 0,
         attributes: {},
         specifications: {}
       }];
@@ -338,6 +366,8 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
         title: description,
         quantity: 1,
         monthlyPayment: 0,
+        purchasePrice: 0,
+        margin: 0,
         attributes: {},
         specifications: {}
       }];

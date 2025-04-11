@@ -64,9 +64,19 @@ export const ActivityFeed = ({ activities, isLoading = false }: ActivityFeedProp
       "leaser_approved": { label: "Contrat signé", variant: "default" },
       "leaser_rejected": { label: "Rejeté", variant: "destructive" },
       "leaser_review": { label: "En revue", variant: "outline" },
+      "draft": { label: "Brouillon", variant: "outline" },
+      "sent": { label: "Envoyé", variant: "outline" },
+      "financed": { label: "Financé", variant: "default" },
     };
     
     return statusMap[status] || { label: status, variant: "secondary" };
+  };
+
+  const getUserDisplayName = (activity: any) => {
+    if (activity.profiles) {
+      return `${activity.profiles.first_name || ''} ${activity.profiles.last_name || ''}`.trim();
+    }
+    return "Utilisateur";
   };
 
   return (
@@ -80,6 +90,7 @@ export const ActivityFeed = ({ activities, isLoading = false }: ActivityFeedProp
           {activities.map((activity) => {
             const timeAgo = formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale: fr });
             const newStatusInfo = getStatusLabel(activity.new_status);
+            const prevStatusInfo = getStatusLabel(activity.previous_status);
             
             return (
               <div key={activity.id} className="flex">
@@ -92,11 +103,11 @@ export const ActivityFeed = ({ activities, isLoading = false }: ActivityFeedProp
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {activity.profiles?.first_name} {activity.profiles?.last_name} a changé le statut
+                    {getUserDisplayName(activity)} a changé le statut
                   </p>
                   <div className="flex items-center pt-1">
-                    <Badge variant="secondary" className="mr-1 text-xs">
-                      {getStatusLabel(activity.previous_status).label}
+                    <Badge variant={prevStatusInfo.variant} className="mr-1 text-xs">
+                      {prevStatusInfo.label}
                     </Badge>
                     <span className="text-xs mx-1">→</span>
                     <Badge variant={newStatusInfo.variant} className="text-xs">
