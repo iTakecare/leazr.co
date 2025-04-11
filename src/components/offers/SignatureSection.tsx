@@ -32,7 +32,7 @@ interface SignatureSectionProps {
   onSign: (signatureData: string) => void;
   isPrintingPdf: boolean;
   onPrintPdf: () => void;
-  monthlyPayment?: number; // Ajout du montant mensuel
+  monthlyPayment?: number;
 }
 
 const SignatureSection: React.FC<SignatureSectionProps> = ({
