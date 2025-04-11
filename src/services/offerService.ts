@@ -43,6 +43,9 @@ import {
   forceMigrateEquipmentData
 } from './offers/offerEquipment';
 
+// Import createOffer from its module
+import { createOffer } from './offers/createOffer';
+
 // Import and re-export from other offer service files
 export * from './offers';
 
@@ -68,7 +71,9 @@ export {
   saveEquipment,
   migrateEquipmentFromJson,
   convertEquipmentToJson,
-  forceMigrateEquipmentData
+  forceMigrateEquipmentData,
+  // Export createOffer explicitly
+  createOffer
 };
 
 // Export functions from offerDetail directly

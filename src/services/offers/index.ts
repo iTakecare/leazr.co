@@ -1,6 +1,7 @@
 
 import { getOffers } from './getOffers';
 import { supabase } from '@/integrations/supabase/client';
+import { createOffer } from './createOffer';
 
 export const getAllOffers = async (includeConverted = false) => {
   try {
@@ -30,4 +31,4 @@ export const getAllOffers = async (includeConverted = false) => {
   }
 };
 
-export { getOffers };
+export { getOffers, createOffer };
