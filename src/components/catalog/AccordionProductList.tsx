@@ -130,7 +130,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     setIsDuplicating(prev => ({ ...prev, [product.id]: true }));
     
     try {
+      console.log(`Attempting to duplicate product: ${product.id} - ${product.name}`);
       const duplicatedProduct = await duplicateProduct(product.id);
+      console.log(`Product duplicated successfully with new ID: ${duplicatedProduct.id}`);
       
       toast.success(`Produit dupliqué avec succès`, {
         description: `"${product.name}" a été copié en "${duplicatedProduct.name}"`,

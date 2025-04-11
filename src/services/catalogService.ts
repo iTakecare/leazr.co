@@ -628,6 +628,13 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
       updated_at: undefined, // Supabase définira la date actuelle
     };
     
+    // Remove any undefined/null fields that might cause issues
+    delete duplicatedProductData.id;
+    delete duplicatedProductData.created_at;
+    delete duplicatedProductData.updated_at;
+    
+    console.log('Duplicating product with data:', JSON.stringify(duplicatedProductData, null, 2));
+    
     // 3. Insérer le nouveau produit
     const { data: newProduct, error: insertError } = await supabase
       .from('products')
@@ -649,13 +656,24 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
       
       if (!variantPricesError && variantPrices && variantPrices.length > 0) {
         // Préparer les nouvelles combinaisons de prix
-        const newVariantPrices = variantPrices.map(price => ({
-          ...price,
-          id: undefined, // Supabase générera un nouvel ID
-          product_id: newProduct.id, // Utiliser l'ID du produit dupliqué
-          created_at: undefined,
-          updated_at: undefined
-        }));
+        const newVariantPrices = variantPrices.map(price => {
+          const newPrice = {
+            ...price,
+            id: undefined, // Supabase générera un nouvel ID
+            product_id: newProduct.id, // Utiliser l'ID du produit dupliqué
+            created_at: undefined,
+            updated_at: undefined
+          };
+          
+          // Remove any fields that might cause issues
+          delete newPrice.id;
+          delete newPrice.created_at;
+          delete newPrice.updated_at;
+          
+          return newPrice;
+        });
+        
+        console.log('Duplicating variant prices:', JSON.stringify(newVariantPrices, null, 2));
         
         // Insérer les nouvelles combinaisons de prix
         const { error: insertVariantsError } = await supabase
