@@ -36,4 +36,14 @@ export interface OfferData {
   status?: string;
   equipment_text?: string;
   additional_info?: string;
+  
+  // Propriétés pour les équipements avec attributs et spécifications
+  equipment_with_details?: {
+    title: string;
+    purchasePrice: number;
+    quantity: number;
+    monthlyPayment: number;
+    attributes?: Record<string, string>;
+    specifications?: Record<string, string | number>;
+  }[];
 }

@@ -37,6 +37,16 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   // État pour suivre quels équipements sont développés
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   
+  // Par défaut, développer tous les équipements pour montrer les détails au premier chargement
+  React.useEffect(() => {
+    const expandAll: Record<string, boolean> = {};
+    equipment.forEach((item, index) => {
+      const itemId = item.id || `item-${index}`;
+      expandAll[itemId] = true;
+    });
+    setExpandedItems(expandAll);
+  }, [equipment]);
+  
   // Fonction pour basculer l'état d'expansion d'un équipement
   const toggleExpand = (itemId: string) => {
     setExpandedItems(prev => ({
@@ -99,12 +109,12 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
 
     // Séparation des attributs en attributs de configuration et autres attributs
     const configAttributes = normalizedAttributes.filter(attr => 
-      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage']
+      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
       .some(term => attr.key.toLowerCase().includes(term))
     );
     
     const otherAttributes = normalizedAttributes.filter(attr => 
-      !['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage']
+      !['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
       .some(term => attr.key.toLowerCase().includes(term))
     );
 
@@ -193,7 +203,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
       
     // Filtrer pour ne garder que les attributs liés à la configuration
     const configAttributes = attributes.filter(attr => 
-      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage']
+      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
       .some(term => attr.key.toLowerCase().includes(term))
     );
     
