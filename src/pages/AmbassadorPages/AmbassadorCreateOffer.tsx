@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -289,12 +288,12 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: "ambassador_offer",
+        type: 'ambassador_offer' as const,
         user_id: user?.id || "",
         ambassador_id: currentAmbassadorId,
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifferenceString,
-        margin: marginAmount  // Ajout de la marge générée
+        margin: marginAmount
       };
       
       console.log("Saving offer with the following data:", offerData);
@@ -366,7 +365,7 @@ const AmbassadorCreateOffer = () => {
           onSelectClient={handleSelectClient}
           selectedClientId={client?.id || ""}
           onClientSelect={() => {}}
-          ambassadorMode={true}  // Enable ambassador mode to filter clients
+          ambassadorMode={true}
         />
         
         <LeaserSelector

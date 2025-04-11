@@ -260,7 +260,7 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: "ambassador_offer",
+        type: 'ambassador_offer', // Using a literal string that matches OfferType
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks,
