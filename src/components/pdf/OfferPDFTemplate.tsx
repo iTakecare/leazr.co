@@ -4,11 +4,9 @@ import { formatCurrency } from "@/utils/formatters";
 
 interface EquipmentItem {
   title: string;
-  purchasePrice?: number;
+  purchasePrice: number;
   quantity: number;
-  monthlyPayment?: number;
-  attributes?: Record<string, string> | { key: string; value: string }[];
-  specifications?: Record<string, string | number> | { key: string; value: string }[];
+  monthlyPayment: number;
 }
 
 interface OfferPDFTemplateProps {
@@ -24,7 +22,6 @@ interface OfferPDFTemplateProps {
     signature_data?: string;
     signer_name?: string;
     signed_at?: string;
-    equipment_data?: any[];
   };
 }
 
@@ -80,45 +77,8 @@ const formatLegalTimestamp = (dateString: string | Date | null | undefined): str
   }
 };
 
-// Fonction pour créer un texte avec toutes les spécifications et attributs d'un équipement
-const createSpecsString = (item: EquipmentItem): string => {
-  const specs: string[] = [];
-  
-  // Traiter les spécifications
-  if (item.specifications) {
-    if (Array.isArray(item.specifications)) {
-      // Format array of objects: [{key: "RAM", value: "8Go"}, ...]
-      item.specifications.forEach(spec => {
-        specs.push(`${spec.key}: ${spec.value}`);
-      });
-    } else {
-      // Format object: {RAM: "8Go", ...}
-      for (const [key, value] of Object.entries(item.specifications)) {
-        specs.push(`${key}: ${value}`);
-      }
-    }
-  }
-  
-  // Traiter les attributs
-  if (item.attributes) {
-    if (Array.isArray(item.attributes)) {
-      // Format array of objects
-      item.attributes.forEach(attr => {
-        specs.push(`${attr.key}: ${attr.value}`);
-      });
-    } else {
-      // Format object
-      for (const [key, value] of Object.entries(item.attributes)) {
-        specs.push(`${key}: ${value}`);
-      }
-    }
-  }
-  
-  return specs.join(' • ');
-};
-
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
-  const equipment = offer.equipment_data || parseEquipmentData(offer.equipment_description);
+  const equipment = parseEquipmentData(offer.equipment_description);
   const offerId = offer.offer_id || `OFF-${offer.id?.substring(0, 8).toUpperCase()}`;
   const isOfferSigned = !!offer.signature_data;
   
@@ -263,46 +223,32 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             </thead>
             <tbody>
               {equipment.length > 0 ? (
-                equipment.map((item, index) => {
-                  const quantity = parseInt(String(item.quantity) || "1", 10);
-                  const monthlyPayment = parseFloat(String(item.monthlyPayment || item.monthly_payment) || "0");
-                  const totalMonthlyPayment = monthlyPayment * quantity;
-                  const specsString = createSpecsString(item);
-                  
-                  return (
-                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                      <td style={{ 
-                        padding: "2mm", 
-                        border: "0.2mm solid #e5e7eb",
-                        whiteSpace: "normal",
-                        wordBreak: "break-word"
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: "bold" }}>{item.title}</div>
-                          {specsString && (
-                            <div style={{ fontSize: "7pt", color: "#6b7280", marginTop: "1mm" }}>
-                              {specsString}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ 
-                        padding: "2mm", 
-                        textAlign: "center", 
-                        border: "0.2mm solid #e5e7eb" 
-                      }}>
-                        {quantity}
-                      </td>
-                      <td style={{ 
-                        padding: "2mm", 
-                        textAlign: "right", 
-                        border: "0.2mm solid #e5e7eb" 
-                      }}>
-                        {formatCurrency(totalMonthlyPayment)}
-                      </td>
-                    </tr>
-                  );
-                })
+                equipment.map((item, index) => (
+                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                    <td style={{ 
+                      padding: "2mm", 
+                      border: "0.2mm solid #e5e7eb",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word"
+                    }}>
+                      {item.title}
+                    </td>
+                    <td style={{ 
+                      padding: "2mm", 
+                      textAlign: "center", 
+                      border: "0.2mm solid #e5e7eb" 
+                    }}>
+                      {item.quantity}
+                    </td>
+                    <td style={{ 
+                      padding: "2mm", 
+                      textAlign: "right", 
+                      border: "0.2mm solid #e5e7eb" 
+                    }}>
+                      {formatCurrency(item.monthlyPayment)}
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td style={{ padding: "2mm", border: "0.2mm solid #e5e7eb" }}>

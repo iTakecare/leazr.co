@@ -274,22 +274,7 @@ export const sendDocumentsRequestEmail = async (
     const template = await getEmailTemplate("document_request");
     
     let subject = `Demande de documents complémentaires pour votre offre`;
-    let docsList = requestedDocs.map(doc => {
-      // Convertir les codes de documents en noms lisibles
-      if (doc.startsWith('custom:')) {
-        return `<li>${doc.substring(7)}</li>`;
-      } else {
-        const docNameMap: {[key: string]: string} = {
-          balance_sheet: "Bilan financier",
-          tax_notice: "Avertissement extrait de rôle",
-          id_card: "Copie de la carte d'identité",
-          company_register: "Extrait de registre d'entreprise",
-          vat_certificate: "Attestation TVA",
-          bank_statement: "Relevé bancaire des 3 derniers mois"
-        };
-        return `<li>${docNameMap[doc] || doc}</li>`;
-      }
-    }).join('');
+    let docsList = requestedDocs.map(doc => `<li>${doc}</li>`).join('');
     
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">

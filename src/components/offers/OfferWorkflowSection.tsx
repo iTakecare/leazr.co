@@ -7,13 +7,9 @@ import { getWorkflowHistory, getCompletedStatuses, updateOfferStatus } from "@/s
 import OfferWorkflowVisualizer from "./workflow/OfferWorkflowVisualizer";
 import OfferWorkflowHistory from "./workflow/OfferWorkflowHistory";
 import StatusChangeDialog from "./workflow/StatusChangeDialog";
-import RequestInfoModal from "./RequestInfoModal";
 import { OFFER_STATUSES } from "./OfferStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-import { sendDocumentsRequestEmail } from "@/services/emailService";
-import { getOfferById } from "@/services/offers/offerDetail";
-import { sendInfoRequest } from "@/services/offers/offerWorkflow";
 
 interface OfferWorkflowSectionProps {
   offerId: string;
@@ -36,21 +32,17 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [requestInfoModalOpen, setRequestInfoModalOpen] = useState(false);
-  const [offerData, setOfferData] = useState<any>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [historyData, statusesData, offerDetails] = await Promise.all([
+      const [historyData, statusesData] = await Promise.all([
         getWorkflowHistory(offerId),
-        getCompletedStatuses(offerId),
-        getOfferById(offerId)
+        getCompletedStatuses(offerId)
       ]);
       
       setLogs(historyData);
       setCompletedStatuses(statusesData);
-      setOfferData(offerDetails);
     } catch (error) {
       console.error("Error fetching workflow data:", error);
       toast.error("Erreur lors du chargement des données de workflow");
@@ -99,53 +91,6 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     }
   };
 
-  const handleRequestInfo = async (requestedDocs: string[], customMessage: string) => {
-    if (!offerData) {
-      toast.error("Données de l'offre non disponibles");
-      return;
-    }
-    
-    try {
-      // Envoyer l'email via le service email
-      const emailSent = await sendDocumentsRequestEmail(
-        offerId,
-        offerData.client_email,
-        offerData.client_name,
-        requestedDocs,
-        customMessage
-      );
-      
-      if (emailSent) {
-        // Mettre à jour le statut de l'offre
-        const infoRequestSent = await sendInfoRequest({
-          offerId,
-          requestedDocs,
-          customMessage,
-          previousStatus: currentStatus
-        });
-        
-        if (infoRequestSent) {
-          toast.success("Demande d'informations envoyée au client avec succès");
-          fetchData();
-          
-          // Mettre à jour le statut sur l'interface
-          if (onStatusChange) {
-            onStatusChange("info_requested");
-          }
-        } else {
-          toast.error("Erreur lors de la mise à jour du statut de l'offre");
-        }
-      } else {
-        toast.error("Erreur lors de l'envoi de l'email au client");
-      }
-    } catch (error) {
-      console.error("Error requesting information:", error);
-      toast.error("Erreur lors de la demande d'informations");
-    } finally {
-      setRequestInfoModalOpen(false);
-    }
-  };
-
   const getStatusLabel = (statusId: string) => {
     const status = Object.values(OFFER_STATUSES).find(s => s.id === statusId);
     return status ? status.label : statusId;
@@ -186,7 +131,6 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
                 completedStatuses={completedStatuses}
                 onStatusChange={isAdmin ? handleStatusClick : undefined}
                 lastUpdated={lastUpdated}
-                onRequestDocuments={isAdmin ? () => setRequestInfoModalOpen(true) : undefined}
               />
               
               {isAdmin && (
@@ -227,13 +171,6 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
         newStatus={selectedStatus || ''}
         isUpdating={isUpdating}
         getStatusLabel={getStatusLabel}
-      />
-      
-      <RequestInfoModal
-        isOpen={requestInfoModalOpen}
-        onClose={() => setRequestInfoModalOpen(false)}
-        onSendRequest={handleRequestInfo}
-        offerId={offerId}
       />
     </>
   );

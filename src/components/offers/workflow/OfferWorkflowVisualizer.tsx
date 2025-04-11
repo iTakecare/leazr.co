@@ -1,145 +1,117 @@
 
 import React from "react";
-import { CheckCircle, Clock, AlertCircle, Loader2, FileText } from "lucide-react";
-import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { format } from "date-fns";
+import { Clock, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { OFFER_STATUSES } from "../OfferStatusBadge";
+import { KANBAN_COLUMNS } from "../kanban/kanbanConfig";
 
-interface WorkflowVisualizerProps {
+interface OfferWorkflowVisualizerProps {
   currentStatus: string;
   completedStatuses: string[];
-  onStatusChange?: (status: string) => void;
-  lastUpdated?: string;
-  onRequestDocuments?: () => void; // Nouvelle prop pour gérer la demande de documents
+  onStatusChange?: (newStatus: string) => void;
+  lastUpdated?: string | null;
+  completionPercentage?: number;
 }
 
-const OfferWorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({
+const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
   currentStatus,
   completedStatuses,
   onStatusChange,
   lastUpdated,
-  onRequestDocuments
+  completionPercentage = 0,
 }) => {
-  // Définir les étapes du workflow dans l'ordre
-  const workflowSteps = [
-    "draft",
-    "sent",
-    "client_review",
-    "info_requested",
-    "internal_review",
-    "leaser_review",
-    "approved",
-    "rejected"
-  ];
+  // Filtrer les colonnes pour exclure "rejected" du workflow normal
+  const workflowSteps = KANBAN_COLUMNS.filter(
+    (column) => column.id !== OFFER_STATUSES.REJECTED.id
+  );
 
-  const handleStepClick = (stepId: string) => {
-    // Si c'est l'étape de demande d'informations, appeler le gestionnaire spécifique
-    if (stepId === "info_requested" && onRequestDocuments) {
-      onRequestDocuments();
-      return;
-    }
+  // Déterminer le pourcentage de progression
+  const calculateCompletionPercentage = () => {
+    if (completionPercentage > 0) return completionPercentage;
     
-    // Sinon, gérer le changement de statut normalement
-    if (onStatusChange) {
-      onStatusChange(stepId);
-    }
+    const totalSteps = workflowSteps.length;
+    const currentStepIndex = workflowSteps.findIndex(step => step.id === currentStatus);
+    
+    if (currentStepIndex === -1) return 0;
+    return Math.round(((currentStepIndex + 1) / totalSteps) * 100);
   };
 
-  const getStepStatus = (stepId: string) => {
-    if (stepId === "rejected" && currentStatus === "rejected") {
-      return "current";
-    }
-    
-    if (currentStatus === stepId) {
-      return "current";
-    }
-    
-    if (completedStatuses.includes(stepId)) {
-      return "completed";
-    }
-    
-    const currentIndex = workflowSteps.indexOf(currentStatus);
-    const stepIndex = workflowSteps.indexOf(stepId);
-    
-    if (stepIndex < currentIndex) {
-      return "skipped";
-    }
-    
-    return "pending";
+  const isCompleted = (stepId: string) => {
+    return completedStatuses.includes(stepId) || stepId === currentStatus;
   };
 
-  const getStepIcon = (stepId: string, status: string) => {
-    if (status === "completed") {
-      return <CheckCircle className="h-5 w-5 text-green-500" />;
-    }
-    
-    if (status === "current") {
-      if (stepId === "rejected") {
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      }
-      return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
-    }
-    
-    if (stepId === "info_requested") {
-      return <FileText className="h-5 w-5 text-gray-400 group-hover:text-blue-400" />;
-    }
-    
-    return <Clock className="h-5 w-5 text-gray-400" />;
+  const isActive = (stepId: string) => {
+    return stepId === currentStatus;
   };
 
   return (
-    <div className="relative">
-      <div className="flex flex-col space-y-6 md:space-y-8">
-        {workflowSteps.map((stepId) => {
-          if (stepId === "rejected" && currentStatus !== "rejected") {
-            return null; // Ne pas afficher l'étape rejetée sauf si c'est le statut actuel
-          }
-          
-          const status = getStepStatus(stepId);
-          const stepInfo = OFFER_STATUSES[stepId] || { id: stepId, label: stepId, description: "" };
-          
-          const isClickable = onStatusChange !== undefined && status !== "current";
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Processus de validation</h3>
+        {lastUpdated && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>Dernière mise à jour: {format(new Date(lastUpdated), "dd/MM/yyyy, HH:mm")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-6 gap-4">
+        {workflowSteps.map((step, index) => {
+          const StepIcon = step.icon;
+          const completed = isCompleted(step.id);
+          const active = isActive(step.id);
           
           return (
             <div 
-              key={stepId}
-              className={`flex items-start space-x-3 ${
-                isClickable ? "cursor-pointer group" : ""
-              } ${
-                status === "current" ? "bg-blue-50 p-2 -mx-2 rounded-md" : ""
-              }`}
-              onClick={() => isClickable && handleStepClick(stepId)}
+              key={step.id} 
+              className="flex flex-col items-center"
+              onClick={() => onStatusChange && onStatusChange(step.id)}
             >
-              <div className={`mt-0.5 flex-shrink-0 ${
-                status === "current" ? "animate-pulse" : ""
-              }`}>
-                {getStepIcon(stepId, status)}
-              </div>
-              <div>
-                <h3 className={`font-medium ${
-                  status === "current" ? "text-blue-700" :
-                  status === "completed" ? "text-green-700" :
-                  "text-gray-700 group-hover:text-blue-600"
-                }`}>
-                  {stepInfo.label}
-                </h3>
-                <p className={`text-sm ${
-                  status === "current" ? "text-blue-600" :
-                  status === "completed" ? "text-green-600" :
-                  "text-gray-500"
-                }`}>
-                  {stepInfo.description}
-                </p>
-                
-                {status === "current" && lastUpdated && (
-                  <p className="text-xs text-blue-500 mt-1">
-                    Mise à jour {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true, locale: fr })}
-                  </p>
+              <div 
+                className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center transition-all",
+                  completed ? step.color : "bg-gray-100",
+                  onStatusChange && "cursor-pointer hover:opacity-80"
+                )}
+              >
+                {completed ? (
+                  <Check className={cn("h-8 w-8", step.textColor)} />
+                ) : (
+                  <StepIcon className="h-8 w-8 text-gray-400" />
                 )}
               </div>
+              <span className={cn(
+                "mt-2 text-center text-sm", 
+                active ? "font-semibold" : "text-muted-foreground"
+              )}>
+                {step.title}
+              </span>
             </div>
           );
         })}
+      </div>
+
+      <div className="relative pt-1">
+        <div className="flex mb-2 items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold inline-block text-primary">
+              {calculateCompletionPercentage()}%
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="text-xs font-semibold inline-block text-primary">
+              Complété
+            </span>
+          </div>
+        </div>
+        <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+          <div 
+            style={{ width: `${calculateCompletionPercentage()}%` }} 
+            className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"
+          ></div>
+        </div>
       </div>
     </div>
   );

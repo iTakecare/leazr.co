@@ -38,11 +38,7 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
         user_id: (await supabase.auth.getUser()).data.user?.id,
         previous_status: data.previousStatus,
         new_status: 'info_requested',
-        reason: `Demande d'informations supplémentaires: ${data.requestedDocs.join(', ')}`,
-        metadata: {
-          requested_docs: data.requestedDocs,
-          custom_message: data.customMessage || ''
-        }
+        reason: `Demande d'informations supplémentaires: ${data.requestedDocs.join(', ')}`
       });
       
     if (logError) {
@@ -63,6 +59,9 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       console.error("Error updating offer status for info request:", updateError);
       return false;
     }
+    
+    // Dans une implémentation réelle, nous enverrions un email ici
+    // via une fonction Supabase Edge ou un service d'emailing
     
     return true;
   } catch (error) {
