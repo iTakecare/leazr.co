@@ -28,7 +28,6 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
           onSelectProduct={handleProductSelect}
           title="Ajouter un équipement"
           description="Sélectionnez un produit du catalogue à ajouter à votre offre"
-          embedded={true}
         />
       </DialogContent>
     </Dialog>
