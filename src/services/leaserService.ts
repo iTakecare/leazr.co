@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Leaser } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -41,7 +40,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     const formattedLeasers: Leaser[] = data.map((leaser) => ({
       id: leaser.id,
       name: leaser.name,
-      logo_url: leaser.logo_url,
+      logoUrl: leaser.logo_url,
       ranges: leaser.ranges.sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -88,7 +87,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
     return {
       id: data.id,
       name: data.name,
-      logo_url: data.logo_url,
+      logoUrl: data.logo_url,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     };
   } catch (error) {
@@ -108,7 +107,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       .from('leasers')
       .insert({
         name: leaser.name,
-        logo_url: leaser.logo_url || null
+        logo_url: leaser.logoUrl || null
       })
       .select()
       .single();
@@ -166,7 +165,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
       .from('leasers')
       .update({
         name: leaser.name,
-        logo_url: leaser.logo_url || null
+        logo_url: leaser.logoUrl || null
       })
       .eq('id', id);
     

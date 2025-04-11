@@ -22,7 +22,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [totalMonthlyPayment, setTotalMonthlyPayment] = useState<number>(0);
   const [globalMarginAdjustment, setGlobalMarginAdjustment] = useState<GlobalMarginAdjustment>({ 
-    percentage: 0,
     amount: 0,
     newMonthly: 0,
     currentCoef: 0,
@@ -250,7 +249,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   const calculateGlobalMarginAdjustment = () => {
     if (equipmentList.length === 0) {
       setGlobalMarginAdjustment({ 
-        percentage: 0, 
         amount: 0, 
         newMonthly: 0,
         currentCoef: 0,
@@ -295,7 +293,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const marginPercentage = (marginAmount / totalBaseAmount) * 100;
 
     setGlobalMarginAdjustment({
-      percentage: Number(marginPercentage.toFixed(2)),
       amount: marginAmount,
       newMonthly: newMonthly,
       currentCoef: currentCoef,
