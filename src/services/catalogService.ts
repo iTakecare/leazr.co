@@ -597,3 +597,85 @@ export const convertProductToParent = async (id: string, variationAttributes = {
     throw error;
   }
 };
+
+/**
+ * Duplique un produit existant
+ */
+export const duplicateProduct = async (productId: string): Promise<Product> => {
+  try {
+    // 1. Récupérer le produit à dupliquer
+    const { data: originalProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching product to duplicate:', fetchError);
+      throw new Error(fetchError.message);
+    }
+    
+    if (!originalProduct) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    // 2. Préparer les données du nouveau produit
+    const duplicatedProductData = {
+      ...originalProduct,
+      id: undefined, // Supabase générera un nouvel ID
+      name: `${originalProduct.name} (copie)`,
+      created_at: undefined, // Supabase définira la date actuelle
+      updated_at: undefined, // Supabase définira la date actuelle
+    };
+    
+    // 3. Insérer le nouveau produit
+    const { data: newProduct, error: insertError } = await supabase
+      .from('products')
+      .insert([duplicatedProductData])
+      .select()
+      .single();
+    
+    if (insertError) {
+      console.error('Error duplicating product:', insertError);
+      throw new Error(insertError.message);
+    }
+    
+    // 4. Si le produit a des prix de variantes, les dupliquer également
+    if (originalProduct.is_parent) {
+      const { data: variantPrices, error: variantPricesError } = await supabase
+        .from('product_variant_prices')
+        .select('*')
+        .eq('product_id', productId);
+      
+      if (!variantPricesError && variantPrices && variantPrices.length > 0) {
+        // Préparer les nouvelles combinaisons de prix
+        const newVariantPrices = variantPrices.map(price => ({
+          ...price,
+          id: undefined, // Supabase générera un nouvel ID
+          product_id: newProduct.id, // Utiliser l'ID du produit dupliqué
+          created_at: undefined,
+          updated_at: undefined
+        }));
+        
+        // Insérer les nouvelles combinaisons de prix
+        const { error: insertVariantsError } = await supabase
+          .from('product_variant_prices')
+          .insert(newVariantPrices);
+        
+        if (insertVariantsError) {
+          console.error('Error duplicating variant prices:', insertVariantsError);
+          // Ne pas échouer complètement si seuls les prix de variantes échouent
+        }
+      }
+    }
+    
+    return {
+      ...newProduct,
+      createdAt: newProduct.created_at,
+      updatedAt: newProduct.updated_at
+    };
+  } catch (error) {
+    console.error('Error in duplicateProduct:', error);
+    throw error;
+  }
+};

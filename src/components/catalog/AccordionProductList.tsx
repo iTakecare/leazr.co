@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -6,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { formatCurrency } from "@/utils/formatters";
-import { toast } from "@/components/ui/use-toast";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
+import { duplicateProduct } from "@/services/catalogService";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -24,6 +24,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   readOnly = false
 }) => {
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
+  const [isDuplicating, setIsDuplicating] = useState<{ [key: string]: boolean }>({});
   
   console.log("AccordionProductList: Received products:", products.length);
   
@@ -50,40 +51,31 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     return acc;
   }, {} as Record<string, Product[]>);
 
-  // Méthode pour compter le nombre de variantes EXISTANTES (configurations réelles)
   const countExistingVariants = (product: Product): number => {
-    // Ajouter du logging pour déboguer
     console.log(`AccordionProductList: Counting variants for ${product.name}:`, {
       variants_count: product.variants_count,
       combinationPrices: product.variant_combination_prices?.length,
       variants: product.variants?.length
     });
     
-    // 1. Si le produit a un nombre de variantes défini par le serveur, l'utiliser
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
     
-    // 2. Si le produit a des combinaisons de prix de variantes, compter celles-ci
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       return product.variant_combination_prices.length;
     }
     
-    // 3. Si le produit a des variantes directes, compter celles-ci
     if (product.variants && product.variants.length > 0) {
       return product.variants.length;
     }
     
-    // 4. Si le produit a des attributs de variation mais pas de variantes/combinaisons existantes,
-    // nous ne comptons pas les variantes théoriques, mais retournons 0 car aucune configuration n'existe
     return 0;
   };
 
-  // Déterminer si le produit a des variantes
   const hasVariants = (product: Product): boolean => {
     if (!product) return false;
     
-    // Les conditions pour qu'un produit ait des variantes
     return (
       (product.is_parent === true) || 
       (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
@@ -92,7 +84,6 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     );
   };
 
-  // Logging pour déboguer
   products.forEach(product => {
     const hasVariantsFlag = hasVariants(product);
     const variantsCount = hasVariantsFlag ? countExistingVariants(product) : 0;
@@ -134,24 +125,38 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }
   };
 
-  const handleDuplicate = (product: Product, event?: React.MouseEvent) => {
+  const handleDuplicate = async (product: Product, event?: React.MouseEvent) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     
-    const duplicatedProduct = {
-      ...product,
-      name: `${product.name} (copie)`,
-    };
+    setIsDuplicating(prev => ({ ...prev, [product.id]: true }));
     
-    toast({
-      title: "Fonctionnalité en développement",
-      description: "La duplication de produits sera bientôt disponible",
-      variant: "default",
-    });
-    
-    console.log("Produit à dupliquer:", duplicatedProduct);
+    try {
+      const duplicatedProduct = await duplicateProduct(product.id);
+      
+      toast.success(
+        `Produit dupliqué avec succès`,
+        {
+          description: `"${product.name}" a été copié en "${duplicatedProduct.name}"`,
+          duration: 5000
+        }
+      );
+      
+      window.location.reload();
+    } catch (error) {
+      console.error("Erreur lors de la duplication:", error);
+      toast.error(
+        "Erreur lors de la duplication",
+        {
+          description: "Une erreur est survenue. Veuillez réessayer.",
+          duration: 5000
+        }
+      );
+    } finally {
+      setIsDuplicating(prev => ({ ...prev, [product.id]: false }));
+    }
   };
 
   return (
@@ -227,8 +232,13 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                             size="sm"
                             className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             onClick={(e) => handleDuplicate(product, e as React.MouseEvent)}
+                            disabled={isDuplicating[product.id]}
                           >
-                            <Copy className="h-4 w-4" />
+                            {isDuplicating[product.id] ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
                           </Button>
                           {onProductDeleted && (
                             <Button
@@ -238,7 +248,11 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                               disabled={isDeleting[product.id]}
                               onClick={(e) => handleDelete(product.id, e as React.MouseEvent)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {isDeleting[product.id] ? (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
                         </div>
