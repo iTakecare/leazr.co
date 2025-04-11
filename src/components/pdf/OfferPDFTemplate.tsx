@@ -57,7 +57,7 @@ const formatDate = (dateString: string | Date | null | undefined): string => {
   }
 };
 
-// Format date with timezone for legal value
+// Nouvelle fonction pour formater les dates avec timezone pour la valeur légale dans le PDF
 const formatLegalTimestamp = (dateString: string | Date | null | undefined): string => {
   if (!dateString) return "";
   try {
@@ -80,48 +80,41 @@ const formatLegalTimestamp = (dateString: string | Date | null | undefined): str
   }
 };
 
-// Extract configurations (chosen options) from equipment attributes
-const extractConfigurations = (item: EquipmentItem): string[] => {
-  const configs: string[] = [];
-  
-  // Process attributes
-  if (item.attributes) {
-    // Normalize attributes to array format
-    const attributes = Array.isArray(item.attributes) 
-      ? item.attributes 
-      : Object.entries(item.attributes).map(([key, value]) => ({ key, value: String(value) }));
-    
-    // Filter for configuration attributes
-    const configAttributes = attributes.filter(attr => 
-      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage']
-      .some(term => attr.key.toLowerCase().includes(term))
-    );
-    
-    configAttributes.forEach(attr => {
-      configs.push(`${attr.key}: ${attr.value}`);
-    });
-  }
-  
-  return configs;
-};
-
-// Extract technical specifications from equipment specifications
-const extractSpecifications = (item: EquipmentItem): string[] => {
+// Fonction pour créer un texte avec toutes les spécifications et attributs d'un équipement
+const createSpecsString = (item: EquipmentItem): string => {
   const specs: string[] = [];
   
-  // Process specifications
+  // Traiter les spécifications
   if (item.specifications) {
-    // Normalize specifications to array format
-    const specifications = Array.isArray(item.specifications) 
-      ? item.specifications 
-      : Object.entries(item.specifications).map(([key, value]) => ({ key, value: String(value) }));
-    
-    specifications.forEach(spec => {
-      specs.push(`${spec.key}: ${spec.value}`);
-    });
+    if (Array.isArray(item.specifications)) {
+      // Format array of objects: [{key: "RAM", value: "8Go"}, ...]
+      item.specifications.forEach(spec => {
+        specs.push(`${spec.key}: ${spec.value}`);
+      });
+    } else {
+      // Format object: {RAM: "8Go", ...}
+      for (const [key, value] of Object.entries(item.specifications)) {
+        specs.push(`${key}: ${value}`);
+      }
+    }
   }
   
-  return specs;
+  // Traiter les attributs
+  if (item.attributes) {
+    if (Array.isArray(item.attributes)) {
+      // Format array of objects
+      item.attributes.forEach(attr => {
+        specs.push(`${attr.key}: ${attr.value}`);
+      });
+    } else {
+      // Format object
+      for (const [key, value] of Object.entries(item.attributes)) {
+        specs.push(`${key}: ${value}`);
+      }
+    }
+  }
+  
+  return specs.join(' • ');
 };
 
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
@@ -274,56 +267,40 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                   const quantity = parseInt(String(item.quantity) || "1", 10);
                   const monthlyPayment = parseFloat(String(item.monthlyPayment || item.monthly_payment) || "0");
                   const totalMonthlyPayment = monthlyPayment * quantity;
-                  
-                  // Extract configurations and specifications
-                  const configs = extractConfigurations(item);
-                  const specs = extractSpecifications(item);
+                  const specsString = createSpecsString(item);
                   
                   return (
-                    <React.Fragment key={index}>
-                      <tr style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                        <td style={{ 
-                          padding: "2mm", 
-                          border: "0.2mm solid #e5e7eb",
-                          whiteSpace: "normal",
-                          wordBreak: "break-word"
-                        }}>
-                          <div>
-                            <div style={{ fontWeight: "bold" }}>{item.title}</div>
-                            
-                            {/* Afficher la configuration choisie */}
-                            {configs.length > 0 && (
-                              <div style={{ fontSize: "7pt", color: "#4B5563", marginTop: "1mm" }}>
-                                <span style={{ fontWeight: "bold" }}>Configuration: </span>
-                                {configs.join(' • ')}
-                              </div>
-                            )}
-                            
-                            {/* Afficher les spécifications techniques */}
-                            {specs.length > 0 && (
-                              <div style={{ fontSize: "7pt", color: "#4B5563", marginTop: "1mm" }}>
-                                <span style={{ fontWeight: "bold" }}>Spécifications: </span>
-                                {specs.join(' • ')}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ 
-                          padding: "2mm", 
-                          textAlign: "center", 
-                          border: "0.2mm solid #e5e7eb" 
-                        }}>
-                          {quantity}
-                        </td>
-                        <td style={{ 
-                          padding: "2mm", 
-                          textAlign: "right", 
-                          border: "0.2mm solid #e5e7eb" 
-                        }}>
-                          {formatCurrency(totalMonthlyPayment)}
-                        </td>
-                      </tr>
-                    </React.Fragment>
+                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                      <td style={{ 
+                        padding: "2mm", 
+                        border: "0.2mm solid #e5e7eb",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word"
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: "bold" }}>{item.title}</div>
+                          {specsString && (
+                            <div style={{ fontSize: "7pt", color: "#6b7280", marginTop: "1mm" }}>
+                              {specsString}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ 
+                        padding: "2mm", 
+                        textAlign: "center", 
+                        border: "0.2mm solid #e5e7eb" 
+                      }}>
+                        {quantity}
+                      </td>
+                      <td style={{ 
+                        padding: "2mm", 
+                        textAlign: "right", 
+                        border: "0.2mm solid #e5e7eb" 
+                      }}>
+                        {formatCurrency(totalMonthlyPayment)}
+                      </td>
+                    </tr>
                   );
                 })
               ) : (

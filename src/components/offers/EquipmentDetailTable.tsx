@@ -37,16 +37,6 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   // État pour suivre quels équipements sont développés
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   
-  // Par défaut, développer tous les équipements pour montrer les détails au premier chargement
-  React.useEffect(() => {
-    const expandAll: Record<string, boolean> = {};
-    equipment.forEach((item, index) => {
-      const itemId = item.id || `item-${index}`;
-      expandAll[itemId] = true;
-    });
-    setExpandedItems(expandAll);
-  }, [equipment]);
-  
   // Fonction pour basculer l'état d'expansion d'un équipement
   const toggleExpand = (itemId: string) => {
     setExpandedItems(prev => ({
@@ -107,46 +97,13 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
       return null;
     }
 
-    // Séparation des attributs en attributs de configuration et autres attributs
-    const configAttributes = normalizedAttributes.filter(attr => 
-      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
-      .some(term => attr.key.toLowerCase().includes(term))
-    );
-    
-    const otherAttributes = normalizedAttributes.filter(attr => 
-      !['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
-      .some(term => attr.key.toLowerCase().includes(term))
-    );
-
     return (
       <tr className="bg-gray-50 border-b border-gray-100">
         <td colSpan={5} className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {configAttributes.length > 0 && (
+            {hasAttributes && (
               <div>
-                <h4 className="font-medium text-gray-700 mb-2">Configuration choisie</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-1/2">Option</TableHead>
-                      <TableHead className="w-1/2">Valeur</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {configAttributes.map((attr, index) => (
-                      <TableRow key={`config-${index}`}>
-                        <TableCell className="font-medium capitalize">{attr.key}</TableCell>
-                        <TableCell>{attr.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-            
-            {otherAttributes.length > 0 && (
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Autres attributs</h4>
+                <h4 className="font-medium text-gray-700 mb-2">Attributs</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -155,7 +112,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {otherAttributes.map((attr, index) => (
+                    {normalizedAttributes.map((attr, index) => (
                       <TableRow key={`attr-${index}`}>
                         <TableCell className="font-medium capitalize">{attr.key}</TableCell>
                         <TableCell>{attr.value}</TableCell>
@@ -167,8 +124,8 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
             )}
             
             {hasSpecifications && (
-              <div className={otherAttributes.length > 0 || configAttributes.length > 0 ? "md:col-span-2 mt-4" : ""}>
-                <h4 className="font-medium text-gray-700 mb-2">Spécifications techniques</h4>
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Spécifications</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -193,23 +150,23 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
     );
   };
   
-  // Fonction pour créer une chaîne de caractères à partir des attributs de configuration
-  const createConfigString = (item: EquipmentItem): string => {
-    const attributes = item.attributes 
+  // Fonction pour créer une chaîne de caractères à partir des attributs et spécifications
+  const createDetailsString = (item: EquipmentItem): string => {
+    // Normaliser les attributs
+    const attributesList = item.attributes 
       ? Array.isArray(item.attributes) 
-        ? item.attributes 
-        : Object.entries(item.attributes).map(([key, value]) => ({ key, value: String(value) }))
+        ? item.attributes.map(attr => `${attr.key}: ${attr.value}`)
+        : Object.entries(item.attributes).map(([key, value]) => `${key}: ${value}`)
       : [];
-      
-    // Filtrer pour ne garder que les attributs liés à la configuration
-    const configAttributes = attributes.filter(attr => 
-      ['capacité', 'mémoire', 'ram', 'couleur', 'taille', 'processeur', 'cpu', 'stockage', 'modèle', 'type', 'configuration']
-      .some(term => attr.key.toLowerCase().includes(term))
-    );
     
-    return configAttributes
-      .map(attr => `${attr.key}: ${attr.value}`)
-      .join(' • ');
+    // Normaliser les spécifications
+    const specsList = item.specifications 
+      ? Array.isArray(item.specifications) 
+        ? item.specifications.map(spec => `${spec.key}: ${spec.value}`)
+        : Object.entries(item.specifications).map(([key, value]) => `${key}: ${value}`)
+      : [];
+    
+    return [...attributesList, ...specsList].join(' • ');
   };
   
   return (
@@ -241,7 +198,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
               const totalItemMonthly = monthlyPayment * item.quantity;
               const itemId = item.id || `item-${index}`;
               const isExpanded = expandedItems[itemId] || false;
-              const configString = createConfigString(item);
+              const detailsString = createDetailsString(item);
               
               return (
                 <React.Fragment key={itemId}>
@@ -259,9 +216,9 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                           )}
                           <div>
                             <div className="font-medium">{item.title}</div>
-                            {configString && (
+                            {detailsString && (
                               <div className="text-xs text-gray-500 mt-1">
-                                {configString}
+                                {detailsString}
                               </div>
                             )}
                           </div>

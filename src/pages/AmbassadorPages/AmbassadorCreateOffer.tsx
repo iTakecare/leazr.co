@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,6 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
-import { OfferType } from "@/services/offers/types";
-import { extractProductData } from '@/utils/productDataExtractor';
-import ProductSelector from "@/components/ui/ProductSelector";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -40,7 +38,6 @@ const AmbassadorCreateOffer = () => {
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -168,37 +165,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleOpenCatalog = () => {
-    setIsCatalogOpen(true);
-  };
-  
-  const handleProductSelect = (product: any) => {
-    if (!selectedLeaser) return;
-    
-    console.log("Selected product:", product);
-    
-    const purchasePrice = product.price || 0;
-    const monthlyPrice = product.monthly_price || 0;
-    const coef = findCoefficient(purchasePrice);
-    const margin = 20;
-    
-    const { attributes, specifications } = extractProductData(product);
-    
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: product.name,
-      purchasePrice: purchasePrice,
-      quantity: 1,
-      margin: Number(margin),
-      attributes,
-      specifications
-    });
-
-    if (monthlyPrice > 0) {
-      console.log("Setting target monthly payment:", monthlyPrice);
-      setTargetMonthlyPayment(monthlyPrice);
-    }
-    
-    setIsCatalogOpen(false);
+    // Fonctionnalité à implémenter si nécessaire
   };
   
   const handleSaveOffer = async () => {
@@ -239,9 +206,13 @@ const AmbassadorCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
+      // Variable pour stocker la commission
       let commissionAmount = 0;
       
+      // Récupérer la commission depuis l'interface utilisateur
       const commissionElement = document.getElementById('commission-display-value');
+      
+      console.log("Commission element found:", commissionElement);
       
       if (commissionElement && commissionElement.dataset.commissionAmount) {
         try {
@@ -254,6 +225,7 @@ const AmbassadorCreateOffer = () => {
         } catch (error) {
           console.error("Error parsing commission from UI:", error);
           
+          // Méthode de secours : calculer la commission
           const currentAmbassadorId = ambassadorId || user?.ambassador_id;
           const commissionLevelId = ambassador?.commission_level_id;
           
@@ -271,31 +243,40 @@ const AmbassadorCreateOffer = () => {
                 console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
               } else {
                 console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-                commissionAmount = Math.round(financedAmount * 0.05);
+                commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
               }
             } catch (commError) {
               console.error("Erreur lors du calcul de la commission:", commError);
-              commissionAmount = Math.round(financedAmount * 0.05);
+              commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
             }
           } else {
             console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
-            commissionAmount = Math.round(financedAmount * 0.05);
+            commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
           }
         }
       } else {
+        // Fallback si l'élément n'existe pas
         console.warn("Commission element not found in DOM");
-        commissionAmount = Math.round(financedAmount * 0.05);
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
         console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
       }
       
       const currentAmbassadorId = ambassadorId || user?.ambassador_id;
       
+      // On s'assure que la commission n'est pas invalide
       if (commissionAmount === 0 || isNaN(commissionAmount)) {
         console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.05);
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
       }
       
-      const offerType: OfferType = "ambassador_offer";
+      // Log final de la commission à sauvegarder
+      console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
+      
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      
+      // Récupérer la marge totale générée (sans la différence)
+      const marginAmount = String(globalMarginAdjustment.amount || 0);
       
       const offerData = {
         client_id: client.id,
@@ -308,13 +289,18 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: offerType,
+        type: "ambassador_offer",
         user_id: user?.id || "",
         ambassador_id: currentAmbassadorId,
         remarks: remarks,
-        total_margin_with_difference: String(globalMarginAdjustment.marginDifference || 0),
-        margin: String(globalMarginAdjustment.amount || 0)
+        total_margin_with_difference: totalMarginWithDifferenceString,
+        margin: marginAmount  // Ajout de la marge générée
       };
+      
+      console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Margin generated value being saved:", marginAmount);
       
       const { data, error } = await createOffer(offerData);
       
@@ -380,7 +366,7 @@ const AmbassadorCreateOffer = () => {
           onSelectClient={handleSelectClient}
           selectedClientId={client?.id || ""}
           onClientSelect={() => {}}
-          ambassadorMode={true}
+          ambassadorMode={true}  // Enable ambassador mode to filter clients
         />
         
         <LeaserSelector

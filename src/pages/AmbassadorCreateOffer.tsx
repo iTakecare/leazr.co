@@ -23,9 +23,6 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
-import { OfferType } from "@/services/offers/types";
-import { extractProductData } from '@/utils/productDataExtractor';
-import ProductSelector from "@/components/ui/ProductSelector";
 
 const AmbassadorCreateOffer = () => {
   const location = useLocation();
@@ -40,7 +37,6 @@ const AmbassadorCreateOffer = () => {
   const [ambassador, setAmbassador] = useState(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
@@ -168,40 +164,7 @@ const AmbassadorCreateOffer = () => {
   };
   
   const handleOpenCatalog = () => {
-    setIsCatalogOpen(true);
-  };
-  
-  const handleProductSelect = (product: any) => {
-    if (!selectedLeaser) return;
-    
-    console.log("Selected product:", product);
-    
-    const purchasePrice = product.price || 0;
-    const monthlyPrice = product.monthly_price || 0;
-    const coef = findCoefficient(purchasePrice);
-    const margin = 20;
-    
-    // Extract product attributes and specifications
-    const { attributes, specifications } = extractProductData(product);
-    console.log("Extracted attributes for ambassador offer:", attributes);
-    console.log("Extracted specifications for ambassador offer:", specifications);
-    
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: product.name,
-      purchasePrice: purchasePrice,
-      quantity: 1,
-      margin: Number(margin),
-      attributes,
-      specifications
-    });
-
-    if (monthlyPrice > 0) {
-      console.log("Setting target monthly payment:", monthlyPrice);
-      setTargetMonthlyPayment(monthlyPrice);
-    }
-    
-    setIsCatalogOpen(false);
+    // Fonctionnalité à implémenter si nécessaire
   };
   
   const handleSaveOffer = async () => {
@@ -223,7 +186,10 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
-      console.log("Equipment list with attributes before saving:", equipmentList);
+      const totalPurchasePrice = equipmentList.reduce(
+        (sum, item) => sum + (item.purchasePrice * item.quantity),
+        0
+      );
       
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
@@ -232,15 +198,14 @@ const AmbassadorCreateOffer = () => {
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-          attributes: eq.attributes || {},
-          specifications: eq.specifications || {}
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
         }))
       );
       
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
+      // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
       const commissionElement = document.querySelector('.commission-value');
       let commissionAmount = 0;
       
@@ -248,7 +213,9 @@ const AmbassadorCreateOffer = () => {
       
       if (commissionElement) {
         try {
+          // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
           const commissionText = commissionElement.textContent || '';
+          // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
           const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
           commissionAmount = parseFloat(numericValue);
           
@@ -256,28 +223,31 @@ const AmbassadorCreateOffer = () => {
           
           if (isNaN(commissionAmount)) {
             console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-            commissionAmount = Math.round(financedAmount * 0.08);
+            commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
           }
         } catch (error) {
           console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
-          commissionAmount = Math.round(financedAmount * 0.08);
+          commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
         }
       } else {
         console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.08);
+        commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
       }
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
+      // Récupérer la marge totale générée (sans la différence)
       const marginAmount = globalMarginAdjustment.amount || 0;
+      
+      // Récupérer la différence de marge 
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
+      
+      // Calculer le total de marge avec différence
       const totalMarginWithDifference = marginAmount + marginDifference;
       
       console.log("Marge totale:", marginAmount);
       console.log("Différence de marge:", marginDifference);
       console.log("Total marge avec différence:", totalMarginWithDifference);
-      
-      const offerType: OfferType = "ambassador_offer";
       
       const offerData = {
         client_id: client.id,
@@ -290,12 +260,12 @@ const AmbassadorCreateOffer = () => {
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
-        type: offerType,
+        type: "ambassador_offer",
         user_id: user?.id || "",
         ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)
+        margin: String(marginAmount)  // Marge générée
       };
       
       console.log("Saving offer with the following data:", offerData);
@@ -375,14 +345,6 @@ const AmbassadorCreateOffer = () => {
           onClose={() => setLeaserSelectorOpen(false)}
           onSelect={handleLeaserSelect}
           selectedLeaser={selectedLeaser}
-        />
-        
-        <ProductSelector
-          isOpen={isCatalogOpen}
-          onClose={() => setIsCatalogOpen(false)}
-          onSelectProduct={handleProductSelect}
-          title="Ajouter un équipement"
-          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
         
         <div className="py-12 px-4">

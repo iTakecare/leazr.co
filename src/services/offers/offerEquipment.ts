@@ -228,14 +228,13 @@ const extractAttributesAndSpecs = (item: any): { attributes: Record<string, stri
   const attributes: Record<string, string> = {};
   const specifications: Record<string, string> = {};
   
-  // Cas 1: L'élément a déjà des attributs structurés
+  // Cas 1: L'élément a déjà des attributs et spécifications structurés
   if (item.attributes && typeof item.attributes === 'object') {
     Object.entries(item.attributes).forEach(([key, value]) => {
       attributes[key] = String(value);
     });
   }
   
-  // Cas 2: L'élément a des spécifications structurées
   if (item.specifications && typeof item.specifications === 'object') {
     Object.entries(item.specifications).forEach(([key, value]) => {
       specifications[key] = String(value);
@@ -247,8 +246,8 @@ const extractAttributesAndSpecs = (item: any): { attributes: Record<string, stri
     });
   }
   
-  // Si aucun attribut ou spécification n'a été trouvé, essayons d'analyser le titre
-  if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0 && item.title) {
+  // Cas 2: Analyser le titre pour en extraire des spécifications si nécessaire
+  if (Object.keys(specifications).length === 0 && item.title) {
     const { specs, attributes: parsedAttrs } = parseEquipmentSpecsFromText(item.title);
     
     // Ajouter les spécifications analysées
@@ -316,51 +315,8 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
         serial_number: item.serialNumber || item.serial_number
       };
       
-      console.log("Item original complet:", JSON.stringify(item, null, 2));
-      
-      // Vérifier et loguer si item.attributes existe
-      if (item.attributes) {
-        console.log("Attributs détectés dans l'équipement:", typeof item.attributes, item.attributes);
-      } else {
-        console.log("Aucun attribut détecté dans l'équipement");
-      }
-      
-      // Vérifier et loguer si item.specifications existe
-      if (item.specifications) {
-        console.log("Spécifications détectées dans l'équipement:", typeof item.specifications, item.specifications);
-      } else {
-        console.log("Aucune spécification détectée dans l'équipement");
-      }
-      
-      // Extraire les attributs
-      let attributes: Record<string, string> = {};
-      if (item.attributes && typeof item.attributes === 'object') {
-        attributes = Object.entries(item.attributes).reduce((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {} as Record<string, string>);
-        console.log("Attributs extraits:", attributes);
-      }
-      
-      // Extraire les spécifications
-      let specifications: Record<string, string | number> = {};
-      if (item.specifications && typeof item.specifications === 'object') {
-        specifications = Object.entries(item.specifications).reduce((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {} as Record<string, string | number>);
-        console.log("Spécifications extraites:", specifications);
-      }
-      
-      // Si les attributs et spécifications sont vides, essayer l'extracteur alternatif
-      if (Object.keys(attributes).length === 0 && Object.keys(specifications).length === 0) {
-        const extracted = extractAttributesAndSpecs(item);
-        attributes = extracted.attributes;
-        specifications = extracted.specifications;
-        console.log("Utilisation de l'extracteur alternatif pour:", item.title);
-        console.log("Attributs alternatifs:", attributes);
-        console.log("Spécifications alternatives:", specifications);
-      }
+      // Extraire les attributs et spécifications
+      const { attributes, specifications } = extractAttributesAndSpecs(item);
       
       // Sauvegarder l'équipement avec ses attributs et spécifications
       await saveEquipment(newEquipment, attributes, specifications);

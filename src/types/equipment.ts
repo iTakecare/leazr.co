@@ -6,21 +6,19 @@ export interface Equipment {
   quantity: number;
   margin: number;
   monthlyPayment?: number;
-  attributes?: Record<string, string>;
-  specifications?: Record<string, string | number>;
-  // Add properties needed for ClientEquipmentPage
   assignedTo?: string | null;
   role?: string;
   assignedDate?: string;
   status?: string;
   serial?: string;
+  attributes?: Record<string, string>;
+  specifications?: Record<string, string | number>;
 }
 
 export interface Leaser {
   id: string;
   name: string;
-  logoUrl?: string;
-  logo_url?: string; // Add for backward compatibility
+  logo_url?: string;
   ranges: LeaserRange[];
 }
 
@@ -32,11 +30,11 @@ export interface LeaserRange {
 }
 
 export interface GlobalMarginAdjustment {
+  percentage: number;
   amount: number;
-  newCoef: number;
   newMonthly: number;
+  currentCoef: number;
+  newCoef: number;
   adaptMonthlyPayment: boolean;
-  marginDifference?: number;
-  percentage?: number; // Add missing percentage property
-  currentCoef?: number; // Add optional property used in calculator
+  marginDifference: number;
 }

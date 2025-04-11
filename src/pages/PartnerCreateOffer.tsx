@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,6 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
-import { OfferType } from "@/services/offers/types";
-import { extractProductData } from '@/utils/productDataExtractor';
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -240,19 +239,12 @@ const PartnerCreateOffer = () => {
     const coef = findCoefficient(purchasePrice);
     const margin = 20;
     
-    // Extract product attributes and specifications
-    const { attributes, specifications } = extractProductData(product);
-    console.log("Partner offer - extracted attributes:", attributes);
-    console.log("Partner offer - extracted specifications:", specifications);
-    
     setEquipment({
       id: crypto.randomUUID(),
       title: product.name,
       purchasePrice: purchasePrice,
       quantity: 1,
       margin: Number(margin),
-      attributes,
-      specifications
     });
 
     if (monthlyPrice > 0) {
@@ -293,19 +285,16 @@ const PartnerCreateOffer = () => {
     setIsSubmitting(true);
 
     try {
-      // Preserve attributes and specifications for each equipment
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
         purchasePrice: eq.purchasePrice,
         quantity: eq.quantity,
         margin: eq.margin,
-        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-        attributes: eq.attributes || {},
-        specifications: eq.specifications || {}
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
       }));
       
-      console.log("Saving equipment data with preserved attributes and specifications:", equipmentData);
+      console.log("Saving equipment data with preserved margins:", equipmentData);
       
       const equipmentDescription = equipmentList
         .map(eq => `${eq.title} (${eq.quantity}x)`)
@@ -322,8 +311,6 @@ const PartnerCreateOffer = () => {
       // Convertir le montant de total_margin_with_difference en chaîne de caractères
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
 
-      const offerType: OfferType = 'partner_offer';
-
       const offerData = {
         user_id: user.id,
         client_name: clientName,
@@ -337,8 +324,7 @@ const PartnerCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         additional_info: remarks,
-        type: offerType,
-        workflow_status: "draft",
+        type: 'partner_offer',
         total_margin_with_difference: totalMarginWithDifferenceString
       };
 

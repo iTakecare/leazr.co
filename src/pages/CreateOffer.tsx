@@ -24,9 +24,6 @@ import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
-import { OfferType } from "@/services/offers/types";
-import { extractProductData } from '@/utils/productDataExtractor';
-import ProductSelector from "@/components/ui/ProductSelector";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -37,7 +34,6 @@ const CreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [isInternalOffer, setIsInternalOffer] = useState(true);
 
@@ -128,40 +124,7 @@ const CreateOffer = () => {
   };
 
   const handleOpenCatalog = () => {
-    setIsCatalogOpen(true);
-  };
-
-  const handleProductSelect = (product: any) => {
-    if (!selectedLeaser) return;
-    
-    console.log("Selected product:", product);
-    
-    const purchasePrice = product.price || 0;
-    const monthlyPrice = product.monthly_price || 0;
-    const coef = findCoefficient(purchasePrice);
-    const margin = 20;
-    
-    // Extract product attributes and specifications
-    const { attributes, specifications } = extractProductData(product);
-    console.log("Extracted attributes:", attributes);
-    console.log("Extracted specifications:", specifications);
-    
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: product.name,
-      purchasePrice: purchasePrice,
-      quantity: 1,
-      margin: Number(margin),
-      attributes,
-      specifications
-    });
-
-    if (monthlyPrice > 0) {
-      console.log("Setting target monthly payment:", monthlyPrice);
-      setTargetMonthlyPayment(monthlyPrice);
-    }
-    
-    setIsCatalogOpen(false);
+    // Fonctionnalité à implémenter si nécessaire
   };
 
   const handleSaveOffer = async () => {
@@ -187,10 +150,7 @@ const CreateOffer = () => {
         (sum, item) => sum + (item.purchasePrice * item.quantity),
         0
       );
-      
-      // Make sure we preserve the attributes and specifications for each equipment
-      console.log("Equipment list with attributes and specs before saving:", equipmentList);
-      
+
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -207,7 +167,7 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      const offerType: OfferType = isInternalOffer ? 'internal_offer' : 'partner_offer';
+      const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
       
       let commissionAmount = 0;
       
@@ -339,14 +299,6 @@ const CreateOffer = () => {
           onClose={() => setLeaserSelectorOpen(false)}
           onSelect={handleLeaserSelect}
           selectedLeaser={selectedLeaser}
-        />
-        
-        <ProductSelector
-          isOpen={isCatalogOpen}
-          onClose={() => setIsCatalogOpen(false)}
-          onSelectProduct={handleProductSelect}
-          title="Ajouter un équipement"
-          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
         />
 
         <div className="py-12 px-4">

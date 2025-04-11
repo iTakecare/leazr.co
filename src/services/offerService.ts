@@ -1,58 +1,78 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { OfferData } from './offers/types';
-import { sendInfoRequest, processInfoResponse, getWorkflowLogs } from './offers/offerWorkflow';
-import { getOfferById, updateOffer, deleteOffer, updateOfferStatus, generateAndDownloadOfferPdf, getOfferNotes } from './offers/offerDetail';
-import { generateSignatureLink } from './offers/offerSignature';
-import { migrateEquipmentFromJson, forceMigrateEquipmentData as forceMigrateEquipment, getOfferEquipment as getEquipment } from './offers/offerEquipment';
+// This file re-exports all offer service functionality
+// It provides backward compatibility while allowing for better code organization
 
-// Re-export functions from other modules
-export {
-  sendInfoRequest,
-  processInfoResponse,
-  getWorkflowLogs,
-  getOfferById,
-  updateOffer,
+// Import specific named exports from services
+import { 
+  generateAndDownloadOfferPdf, 
+  getOfferDataForPdf, 
+  generateSamplePdf 
+} from './offers/offerPdf';
+
+import { 
+  isOfferSigned, 
+  saveOfferSignature, 
+  generateSignatureLink 
+} from './offers/offerSignature';
+
+import {
   deleteOffer,
   updateOfferStatus,
-  generateAndDownloadOfferPdf,
+  getWorkflowHistory,
+  getCompletedStatuses
+} from './offers/offerStatus';
+
+import {
+  getWorkflowLogs,
+  sendInfoRequest,
+  processInfoResponse
+} from './offers/offerWorkflow';
+
+// Import and re-export from offer notes
+import {
   getOfferNotes,
+  addOfferNote
+} from './offers/offerNotes';
+
+// Import equipment service functions
+import {
+  getOfferEquipment,
+  saveEquipment,
+  migrateEquipmentFromJson,
+  convertEquipmentToJson,
+  forceMigrateEquipmentData
+} from './offers/offerEquipment';
+
+// Import and re-export from other offer service files
+export * from './offers';
+
+// Explicitly re-export named exports that might conflict with star exports
+export {
+  generateAndDownloadOfferPdf,
+  getOfferDataForPdf,
+  generateSamplePdf,
+  isOfferSigned,
+  saveOfferSignature,
   generateSignatureLink,
-  migrateEquipmentFromJson
+  deleteOffer,
+  updateOfferStatus,
+  getWorkflowHistory,
+  getCompletedStatuses,
+  getWorkflowLogs,
+  sendInfoRequest,
+  processInfoResponse,
+  getOfferNotes,
+  addOfferNote,
+  // Export les fonctions d'équipement
+  getOfferEquipment,
+  saveEquipment,
+  migrateEquipmentFromJson,
+  convertEquipmentToJson,
+  forceMigrateEquipmentData
 };
 
-/**
- * Create a new offer
- */
-export const createOffer = async (offerData: OfferData) => {
-  try {
-    const { data, error } = await supabase
-      .from('offers')
-      .insert(offerData)
-      .select('*');
+// Export functions from offerDetail directly
+export * from './offers/offerDetail';
 
-    if (error) {
-      console.error('Error creating offer:', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error in createOffer:', error);
-    return { data: null, error };
-  }
-};
-
-/**
- * Récupère tous les équipements d'une offre avec leurs attributs et spécifications
- */
-export const getOfferEquipment = async (offerId: string) => {
-  return getEquipment(offerId);
-};
-
-/**
- * Force la migration des données d'équipement pour une offre spécifique
- */
-export const forceMigrateEquipmentData = async (offerId: string) => {
-  return forceMigrateEquipment(offerId);
-};
+// Export utility functions
+export { translateOfferType, hasCommission } from '@/utils/offerTypeTranslator';

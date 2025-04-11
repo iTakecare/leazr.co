@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import SignatureSection from "@/components/offers/SignatureSection";
 import SignedAlert from "@/components/offers/SignedAlert";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
-import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 
 const PublicOfferView = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,17 +25,8 @@ const PublicOfferView = () => {
     signature,
     isPrintingPdf,
     handleSignature,
-    handlePrintPdf,
-    debugInfo
+    handlePrintPdf
   } = useClientOffer(id);
-
-  // Ajout de logs pour debugger
-  useEffect(() => {
-    if (offer) {
-      console.log("Offer data in PublicOfferView:", offer);
-      console.log("Parsed equipment in PublicOfferView:", offer.parsedEquipment);
-    }
-  }, [offer]);
 
   if (loading) {
     return (
@@ -70,46 +60,6 @@ const PublicOfferView = () => {
       </div>
     );
   }
-
-  // Parse equipment if available
-  const renderEquipmentDetails = () => {
-    console.log("Rendering equipment details...");
-    
-    // Check for parsed equipment
-    if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
-      console.log("Using parsedEquipment:", offer.parsedEquipment);
-      
-      // Ensure each equipment has valid specifications and attributes
-      const validatedEquipment = offer.parsedEquipment.map((item: any) => ({
-        ...item,
-        specifications: item.specifications || {},
-        attributes: item.attributes || {}
-      }));
-      
-      return (
-        <EquipmentDetailTable 
-          equipment={validatedEquipment}
-          totalMonthly={offer.monthly_payment || 0}
-          totalMargin={offer.margin || 0}
-        />
-      );
-    }
-    
-    // Fallback to traditional equipment display
-    if (offer.equipment_description) {
-      console.log("Falling back to equipment_description:", offer.equipment_description);
-      return (
-        <EquipmentDisplay 
-          equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
-          monthlyPayment={offer.monthly_payment || 0}
-          remarks={offer.remarks}
-        />
-      );
-    }
-    
-    console.log("No equipment data found");
-    return null;
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -146,7 +96,13 @@ const PublicOfferView = () => {
                 </CardContent>
               </Card>
 
-              {renderEquipmentDetails()}
+              {offer.equipment_description && (
+                <EquipmentDisplay 
+                  equipmentDisplay={formatEquipmentDisplay(offer.equipment_description)}
+                  monthlyPayment={offer.monthly_payment || 0}
+                  remarks={offer.remark}
+                />
+              )}
 
               {!signed && (
                 <SignatureSection
@@ -180,20 +136,6 @@ const PublicOfferView = () => {
             </div>
           </CardContent>
         </Card>
-        
-        {/* Section de débogage */}
-        {debugInfo && (
-          <Card className="mb-6 overflow-hidden">
-            <CardHeader className="bg-orange-100 text-orange-800">
-              <CardTitle className="text-sm">Informations de débogage</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <pre className="text-xs overflow-auto p-2 bg-gray-100 rounded max-h-96">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

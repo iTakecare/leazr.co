@@ -42,9 +42,9 @@ const LeaserList = ({ leasers, isLoading, onEdit, onDelete }: LeaserListProps) =
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 rounded-md">
-                      {leaser.logoUrl ? (
+                      {leaser.logo_url ? (
                         <AvatarImage 
-                          src={leaser.logoUrl} 
+                          src={leaser.logo_url} 
                           alt={leaser.name}
                           className="object-contain p-2 bg-white"
                         />

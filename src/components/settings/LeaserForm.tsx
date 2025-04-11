@@ -30,7 +30,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logoUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
@@ -145,7 +145,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       
       const leaserData: Omit<Leaser, "id"> = {
         name: formData.get("name") as string,
-        logoUrl: previewUrl,
+        logo_url: previewUrl,
         ranges: tempRanges
       };
       

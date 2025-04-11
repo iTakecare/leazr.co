@@ -154,7 +154,6 @@ export const getDashboardStats = async (
 export const getRecentActivity = async (limit: number = 10) => {
   try {
     // Récupérer les activités récentes à partir des logs de workflow des offres
-    // Fix the relationship issue by not using the nested profiles selection
     const { data: offerLogs, error: offerLogsError } = await supabase
       .from('offer_workflow_logs')
       .select(`
@@ -163,18 +162,14 @@ export const getRecentActivity = async (limit: number = 10) => {
         offer_id,
         previous_status,
         new_status,
-        user_id
+        profiles:user_id (first_name, last_name, avatar_url)
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (offerLogsError) {
-      console.error("Error fetching offer logs:", offerLogsError);
-      throw offerLogsError;
-    }
+    if (offerLogsError) throw offerLogsError;
 
     // Récupérer les activités récentes à partir des logs de workflow des contrats
-    // Fix the relationship issue by not using the nested profiles selection
     const { data: contractLogs, error: contractLogsError } = await supabase
       .from('contract_workflow_logs')
       .select(`
@@ -183,55 +178,22 @@ export const getRecentActivity = async (limit: number = 10) => {
         contract_id,
         previous_status,
         new_status,
-        user_id
+        profiles:user_id (first_name, last_name, avatar_url)
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (contractLogsError) {
-      console.error("Error fetching contract logs:", contractLogsError);
-      throw contractLogsError;
-    }
+    if (contractLogsError) throw contractLogsError;
 
-    // Fetch user profiles separately
-    const allUserIds = [
-      ...(offerLogs || []).map(log => log.user_id),
-      ...(contractLogs || []).map(log => log.user_id)
-    ].filter(Boolean);
-
-    const uniqueUserIds = [...new Set(allUserIds)];
-    
-    let profilesData: any[] = [];
-    if (uniqueUserIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .in('id', uniqueUserIds);
-        
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-      } else {
-        profilesData = profiles || [];
-      }
-    }
-
-    // Create a map for quick profile lookup
-    const profilesMap = profilesData.reduce((acc, profile) => {
-      acc[profile.id] = profile;
-      return acc;
-    }, {} as Record<string, any>);
-
-    // Combiner les deux types de logs et enrichir avec les profils
+    // Combiner les deux types de logs
     const allLogs = [
       ...(offerLogs || []).map(log => ({
         ...log,
-        type: 'offer' as const,
-        profiles: profilesMap[log.user_id] || null
+        type: 'offer' as const
       })),
       ...(contractLogs || []).map(log => ({
         ...log,
-        type: 'contract' as const,
-        profiles: profilesMap[log.user_id] || null
+        type: 'contract' as const
       }))
     ];
 

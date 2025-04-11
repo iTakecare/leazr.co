@@ -95,9 +95,9 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
                 >
                   <div className="flex items-center gap-3 w-full">
                     <Avatar className="h-9 w-9 rounded-md">
-                      {leaser.logoUrl ? (
+                      {leaser.logo_url ? (
                         <AvatarImage 
-                          src={leaser.logoUrl} 
+                          src={leaser.logo_url} 
                           alt={leaser.name}
                           className="object-contain p-2 bg-white"
                         />
