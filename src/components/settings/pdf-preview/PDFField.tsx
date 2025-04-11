@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useDragState, useDragActions } from "./PDFPreviewDragContext";
-import { getOfferEquipment } from "@/services/offerService";
+import { getOfferEquipment, forceMigrateEquipmentData } from "@/services/offerService";
+import { OfferEquipment } from "@/types/offerEquipment";
 
 interface PDFFieldProps {
   field: any;
@@ -27,23 +28,23 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
         </tr>
       </thead>
       <tbody>
-        {equipment.map((item: any, index: number) => {
-          const quantity = parseInt(item.quantity || 1, 10);
-          const monthlyPayment = parseFloat(item.monthlyPayment || 0);
+        {equipment.map((item: OfferEquipment, index: number) => {
+          const quantity = parseInt(String(item.quantity) || "1", 10);
+          const monthlyPayment = parseFloat(String(item.monthly_payment) || "0");
           const totalMonthlyPayment = monthlyPayment * quantity;
           
           // Créer une chaîne détaillée pour les attributs et spécifications
           const detailsArray = [];
           
-          if (item.attributes && Object.keys(item.attributes).length > 0) {
-            Object.entries(item.attributes).forEach(([key, value]) => {
-              detailsArray.push(`${key}: ${value}`);
+          if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
+            item.attributes.forEach(attr => {
+              detailsArray.push(`${attr.key}: ${attr.value}`);
             });
           }
           
-          if (item.specifications && Object.keys(item.specifications).length > 0) {
-            Object.entries(item.specifications).forEach(([key, value]) => {
-              detailsArray.push(`${key}: ${value}`);
+          if (item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0) {
+            item.specifications.forEach(spec => {
+              detailsArray.push(`${spec.key}: ${spec.value}`);
             });
           }
           
@@ -69,9 +70,9 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
         <tr className="font-bold bg-gray-50">
           <td className="border px-1 py-0.5 text-right" colSpan={2}>Total mensualité :</td>
           <td className="border px-1 py-0.5 text-right">
-            {formatCurrency(equipment.reduce((total: number, item: any) => {
-              const monthlyPayment = parseFloat(item.monthlyPayment || 0);
-              const quantity = parseInt(item.quantity || 1, 10);
+            {formatCurrency(equipment.reduce((total: number, item: OfferEquipment) => {
+              const monthlyPayment = parseFloat(String(item.monthly_payment) || "0");
+              const quantity = parseInt(String(item.quantity) || "1", 10);
               return total + (monthlyPayment * quantity);
             }, 0))}
           </td>
@@ -84,77 +85,68 @@ const EquipmentTable = ({ equipment, zoomLevel }) => {
 const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, currentPage }) => {
   const { isDraggable } = useDragState();
   const { startDrag } = useDragActions();
-  const [equipmentData, setEquipmentData] = useState<any[]>([]);
+  const [equipmentData, setEquipmentData] = useState<OfferEquipment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [migrationAttempted, setMigrationAttempted] = useState(false);
   
   // Charger les données d'équipement si nécessaire
   useEffect(() => {
-    if (field.id === 'equipment_table' && sampleData && sampleData.id) {
-      // Fonction pour récupérer et traiter les données d'équipement
-      const loadEquipmentData = async () => {
+    const fetchEquipmentData = async () => {
+      if (field.id === 'equipment_table' && sampleData && sampleData.id) {
         try {
-          // Essayer d'abord de récupérer les équipements depuis la BD
+          setIsLoading(true);
+          // Récupérer les équipements depuis la BD
           const dbEquipment = await getOfferEquipment(sampleData.id);
-          if (dbEquipment && dbEquipment.length > 0) {
-            // Transformer les données pour l'affichage
-            const processedEquipment = dbEquipment.map(item => {
-              // Convertir les attributs en objet
-              const attributes: Record<string, string> = {};
-              if (item.attributes && item.attributes.length > 0) {
-                item.attributes.forEach(attr => {
-                  attributes[attr.key] = attr.value;
-                });
-              }
-              
-              // Convertir les spécifications en objet
-              const specifications: Record<string, string | number> = {};
-              if (item.specifications && item.specifications.length > 0) {
-                item.specifications.forEach(spec => {
-                  specifications[spec.key] = spec.value;
-                });
-              }
-              
-              return {
-                title: item.title,
-                quantity: item.quantity,
-                monthlyPayment: item.monthly_payment,
-                attributes,
-                specifications
-              };
-            });
+          
+          // Si aucun équipement trouvé, essayer de forcer la migration
+          if (dbEquipment.length === 0 && !migrationAttempted && sampleData.equipment_description) {
+            console.log("Aucun équipement trouvé, tentative de migration forcée...");
+            setMigrationAttempted(true);
+            const migrationSuccess = await forceMigrateEquipmentData(sampleData.id);
             
-            setEquipmentData(processedEquipment);
+            if (migrationSuccess) {
+              console.log("Migration forcée réussie, récupération des équipements...");
+              const migratedEquipment = await getOfferEquipment(sampleData.id);
+              setEquipmentData(migratedEquipment);
+            } else {
+              console.error("Échec de la migration forcée, utilisation des données JSON");
+              parseJSONEquipment();
+            }
           } else {
-            // Fallback: utiliser les données JSON si disponibles
-            parseJSONEquipment();
+            setEquipmentData(dbEquipment);
+            
+            if (dbEquipment.length === 0) {
+              parseJSONEquipment();
+            }
           }
         } catch (error) {
           console.error("Erreur lors de la récupération des équipements:", error);
-          // Fallback: utiliser les données JSON
           parseJSONEquipment();
+        } finally {
+          setIsLoading(false);
         }
-      };
-      
-      // Fonction de fallback pour analyser les données JSON
-      const parseJSONEquipment = () => {
-        try {
-          const jsonData = sampleData.equipment_description;
-          if (!jsonData) {
-            setEquipmentData([]);
-            return;
-          }
-          
-          const parsed = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-          setEquipmentData(Array.isArray(parsed) ? parsed : []);
-        } catch (error) {
-          console.error("Erreur lors du parsing des données JSON:", error);
+      }
+    };
+    
+    // Fonction de fallback pour analyser les données JSON
+    const parseJSONEquipment = () => {
+      try {
+        const jsonData = sampleData.equipment_description;
+        if (!jsonData) {
           setEquipmentData([]);
+          return;
         }
-      };
-      
-      // Lancer le chargement des données
-      loadEquipmentData();
-    }
-  }, [field.id, sampleData]);
+        
+        const parsed = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+        setEquipmentData(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error("Erreur lors du parsing des données JSON:", error);
+        setEquipmentData([]);
+      }
+    };
+    
+    fetchEquipmentData();
+  }, [field.id, sampleData, migrationAttempted]);
   
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   
@@ -234,6 +226,9 @@ const PDFField: React.FC<PDFFieldProps> = ({ field, zoomLevel, sampleData, curre
   
   const renderContent = () => {
     if (field.id === 'equipment_table') {
+      if (isLoading) {
+        return <p className="text-sm italic">Chargement des données...</p>;
+      }
       return <EquipmentTable equipment={equipmentData} zoomLevel={zoomLevel} />;
     }
     

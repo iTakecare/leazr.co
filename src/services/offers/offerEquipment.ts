@@ -154,21 +154,28 @@ export const saveEquipment = async (
 /**
  * Migre les équipements existants du format JSON vers la nouvelle structure de tables
  */
-export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: string): Promise<boolean> => {
+export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: string | any): Promise<boolean> => {
   try {
+    // Convertir equipmentJson en objet s'il est déjà une chaîne
     let equipmentData;
     
-    try {
-      equipmentData = JSON.parse(equipmentJson);
-    } catch (error) {
-      console.error("Erreur lors du parsing du JSON d'équipement:", error);
-      return false;
+    if (typeof equipmentJson === 'string') {
+      try {
+        equipmentData = JSON.parse(equipmentJson);
+      } catch (error) {
+        console.error("Erreur lors du parsing du JSON d'équipement:", error);
+        return false;
+      }
+    } else {
+      equipmentData = equipmentJson;
     }
     
     if (!Array.isArray(equipmentData)) {
       console.error("Le format JSON n'est pas un tableau d'équipements");
       return false;
     }
+    
+    console.log("Données d'équipement à migrer:", equipmentData);
     
     // Supprimer les anciens équipements s'ils existent
     await supabase
@@ -178,26 +185,47 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
     
     // Migrer chaque équipement
     for (const item of equipmentData) {
+      // Créer l'équipement de base
       const newEquipment = {
         offer_id: offerId,
         title: item.title || "Produit sans nom",
-        purchase_price: Number(item.purchasePrice) || 0,
+        purchase_price: Number(item.purchasePrice || item.purchase_price) || 0,
         quantity: Number(item.quantity) || 1,
         margin: Number(item.margin) || 0,
-        monthly_payment: Number(item.monthlyPayment) || 0,
-        serial_number: item.serialNumber
+        monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
+        serial_number: item.serialNumber || item.serial_number
       };
       
-      const attributes = item.attributes || {};
-      const specifications = item.specifications || {};
+      // Extraire les attributs et spécifications
+      const attributes = {};
+      const specifications = {};
       
-      await saveEquipment(
-        newEquipment,
-        attributes,
-        specifications
-      );
+      // Traiter les attributs s'ils existent
+      if (item.attributes && typeof item.attributes === 'object') {
+        Object.entries(item.attributes).forEach(([key, value]) => {
+          attributes[key] = String(value);
+        });
+      }
+      
+      // Traiter les spécifications s'ils existent
+      if (item.specifications && typeof item.specifications === 'object') {
+        Object.entries(item.specifications).forEach(([key, value]) => {
+          specifications[key] = String(value);
+        });
+      }
+      
+      // Compatibilité avec l'ancien format qui utilisait "variants" au lieu de "specifications"
+      if (item.variants && typeof item.variants === 'object') {
+        Object.entries(item.variants).forEach(([key, value]) => {
+          specifications[key] = String(value);
+        });
+      }
+      
+      // Sauvegarder l'équipement avec ses attributs et spécifications
+      await saveEquipment(newEquipment, attributes, specifications);
     }
     
+    console.log(`Migration terminée avec succès pour l'offre ${offerId}`);
     return true;
   } catch (error) {
     console.error("Erreur lors de la migration des équipements:", error);
@@ -244,5 +272,36 @@ export const convertEquipmentToJson = (equipment: OfferEquipment[]): string => {
   } catch (error) {
     console.error("Erreur lors de la conversion des équipements en JSON:", error);
     return "[]";
+  }
+};
+
+/**
+ * Force la migration de tous les équipements pour une offre spécifique
+ */
+export const forceMigrateEquipmentData = async (offerId: string): Promise<boolean> => {
+  try {
+    // 1. Récupérer l'offre existante
+    const { data: offer, error: offerError } = await supabase
+      .from('offers')
+      .select('equipment_description')
+      .eq('id', offerId)
+      .single();
+    
+    if (offerError || !offer) {
+      console.error("Erreur lors de la récupération de l'offre:", offerError);
+      return false;
+    }
+    
+    if (!offer.equipment_description) {
+      console.log("Aucune description d'équipement à migrer pour cette offre");
+      return false;
+    }
+    
+    // 2. Forcer la migration des équipements
+    const success = await migrateEquipmentFromJson(offerId, offer.equipment_description);
+    return success;
+  } catch (error) {
+    console.error("Erreur lors de la migration forcée:", error);
+    return false;
   }
 };
