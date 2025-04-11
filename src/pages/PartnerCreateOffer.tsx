@@ -16,6 +16,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferType } from "@/services/offers/types";
+import { extractProductData } from '@/utils/productDataExtractor';
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -239,12 +240,17 @@ const PartnerCreateOffer = () => {
     const coef = findCoefficient(purchasePrice);
     const margin = 20;
     
+    // Extract product attributes and specifications
+    const { attributes, specifications } = extractProductData(product);
+    
     setEquipment({
       id: crypto.randomUUID(),
       title: product.name,
       purchasePrice: purchasePrice,
       quantity: 1,
       margin: Number(margin),
+      attributes,
+      specifications
     });
 
     if (monthlyPrice > 0) {

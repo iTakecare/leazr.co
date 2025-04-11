@@ -25,6 +25,7 @@ import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
 import { OfferType } from "@/services/offers/types";
+import { extractProductData } from '@/utils/productDataExtractor';
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -126,6 +127,37 @@ const CreateOffer = () => {
 
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
+  };
+
+  const handleProductSelect = (product: any) => {
+    if (!selectedLeaser) return;
+    
+    console.log("Selected product:", product);
+    
+    const purchasePrice = product.price || 0;
+    const monthlyPrice = product.monthly_price || 0;
+    const coef = findCoefficient(purchasePrice);
+    const margin = 20;
+    
+    // Extract product attributes and specifications
+    const { attributes, specifications } = extractProductData(product);
+    
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: product.name,
+      purchasePrice: purchasePrice,
+      quantity: 1,
+      margin: Number(margin),
+      attributes,
+      specifications
+    });
+
+    if (monthlyPrice > 0) {
+      console.log("Setting target monthly payment:", monthlyPrice);
+      setTargetMonthlyPayment(monthlyPrice);
+    }
+    
+    setIsCatalogOpen(false);
   };
 
   const handleSaveOffer = async () => {
