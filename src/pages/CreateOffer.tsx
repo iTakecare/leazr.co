@@ -24,7 +24,6 @@ import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
-import { OfferType } from "@/services/offers/types";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -168,7 +167,7 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      const offerType: OfferType = isInternalOffer ? 'internal_offer' : 'partner_offer';
+      const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
       
       let commissionAmount = 0;
       

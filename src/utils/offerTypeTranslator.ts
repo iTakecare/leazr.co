@@ -3,9 +3,7 @@
  * Traduit les types d'offres de la base de données en libellés français pour l'affichage
  */
 
-import { OfferType } from '@/services/offers/types';
-
-export const translateOfferType = (type: OfferType | string | undefined | null): string => {
+export const translateOfferType = (type: string | undefined | null): string => {
   if (!type) return "Non défini";
   
   switch (type.toLowerCase()) {
@@ -15,18 +13,24 @@ export const translateOfferType = (type: OfferType | string | undefined | null):
       return "Offre partenaire";
     case 'direct_offer':
       return "Offre directe";
+    case 'admin_offer':
+      return "Offre administrative";
+    case 'client_request':
+      return "Demande client";
     case 'internal_offer':
       return "Offre interne";
     default:
-      return "Type inconnu";
+      return type;
   }
 };
 
 /**
- * Vérifie si le type d'offre inclut une commission
+ * Vérifie si le type d'offre a une commission
+ * Les offres internes n'ont pas de commission
  */
-export const hasCommission = (type: OfferType | string | undefined | null): boolean => {
+export const hasCommission = (type: string | undefined | null): boolean => {
   if (!type) return false;
   
-  return ['ambassador_offer', 'partner_offer'].includes(type.toLowerCase());
+  // Les offres internes ou de type 'internal_offer' n'ont pas de commission
+  return type.toLowerCase() !== 'internal_offer';
 };

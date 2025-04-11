@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -323,7 +324,7 @@ const PartnerCreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         additional_info: remarks,
-        type: 'partner_offer' as const,
+        type: 'partner_offer',
         total_margin_with_difference: totalMarginWithDifferenceString
       };
 
