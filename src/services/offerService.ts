@@ -122,9 +122,7 @@ export {
   saveEquipment,
   migrateEquipmentFromJson,
   convertEquipmentToJson,
-  forceMigrateEquipmentData,
-  // Nouvel export
-  transformProductToEquipment
+  forceMigrateEquipmentData
 };
 
 // Export functions from offerDetail directly
