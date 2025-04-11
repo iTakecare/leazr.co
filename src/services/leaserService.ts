@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Leaser } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -285,7 +286,7 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
         .insert({
           id: leaser.id,  // Conserver l'ID d'origine pour garantir la cohérence
           name: leaser.name,
-          logo_url: leaser.logo_url || null
+          logo_url: leaser.logoUrl || null  // Use logoUrl from the interface when inserting into logo_url field
         })
         .select()
         .single();
