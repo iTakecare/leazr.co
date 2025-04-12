@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Info, Check, MinusIcon, PlusIcon, ShoppingCart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import MainNavigation from "@/components/layout/MainNavigation"; // Updated import
+import MainNavigation from "@/components/layout/MainNavigation";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -68,7 +67,9 @@ const ProductDetailPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <PublicHeader />
+        <div className="container mx-auto px-4 py-6">
+          <MainNavigation />
+        </div>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center space-x-2 mb-6">
             <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
@@ -91,7 +92,9 @@ const ProductDetailPage = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <PublicHeader />
+        <div className="container mx-auto px-4 py-6">
+          <MainNavigation />
+        </div>
         <div className="container mx-auto px-4 py-16 text-center">
           <h2 className="text-2xl font-bold mb-4">Produit non trouvé</h2>
           <p className="text-gray-600 mb-8">Impossible de trouver les détails de ce produit.</p>
