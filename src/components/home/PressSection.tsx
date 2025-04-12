@@ -62,7 +62,7 @@ const PressSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Colonne de gauche: Titre et YouTube thumbnail */}
           <div className="flex flex-col">
-            <h2 className="text-[46px] font-bold text-gray-900 mb-8">
+            <h2 className="text-[46px] font-bold text-gray-900 mb-8 mr-4">
               La presse <span className="bg-[#48b5c34f] text-[#48b5c3] px-6 py-1 rounded-lg group-hover:bg-[#33638E] group-hover:text-white relative top-[-2px] ml-1">parle de nous</span>
             </h2>
             
@@ -117,3 +117,4 @@ const PressSection = () => {
 };
 
 export default PressSection;
+
