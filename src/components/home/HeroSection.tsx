@@ -1,12 +1,23 @@
 
 import React from "react";
+import { ShoppingCartIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 
 const HeroSection = () => {
   const navigate = useNavigate();
   
+  // Benefits list
+  const benefits = [
+    "Du matériel reconditionné haut de gamme, testé et garanti.",
+    "Un forfait tout compris : maintenance, support et mises à jour.",
+    "Remplacement sous 24h en cas de panne ou sinistre.",
+    "Un choix écoresponsable et économique pour votre entreprise.",
+  ];
+
   return (
     <div 
       className="w-full relative min-h-screen"
@@ -36,38 +47,16 @@ const HeroSection = () => {
             </p>
             
             <ul className="space-y-4 mb-10">
-              <li className="flex items-start">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
-                    ✓
+              {benefits.map((benefit, index) => (
+                <li key={index} className="flex items-start">
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
+                      ✓
+                    </div>
                   </div>
-                </div>
-                <span className="text-gray-800 font-['Inter']">Du matériel reconditionné haut de gamme, testé et garanti.</span>
-              </li>
-              <li className="flex items-start">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
-                    ✓
-                  </div>
-                </div>
-                <span className="text-gray-800 font-['Inter']">Un forfait tout compris : maintenance, support et mises à jour.</span>
-              </li>
-              <li className="flex items-start">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
-                    ✓
-                  </div>
-                </div>
-                <span className="text-gray-800 font-['Inter']">Remplacement sous 24h en cas de panne ou sinistre.</span>
-              </li>
-              <li className="flex items-start">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
-                    ✓
-                  </div>
-                </div>
-                <span className="text-gray-800 font-['Inter']">Un choix écoresponsable et économique pour votre entreprise.</span>
-              </li>
+                  <span className="text-gray-800 font-['Inter']">{benefit}</span>
+                </li>
+              ))}
             </ul>
             
             <div className="flex flex-wrap gap-4 mb-12">
