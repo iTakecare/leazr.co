@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HeroSection } from '@/components/home/HeroSection';
+import HeroSection from '@/components/home/HeroSection';
 import HomeLayout from '@/components/home/HomeLayout';
 import FeatureSection from '@/components/home/FeatureSection';
 import StatsSection from '@/components/home/StatsSection';
