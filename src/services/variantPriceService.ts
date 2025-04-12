@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ProductAttributes } from "@/types/catalog";
+import { ProductAttributes, ProductVariationAttributes, VariantCombinationPrice } from "@/types/catalog";
 
 /**
  * Find a variant combination price based on product ID and attributes
@@ -46,5 +46,105 @@ export const findVariantCombinationPrice = async (
   } catch (error) {
     console.error("Error finding variant combination price:", error);
     return null;
+  }
+};
+
+// New functions for variant price management
+
+/**
+ * Update a product's variation attributes
+ */
+export const updateProductVariationAttributes = async (
+  productId: string,
+  attributes: ProductVariationAttributes
+): Promise<boolean> => {
+  try {
+    console.log(`Updating variation attributes for product ${productId}:`, attributes);
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update({ variation_attributes: attributes })
+      .eq('id', productId);
+    
+    if (error) {
+      console.error("Error updating product variation attributes:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in updateProductVariationAttributes:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all variant combination prices for a product
+ */
+export const getVariantCombinationPrices = async (productId: string): Promise<VariantCombinationPrice[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+    
+    if (error) {
+      console.error("Error fetching variant prices:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getVariantCombinationPrices:", error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new variant combination price
+ */
+export const createVariantCombinationPrice = async (variantPrice: {
+  product_id: string;
+  attributes: Record<string, string>;
+  price: number;
+  monthly_price?: number;
+  stock?: number;
+}): Promise<VariantCombinationPrice> => {
+  try {
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .insert([variantPrice])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating variant price:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in createVariantCombinationPrice:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a variant combination price
+ */
+export const deleteVariantCombinationPrice = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('product_variant_prices')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error deleting variant price:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in deleteVariantCombinationPrice:", error);
+    throw error;
   }
 };

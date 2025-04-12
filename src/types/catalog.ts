@@ -32,8 +32,10 @@ export interface Product {
   imageUrls?: string[];
   regularPrice?: number;
   tier?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  shortDescription?: string;
+  isMain?: boolean;
 }
 
 export interface ProductVariationAttributes {
@@ -47,7 +49,10 @@ export interface VariantCombinationPrice {
   stock?: number;
   active?: boolean;
   sku?: string;
-  id?: string; // Adding id property
+  id: string; // Adding id property as required
+  product_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Brand {
@@ -66,9 +71,9 @@ export interface Category {
   updated_at?: string;
 }
 
-// Adding missing types
+// Updating ProductAttributes to be compatible with Record<string, string>
 export interface ProductAttributes {
-  [key: string]: string | number | boolean;
+  [key: string]: string;
 }
 
 export interface AttributeDefinition {
