@@ -32,7 +32,7 @@ const StepsSection = () => {
           <div className="flex justify-center h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
-                src="/lovable-uploads/f4d1c642-72a0-41a9-84ef-4774d7957aba.png" 
+                src="/lovable-uploads/fa09c5a3-4aa6-4356-8079-00f67a30dbb5.png" 
                 alt="Matériel informatique" 
                 className="rounded-3xl shadow-lg w-full h-full object-cover"
               />
