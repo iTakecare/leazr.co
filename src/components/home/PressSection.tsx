@@ -87,7 +87,7 @@ const PressSection = () => {
           </div>
           
           {/* Colonne de droite: Logos en 3 rangées - avec liens cliquables */}
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full mt-8 md:mt-16">
             <div className="grid grid-cols-3 grid-rows-3 gap-6 w-full">
               {mediaLogos.map((logo) => (
                 <div key={logo.id} className="flex items-center justify-center h-24 sm:h-28">
