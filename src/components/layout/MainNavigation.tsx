@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import { cn } from "@/lib/utils";
 
 const MainNavigation = () => {
   // Get cart items from context
@@ -50,7 +51,12 @@ const MainNavigation = () => {
         <Link to="/panier" className="relative">
           <ShoppingCartIcon className="w-6 h-6" />
           {cartCount > 0 && (
-            <Badge className={`absolute -top-1 -right-2 w-5 h-5 bg-[#48b5c3] rounded-[10px] flex items-center justify-center p-0 ${cartCount > 0 ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''}`}>
+            <Badge 
+              className={cn(
+                "absolute -top-1 -right-2 w-5 h-5 bg-[#33638E] rounded-[10px] flex items-center justify-center p-0",
+                cartCount > 0 ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''
+              )}
+            >
               <span className="font-bold text-white text-xs">{cartCount}</span>
             </Badge>
           )}
