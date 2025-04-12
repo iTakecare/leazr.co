@@ -3,13 +3,14 @@ import React from "react";
 import { ShoppingCartIcon, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 
 const MainNavigation = () => {
   // Get cart items from context
   const { cartCount } = useCart();
+  const location = useLocation();
 
   // Navigation menu items
   const navItems = [
@@ -38,7 +39,10 @@ const MainNavigation = () => {
                 <li key={index}>
                   <Link
                     to={item.href}
-                    className="font-normal text-[#222222] text-lg"
+                    className={cn(
+                      "font-normal text-[#222222] text-lg",
+                      location.pathname === item.href && "font-medium text-[#33638E]"
+                    )}
                   >
                     {item.label}
                   </Link>
