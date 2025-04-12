@@ -8,7 +8,9 @@ interface HomeLayoutProps {
 const HomeLayout: React.FC<HomeLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-white flex flex-col w-full overflow-x-hidden">
-      {children}
+      <main className="flex-grow">
+        {children}
+      </main>
     </div>
   );
 };

@@ -12,35 +12,33 @@ import HomeFooter from '@/components/home/HomeFooter';
 const HomePage = () => {
   return (
     <HomeLayout>
-      <div className="flex flex-col">
-        {/* Hero Section */}
-        <HeroSection />
-        
-        {/* Partners Section (Social Proof) */}
-        <div id="partners" className="mt-8">
-          <PartnersSection />
-        </div>
-        
-        {/* Features Section (Advantages) */}
-        <div id="features" className="mt-8">
-          <FeatureSection />
-        </div>
-        
-        {/* Additional Sections */}
-        <div id="stats" className="mt-8">
-          <StatsSection />
-        </div>
-        
-        <div id="testimonials" className="mt-8">
-          <TestimonialSection />
-        </div>
-        
-        <div id="cta" className="mt-8">
-          <CtaSection />
-        </div>
-        
-        <HomeFooter />
-      </div>
+      {/* Hero Section */}
+      <HeroSection />
+      
+      {/* Partners Section (Social Proof) */}
+      <section id="partners" className="mt-8">
+        <PartnersSection />
+      </section>
+      
+      {/* Features Section (Advantages) */}
+      <section id="features" className="mt-8">
+        <FeatureSection />
+      </section>
+      
+      {/* Additional Sections */}
+      <section id="stats" className="mt-8">
+        <StatsSection />
+      </section>
+      
+      <section id="testimonials" className="mt-8">
+        <TestimonialSection />
+      </section>
+      
+      <section id="cta" className="mt-8">
+        <CtaSection />
+      </section>
+      
+      <HomeFooter />
     </HomeLayout>
   );
 };

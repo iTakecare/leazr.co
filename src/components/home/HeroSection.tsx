@@ -25,9 +25,9 @@ const HeroSection = () => {
   ];
 
   return (
-    <div className="relative w-full mb-8">
+    <div className="relative w-full mb-20">
       {/* Background image */}
-      <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0 z-0">
+      <div className="flex flex-col w-full h-[80vh] md:h-[90vh] items-start gap-2.5 absolute top-0 left-0 z-0">
         <img
           className="relative w-full h-full object-cover"
           alt="Background"
@@ -91,7 +91,7 @@ const HeroSection = () => {
       </Card>
 
       {/* Hero content */}
-      <header className="relative w-full max-w-[1331px] mx-auto h-[537px] z-10 px-[37px] mt-10">
+      <header className="relative w-full max-w-[1331px] mx-auto h-[500px] z-10 px-[37px] mt-10">
         <div className="flex flex-row">
           {/* Left content */}
           <div className="w-[723px]">
@@ -179,9 +179,6 @@ const HeroSection = () => {
           </div>
         </div>
       </header>
-      
-      {/* Add padding to ensure proper spacing for next sections */}
-      <div className="h-[100px]"></div>
     </div>
   );
 };
