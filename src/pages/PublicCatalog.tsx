@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -124,25 +123,7 @@ const PublicCatalog = () => {
         <CatalogHeader />
       </div>
       
-      <div className="lg:hidden max-w-7xl mx-auto px-4 md:px-6 py-4">
-        <Button 
-          onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-          variant="outline" 
-          className="w-full flex justify-between items-center"
-        >
-          <span className="flex items-center">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtres
-          </span>
-          {isMobileFiltersOpen ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
           <Collapsible 
             open={isMobileFiltersOpen || window.innerWidth >= 1024}
