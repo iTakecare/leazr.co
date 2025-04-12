@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,10 @@ const AdvisorSection = () => {
             <div className="w-full lg:w-3/5 z-10 p-12 lg:p-16">
               <div className="mb-16">
                 <h2 className="text-5xl font-bold text-gray-900 mb-2">
-                  Vous hésitez sur le <span className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-1 rounded-full">choix du matériel ?</span>
+                  Vous hésitez sur le{" "}
+                  <span className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-1 rounded-full">
+                    choix du matériel ?
+                  </span>
                 </h2>
                 <p className="text-5xl font-bold text-gray-900">
                   On est là pour vous aider !
