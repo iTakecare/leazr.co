@@ -25,7 +25,7 @@ const HeroSection = () => {
   ];
 
   return (
-    <div className="relative w-full h-[100vh] mb-[100px]">
+    <div className="relative w-full h-auto">
       {/* Background image */}
       <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0 z-0">
         <img
@@ -179,6 +179,9 @@ const HeroSection = () => {
           </div>
         </div>
       </header>
+      
+      {/* Add margin to create space for the next section */}
+      <div className="w-full h-[150px]"></div>
     </div>
   );
 };
