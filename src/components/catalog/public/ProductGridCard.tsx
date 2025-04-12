@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -39,7 +38,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     setHasError(false);
   }, [product]);
   
-  // Debug info
   const debugProduct = () => {
     console.log(`ProductGridCard ${product.name} (${product.id}):`);
     console.log(`- parent_id: ${product.parent_id || 'none'}`);
@@ -51,15 +49,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     console.log(`- price: ${product.price}, monthly_price: ${product.monthly_price}`);
   };
   
-  // Run debug on mount
   useEffect(() => {
     debugProduct();
   }, []);
-
-  // Removed the filtering condition that prevented some products from displaying
-  // if (product.is_variation || product.parent_id) {
-  //   return null;
-  // }
 
   const brandLabel = product.brand || "Generic";
   
@@ -98,7 +90,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       }
     }
     
-    // If we still don't have a monthly price, use the regular price
     if (minPrice === 0 && product.price) {
       minPrice = typeof product.price === 'number' ? product.price : parseFloat(String(product.price));
       console.log(`Using regular price as fallback: ${minPrice}`);
@@ -226,7 +217,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30 mt-16"
       onClick={onClick}
     >
       <div className="relative pt-[100%] bg-white">
@@ -306,4 +297,3 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 };
 
 export default ProductGridCard;
-
