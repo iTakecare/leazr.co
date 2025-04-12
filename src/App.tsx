@@ -68,6 +68,51 @@ const queryClient = new QueryClient({
   },
 });
 
+// Composant pour protéger les routes administrateur
+const AdminRoute = ({ children }) => {
+  const { user, isLoading, isAdmin } = useAuth();
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+  }
+  
+  if (!user || !isAdmin()) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
+// Composant pour protéger les routes partenaire
+const PartnerRoute = ({ children }) => {
+  const { user, isLoading, isPartner } = useAuth();
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+  }
+  
+  if (!user || !isPartner()) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
+// Composant pour protéger les routes ambassadeur
+const AmbassadorRoute = ({ children }) => {
+  const { user, isLoading, isAmbassador } = useAuth();
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+  }
+  
+  if (!user || !isAmbassador()) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
 const App = () => {
   const location = useLocation();
 
@@ -98,7 +143,11 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   
                   {/* Routes administrateur */}
-                  <Route path="/" element={<Layout />}>
+                  <Route path="/" element={
+                    <AdminRoute>
+                      <Layout />
+                    </AdminRoute>
+                  }>
                     <Route index element={<Dashboard />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="clients" element={<Clients />} />
@@ -141,7 +190,11 @@ const App = () => {
                   <Route path="/client/*" element={<ClientRoutes />} />
                   
                   {/* Routes ambassadeur - layout spécifique */}
-                  <Route path="/ambassador" element={<AmbassadorLayout />}>
+                  <Route path="/ambassador" element={
+                    <AmbassadorRoute>
+                      <AmbassadorLayout />
+                    </AmbassadorRoute>
+                  }>
                     <Route index element={<Navigate to="/ambassador/dashboard" replace />} />
                     <Route path="dashboard" element={<AmbassadorDashboardPage />} />
                     <Route path="offers" element={<AmbassadorOffersPage />} />
@@ -158,10 +211,26 @@ const App = () => {
                   </Route>
                   
                   {/* Routes partenaire */}
-                  <Route path="/partner/dashboard" element={<PartnerDashboard />} />
-                  <Route path="/partner/offers" element={<Offers />} />
-                  <Route path="/partner/clients" element={<Clients />} />
-                  <Route path="/partner" element={<PartnerDashboard />} />
+                  <Route path="/partner" element={
+                    <PartnerRoute>
+                      <PartnerDashboard />
+                    </PartnerRoute>
+                  } />
+                  <Route path="/partner/dashboard" element={
+                    <PartnerRoute>
+                      <PartnerDashboard />
+                    </PartnerRoute>
+                  } />
+                  <Route path="/partner/offers" element={
+                    <PartnerRoute>
+                      <Offers />
+                    </PartnerRoute>
+                  } />
+                  <Route path="/partner/clients" element={
+                    <PartnerRoute>
+                      <Clients />
+                    </PartnerRoute>
+                  } />
                   
                   <Route path="/create-offer" element={<CreateOffer />} />
                   <Route path="/calculator" element={<CreateOffer />} />

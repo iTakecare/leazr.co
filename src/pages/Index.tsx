@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -16,10 +17,16 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Vérifier d'abord si l'utilisateur est authentifié
+    // Ne pas faire de redirection tant que le chargement n'est pas terminé
+    if (isLoading) {
+      console.log("Index page - Chargement en cours, pas de redirection");
+      return;
+    }
+    
+    // Si l'utilisateur n'est pas authentifié, afficher la page d'accueil
     if (!user) {
       console.log("Index page - utilisateur non authentifié, affichage de la page d'accueil");
-      return; // Sortir de la fonction et afficher la page d'accueil
+      return;
     }
     
     // Ne rediriger que si l'utilisateur est connecté ET que la vérification des rôles est terminée
@@ -63,8 +70,7 @@ const Index = () => {
       toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
       navigate("/client/dashboard", { replace: true });
     }
-    // Si l'utilisateur n'est pas connecté ou la vérification des rôles n'est pas terminée, ne pas rediriger et afficher la page d'accueil
-  }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);
+  }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked, isLoading]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
