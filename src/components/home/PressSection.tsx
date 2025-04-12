@@ -15,7 +15,7 @@ const PressSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-white">
       <Container maxWidth="custom">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Colonne de gauche: Titre et YouTube thumbnail */}
@@ -28,7 +28,7 @@ const PressSection = () => {
             <div className="relative group mt-4">
               <img 
                 src="/lovable-uploads/88f6cdf6-516c-4d4f-8a9f-d74894212c9b.png" 
-                alt="Gianni Sergi - Fondateur de iTakecare - Interview" 
+                alt="Vidéo iTakecare" 
                 className="w-full h-auto rounded-lg shadow-md"
               />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -40,12 +40,6 @@ const PressSection = () => {
                 >
                   <PlayCircle className="w-12 h-12 text-red-600" />
                 </a>
-              </div>
-              <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-md">
-                <div className="text-white text-left">
-                  <p className="text-sm font-medium">Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024</p>
-                  <p className="text-xs">Gianni Sergi, Fondateur de iTakecare</p>
-                </div>
               </div>
             </div>
           </div>
