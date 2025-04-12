@@ -5,6 +5,7 @@ import HeroSection from '@/components/home/HeroSection';
 import FeatureSection from '@/components/home/FeatureSection';
 import PressSection from '@/components/home/PressSection';
 import StepsSection from '@/components/home/StepsSection';
+import AdvisorSection from '@/components/home/AdvisorSection';
 import StatsSection from '@/components/home/StatsSection';
 import TestimonialSection from '@/components/home/TestimonialSection';
 import PartnersSection from '@/components/home/PartnersSection';
@@ -21,6 +22,7 @@ const HomePage = () => {
         <FeatureSection />
         <PressSection />
         <StepsSection />
+        <AdvisorSection />
         <StatsSection />
         <TestimonialSection />
         <CtaSection />
