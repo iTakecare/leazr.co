@@ -23,7 +23,7 @@ import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProductDetailPage from "./pages/ProductDetailPage";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
 import AmbassadorEditPage from "./pages/AmbassadorEditPage";
