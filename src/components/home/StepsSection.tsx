@@ -11,7 +11,9 @@ const StepsSection = () => {
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Passer au leasing de matériel informatique
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold relative 
+            before:content-[''] before:absolute before:-inset-3 before:bg-[#48b5c3]/10 before:rounded-lg before:blur-md before:-z-10
+            shadow-lg shadow-[#48b5c3]/20">
             en seulement 3 étapes
           </div>
         </div>
