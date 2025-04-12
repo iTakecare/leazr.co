@@ -114,7 +114,7 @@ const HeroSection = (): JSX.Element => {
 
             <p className="font-normal text-[#222222] text-lg mb-8">
               Optez pour un parc informatique performant et écoresponsable, à
-              moindre coût:
+              moindre coût :
             </p>
 
             <ul className="space-y-1 mb-10">
