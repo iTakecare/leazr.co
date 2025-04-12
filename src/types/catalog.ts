@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -36,6 +35,7 @@ export interface Product {
   updatedAt?: string | Date;
   shortDescription?: string;
   isMain?: boolean;
+  sku?: string;
 }
 
 export interface ProductVariationAttributes {
@@ -71,7 +71,6 @@ export interface Category {
   updated_at?: string;
 }
 
-// Updating ProductAttributes to be compatible with Record<string, string>
 export interface ProductAttributes {
   [key: string]: string;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,7 +145,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   const filteredProducts = getFilteredProducts();
   
   const handleProductSelect = (product: Product) => {
-    onSelectProduct(product);
+    onSelectProduct(product as Product);
   };
   
   useEffect(() => {
@@ -223,9 +222,9 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="cursor-pointer">
                       <CatalogProductCard 
-                        product={product} 
+                        product={product as Product} 
                         onClick={() => handleProductSelect(product)}
-                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+                        onViewVariants={onViewVariants ? (e) => onViewVariants(product as Product, e) : undefined}
                       />
                     </div>
                   ))}

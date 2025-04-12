@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -251,8 +252,8 @@ const ProductDetail = () => {
               <Button variant="outline" onClick={() => setIsEditMode(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleSubmit} disabled={updateProductMutation.isLoading}>
-                {updateProductMutation.isLoading ? (
+              <Button onClick={handleSubmit} disabled={updateProductMutation.isPending}>
+                {updateProductMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Enregistrement...
@@ -350,8 +351,8 @@ const ProductDetail = () => {
               </div>
               
               {isEditMode && (
-                <Button type="submit" disabled={updateProductMutation.isLoading}>
-                  {updateProductMutation.isLoading ? (
+                <Button type="submit" disabled={updateProductMutation.isPending}>
+                  {updateProductMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Enregistrement...
