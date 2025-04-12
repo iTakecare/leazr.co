@@ -11,7 +11,7 @@ const CtaSection = () => {
     <section className="py-16 bg-gradient-to-r from-[#48B5C3] to-[#33638E] text-white">
       <Container maxWidth="custom">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-[46px] font-bold mb-4">
             Prêt à moderniser votre parc informatique de façon durable ?
           </h2>
           <p className="text-lg mb-8 max-w-2xl mx-auto">
@@ -19,14 +19,14 @@ const CtaSection = () => {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button 
-              className="bg-white text-[#48B5C3] hover:bg-gray-100 rounded-full px-8"
+              className="bg-white text-[#48B5C3] hover:bg-gray-100 rounded-full px-8 text-[18px] font-bold h-auto py-3"
               onClick={() => navigate("/catalogue")}
             >
               Découvrir notre catalogue
             </Button>
             <Button 
               variant="outline" 
-              className="border-white text-white hover:bg-white/10 rounded-full px-8"
+              className="border-white text-white hover:bg-white/10 rounded-full px-8 text-[18px] font-bold h-auto py-3"
               onClick={() => navigate("/contact")}
             >
               Demander un devis

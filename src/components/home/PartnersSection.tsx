@@ -16,13 +16,13 @@ const PartnersSection = () => {
     <section className="py-10 bg-white -mt-20 relative z-10">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900">Ils nous font confiance</h2>
+          <h2 className="text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
         </div>
         
         <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
           {partners.map((partner) => (
             <div key={partner.id} className="flex items-center">
-              <span className="text-2xl font-bold">✱ {partner.name}</span>
+              <span className="text-[30px] font-medium">✱ {partner.name}</span>
             </div>
           ))}
         </div>

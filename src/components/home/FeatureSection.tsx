@@ -53,14 +53,14 @@ const FeatureSection = () => {
     <section className="py-16 bg-white">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4 relative">
+          <h2 className="text-[46px] font-bold text-gray-900 mb-4 relative">
             Dites adieu au{" "}
             <span className="relative inline-block">
-              <span className="absolute inset-0 bg-[#48b5c3]/20 blur-md rounded-lg transform -skew-x-3"></span>
+              <span className="absolute inset-0 bg-[#48b5c3]/20 blur-[35px] rounded-lg transform -skew-x-3 w-[120%] h-[150%] -left-[10%] -top-[25%]"></span>
               <span className="relative bg-[#e6f7fa] text-[#48b5c3] px-3 py-1 rounded-md">matériel obsolète</span>
             </span>
           </h2>
-          <h2 className="text-4xl font-bold text-gray-900 mb-8">et aux frais imprévus !</h2>
+          <h2 className="text-[46px] font-bold text-gray-900 mb-8">et aux frais imprévus !</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -69,7 +69,7 @@ const FeatureSection = () => {
               <div className={`${feature.bgColor} w-20 h-20 rounded-full flex items-center justify-center mb-6`}>
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+              <h3 className="text-[30px] font-medium text-gray-900 mb-3">{feature.title}</h3>
               <p className="text-gray-600">{feature.description}</p>
             </div>
           ))}

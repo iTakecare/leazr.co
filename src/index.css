@@ -81,6 +81,22 @@
     @apply scroll-smooth;
   }
   
+  h1 {
+    @apply text-[50px] font-black;
+  }
+  
+  h2 {
+    @apply text-[46px] font-bold;
+  }
+  
+  h3 {
+    @apply text-[30px] font-medium;
+  }
+  
+  .button-text {
+    @apply text-[18px] font-bold;
+  }
+  
   .truncate-text {
     white-space: nowrap;
     overflow: hidden;

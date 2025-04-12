@@ -7,7 +7,7 @@ const TestimonialSection = () => {
     <section className="py-16 bg-gray-50">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Ce que disent nos clients
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -27,7 +27,7 @@ const TestimonialSection = () => {
                 />
               </div>
               <div className="ml-4">
-                <h4 className="text-lg font-semibold text-gray-900">Sophie Martin</h4>
+                <h4 className="text-[18px] font-bold text-gray-900">Sophie Martin</h4>
                 <p className="text-sm text-gray-600">Directrice, Agence Numérique</p>
               </div>
             </div>
@@ -50,7 +50,7 @@ const TestimonialSection = () => {
                 />
               </div>
               <div className="ml-4">
-                <h4 className="text-lg font-semibold text-gray-900">Thomas Durand</h4>
+                <h4 className="text-[18px] font-bold text-gray-900">Thomas Durand</h4>
                 <p className="text-sm text-gray-600">CEO, Startup Tech</p>
               </div>
             </div>
@@ -73,7 +73,7 @@ const TestimonialSection = () => {
                 />
               </div>
               <div className="ml-4">
-                <h4 className="text-lg font-semibold text-gray-900">Lucie Bernard</h4>
+                <h4 className="text-[18px] font-bold text-gray-900">Lucie Bernard</h4>
                 <p className="text-sm text-gray-600">Responsable IT, Cabinet Conseil</p>
               </div>
             </div>
