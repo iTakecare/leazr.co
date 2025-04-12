@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { PlayCircle } from "lucide-react";
@@ -12,6 +11,7 @@ const PressSection = () => {
     { id: 4, src: "/lovable-uploads/dd01c4d2-2532-40c5-b511-60b4cf1d88f6.png", alt: "RTBF" },
     { id: 5, src: "/lovable-uploads/c8fe2b25-222e-46ff-9a1f-e567d4e08db8.png", alt: "DH.be" },
     { id: 6, src: "/lovable-uploads/44ed9a0d-fc12-42a5-aef6-3613cc9322fc.png", alt: "Tendances Trends" },
+    { id: 7, src: "/lovable-uploads/0a5c4464-b8ea-42d5-a130-4c365fcd00ae.png", alt: "RTBF" },
   ];
 
   return (
@@ -44,9 +44,9 @@ const PressSection = () => {
             </div>
           </div>
           
-          {/* Colonne de droite: Logos en 2 rangées */}
+          {/* Colonne de droite: Logos en 3 rangées */}
           <div className="flex items-center">
-            <div className="grid grid-cols-3 grid-rows-2 gap-8 w-full">
+            <div className="grid grid-cols-3 grid-rows-3 gap-8 w-full">
               {mediaLogos.map((logo) => (
                 <div key={logo.id} className="flex items-center justify-center h-16 sm:h-20">
                   <img 
@@ -65,4 +65,3 @@ const PressSection = () => {
 };
 
 export default PressSection;
-
