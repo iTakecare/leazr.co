@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
@@ -21,10 +22,10 @@ const StepsSection = () => {
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Search className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
               Choisissez votre matériel dans notre catalogue
             </h3>
-            <p className="text-gray-700">
+            <p className="text-lg text-gray-700">
               Tout est inclus dans la mensualité qui apparaît : le prix de la location, la maintenance et la garantie.
             </p>
           </div>
@@ -54,10 +55,10 @@ const StepsSection = () => {
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
               Confirmez votre commande
             </h3>
-            <p className="text-gray-700">
+            <p className="text-lg text-gray-700">
               Dès réception des documents, nous livrons votre matériel dans les plus bref délais (entre 3 à 5 jours) gratuitement.
             </p>
           </div>
@@ -69,10 +70,10 @@ const StepsSection = () => {
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Truck className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
               Receptionnez votre matériel
             </h3>
-            <p className="text-gray-700">
+            <p className="text-lg text-gray-700">
               Vous profitez immédiatement de votre nouveau matériel, l'esprit tranquille !
             </p>
           </div>
@@ -92,3 +93,4 @@ const StepsSection = () => {
 };
 
 export default StepsSection;
+
