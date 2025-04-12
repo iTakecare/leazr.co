@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked, isLoading } = useAuth();
   const isMobile = useIsMobile();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Fonction pour gérer la redirection des utilisateurs authentifiés
   const handleAuthenticatedRedirection = () => {
@@ -28,6 +29,8 @@ const Index = () => {
         isAdmin: isAdmin(),
         email: user?.email
       });
+      
+      setIsRedirecting(true);
       
       // Redirection basée sur le rôle défini dans les métadonnées utilisateur
       if (isAmbassador()) {
@@ -63,7 +66,7 @@ const Index = () => {
     return false;
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Ne pas faire de redirection tant que le chargement n'est pas terminé
     if (isLoading) {
       console.log("Index page - Chargement en cours, pas de redirection");
@@ -79,6 +82,15 @@ const Index = () => {
     // Gérer la redirection pour les utilisateurs authentifiés
     handleAuthenticatedRedirection();
   }, [user, isLoading, userRoleChecked]);
+
+  // Si en cours de redirection, on peut montrer un indicateur de chargement
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg">Redirection en cours...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white">

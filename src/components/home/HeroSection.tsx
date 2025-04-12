@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  console.log("Rendering HeroSection");
   
   return (
     <div className="relative overflow-hidden">
