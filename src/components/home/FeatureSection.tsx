@@ -56,8 +56,8 @@ const FeatureSection = () => {
           <h2 className="text-4xl font-bold text-gray-900 mb-4 relative">
             Dites adieu au{" "}
             <span className="relative inline-block">
-              <span className="absolute inset-0 bg-[#48b5c3]/20 blur-md rounded-lg transform -skew-x-3"></span>
-              <span className="relative bg-[#e6f7fa] text-[#48b5c3] px-3 py-1 rounded-md">matériel obsolète</span>
+              <span className="absolute inset-0 bg-[#48b5c3]/60 blur-[20px] rounded-2xl transform -skew-x-3 scale-110"></span>
+              <span className="relative bg-[#e6f7fa] text-[#48b5c3] px-4 py-2 rounded-lg">matériel obsolète</span>
             </span>
           </h2>
           <h2 className="text-4xl font-bold text-gray-900 mb-8">et aux frais imprévus !</h2>
