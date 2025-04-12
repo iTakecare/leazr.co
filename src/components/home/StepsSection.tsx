@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
@@ -80,7 +79,7 @@ const StepsSection = () => {
           <div className="flex justify-center h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
-                src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1772&q=80" 
+                src="/lovable-uploads/08c48875-9d9f-4390-96a6-13f7c3589094.png" 
                 alt="Réception du matériel" 
                 className="rounded-3xl shadow-lg w-full h-full object-cover"
               />
