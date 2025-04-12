@@ -78,9 +78,12 @@ const PressSection = () => {
                   href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-white/90 rounded-full p-3 shadow-lg transform transition-transform group-hover:scale-110"
+                  className="relative"
                 >
-                  <PlayCircle className="w-12 h-12 text-red-600" />
+                  <div className="absolute inset-0 rounded-full animate-[pulse_2s_infinite] bg-white/50 scale-150 blur-md"></div>
+                  <div className="bg-white/90 rounded-full p-3 shadow-lg transform transition-transform group-hover:scale-110 relative z-10">
+                    <PlayCircle className="w-12 h-12 text-red-600" />
+                  </div>
                 </a>
               </div>
             </div>
