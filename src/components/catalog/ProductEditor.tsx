@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addProduct, uploadProductImage } from "@/services/catalogService";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { addProduct, uploadProductImage, getBrands } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,25 +48,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-const popularBrands = [
-  "Apple",
-  "Samsung",
-  "HP",
-  "Dell",
-  "Lenovo",
-  "Asus",
-  "Acer",
-  "Microsoft",
-  "Sony",
-  "LG",
-  "Huawei",
-  "Canon",
-  "Xerox",
-  "Logitech",
-  "Brother",
-  "Autre"
-];
-
 interface ProductEditorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -91,6 +72,18 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState("");
   const [isParentProduct, setIsParentProduct] = useState(false);
+  
+  // Fetch brands from API
+  const { data: brandsData = [] } = useQuery({
+    queryKey: ["brands"],
+    queryFn: getBrands
+  });
+  
+  // Process brands data for the dropdown
+  const brandOptions = brandsData.map((brand: any) => ({
+    value: brand.name,
+    label: brand.translation || brand.name
+  }));
 
   const resetForm = () => {
     setName("");
@@ -342,9 +335,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                       <SelectValue placeholder="Sélectionner une marque" />
                     </SelectTrigger>
                     <SelectContent>
-                      {popularBrands.map((brandName) => (
-                        <SelectItem key={brandName} value={brandName}>
-                          {brandName}
+                      {brandOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

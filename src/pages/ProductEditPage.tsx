@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProductById, updateProduct, deleteProduct } from "@/services/catalogService";
+import { getProductById, updateProduct, deleteProduct, getBrands } from "@/services/catalogService";
 import { useProductById } from "@/hooks/products/useProductById";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,25 +75,6 @@ const categoryTranslations: Record<string, string> = {
   "other": "Autre"
 };
 
-const popularBrands = [
-  "Apple",
-  "Samsung",
-  "HP",
-  "Dell",
-  "Lenovo",
-  "Asus",
-  "Acer",
-  "Microsoft",
-  "Sony",
-  "LG",
-  "Huawei",
-  "Canon",
-  "Xerox",
-  "Logitech",
-  "Brother",
-  "Autre"
-];
-
 const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -115,6 +97,18 @@ const ProductEditPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { product, isLoading, error, updateLocalProduct } = useProductById(id || "");
+  
+  // Fetch brands from API
+  const { data: brandsData = [] } = useQuery({
+    queryKey: ["brands"],
+    queryFn: getBrands
+  });
+  
+  // Process brands data for the dropdown
+  const brandOptions = brandsData.map((brand: any) => ({
+    value: brand.name,
+    label: brand.translation || brand.name
+  }));
   
   useEffect(() => {
     if (product) {
@@ -393,9 +387,9 @@ const ProductEditPage = () => {
                       <SelectValue placeholder="Sélectionner une marque" />
                     </SelectTrigger>
                     <SelectContent>
-                      {popularBrands.map((brand) => (
-                        <SelectItem key={brand} value={brand}>
-                          {brand}
+                      {brandOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
