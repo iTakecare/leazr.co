@@ -9,11 +9,10 @@ import { useAuth } from "@/context/AuthContext";
 
 const MainNavigation = () => {
   const { cartCount } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   return (
-    <header className="bg-transparent w-full py-4 z-50">
+    <header className="bg-white w-full py-4 rounded-full shadow-sm mx-auto my-4 max-w-[1320px]">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -28,27 +27,27 @@ const MainNavigation = () => {
             <nav className="hidden md:flex ml-10">
               <ul className="flex space-x-8">
                 <li>
-                  <Link to="/" className="text-gray-800 hover:text-[#42B6C5] transition-colors">
+                  <Link to="/" className="text-gray-800 hover:text-[#42B6C5] transition-colors font-medium">
                     Accueil
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalogue" className="text-gray-800 hover:text-[#42B6C5] transition-colors">
+                  <Link to="/catalogue" className="text-gray-800 hover:text-[#42B6C5] transition-colors font-medium">
                     Catalogue
                   </Link>
                 </li>
                 <li>
-                  <Link to="/logiciel-de-gestion" className="text-gray-800 hover:text-[#42B6C5] transition-colors">
+                  <Link to="/logiciel-de-gestion" className="text-gray-800 hover:text-[#42B6C5] transition-colors font-medium">
                     Logiciel de gestion
                   </Link>
                 </li>
                 <li>
-                  <Link to="/blog" className="text-gray-800 hover:text-[#42B6C5] transition-colors">
+                  <Link to="/blog" className="text-gray-800 hover:text-[#42B6C5] transition-colors font-medium">
                     Blog
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="text-gray-800 hover:text-[#42B6C5] transition-colors">
+                  <Link to="/contact" className="text-gray-800 hover:text-[#42B6C5] transition-colors font-medium">
                     Contact
                   </Link>
                 </li>
@@ -62,45 +61,28 @@ const MainNavigation = () => {
               onClick={() => navigate('/panier')}
               aria-label="Voir le panier"
             >
-              <ShoppingCart className="h-6 w-6 text-gray-700" />
-              {cartCount > 0 && (
-                <span className={cn(
-                  "absolute -top-2 -right-2 bg-[#42B6C5] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center",
-                  cartCount > 0 && "animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"
-                )}>
-                  {cartCount}
-                </span>
-              )}
+              <div className="bg-white rounded-full p-2 flex items-center">
+                <ShoppingCart className="h-6 w-6 text-gray-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#42B6C5] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount || 0}
+                  </span>
+                )}
+              </div>
             </button>
             
             <div className="hidden md:block">
-              {user ? (
-                <Button 
-                  variant="outline" 
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full"
-                  onClick={() => {
-                    if (user.role === 'admin') navigate('/dashboard');
-                    else if (user.role === 'client') navigate('/client/dashboard');
-                    else if (user.role === 'partner') navigate('/partner/dashboard');
-                    else if (user.role === 'ambassador') navigate('/ambassador/dashboard');
-                    else navigate('/client/dashboard');
-                  }}
-                >
-                  Mon compte
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full"
-                  onClick={() => navigate('/login')}
-                >
-                  Se connecter
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full px-6"
+                onClick={() => navigate('/login')}
+              >
+                Se connecter
+              </Button>
             </div>
             
             <Button 
-              className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full hidden md:flex"
+              className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full px-6 hidden md:flex"
               onClick={() => navigate("/catalogue")}
             >
               Catalogue

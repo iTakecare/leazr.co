@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom";
 }
 
 const Container = ({
@@ -20,6 +20,7 @@ const Container = ({
     lg: "max-w-screen-lg",
     xl: "max-w-screen-xl",
     "2xl": "max-w-screen-2xl",
+    custom: "max-w-[1320px]",
     full: "max-w-full w-full",
   };
 
