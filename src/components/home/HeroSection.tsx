@@ -114,7 +114,7 @@ const HeroSection = (): JSX.Element => {
 
             <p className="font-normal text-[#222222] text-lg mb-8">
               Optez pour un parc informatique performant et écoresponsable, à
-              moindre coût:
+              moindre coût :
             </p>
 
             <ul className="space-y-1 mb-10">
@@ -129,7 +129,7 @@ const HeroSection = (): JSX.Element => {
             </ul>
 
             <div className="flex space-x-4">
-              <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-lg">
+              <Button className="bg-[#48b5c3] hover:bg-[#33638E] rounded-[50px] font-bold text-lg">
                 Découvrir le catalogue
               </Button>
               <Button
