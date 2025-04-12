@@ -13,14 +13,19 @@ const HeroSection = () => {
       style={{
         backgroundImage: `
           linear-gradient(to bottom, 
-            rgba(255, 255, 255, 1) 1px, 
+            rgba(255, 255, 255, 0.6) 1px, 
+            transparent 1px
+          ),
+          linear-gradient(to right, 
+            rgba(255, 255, 255, 0.2) 1px, 
             transparent 1px
           ),
           url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
         `,
-        backgroundSize: "100% 30px, cover",
-        backgroundPosition: "0 0, center",
-        backgroundRepeat: "repeat, no-repeat"
+        backgroundSize: "100% 20px, 20px 100%, cover",
+        backgroundPosition: "0 0, 0 0, center",
+        backgroundRepeat: "repeat, repeat, no-repeat",
+        backgroundColor: "rgba(240, 247, 250, 0.85)"
       }}
     >
       <Container maxWidth="custom" className="py-12 md:py-16">
@@ -28,7 +33,9 @@ const HeroSection = () => {
           {/* Colonne Gauche - Texte */}
           <div className="md:w-1/2 mb-10 md:mb-0 pr-0 md:pr-12">
             <h1 className="text-[45px] md:text-[50px] font-black leading-tight mb-2 text-[#242424] font-['Inter'] max-w-[650px]">
-              Leasing de matériel informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full">Reconditionné</span> sans contraintes
+              Leasing de matériel<br />
+              informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full inline-block">Reconditionné</span> <br />
+              sans contraintes
             </h1>
             
             <p className="text-lg mt-8 mb-8 text-gray-700 font-['Inter'] font-normal">
@@ -108,11 +115,11 @@ const HeroSection = () => {
                 </div>
               </div>
               
-              <div className="absolute top-[-25px] right-[-20px] md:relative md:top-auto md:right-auto md:ml-4">
+              <div className="absolute top-[-30px] right-[-30px] md:relative md:top-auto md:right-auto md:ml-6">
                 <img 
                   src="/lovable-uploads/8515dcd2-20f4-4247-8ea4-5929ac725d46.png" 
                   alt="Flèche" 
-                  className="w-20 h-auto transform rotate-[-15deg]"
+                  className="w-28 h-auto transform rotate-[-15deg]"
                 />
               </div>
             </div>
