@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -108,11 +107,9 @@ const App = () => {
     <div>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* Page d'accueil - Définition explicite et prioritaire */}
           <Route index element={<Index />} />
           <Route path="/" element={<Index />} />
           
-          {/* Routes publiques */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/catalogue" element={<PublicCatalog />} />
@@ -125,7 +122,6 @@ const App = () => {
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
           
-          {/* Routes admin protégées */}
           <Route path="/" element={
             <AdminRoute>
               <Layout />
