@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -123,7 +124,7 @@ const PublicCatalog = () => {
         <CatalogHeader />
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
         <div className="flex flex-col lg:flex-row gap-6">
           <Collapsible 
             open={isMobileFiltersOpen || window.innerWidth >= 1024}
