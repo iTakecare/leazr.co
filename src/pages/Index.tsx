@@ -17,6 +17,7 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
+    // Redirection seulement si l'utilisateur est connecté
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
         role: user?.role,
@@ -57,6 +58,7 @@ const Index = () => {
       toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
       navigate("/client/dashboard", { replace: true });
     }
+    // Si l'utilisateur n'est pas connecté, ne pas rediriger et afficher la page d'accueil
   }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);
 
   return (

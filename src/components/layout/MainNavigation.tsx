@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const MainNavigation = () => {
   const { cartCount } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   return (
@@ -73,12 +75,35 @@ const MainNavigation = () => {
             </button>
             
             <div className="hidden md:block">
-              <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full">
-                Se connecter
-              </Button>
+              {user ? (
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full"
+                  onClick={() => {
+                    if (user.role === 'admin') navigate('/dashboard');
+                    else if (user.role === 'client') navigate('/client/dashboard');
+                    else if (user.role === 'partner') navigate('/partner/dashboard');
+                    else if (user.role === 'ambassador') navigate('/ambassador/dashboard');
+                    else navigate('/client/dashboard');
+                  }}
+                >
+                  Mon compte
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-full"
+                  onClick={() => navigate('/login')}
+                >
+                  Se connecter
+                </Button>
+              )}
             </div>
             
-            <Button className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full hidden md:flex">
+            <Button 
+              className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full hidden md:flex"
+              onClick={() => navigate("/catalogue")}
+            >
               Catalogue
             </Button>
             
