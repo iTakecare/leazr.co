@@ -1,5 +1,5 @@
-import { ShoppingCartIcon } from "lucide-react";
 import React from "react";
+import { ShoppingCartIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -102,7 +102,7 @@ const HeroSection = (): JSX.Element => {
                 informatique
               </h1>
               <Badge 
-                className="ml-4 bg-[#48b5c34f] rounded-[15px] px-4 py-2 hover:bg-[#33638E] transition-colors duration-300" 
+                className="ml-4 relative bottom-1 bg-[#48b5c34f] rounded-[15px] px-4 py-2 hover:bg-[#33638E] transition-colors duration-300" 
                 variant="outline"
               >
                 <span className="font-black text-[#48b5c3] text-[50px] hover:text-white">
