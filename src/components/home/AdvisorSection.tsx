@@ -1,94 +1,63 @@
 
 import React from "react";
 import Container from "@/components/layout/Container";
-import { MessageCircleMore, Phone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const AdvisorSection = () => {
   return (
     <section className="py-20 bg-white">
       <Container maxWidth="custom">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Image de la conseillère */}
-          <div className="relative order-2 lg:order-1">
-            <div className="absolute -top-10 -left-10 lg:-top-16 lg:-left-16 bg-[#e1f5f7] p-4 lg:p-6 rounded-xl rotate-2 z-0">
-              <div className="text-[28px] lg:text-[40px] font-bold text-gray-900">
-                Vous hésitez sur le <span className="bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-1 rounded-lg">choix du matériel ?</span>
+        <div className="relative bg-gray-50 rounded-3xl overflow-hidden p-12">
+          <div className="flex flex-col lg:flex-row items-center">
+            {/* Partie texte gauche */}
+            <div className="w-full lg:w-2/3 z-10">
+              <div className="mb-10">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-2">
+                  Vous hésitez sur le <span className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-2 rounded-full">choix du matériel ?</span>
+                </h2>
+                <p className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900">
+                  On est là pour vous aider !
+                </p>
+                
+                {/* Flèche pointant vers l'image */}
+                <div className="hidden lg:block absolute top-[100px] right-[450px]">
+                  <img 
+                    src="/lovable-uploads/481ee77e-2767-4044-b4dd-801e1b70036a.png" 
+                    alt="Flèche" 
+                    className="w-40 h-auto"
+                  />
+                </div>
               </div>
-              <div className="text-[28px] lg:text-[40px] font-bold text-gray-900 mt-2">
-                On est là pour vous aider !
+              
+              <div className="bg-white p-8 rounded-xl shadow-sm mb-8 max-w-2xl">
+                <blockquote className="text-lg md:text-xl text-gray-700 mb-6">
+                  "Chaque entreprise, école, institution ont des besoins uniques. Nos conseillers, vous guident vers la solution la plus adaptée, sans engagement et en toute transparence."
+                </blockquote>
+                
+                <div className="flex items-start">
+                  <div className="mr-4">
+                    <h3 className="font-bold text-xl text-gray-900">Michaela</h3>
+                    <p className="text-gray-600">Responsable Service client</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <Button 
+                    className="bg-[#48B5C3] hover:bg-[#48B5C3]/90 text-white font-semibold rounded-full px-8 py-6 text-lg h-auto"
+                  >
+                    Parler à un conseiller
+                  </Button>
+                </div>
               </div>
+            </div>
+            
+            {/* Image de la conseillère */}
+            <div className="w-full lg:w-1/3 flex justify-end items-end self-end mt-10 lg:mt-0">
               <img 
-                src="/lovable-uploads/aa41f092-7d73-4917-9bb9-78e029f4a786.png" 
+                src="/lovable-uploads/56939bad-b11e-421e-8dca-13f8a485973b.png" 
                 alt="Conseillère iTakecare" 
-                className="absolute -bottom-8 -right-8 lg:-bottom-12 lg:-right-12 rounded-lg transform rotate-3 w-32 lg:w-48"
+                className="w-full h-auto max-w-md z-10"
               />
-            </div>
-            <div className="relative z-10">
-              <img 
-                src="/lovable-uploads/aa41f092-7d73-4917-9bb9-78e029f4a786.png" 
-                alt="Conseillère iTakecare"
-                className="rounded-3xl shadow-lg w-full h-auto object-cover z-10"
-              />
-            </div>
-          </div>
-          
-          {/* Contenu texte et boutons */}
-          <div className="order-1 lg:order-2">
-            <h2 className="text-[46px] font-bold text-gray-900 mb-6">
-              Un conseiller dédié à votre disposition
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Nous comprenons que le choix du matériel informatique peut être complexe. 
-              C'est pourquoi nos experts sont disponibles pour vous guider et répondre à 
-              toutes vos questions. Bénéficiez d'un accompagnement personnalisé pour 
-              trouver les solutions les mieux adaptées à vos besoins spécifiques.
-            </p>
-            
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-[#48b5c3]/10 rounded-full p-3">
-                  <MessageCircleMore className="w-6 h-6 text-[#48b5c3]" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-1">Chat en direct</h3>
-                  <p className="text-gray-600">Obtenez une réponse immédiate à vos questions via notre messagerie en ligne</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="bg-[#48b5c3]/10 rounded-full p-3">
-                  <Phone className="w-6 h-6 text-[#48b5c3]" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-1">Consultation téléphonique</h3>
-                  <p className="text-gray-600">Échangez directement avec nos experts pour des conseils personnalisés</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="bg-[#48b5c3]/10 rounded-full p-3">
-                  <Calendar className="w-6 h-6 text-[#48b5c3]" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-1">Rendez-vous personnalisé</h3>
-                  <p className="text-gray-600">Planifiez une démonstration ou une réunion pour analyser vos besoins</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Button 
-                className="bg-[#48B5C3] hover:bg-[#33638E] text-white rounded-full px-8 py-6 text-lg font-semibold h-auto"
-              >
-                Prendre rendez-vous
-              </Button>
-              <Button 
-                variant="outline" 
-                className="border-[#48B5C3] text-[#48B5C3] hover:bg-[#48B5C3]/10 rounded-full px-8 py-6 text-lg font-semibold h-auto"
-              >
-                Nous contacter
-              </Button>
             </div>
           </div>
         </div>
