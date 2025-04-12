@@ -1,150 +1,325 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { ProductAttributes, ProductVariationAttributes, VariantCombinationPrice } from "@/types/catalog";
-
 /**
- * Find a variant combination price based on product ID and attributes
- */
-export const findVariantCombinationPrice = async (
-  productId: string,
-  attributes: Record<string, string>
-) => {
-  try {
-    console.log(`Finding variant price for product ${productId} with attributes:`, attributes);
-    
-    const { data, error } = await supabase
-      .from('product_variant_prices')
-      .select('*')
-      .eq('product_id', productId);
-    
-    if (error) {
-      console.error("Error fetching variant prices:", error);
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      console.log("No variant prices found for product:", productId);
-      return null;
-    }
-    
-    // Find a price combination that matches all selected attributes
-    const matchingPrice = data.find(combination => {
-      // Handle both string and object attributes
-      const combinationAttrs = typeof combination.attributes === 'string'
-        ? JSON.parse(combination.attributes)
-        : combination.attributes;
-      
-      // Check if all selected attributes match this combination
-      return Object.entries(attributes).every(([key, value]) => 
-        combinationAttrs[key] !== undefined &&
-        String(combinationAttrs[key]).toLowerCase() === String(value).toLowerCase()
-      );
-    });
-    
-    console.log("Matching price found:", matchingPrice);
-    return matchingPrice || null;
-  } catch (error) {
-    console.error("Error finding variant combination price:", error);
-    return null;
-  }
-};
-
-// New functions for variant price management
-
-/**
- * Update a product's variation attributes
+ * Updates the variation attributes of a product
  */
 export const updateProductVariationAttributes = async (
-  productId: string,
-  attributes: ProductVariationAttributes
-): Promise<boolean> => {
+  productId: string, 
+  attributes: Record<string, string[]>
+): Promise<void> => {
   try {
-    console.log(`Updating variation attributes for product ${productId}:`, attributes);
+    console.log("Updating product variation attributes for product:", productId);
+    console.log("New attributes:", JSON.stringify(attributes, null, 2));
     
-    const { data, error } = await supabase
-      .from('products')
-      .update({ variation_attributes: attributes })
-      .eq('id', productId);
+    // Import supabase dynamically
+    const { supabase } = await import('@/integrations/supabase/client');
     
-    if (error) {
-      console.error("Error updating product variation attributes:", error);
-      throw error;
+    // Ensure attributes is properly formatted
+    let attributesToSave = attributes;
+    if (typeof attributes === 'string') {
+      try {
+        attributesToSave = JSON.parse(attributes);
+      } catch (parseError) {
+        console.error('Error parsing attributes string:', parseError);
+        throw new Error('Invalid attributes format');
+      }
     }
     
-    return true;
+    // First check if the product exists
+    const { data: productExists, error: checkError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking if product exists:', checkError);
+      throw new Error(`Failed to check if product exists: ${checkError.message}`);
+    }
+    
+    if (!productExists) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    // Use the RPC function to update the variation attributes
+    const { error: updateError } = await supabase.rpc(
+      'update_product_attributes',
+      { 
+        p_product_id: productId, 
+        p_variation_attributes: attributesToSave 
+      }
+    );
+    
+    if (updateError) {
+      console.error('Error updating product attributes:', updateError);
+      throw new Error(`Failed to update product attributes: ${updateError.message}`);
+    }
+    
+    console.log('Successfully updated product attributes for ID:', productId);
   } catch (error) {
-    console.error("Error in updateProductVariationAttributes:", error);
+    console.error('Error in updateProductVariationAttributes:', error);
     throw error;
   }
 };
 
 /**
- * Get all variant combination prices for a product
+ * Get variant combination prices for a product
  */
-export const getVariantCombinationPrices = async (productId: string): Promise<VariantCombinationPrice[]> => {
+export const getProductVariantPrices = async (productId: string) => {
   try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     const { data, error } = await supabase
       .from('product_variant_prices')
       .select('*')
       .eq('product_id', productId);
     
     if (error) {
-      console.error("Error fetching variant prices:", error);
-      throw error;
+      console.error('Error fetching product variant prices:', error);
+      throw new Error(error.message);
     }
     
     return data || [];
   } catch (error) {
-    console.error("Error in getVariantCombinationPrices:", error);
+    console.error('Error in getProductVariantPrices:', error);
     throw error;
   }
 };
 
 /**
- * Create a new variant combination price
+ * Add a new variant price combination
  */
-export const createVariantCombinationPrice = async (variantPrice: {
+export const addVariantPrice = async (variantPrice: {
   product_id: string;
   attributes: Record<string, string>;
   price: number;
   monthly_price?: number;
   stock?: number;
-}): Promise<VariantCombinationPrice> => {
+}) => {
   try {
+    console.log("Adding new variant price combination:", variantPrice);
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // First check if a similar combination already exists
+    const { data: existingCombinations, error: checkError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', variantPrice.product_id);
+    
+    if (checkError) {
+      console.error('Error checking existing combinations:', checkError);
+      throw new Error(checkError.message);
+    }
+    
+    // If we found existing combinations, check for duplicates
+    if (existingCombinations && existingCombinations.length > 0) {
+      const matchingCombination = existingCombinations.find(combo => {
+        // Compare attributes objects
+        const comboAttributes = combo.attributes || {};
+        const newAttributes = variantPrice.attributes || {};
+        
+        // Check if all attribute keys match
+        const comboKeys = Object.keys(comboAttributes);
+        const newKeys = Object.keys(newAttributes);
+        
+        if (comboKeys.length !== newKeys.length) return false;
+        
+        // Check if all attribute values match
+        return newKeys.every(key => 
+          comboAttributes[key] !== undefined && 
+          String(comboAttributes[key]).toLowerCase() === String(newAttributes[key]).toLowerCase()
+        );
+      });
+      
+      if (matchingCombination) {
+        console.log("A matching combination already exists:", matchingCombination);
+        return matchingCombination;
+      }
+    }
+    
+    // No match found, insert the new combination
     const { data, error } = await supabase
       .from('product_variant_prices')
       .insert([variantPrice])
-      .select()
-      .single();
+      .select();
     
     if (error) {
-      console.error("Error creating variant price:", error);
-      throw error;
+      console.error('Error adding variant price:', error);
+      throw new Error(error.message);
     }
     
-    return data;
+    if (data && data.length > 0) {
+      console.log("Successfully added new variant price:", data[0]);
+      return data[0];
+    } else {
+      // Fetch the newly created record if insert didn't return it
+      const { data: newRecord, error: fetchError } = await supabase
+        .from('product_variant_prices')
+        .select('*')
+        .eq('product_id', variantPrice.product_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching new variant price record:', fetchError);
+        // Return at least something if we can't fetch the new record
+        return { id: 'unknown', ...variantPrice };
+      }
+      
+      console.log("Successfully fetched new variant price:", newRecord);
+      return newRecord;
+    }
   } catch (error) {
-    console.error("Error in createVariantCombinationPrice:", error);
+    console.error('Error in addVariantPrice:', error);
     throw error;
   }
 };
 
 /**
- * Delete a variant combination price
+ * Update an existing variant price combination
  */
-export const deleteVariantCombinationPrice = async (id: string): Promise<void> => {
+export const updateVariantPrice = async (
+  id: string,
+  updates: {
+    price?: number;
+    monthly_price?: number;
+    stock?: number;
+  }
+) => {
   try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .update(updates)
+      .eq('id', id)
+      .select();
+    
+    if (error) {
+      console.error('Error updating variant price:', error);
+      throw new Error(error.message);
+    }
+    
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('Error in updateVariantPrice:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a variant price combination
+ */
+export const deleteVariantPrice = async (id: string) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     const { error } = await supabase
       .from('product_variant_prices')
       .delete()
       .eq('id', id);
     
     if (error) {
-      console.error("Error deleting variant price:", error);
-      throw error;
+      console.error('Error deleting variant price:', error);
+      throw new Error(error.message);
     }
+    
+    return true;
   } catch (error) {
-    console.error("Error in deleteVariantCombinationPrice:", error);
+    console.error('Error in deleteVariantPrice:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get variant combination prices for a product
+ * Alias for getProductVariantPrices to match function name in component
+ */
+export const getVariantCombinationPrices = getProductVariantPrices;
+
+/**
+ * Add a new variant price combination
+ * Alias for addVariantPrice to match function name in component
+ */
+export const createVariantCombinationPrice = addVariantPrice;
+
+/**
+ * Delete a variant price combination
+ * Alias for deleteVariantPrice to match function name in component
+ */
+export const deleteVariantCombinationPrice = deleteVariantPrice;
+
+/**
+ * Find a specific variant price combination by attributes
+ */
+export const findVariantCombinationPrice = async (
+  productId: string,
+  attributes: Record<string, string>
+) => {
+  try {
+    console.log("Finding variant combination for product:", productId);
+    console.log("With attributes:", JSON.stringify(attributes, null, 2));
+    
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+    
+    if (error) {
+      console.error('Error finding variant price:', error);
+      throw new Error(error.message);
+    }
+    
+    // Find the matching price variant with case insensitive comparison
+    const matchingVariant = data?.find(variant => {
+      if (!variant.attributes) return false;
+      
+      // Check if all selected attributes match this variant
+      return Object.entries(attributes).every(([key, value]) => {
+        if (!variant.attributes[key]) return false;
+        return String(variant.attributes[key]).toLowerCase() === String(value).toLowerCase();
+      });
+    });
+    
+    console.log("Found matching variant:", matchingVariant || "None");
+    return matchingVariant || null;
+  } catch (error) {
+    console.error('Error in findVariantCombinationPrice:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a parent product to remove its price
+ * This is useful when converting a regular product to a parent product with variants
+ */
+export const updateParentProductRemovePrice = async (productId: string) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update({ 
+        price: 0,
+        monthly_price: 0
+      })
+      .eq('id', productId)
+      .select();
+    
+    if (error) {
+      console.error('Error updating parent product price:', error);
+      throw new Error(error.message);
+    }
+    
+    if (!data || data.length === 0) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    return data[0];
+  } catch (error) {
+    console.error('Error in updateParentProductRemovePrice:', error);
     throw error;
   }
 };

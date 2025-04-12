@@ -1,4 +1,3 @@
-
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -309,7 +308,7 @@ export function getImageUrlWithCacheBuster(url: string | null): string {
   
   try {
     // Vérifier si l'URL est un object JSON (cas d'erreur connu)
-    if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
+    if (url.startsWith('{') || url.startsWith('[')) {
       console.error("Invalid image URL (JSON detected):", url);
       return "/placeholder.svg";
     }

@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const findVariantForAttributes = async (
   product: Product, 
-  selectedAttributes: Record<string, string>
+  selectedAttributes: ProductAttributes
 ): Promise<{ variant: Product | null, price: number | null }> => {
   // Vérifier si le produit a des combinaisons de prix de variantes
   if (product.id && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
@@ -29,7 +29,9 @@ export const findVariantForAttributes = async (
           price: priceMatch.price,
           monthly_price: priceMatch.monthly_price || 0,
           stock: priceMatch.stock,
-          // Convert selected attributes to a Record<string, string>
+          // Correctly cast selected attributes to match the expected type
+          // This is a special case where we're creating a product with specific attributes
+          // not variation options
           selected_attributes: selectedAttributes,
           variant_id: priceMatch.id
         };
@@ -111,7 +113,7 @@ export const findVariantForAttributes = async (
 // Helper function to find variant price combinations
 export const findVariantCombinationPrice = async (
   productId: string,
-  attributes: Record<string, string>
+  attributes: ProductAttributes
 ) => {
   try {
     const { data, error } = await supabase

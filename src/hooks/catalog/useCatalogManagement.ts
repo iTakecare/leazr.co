@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
@@ -17,7 +18,7 @@ export const useCatalogManagement = () => {
   // Fetch products
   const { data: productsData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
-    queryFn: () => getProducts({ includeAdminOnly: true }), 
+    queryFn: () => getProducts(true), // Pass true to include admin-only products
   });
   
   // Enhanced products processing with better variant detection

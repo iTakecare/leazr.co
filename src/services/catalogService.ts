@@ -1,247 +1,62 @@
 import { supabase } from "@/integrations/supabase/client";
-import { renameImageFile } from "@/utils/imageUtils";
-import { Product, Brand, Category } from "@/types/catalog";
-import { toast } from "sonner";
+import { Product } from "@/types/catalog";
 
 /**
- * Récupère toutes les images de produits
+ * Récupère tous les produits avec leurs variantes et prix de variantes
  */
-export const getAllProductImages = async (): Promise<any[]> => {
+export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnly?: boolean }) => {
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, images');
-
-    if (error) {
-      console.error("Erreur lors de la récupération des images de produits:", error);
-      throw new Error(`Erreur lors de la récupération des images de produits: ${error.message}`);
+    // Normalize the parameter
+    let showAdminOnly = false;
+    if (typeof includeAdminOnly === 'boolean') {
+      showAdminOnly = includeAdminOnly;
+    } else if (includeAdminOnly && typeof includeAdminOnly === 'object' && 'includeAdminOnly' in includeAdminOnly) {
+      showAdminOnly = !!includeAdminOnly.includeAdminOnly;
     }
 
-    const productImages: any[] = [];
-
-    data.forEach(product => {
-      if (product.images) {
-        let images = Array.isArray(product.images) ? product.images : [];
-
-        // Si le produit n'a pas d'images sous forme de tableau, essayer de le convertir
-        if (!Array.isArray(product.images)) {
-          try {
-            images = JSON.parse(product.images);
-            if (!Array.isArray(images)) {
-              images = [];
-            }
-          } catch (e) {
-            console.error('Erreur lors de la conversion des images:', e);
-            images = [];
-          }
-        }
-
-        images.forEach((image: any) => {
-          let imageUrl = '';
-          let imageName = '';
-          let imageAlt = '';
-          let isMain = false;
-
-          if (typeof image === 'string') {
-            imageUrl = image;
-          } else if (image && image.url) {
-            imageUrl = image.url;
-            imageName = image.imageName || '';
-            imageAlt = image.imageAlt || '';
-            isMain = image.isMain || false;
-          } else if (image && image.imageUrl) {
-            imageUrl = image.imageUrl;
-            imageName = image.imageName || '';
-            imageAlt = image.imageAlt || '';
-            isMain = image.isMain || false;
-          }
-
-          productImages.push({
-            id: product.id,
-            productId: product.id,
-            productName: product.name,
-            imageUrl: imageUrl,
-            imageName: imageName,
-            imageAlt: imageAlt,
-            isMain: isMain
-          });
-        });
-      }
-    });
-
-    return productImages;
-  } catch (error: any) {
-    console.error("Erreur lors de la récupération des images de produits:", error);
-    throw error;
-  }
-};
-
-/**
- * Met à jour les informations d'une image de produit
- */
-export async function updateProductImage(params: {
-  id: string; 
-  imageData: {
-    imageUrl: string;
-    newName?: string;
-    altText?: string;
-  }
-}): Promise<{ success: boolean; updatedImageUrl?: string; }> {
-  try {
-    const { id, imageData } = params;
+    // Récupérer tous les produits
+    let query = supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
     
-    // Récupérer le produit
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('images')
-      .eq('id', id)
-      .single();
-    
-    if (productError) {
-      console.error('Erreur lors de la récupération du produit:', productError);
-      throw new Error(`Erreur lors de la récupération du produit: ${productError.message}`);
+    // Filter out admin_only products unless explicitly requested
+    if (!showAdminOnly) {
+      query = query.or('admin_only.is.null,admin_only.eq.false');
     }
     
-    // Vérifier si product.images est défini
-    if (!product || !product.images) {
-      throw new Error('Le produit ou ses images sont indéfinis');
-    }
+    const { data: productsData, error: productsError } = await query;
     
-    let images = Array.isArray(product.images) ? product.images : [];
+    if (productsError) throw productsError;
     
-    // Si le produit n'a pas d'images sous forme de tableau, essayer de le convertir
-    if (!Array.isArray(product.images)) {
-      try {
-        images = JSON.parse(product.images);
-        if (!Array.isArray(images)) {
-          images = [];
-        }
-      } catch (e) {
-        console.error('Erreur lors de la conversion des images:', e);
-        images = [];
-      }
-    }
+    // Récupérer tous les prix de variantes
+    const { data: variantPricesData, error: variantPricesError } = await supabase
+      .from("product_variant_prices")
+      .select("*");
     
-    // Chercher l'image à mettre à jour
-    const imageToUpdateIndex = images.findIndex((img: any) => {
-      // Vérifier les différents formats possibles d'URL d'image
-      if (typeof img === 'string') {
-        return img === imageData.imageUrl;
-      } else if (img && img.url) {
-        return img.url === imageData.imageUrl;
-      } else if (img && img.imageUrl) {
-        return img.imageUrl === imageData.imageUrl;
-      }
-      return false;
-    });
+    if (variantPricesError) throw variantPricesError;
     
-    if (imageToUpdateIndex === -1) {
-      throw new Error('Image non trouvée dans le produit');
-    }
-    
-    let updatedImageUrl: string | undefined;
-    
-    // Renommer le fichier si un nouveau nom est fourni
-    if (imageData.newName) {
-      const newImageUrl = await renameImageFile(imageData.imageUrl, imageData.newName);
+    // Associer les prix de variantes aux produits correspondants
+    const productsWithVariants = productsData.map((product) => {
+      // Filtrer les prix de variantes pour ce produit
+      const productVariantPrices = variantPricesData.filter((price) => price.product_id === product.id);
+      console.log(`Product ${product.name}: Found ${productVariantPrices.length} variant prices`);
       
-      if (newImageUrl) {
-        // Mettre à jour l'URL de l'image dans le tableau
-        if (typeof images[imageToUpdateIndex] === 'string') {
-          images[imageToUpdateIndex] = newImageUrl;
-        } else if (images[imageToUpdateIndex] && typeof images[imageToUpdateIndex] === 'object') {
-          if ('url' in images[imageToUpdateIndex]) {
-            images[imageToUpdateIndex].url = newImageUrl;
-          } else if ('imageUrl' in images[imageToUpdateIndex]) {
-            images[imageToUpdateIndex].imageUrl = newImageUrl;
-          }
-        }
-        updatedImageUrl = newImageUrl;
-      } else {
-        throw new Error('Échec du renommage du fichier');
-      }
-    }
+      // Déterminer si c'est un produit parent
+      const isParent = product.is_parent || 
+                       productVariantPrices.length > 0 || 
+                       (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
+      
+      return {
+        ...product,
+        variant_combination_prices: productVariantPrices,
+        is_parent: isParent,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at
+      };
+    });
     
-    // Mettre à jour le texte alternatif si fourni
-    if (imageData.altText !== undefined && typeof images[imageToUpdateIndex] === 'object') {
-      images[imageToUpdateIndex].imageAlt = imageData.altText;
-    }
-    
-    // Mettre à jour la propriété imageName si nécessaire
-    if (imageData.newName && typeof images[imageToUpdateIndex] === 'object') {
-      images[imageToUpdateIndex].imageName = imageData.newName;
-    }
-    
-    // Mettre à jour le produit avec les nouvelles images
-    const { error: updateError } = await supabase
-      .from('products')
-      .update({ images: images })
-      .eq('id', id);
-    
-    if (updateError) {
-      console.error('Erreur lors de la mise à jour du produit:', updateError);
-      throw new Error(`Erreur lors de la mise à jour du produit: ${updateError.message}`);
-    }
-    
-    return { 
-      success: true,
-      updatedImageUrl
-    };
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour de l\'image du produit:', error);
-    throw error;
-  }
-}
-
-/**
- * Récupère tous les produits avec filtres optionnels
- */
-export const getProducts = async (
-  options: { 
-    category?: string; 
-    brand?: string; 
-    includeVariants?: boolean; 
-    includeAdminOnly?: boolean; 
-    limit?: number;
-    search?: string;
-  } = {}
-): Promise<Product[]> => {
-  try {
-    let query = supabase.from('products').select('*');
-
-    // Appliquer les filtres
-    if (options.category) {
-      query = query.eq('category', options.category);
-    }
-
-    if (options.brand) {
-      query = query.eq('brand', options.brand);
-    }
-
-    // Exclure les produits admin_only par défaut, sauf si spécifié
-    if (!options.includeAdminOnly) {
-      query = query.is('admin_only', false);
-    }
-
-    // Recherche
-    if (options.search) {
-      query = query.ilike('name', `%${options.search}%`);
-    }
-
-    // Limite
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    // Exécuter la requête
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      console.error("Erreur lors de la récupération des produits:", error);
-      throw new Error(`Erreur lors de la récupération des produits: ${error.message}`);
-    }
-
-    return data || [];
+    return productsWithVariants;
   } catch (error) {
     console.error("Erreur lors de la récupération des produits:", error);
     throw error;
@@ -249,24 +64,331 @@ export const getProducts = async (
 };
 
 /**
- * Récupère un produit par son ID
+ * Récupère un produit par son ID avec ses variantes et prix
  */
-export const getProductById = async (id: string): Promise<Product | null> => {
+export const getProductById = async (id: string) => {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
       .single();
-
+    
     if (error) {
-      console.error(`Erreur lors de la récupération du produit ${id}:`, error);
-      throw new Error(`Erreur lors de la récupération du produit: ${error.message}`);
+      console.error('Error fetching product:', error);
+      throw new Error(error.message);
     }
+    
+    // Now fetch variant prices for this product
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', id);
+    
+    if (variantError) {
+      console.error('Error fetching variant prices:', variantError);
+    }
+    
+    // Add variant prices to the product
+    return {
+      ...data,
+      variant_combination_prices: variantPrices || []
+    };
+  } catch (error) {
+    console.error('Error in getProductById:', error);
+    throw error;
+  }
+};
 
+/**
+ * Recherche une variante compatible avec les attributs sélectionnés
+ */
+export const findVariantByAttributes = async (productId: string, selectedAttributes: Record<string, string>) => {
+  try {
+    const { data: product } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .single();
+    
+    // Vérifier les prix de variantes
+    const { data: variantPrices } = await supabase
+      .from("product_variant_prices")
+      .select("*")
+      .eq("product_id", productId);
+    
+    if (variantPrices && variantPrices.length > 0) {
+      // Chercher une combinaison qui correspond exactement aux attributs sélectionnés
+      const matchingPrice = variantPrices.find((price) => {
+        if (!price.attributes) return false;
+        
+        // Vérifier que tous les attributs sélectionnés correspondent
+        return Object.entries(selectedAttributes).every(([key, value]) => 
+          price.attributes[key] !== undefined && 
+          String(price.attributes[key]).toLowerCase() === String(value).toLowerCase()
+        );
+      });
+      
+      if (matchingPrice) {
+        // Créer un produit avec les informations de prix
+        return {
+          ...product,
+          price: matchingPrice.price,
+          monthly_price: matchingPrice.monthly_price,
+          selected_attributes: selectedAttributes
+        };
+      }
+    }
+    
+    // Chercher des variantes produits
+    const { data: variants } = await supabase
+      .from("products")
+      .select("*")
+      .eq("parent_id", productId);
+    
+    if (variants && variants.length > 0) {
+      // Chercher une variante qui correspond aux attributs sélectionnés
+      const matchingVariant = variants.find((variant) => {
+        if (!variant.attributes) return false;
+        
+        return Object.entries(selectedAttributes).every(([key, value]) => 
+          variant.attributes[key] !== undefined && 
+          String(variant.attributes[key]).toLowerCase() === String(value).toLowerCase()
+        );
+      });
+      
+      if (matchingVariant) {
+        return matchingVariant;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Erreur lors de la recherche de variante:", error);
+    return null;
+  }
+};
+
+/**
+ * Récupère toutes les catégories disponibles
+ */
+export const getCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching categories:', error);
+      throw new Error(error.message);
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in getCategories:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère toutes les marques disponibles
+ */
+export const getBrands = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching brands:', error);
+      throw new Error(error.message);
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in getBrands:', error);
+    throw error;
+  }
+};
+
+/**
+ * Ajoute une nouvelle catégorie
+ */
+export const addCategory = async (category: { name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert(category)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding category:', error);
+      throw new Error(error.message);
+    }
+    
     return data;
   } catch (error) {
-    console.error(`Erreur lors de la récupération du produit ${id}:`, error);
+    console.error('Error in addCategory:', error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour une catégorie existante
+ */
+export const updateCategory = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ name, translation })
+      .eq('name', originalName)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating category:', error);
+      throw new Error(error.message);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in updateCategory:', error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime une catégorie
+ */
+export const deleteCategory = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', name);
+    
+    if (error) {
+      console.error('Error deleting category:', error);
+      throw new Error(error.message);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteCategory:', error);
+    throw error;
+  }
+};
+
+/**
+ * Ajoute une nouvelle marque
+ */
+export const addBrand = async (brand: { name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .insert(brand)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding brand:', error);
+      throw new Error(error.message);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in addBrand:', error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour une marque existante
+ */
+export const updateBrand = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('brands')
+      .update({ name, translation })
+      .eq('name', originalName)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating brand:', error);
+      throw new Error(error.message);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in updateBrand:', error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime une marque
+ */
+export const deleteBrand = async ({ name }: { name: string }) => {
+  try {
+    const { error } = await supabase
+      .from('brands')
+      .delete()
+      .eq('name', name);
+    
+    if (error) {
+      console.error('Error deleting brand:', error);
+      throw new Error(error.message);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteBrand:', error);
+    throw error;
+  }
+};
+
+/**
+ * Ajoute un nouveau produit
+ */
+export const addProduct = async (product: Partial<Product>) => {
+  try {
+    // Transformation des propriétés pour correspondre au schéma de la table
+    const productData = {
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      brand: product.brand,
+      price: product.price,
+      monthly_price: product.monthly_price,
+      is_parent: product.is_parent || false,
+      parent_id: product.parent_id || null,
+      is_variation: product.is_variation || false,
+      variation_attributes: product.variation_attributes || {},
+      stock: product.stock || 0,
+      active: product.active !== undefined ? product.active : true,
+      specifications: product.specifications || {},
+      attributes: product.attributes || {}
+    };
+    
+    const { data, error } = await supabase
+      .from("products")
+      .insert([productData])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return {
+      ...data,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+  } catch (error) {
+    console.error("Erreur lors de l'ajout du produit:", error);
     throw error;
   }
 };
@@ -277,19 +399,19 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 export const createProduct = async (productData: Partial<Product>): Promise<Product> => {
   try {
     const { data, error } = await supabase
-      .from('products')
+      .from("products")
       .insert([productData])
       .select()
       .single();
-
+    
     if (error) {
-      console.error("Erreur lors de la création du produit:", error);
-      throw new Error(`Erreur lors de la création du produit: ${error.message}`);
+      console.error('Error creating product:', error);
+      throw new Error(error.message);
     }
-
+    
     return data;
-  } catch (error) {
-    console.error("Erreur lors de la création du produit:", error);
+  } catch (error: any) {
+    console.error('Error in createProduct:', error);
     throw error;
   }
 };
@@ -297,23 +419,63 @@ export const createProduct = async (productData: Partial<Product>): Promise<Prod
 /**
  * Met à jour un produit existant
  */
-export const updateProduct = async (id: string, updateData: Partial<Product>): Promise<Product | null> => {
+export const updateProduct = async (id: string, product: Partial<Product>) => {
   try {
-    const { data, error } = await supabase
+    // Vérifier d'abord si le produit existe
+    const { data: existingProduct, error: checkError } = await supabase
       .from('products')
-      .update(updateData)
+      .select('*')
       .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
-      throw new Error(`Erreur lors de la mise à jour du produit: ${error.message}`);
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking product existence:', checkError);
+      throw new Error(checkError.message);
     }
-
-    return data;
+    
+    if (!existingProduct) {
+      console.error(`No product found with ID: ${id}`);
+      throw new Error(`Product with ID ${id} not found`);
+    }
+    
+    // Enregistrer la valeur admin_only dans une variable séparée pour le debugging
+    const adminOnly = product.admin_only !== undefined ? product.admin_only : existingProduct.admin_only;
+    console.log(`Updating product ${id} with admin_only:`, adminOnly);
+    
+    // S'assurer que admin_only est inclus dans les données de mise à jour
+    const updatedData = {
+      ...product,
+      admin_only: adminOnly
+    };
+    
+    // Procéder à la mise à jour
+    const { error } = await supabase
+      .from('products')
+      .update(updatedData)
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error updating product:', error);
+      throw new Error(error.message);
+    }
+    
+    // Récupérer le produit mis à jour
+    const { data: updatedProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (fetchError) {
+      console.error('Error fetching updated product:', fetchError);
+      // On ne lance pas d'erreur ici car la mise à jour a réussi
+      // mais plutôt on retourne le produit original avec les mises à jour appliquées
+      return { ...existingProduct, ...updatedData };
+    }
+    
+    return updatedProduct || { ...existingProduct, ...updatedData };
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour du produit ${id}:`, error);
+    console.error('Error in updateProduct:', error);
     throw error;
   }
 };
@@ -321,250 +483,123 @@ export const updateProduct = async (id: string, updateData: Partial<Product>): P
 /**
  * Supprime un produit
  */
-export const deleteProduct = async (id: string): Promise<void> => {
+export const deleteProduct = async (id: string) => {
   try {
-    const { error } = await supabase
-      .from('products')
+    // D'abord supprimer les prix de variantes associés
+    const { error: variantPricesError } = await supabase
+      .from("product_variant_prices")
       .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error(`Erreur lors de la suppression du produit ${id}:`, error);
-      throw new Error(`Erreur lors de la suppression du produit: ${error.message}`);
+      .eq("product_id", id);
+    
+    if (variantPricesError) {
+      console.error("Erreur lors de la suppression des prix de variantes:", variantPricesError);
     }
+    
+    // Ensuite supprimer le produit
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
+    
+    if (error) throw error;
+    
+    return true;
   } catch (error) {
-    console.error(`Erreur lors de la suppression du produit ${id}:`, error);
+    console.error("Erreur lors de la suppression du produit:", error);
     throw error;
   }
 };
 
 /**
- * Télécharge une image de produit
+ * Télécharge une image pour un produit
+ * @param file The image file to upload
+ * @param productId The product ID
+ * @param isMain Whether this is the main product image
+ * @returns The URL of the uploaded image or null if there was an error
  */
-export const uploadProductImage = async (file: File, productId: string): Promise<string> => {
+export const uploadProductImage = async (
+  file: File,
+  productId: string,
+  isMain: boolean = false
+): Promise<string | null> => {
   try {
-    // Générer un nom de fichier unique
-    const timestamp = new Date().getTime();
-    const fileName = `product_${productId}_${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+    // Determine file extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     
-    // Télécharger l'image vers Supabase Storage
+    // Create a unique filename within the product folder
+    const timestamp = Date.now();
+    const fileName = `${isMain ? 'main' : `image-${timestamp}`}.${fileExt}`;
+    const filePath = `products/${productId}/${fileName}`;
+    
+    // Determine content type
+    let contentType = file.type;
+    if (fileExt === 'webp') contentType = 'image/webp';
+    
+    console.log(`Uploading image: ${filePath} (${contentType})`);
+    
+    // Upload the file to the storage bucket
     const { data, error } = await supabase.storage
-      .from('products')
-      .upload(`images/${fileName}`, file);
-
+      .from('catalog')
+      .upload(filePath, file, {
+        contentType,
+        upsert: true,
+      });
+    
     if (error) {
-      console.error("Erreur lors du téléversement de l'image:", error);
-      throw new Error(`Erreur lors du téléversement de l'image: ${error.message}`);
+      console.error("Error uploading image:", error);
+      throw error;
     }
-
-    // Obtenir l'URL publique
-    const { data: urlData } = supabase.storage
-      .from('products')
-      .getPublicUrl(`images/${fileName}`);
-
-    return urlData.publicUrl;
-  } catch (error) {
-    console.error("Erreur lors du téléversement de l'image:", error);
-    throw error;
+    
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('catalog')
+      .getPublicUrl(filePath);
+    
+    const imageUrl = publicUrlData.publicUrl;
+    console.log("Image uploaded successfully:", imageUrl);
+    
+    // If this is the main image, update the product
+    if (isMain) {
+      await updateProduct(productId, { image_url: imageUrl });
+    }
+    
+    return imageUrl;
+  } catch (error: any) {
+    console.error(`Error in uploadProductImage:`, error);
+    return null;
   }
 };
 
 /**
- * Récupère toutes les marques
+ * Convertit un produit normal en produit parent (avec variantes)
  */
-export const getBrands = async (): Promise<Brand[]> => {
+export const convertProductToParent = async (id: string, variationAttributes = {}) => {
   try {
     const { data, error } = await supabase
-      .from('brands')
-      .select('*')
-      .order('name');
-
-    if (error) {
-      console.error("Erreur lors de la récupération des marques:", error);
-      throw new Error(`Erreur lors de la récupération des marques: ${error.message}`);
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Erreur lors de la récupération des marques:", error);
-    throw error;
-  }
-};
-
-/**
- * Ajoute une nouvelle marque
- */
-export const addBrand = async (brandData: { name: string; translation: string }): Promise<Brand> => {
-  try {
-    const { data, error } = await supabase
-      .from('brands')
-      .insert([brandData])
+      .from("products")
+      .update({
+        is_parent: true,
+        variation_attributes: variationAttributes
+      })
+      .eq("id", id)
       .select()
       .single();
-
-    if (error) {
-      console.error("Erreur lors de l'ajout de la marque:", error);
-      throw new Error(`Erreur lors de l'ajout de la marque: ${error.message}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de l'ajout de la marque:", error);
-    throw error;
-  }
-};
-
-/**
- * Met à jour une marque existante
- */
-export const updateBrand = async (params: { 
-  originalName: string; 
-  name: string; 
-  translation: string 
-}): Promise<Brand> => {
-  try {
-    const { originalName, name, translation } = params;
     
-    const { data, error } = await supabase
-      .from('brands')
-      .update({ name, translation })
-      .eq('name', originalName)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Erreur lors de la mise à jour de la marque:", error);
-      throw new Error(`Erreur lors de la mise à jour de la marque: ${error.message}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de la marque:", error);
-    throw error;
-  }
-};
-
-/**
- * Supprime une marque
- */
-export const deleteBrand = async (params: { name: string }): Promise<void> => {
-  try {
-    const { name } = params;
+    if (error) throw error;
     
-    const { error } = await supabase
-      .from('brands')
-      .delete()
-      .eq('name', name);
-
-    if (error) {
-      console.error("Erreur lors de la suppression de la marque:", error);
-      throw new Error(`Erreur lors de la suppression de la marque: ${error.message}`);
-    }
+    return {
+      ...data,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
-    console.error("Erreur lors de la suppression de la marque:", error);
+    console.error("Erreur lors de la conversion du produit en produit parent:", error);
     throw error;
   }
 };
 
 /**
- * Récupère toutes les catégories
- */
-export const getCategories = async (): Promise<Category[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name');
-
-    if (error) {
-      console.error("Erreur lors de la récupération des catégories:", error);
-      throw new Error(`Erreur lors de la récupération des catégories: ${error.message}`);
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Erreur lors de la récupération des catégories:", error);
-    throw error;
-  }
-};
-
-/**
- * Ajoute une nouvelle catégorie
- */
-export const addCategory = async (categoryData: { name: string; translation: string }): Promise<Category> => {
-  try {
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([categoryData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Erreur lors de l'ajout de la catégorie:", error);
-      throw new Error(`Erreur lors de l'ajout de la catégorie: ${error.message}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de l'ajout de la catégorie:", error);
-    throw error;
-  }
-};
-
-/**
- * Met à jour une catégorie existante
- */
-export const updateCategory = async (params: { 
-  originalName: string; 
-  name: string; 
-  translation: string 
-}): Promise<Category> => {
-  try {
-    const { originalName, name, translation } = params;
-    
-    const { data, error } = await supabase
-      .from('categories')
-      .update({ name, translation })
-      .eq('name', originalName)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Erreur lors de la mise à jour de la catégorie:", error);
-      throw new Error(`Erreur lors de la mise à jour de la catégorie: ${error.message}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de la catégorie:", error);
-    throw error;
-  }
-};
-
-/**
- * Supprime une catégorie
- */
-export const deleteCategory = async (params: { name: string }): Promise<void> => {
-  try {
-    const { name } = params;
-    
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('name', name);
-
-    if (error) {
-      console.error("Erreur lors de la suppression de la catégorie:", error);
-      throw new Error(`Erreur lors de la suppression de la catégorie: ${error.message}`);
-    }
-  } catch (error) {
-    console.error("Erreur lors de la suppression de la catégorie:", error);
-    throw error;
-  }
-};
-
-/**
- * Duplique un produit
+ * Duplique un produit existant
  */
 export const duplicateProduct = async (productId: string): Promise<Product> => {
   try {
@@ -574,126 +609,91 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
       .select('*')
       .eq('id', productId)
       .single();
-
-    if (fetchError || !originalProduct) {
-      console.error("Erreur lors de la récupération du produit à dupliquer:", fetchError);
-      throw new Error(`Erreur lors de la récupération du produit: ${fetchError?.message || 'Produit non trouvé'}`);
+    
+    if (fetchError) {
+      console.error('Error fetching product to duplicate:', fetchError);
+      throw new Error(fetchError.message);
     }
-
-    // 2. Préparer les données du produit dupliqué
+    
+    if (!originalProduct) {
+      throw new Error(`Product with ID ${productId} not found`);
+    }
+    
+    // 2. Préparer les données du nouveau produit
     const duplicatedProductData = {
       ...originalProduct,
-      id: undefined, // L'ID sera généré automatiquement
-      name: `${originalProduct.name} (copy)`,
-      created_at: undefined, // Ces champs seront générés automatiquement
-      updated_at: undefined
+      id: undefined, // Supabase générera un nouvel ID
+      name: `${originalProduct.name} (copie)`,
+      created_at: undefined, // Supabase définira la date actuelle
+      updated_at: undefined, // Supabase définira la date actuelle
     };
-
-    // 3. Créer le nouveau produit
+    
+    // Remove any undefined/null fields that might cause issues
+    delete duplicatedProductData.id;
+    delete duplicatedProductData.created_at;
+    delete duplicatedProductData.updated_at;
+    
+    console.log('Duplicating product with data:', JSON.stringify(duplicatedProductData, null, 2));
+    
+    // 3. Insérer le nouveau produit
     const { data: newProduct, error: insertError } = await supabase
       .from('products')
       .insert([duplicatedProductData])
       .select()
       .single();
-
-    if (insertError || !newProduct) {
-      console.error("Erreur lors de la duplication du produit:", insertError);
-      throw new Error(`Erreur lors de la duplication du produit: ${insertError?.message || 'Création échouée'}`);
-    }
-
-    return newProduct;
-  } catch (error) {
-    console.error("Erreur lors de la duplication du produit:", error);
-    throw error;
-  }
-};
-
-/**
- * Ajoute un produit (alias pour createProduct pour compatibilité)
- */
-export const addProduct = createProduct;
-
-/**
- * Convertit un produit standard en produit parent
- */
-export const convertProductToParent = async (productId: string, modelName?: string): Promise<Product> => {
-  try {
-    const updateData: Partial<Product> = { is_parent: true };
     
-    if (modelName) {
-      updateData.model = modelName;
+    if (insertError) {
+      console.error('Error duplicating product:', insertError);
+      throw new Error(insertError.message);
     }
     
-    const { data, error } = await supabase
-      .from('products')
-      .update(updateData)
-      .eq('id', productId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(`Erreur lors de la conversion du produit ${productId} en parent:`, error);
-      throw new Error(`Erreur lors de la conversion: ${error.message}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error(`Erreur lors de la conversion du produit ${productId} en parent:`, error);
-    throw error;
-  }
-};
-
-/**
- * Trouve une variante de produit en fonction de ses attributs
- */
-export const findVariantByAttributes = async (
-  productId: string, 
-  attributes: Record<string, string | number | boolean>
-): Promise<Product | null> => {
-  try {
-    // D'abord récupérer le produit parent pour obtenir ses variantes
-    const { data: parentProduct, error: parentError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single();
-
-    if (parentError) {
-      console.error(`Erreur lors de la récupération du produit parent ${productId}:`, parentError);
-      throw new Error(`Erreur: ${parentError.message}`);
-    }
-
-    if (!parentProduct.is_parent) {
-      throw new Error("Ce produit n'est pas un produit parent");
-    }
-
-    // Ensuite récupérer toutes les variantes associées à ce parent
-    const { data: variants, error: variantsError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('parent_id', productId);
-
-    if (variantsError) {
-      console.error(`Erreur lors de la récupération des variantes pour ${productId}:`, variantsError);
-      throw new Error(`Erreur: ${variantsError.message}`);
-    }
-
-    // Comparer les attributs pour trouver la variante correspondante
-    const matchingVariant = variants.find(variant => {
-      if (!variant.attributes) return false;
-
-      // Vérifier si tous les attributs fournis correspondent
-      for (const [key, value] of Object.entries(attributes)) {
-        if (variant.attributes[key] !== value) {
-          return false;
+    // 4. Si le produit a des prix de variantes, les dupliquer également
+    if (originalProduct.is_parent) {
+      const { data: variantPrices, error: variantPricesError } = await supabase
+        .from('product_variant_prices')
+        .select('*')
+        .eq('product_id', productId);
+      
+      if (!variantPricesError && variantPrices && variantPrices.length > 0) {
+        // Préparer les nouvelles combinaisons de prix
+        const newVariantPrices = variantPrices.map(price => {
+          const newPrice = {
+            ...price,
+            id: undefined, // Supabase générera un nouvel ID
+            product_id: newProduct.id, // Utiliser l'ID du produit dupliqué
+            created_at: undefined,
+            updated_at: undefined
+          };
+          
+          // Remove any fields that might cause issues
+          delete newPrice.id;
+          delete newPrice.created_at;
+          delete newPrice.updated_at;
+          
+          return newPrice;
+        });
+        
+        console.log('Duplicating variant prices:', JSON.stringify(newVariantPrices, null, 2));
+        
+        // Insérer les nouvelles combinaisons de prix
+        const { error: insertVariantsError } = await supabase
+          .from('product_variant_prices')
+          .insert(newVariantPrices);
+        
+        if (insertVariantsError) {
+          console.error('Error duplicating variant prices:', insertVariantsError);
+          // Ne pas échouer complètement si seuls les prix de variantes échouent
         }
       }
-      return true;
-    });
-
-    return matchingVariant || null;
+    }
+    
+    return {
+      ...newProduct,
+      createdAt: newProduct.created_at,
+      updatedAt: newProduct.updated_at
+    };
   } catch (error) {
-    console.error("Erreur lors de la recherche de variante:", error);
+    console.error('Error in duplicateProduct:', error);
     throw error;
   }
 };

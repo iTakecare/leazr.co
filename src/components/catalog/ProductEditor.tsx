@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { addProduct, uploadProductImage, getBrands } from "@/services/catalogService";
@@ -72,11 +73,13 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
   const [newAttributeValues, setNewAttributeValues] = useState("");
   const [isParentProduct, setIsParentProduct] = useState(false);
   
+  // Fetch brands from API
   const { data: brandsData = [] } = useQuery({
     queryKey: ["brands"],
     queryFn: getBrands
   });
   
+  // Process brands data for the dropdown
   const brandOptions = brandsData.map((brand: any) => ({
     value: brand.name,
     label: brand.translation || brand.name
@@ -128,12 +131,12 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
       
       if (imageFiles.length > 0) {
         console.log(`Uploading main image: ${imageFiles[0].name}`);
-        await uploadProductImage(imageFiles[0], productId);
+        await uploadProductImage(imageFiles[0], productId, true);
       }
       
       for (let i = 1; i < imageFiles.length && i < 5; i++) {
         console.log(`Uploading additional image ${i}: ${imageFiles[i].name}`);
-        await uploadProductImage(imageFiles[i], productId);
+        await uploadProductImage(imageFiles[i], productId, false);
       }
       
       console.log("All images uploaded successfully");

@@ -1,341 +1,492 @@
+import { Product } from "@/types/catalog";
+import { supabase } from "@/integrations/supabase/client";
+import { WooCommerceProduct, ImportResult } from "@/types/woocommerce";
+import { ensureStorageBucket, downloadAndStoreImage } from "@/services/storageService";
+import { v4 as uuidv4 } from 'uuid';
 
-import { Product } from '@/types/catalog';
-import { WooCommerceProduct, ImportResult } from '@/types/woocommerce';
-import { supabase } from '@/integrations/supabase/client';
-
-// Convert product specifications to attributes for WooCommerce
-const convertSpecificationsToAttributes = (specifications: Record<string, string> | undefined): any[] => {
-  if (!specifications) return [];
-  
-  return Object.entries(specifications).map(([name, value]) => ({
-    name,
-    visible: true,
-    options: [value]
-  }));
-};
-
-// Convert product to WooCommerce format
-export const convertProductToWooCommerce = (product: Product): any => {
+export const mapDbProductToProduct = (dbProduct: any): Product => {
   return {
-    name: product.name,
-    type: "simple",
-    regular_price: product.price.toString(),
-    description: product.description || "",
-    short_description: product.description?.substring(0, 150) || "",
-    categories: product.category ? [{ name: product.category }] : [],
-    images: product.imageUrl ? [{ src: product.imageUrl }] : [],
-    attributes: convertSpecificationsToAttributes(product.specifications),
-    sku: product.sku || ""
+    id: dbProduct.id,
+    name: dbProduct.name,
+    brand: dbProduct.brand || '',
+    category: dbProduct.category || '',
+    description: dbProduct.description || '',
+    price: parseFloat(dbProduct.price || '0'),
+    createdAt: dbProduct.createdAt || new Date().toISOString(),
+    updatedAt: dbProduct.updatedAt || new Date().toISOString(),
+    active: dbProduct.active || true,
+    shortDescription: dbProduct.short_description || '',
+    sku: dbProduct.sku || '',
+    regularPrice: dbProduct.regular_price || '0',
+    salePrice: dbProduct.sale_price || '',
+    dateOnSaleFrom: null,
+    dateOnSaleTo: null,
+    priceHtml: dbProduct.price_html || '',
+    onSale: dbProduct.on_sale || false,
+    purchasable: dbProduct.purchasable || true,
+    totalSales: dbProduct.total_sales || 0,
+    virtual: dbProduct.virtual || false,
+    downloadable: dbProduct.downloadable || false,
+    downloads: [],
+    downloadLimit: dbProduct.download_limit || -1,
+    downloadExpiry: dbProduct.download_expiry || -1,
+    externalUrl: dbProduct.external_url || '',
+    buttonText: dbProduct.button_text || '',
+    taxStatus: dbProduct.tax_status || 'taxable',
+    taxClass: dbProduct.tax_class || '',
+    manageStock: dbProduct.manage_stock || false,
+    stockQuantity: dbProduct.stock_quantity || 0,
+    inStock: dbProduct.in_stock || true,
+    backorders: dbProduct.backorders || 'no',
+    backordersAllowed: dbProduct.backorders_allowed || false,
+    backordered: dbProduct.backordered || false,
+    soldIndividually: dbProduct.sold_individually || false,
+    weight: dbProduct.weight || '',
+    dimensions: {
+      length: dbProduct.length || '',
+      width: dbProduct.width || '',
+      height: dbProduct.height || ''
+    },
+    shippingRequired: dbProduct.shipping_required || true,
+    shippingTaxable: dbProduct.shipping_taxable || true,
+    shippingClass: dbProduct.shipping_class || '',
+    shippingClassId: dbProduct.shipping_class_id || 0,
+    reviewsAllowed: dbProduct.reviews_allowed || true,
+    averageRating: dbProduct.average_rating || '0',
+    ratingCount: dbProduct.rating_count || 0,
+    relatedIds: dbProduct.related_ids || [],
+    upsellIds: dbProduct.upsell_ids || [],
+    crossSellIds: dbProduct.cross_sell_ids || [],
+    parentId: dbProduct.parent_id || 0,
+    purchaseNote: dbProduct.purchase_note || '',
+    categories: dbProduct.categories || [],
+    tags: dbProduct.tags || [],
+    images: dbProduct.images || [],
+    attributes: dbProduct.attributes || [],
+    defaultAttributes: dbProduct.default_attributes || [],
+    variations: dbProduct.variations || [],
+    groupedProducts: dbProduct.grouped_products || [],
+    menuOrder: dbProduct.menu_order || 0,
+    metaData: dbProduct.meta_data || [],
+    image_alts: dbProduct.image_alts || [],
+    price_number: parseFloat(dbProduct.price || '0'),
+    stock: dbProduct.stock || 0,
+    discount_per_quantity: dbProduct.discount_per_quantity || {},
+    permalink: dbProduct.permalink || '',
+    status: dbProduct.status || 'publish',
+    featured: dbProduct.featured || false,
+    catalogVisibility: dbProduct.catalog_visibility || 'visible',
+    dateCreated: dbProduct.created_at || new Date().toISOString(),
+    dateModified: dbProduct.updated_at || new Date().toISOString(),
+    type: dbProduct.type || 'simple',
+    monthly_price: dbProduct.monthly_price || 0,
+    imageUrl: dbProduct.image_url || dbProduct.images?.[0]?.src || '',
+    specifications: dbProduct.specifications || {},
+    tier: dbProduct.tier || '',
+    is_parent: dbProduct.is_parent || false,
+    is_variation: dbProduct.is_variation || false,
+    parent_id: dbProduct.parent_id || '',
+    variants: dbProduct.variants || [],
+    variation_attributes: dbProduct.variation_attributes || {},
+    image_url: dbProduct.image_url || '',
+    image_urls: dbProduct.image_urls || [],
+    imageUrls: dbProduct.image_urls || []
   };
 };
 
-// Convert WooCommerce product to our format
-export const convertWooCommerceToProduct = (wcProduct: any): Product => {
-  // Function to convert WooCommerce attributes to specifications
-  const convertAttributesToSpecifications = (attributes: any[]): Record<string, string> => {
-    if (!attributes || !Array.isArray(attributes)) return {};
-    
-    const specs: Record<string, string> = {};
-    attributes.forEach(attr => {
-      if (attr.options && attr.options.length > 0) {
-        specs[attr.name] = attr.options[0];
-      }
-    });
-    return specs;
-  };
-  
-  return {
-    id: wcProduct.id.toString(),
-    name: wcProduct.name,
-    description: wcProduct.description,
-    price: parseFloat(wcProduct.price || wcProduct.regular_price || "0"),
-    image_url: wcProduct.images && wcProduct.images.length > 0 ? wcProduct.images[0].src : undefined,
-    category: wcProduct.categories && wcProduct.categories.length > 0 ? wcProduct.categories[0].name : undefined,
-    brand: undefined, // WooCommerce doesn't have a built-in brand attribute
-    specifications: convertAttributesToSpecifications(wcProduct.attributes),
-    active: wcProduct.status === "publish",
-    sku: wcProduct.sku
-  };
-};
-
-// Test WooCommerce connection
-export const testWooCommerceConnection = async (
+export async function testWooCommerceConnection(
   siteUrl: string,
   consumerKey: string,
   consumerSecret: string
-): Promise<boolean> => {
+): Promise<boolean> {
   try {
-    const { data } = await supabase.functions.invoke('woocommerce-import', {
-      body: {
-        action: 'testConnection',
-        url: siteUrl,
-        consumerKey,
-        consumerSecret
+    const response = await fetch(`${siteUrl}/wp-json/wc/v3/products?per_page=1`, {
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${consumerKey}:${consumerSecret}`)
       }
     });
     
-    return data?.success || false;
+    return response.ok;
   } catch (error) {
-    console.error("Error testing WooCommerce connection:", error);
+    console.error('Error testing WooCommerce connection:', error);
     return false;
   }
-};
+}
 
-// Get WooCommerce products with pagination
-export const getWooCommerceProducts = async (
+export async function getWooCommerceProducts(
   siteUrl: string,
   consumerKey: string,
   consumerSecret: string,
   page: number = 1,
   perPage: number = 10
-): Promise<WooCommerceProduct[]> => {
+): Promise<WooCommerceProduct[]> {
   try {
-    const { data } = await supabase.functions.invoke('woocommerce-import', {
-      body: {
-        action: 'getProducts',
-        url: siteUrl,
+    const response = await fetch(
+      `${siteUrl}/wp-json/wc/v3/products?page=${page}&per_page=${perPage}&status=publish`, 
+      {
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${consumerKey}:${consumerSecret}`)
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`WooCommerce API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching WooCommerce products:', error);
+    return [];
+  }
+}
+
+export async function fetchAllWooCommerceProducts(
+  siteUrl: string,
+  consumerKey: string,
+  consumerSecret: string
+): Promise<WooCommerceProduct[]> {
+  try {
+    let page = 1;
+    const perPage = 100;
+    let allProducts: WooCommerceProduct[] = [];
+    let hasMoreProducts = true;
+    
+    while (hasMoreProducts) {
+      const products = await getWooCommerceProducts(
+        siteUrl,
         consumerKey,
         consumerSecret,
         page,
         perPage
-      }
-    });
-    
-    return data?.products || [];
-  } catch (error) {
-    console.error("Error fetching WooCommerce products:", error);
-    return [];
-  }
-};
-
-// Fetch all WooCommerce products (multiple pages)
-export const fetchAllWooCommerceProducts = async (
-  siteUrl: string,
-  consumerKey: string,
-  consumerSecret: string
-): Promise<WooCommerceProduct[]> => {
-  try {
-    let allProducts: WooCommerceProduct[] = [];
-    let page = 1;
-    let hasMoreProducts = true;
-    const perPage = 100;
-    
-    while (hasMoreProducts) {
-      const products = await getWooCommerceProducts(siteUrl, consumerKey, consumerSecret, page, perPage);
+      );
       
-      if (products.length > 0) {
+      if (products.length === 0) {
+        hasMoreProducts = false;
+      } else {
         allProducts = [...allProducts, ...products];
         page++;
-      } else {
-        hasMoreProducts = false;
       }
-      
-      // Safety check to prevent infinite loops
-      if (page > 10) hasMoreProducts = false;
     }
     
     return allProducts;
   } catch (error) {
-    console.error("Error fetching all WooCommerce products:", error);
+    console.error('Error fetching all WooCommerce products:', error);
     return [];
   }
-};
+}
 
-// Import WooCommerce products into the database
-export const importWooCommerceProducts = async (
-  products: WooCommerceProduct[],
+async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('check-column-exists', {
+      body: { table_name: tableName, column_name: columnName }
+    });
+    
+    if (error) {
+      console.error('Error checking if column exists:', error);
+      return false;
+    }
+    
+    return data?.exists || false;
+  } catch (error) {
+    console.error('Error in checkColumnExists:', error);
+    return false;
+  }
+}
+
+function generateUuidFromId(numericId: number | string): string {
+  const idStr = String(numericId);
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idStr)) {
+    return idStr;
+  }
+  
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+  return `woo-${idStr}-${uuidv4().substring(8)}`;
+}
+
+export async function importWooCommerceProducts(
+  products: (WooCommerceProduct & {
+    siteUrl: string;
+    consumerKey: string;
+    consumerSecret: string;
+  })[],
   includeVariations: boolean = true,
   overwriteExisting: boolean = false
-): Promise<ImportResult> => {
+): Promise<ImportResult> {
   try {
-    let totalImported = 0;
-    let skipped = 0;
-    const errors: string[] = [];
+    const result: ImportResult = {
+      success: true,
+      totalImported: 0,
+      skipped: 0,
+      errors: []
+    };
+    
+    const columnsToCheck = [
+      'image_urls', 'image_url', 'category', 'specifications', 
+      'regular_price', 'sale_price', 'short_description', 'status',
+      'is_parent', 'parent_id', 'is_variation', 'variation_attributes'
+    ];
+    const columnStatus: Record<string, boolean> = {};
+    
+    for (const column of columnsToCheck) {
+      columnStatus[column] = await checkColumnExists('products', column);
+      console.log(`Column '${column}' exists: ${columnStatus[column]}`);
+    }
     
     for (const product of products) {
       try {
-        // Convert WooCommerce product to our format
-        const convertedProduct = convertWooCommerceToProduct(product);
+        const categoryString = product.categories?.map(c => c.name).join(', ') || '';
+        const mainImageUrl = product.images?.[0]?.src || '';
+        const imageUrls = product.images?.map(img => img.src) || [];
+        const specifications = {
+          categories: product.categories?.map(c => c.name) || []
+        };
         
-        // Check if the product already exists
+        const generatedUuid = generateUuidFromId(product.id);
+        
+        const mappedProduct: Record<string, any> = {
+          id: generatedUuid,
+          name: product.name,
+          description: product.description,
+          price: product.price || '0',
+          brand: 'Imported',
+          active: product.status === 'publish',
+          created_at: product.date_created,
+          updated_at: product.date_modified,
+          stock: product.stock_quantity || 0
+        };
+        
+        if (columnStatus['category']) {
+          mappedProduct.category = product.categories?.[0]?.name || '';
+        }
+        
+        if (columnStatus['specifications']) {
+          mappedProduct.specifications = JSON.stringify(specifications);
+        }
+        
+        if (columnStatus['image_url']) {
+          mappedProduct.image_url = mainImageUrl;
+        }
+        
+        if (columnStatus['image_urls']) {
+          mappedProduct.image_urls = imageUrls;
+        }
+        
+        if (columnStatus['short_description']) {
+          mappedProduct.short_description = product.short_description || '';
+        }
+        
+        if (columnStatus['status']) {
+          mappedProduct.status = product.status || 'publish';
+        }
+        
+        if (columnStatus['is_parent']) {
+          mappedProduct.is_parent = product.variations?.length > 0;
+        }
+        
+        if (columnStatus['parent_id']) {
+          mappedProduct.parent_id = null;
+        }
+        
+        if (columnStatus['is_variation']) {
+          mappedProduct.is_variation = false;
+        }
+        
         const { data: existingProduct } = await supabase
           .from('products')
-          .select('id')
-          .eq('id', convertedProduct.id)
-          .single();
+          .select('*')
+          .eq('id', generatedUuid)
+          .maybeSingle();
         
         if (existingProduct && !overwriteExisting) {
-          skipped++;
+          result.skipped++;
           continue;
         }
         
         if (existingProduct && overwriteExisting) {
-          // Update existing product
           const { error } = await supabase
             .from('products')
-            .update(convertedProduct)
-            .eq('id', convertedProduct.id);
+            .update(mappedProduct)
+            .eq('id', existingProduct.id);
           
-          if (error) throw error;
+          if (error) {
+            console.error(`Error updating product ${product.id}:`, error);
+            result.errors = result.errors || [];
+            result.errors.push(`Error updating product ${product.name || product.id}: ${error.message}`);
+            continue;
+          }
         } else {
-          // Insert new product
           const { error } = await supabase
             .from('products')
-            .insert([convertedProduct]);
+            .insert(mappedProduct);
           
-          if (error) throw error;
+          if (error) {
+            console.error(`Error inserting product ${product.id}:`, error);
+            result.errors = result.errors || [];
+            result.errors.push(`Error inserting product ${product.name || product.id}: ${error.message}`);
+            continue;
+          }
         }
         
-        totalImported++;
+        result.totalImported++;
         
-        // Import variations if needed
         if (includeVariations && product.variations && product.variations.length > 0) {
-          // Fetch product variations
-          const { data } = await supabase.functions.invoke('woocommerce-import', {
-            body: {
-              action: 'getVariations',
-              url: product.siteUrl,
-              consumerKey: product.consumerKey,
-              consumerSecret: product.consumerSecret,
-              productId: product.id
-            }
-          });
-          
-          if (data?.variations) {
-            for (const variation of data.variations) {
-              const convertedVariation = convertWooCommerceToProduct(variation);
-              convertedVariation.parent_id = product.id.toString();
-              convertedVariation.is_variation = true;
+          for (const variationId of product.variations) {
+            try {
+              const variationResponse = await fetch(
+                `${product.siteUrl}/wp-json/wc/v3/products/${product.id}/variations/${variationId}`,
+                {
+                  headers: {
+                    'Authorization': 'Basic ' + btoa(`${product.consumerKey}:${product.consumerSecret}`)
+                  }
+                }
+              );
               
-              // Check if variation exists
+              if (!variationResponse.ok) continue;
+              
+              const variation = await variationResponse.json();
+              
+              const variationUuid = generateUuidFromId(`${product.id}-${variation.id}`);
+              
+              const mappedVariation: Record<string, any> = {
+                id: variationUuid,
+                name: `${product.name} - ${variation.attributes.map((a: any) => a.option).join(', ')}`,
+                description: product.description,
+                price: variation.price || '0',
+                brand: 'Imported',
+                active: true,
+                created_at: variation.date_created,
+                updated_at: variation.date_modified,
+                stock: variation.stock_quantity || 0
+              };
+              
+              if (columnStatus['image_url']) {
+                mappedVariation.image_url = variation.image?.src || mainImageUrl;
+              }
+              
+              if (columnStatus['image_urls']) {
+                mappedVariation.image_urls = variation.image ? [variation.image.src] : imageUrls;
+              }
+              
+              if (columnStatus['category']) {
+                mappedVariation.category = product.categories?.[0]?.name || '';
+              }
+              
+              if (columnStatus['is_variation']) {
+                mappedVariation.is_variation = true;
+              }
+              
+              if (columnStatus['parent_id']) {
+                mappedVariation.parent_id = generatedUuid;
+              }
+              
+              if (columnStatus['variation_attributes']) {
+                mappedVariation.variation_attributes = variation.attributes.reduce((acc: any, attr: any) => {
+                  acc[attr.name] = attr.option;
+                  return acc;
+                }, {});
+              }
+              
               const { data: existingVariation } = await supabase
                 .from('products')
-                .select('id')
-                .eq('id', convertedVariation.id)
-                .single();
+                .select('*')
+                .eq('id', variationUuid)
+                .maybeSingle();
               
               if (existingVariation && !overwriteExisting) {
-                skipped++;
                 continue;
               }
               
               if (existingVariation && overwriteExisting) {
-                // Update existing variation
                 const { error } = await supabase
                   .from('products')
-                  .update(convertedVariation)
-                  .eq('id', convertedVariation.id);
+                  .update(mappedVariation)
+                  .eq('id', existingVariation.id);
                 
-                if (error) throw error;
+                if (error) {
+                  console.error(`Error updating variation ${variationId}:`, error);
+                  continue;
+                }
               } else {
-                // Insert new variation
                 const { error } = await supabase
                   .from('products')
-                  .insert([convertedVariation]);
+                  .insert(mappedVariation);
                 
-                if (error) throw error;
+                if (error) {
+                  console.error(`Error inserting variation ${variationId}:`, error);
+                  continue;
+                }
               }
-              
-              totalImported++;
+            } catch (varError) {
+              console.error(`Error importing variation ${variationId} for product ${product.id}:`, varError);
             }
           }
         }
-      } catch (error) {
-        console.error(`Error importing product ${product.name}:`, error);
-        errors.push(`Failed to import ${product.name}: ${error.message || 'Unknown error'}`);
+      } catch (productError) {
+        console.error(`Error importing product ${product.id}:`, productError);
+        result.errors = result.errors || [];
+        result.errors.push(`Error importing product ${product.name || product.id}: ${(productError as Error).message}`);
       }
     }
     
-    return {
-      success: errors.length === 0,
-      totalImported,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined
-    };
+    if (result.errors && result.errors.length > 0) {
+      result.success = false;
+    }
+    
+    return result;
   } catch (error) {
-    console.error("Error importing WooCommerce products:", error);
+    console.error('Error in importWooCommerceProducts:', error);
     return {
       success: false,
       totalImported: 0,
       skipped: 0,
-      errors: [error.message || 'Unknown error']
+      errors: [(error as Error).message]
     };
   }
-};
+}
 
-// Save WooCommerce configuration
-export const saveWooCommerceConfig = async (
-  userId: string, 
-  config: {
-    siteUrl: string;
-    consumerKey: string;
-    consumerSecret: string;
-  }
-): Promise<boolean> => {
+export async function getWooCommerceConfig(userId: string) {
   try {
-    // Store the config in localStorage for now
+    const { data, error } = await supabase
+      .from('woocommerce_configs')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error getting WooCommerce config:', error);
+    return null;
+  }
+}
+
+export async function saveWooCommerceConfig(userId: string, config: {
+  siteUrl: string;
+  consumerKey: string;
+  consumerSecret: string;
+}) {
+  try {
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     
-    // Also try to store in the database if available
-    try {
-      const { error } = await supabase
-        .from('woocommerce_configs')
-        .upsert({
-          user_id: userId,
-          site_url: config.siteUrl,
-          consumer_key: config.consumerKey,
-          consumer_secret: config.consumerSecret
-        });
+    const { data, error } = await supabase
+      .from('woocommerce_configs')
+      .upsert({
+        user_id: userId,
+        site_url: config.siteUrl,
+        consumer_key: config.consumerKey,
+        consumer_secret: config.consumerSecret,
+        updated_at: new Date().toISOString()
+      });
       
-      if (error) throw error;
-    } catch (dbError) {
-      console.warn("Error saving to database, using localStorage only:", dbError);
+    if (error) {
+      console.error('Error saving WooCommerce config to db:', error);
+      return false;
     }
     
     return true;
   } catch (error) {
-    console.error("Error saving WooCommerce config:", error);
+    console.error('Error saving WooCommerce config:', error);
     return false;
   }
-};
-
-// Get WooCommerce configuration
-export const getWooCommerceConfig = async (userId: string): Promise<{
-  siteUrl: string;
-  consumerKey: string;
-  consumerSecret: string;
-} | null> => {
-  try {
-    // Try to get from database first
-    try {
-      const { data, error } = await supabase
-        .from('woocommerce_configs')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) throw error;
-      
-      if (data) {
-        return {
-          siteUrl: data.site_url,
-          consumerKey: data.consumer_key,
-          consumerSecret: data.consumer_secret
-        };
-      }
-    } catch (dbError) {
-      console.warn("Error fetching from database, trying localStorage:", dbError);
-    }
-    
-    // Fallback to localStorage
-    const config = localStorage.getItem('woocommerce_config');
-    if (config) {
-      return JSON.parse(config);
-    }
-    
-    return null;
-  } catch (error) {
-    console.error("Error getting WooCommerce config:", error);
-    return null;
-  }
-};
+}
