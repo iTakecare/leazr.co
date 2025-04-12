@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { renameImageFile } from "@/utils/imageUtils";
 import { Product, Brand, Category } from "@/types/catalog";
@@ -617,23 +616,29 @@ export const addProduct = createProduct;
 /**
  * Convertit un produit standard en produit parent
  */
-export const convertProductToParent = async (id: string): Promise<Product> => {
+export const convertProductToParent = async (productId: string, modelName?: string): Promise<Product> => {
   try {
+    const updateData: Partial<Product> = { is_parent: true };
+    
+    if (modelName) {
+      updateData.model = modelName;
+    }
+    
     const { data, error } = await supabase
       .from('products')
-      .update({ is_parent: true })
-      .eq('id', id)
+      .update(updateData)
+      .eq('id', productId)
       .select()
       .single();
 
     if (error) {
-      console.error(`Erreur lors de la conversion du produit ${id} en parent:`, error);
+      console.error(`Erreur lors de la conversion du produit ${productId} en parent:`, error);
       throw new Error(`Erreur lors de la conversion: ${error.message}`);
     }
 
     return data;
   } catch (error) {
-    console.error(`Erreur lors de la conversion du produit ${id} en parent:`, error);
+    console.error(`Erreur lors de la conversion du produit ${productId} en parent:`, error);
     throw error;
   }
 };

@@ -160,8 +160,8 @@ const ProductDetail: React.FC = () => {
   });
   
   const imageUploadMutation = useMutation({
-    mutationFn: ({ file, id, isMain = false }: { file: File; id: string; isMain?: boolean }) => 
-      uploadProductImage(file, id, isMain),
+    mutationFn: ({ file, id }: { file: File; id: string }) => 
+      uploadProductImage(file, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       setImageFiles([]);

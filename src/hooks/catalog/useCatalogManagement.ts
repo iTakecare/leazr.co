@@ -18,7 +18,7 @@ export const useCatalogManagement = () => {
   // Fetch products
   const { data: productsData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
-    queryFn: () => getProducts(true), // Pass true to include admin-only products
+    queryFn: () => getProducts({ includeAdminOnly: true }), 
   });
   
   // Enhanced products processing with better variant detection
