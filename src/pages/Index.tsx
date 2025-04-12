@@ -1,96 +1,19 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, PackageCheck, CreditCard, Shield, Leaf } from "lucide-react";
 import Container from "@/components/layout/Container";
-import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "sonner";
 import MainNavigation from "@/components/layout/MainNavigation";
 import HeroSection from "@/components/home/HeroSection";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked, isLoading } = useAuth();
   const isMobile = useIsMobile();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  // Fonction pour gérer la redirection des utilisateurs authentifiés
-  const handleAuthenticatedRedirection = () => {
-    // Ne rediriger que si l'utilisateur est connecté ET que la vérification des rôles est terminée
-    if (user && userRoleChecked) {
-      console.log("Index page - vérification des rôles utilisateur pour redirection", {
-        role: user?.role,
-        isAmbassador: isAmbassador(),
-        isClient: isClient(),
-        isPartner: isPartner(),
-        isAdmin: isAdmin(),
-        email: user?.email
-      });
-      
-      setIsRedirecting(true);
-      
-      // Redirection basée sur le rôle défini dans les métadonnées utilisateur
-      if (isAmbassador()) {
-        console.log("Index page - redirection vers le tableau de bord ambassadeur");
-        navigate("/ambassador/dashboard", { replace: true });
-        return true;
-      } 
-      
-      if (isClient()) {
-        console.log("Index page - redirection vers le tableau de bord client");
-        navigate("/client/dashboard", { replace: true });
-        return true;
-      } 
-      
-      if (isPartner()) {
-        console.log("Index page - redirection vers le tableau de bord partenaire");
-        navigate("/partner/dashboard", { replace: true });
-        return true;
-      } 
-      
-      if (isAdmin()) {
-        console.log("Index page - redirection vers le tableau de bord admin");
-        navigate("/dashboard", { replace: true });
-        return true;
-      }
-      
-      // Default to client dashboard if no specific role is found
-      console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
-      toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
-      navigate("/client/dashboard", { replace: true });
-      return true;
-    }
-    return false;
-  };
-
-  useEffect(() => {
-    // Ne pas faire de redirection tant que le chargement n'est pas terminé
-    if (isLoading) {
-      console.log("Index page - Chargement en cours, pas de redirection");
-      return;
-    }
-    
-    // Si l'utilisateur n'est pas authentifié, afficher la page d'accueil
-    if (!user) {
-      console.log("Index page - utilisateur non authentifié, affichage de la page d'accueil");
-      return;
-    }
-    
-    // Gérer la redirection pour les utilisateurs authentifiés
-    handleAuthenticatedRedirection();
-  }, [user, isLoading, userRoleChecked]);
-
-  // Si en cours de redirection, on peut montrer un indicateur de chargement
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">Redirection en cours...</p>
-      </div>
-    );
-  }
+  
+  console.log("Rendering Index page - public access");
 
   return (
     <div className="min-h-screen flex flex-col bg-white">

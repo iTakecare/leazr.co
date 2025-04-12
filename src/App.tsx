@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -56,7 +55,6 @@ import RequestPage from './pages/RequestPage';
 import RequestSentPage from './pages/RequestSentPage';
 import Index from './pages/Index';
 
-// Define route protection components
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
   
@@ -109,6 +107,8 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           
+          <Route path="/" element={<Index />} />
+          
           <Route path="/catalogue" element={<PublicCatalog />} />
           <Route path="/panier" element={<CartPage />} />
           <Route path="/demande" element={<RequestPage />} />
@@ -118,13 +118,9 @@ const App = () => {
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/produits/:id" element={<ProductDetailPage />} />
           
-          {/* Routes publiques pour les offres */}
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
           
-          <Route path="/" element={<Index />} />
-          
-          {/* Routes administrateur */}
           <Route path="/" element={
             <AdminRoute>
               <Layout />
@@ -168,10 +164,8 @@ const App = () => {
             <Route path="create-test-users" element={<CreateTestUsers />} />
           </Route>
           
-          {/* Routes client */}
           <Route path="/client/*" element={<ClientRoutes />} />
           
-          {/* Routes ambassadeur - layout spécifique */}
           <Route path="/ambassador" element={
             <AmbassadorRoute>
               <AmbassadorLayout />
@@ -192,7 +186,6 @@ const App = () => {
             <Route path="catalog/:productId" element={<AmbassadorProductDetail />} />
           </Route>
           
-          {/* Routes partenaire */}
           <Route path="/partner" element={
             <PartnerRoute>
               <PartnerDashboard />
