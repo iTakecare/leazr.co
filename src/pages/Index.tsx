@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -13,10 +12,16 @@ import HeroSection from "@/components/home/HeroSection";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked } = useAuth();
+  const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked, isLoading } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
+    // Vérifier d'abord si l'utilisateur est authentifié
+    if (!user) {
+      console.log("Index page - utilisateur non authentifié, affichage de la page d'accueil");
+      return; // Sortir de la fonction et afficher la page d'accueil
+    }
+    
     // Ne rediriger que si l'utilisateur est connecté ET que la vérification des rôles est terminée
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
@@ -58,7 +63,7 @@ const Index = () => {
       toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
       navigate("/client/dashboard", { replace: true });
     }
-    // Si l'utilisateur n'est pas connecté, ne pas rediriger et afficher la page d'accueil
+    // Si l'utilisateur n'est pas connecté ou la vérification des rôles n'est pas terminée, ne pas rediriger et afficher la page d'accueil
   }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked]);
 
   return (
