@@ -10,10 +10,10 @@ const HeroSection = () => {
   return (
     <div className="w-full relative min-h-screen"
       style={{
-        backgroundImage: "url('/lovable-uploads/e5545305-077d-4659-8cc1-126ad30cda44.png')",
+        backgroundImage: "url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "repeat"
+        backgroundRepeat: "no-repeat"
       }}
     >
       <Container maxWidth="custom" className="py-12 md:py-16">
