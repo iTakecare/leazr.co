@@ -17,6 +17,8 @@ const MainNavigation = () => {
     console.log("MainNavigation mounted");
   }, []);
   
+  console.log("Rendering MainNavigation"); // Ajout d'un log pour le débogage
+  
   return (
     <header className="bg-transparent w-full py-4 z-50">
       <div className="container mx-auto px-4">

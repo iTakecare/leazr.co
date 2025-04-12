@@ -18,6 +18,8 @@ const Index = () => {
     document.title = "iTakecare - Leasing de matériel informatique reconditionné";
   }, []);
 
+  console.log("Rendering Index component"); // Ajout d'un log supplémentaire pour le débogage
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <MainNavigation />

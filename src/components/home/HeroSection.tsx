@@ -11,6 +11,8 @@ const HeroSection = () => {
     console.log("HeroSection mounted");
   }, []);
   
+  console.log("Rendering HeroSection"); // Ajout d'un log pour le débogage
+  
   return (
     <div className="relative overflow-hidden">
       {/* Arrière-plan avec texture */}
