@@ -22,7 +22,7 @@ const AdvisorSection = () => {
                 {/* Flèche pointant vers l'image */}
                 <div className="hidden lg:block absolute top-[100px] right-[450px]">
                   <img 
-                    src="/lovable-uploads/481ee77e-2767-4044-b4dd-801e1b70036a.png" 
+                    src="/lovable-uploads/3ae2f664-20a8-4eba-afb1-28ae39cc80ea.png" 
                     alt="Flèche" 
                     className="w-40 h-auto"
                   />
@@ -67,3 +67,4 @@ const AdvisorSection = () => {
 };
 
 export default AdvisorSection;
+
