@@ -286,10 +286,23 @@ export async function renameImageFile(
       return null;
     }
     
+    // Détecter le type MIME depuis l'extension
+    const mimeType = extension.toLowerCase() === '.png' ? 'image/png' : 
+                   extension.toLowerCase() === '.jpg' || extension.toLowerCase() === '.jpeg' ? 'image/jpeg' : 
+                   extension.toLowerCase() === '.gif' ? 'image/gif' : 
+                   extension.toLowerCase() === '.webp' ? 'image/webp' : 
+                   'application/octet-stream';
+    
+    console.log(`Détection du type MIME: ${mimeType} pour l'extension ${extension}`);
+    
+    // Créer un nouveau fichier avec le type MIME correct
+    const file = new File([fileData], sanitizedNewName, { type: mimeType });
+    
     // Téléverser le fichier avec le nouveau nom
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(newFilePath, fileData, {
+      .upload(newFilePath, file, {
+        contentType: mimeType,
         upsert: true
       });
     
@@ -327,3 +340,4 @@ export async function renameImageFile(
     return null;
   }
 }
+
