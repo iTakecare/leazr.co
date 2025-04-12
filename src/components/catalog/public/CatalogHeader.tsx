@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight, MessageCircle } from "lucide-react";
 
 const CatalogHeader = () => {
   return (
@@ -21,31 +21,33 @@ const CatalogHeader = () => {
             <Button 
               size="lg"
               variant="outline" 
-              className="bg-white text-[#275D8C] hover:bg-white/90 border-white text-sm md:text-base"
+              className="bg-white text-[#275D8C] hover:bg-white/90 border-white text-sm md:text-base group"
             >
+              <MessageCircle className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
               Parler à un conseiller
             </Button>
             <Button 
               size="lg" 
-              className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-sm md:text-base"
+              className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-sm md:text-base group"
             >
-              Demander un devis <ArrowRight className="ml-2 h-4 w-4" />
+              Demander un devis <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         </div>
 
-        <div className="md:w-2/5 md:absolute md:right-0 md:top-0 md:bottom-0 md:h-full">
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#275D8C]/50 to-[#275D8C] z-10"></div>
+        <div className="md:w-2/5 md:h-full relative">
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#275D8C]/50 to-[#275D8C] z-10 md:block hidden"></div>
           <img 
-            src="/lovable-uploads/1d3ac6e1-5c24-4197-af4f-5aa8f2dd014b.png"
+            src="/lovable-uploads/1d3ac6e1-5c24-4197-af4f-5aa8f2dd014b.png" 
             alt="Équipement premium reconditionné" 
-            className="w-full h-full object-cover object-center"
+            className="w-full h-80 md:h-full object-cover object-center"
           />
+          <div className="absolute top-0 right-0 bottom-0 left-0 bg-gradient-to-t from-[#275D8C] to-transparent opacity-70 md:hidden"></div>
         </div>
       </div>
       
-      <div className="bg-white p-6 border-t border-gray-100">
-        <div className="max-w-3xl mx-auto relative">
+      <div className="bg-white p-4 border-t border-gray-100">
+        <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"

@@ -17,7 +17,7 @@ const AmbassadorCatalog = () => {
   
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products", true],
-    queryFn: () => getProducts({ includeAdminOnly: true }), // Ambassador can see admin-only products
+    queryFn: () => getProducts({ includeAdminOnly: true }),
   });
   
   const filteredProducts = searchQuery
@@ -41,7 +41,7 @@ const AmbassadorCatalog = () => {
   
   return (
     <Container>
-      <div className="px-0 py-6">
+      <div className="container max-w-none px-0 py-6">
         <CatalogHeader />
       </div>
       
