@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { PlayCircle } from "lucide-react";
@@ -45,15 +44,15 @@ const PressSection = () => {
             </div>
           </div>
           
-          {/* Colonne de droite: Logos en 3 rangées - avec ajustement de taille et centrage vertical */}
+          {/* Colonne de droite: Logos en 3 rangées - avec ajustement de taille */}
           <div className="flex items-center justify-center h-full">
             <div className="grid grid-cols-3 grid-rows-3 gap-6 w-full">
               {mediaLogos.map((logo) => (
-                <div key={logo.id} className="flex items-center justify-center h-14 sm:h-16">
+                <div key={logo.id} className="flex items-center justify-center h-20 sm:h-24">
                   <img 
                     src={logo.src} 
                     alt={logo.alt} 
-                    className="max-h-full max-w-full object-contain w-auto h-10 sm:h-12"
+                    className="max-h-full max-w-full object-contain w-auto h-14 sm:h-16"
                   />
                 </div>
               ))}
