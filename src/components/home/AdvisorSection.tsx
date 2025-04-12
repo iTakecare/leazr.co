@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const AdvisorSection = () => {
                 {/* Flèche pointant vers l'image */}
                 <div className="hidden lg:block absolute top-[120px] right-[450px]">
                   <img 
-                    src="/lovable-uploads/7b7b5043-415e-4161-bd19-41552a8108e0.png" 
+                    src="/lovable-uploads/9a1919eb-054c-4be8-acb5-0a02b18696da.png" 
                     alt="Flèche" 
                     className="w-40 h-auto"
                   />
