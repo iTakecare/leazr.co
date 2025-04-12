@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,9 @@ const AmbassadorCatalog = () => {
   
   return (
     <Container>
-      <CatalogHeader />
+      <div className="px-0 py-6">
+        <CatalogHeader />
+      </div>
       
       <motion.div 
         className="py-6 md:py-8 flex flex-col h-full"

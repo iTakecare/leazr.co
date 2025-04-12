@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -116,7 +117,9 @@ const PublicCatalog = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <CatalogHeader />
+      <div className="container mx-auto px-4 py-6">
+        <CatalogHeader />
+      </div>
       
       <div className="lg:hidden container mx-auto px-4 py-4">
         <Button 
