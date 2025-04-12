@@ -101,8 +101,11 @@ const HeroSection = (): JSX.Element => {
               <h1 className="font-black text-[#222222] text-[50px] leading-tight">
                 informatique
               </h1>
-              <Badge className="ml-4 bg-[#48b5c34f] rounded-[15px] px-2.5 py-[5px]">
-                <span className="font-black text-[#48b5c3] text-[50px]">
+              <Badge 
+                className="ml-4 bg-[#48b5c34f] rounded-[15px] px-4 py-2 hover:bg-[#33638E] transition-colors duration-300" 
+                variant="outline"
+              >
+                <span className="font-black text-[#48b5c3] text-[50px] hover:text-white">
                   Reconditionné
                 </span>
               </Badge>
