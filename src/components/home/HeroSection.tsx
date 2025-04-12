@@ -13,12 +13,12 @@ const HeroSection = () => {
       style={{
         backgroundImage: `
           linear-gradient(to bottom, 
-            rgba(255, 255, 255, 0.9) 1px, 
+            rgba(255, 255, 255, 1) 1px, 
             transparent 1px
           ),
           url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
         `,
-        backgroundSize: "100% 40px, cover",
+        backgroundSize: "100% 30px, cover",
         backgroundPosition: "0 0, center",
         backgroundRepeat: "repeat, no-repeat"
       }}
@@ -27,10 +27,8 @@ const HeroSection = () => {
         <div className="flex flex-col md:flex-row items-center">
           {/* Colonne Gauche - Texte */}
           <div className="md:w-1/2 mb-10 md:mb-0 pr-0 md:pr-12">
-            <h1 className="text-[45px] md:text-[50px] font-black leading-tight mb-2 text-[#242424] font-['Inter']">
-              Leasing de matériel <br />
-              informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full">Reconditionné</span> <br />
-              sans contraintes
+            <h1 className="text-[45px] md:text-[50px] font-black leading-tight mb-2 text-[#242424] font-['Inter'] max-w-[650px]">
+              Leasing de matériel informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full">Reconditionné</span> sans contraintes
             </h1>
             
             <p className="text-lg mt-8 mb-8 text-gray-700 font-['Inter'] font-normal">
