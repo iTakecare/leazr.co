@@ -45,7 +45,7 @@ const StepsSection = () => {
           <div className="flex justify-center order-2 md:order-1 h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
-                src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80" 
+                src="/lovable-uploads/c4c12c0b-5962-41ec-9c06-ee0ddbf0915c.png" 
                 alt="Confirmation de commande" 
                 className="rounded-3xl shadow-lg w-full h-full object-cover"
               />
