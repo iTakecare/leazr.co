@@ -261,7 +261,7 @@ export const updateCategory = async ({ originalName, name, translation }: { orig
 };
 
 /**
- * Supprime une catégorie
+ * Supprime une cat��gorie
  */
 export const deleteCategory = async ({ name }: { name: string }) => {
   try {
@@ -699,135 +699,186 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
 };
 
 /**
- * Get all product images from the database
+ * Met à jour les informations d'une image produit
  */
-export const getAllProductImages = async (): Promise<any[]> => {
+export async function updateProductImage(data: {
+  id: string;
+  imageData: {
+    imageUrl: string;
+    newName?: string;
+    altText?: string;
+  };
+}) {
   try {
-    // Fetch all products with their images
+    let updatedImageUrl = data.imageData.imageUrl;
+    
+    // Si un nouveau nom est fourni, essayer de renommer physiquement le fichier
+    if (data.imageData.newName) {
+      const { renameImageFile } = await import('@/utils/imageUtils');
+      const newImageUrl = await renameImageFile(data.imageData.imageUrl, data.imageData.newName);
+      
+      // Si le renommage a réussi, utiliser la nouvelle URL
+      if (newImageUrl) {
+        updatedImageUrl = newImageUrl;
+      }
+    }
+    
+    // Mettre à jour le produit dans la base de données
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('image_url, image_urls, image_alts, imagealt, image_alt')
+      .eq('id', data.id)
+      .single();
+    
+    if (error) {
+      throw new Error(`Erreur lors de la récupération du produit: ${error.message}`);
+    }
+    
+    // Préparer les mises à jour
+    const updates: any = {};
+    
+    // Mettre à jour l'URL d'image si elle a changé
+    if (updatedImageUrl !== data.imageData.imageUrl) {
+      // Si c'est l'image principale
+      if (product.image_url === data.imageData.imageUrl) {
+        updates.image_url = updatedImageUrl;
+      }
+      
+      // Si c'est dans le tableau d'images
+      if (product.image_urls && Array.isArray(product.image_urls)) {
+        const newImageUrls = [...product.image_urls];
+        const index = newImageUrls.findIndex(url => url === data.imageData.imageUrl);
+        if (index !== -1) {
+          newImageUrls[index] = updatedImageUrl;
+          updates.image_urls = newImageUrls;
+        }
+      }
+    }
+    
+    // Mettre à jour le texte alt si fourni
+    if (data.imageData.altText !== undefined) {
+      // Si c'est l'image principale
+      if (product.image_url === data.imageData.imageUrl || 
+          (updatedImageUrl !== data.imageData.imageUrl && product.image_url === data.imageData.imageUrl)) {
+        updates.image_alt = data.imageData.altText;
+        updates.imagealt = data.imageData.altText; // Pour la compatibilité
+      }
+      
+      // Si c'est dans le tableau d'images
+      if (product.image_alts && Array.isArray(product.image_alts) && 
+          product.image_urls && Array.isArray(product.image_urls)) {
+        const newImageAlts = [...product.image_alts];
+        const index = product.image_urls.findIndex(url => 
+          url === data.imageData.imageUrl || 
+          (updatedImageUrl !== data.imageData.imageUrl && url === updatedImageUrl)
+        );
+        
+        if (index !== -1) {
+          // Assurer que le tableau d'alts est au moins aussi long que l'index
+          while (newImageAlts.length <= index) {
+            newImageAlts.push('');
+          }
+          newImageAlts[index] = data.imageData.altText;
+          updates.image_alts = newImageAlts;
+        }
+      }
+    }
+    
+    // Effectuer la mise à jour si nécessaire
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', data.id);
+      
+      if (updateError) {
+        throw new Error(`Erreur lors de la mise à jour du produit: ${updateError.message}`);
+      }
+    }
+    
+    return {
+      success: true,
+      updatedImageUrl,
+      message: "Image mise à jour avec succès"
+    };
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'image:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère toutes les images des produits avec leurs informations
+ */
+export async function getAllProductImages() {
+  try {
     const { data: products, error } = await supabase
       .from('products')
       .select('id, name, image_url, image_urls, image_alt, image_alts')
       .order('name');
     
     if (error) {
-      console.error("Error fetching products for images:", error);
       throw new Error(error.message);
     }
     
-    // Transform the data to get a flat list of images
-    let allImages: any[] = [];
+    const allImages: any[] = [];
     
+    // Traiter chaque produit
     products.forEach(product => {
-      // Add main image if exists
+      // Ajouter l'image principale si elle existe
       if (product.image_url) {
         allImages.push({
+          id: product.id,
           productId: product.id,
           productName: product.name,
           imageUrl: product.image_url,
-          imageName: getFileNameFromUrl(product.image_url),
-          imageAlt: product.image_alt || "",
+          imageName: getImageNameFromUrl(product.image_url),
+          imageAlt: product.image_alt || '',
           isMain: true
         });
       }
       
-      // Add additional images if they exist
+      // Ajouter les images supplémentaires si elles existent
       if (product.image_urls && Array.isArray(product.image_urls)) {
-        const additionalImages = product.image_urls.map((url: string, index: number) => ({
-          productId: product.id,
-          productName: product.name,
-          imageUrl: url,
-          imageName: getFileNameFromUrl(url),
-          imageAlt: product.image_alts && Array.isArray(product.image_alts) && product.image_alts[index] 
-            ? product.image_alts[index] 
-            : "",
-          isMain: false
-        }));
-        
-        allImages = [...allImages, ...additionalImages];
+        product.image_urls.forEach((url: string, index: number) => {
+          if (!url) return; // Ignorer les URLs vides
+          
+          // Obtenir le texte alt correspondant s'il existe
+          let alt = '';
+          if (product.image_alts && Array.isArray(product.image_alts) && index < product.image_alts.length) {
+            alt = product.image_alts[index] || '';
+          }
+          
+          allImages.push({
+            id: `${product.id}-${index}`,
+            productId: product.id,
+            productName: product.name,
+            imageUrl: url,
+            imageName: getImageNameFromUrl(url),
+            imageAlt: alt,
+            isMain: false
+          });
+        });
       }
     });
     
     return allImages;
-  } catch (error: any) {
-    console.error("Error getting all product images:", error);
-    throw new Error(`Failed to fetch product images: ${error.message}`);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des images:', error);
+    throw error;
   }
-};
+}
 
 /**
- * Helper function to extract filename from URL
+ * Fonction utilitaire pour extraire le nom de fichier d'une URL
  */
-const getFileNameFromUrl = (url: string): string => {
+function getImageNameFromUrl(url: string): string {
   try {
-    if (!url) return "";
     const urlParts = url.split('/');
     let fileName = urlParts[urlParts.length - 1];
-    // Remove query parameters if any
-    fileName = fileName.split('?')[0];
+    fileName = fileName.split('?')[0]; // Supprimer les paramètres de requête
     return fileName;
   } catch (error) {
-    return "";
+    return "image";
   }
-};
-
-/**
- * Update product image information
- */
-export const updateProductImage = async ({ id, imageData }: { id: string, imageData: any }): Promise<any> => {
-  try {
-    const { imageUrl, newName, altText } = imageData;
-    
-    // Fetch the current product data
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('image_url, image_urls, image_alt, image_alts')
-      .eq('id', id)
-      .single();
-    
-    if (fetchError) {
-      console.error("Error fetching product:", fetchError);
-      throw new Error(fetchError.message);
-    }
-    
-    let updatedData: any = {};
-    
-    // Check if the image is the main image
-    if (product.image_url === imageUrl) {
-      updatedData.image_alt = altText;
-    } 
-    // Otherwise it's in the additional images array
-    else if (product.image_urls && Array.isArray(product.image_urls)) {
-      const imageIndex = product.image_urls.findIndex((url: string) => url === imageUrl);
-      
-      if (imageIndex >= 0) {
-        // Update the alt text in the image_alts array
-        let updatedImageAlts = [...(product.image_alts || [])];
-        
-        // Make sure the array is long enough
-        while (updatedImageAlts.length < product.image_urls.length) {
-          updatedImageAlts.push("");
-        }
-        
-        // Update the specific alt text
-        updatedImageAlts[imageIndex] = altText;
-        updatedData.image_alts = updatedImageAlts;
-      }
-    }
-    
-    // Update the product with the new data
-    const { data, error } = await supabase
-      .from('products')
-      .update(updatedData)
-      .eq('id', id);
-    
-    if (error) {
-      console.error("Error updating product image:", error);
-      throw new Error(error.message);
-    }
-    
-    return { success: true, data };
-  } catch (error: any) {
-    console.error("Error updating product image:", error);
-    throw new Error(`Failed to update product image: ${error.message}`);
-  }
-};
+}

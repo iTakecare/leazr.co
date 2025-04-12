@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Loader2, Search, Pencil, Save, X, Image, Eye, Upload, RotateCcw } from 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { getImageUrlWithCacheBuster } from "@/services/storageService";
+import { getImageUrlWithCacheBuster } from "@/utils/imageUtils";
 
 interface ProductImage {
   id: string;
@@ -31,6 +32,7 @@ const ProductImageLibrary = () => {
   const [editImageAlt, setEditImageAlt] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [isRenaming, setIsRenaming] = useState(false);
 
   const { data: images = [], isLoading, error, refetch } = useQuery({
     queryKey: ["product-images"],
@@ -39,14 +41,22 @@ const ProductImageLibrary = () => {
 
   const updateImageMutation = useMutation({
     mutationFn: updateProductImage,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["product-images"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("Image mise à jour avec succès");
+      
+      if (result.updatedImageUrl) {
+        toast.success("Image renommée et mise à jour avec succès");
+      } else {
+        toast.success("Attributs de l'image mis à jour avec succès");
+      }
+      
       setIsEditDialogOpen(false);
+      setIsRenaming(false);
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la mise à jour: ${error.message}`);
+      setIsRenaming(false);
     }
   });
 
@@ -83,11 +93,20 @@ const ProductImageLibrary = () => {
   const handleSaveImageDetails = () => {
     if (!selectedImage) return;
     
+    // Vérifier si le nom du fichier a changé
+    const originalName = selectedImage.imageName || getFileNameFromUrl(selectedImage.imageUrl);
+    const isNameChanged = editImageName !== originalName;
+    
+    if (isNameChanged) {
+      setIsRenaming(true);
+      toast.info("Renommage du fichier en cours...");
+    }
+    
     updateImageMutation.mutate({
       id: selectedImage.productId,
       imageData: {
         imageUrl: selectedImage.imageUrl,
-        newName: editImageName,
+        newName: isNameChanged ? editImageName : undefined,
         altText: editImageAlt
       }
     });
@@ -325,7 +344,7 @@ const ProductImageLibrary = () => {
                   placeholder="Nom du fichier"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Le nom sera utilisé pour améliorer le référencement SEO.
+                  Le nom sera utilisé pour améliorer le référencement SEO et le fichier sera renommé.
                 </p>
               </div>
               
@@ -345,15 +364,15 @@ const ProductImageLibrary = () => {
           )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelEdit}>
+            <Button variant="outline" onClick={handleCancelEdit} disabled={isRenaming || updateImageMutation.isPending}>
               <X className="h-4 w-4 mr-1" />
               Annuler
             </Button>
             <Button 
               onClick={handleSaveImageDetails} 
-              disabled={updateImageMutation.isPending}
+              disabled={isRenaming || updateImageMutation.isPending}
             >
-              {updateImageMutation.isPending ? (
+              {(isRenaming || updateImageMutation.isPending) ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <Save className="h-4 w-4 mr-1" />
