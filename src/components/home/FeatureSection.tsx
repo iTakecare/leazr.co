@@ -1,74 +1,133 @@
 
 import React from "react";
-import { EuroIcon, TargetIcon, DownloadIcon, HeadphonesIcon, RecycleIcon, DatabaseIcon } from "lucide-react";
+import { Check } from "lucide-react";
 import Container from "@/components/layout/Container";
 
 const FeatureSection = () => {
-  const features = [
-    {
-      id: 1,
-      title: "Zéro investissement initial",
-      description: "Équipez votre entreprise sans immobiliser votre trésorerie et gardez votre capital pour ce qui compte vraiment.",
-      icon: <EuroIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-    {
-      id: 2,
-      title: "Un coût fixe et maîtrisé",
-      description: "Dites adieu aux dépenses imprévues : une mensualité fixe couvre tout, y compris la maintenance et le support.",
-      icon: <TargetIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-    {
-      id: 3,
-      title: "Un matériel toujours à jour",
-      description: "Bénéficiez d'un équipement informatique performant et évolutif grâce à nos mises à niveau régulières.",
-      icon: <DownloadIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-    {
-      id: 4,
-      title: "Maintenance et support inclus",
-      description: "Ne perdez plus de temps avec des pannes : nous assurons la maintenance et remplaçons votre matériel en cas de problème.",
-      icon: <HeadphonesIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-    {
-      id: 5,
-      title: "Alternative économique et durable",
-      description: "Profitez de matériel informatique reconditionné haut de gamme à moindre coût, tout en réduisant votre empreinte écologique.",
-      icon: <RecycleIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-    {
-      id: 6,
-      title: "Logiciel de gestion de parc IT inclus",
-      description: "Pilotez facilement tout votre matériel, suivez vos équipements et gérez vos demandes en un clic grâce à notre plateforme intuitive.",
-      icon: <DatabaseIcon className="w-10 h-10 text-[#48b5c3]" />,
-      bgColor: "bg-[#e6f7fa]",
-    },
-  ];
-
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-white">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Dites adieu au <span className="bg-[#e6f7fa] text-[#48b5c3] px-3 py-1 rounded-md">matériel obsolète</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            La solution complète pour votre parc informatique
           </h2>
-          <h2 className="text-4xl font-bold text-gray-900 mb-8">et aux frais imprévus !</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Choisissez une approche écoresponsable sans compromis sur la qualité 
+            et bénéficiez d'un service tout compris.
+          </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {features.map((feature) => (
-            <div key={feature.id} className="flex flex-col items-center text-center">
-              <div className={`${feature.bgColor} w-20 h-20 rounded-full flex items-center justify-center mb-6`}>
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Feature 1 */}
+          <div className="bg-white p-6 rounded-xl shadow-soft hover:shadow-md transition-shadow duration-300">
+            <div className="w-14 h-14 bg-[#48B5C3]/10 rounded-lg flex items-center justify-center mb-5">
+              <img 
+                src="/lovable-uploads/73661021-af85-4ce5-925d-701c27282221.png" 
+                alt="Equipment" 
+                className="w-8 h-8"
+              />
             </div>
-          ))}
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Matériel reconditionné haut de gamme
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Des équipements professionnels soigneusement sélectionnés et remis à neuf selon des normes rigoureuses.
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Garantie complète pendant toute la durée du contrat</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Appareils testés et certifiés</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Économies significatives par rapport au neuf</span>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Feature 2 */}
+          <div className="bg-white p-6 rounded-xl shadow-soft hover:shadow-md transition-shadow duration-300">
+            <div className="w-14 h-14 bg-[#48B5C3]/10 rounded-lg flex items-center justify-center mb-5">
+              <img 
+                src="/lovable-uploads/1c9b904d-1c96-4dff-994c-4daaf6fd3ec1.png" 
+                alt="Service" 
+                className="w-8 h-8"
+              />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Service tout compris et sans souci
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Un accompagnement complet pour simplifier la gestion de votre parc informatique.
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Support technique illimité</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Remplacement sous 24h en cas de panne</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Mise à jour et maintenance régulières</span>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Feature 3 */}
+          <div className="bg-white p-6 rounded-xl shadow-soft hover:shadow-md transition-shadow duration-300">
+            <div className="w-14 h-14 bg-[#48B5C3]/10 rounded-lg flex items-center justify-center mb-5">
+              <img 
+                src="/lovable-uploads/1d3ac6e1-5c24-4197-af4f-5aa8f2dd014b.png" 
+                alt="Eco" 
+                className="w-8 h-8"
+              />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Engagement environnemental concret
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Une démarche responsable qui réduit l'impact environnemental de votre entreprise.
+            </p>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Réduction significative de l'empreinte carbone</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Lutte contre l'obsolescence programmée</span>
+              </li>
+              <li className="flex items-start">
+                <span className="flex-shrink-0 text-green-500 mr-2">
+                  <Check size={18} />
+                </span>
+                <span className="text-gray-600 text-sm">Bilan carbone positif documenté</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </Container>
     </section>

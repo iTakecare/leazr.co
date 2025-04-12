@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-const HeroSection = () => {
+const HeroSection = (): JSX.Element => {
   // Navigation menu items
   const navItems = [
     { label: "Accueil", href: "#" },
@@ -25,18 +25,18 @@ const HeroSection = () => {
   ];
 
   return (
-    <div className="relative w-full mb-20">
+    <div className="flex flex-col min-h-screen items-center gap-[77px] py-10 relative">
       {/* Background image */}
-      <div className="flex flex-col w-full h-[80vh] md:h-[90vh] items-start gap-2.5 absolute top-0 left-0 z-0">
+      <div className="flex flex-col w-full h-screen items-start gap-2.5 absolute top-0 left-0">
         <img
-          className="relative w-full h-full object-cover"
+          className="relative w-full h-screen object-cover"
           alt="Background"
           src="/clip-path-group.png"
         />
       </div>
 
       {/* Navigation bar */}
-      <Card className="relative w-full max-w-[1320px] mx-auto h-[82px] bg-[#f8f8f6] rounded-[50px] border-2 border-solid border-[#e1e1e1] flex items-center justify-between px-5 z-10 mt-10">
+      <Card className="relative w-full max-w-[1320px] mx-auto h-[82px] bg-[#f8f8f6] rounded-[50px] border-2 border-solid border-[#e1e1e1] flex items-center justify-between px-5">
         <div className="flex items-center">
           <img
             className="w-[201px] h-[41px] object-cover"
@@ -91,7 +91,7 @@ const HeroSection = () => {
       </Card>
 
       {/* Hero content */}
-      <header className="relative w-full max-w-[1331px] mx-auto h-[500px] z-10 px-[37px] mt-10">
+      <header className="relative w-full max-w-[1331px] mx-auto h-[537px] z-10 px-[37px]">
         <div className="flex flex-row">
           {/* Left content */}
           <div className="w-[723px]">
@@ -114,7 +114,7 @@ const HeroSection = () => {
 
             <p className="font-normal text-[#222222] text-lg mb-8">
               Optez pour un parc informatique performant et écoresponsable, à
-              moindre coût :
+              moindre coût:
             </p>
 
             <ul className="space-y-1 mb-10">

@@ -7,37 +7,19 @@ import StatsSection from '@/components/home/StatsSection';
 import TestimonialSection from '@/components/home/TestimonialSection';
 import PartnersSection from '@/components/home/PartnersSection';
 import CtaSection from '@/components/home/CtaSection';
+import HomeHeader from '@/components/home/HomeHeader';
 import HomeFooter from '@/components/home/HomeFooter';
 
 const HomePage = () => {
   return (
     <HomeLayout>
-      {/* Hero Section */}
+      <HomeHeader />
       <HeroSection />
-      
-      {/* Partners Section (Social Proof) */}
-      <section id="partners" className="mt-8">
-        <PartnersSection />
-      </section>
-      
-      {/* Features Section (Advantages) */}
-      <section id="features" className="mt-8">
-        <FeatureSection />
-      </section>
-      
-      {/* Additional Sections */}
-      <section id="stats" className="mt-8">
-        <StatsSection />
-      </section>
-      
-      <section id="testimonials" className="mt-8">
-        <TestimonialSection />
-      </section>
-      
-      <section id="cta" className="mt-8">
-        <CtaSection />
-      </section>
-      
+      <FeatureSection />
+      <StatsSection />
+      <TestimonialSection />
+      <PartnersSection />
+      <CtaSection />
       <HomeFooter />
     </HomeLayout>
   );
