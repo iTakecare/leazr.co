@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Info, Check, MinusIcon, PlusIcon, ShoppingCart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import PublicHeader from "@/components/catalog/public/PublicHeader";
+import MainNavigation from "@/components/layout/MainNavigation"; // Updated import
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -244,7 +245,9 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <PublicHeader />
+      <div className="container mx-auto px-4 py-6">
+        <MainNavigation />
+      </div>
       
       <div className="bg-gray-50 py-2">
         <div className="container mx-auto px-4">

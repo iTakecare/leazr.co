@@ -4,8 +4,12 @@ import { ShoppingCartIcon, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useCart } from "@/context/CartContext";
 
 const MainNavigation = () => {
+  // Get cart items from context
+  const { cartCount } = useCart();
+
   // Navigation menu items
   const navItems = [
     { label: "Accueil", href: "/" },
@@ -43,12 +47,14 @@ const MainNavigation = () => {
       </div>
 
       <div className="flex items-center space-x-4">
-        <div className="relative">
+        <Link to="/panier" className="relative">
           <ShoppingCartIcon className="w-6 h-6" />
-          <Badge className="absolute -top-1 -right-2 w-5 h-5 bg-[#48b5c3] rounded-[10px] flex items-center justify-center p-0">
-            <span className="font-bold text-white text-xs">0</span>
-          </Badge>
-        </div>
+          {cartCount > 0 && (
+            <Badge className={`absolute -top-1 -right-2 w-5 h-5 bg-[#48b5c3] rounded-[10px] flex items-center justify-center p-0 ${cartCount > 0 ? 'animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : ''}`}>
+              <span className="font-bold text-white text-xs">{cartCount}</span>
+            </Badge>
+          )}
+        </Link>
 
         <Link to="/login">
           <Button

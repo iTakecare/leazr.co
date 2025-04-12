@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RequestSteps from '@/components/checkout/RequestSteps';
-import PublicHeader from '@/components/catalog/public/PublicHeader';
+import MainNavigation from '@/components/layout/MainNavigation'; // Updated import
 import { useCart } from '@/context/CartContext';
 import { ShoppingBag } from 'lucide-react';
 
@@ -20,7 +20,9 @@ const RequestPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <PublicHeader />
+      <div className="container mx-auto px-4 py-6">
+        <MainNavigation />
+      </div>
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
