@@ -116,11 +116,9 @@ const PublicCatalog = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
-      </div>
+      <MainNavigation />
       
-      <div className="lg:hidden container mx-auto px-4 py-4">
+      <div className="lg:hidden container mx-auto px-4 pt-28 pb-4">
         <Button 
           onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
           variant="outline" 
@@ -138,7 +136,7 @@ const PublicCatalog = () => {
         </Button>
       </div>
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 pt-4 pb-4">
         <div className="flex flex-col lg:flex-row gap-6">
           <Collapsible 
             open={isMobileFiltersOpen || window.innerWidth >= 1024}
