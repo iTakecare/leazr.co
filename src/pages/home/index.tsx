@@ -3,6 +3,7 @@ import React from 'react';
 import HeroSection from '@/components/home/HeroSection';
 import HomeLayout from '@/components/home/HomeLayout';
 import FeatureSection from '@/components/home/FeatureSection';
+import PressSection from '@/components/home/PressSection';
 import StatsSection from '@/components/home/StatsSection';
 import TestimonialSection from '@/components/home/TestimonialSection';
 import PartnersSection from '@/components/home/PartnersSection';
@@ -15,6 +16,7 @@ const HomePage = () => {
       <HeroSection />
       <PartnersSection />
       <FeatureSection />
+      <PressSection />
       <StatsSection />
       <TestimonialSection />
       <CtaSection />
