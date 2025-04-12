@@ -697,3 +697,137 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
     throw error;
   }
 };
+
+/**
+ * Get all product images from the database
+ */
+export const getAllProductImages = async (): Promise<any[]> => {
+  try {
+    // Fetch all products with their images
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('id, name, image_url, image_urls, image_alt, image_alts')
+      .order('name');
+    
+    if (error) {
+      console.error("Error fetching products for images:", error);
+      throw new Error(error.message);
+    }
+    
+    // Transform the data to get a flat list of images
+    let allImages: any[] = [];
+    
+    products.forEach(product => {
+      // Add main image if exists
+      if (product.image_url) {
+        allImages.push({
+          productId: product.id,
+          productName: product.name,
+          imageUrl: product.image_url,
+          imageName: getFileNameFromUrl(product.image_url),
+          imageAlt: product.image_alt || "",
+          isMain: true
+        });
+      }
+      
+      // Add additional images if they exist
+      if (product.image_urls && Array.isArray(product.image_urls)) {
+        const additionalImages = product.image_urls.map((url: string, index: number) => ({
+          productId: product.id,
+          productName: product.name,
+          imageUrl: url,
+          imageName: getFileNameFromUrl(url),
+          imageAlt: product.image_alts && Array.isArray(product.image_alts) && product.image_alts[index] 
+            ? product.image_alts[index] 
+            : "",
+          isMain: false
+        }));
+        
+        allImages = [...allImages, ...additionalImages];
+      }
+    });
+    
+    return allImages;
+  } catch (error: any) {
+    console.error("Error getting all product images:", error);
+    throw new Error(`Failed to fetch product images: ${error.message}`);
+  }
+};
+
+/**
+ * Helper function to extract filename from URL
+ */
+const getFileNameFromUrl = (url: string): string => {
+  try {
+    if (!url) return "";
+    const urlParts = url.split('/');
+    let fileName = urlParts[urlParts.length - 1];
+    // Remove query parameters if any
+    fileName = fileName.split('?')[0];
+    return fileName;
+  } catch (error) {
+    return "";
+  }
+};
+
+/**
+ * Update product image information
+ */
+export const updateProductImage = async ({ id, imageData }: { id: string, imageData: any }): Promise<any> => {
+  try {
+    const { imageUrl, newName, altText } = imageData;
+    
+    // Fetch the current product data
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('image_url, image_urls, image_alt, image_alts')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error("Error fetching product:", fetchError);
+      throw new Error(fetchError.message);
+    }
+    
+    let updatedData: any = {};
+    
+    // Check if the image is the main image
+    if (product.image_url === imageUrl) {
+      updatedData.image_alt = altText;
+    } 
+    // Otherwise it's in the additional images array
+    else if (product.image_urls && Array.isArray(product.image_urls)) {
+      const imageIndex = product.image_urls.findIndex((url: string) => url === imageUrl);
+      
+      if (imageIndex >= 0) {
+        // Update the alt text in the image_alts array
+        let updatedImageAlts = [...(product.image_alts || [])];
+        
+        // Make sure the array is long enough
+        while (updatedImageAlts.length < product.image_urls.length) {
+          updatedImageAlts.push("");
+        }
+        
+        // Update the specific alt text
+        updatedImageAlts[imageIndex] = altText;
+        updatedData.image_alts = updatedImageAlts;
+      }
+    }
+    
+    // Update the product with the new data
+    const { data, error } = await supabase
+      .from('products')
+      .update(updatedData)
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error updating product image:", error);
+      throw new Error(error.message);
+    }
+    
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Error updating product image:", error);
+    throw new Error(`Failed to update product image: ${error.message}`);
+  }
+};

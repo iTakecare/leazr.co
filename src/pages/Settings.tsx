@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import GeneralSettings from "@/components/settings/GeneralSettings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import ProductImageLibrary from "@/components/settings/ProductImageLibrary";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -44,7 +46,7 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-9 w-full">
           <TabsTrigger value="general">Général</TabsTrigger>
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -53,6 +55,7 @@ const Settings = () => {
           <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
+          <TabsTrigger value="images">Bibliothèque Images</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -145,6 +148,10 @@ const Settings = () => {
               <UserManager />
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="images">
+          <ProductImageLibrary />
         </TabsContent>
       </Tabs>
     </div>
