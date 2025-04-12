@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -217,7 +218,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30 mt-16"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30 mt-20 max-w-[280px] mx-auto"
       onClick={onClick}
     >
       <div className="relative pt-[100%] bg-white">
