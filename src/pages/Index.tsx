@@ -7,9 +7,7 @@ const Index = () => {
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
       <MainNavigation />
-      <main className="flex-1">
-        <HeroSection />
-      </main>
+      <HeroSection />
     </div>
   );
 };
