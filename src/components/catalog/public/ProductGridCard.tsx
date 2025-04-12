@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
@@ -218,10 +217,10 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
 
   return (
     <Card 
-      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer h-full flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30 mt-20 max-w-[280px] mx-auto"
+      className="overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer flex flex-col border shadow-sm rounded-xl hover:border-[#4ab6c4]/30 mt-8 max-w-[250px] mx-auto"
       onClick={onClick}
     >
-      <div className="relative pt-[100%] bg-white">
+      <div className="relative pt-[90%] bg-white">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
@@ -258,8 +257,8 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
         )}
       </div>
       
-      <CardContent className="flex-1 flex flex-col p-4">
-        <div className="flex flex-wrap gap-2 mb-2">
+      <CardContent className="flex-1 flex flex-col p-3">
+        <div className="flex flex-wrap gap-1 mb-1">
           {product.category && (
             <Badge className="bg-[#33638e] text-white hover:bg-[#33638e]/90 rounded-full font-normal text-xs">
               {getCategoryLabel(product.category)}
@@ -277,17 +276,17 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           />
         </div>
         
-        <h3 className="font-bold text-gray-900 text-sm mb-1 truncate">{product.name}</h3>
+        <h3 className="font-bold text-gray-900 text-xs mb-1 truncate">{product.name}</h3>
         
-        <div className="mt-auto pt-2">
+        <div className="mt-auto pt-1">
           {hasPrice ? (
-            <div className="text-gray-700 text-sm">
+            <div className="text-gray-700 text-xs">
               {hasVariantsFlag ? "À partir de " : ""}
               <span className="font-bold text-[#4ab6c4]">{formatCurrency(monthlyPrice)}</span>
-              <span className="text-xs"> par mois</span>
+              <span className="text-[10px]"> par mois</span>
             </div>
           ) : (
-            <div className="text-gray-700 text-sm">
+            <div className="text-gray-700 text-xs">
               <span className="font-medium text-[#33638e]">Prix sur demande</span>
             </div>
           )}
