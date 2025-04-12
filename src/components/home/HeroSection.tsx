@@ -2,8 +2,11 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="relative overflow-hidden">
       {/* Arrière-plan avec texture */}
@@ -59,6 +62,7 @@ const HeroSection = () => {
             <div className="flex flex-wrap gap-4">
               <Button 
                 className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full px-6 py-2 h-auto font-medium"
+                onClick={() => navigate("/catalogue")}
               >
                 Découvrir le catalogue
               </Button>

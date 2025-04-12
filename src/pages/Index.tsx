@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const Index = () => {
   const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked, isLoading } = useAuth();
   const isMobile = useIsMobile();
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Ne pas faire de redirection tant que le chargement n'est pas terminé
     if (isLoading) {
       console.log("Index page - Chargement en cours, pas de redirection");
