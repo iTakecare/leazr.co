@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
@@ -11,7 +10,7 @@ const StepsSection = () => {
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Passer au leasing de matériel informatique
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-full text-2xl font-medium">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-3xl font-medium">
             en seulement 3 étapes
           </div>
         </div>
@@ -93,4 +92,3 @@ const StepsSection = () => {
 };
 
 export default StepsSection;
-
