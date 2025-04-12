@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
@@ -27,7 +26,8 @@ export const useCatalogManagement = () => {
     console.log("Processing products in useCatalogManagement:", productsData.length);
     
     // Check each product for variants
-    const processedProducts = productsData.map(product => {
+    
+    return productsData.map(product => {
       // Determine if this product has variants or is a variant
       const isParent = product.is_parent || 
                        (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
@@ -36,23 +36,11 @@ export const useCatalogManagement = () => {
       // Count variants if this is a parent product
       const variantCount = product.variant_combination_prices?.length || 0;
       
-      // Log details for debugging
-      console.log(`Product ${product.name} (${product.id}):`, {
-        isParent,
-        variantCount,
-        hasVariationAttrs: product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0,
-        hasCombinationPrices: product.variant_combination_prices && product.variant_combination_prices.length > 0
-      });
-      
       return {
         ...product,
         is_parent: isParent
       };
     });
-    
-    console.log("Products with variants:", processedProducts.filter(p => p.is_parent).length);
-    
-    return processedProducts;
   }, [productsData]);
   
   // Handle adding a new product

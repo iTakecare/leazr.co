@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
 import AmbassadorProductGrid from "@/components/ambassador/AmbassadorProductGrid";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 
 const AmbassadorCatalog = () => {
   const isMobile = useIsMobile();
@@ -41,17 +42,19 @@ const AmbassadorCatalog = () => {
   
   return (
     <Container>
+      <CatalogHeader />
+      
       <motion.div 
         className="py-6 md:py-8 flex flex-col h-full"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Catalogue Produits</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-semibold">Catalogue Ambassadeur</h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 mt-4">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
@@ -64,7 +67,7 @@ const AmbassadorCatalog = () => {
           </div>
         </div>
         
-        <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
+        <ScrollArea className="flex-1 h-[calc(100vh-360px)]">
           {isLoading ? (
             <div className="space-y-4 p-4">
               {[...Array(6)].map((_, i) => (

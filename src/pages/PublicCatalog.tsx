@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckSquare2, XSquare } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
-import PublicHeader from "@/components/catalog/public/PublicHeader";
+import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +34,6 @@ const PublicCatalog = () => {
     queryFn: () => getProducts({ includeAdminOnly: false }),
   });
 
-  // Utilisation du hook useProductFilter pour la filtration
   const {
     searchQuery,
     setSearchQuery,
@@ -113,43 +111,13 @@ const PublicCatalog = () => {
 
   const handlePriceRangeChange = (values: number[]) => {
     setPriceRange(values as [number, number]);
-    // Activate price filter when slider is changed
     setIsPriceFilterActive(true);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PublicHeader />
+      <CatalogHeader />
       
-      <div className="bg-gradient-to-br from-[#33638e] via-[#347599] to-[#4ab6c4] text-white py-16 relative overflow-hidden">
-        <div className="absolute top-0 right-0 h-full w-1/2 lg:w-2/5">
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#33638e]/70 to-[#33638e] z-10"></div>
-          <img 
-            src="/lovable-uploads/e3c85b46-0f2e-4316-9fe1-647586b28021.png" 
-            alt="Groupe de personnes heureuses utilisant des produits Apple" 
-            className="h-full w-full object-cover object-center opacity-70"
-          />
-        </div>
-        
-        <div className="container mx-auto px-4 relative z-20">
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="max-w-xl">
-              <h1 className="text-4xl font-bold mb-4">Équipement premium reconditionné pour des équipes performantes</h1>
-              <p className="text-lg mb-8">Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, à l'impact environnemental réduit.</p>
-              <div className="flex flex-wrap gap-4">
-                <Button size="lg" variant="outline" className="bg-white text-[#33638e] hover:bg-gray-100 border-white">
-                  Parler à un conseiller
-                </Button>
-                <Button size="lg" className="bg-[#da2959]/80 hover:bg-[#da2959] border-0">
-                  Demander un devis
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Mobile Filters Button */}
       <div className="lg:hidden container mx-auto px-4 py-4">
         <Button 
           onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
@@ -169,25 +137,12 @@ const PublicCatalog = () => {
       </div>
       
       <div className="container mx-auto px-4 py-4">
-        {/* Top search bar */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher un produit..."
-            className="pl-10 border-[#4ab6c4]/30 focus-visible:ring-[#33638e]/50"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar filters - Vertical on desktop, collapsible on mobile */}
           <Collapsible 
             open={isMobileFiltersOpen || window.innerWidth >= 1024}
             className="lg:w-64 lg:block"
           >
             <CollapsibleContent className="space-y-6">
-              {/* Reset filters */}
               <div className="flex justify-between items-center">
                 <h3 className="font-medium text-lg">Filtres</h3>
                 <Button 
@@ -200,7 +155,6 @@ const PublicCatalog = () => {
                 </Button>
               </div>
               
-              {/* Categories */}
               <div className="border rounded-md overflow-hidden">
                 <Accordion type="single" collapsible defaultValue="categories">
                   <AccordionItem value="categories" className="border-0">
@@ -237,7 +191,6 @@ const PublicCatalog = () => {
                 </Accordion>
               </div>
               
-              {/* Price Range */}
               <div className="border rounded-md overflow-hidden">
                 <Accordion type="single" collapsible defaultValue="price">
                   <AccordionItem value="price" className="border-0">
@@ -282,7 +235,6 @@ const PublicCatalog = () => {
                 </Accordion>
               </div>
               
-              {/* Brands */}
               <div className="border rounded-md overflow-hidden">
                 <Accordion type="single" collapsible defaultValue="brands">
                   <AccordionItem value="brands" className="border-0">
@@ -324,7 +276,6 @@ const PublicCatalog = () => {
                 </Accordion>
               </div>
               
-              {/* Stock Status */}
               <div className="border rounded-md overflow-hidden">
                 <Accordion type="single" collapsible defaultValue="stock">
                   <AccordionItem value="stock" className="border-0">
@@ -361,7 +312,6 @@ const PublicCatalog = () => {
                 </Accordion>
               </div>
               
-              {/* Active Filter Summary - Mobile only */}
               <div className="lg:hidden space-y-2 pt-2">
                 <h4 className="text-sm font-medium">Filtres actifs:</h4>
                 <div className="flex flex-wrap gap-2">
@@ -425,9 +375,7 @@ const PublicCatalog = () => {
             </CollapsibleContent>
           </Collapsible>
           
-          {/* Main content */}
           <div className="flex-1">
-            {/* Results count and sort */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <p className="text-gray-600">
                 {groupedProducts.length} produit{groupedProducts.length > 1 ? 's' : ''} trouvé{groupedProducts.length > 1 ? 's' : ''}
@@ -438,7 +386,6 @@ const PublicCatalog = () => {
               </Button>
             </div>
             
-            {/* Affichage des produits */}
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(8)].map((_, i) => (
