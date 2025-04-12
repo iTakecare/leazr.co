@@ -4,6 +4,7 @@ import MainNavigation from '@/components/layout/MainNavigation';
 import HeroSection from '@/components/home/HeroSection';
 import FeatureSection from '@/components/home/FeatureSection';
 import PressSection from '@/components/home/PressSection';
+import StepsSection from '@/components/home/StepsSection';
 import StatsSection from '@/components/home/StatsSection';
 import TestimonialSection from '@/components/home/TestimonialSection';
 import PartnersSection from '@/components/home/PartnersSection';
@@ -19,6 +20,7 @@ const HomePage = () => {
         <PartnersSection />
         <FeatureSection />
         <PressSection />
+        <StepsSection />
         <StatsSection />
         <TestimonialSection />
         <CtaSection />
