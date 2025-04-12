@@ -17,47 +17,52 @@ const PressSection = () => {
   return (
     <section className="py-16 bg-gray-50">
       <Container maxWidth="custom">
-        <div className="text-center mb-12">
-          <h2 className="text-[46px] font-bold text-gray-900">
-            La presse <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-6 py-2 rounded-full">parle de nous</span>
-          </h2>
-          
-          {/* Vidéo YouTube miniature */}
-          <div className="mt-10 mb-16 max-w-4xl mx-auto relative group">
-            <img 
-              src="/lovable-uploads/cb4a11cf-7f6c-43c4-9099-5817ef928f1a.png" 
-              alt="Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024" 
-              className="w-full h-auto rounded-lg shadow-md"
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <a 
-                href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-white/90 rounded-full p-3 shadow-lg transform transition-transform group-hover:scale-110"
-              >
-                <PlayCircle className="w-12 h-12 text-red-600" />
-              </a>
-            </div>
-            <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-md">
-              <div className="text-white text-left">
-                <p className="text-sm font-medium">Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024</p>
-                <p className="text-xs">Gianni Sergi, Fondateur de iTakecare</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          {/* Colonne de gauche: Titre et YouTube thumbnail */}
+          <div className="flex flex-col">
+            <h2 className="text-[46px] font-bold text-gray-900 mb-8">
+              La presse <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-6 py-2 rounded-full">parle de nous</span>
+            </h2>
+            
+            {/* Vidéo YouTube miniature */}
+            <div className="relative group mt-4">
+              <img 
+                src="/lovable-uploads/cb4a11cf-7f6c-43c4-9099-5817ef928f1a.png" 
+                alt="Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024" 
+                className="w-full h-auto rounded-lg shadow-md"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <a 
+                  href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-white/90 rounded-full p-3 shadow-lg transform transition-transform group-hover:scale-110"
+                >
+                  <PlayCircle className="w-12 h-12 text-red-600" />
+                </a>
+              </div>
+              <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-md">
+                <div className="text-white text-left">
+                  <p className="text-sm font-medium">Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024</p>
+                  <p className="text-xs">Gianni Sergi, Fondateur de iTakecare</p>
+                </div>
               </div>
             </div>
           </div>
           
-          {/* Logos des médias */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-10 items-center justify-items-center max-w-5xl mx-auto">
-            {mediaLogos.map((logo) => (
-              <div key={logo.id} className="flex items-center justify-center h-16 sm:h-20">
-                <img 
-                  src={logo.src} 
-                  alt={logo.alt} 
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-            ))}
+          {/* Colonne de droite: Logos en 2 rangées */}
+          <div className="flex items-center">
+            <div className="grid grid-cols-3 grid-rows-2 gap-8 w-full">
+              {mediaLogos.map((logo) => (
+                <div key={logo.id} className="flex items-center justify-center h-16 sm:h-20">
+                  <img 
+                    src={logo.src} 
+                    alt={logo.alt} 
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Container>
