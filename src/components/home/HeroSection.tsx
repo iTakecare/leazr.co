@@ -13,19 +13,19 @@ const HeroSection = () => {
       style={{
         backgroundImage: `
           linear-gradient(to bottom, 
-            rgba(255, 255, 255, 0.6) 1px, 
+            rgba(255, 255, 255, 0.8) 1px, 
             transparent 1px
           ),
           linear-gradient(to right, 
-            rgba(255, 255, 255, 0.2) 1px, 
+            rgba(255, 255, 255, 0.4) 1px, 
             transparent 1px
           ),
           url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
         `,
-        backgroundSize: "100% 20px, 20px 100%, cover",
+        backgroundSize: "100% 15px, 15px 100%, cover",
         backgroundPosition: "0 0, 0 0, center",
         backgroundRepeat: "repeat, repeat, no-repeat",
-        backgroundColor: "rgba(240, 247, 250, 0.85)"
+        backgroundColor: "rgba(230, 245, 250, 0.9)"
       }}
     >
       <Container maxWidth="custom" className="py-12 md:py-16">
@@ -33,9 +33,7 @@ const HeroSection = () => {
           {/* Colonne Gauche - Texte */}
           <div className="md:w-1/2 mb-10 md:mb-0 pr-0 md:pr-12">
             <h1 className="text-[45px] md:text-[50px] font-black leading-tight mb-2 text-[#242424] font-['Inter'] max-w-[650px]">
-              Leasing de matériel<br />
-              informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full inline-block">Reconditionné</span> <br />
-              sans contraintes
+              Leasing de matériel informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full inline-block">Reconditionné</span> sans contraintes
             </h1>
             
             <p className="text-lg mt-8 mb-8 text-gray-700 font-['Inter'] font-normal">
@@ -119,7 +117,7 @@ const HeroSection = () => {
                 <img 
                   src="/lovable-uploads/8515dcd2-20f4-4247-8ea4-5929ac725d46.png" 
                   alt="Flèche" 
-                  className="w-28 h-auto transform rotate-[-15deg]"
+                  className="w-40 h-auto transform rotate-[-15deg]"
                 />
               </div>
             </div>
