@@ -9,23 +9,17 @@ const HeroSection = () => {
   
   return (
     <div 
-      className="w-full relative min-h-screen"
+      className="w-full relative min-h-screen flex items-center"
       style={{
-        backgroundImage: `
-          linear-gradient(to bottom, 
-            rgba(255, 255, 255, 0.8) 1px, 
-            transparent 1px
+        background: `
+          linear-gradient(0deg, 
+            rgba(255, 255, 255, 0.8), 
+            rgba(230, 245, 250, 0.95)
           ),
-          linear-gradient(to right, 
-            rgba(255, 255, 255, 0.4) 1px, 
-            transparent 1px
-          ),
-          url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
+          url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg id='squares' fill='%2348B5C3' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 0h40v40H0V0zm1 1h38v38H1V1z'/%3E%3C/g%3E%3C/svg%3E")
         `,
-        backgroundSize: "100% 15px, 15px 100%, cover",
-        backgroundPosition: "0 0, 0 0, center",
-        backgroundRepeat: "repeat, repeat, no-repeat",
-        backgroundColor: "rgba(230, 245, 250, 0.9)"
+        backgroundSize: "40px 40px",
+        backgroundPosition: "center"
       }}
     >
       <Container maxWidth="custom" className="py-12 md:py-16">
@@ -95,7 +89,7 @@ const HeroSection = () => {
                 <img 
                   src="https://i.pravatar.cc/80" 
                   alt="Avis client" 
-                  className="w-14 h-14 rounded-full"
+                  className="w-14 h-14 rounded-full border-2 border-white shadow-sm"
                 />
               </div>
               <div>
@@ -113,11 +107,11 @@ const HeroSection = () => {
                 </div>
               </div>
               
-              <div className="absolute top-[-30px] right-[-30px] md:relative md:top-auto md:right-auto md:ml-6">
+              <div className="absolute right-[-20px] top-[-40px] md:right-[-80px] md:top-[-60px]">
                 <img 
                   src="/lovable-uploads/8515dcd2-20f4-4247-8ea4-5929ac725d46.png" 
                   alt="Flèche" 
-                  className="w-40 h-auto transform rotate-[-15deg]"
+                  className="w-60 h-auto transform rotate-[-15deg]"
                 />
               </div>
             </div>
