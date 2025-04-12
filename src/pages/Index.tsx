@@ -15,6 +15,7 @@ const Index = () => {
   
   useEffect(() => {
     console.log("Index page mounted - public access");
+    document.title = "iTakecare - Leasing de matériel informatique reconditionné";
   }, []);
 
   return (

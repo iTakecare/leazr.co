@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ const MainNavigation = () => {
   const { cartCount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    console.log("MainNavigation mounted");
+  }, []);
   
   return (
     <header className="bg-transparent w-full py-4 z-50">

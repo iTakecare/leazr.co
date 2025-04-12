@@ -1,12 +1,15 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  console.log("Rendering HeroSection");
+  
+  useEffect(() => {
+    console.log("HeroSection mounted");
+  }, []);
   
   return (
     <div className="relative overflow-hidden">
