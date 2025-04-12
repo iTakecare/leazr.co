@@ -149,7 +149,7 @@ const HeroSection = (): JSX.Element => {
               src="/computer.png"
             />
             <img
-              className="absolute w-[255px] h-[164px] bottom-[-85px] right-[580px] object-contain"
+              className="absolute w-[255px] h-[164px] bottom-[-95px] right-[580px] object-contain"
               alt="Arrow"
               src="/arrow.png"
             />
