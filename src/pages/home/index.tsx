@@ -11,15 +11,17 @@ import HomeFooter from '@/components/home/HomeFooter';
 
 const HomePage = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <HeroSection />
-      <PartnersSection />
-      <FeatureSection />
-      <StatsSection />
-      <TestimonialSection />
-      <CtaSection />
-      <HomeFooter />
-    </div>
+    <HomeLayout>
+      <div className="flex flex-col min-h-screen bg-white">
+        <HeroSection />
+        <PartnersSection />
+        <FeatureSection />
+        <StatsSection />
+        <TestimonialSection />
+        <CtaSection />
+        <HomeFooter />
+      </div>
+    </HomeLayout>
   );
 };
 

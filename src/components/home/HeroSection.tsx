@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-const HeroSection = (): JSX.Element => {
+const HeroSection = () => {
   // Navigation menu items
   const navItems = [
     { label: "Accueil", href: "#" },
@@ -25,11 +25,11 @@ const HeroSection = (): JSX.Element => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen items-center gap-[77px] py-10 relative">
+    <div className="flex flex-col items-center gap-[77px] py-10 relative">
       {/* Background image */}
-      <div className="flex flex-col w-full h-screen items-start gap-2.5 absolute top-0 left-0">
+      <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0">
         <img
-          className="relative w-full h-screen object-cover"
+          className="relative w-full h-full object-cover"
           alt="Background"
           src="/clip-path-group.png"
         />
