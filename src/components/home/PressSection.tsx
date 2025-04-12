@@ -12,6 +12,7 @@ const PressSection = () => {
     { id: 5, src: "/lovable-uploads/c8fe2b25-222e-46ff-9a1f-e567d4e08db8.png", alt: "DH.be" },
     { id: 6, src: "/lovable-uploads/44ed9a0d-fc12-42a5-aef6-3613cc9322fc.png", alt: "Tendances Trends" },
     { id: 7, src: "/lovable-uploads/0a5c4464-b8ea-42d5-a130-4c365fcd00ae.png", alt: "RTBF" },
+    { id: 8, src: "/lovable-uploads/11107b44-8240-43a0-8cf0-94d458195fa9.png", alt: "Telesambre" },
   ];
 
   return (
