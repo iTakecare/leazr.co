@@ -32,7 +32,7 @@ const MainNavigation = () => {
             />
           </Link>
 
-          <nav className="ml-[75px]">
+          <nav className="ml-[75px] hidden md:block">
             <ul className="flex space-x-[30px]">
               {navItems.map((item, index) => (
                 <li key={index}>
@@ -63,7 +63,7 @@ const MainNavigation = () => {
             )}
           </Link>
 
-          <Link to="/login">
+          <Link to="/login" className="hidden md:block">
             <Button
               variant="outline"
               className="rounded-[50px] font-bold text-lg"
@@ -72,13 +72,13 @@ const MainNavigation = () => {
             </Button>
           </Link>
 
-          <Link to="/catalogue">
+          <Link to="/catalogue" className="hidden md:block">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-lg">
               Catalogue
             </Button>
           </Link>
 
-          <div className="flex items-center ml-4">
+          <div className="flex items-center ml-4 hidden md:flex">
             <img className="w-8 h-8" alt="Langue" src="/langue.png" />
             <ChevronDown className="w-[13px] h-[7px] ml-2" />
           </div>

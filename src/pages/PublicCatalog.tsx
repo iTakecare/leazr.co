@@ -117,11 +117,9 @@ const PublicCatalog = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
-      </div>
+      <MainNavigation />
       
-      <div className="container max-w-none px-0 py-6">
+      <div className="container max-w-none px-0 pt-[130px]">
         <CatalogHeader />
       </div>
       
