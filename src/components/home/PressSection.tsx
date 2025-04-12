@@ -89,25 +89,30 @@ const PressSection = () => {
             </div>
           </div>
           
-          {/* Colonne de droite: Logos en 3 rangées - avec liens cliquables */}
+          {/* Colonne de droite: Logos en 3 rangées - avec liens cliquables et effet blur */}
           <div className="flex items-center justify-center h-full mt-8 md:mt-16">
-            <div className="grid grid-cols-3 grid-rows-3 gap-6 w-full">
-              {mediaLogos.map((logo) => (
-                <div key={logo.id} className="flex items-center justify-center h-24 sm:h-28">
-                  <a 
-                    href={logo.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="transition-transform hover:scale-105"
-                  >
-                    <img 
-                      src={logo.src} 
-                      alt={logo.alt} 
-                      className="max-h-full max-w-full object-contain w-auto h-16 sm:h-20"
-                    />
-                  </a>
-                </div>
-              ))}
+            <div className="relative rounded-2xl overflow-hidden p-6 w-full">
+              {/* Effet de blur derrière les logos */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/70 to-gray-100/80 backdrop-blur-md"></div>
+              
+              <div className="grid grid-cols-3 grid-rows-3 gap-6 w-full relative z-10">
+                {mediaLogos.map((logo) => (
+                  <div key={logo.id} className="flex items-center justify-center h-24 sm:h-28">
+                    <a 
+                      href={logo.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="transition-transform hover:scale-105"
+                    >
+                      <img 
+                        src={logo.src} 
+                        alt={logo.alt} 
+                        className="max-h-full max-w-full object-contain w-auto h-16 sm:h-20"
+                      />
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
