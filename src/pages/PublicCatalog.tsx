@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckSquare2, XSquare } from "lucide-react";
+import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckCircle2, XSquare } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +24,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import MainNavigation from "@/components/layout/MainNavigation";
+import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
@@ -118,6 +119,10 @@ const PublicCatalog = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6">
         <MainNavigation />
+      </div>
+      
+      <div className="container max-w-none px-0 py-6">
+        <CatalogHeader />
       </div>
       
       <div className="lg:hidden container mx-auto px-4 py-4">
@@ -298,7 +303,7 @@ const PublicCatalog = () => {
                           className={`flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded ${showInStock === true ? 'bg-blue-50 text-[#33638e] font-medium' : ''}`}
                           onClick={() => setShowInStock(true)}
                         >
-                          <CheckSquare2 className="h-4 w-4 mr-2 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                           <span>En stock</span>
                         </div>
                         <div 
