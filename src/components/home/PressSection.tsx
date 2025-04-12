@@ -6,16 +6,16 @@ import { PlayCircle } from "lucide-react";
 const PressSection = () => {
   // Logos des médias
   const mediaLogos = [
-    { id: 1, src: "/lovable-uploads/73d518f9-158d-4e00-bf66-27a3b5132dd7.png", alt: "DH.be" },
-    { id: 2, src: "/lovable-uploads/77cb8f7a-a865-497e-812d-e04c6d5c9160.png", alt: "LN24" },
-    { id: 3, src: "/lovable-uploads/d4880ad6-24e3-41fc-a43a-5ed1b4e843f3.png", alt: "Tendances Trends" },
-    { id: 4, src: "/lovable-uploads/5677be0b-0218-4a20-be93-ce2a5303184c.png", alt: "RTBF" },
-    { id: 5, src: "/lovable-uploads/9d44b5f8-4a64-40e3-a368-207f0f45a360.png", alt: "DIGITAL ENERGY SOLUTIONS" },
-    { id: 6, src: "/lovable-uploads/ed501677-ceb6-452f-85a3-d92673365d14.png", alt: "GRENKE" },
+    { id: 1, src: "/lovable-uploads/073e7dbf-ca5c-4daf-b802-7f6b7ac52c8d.png", alt: "Pas de Planète B" },
+    { id: 2, src: "/lovable-uploads/c63a7506-0940-48dc-97a7-5f471d90c628.png", alt: "Solutions Digital Economy Magazine" },
+    { id: 3, src: "/lovable-uploads/98b42b6b-cc49-4ced-8e29-02f6bfbca203.png", alt: "Grenke" },
+    { id: 4, src: "/lovable-uploads/dd01c4d2-2532-40c5-b511-60b4cf1d88f6.png", alt: "RTBF" },
+    { id: 5, src: "/lovable-uploads/c8fe2b25-222e-46ff-9a1f-e567d4e08db8.png", alt: "DH.be" },
+    { id: 6, src: "/lovable-uploads/44ed9a0d-fc12-42a5-aef6-3613cc9322fc.png", alt: "Tendances Trends" },
   ];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16">
       <Container maxWidth="custom">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Colonne de gauche: Titre et YouTube thumbnail */}
@@ -65,3 +65,4 @@ const PressSection = () => {
 };
 
 export default PressSection;
+
