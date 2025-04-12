@@ -101,8 +101,8 @@ const HeroSection = (): JSX.Element => {
               <h1 className="font-black text-[#222222] text-[50px] leading-tight">
                 informatique
               </h1>
-              <Badge className="ml-4 bg-[#33638E] text-white rounded-[10px] px-2.5 py-[18px]">
-                <span className="font-black text-white text-[50px]">
+              <Badge className="ml-4 bg-[#48b5c34f] rounded-[10px] px-2.5 py-[18px]">
+                <span className="font-black text-[#48b5c3] text-[50px]">
                   Reconditionné
                 </span>
               </Badge>
