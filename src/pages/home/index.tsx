@@ -12,14 +12,16 @@ import HomeFooter from '@/components/home/HomeFooter';
 const HomePage = () => {
   return (
     <HomeLayout>
-      <div className="flex flex-col min-h-screen bg-white">
+      <div className="flex flex-col bg-white overflow-x-hidden">
         <HeroSection />
-        <PartnersSection />
-        <FeatureSection />
-        <StatsSection />
-        <TestimonialSection />
-        <CtaSection />
-        <HomeFooter />
+        <div className="relative z-20">
+          <PartnersSection />
+          <FeatureSection />
+          <StatsSection />
+          <TestimonialSection />
+          <CtaSection />
+          <HomeFooter />
+        </div>
       </div>
     </HomeLayout>
   );

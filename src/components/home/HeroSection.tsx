@@ -25,9 +25,9 @@ const HeroSection = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center gap-[77px] py-10 relative">
+    <div className="relative w-full h-[100vh] mb-[100px]">
       {/* Background image */}
-      <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0">
+      <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0 z-0">
         <img
           className="relative w-full h-full object-cover"
           alt="Background"
@@ -36,7 +36,7 @@ const HeroSection = () => {
       </div>
 
       {/* Navigation bar */}
-      <Card className="relative w-full max-w-[1320px] mx-auto h-[82px] bg-[#f8f8f6] rounded-[50px] border-2 border-solid border-[#e1e1e1] flex items-center justify-between px-5">
+      <Card className="relative w-full max-w-[1320px] mx-auto h-[82px] bg-[#f8f8f6] rounded-[50px] border-2 border-solid border-[#e1e1e1] flex items-center justify-between px-5 z-10 mt-10">
         <div className="flex items-center">
           <img
             className="w-[201px] h-[41px] object-cover"
@@ -91,7 +91,7 @@ const HeroSection = () => {
       </Card>
 
       {/* Hero content */}
-      <header className="relative w-full max-w-[1331px] mx-auto h-[537px] z-10 px-[37px]">
+      <header className="relative w-full max-w-[1331px] mx-auto h-[537px] z-10 px-[37px] mt-10">
         <div className="flex flex-row">
           {/* Left content */}
           <div className="w-[723px]">
