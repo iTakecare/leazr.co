@@ -1,21 +1,11 @@
 
-import { ShoppingCartIcon } from "lucide-react";
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import MainNavigation from "@/components/layout/MainNavigation";
 
 const HeroSection = (): JSX.Element => {
-  // Navigation menu items
-  const navItems = [
-    { label: "Accueil", href: "#" },
-    { label: "Catalogue", href: "#" },
-    { label: "Logiciel de gestion", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Contact", href: "#" },
-  ];
-
   // Benefits list
   const benefits = [
     "Du matériel reconditionné haut de gamme, testé et garanti.",
@@ -38,59 +28,7 @@ const HeroSection = (): JSX.Element => {
       </div>
 
       {/* Navigation bar */}
-      <Card className="relative w-full max-w-[1320px] mx-auto h-[82px] bg-[#f8f8f6] rounded-[50px] border-2 border-solid border-[#e1e1e1] flex items-center justify-between px-5">
-        <div className="flex items-center">
-          <img
-            className="w-[201px] h-[41px] object-cover"
-            alt="Logo"
-            src="/logo.png"
-          />
-
-          <nav className="ml-[75px]">
-            <ul className="flex space-x-[30px]">
-              {navItems.map((item, index) => (
-                <li key={index}>
-                  <a
-                    href={item.href}
-                    className="font-normal text-[#222222] text-lg"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <ShoppingCartIcon className="w-6 h-6" />
-            <Badge className="absolute -top-1 -right-2 w-5 h-5 bg-[#48b5c3] rounded-[10px] flex items-center justify-center p-0">
-              <span className="font-bold text-white text-xs">0</span>
-            </Badge>
-          </div>
-
-          <Button
-            variant="outline"
-            className="rounded-[50px] font-bold text-lg"
-          >
-            Se connecter
-          </Button>
-
-          <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-lg">
-            Catalogue
-          </Button>
-
-          <div className="flex items-center ml-4">
-            <img className="w-8 h-8" alt="Langue" src="/langue.png" />
-            <img
-              className="w-[13px] h-[7px] ml-2"
-              alt="Vector"
-              src="/vector.svg"
-            />
-          </div>
-        </div>
-      </Card>
+      <MainNavigation />
 
       {/* Hero content */}
       <header className="relative w-full max-w-[1331px] mx-auto h-[537px] z-10 px-[37px]">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckSquare2, XSquare } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
-import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import MainNavigation from "@/components/layout/MainNavigation";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
@@ -118,7 +117,7 @@ const PublicCatalog = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6">
-        <CatalogHeader />
+        <MainNavigation />
       </div>
       
       <div className="lg:hidden container mx-auto px-4 py-4">
