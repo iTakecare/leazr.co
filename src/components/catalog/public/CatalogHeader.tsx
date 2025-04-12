@@ -21,14 +21,14 @@ const CatalogHeader = () => {
             <Button 
               size="lg"
               variant="outline" 
-              className="bg-white text-[#275D8C] hover:bg-white/90 border-white text-sm md:text-base group"
+              className="bg-white text-[#275D8C] hover:bg-white/90 border-white text-sm md:text-base group transition-all duration-300"
             >
               <MessageCircle className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
               Parler à un conseiller
             </Button>
             <Button 
               size="lg" 
-              className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-sm md:text-base group"
+              className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-sm md:text-base group transition-all duration-300"
             >
               Demander un devis <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>

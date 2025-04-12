@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckSquare2, XSquare } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
+import PublicHeader from "@/components/catalog/public/PublicHeader";
 import { Product } from "@/types/catalog";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,8 @@ const PublicCatalog = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PublicHeader />
+      
       <div className="container mx-auto px-4 py-6">
         <CatalogHeader />
       </div>
