@@ -27,8 +27,8 @@ const PressSection = () => {
             {/* Vidéo YouTube miniature */}
             <div className="relative group mt-4">
               <img 
-                src="/lovable-uploads/cb4a11cf-7f6c-43c4-9099-5817ef928f1a.png" 
-                alt="Leasing informatique reconditionné iTakecare - JT RTBF 03/04/2024" 
+                src="/lovable-uploads/88f6cdf6-516c-4d4f-8a9f-d74894212c9b.png" 
+                alt="Gianni Sergi - Fondateur de iTakecare - Interview" 
                 className="w-full h-auto rounded-lg shadow-md"
               />
               <div className="absolute inset-0 flex items-center justify-center">
