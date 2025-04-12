@@ -50,11 +50,15 @@ const FeatureSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-white">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Dites adieu au <span className="bg-[#e6f7fa] text-[#48b5c3] px-3 py-1 rounded-md">matériel obsolète</span>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4 relative">
+            Dites adieu au{" "}
+            <span className="relative inline-block">
+              <span className="absolute inset-0 bg-[#48b5c3]/20 blur-md rounded-lg transform -skew-x-3"></span>
+              <span className="relative bg-[#e6f7fa] text-[#48b5c3] px-3 py-1 rounded-md">matériel obsolète</span>
+            </span>
           </h2>
           <h2 className="text-4xl font-bold text-gray-900 mb-8">et aux frais imprévus !</h2>
         </div>
