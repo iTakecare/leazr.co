@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import NavbarUserProfile from "./NavbarUserProfile";
-import MainNavigation from "./MainNavigation";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -55,41 +54,35 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
     return "IT";
   };
 
-  // For admin/authenticated pages, we'll show a simplified header
-  if (user) {
-    return (
-      <header className="sticky top-0 z-30 border-b bg-background">
-        <div className="flex h-16 items-center px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-2 md:hidden"
-            onClick={onMenuClick}
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Menu</span>
-          </Button>
-          
-          <Link to="/" className="text-xl font-semibold text-primary hidden md:block">
-            Hub iTakecare
-          </Link>
-          
-          <div className="ml-auto flex items-center space-x-4">
-            {user && (
-              <NavbarUserProfile 
-                user={user}
-                avatarUrl={avatarUrl}
-                getUserInitials={getUserInitials} 
-              />
-            )}
-          </div>
+  return (
+    <header className="sticky top-0 z-30 border-b bg-background">
+      <div className="flex h-16 items-center px-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mr-2 md:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Menu</span>
+        </Button>
+        
+        <Link to="/" className="text-xl font-semibold text-primary hidden md:block">
+          Hub iTakecare
+        </Link>
+        
+        <div className="ml-auto flex items-center space-x-4">
+          {user && (
+            <NavbarUserProfile 
+              user={user}
+              avatarUrl={avatarUrl}
+              getUserInitials={getUserInitials} 
+            />
+          )}
         </div>
-      </header>
-    );
-  }
-
-  // For public pages, use the MainNavigation component
-  return <MainNavigation />;
+      </div>
+    </header>
+  );
 };
 
 export default Navbar;
