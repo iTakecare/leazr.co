@@ -206,3 +206,12 @@ export function parseImageData(imageData: any): string | null {
     return null;
   }
 }
+
+/**
+ * Get image URL with cache buster parameter
+ * This is an alias for compatibility with components using this function name
+ */
+export function getImageUrlWithCacheBuster(url: string | null): string {
+  if (!url) return "/placeholder.svg";
+  return getCacheBustedUrl(url);
+}

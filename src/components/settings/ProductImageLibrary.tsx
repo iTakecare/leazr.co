@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { Loader2, Search, Pencil, Save, X, Image, Eye, Upload, RotateCcw } from 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { getImageUrlWithCacheBuster } from "@/utils/imageUtils";
+import { getImageUrlWithCacheBuster } from "@/services/storageService";
 
 interface ProductImage {
   id: string;
@@ -33,13 +32,11 @@ const ProductImageLibrary = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
-  // Fetch all product images
   const { data: images = [], isLoading, error, refetch } = useQuery({
     queryKey: ["product-images"],
     queryFn: getAllProductImages
   });
 
-  // Update image mutation
   const updateImageMutation = useMutation({
     mutationFn: updateProductImage,
     onSuccess: () => {
@@ -53,7 +50,6 @@ const ProductImageLibrary = () => {
     }
   });
 
-  // Filter images based on search term and active tab
   const filteredImages = images.filter((image: ProductImage) => {
     const matchesSearch = image.productName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          image.imageName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +62,6 @@ const ProductImageLibrary = () => {
     return matchesSearch;
   });
 
-  // Open edit dialog for an image
   const handleEditImage = (image: ProductImage) => {
     setSelectedImage(image);
     setEditImageName(image.imageName || getFileNameFromUrl(image.imageUrl));
@@ -74,12 +69,10 @@ const ProductImageLibrary = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Extract filename from URL
   const getFileNameFromUrl = (url: string): string => {
     try {
       const urlParts = url.split('/');
       let fileName = urlParts[urlParts.length - 1];
-      // Remove query parameters if any
       fileName = fileName.split('?')[0];
       return fileName;
     } catch (error) {
@@ -87,7 +80,6 @@ const ProductImageLibrary = () => {
     }
   };
 
-  // Save image updates
   const handleSaveImageDetails = () => {
     if (!selectedImage) return;
     
@@ -101,7 +93,6 @@ const ProductImageLibrary = () => {
     });
   };
 
-  // Cancel editing
   const handleCancelEdit = () => {
     setIsEditDialogOpen(false);
     setSelectedImage(null);
@@ -120,7 +111,6 @@ const ProductImageLibrary = () => {
       
       <CardContent>
         <div className="space-y-4">
-          {/* Search and filters */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -159,7 +149,6 @@ const ProductImageLibrary = () => {
             </div>
           </div>
           
-          {/* Tabs for filtering */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-3 w-full max-w-md">
               <TabsTrigger value="all">Toutes les images</TabsTrigger>
@@ -168,21 +157,18 @@ const ProductImageLibrary = () => {
             </TabsList>
           </Tabs>
           
-          {/* Loading state */}
           {isLoading && (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           )}
           
-          {/* Error state */}
           {error && (
             <div className="text-center py-8 text-red-500">
               Erreur lors du chargement des images: {(error as Error).message}
             </div>
           )}
           
-          {/* Empty state */}
           {!isLoading && filteredImages.length === 0 && (
             <div className="text-center py-12">
               <Image className="h-12 w-12 mx-auto text-muted-foreground" />
@@ -195,7 +181,6 @@ const ProductImageLibrary = () => {
             </div>
           )}
           
-          {/* Grid view */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filteredImages.map((image: ProductImage) => (
@@ -237,7 +222,6 @@ const ProductImageLibrary = () => {
             </div>
           )}
           
-          {/* List view */}
           {viewMode === "list" && (
             <div className="border rounded-md overflow-hidden">
               <table className="w-full">
@@ -260,7 +244,7 @@ const ProductImageLibrary = () => {
                         <div className="relative h-12 w-12 bg-gray-100 flex items-center justify-center rounded-md">
                           <img 
                             src={getImageUrlWithCacheBuster(image.imageUrl)} 
-                            alt={image.imageAlt || "Product image"}
+                            alt={image.imageAlt || "Image preview"}
                             className="max-h-full max-w-full object-contain p-1"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -304,7 +288,6 @@ const ProductImageLibrary = () => {
         </div>
       </CardContent>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
