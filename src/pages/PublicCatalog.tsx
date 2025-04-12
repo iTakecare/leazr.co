@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -119,11 +120,11 @@ const PublicCatalog = () => {
     <div className="min-h-screen bg-gray-50">
       <MainNavigation />
       
-      <div className="container max-w-none px-0 pt-[130px]">
+      <div className="pt-[130px] px-4 md:px-6 max-w-7xl mx-auto">
         <CatalogHeader />
       </div>
       
-      <div className="lg:hidden container mx-auto px-4 py-4">
+      <div className="lg:hidden max-w-7xl mx-auto px-4 md:px-6 py-4">
         <Button 
           onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
           variant="outline" 
@@ -141,7 +142,7 @@ const PublicCatalog = () => {
         </Button>
       </div>
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
         <div className="flex flex-col lg:flex-row gap-6">
           <Collapsible 
             open={isMobileFiltersOpen || window.innerWidth >= 1024}
