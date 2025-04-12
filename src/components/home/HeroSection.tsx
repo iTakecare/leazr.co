@@ -8,12 +8,19 @@ const HeroSection = () => {
   const navigate = useNavigate();
   
   return (
-    <div className="w-full relative min-h-screen"
+    <div 
+      className="w-full relative min-h-screen"
       style={{
-        backgroundImage: "url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
+        backgroundImage: `
+          linear-gradient(to bottom, 
+            rgba(255, 255, 255, 0.8) 1px, 
+            transparent 1px
+          ),
+          url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
+        `,
+        backgroundSize: "100% 50px, cover",
+        backgroundPosition: "0 0, center",
+        backgroundRepeat: "repeat, no-repeat"
       }}
     >
       <Container maxWidth="custom" className="py-12 md:py-16">
