@@ -1,4 +1,3 @@
-
 import { ShoppingCartIcon } from "lucide-react";
 import React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -134,7 +133,7 @@ const HeroSection = (): JSX.Element => {
               </Button>
               <Button
                 variant="outline"
-                className="rounded-[50px] font-bold text-lg"
+                className="rounded-[50px] font-bold text-lg hover:bg-[#48B5C3] hover:text-white"
               >
                 En savoir plus
               </Button>
