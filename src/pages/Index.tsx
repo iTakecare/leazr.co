@@ -17,7 +17,7 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Redirection seulement si l'utilisateur est connecté
+    // Ne rediriger que si l'utilisateur est connecté ET que la vérification des rôles est terminée
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
         role: user?.role,
