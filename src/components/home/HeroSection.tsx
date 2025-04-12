@@ -1,4 +1,3 @@
-
 import { ShoppingCartIcon } from "lucide-react";
 import React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +24,9 @@ const HeroSection = (): JSX.Element => {
   ];
 
   return (
-    <div className="flex flex-col items-center gap-[77px] py-10 relative">
+    <div className="flex flex-col items-center gap-[20px] py-10 relative">
       {/* Background image */}
-      <div className="flex flex-col w-full h-[90vh] items-start gap-2.5 absolute top-0 left-0">
+      <div className="flex flex-col w-full h-[70vh] items-start gap-2.5 absolute top-0 left-0">
         <img
           className="relative w-full h-full object-cover"
           alt="Background"
@@ -91,7 +90,7 @@ const HeroSection = (): JSX.Element => {
       </Card>
 
       {/* Hero content */}
-      <header className="relative w-full max-w-[1331px] mx-auto z-10 px-[37px]">
+      <header className="relative w-full max-w-[1331px] mx-auto z-10 px-[37px] mb-4">
         <div className="flex flex-row">
           {/* Left content */}
           <div className="w-[723px]">
