@@ -16,19 +16,8 @@ const Index = () => {
   const { user, isAmbassador, isAdmin, isClient, isPartner, userRoleChecked, isLoading } = useAuth();
   const isMobile = useIsMobile();
 
-  React.useEffect(() => {
-    // Ne pas faire de redirection tant que le chargement n'est pas terminé
-    if (isLoading) {
-      console.log("Index page - Chargement en cours, pas de redirection");
-      return;
-    }
-    
-    // Si l'utilisateur n'est pas authentifié, afficher la page d'accueil
-    if (!user) {
-      console.log("Index page - utilisateur non authentifié, affichage de la page d'accueil");
-      return;
-    }
-    
+  // Fonction pour gérer la redirection des utilisateurs authentifiés
+  const handleAuthenticatedRedirection = () => {
     // Ne rediriger que si l'utilisateur est connecté ET que la vérification des rôles est terminée
     if (user && userRoleChecked) {
       console.log("Index page - vérification des rôles utilisateur pour redirection", {
@@ -44,33 +33,52 @@ const Index = () => {
       if (isAmbassador()) {
         console.log("Index page - redirection vers le tableau de bord ambassadeur");
         navigate("/ambassador/dashboard", { replace: true });
-        return;
+        return true;
       } 
       
       if (isClient()) {
         console.log("Index page - redirection vers le tableau de bord client");
         navigate("/client/dashboard", { replace: true });
-        return;
+        return true;
       } 
       
       if (isPartner()) {
         console.log("Index page - redirection vers le tableau de bord partenaire");
         navigate("/partner/dashboard", { replace: true });
-        return;
+        return true;
       } 
       
       if (isAdmin()) {
         console.log("Index page - redirection vers le tableau de bord admin");
         navigate("/dashboard", { replace: true });
-        return;
+        return true;
       }
       
       // Default to client dashboard if no specific role is found
       console.log("Index page - aucun rôle spécifique trouvé, redirection par défaut");
       toast.info("Rôle non identifié, redirection vers le tableau de bord par défaut");
       navigate("/client/dashboard", { replace: true });
+      return true;
     }
-  }, [user, navigate, isPartner, isAdmin, isAmbassador, isClient, userRoleChecked, isLoading]);
+    return false;
+  };
+
+  React.useEffect(() => {
+    // Ne pas faire de redirection tant que le chargement n'est pas terminé
+    if (isLoading) {
+      console.log("Index page - Chargement en cours, pas de redirection");
+      return;
+    }
+    
+    // Si l'utilisateur n'est pas authentifié, afficher la page d'accueil
+    if (!user) {
+      console.log("Index page - utilisateur non authentifié, affichage de la page d'accueil");
+      return;
+    }
+    
+    // Gérer la redirection pour les utilisateurs authentifiés
+    handleAuthenticatedRedirection();
+  }, [user, isLoading, userRoleChecked]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
