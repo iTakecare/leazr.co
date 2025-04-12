@@ -13,12 +13,11 @@ import HomeFooter from '@/components/home/HomeFooter';
 const HomePage = () => {
   return (
     <HomeLayout>
-      <HomeHeader />
       <HeroSection />
+      <PartnersSection />
       <FeatureSection />
       <StatsSection />
       <TestimonialSection />
-      <PartnersSection />
       <CtaSection />
       <HomeFooter />
     </HomeLayout>
