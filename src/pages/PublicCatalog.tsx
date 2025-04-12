@@ -120,7 +120,7 @@ const PublicCatalog = () => {
     <div className="min-h-screen bg-gray-50">
       <MainNavigation />
       
-      <div className="pt-[130px] px-4 md:px-6 max-w-7xl mx-auto">
+      <div className="pt-[180px] px-4 md:px-6 max-w-7xl mx-auto">
         <CatalogHeader />
       </div>
       
