@@ -33,6 +33,8 @@ const HeroSection = (): JSX.Element => {
           alt="Background"
           src="/clip-path-group.png"
         />
+        {/* Gradient fade to white overlay */}
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-white to-transparent" />
       </div>
 
       {/* Navigation bar */}
