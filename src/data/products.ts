@@ -1,4 +1,3 @@
-
 import { Product } from "@/types/catalog";
 
 // Sample product data if API fails
@@ -18,9 +17,9 @@ export const products: Product[] = [
       storage: "512GB SSD",
       display: "13.4 pouces Full HD+"
     },
-    tier: "gold", // This laptop is available for the gold tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    tier: "gold", // This is now properly defined in the Product interface
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -39,8 +38,8 @@ export const products: Product[] = [
       display: "14 pouces Liquid Retina XDR"
     },
     tier: "platinum", // This laptop is available for the platinum tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -59,8 +58,8 @@ export const products: Product[] = [
       display: "12.9 pouces Liquid Retina XDR"
     },
     tier: "platinum", // This tablet is available for the platinum tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -79,8 +78,8 @@ export const products: Product[] = [
       display: "13.5 pouces PixelSense"
     },
     tier: "gold", // This laptop is available for the gold tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -99,8 +98,8 @@ export const products: Product[] = [
       display: "6.1 pouces Super Retina XDR"
     },
     tier: "platinum", // This smartphone is available for the platinum tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -119,8 +118,8 @@ export const products: Product[] = [
       display: "6.8 pouces Dynamic AMOLED 2X"
     },
     tier: "gold", // This smartphone is available for the gold tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -139,8 +138,8 @@ export const products: Product[] = [
       display: "14 pouces WUXGA"
     },
     tier: "platinum", // This laptop is available for the platinum tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -159,8 +158,8 @@ export const products: Product[] = [
       display: "14.6 pouces Dynamic AMOLED 2X"
     },
     tier: "gold", // This tablet is available for the gold tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -179,8 +178,8 @@ export const products: Product[] = [
       display: "15.6 pouces Full HD"
     },
     tier: "silver", // This laptop is available for the silver tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -199,8 +198,8 @@ export const products: Product[] = [
       display: "6.4 pouces Super AMOLED"
     },
     tier: "silver", // This smartphone is available for the silver tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   },
   {
@@ -219,8 +218,8 @@ export const products: Product[] = [
       display: "10.9 pouces Retina"
     },
     tier: "silver", // This tablet is available for the silver tier
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     active: true
   }
 ];
@@ -260,9 +259,9 @@ export const searchProducts = (term: string): Product[] => {
   const searchTerm = term.toLowerCase();
   return products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm) ||
-    product.description.toLowerCase().includes(searchTerm) ||
-    product.brand.toLowerCase().includes(searchTerm) ||
-    product.category.toLowerCase().includes(searchTerm)
+    (product.description && product.description.toLowerCase().includes(searchTerm)) ||
+    (product.brand && product.brand.toLowerCase().includes(searchTerm)) ||
+    (product.category && product.category.toLowerCase().includes(searchTerm))
   );
 };
 

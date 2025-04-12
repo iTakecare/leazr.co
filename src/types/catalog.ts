@@ -23,7 +23,17 @@ export interface Product {
   updated_at?: string;
   admin_only?: boolean;
   model?: string;
+  
+  // Add missing properties
+  currentPrice?: number;
+  selected_attributes?: Record<string, string>;
+  variants_count?: number;
   image_urls?: string[];
+  imageUrls?: string[];
+  regularPrice?: number;
+  tier?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ProductVariationAttributes {
@@ -37,6 +47,7 @@ export interface VariantCombinationPrice {
   stock?: number;
   active?: boolean;
   sku?: string;
+  id?: string; // Adding id property
 }
 
 export interface Brand {
@@ -51,6 +62,28 @@ export interface Category {
   id: string;
   name: string;
   translation: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Adding missing types
+export interface ProductAttributes {
+  [key: string]: string | number | boolean;
+}
+
+export interface AttributeDefinition {
+  id: string;
+  name: string;
+  display_name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AttributeValue {
+  id: string;
+  attribute_id: string;
+  value: string;
+  display_value: string;
   created_at?: string;
   updated_at?: string;
 }

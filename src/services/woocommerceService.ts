@@ -490,3 +490,20 @@ export async function saveWooCommerceConfig(userId: string, config: {
     return false;
   }
 }
+
+export const convertWooCommerceProductToProduct = (wooProduct: any): Product => {
+  return {
+    id: wooProduct.id.toString(),
+    name: wooProduct.name,
+    description: wooProduct.description,
+    price: parseFloat(wooProduct.price || '0'),
+    image_url: wooProduct.images && wooProduct.images.length > 0 ? wooProduct.images[0].src : undefined,
+    brand: wooProduct.attributes?.find((attr: any) => attr.name === 'Brand')?.options?.[0] || undefined,
+    category: wooProduct.categories && wooProduct.categories.length > 0 ? wooProduct.categories[0].name : undefined,
+    stock: wooProduct.stock_quantity,
+    active: wooProduct.status === 'publish',
+    created_at: wooProduct.date_created,
+    updated_at: wooProduct.date_modified,
+    specifications: convertAttributesToSpecifications(wooProduct.attributes || []),
+  };
+};

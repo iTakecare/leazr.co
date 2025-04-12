@@ -43,6 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import ProductSpecifications from "@/components/catalog/ProductSpecifications";
 import ProductVariantViewer from "@/components/catalog/ProductVariantViewer";
+import { v4 as uuidv4 } from 'uuid';
 
 const productCategories = [
   "laptop",
@@ -109,7 +110,8 @@ const ProductDetail: React.FC = () => {
   const [modelName, setModelName] = useState("");
   const [selectedVariantPrice, setSelectedVariantPrice] = useState<VariantCombinationPrice | null>(null);
   const [totalImages, setTotalImages] = useState(0);
-  
+  const [uploadQueue, setUploadQueue] = useState<{ file: File, id: string }[]>([]);
+
   const productQuery = useQuery({
     queryKey: ["product", id],
     queryFn: () => {
@@ -286,6 +288,17 @@ const ProductDetail: React.FC = () => {
       };
       reader.readAsDataURL(file);
     });
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      const uploadQueue = selectedFiles.map(file => ({
+        file,
+        id: uuidv4()
+      }));
+      setUploadQueue(uploadQueue);
+    }
   };
   
   const uploadImage = () => {
