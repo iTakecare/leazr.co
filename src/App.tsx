@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -68,7 +67,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Composant pour protéger les routes administrateur
+// Define route protection components
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
   
@@ -83,7 +82,6 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Composant pour protéger les routes partenaire
 const PartnerRoute = ({ children }) => {
   const { user, isLoading, isPartner } = useAuth();
   
@@ -98,7 +96,6 @@ const PartnerRoute = ({ children }) => {
   return children;
 };
 
-// Composant pour protéger les routes ambassadeur
 const AmbassadorRoute = ({ children }) => {
   const { user, isLoading, isAmbassador } = useAuth();
   
