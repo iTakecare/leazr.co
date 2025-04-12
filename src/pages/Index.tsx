@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ const Index = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  console.log("Rendering Index page - public access");
+  useEffect(() => {
+    console.log("Index page mounted - public access");
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">

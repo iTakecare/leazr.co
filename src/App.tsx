@@ -21,39 +21,6 @@ import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import { useAuth } from "@/context/AuthContext";
-import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
-import AmbassadorEditPage from "./pages/AmbassadorEditPage";
-import AmbassadorDetail from "./pages/AmbassadorDetail";
-import AmbassadorsList from "./pages/AmbassadorsList";
-import PartnersList from "./pages/PartnersList";
-import PartnerCreatePage from "./pages/PartnerCreatePage";
-import PartnerEditPage from "./pages/PartnerEditPage";
-import PartnerDetail from "./pages/PartnerDetail";
-import PartnerOfferDetail from "./pages/PartnerOfferDetail";
-import AmbassadorCreateOffer from "./pages/AmbassadorCreateOffer";
-import PartnerCreateOffer from "./pages/PartnerCreateOffer";
-import AmbassadorDashboard from "./pages/AmbassadorDashboard";
-import PartnerDashboard from "./pages/PartnerDashboard";
-import CreateTestUsers from "./pages/CreateTestUsers";
-import Signup from "./pages/Signup";
-import ProductCreationPage from "@/components/catalog/ProductCreationPage";
-import ProductDetail from "./pages/ProductDetail";
-import AmbassadorDashboardPage from "./pages/AmbassadorPages/AmbassadorDashboardPage";
-import AmbassadorOffersPage from "./pages/AmbassadorPages/AmbassadorOffersPage";
-import AmbassadorOfferDetail from "./pages/AmbassadorPages/AmbassadorOfferDetail";
-import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage";
-import AmbassadorLayout from "./components/layout/AmbassadorLayout";
-import AmbassadorCatalog from "./pages/AmbassadorCatalog";
-import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
-import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
-import SignOffer from "./pages/client/SignOffer";
-import PublicOfferView from "./pages/client/PublicOfferView";
-import PublicCatalog from "./pages/PublicCatalog";
-import ProductEditPage from "./pages/ProductEditPage";
-import CartPage from './pages/CartPage';
-import RequestPage from './pages/RequestPage';
-import RequestSentPage from './pages/RequestSentPage';
-import Index from './pages/Index';
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -99,25 +66,23 @@ const AmbassadorRoute = ({ children }) => {
 
 const App = () => {
   const location = useLocation();
+  
+  console.log("App rendering - current route:", location.pathname);
 
   return (
     <div>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          
-          <Route path="/" element={<Index />} />
-          
           <Route path="/catalogue" element={<PublicCatalog />} />
           <Route path="/panier" element={<CartPage />} />
           <Route path="/demande" element={<RequestPage />} />
           <Route path="/demande-envoyee" element={<RequestSentPage />} />
           <Route path="/request-sent" element={<Navigate to="/demande-envoyee" replace />} />
-          
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/produits/:id" element={<ProductDetailPage />} />
-          
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
           
