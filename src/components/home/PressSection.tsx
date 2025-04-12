@@ -63,7 +63,7 @@ const PressSection = () => {
           {/* Colonne de gauche: Titre et YouTube thumbnail */}
           <div className="flex flex-col">
             <h2 className="text-[46px] font-bold text-gray-900 mb-8">
-              La presse <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-6 py-2 rounded-full">parle de nous</span>
+              La presse <span className="bg-[#48b5c34f] text-[#48b5c3] px-6 py-2 rounded-full group-hover:bg-[#33638E] group-hover:text-white">parle de nous</span>
             </h2>
             
             {/* Vidéo YouTube miniature */}
