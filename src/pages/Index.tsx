@@ -1,19 +1,15 @@
 
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { HeroSection } from "../screens/HeroSection";
+import React from "react";
+import MainNavigation from "@/components/layout/MainNavigation";
+import HeroSection from "@/components/home/HeroSection";
 
 const Index = () => {
   return (
-    <StrictMode>
+    <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
+      <MainNavigation />
       <HeroSection />
-    </StrictMode>
+    </div>
   );
 };
-
-// This function is used when directly mounting this file
-if (document.getElementById("app")) {
-  createRoot(document.getElementById("app") as HTMLElement).render(<Index />);
-}
 
 export default Index;

@@ -1,130 +1,133 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Container from "@/components/layout/Container";
 
 const HeroSection = () => {
   const navigate = useNavigate();
   
-  useEffect(() => {
-    console.log("HeroSection mounted");
-  }, []);
-  
-  console.log("Rendering HeroSection"); // Ajout d'un log pour le débogage
-  
   return (
-    <div className="relative overflow-hidden">
-      {/* Arrière-plan avec texture */}
-      <div 
-        className="absolute inset-0 bg-white z-0" 
-        style={{ 
-          backgroundImage: `url('/lovable-uploads/63f47eb5-1f2c-4f19-8659-b3b8015027ec.png')`,
-          backgroundRepeat: 'repeat',
-          opacity: 0.1
-        }}
-      />
-      
-      <div className="container mx-auto px-4 py-12 relative z-10">
-        <div className="flex flex-col lg:flex-row items-center">
-          <div className="lg:w-1/2 lg:pr-12 mb-10 lg:mb-0">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Leasing de matériel informatique{" "}
-              <span className="text-[#42B6C5]">Reconditionné</span>{" "}
-              sans contraintes
+    <div 
+      className="w-full relative min-h-screen"
+      style={{
+        backgroundImage: `
+          linear-gradient(to bottom, 
+            rgba(255, 255, 255, 1) 1px, 
+            transparent 1px
+          ),
+          url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
+        `,
+        backgroundSize: "100% 30px, cover",
+        backgroundPosition: "0 0, center",
+        backgroundRepeat: "repeat, no-repeat"
+      }}
+    >
+      <Container maxWidth="custom" className="py-12 md:py-16">
+        <div className="flex flex-col md:flex-row items-center">
+          {/* Colonne Gauche - Texte */}
+          <div className="md:w-1/2 mb-10 md:mb-0 pr-0 md:pr-12">
+            <h1 className="text-[45px] md:text-[50px] font-black leading-tight mb-2 text-[#242424] font-['Inter'] max-w-[650px]">
+              Leasing de matériel informatique <span className="bg-[#48B5C3]/20 text-[#48B5C3] px-4 py-1 rounded-full">Reconditionné</span> sans contraintes
             </h1>
             
-            <p className="text-lg mb-8 text-gray-700">
+            <p className="text-lg mt-8 mb-8 text-gray-700 font-['Inter'] font-normal">
               Optez pour un parc informatique performant et écoresponsable, à moindre coût:
             </p>
             
-            <ul className="space-y-2 mb-8">
+            <ul className="space-y-4 mb-10">
               <li className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <Check className="h-5 w-5 text-green-500" />
+                <div className="flex-shrink-0 mr-3">
+                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
+                    ✓
+                  </div>
                 </div>
-                <span className="ml-2 text-gray-800">Du matériel reconditionné haut de gamme, testé et garanti.</span>
+                <span className="text-gray-800 font-['Inter']">Du matériel reconditionné haut de gamme, testé et garanti.</span>
               </li>
               <li className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <Check className="h-5 w-5 text-green-500" />
+                <div className="flex-shrink-0 mr-3">
+                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
+                    ✓
+                  </div>
                 </div>
-                <span className="ml-2 text-gray-800">Un forfait tout compris : maintenance, support et mises à jour.</span>
+                <span className="text-gray-800 font-['Inter']">Un forfait tout compris : maintenance, support et mises à jour.</span>
               </li>
               <li className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <Check className="h-5 w-5 text-green-500" />
+                <div className="flex-shrink-0 mr-3">
+                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
+                    ✓
+                  </div>
                 </div>
-                <span className="ml-2 text-gray-800">Remplacement sous 24h en cas de panne ou sinistre.</span>
+                <span className="text-gray-800 font-['Inter']">Remplacement sous 24h en cas de panne ou sinistre.</span>
               </li>
               <li className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <Check className="h-5 w-5 text-green-500" />
+                <div className="flex-shrink-0 mr-3">
+                  <div className="bg-green-500 text-white w-5 h-5 flex items-center justify-center rounded-sm">
+                    ✓
+                  </div>
                 </div>
-                <span className="ml-2 text-gray-800">Un choix écoresponsable et économique pour votre entreprise.</span>
+                <span className="text-gray-800 font-['Inter']">Un choix écoresponsable et économique pour votre entreprise.</span>
               </li>
             </ul>
             
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 mb-12">
               <Button 
-                className="bg-[#42B6C5] hover:bg-[#389aa7] text-white rounded-full px-6 py-2 h-auto font-medium"
+                className="bg-[#48B5C3] hover:bg-[#389aa7] text-white rounded-full px-8 py-3 h-auto font-medium font-['Inter'] text-[16px]"
                 onClick={() => navigate("/catalogue")}
               >
                 Découvrir le catalogue
               </Button>
               <Button 
                 variant="outline" 
-                className="border-gray-300 hover:bg-gray-100 text-gray-700 rounded-full px-6 py-2 h-auto font-medium"
+                className="border-gray-300 hover:bg-gray-100 text-gray-700 rounded-full px-8 py-3 h-auto font-medium font-['Inter'] text-[16px]"
               >
                 En savoir plus
               </Button>
             </div>
             
-            <div className="flex items-center mt-12">
-              <div className="flex-shrink-0 mr-6">
+            <div className="flex items-center relative">
+              <div className="flex-shrink-0 mr-4">
                 <img 
                   src="https://i.pravatar.cc/80" 
                   alt="Avis client" 
-                  className="w-16 h-16 rounded-full border-2 border-[#42B6C5]"
+                  className="w-14 h-14 rounded-full"
                 />
               </div>
               <div>
-                <p className="text-sm text-gray-700 italic">
+                <p className="text-sm text-gray-700 font-['Inter']">
                   "Rapide et professionnel. Bien reçu mon MacBook Pro avec lequel j'écris ces lignes. Très content du matériel !"
                 </p>
-                <div className="flex items-center mt-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-yellow-400 text-lg">
-                        {i < 4 ? "★" : "☆"}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="ml-2 font-semibold">
-                    4,8/5
-                    <span className="ml-2 font-normal text-gray-500">satisfactions clients</span>
+                <div className="flex items-center mt-1">
+                  <div className="flex items-center">
+                    <span className="text-yellow-400 text-2xl">★</span>
+                    <span className="ml-2 font-semibold font-['Inter']">
+                      4,8/5
+                      <span className="ml-2 font-normal text-gray-500">satisfactions clients</span>
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="ml-6 relative">
+              
+              <div className="absolute top-[-25px] right-[-20px] md:relative md:top-auto md:right-auto md:ml-4">
                 <img 
-                  src="/lovable-uploads/73661021-af85-4ce5-925d-701c27282221.png" 
+                  src="/lovable-uploads/8515dcd2-20f4-4247-8ea4-5929ac725d46.png" 
                   alt="Flèche" 
-                  className="w-20 h-auto"
+                  className="w-20 h-auto transform rotate-[-15deg]"
                 />
               </div>
             </div>
           </div>
           
-          <div className="lg:w-1/2 flex justify-center lg:justify-end relative">
+          {/* Colonne Droite - Image du MacBook */}
+          <div className="md:w-1/2 flex justify-center items-center">
             <img 
-              src="/lovable-uploads/10277032-6bec-4f1c-a1b5-884fb4f2a2ce.png" 
+              src="/lovable-uploads/5c6e8763-e237-4646-96d9-c54a63bf6893.png" 
               alt="MacBook avec écran" 
-              className="w-full max-w-lg h-auto object-contain z-10"
+              className="w-full max-w-xl h-auto object-contain"
             />
           </div>
         </div>
-      </div>
+      </Container>
     </div>
   );
 };
