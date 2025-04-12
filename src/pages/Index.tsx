@@ -18,8 +18,9 @@ const Index = () => {
           className="absolute inset-0 z-0" 
           style={{ 
             backgroundImage: `url('/lovable-uploads/c4382620-f35f-4304-8e16-d058304e3c52.png')`,
-            backgroundRepeat: 'repeat',
-            opacity: 0.1
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.5
           }}
         />
         
