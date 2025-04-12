@@ -38,7 +38,7 @@ const CatalogHeader = () => {
         <div className="md:w-2/5 md:h-full relative">
           <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#275D8C]/50 to-[#275D8C] z-10 md:block hidden"></div>
           <img 
-            src="/lovable-uploads/95b23886-6036-4673-a2d8-fcee08de89b1.png" 
+            src="/lovable-uploads/1d3ac6e1-5c24-4197-af4f-5aa8f2dd014b.png" 
             alt="Équipement premium reconditionné" 
             className="w-full h-80 md:h-full object-cover object-center"
           />
