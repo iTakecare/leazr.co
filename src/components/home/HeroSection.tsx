@@ -13,12 +13,12 @@ const HeroSection = () => {
       style={{
         backgroundImage: `
           linear-gradient(to bottom, 
-            rgba(255, 255, 255, 0.8) 1px, 
+            rgba(255, 255, 255, 0.9) 1px, 
             transparent 1px
           ),
           url('/lovable-uploads/bfd80850-97c9-4b37-90f1-f01c51c08b06.png')
         `,
-        backgroundSize: "100% 50px, cover",
+        backgroundSize: "100% 40px, cover",
         backgroundPosition: "0 0, center",
         backgroundRepeat: "repeat, no-repeat"
       }}
