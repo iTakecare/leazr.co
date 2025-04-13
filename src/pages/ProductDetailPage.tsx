@@ -56,11 +56,21 @@ const ProductDetailPage = () => {
   };
   
   if (isLoading) {
-    return <ProductLoadingState />;
+    return (
+      <>
+        <UnifiedNavigation />
+        <ProductLoadingState />
+      </>
+    );
   }
   
   if (error || !product) {
-    return <ProductErrorState onBackToCatalog={handleBackToCatalog} />;
+    return (
+      <>
+        <UnifiedNavigation />
+        <ProductErrorState onBackToCatalog={handleBackToCatalog} />
+      </>
+    );
   }
   
   const productName = product?.name || "Produit";
