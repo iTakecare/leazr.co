@@ -30,7 +30,7 @@ const ContactPage = () => {
       
       <div className="pt-[100px]">
         {/* Hero Section avec le même fond que la page d'accueil */}
-        <div className="relative min-h-[50vh] flex items-center">
+        <div className="relative min-h-[40vh] flex items-center">
           {/* Background image - même que page d'accueil */}
           <div className="absolute inset-0 z-0">
             <img
@@ -55,7 +55,7 @@ const ContactPage = () => {
         </div>
         
         {/* Contenu principal - Formulaire centré avec effet halo */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-2xl mx-auto relative">
             {/* Effet de halo flou derrière le formulaire */}
             <div className="absolute inset-0 bg-[#48b5c3]/20 blur-3xl rounded-full transform -translate-y-10 scale-110 opacity-70 z-0"></div>
