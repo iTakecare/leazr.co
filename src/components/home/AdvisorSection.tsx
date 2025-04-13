@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -11,11 +10,11 @@ const AdvisorSection = () => {
           {/* Image en arrière-plan */}
           <div 
             className="absolute inset-0 w-full h-full bg-cover bg-center z-0"
-            style={{ backgroundImage: "url('/lovable-uploads/7a6d50a2-7709-4b3c-8cd1-ac3348e8227c.png')" }}
+            style={{ backgroundImage: "url('/lovable-uploads/7a6d50a2-7709-4b3c-8cd1-ac3348e8227c.png')", top: '0', height: '70%' }}
           ></div>
           
           {/* Rectangle gris clair en arrière-plan, ajusté pour s'aligner avec la fin de la photo */}
-          <div className="absolute top-[40%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[56%]"></div>
+          <div className="absolute top-[30%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[56%]"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
