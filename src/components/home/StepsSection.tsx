@@ -1,36 +1,23 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent relative overflow-hidden">
-      {/* Image floutée en arrière-plan de toute la section avec opacité réduite */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <img 
-          src="/lovable-uploads/572544b8-bd61-4888-844b-e83bf02cd5b6.png" 
-          alt="Background blur" 
-          className="w-full h-full object-cover opacity-70"
-        />
-      </div>
-      
-      {/* Conteneur pour le titre avec effet spécial */}
-      <div className="relative z-10 mb-16">
-        <Container maxWidth="custom">
-          <div className="text-center relative z-10">
-            <h2 className="text-[46px] font-bold text-gray-900 mb-4">
-              Passer au leasing de matériel informatique
-            </h2>
-            <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
-              en seulement 3 étapes
-            </div>
-          </div>
-        </Container>
-      </div>
-      
+    <section className="py-20 bg-transparent">
       <Container maxWidth="custom">
+        <div className="text-center mb-12">
+          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
+            Passer au leasing de matériel informatique
+          </h2>
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
+            en seulement 3 étapes
+          </div>
+        </div>
+
         {/* Première étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
           <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Search className="w-8 h-8 text-white" />
@@ -54,7 +41,7 @@ const StepsSection = () => {
         </div>
 
         {/* Deuxième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
           <div className="flex justify-center order-2 md:order-1 h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
@@ -78,7 +65,7 @@ const StepsSection = () => {
         </div>
 
         {/* Troisième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Truck className="w-8 h-8 text-white" />
@@ -101,6 +88,9 @@ const StepsSection = () => {
           </div>
         </div>
       </Container>
+      
+      {/* Espace de transition réduit */}
+      <div className="h-10 bg-transparent"></div>
     </section>
   );
 };
