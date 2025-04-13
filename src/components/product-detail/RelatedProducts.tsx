@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,8 +73,8 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Array(3).fill(0).map((_, index) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        {Array(limit).fill(0).map((_, index) => (
           <Card key={index} className="border-0 shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <Skeleton className="h-32 w-full" />
@@ -93,7 +94,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
       {products.map((product) => {
         const productPrice = getProductPrice(product);
         const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;

@@ -297,11 +297,6 @@ const ProductDetailPage = () => {
               
               <ProductIncludedServices />
             </div>
-            
-            <div className="mt-16">
-              <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
-              <RelatedProducts category={productCategory} currentProductId={product?.id} brand={productBrand} />
-            </div>
           </div>
           
           <div>
@@ -436,6 +431,17 @@ const ProductDetailPage = () => {
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Related products section - now using full width */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
+          <RelatedProducts 
+            category={productCategory} 
+            currentProductId={product?.id} 
+            brand={productBrand}
+            limit={6} // Increased limit to show more products
+          />
         </div>
       </div>
       
