@@ -8,32 +8,21 @@ const HomeFooter = () => {
   return (
     <footer className="w-full">
       {/* Section avec l'image en arrière-plan et appel à l'action */}
-      <div className="w-full py-16 relative">
-        {/* Image de fond */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="/lovable-uploads/8d038f0d-17e4-4f5f-8ead-f7719343506f.png" 
-            alt="Background" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-        
+      <div className="w-full py-16 bg-[#41A6B2] relative overflow-hidden">
         <Container maxWidth="lg">
-          <div className="rounded-3xl p-8 relative z-10">
-            <div className="text-center text-white">
-              <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-                Le leasing de matériel informatique<br />
-                n'a plus de <span className="bg-[#33949F] px-4 py-1 rounded-full">secrets</span> pour vous
-              </h2>
-              
-              <div className="flex flex-wrap justify-center gap-4 mt-10">
-                <Link to="/catalogue" className="bg-[#33949F] hover:bg-[#2C8089] text-white font-medium px-6 py-3 rounded-full transition-all">
-                  Découvrir le catalogue
-                </Link>
-                <Link to="/contact" className="bg-white hover:bg-gray-100 text-gray-800 font-medium px-6 py-3 rounded-full transition-all">
-                  Parler à un conseiller
-                </Link>
-              </div>
+          <div className="text-center text-white py-12">
+            <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-8">
+              Le leasing de matériel informatique<br />
+              n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-full">secrets</span> pour vous
+            </h2>
+            
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+              <Link to="/catalogue" className="bg-[#33949F] hover:bg-[#2C8089] text-white font-medium px-6 py-3 rounded-full transition-all">
+                Découvrir le catalogue
+              </Link>
+              <Link to="/contact" className="bg-white hover:bg-gray-100 text-gray-800 font-medium px-6 py-3 rounded-full transition-all">
+                Parler à un conseiller
+              </Link>
             </div>
           </div>
         </Container>
@@ -104,4 +93,3 @@ const HomeFooter = () => {
 };
 
 export default HomeFooter;
-
