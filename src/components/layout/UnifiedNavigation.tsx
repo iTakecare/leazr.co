@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from 'lucide-react';
@@ -58,7 +59,7 @@ const UnifiedNavigation = () => {
 
   return (
     <header className={cn(
-      "fixed w-full z-50 transition-all duration-300",
+      "fixed top-0 w-full z-50 transition-all duration-300",
       scrolled 
         ? "bg-white shadow-sm py-2" 
         : "bg-white py-4"
