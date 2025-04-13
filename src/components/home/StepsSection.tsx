@@ -6,25 +6,30 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 const StepsSection = () => {
   return (
     <section className="py-20 bg-transparent relative">
-      {/* Image blur en arrière-plan - positionnée par rapport à la section */}
-      <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden">
-        <img 
-          src="/lovable-uploads/84dd4cbf-302d-402f-943c-fd5a5c7dbea9.png" 
-          alt="Background blur" 
-          className="w-full h-full object-cover opacity-80 rotate-180"
-        />
+      {/* Conteneur pour le titre avec son arrière-plan de flou */}
+      <div className="relative z-10 mb-16">
+        {/* Image blur positionnée uniquement derrière le titre */}
+        <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden">
+          <img 
+            src="/lovable-uploads/84dd4cbf-302d-402f-943c-fd5a5c7dbea9.png" 
+            alt="Background blur" 
+            className="w-full h-full object-cover opacity-80 rotate-180"
+          />
+        </div>
+        
+        <Container maxWidth="custom">
+          <div className="text-center relative z-10">
+            <h2 className="text-[46px] font-bold text-gray-900 mb-4">
+              Passer au leasing de matériel informatique
+            </h2>
+            <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
+              en seulement 3 étapes
+            </div>
+          </div>
+        </Container>
       </div>
       
       <Container maxWidth="custom">
-        <div className="text-center mb-12 relative z-10">
-          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
-            Passer au leasing de matériel informatique
-          </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
-            en seulement 3 étapes
-          </div>
-        </div>
-
         {/* Première étape */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
           <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
