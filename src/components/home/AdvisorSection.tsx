@@ -9,7 +9,7 @@ const AdvisorSection = () => {
       <Container maxWidth="custom">
         <div className="relative bg-transparent rounded-3xl overflow-hidden">
           {/* Rectangle gris clair en arrière-plan, ajusté pour s'aligner avec la fin de la photo */}
-          <div className="absolute top-[30%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[30%]"></div>
+          <div className="absolute top-[40%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[30%]"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
