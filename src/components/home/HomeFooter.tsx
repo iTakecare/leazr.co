@@ -55,10 +55,15 @@ const HomeFooter = () => {
             <div className="md:col-span-1">
               <h3 className="text-xl font-bold mb-4 text-gray-800">À propos</h3>
               <ul className="space-y-2">
-                <li><Link to="/a-propos" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
+                <li><Link to="/a-propos" className="text-gray-700 hover:text-itakecare-primary">Qui se cache derrière iTakecare ?</Link></li>
+                <li><Link to="/valeurs" className="text-gray-700 hover:text-itakecare-primary">Des valeurs qui ont du sens</Link></li>
+                <li><Link to="/politique-cookies" className="text-gray-700 hover:text-itakecare-primary">Politique de Cookies</Link></li>
+                <li><Link to="/conditions-leasing" className="text-gray-700 hover:text-itakecare-primary">Conditions générales de Leasing/Renting</Link></li>
+                <li><Link to="/conditions-generales" className="text-gray-700 hover:text-itakecare-primary">Conditions générales d'utilisation</Link></li>
+                <li><Link to="/confidentialite" className="text-gray-700 hover:text-itakecare-primary">Déclaration de confidentialité</Link></li>
+                <li><Link to="/faq" className="text-gray-700 hover:text-itakecare-primary">FAQ</Link></li>
               </ul>
             </div>
-          </div>
           
           <div className="mt-12 pt-6 border-t border-gray-200 text-center text-gray-500 text-sm">
             © {new Date().getFullYear()} iTakecare. Tous droits réservés.
