@@ -5,7 +5,7 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-12 bg-transparent relative">
+    <section className="py-16 bg-transparent relative">  {/* Increased padding from py-12 to py-16 */}
       <Container maxWidth="custom">
         {/* Fond flou derrière le titre */}
         <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-32 bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
@@ -93,7 +93,7 @@ const StepsSection = () => {
       </Container>
       
       {/* Espace de transition réduit */}
-      <div className="h-8 bg-transparent"></div>
+      <div className="h-12 bg-transparent"></div>  {/* Increased from h-8 to h-12 */}
     </section>
   );
 };
