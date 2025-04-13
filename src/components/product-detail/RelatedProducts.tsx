@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,13 +9,15 @@ import { formatCurrency } from "@/utils/formatters";
 interface RelatedProductsProps {
   category: string;
   currentProductId?: string;
+  brand?: string;
   limit?: number;
 }
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ 
   category, 
   currentProductId,
-  limit = 4
+  brand,
+  limit = 3
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +30,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
         const allProducts = await getProducts();
         
         const filteredProducts = allProducts
-          .filter(p => p.category === category)
+          .filter(p => brand ? p.brand === brand : p.category === category)
           .filter(p => p.id !== currentProductId)
           .filter(p => p.active !== false)
           .slice(0, limit);
@@ -42,10 +43,10 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
       }
     };
 
-    if (category) {
+    if (category || brand) {
       loadRelatedProducts();
     }
-  }, [category, currentProductId, limit]);
+  }, [category, currentProductId, brand, limit]);
 
   const getProductPrice = (product: Product): number => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
@@ -71,8 +72,8 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array(4).fill(0).map((_, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array(3).fill(0).map((_, index) => (
           <Card key={index} className="border-0 shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <Skeleton className="h-32 w-full" />
@@ -92,7 +93,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {products.map((product) => {
         const productPrice = getProductPrice(product);
         const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;

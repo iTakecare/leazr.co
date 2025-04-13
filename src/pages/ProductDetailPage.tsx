@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -300,8 +299,8 @@ const ProductDetailPage = () => {
             </div>
             
             <div className="mt-16">
-              <h2 className="text-2xl font-bold mb-6">Produits de la même catégorie que {productName}</h2>
-              <RelatedProducts category={productCategory} currentProductId={product?.id} />
+              <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
+              <RelatedProducts category={productCategory} currentProductId={product?.id} brand={productBrand} />
             </div>
             
             <div className="mt-16">
