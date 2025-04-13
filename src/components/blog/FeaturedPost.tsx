@@ -12,9 +12,10 @@ interface FeaturedPostProps {
   category: string;
   image: string;
   slug: string;
+  readTime?: string; // Added readTime as optional prop
 }
 
-const FeaturedPost = ({ title, excerpt, date, category, image, slug }: FeaturedPostProps) => {
+const FeaturedPost = ({ title, excerpt, date, category, image, slug, readTime }: FeaturedPostProps) => {
   return (
     <div className="flex flex-col md:flex-row gap-6 md:gap-10 bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
       <div className="md:w-1/2 h-[250px] md:h-auto">
@@ -30,6 +31,7 @@ const FeaturedPost = ({ title, excerpt, date, category, image, slug }: FeaturedP
             {category}
           </Badge>
           <span className="text-sm text-gray-500">{date}</span>
+          {readTime && <span className="text-sm text-gray-500">• {readTime}</span>}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold mb-4">{title}</h2>
         <p className="text-gray-600 mb-6">{excerpt}</p>
