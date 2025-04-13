@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { getProductsByCategory } from "@/services/catalogService";
+import { getProducts } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/utils/formatters";
@@ -26,13 +26,15 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     const loadRelatedProducts = async () => {
       try {
         setIsLoading(true);
-        const allProducts = await getProductsByCategory(category);
+        // Use the getProducts function instead of the non-existent getProductsByCategory
+        const allProducts = await getProducts();
         
-        // Filter out the current product
+        // Filter products by category and other criteria
         const filteredProducts = allProducts
-          .filter(p => p.id !== currentProductId)
-          .filter(p => p.active !== false)
-          .slice(0, limit);
+          .filter(p => p.category === category) // Filter by matching category
+          .filter(p => p.id !== currentProductId) // Filter out current product
+          .filter(p => p.active !== false) // Filter only active products
+          .slice(0, limit); // Limit the number of products
         
         setProducts(filteredProducts);
       } catch (error) {
