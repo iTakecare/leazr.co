@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 type FormData = {
   name: string;
   email: string;
+  phone: string;
   company: string;
   subject: string;
   message: string;
@@ -92,6 +93,22 @@ const ContactPage = () => {
                     />
                     {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
+                  <Input
+                    {...register("phone", {
+                      pattern: {
+                        value: /^(\+\d{1,3}[-.●]?)?\(?\d{3}\)?[-.●]?\d{3}[-.●]?\d{4}$/,
+                        message: "Numéro de téléphone invalide"
+                      }
+                    })}
+                    type="tel"
+                    placeholder="+33 6 12 34 56 78"
+                    className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
+                  />
+                  {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
