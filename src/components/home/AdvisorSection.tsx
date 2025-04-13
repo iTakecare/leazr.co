@@ -35,17 +35,17 @@ const AdvisorSection = () => {
                 </div>
               </div>
               
-              <div className="bg-white p-8 rounded-3xl mb-8 max-w-2xl">
+              <div className="p-8 rounded-3xl mb-8 max-w-2xl">
                 <blockquote className="text-xl text-gray-700 mb-6">
                   "Chaque entreprise, école, institution ont des besoins uniques. Nos conseillers, vous guident vers la solution la plus adaptée, sans engagement et en toute transparence."
                 </blockquote>
                 
-                <div className="flex flex-col">
-                  <h3 className="font-bold text-2xl text-gray-900">Michaela</h3>
-                  <p className="text-gray-600">Responsable Service client</p>
-                </div>
-                
-                <div className="mt-8">
+                <div className="flex flex-row items-center justify-between">
+                  <div className="flex flex-col">
+                    <h3 className="font-bold text-2xl text-gray-900">Michaela</h3>
+                    <p className="text-gray-600">Responsable Service client</p>
+                  </div>
+                  
                   <Button 
                     className="bg-[#48B5C3] hover:bg-[#48B5C3]/90 text-white font-semibold rounded-full px-8 py-3 text-lg h-auto"
                   >
