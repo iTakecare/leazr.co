@@ -7,10 +7,19 @@ import { Facebook, Instagram, Linkedin } from 'lucide-react';
 const HomeFooter = () => {
   return (
     <footer className="w-full">
-      {/* Section turquoise avec appel à l'action */}
-      <div className="w-full bg-itakecare-turquoise py-16">
+      {/* Section avec l'image en arrière-plan et appel à l'action */}
+      <div className="w-full py-16 relative">
+        {/* Image de fond */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/lovable-uploads/8d038f0d-17e4-4f5f-8ead-f7719343506f.png" 
+            alt="Background" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
         <Container maxWidth="lg">
-          <div className="max-w-4xl mx-auto bg-transparent rounded-3xl p-8">
+          <div className="max-w-4xl mx-auto rounded-3xl p-8 relative z-10">
             <div className="text-center text-white">
               <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
                 Le leasing de matériel informatique<br />
