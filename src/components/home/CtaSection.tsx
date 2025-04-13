@@ -8,7 +8,7 @@ const CtaSection = () => {
   const navigate = useNavigate();
   
   return (
-    <section className="py-16 bg-[#41A6B2] text-white">
+    <section className="py-16 bg-transparent text-white">
       <Container maxWidth="custom">
         <div className="text-center">
           <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
