@@ -1,18 +1,16 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-white relative overflow-hidden">
+    <section className="py-20 bg-transparent relative overflow-hidden">
       {/* Image floutée en arrière-plan de toute la section avec opacité réduite */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-white opacity-70"></div>
         <img 
           src="/lovable-uploads/572544b8-bd61-4888-844b-e83bf02cd5b6.png" 
           alt="Background blur" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-70"
         />
       </div>
       
