@@ -8,9 +8,6 @@ import PressSection from "@/components/home/PressSection";
 import StepsSection from "@/components/home/StepsSection";
 import AdvisorSection from "@/components/home/AdvisorSection";
 import FaqSection from "@/components/home/FaqSection";
-import StatsSection from "@/components/home/StatsSection";
-import TestimonialSection from "@/components/home/TestimonialSection";
-import CtaSection from "@/components/home/CtaSection";
 import HomeFooter from "@/components/home/HomeFooter";
 
 const Index = () => {
@@ -25,9 +22,6 @@ const Index = () => {
         <StepsSection />
         <AdvisorSection />
         <FaqSection />
-        <StatsSection />
-        <TestimonialSection />
-        <CtaSection />
         <HomeFooter />
       </div>
     </div>
