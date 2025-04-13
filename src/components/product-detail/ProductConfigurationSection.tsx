@@ -102,15 +102,13 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   return (
     <div 
       id="product-config" 
-      className="sticky top-50 rounded-lg overflow-hidden shadow-xl !important"
+      className="sticky top-50 !important"
       style={{
-        border: "6px solid #8B5CF6",
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
         position: "relative",
         zIndex: 10
       }}
     >
-      <div className="rounded-t-lg overflow-hidden">
+      <div className="rounded-xl overflow-hidden border-[6px] border-[#8B5CF6] shadow-2xl">
         <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
           <div className="flex items-center justify-between mb-1">
             <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
@@ -241,3 +239,4 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
 };
 
 export default ProductConfigurationSection;
+
