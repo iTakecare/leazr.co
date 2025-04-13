@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ContainerProps {
   children: React.ReactNode;
   className?: string;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom" | "7xl";
 }
 
 const Container: React.FC<ContainerProps> = ({ 
@@ -20,7 +20,8 @@ const Container: React.FC<ContainerProps> = ({
     xl: "max-w-screen-xl",
     "2xl": "max-w-screen-2xl",
     full: "max-w-full",
-    custom: "max-w-[1400px]"
+    custom: "max-w-[1400px]",
+    "7xl": "max-w-[1320px]"
   }[maxWidth];
 
   return (
