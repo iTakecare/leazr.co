@@ -199,22 +199,6 @@ const ContactPage = () => {
           </div>
         </div>
         
-        {/* Map section */}
-        <div className="w-full py-12 bg-gray-50">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-[#222222] mb-8 text-center">Où nous trouver</h2>
-            <div className="w-full h-[400px] rounded-3xl overflow-hidden">
-              {/* Placeholder for map - in a real application, you would integrate Google Maps or similar */}
-              <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                <p className="text-gray-600 text-center">
-                  Carte interactive ici<br />
-                  (Intégration Google Maps ou similaire)
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
         {/* CTA Section - réutilisé de la page d'accueil */}
         <CtaSection />
         
