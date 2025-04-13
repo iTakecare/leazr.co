@@ -7,11 +7,11 @@ const StepsSection = () => {
   return (
     <section className="py-20 bg-transparent relative">
       {/* Nouvelle image de fond pour le titre */}
-      <div className="absolute top-0 left-0 w-full h-[300px] z-0">
+      <div className="absolute top-[-50px] left-0 w-full h-[400px] z-0">
         <img 
           src="/lovable-uploads/69cf8d75-cc81-4f9d-b1be-17e469efeccf.png" 
           alt="Background" 
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover opacity-50"
         />
       </div>
       
