@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -56,9 +55,11 @@ import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
-// Import des nouvelles pages de blog
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import SolutionsPage from "./pages/SolutionsPage";
+import ServicesPage from "./pages/ServicesPage";
+import DurabiliteePage from "./pages/DurabiliteePage";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -111,11 +112,9 @@ const App = () => {
     <div>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* Page d'accueil - Définition explicite et prioritaire */}
           <Route index element={<Index />} />
           <Route path="/" element={<Index />} />
           
-          {/* Routes publiques */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/catalogue" element={<PublicCatalog />} />
@@ -128,11 +127,16 @@ const App = () => {
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
           
-          {/* Routes de blog */}
+          <Route path="/solutions" element={<SolutionsPage />} />
+          <Route path="/solutions/:section" element={<SolutionsPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/services/:section" element={<ServicesPage />} />
+          <Route path="/durabilite" element={<DurabiliteePage />} />
+          <Route path="/durabilite/:section" element={<DurabiliteePage />} />
+          
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           
-          {/* Routes admin protégées */}
           <Route path="/" element={
             <AdminRoute>
               <Layout />
