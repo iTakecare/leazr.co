@@ -5,21 +5,13 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent relative">
-      <div className="absolute inset-0 w-full h-full z-0 bg-transparent top-[-200px]">
-        <img 
-          src="/lovable-uploads/69cf8d75-cc81-4f9d-b1be-17e469efeccf.png" 
-          alt="Background" 
-          className="w-full h-full object-cover opacity-50"
-        />
-      </div>
-      
-      <Container maxWidth="custom" className="relative z-10">
-        <div className="text-center mb-12 relative">
-          <h2 className="text-[46px] font-bold text-gray-900 mb-4 relative z-10">
+    <section className="py-20 bg-transparent">
+      <Container maxWidth="custom">
+        <div className="text-center mb-12">
+          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Passer au leasing de matériel informatique
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold relative z-10">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
             en seulement 3 étapes
           </div>
         </div>
@@ -97,6 +89,7 @@ const StepsSection = () => {
         </div>
       </Container>
       
+      {/* Espace de transition réduit */}
       <div className="h-10 bg-transparent"></div>
     </section>
   );
