@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import MainNavigation from "@/components/layout/MainNavigation";
+import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -73,7 +73,7 @@ const ProductDetailPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
+        <UnifiedNavigation />
       </div>
       
       <div className="bg-white py-2 mt-24">
@@ -160,3 +160,4 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
+

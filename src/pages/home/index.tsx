@@ -1,20 +1,20 @@
 
 import React from 'react';
-import MainNavigation from '@/components/layout/MainNavigation';
+import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import HeroSection from '@/components/home/HeroSection';
+import PartnersSection from '@/components/home/PartnersSection';
 import FeatureSection from '@/components/home/FeatureSection';
 import PressSection from '@/components/home/PressSection';
 import StepsSection from '@/components/home/StepsSection';
 import AdvisorSection from '@/components/home/AdvisorSection';
 import FaqSection from '@/components/home/FaqSection';
 import CtaSection from '@/components/home/CtaSection';
-import PartnersSection from '@/components/home/PartnersSection';
 import HomeFooter from '@/components/home/HomeFooter';
 
 const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainNavigation />
+      <UnifiedNavigation />
       <div className="pt-[100px]">
         <HeroSection />
         <PartnersSection />
@@ -31,3 +31,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
