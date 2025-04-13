@@ -11,8 +11,8 @@ const CtaSection = () => {
     <section className="py-16 bg-transparent text-white">
       <Container maxWidth="custom">
         <div className="text-center relative">
-          {/* Rectangle turquoise placé derrière le texte */}
-          <div className="absolute inset-0 bg-[#41A6B2] rounded-xl overflow-hidden z-0">
+          {/* Rectangle turquoise placé derrière le texte, taille réduite */}
+          <div className="absolute inset-x-0 top-1/4 bottom-1/4 bg-[#41A6B2] rounded-xl overflow-hidden z-0">
             {/* Formes décoratives dans le coin supérieur gauche */}
             <div className="absolute top-0 left-0 w-1/3 h-1/3">
               <div className="absolute top-0 left-0 w-full h-full bg-[#33949F] transform -skew-x-12"></div>
