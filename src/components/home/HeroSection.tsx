@@ -40,7 +40,7 @@ const HeroSection = (): JSX.Element => {
                 informatique
               </h1>
               <Badge className="bg-[#48b5c34f] group-hover:bg-[#33638E] rounded-[10px] px-2 py-1 md:px-2.5 md:py-[12px] my-1 md:my-2 inline-flex">
-                <span className="font-black text-[#48b5c3] group-hover:text-white text-xl sm:text-3xl md:text-[40px]">
+                <span className="font-black text-[#48b5c3] group-hover:text-white text-3xl sm:text-4xl md:text-[50px]">
                   Reconditionné
                 </span>
               </Badge>
