@@ -10,19 +10,21 @@ const HomeFooter = () => {
       {/* Section turquoise avec appel à l'action */}
       <div className="w-full bg-itakecare-turquoise py-16">
         <Container maxWidth="lg">
-          <div className="text-center text-white">
-            <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-              Le leasing de matériel informatique<br />
-              n'a plus de <span className="bg-[#33949F] px-4 py-1 rounded-full">secrets</span> pour vous
-            </h2>
-            
-            <div className="flex flex-wrap justify-center gap-4 mt-10">
-              <Link to="/catalogue" className="bg-[#33949F] hover:bg-[#2C8089] text-white font-medium px-6 py-3 rounded-full transition-all">
-                Découvrir le catalogue
-              </Link>
-              <Link to="/contact" className="bg-white hover:bg-gray-100 text-gray-800 font-medium px-6 py-3 rounded-full transition-all">
-                Parler à un conseiller
-              </Link>
+          <div className="max-w-4xl mx-auto bg-white/10 rounded-3xl p-8 shadow-lg">
+            <div className="text-center text-white">
+              <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
+                Le leasing de matériel informatique<br />
+                n'a plus de <span className="bg-[#33949F] px-4 py-1 rounded-full">secrets</span> pour vous
+              </h2>
+              
+              <div className="flex flex-wrap justify-center gap-4 mt-10">
+                <Link to="/catalogue" className="bg-[#33949F] hover:bg-[#2C8089] text-white font-medium px-6 py-3 rounded-full transition-all">
+                  Découvrir le catalogue
+                </Link>
+                <Link to="/contact" className="bg-white hover:bg-gray-100 text-gray-800 font-medium px-6 py-3 rounded-full transition-all">
+                  Parler à un conseiller
+                </Link>
+              </div>
             </div>
           </div>
         </Container>
