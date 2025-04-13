@@ -26,15 +26,13 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     const loadRelatedProducts = async () => {
       try {
         setIsLoading(true);
-        // Use the getProducts function instead of the non-existent getProductsByCategory
         const allProducts = await getProducts();
         
-        // Filter products by category and other criteria
         const filteredProducts = allProducts
-          .filter(p => p.category === category) // Filter by matching category
-          .filter(p => p.id !== currentProductId) // Filter out current product
-          .filter(p => p.active !== false) // Filter only active products
-          .slice(0, limit); // Limit the number of products
+          .filter(p => p.category === category)
+          .filter(p => p.id !== currentProductId)
+          .filter(p => p.active !== false)
+          .slice(0, limit);
         
         setProducts(filteredProducts);
       } catch (error) {
@@ -49,9 +47,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     }
   }, [category, currentProductId, limit]);
 
-  // Calculate the correct price to display for a product
   const getProductPrice = (product: Product): number => {
-    // If the product has variants, find the minimum price
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
       const variantPrices = product.variant_combination_prices
         .map(variant => variant.monthly_price || 0)
@@ -62,12 +58,10 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
       }
     }
     
-    // Use monthly_price if available
     if (typeof product.monthly_price === 'number' && product.monthly_price > 0) {
       return product.monthly_price;
     }
     
-    // Fallback to a default value if nothing else works
     return 39.99;
   };
 
@@ -106,28 +100,35 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
         return (
           <Card 
             key={product.id} 
-            className="border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+            className="border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
             onClick={() => handleProductClick(product.id)}
           >
             <CardContent className="p-0">
-              <div className="aspect-[4/3] relative">
+              <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
                   src={product.image_url || "/placeholder.svg"} 
                   alt={product.name}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/placeholder.svg';
                   }}
                 />
               </div>
               <div className="p-3">
-                <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{product.name}</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{product.brand}</span>
-                  <span className="text-xs text-[#2d618f]"> {/* Réduit la taille du texte et change la couleur */}
-                    {hasVariants ? "À partir de " : ""}
-                    {formatCurrency(productPrice)}/mois
-                  </span>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 pr-2">
+                    <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-gray-500">{product.brand}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-blue-700">
+                      {hasVariants ? "Dès " : ""}
+                      {formatCurrency(productPrice)}
+                      <span className="text-xs text-gray-500">/mois</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -139,4 +140,3 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 };
 
 export default RelatedProducts;
-
