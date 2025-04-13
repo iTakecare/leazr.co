@@ -382,10 +382,10 @@ const ProductDetailPage = () => {
                   </div>
                 )}
                 
-                <div className="p-2 rounded-lg mb-2">
+                <div className="p-2 rounded-lg mb-2 bg-gray-50">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-white/80">Pour 36 mois</span>
-                    <span className="text-lg font-bold text-white">{formatCurrency(totalPrice)} HT / mois</span>
+                    <span className="text-xs text-gray-600">Pour 36 mois</span>
+                    <span className="text-lg font-bold text-gray-800">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-1 mt-2 mb-1">
@@ -399,7 +399,7 @@ const ProductDetailPage = () => {
                     />
                     <Button 
                       variant="outline" 
-                      className="text-xs w-full sm:w-auto border-white/30 text-white bg-white/10 hover:bg-white/20 hover:text-white h-8 px-2"
+                      className="text-xs w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 h-8 px-2"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
                       <Info className="h-3 w-3 mr-1" />
@@ -407,13 +407,13 @@ const ProductDetailPage = () => {
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-1 text-[10px] mt-2">
-                    <div className="flex items-center text-white/80">
-                      <Check className="h-2.5 w-2.5 text-white mr-1 flex-shrink-0" />
+                  <div className="grid grid-cols-2 gap-1 text-[10px] mt-2 text-gray-600">
+                    <div className="flex items-center">
+                      <Check className="h-2.5 w-2.5 text-green-500 mr-1 flex-shrink-0" />
                       <span>Livraison gratuite</span>
                     </div>
-                    <div className="flex items-center text-white/80">
-                      <Check className="h-2.5 w-2.5 text-white mr-1 flex-shrink-0" />
+                    <div className="flex items-center">
+                      <Check className="h-2.5 w-2.5 text-green-500 mr-1 flex-shrink-0" />
                       <span>Pas de loyer majoré</span>
                     </div>
                   </div>
@@ -421,7 +421,7 @@ const ProductDetailPage = () => {
                 
                 <Button 
                   variant="link" 
-                  className="text-xs text-white p-0 hover:text-white/80"
+                  className="text-xs text-gray-600 p-0 hover:text-gray-800"
                   onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                 >
                   Besoin d&apos;aide ?
