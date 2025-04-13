@@ -102,7 +102,7 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   return (
     <div 
       id="product-config" 
-      className="sticky top-45 lg:top-24"  // Updated to top-45
+      className="sticky top-32 lg:top-24"  // Adjusted to move down more on different screen sizes
       style={{
         position: "sticky",
         zIndex: 10
