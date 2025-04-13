@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -107,7 +106,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-6 max-w-[1320px]">
+      <div className="container mx-auto px-4 max-w-[1320px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ProductMainContent 
             product={product}
@@ -168,4 +167,3 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
-
