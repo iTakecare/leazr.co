@@ -56,9 +56,13 @@ import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
-// Import des nouvelles pages de blog
+// Import des pages de blog
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+// Import des nouvelles pages 
+import SolutionsPage from "./pages/SolutionsPage";
+import ServicesPage from "./pages/ServicesPage";
+import DurabilitePage from "./pages/DurabilitePage";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -127,6 +131,24 @@ const App = () => {
           <Route path="/produits/:id" element={<ProductDetailPage />} />
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
+          
+          {/* Nouvelles routes pour les pages principales */}
+          <Route path="/solutions" element={<SolutionsPage />} />
+          <Route path="/solutions/location" element={<SolutionsPage />} />
+          <Route path="/solutions/gestion-parc" element={<SolutionsPage />} />
+          <Route path="/solutions/cloud" element={<SolutionsPage />} />
+          <Route path="/solutions/reconditionnement" element={<SolutionsPage />} />
+          
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/services/entreprises" element={<ServicesPage />} />
+          <Route path="/services/professionnels" element={<ServicesPage />} />
+          <Route path="/services/formations" element={<ServicesPage />} />
+          <Route path="/services/support" element={<ServicesPage />} />
+          
+          <Route path="/durabilite" element={<DurabilitePage />} />
+          <Route path="/durabilite/engagement" element={<DurabilitePage />} />
+          <Route path="/durabilite/economie-circulaire" element={<DurabilitePage />} />
+          <Route path="/durabilite/impact" element={<DurabilitePage />} />
           
           {/* Routes de blog */}
           <Route path="/blog" element={<BlogPage />} />
