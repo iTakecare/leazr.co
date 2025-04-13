@@ -57,10 +57,11 @@ const PressSection = () => {
   ];
 
   return (
-    <section className="py-16 relative">
-      {/* Effet de blur sur la partie gauche de la section */}
+    <section className="py-16 relative overflow-hidden">
+      {/* Effet de blur animé sur la partie gauche de la section */}
       <div className="absolute top-0 left-0 w-1/2 h-full z-0">
-        <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full animate-[pulse_8s_infinite_alternate]"></div>
+        <div className="absolute top-[25%] left-[5%] w-[60%] h-[60%] bg-[#48b5c3]/10 blur-[70px] rounded-full animate-[pulse_12s_infinite_alternate-reverse]"></div>
       </div>
       
       <Container maxWidth="custom">
