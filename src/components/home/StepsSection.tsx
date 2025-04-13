@@ -10,7 +10,7 @@ const StepsSection = () => {
         <img 
           src="/lovable-uploads/69cf8d75-cc81-4f9d-b1be-17e469efeccf.png" 
           alt="Background" 
-          className="w-full h-full object-cover opacity-60"
+          className="w-full h-full object-cover opacity-100"
         />
       </div>
       
