@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -22,7 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import PublicHeader from "@/components/catalog/public/PublicHeader";
+import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 
 const PublicCatalog = () => {
@@ -116,7 +117,7 @@ const PublicCatalog = () => {
 
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
-      <PublicHeader />
+      <UnifiedNavigation />
       
       <div className="pt-[130px]">
         <div className="px-4 md:px-6 max-w-7xl mx-auto">
