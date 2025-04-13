@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ChevronDown, ShoppingCart, Globe } from 'lucide-react';
@@ -69,7 +68,6 @@ const HomeHeader = () => {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center space-x-8">
           {mainNavItems.map((item) => (
             <Link 
@@ -87,7 +85,7 @@ const HomeHeader = () => {
 
         <div className="hidden lg:flex items-center space-x-4">
           <Link to="/panier" className="relative">
-            <ShoppingCartIcon className={cn(
+            <ShoppingCart className={cn(
               "w-5 h-5 transition-colors",
               scrolled ? "text-gray-700" : "text-white"
             )} />
@@ -147,10 +145,9 @@ const HomeHeader = () => {
           </Link>
         </div>
 
-        {/* Mobile menu toggle button */}
         <div className="flex items-center space-x-4 lg:hidden">
           <Link to="/panier" className="relative">
-            <ShoppingCartIcon className={cn(
+            <ShoppingCart className={cn(
               "w-5 h-5 transition-colors",
               scrolled ? "text-gray-700" : "text-white"
             )} />
@@ -180,7 +177,6 @@ const HomeHeader = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white shadow-lg animate-fade-in">
           <div className="container mx-auto px-4 py-6">
