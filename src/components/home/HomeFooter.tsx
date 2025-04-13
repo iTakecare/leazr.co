@@ -10,7 +10,7 @@ const HomeFooter = () => {
       {/* Section turquoise avec appel à l'action */}
       <div className="w-full bg-itakecare-turquoise py-16">
         <Container maxWidth="lg">
-          <div className="max-w-4xl mx-auto bg-white/10 rounded-3xl p-8 shadow-lg">
+          <div className="max-w-4xl mx-auto bg-transparent rounded-3xl p-8">
             <div className="text-center text-white">
               <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
                 Le leasing de matériel informatique<br />
