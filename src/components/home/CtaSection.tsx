@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +18,7 @@ const CtaSection = () => {
             <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
               Le leasing de matériel informatique
               <br />
-              n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-full text-slate-950">secrets</span> pour vous
+              n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">secrets</span> pour vous
             </h2>
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto" onClick={() => navigate("/catalogue")}>
@@ -33,3 +34,4 @@ const CtaSection = () => {
     </section>;
 };
 export default CtaSection;
+
