@@ -88,6 +88,9 @@ const StepsSection = () => {
           </div>
         </div>
       </Container>
+      
+      {/* Dégradé de transition */}
+      <div className="h-24 bg-gradient-to-b from-blue-50/30 to-white"></div>
     </section>
   );
 };
