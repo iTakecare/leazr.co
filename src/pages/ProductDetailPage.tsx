@@ -301,7 +301,7 @@ const ProductDetailPage = () => {
           <div className="relative">
             <div 
               id="product-config" 
-              className="sticky top-50 border-2 border-primary/30 rounded-lg shadow-md"
+              className="sticky top-50 border-4 border-blue-600/50 rounded-lg shadow-lg"
             >
               <div className="rounded-t-lg overflow-hidden">
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
