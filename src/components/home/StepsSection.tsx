@@ -102,9 +102,6 @@ const StepsSection = () => {
           </div>
         </div>
       </Container>
-      
-      {/* Espace de transition réduit */}
-      <div className="h-10 bg-transparent"></div>
     </section>
   );
 };
