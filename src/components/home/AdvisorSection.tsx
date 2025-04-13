@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ const AdvisorSection = () => {
               <div className="mb-16">
                 <h2 className="text-5xl font-bold text-gray-900 mb-2">
                   Vous hésitez sur le{" "}
-                  <span className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-1 rounded-full">
+                  <span className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-4 py-1 rounded-lg">
                     choix du matériel ?
                   </span>
                 </h2>
