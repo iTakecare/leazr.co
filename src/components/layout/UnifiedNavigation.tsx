@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from 'lucide-react';
@@ -74,7 +73,6 @@ const UnifiedNavigation = () => {
             />
           </Link>
           
-          {/* Mobile menu toggle button */}
           <button 
             onClick={toggleMobileMenu} 
             className="p-2 md:hidden"
@@ -84,9 +82,7 @@ const UnifiedNavigation = () => {
           </button>
         </div>
 
-        {/* Mobile navigation */}
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
-          {/* Solutions dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
             {solutionsMenu.map((item, index) => (
@@ -102,7 +98,6 @@ const UnifiedNavigation = () => {
             ))}
           </div>
           
-          {/* Services dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
             {servicesMenu.map((item, index) => (
@@ -118,7 +113,6 @@ const UnifiedNavigation = () => {
             ))}
           </div>
           
-          {/* Durabilité dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
             {durabiliteMenu.map((item, index) => (
@@ -133,17 +127,6 @@ const UnifiedNavigation = () => {
               </Link>
             ))}
           </div>
-          
-          <Link
-            to="/catalogue"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname === "/catalogue" && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Catalogue
-          </Link>
           
           <Link
             to="/contact"
@@ -173,10 +156,8 @@ const UnifiedNavigation = () => {
           </div>
         </div>
 
-        {/* Desktop navigation */}
         <nav className="hidden md:block ml-[40px]">
           <ul className="flex space-x-[25px]">
-            {/* Solutions dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -216,7 +197,6 @@ const UnifiedNavigation = () => {
               </DropdownMenu>
             </li>
 
-            {/* Services dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -247,7 +227,6 @@ const UnifiedNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Durabilité dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -271,18 +250,6 @@ const UnifiedNavigation = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </li>
-            
-            <li>
-              <Link
-                to="/catalogue"
-                className={cn(
-                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
-                  location.pathname === "/catalogue" && "font-medium text-[#33638E]"
-                )}
-              >
-                Catalogue
-              </Link>
             </li>
             
             <li>
