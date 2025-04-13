@@ -306,7 +306,7 @@ const ProductDetailPage = () => {
           
           <div>
             <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
-              <div className="rounded-t-lg overflow-hidden">
+              <div className="sticky top-4 rounded-t-lg overflow-hidden">
                 {/* Partie supérieure avec le dégradé */}
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                   <div className="flex items-center justify-between mb-1">
