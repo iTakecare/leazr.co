@@ -1,6 +1,6 @@
 
 import React from "react";
-import HomeHeader from "@/components/home/HomeHeader";
+import MainNavigation from "@/components/layout/MainNavigation";
 import HeroSection from "@/components/home/HeroSection";
 import PartnersSection from "@/components/home/PartnersSection";
 import FeatureSection from "@/components/home/FeatureSection";
@@ -14,7 +14,7 @@ import HomeFooter from "@/components/home/HomeFooter";
 const Index = () => {
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
-      <HomeHeader />
+      <MainNavigation />
       <div className="pt-[100px]">
         <HeroSection />
         <PartnersSection />

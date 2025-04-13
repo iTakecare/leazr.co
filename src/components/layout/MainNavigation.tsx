@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCartIcon, ChevronDown, Menu, X, Globe, Star, Sparkles, Book, Headphones, Briefcase } from "lucide-react";
+import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
@@ -33,18 +33,31 @@ const MainNavigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Navigation menu items with icons and dropdowns
+  // Updated navigation menu items with icons and dropdowns
   const solutionsMenu = [
-    { label: "Location d'équipement", href: "/solutions/location", icon: <Sparkles className="w-4 h-4 mr-2" /> },
-    { label: "Gestion de parc", href: "/solutions/gestion-parc", icon: <Briefcase className="w-4 h-4 mr-2" /> },
-    { label: "Services cloud", href: "/solutions/cloud", icon: <Globe className="w-4 h-4 mr-2" /> },
-    { label: "Reconditionnement", href: "/solutions/reconditionnement", icon: <Star className="w-4 h-4 mr-2" /> },
+    { label: "Location d'équipement", href: "/solutions/location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
+    { label: "Gestion de parc", href: "/solutions/gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
+    { label: "Services cloud", href: "/solutions/cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: "Infrastructure cloud sécurisée et évolutive" },
+    { label: "Reconditionnement", href: "/solutions/reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Équipements reconditionnés et certifiés écologiques" },
+  ];
+
+  const servicesMenu = [
+    { label: "Pour entreprises", href: "/services/entreprises", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "Pour professionnels", href: "/services/professionnels", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "Formations", href: "/services/formations", icon: <FileText className="w-4 h-4 mr-2" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Support technique", href: "/services/support", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Assistance technique dédiée et réactive" },
+  ];
+
+  const durabiliteMenu = [
+    { label: "Notre engagement", href: "/durabilite/engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Notre mission pour un numérique responsable" },
+    { label: "Économie circulaire", href: "/durabilite/economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Comment nous contribuons à l'économie circulaire" },
+    { label: "Impact environnemental", href: "/durabilite/impact", icon: <Globe className="w-4 h-4 mr-2" />, description: "Nos actions pour réduire l'empreinte environnementale" },
   ];
 
   const ressourcesMenu = [
-    { label: "Blog", href: "/blog", icon: <Book className="w-4 h-4 mr-2" /> },
-    { label: "Centre d'aide", href: "/aide", icon: <Headphones className="w-4 h-4 mr-2" /> },
-    { label: "Documentation", href: "/docs", icon: <Book className="w-4 h-4 mr-2" /> },
+    { label: "Blog", href: "/blog", icon: <FileText className="w-4 h-4 mr-2" />, description: "Articles et actualités sur le numérique responsable" },
+    { label: "Centre d'aide", href: "/aide", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Guides et documentation détaillée" },
+    { label: "Témoignages", href: "/temoignages", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Retours d'expérience de nos clients" },
   ];
 
   const toggleMobileMenu = () => {
@@ -94,10 +107,26 @@ const MainNavigation = () => {
             ))}
           </div>
           
-          {/* Ressources dropdown for mobile */}
+          {/* Services dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Ressources</div>
-            {ressourcesMenu.map((item, index) => (
+            <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
+            {servicesMenu.map((item, index) => (
+              <Link
+                key={index}
+                to={item.href}
+                className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            ))}
+          </div>
+          
+          {/* Durabilité dropdown for mobile */}
+          <div className="border-b border-gray-200 pb-2 mb-2">
+            <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
+            {durabiliteMenu.map((item, index) => (
               <Link
                 key={index}
                 to={item.href}
@@ -160,15 +189,18 @@ const MainNavigation = () => {
                     Solutions <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
+                <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
                   {solutionsMenu.map((item, index) => (
                     <DropdownMenuItem key={index} asChild>
                       <Link 
                         to={item.href}
-                        className="flex items-center py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer"
+                        className="flex flex-col py-3 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer"
                       >
-                        {item.icon}
-                        <span>{item.label}</span>
+                        <div className="flex items-center">
+                          {item.icon}
+                          <span className="font-medium">{item.label}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 ml-6">{item.description}</p>
                       </Link>
                     </DropdownMenuItem>
                   ))}
@@ -176,23 +208,53 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
 
-            {/* Ressources dropdown */}
+            {/* Services dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
-                    Ressources <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                    Services <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
-                  {ressourcesMenu.map((item, index) => (
+                <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
+                  {servicesMenu.map((item, index) => (
                     <DropdownMenuItem key={index} asChild>
                       <Link 
                         to={item.href}
-                        className="flex items-center py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer"
+                        className="flex flex-col py-3 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer"
                       >
-                        {item.icon}
-                        <span>{item.label}</span>
+                        <div className="flex items-center">
+                          {item.icon}
+                          <span className="font-medium">{item.label}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 ml-6">{item.description}</p>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </li>
+            
+            {/* Durabilité dropdown */}
+            <li className="relative group">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
+                    Durabilité <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
+                  {durabiliteMenu.map((item, index) => (
+                    <DropdownMenuItem key={index} asChild>
+                      <Link 
+                        to={item.href}
+                        className="flex flex-col py-3 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer"
+                      >
+                        <div className="flex items-center">
+                          {item.icon}
+                          <span className="font-medium">{item.label}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 ml-6">{item.description}</p>
                       </Link>
                     </DropdownMenuItem>
                   ))}
@@ -228,7 +290,7 @@ const MainNavigation = () => {
 
         <div className="hidden md:flex items-center space-x-4">
           <Link to="/panier" className="relative group">
-            <ShoppingCartIcon className="w-6 h-6 text-gray-700 group-hover:text-[#33638E] transition-colors" />
+            <ShoppingCart className="w-6 h-6 text-gray-700 group-hover:text-[#33638E] transition-colors" />
             {cartCount > 0 && (
               <Badge 
                 className={cn(

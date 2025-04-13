@@ -1,6 +1,6 @@
 
 import React from 'react';
-import HomeHeader from '@/components/home/HomeHeader';
+import MainNavigation from '@/components/layout/MainNavigation';
 import HeroSection from '@/components/home/HeroSection';
 import FeatureSection from '@/components/home/FeatureSection';
 import PressSection from '@/components/home/PressSection';
@@ -14,7 +14,7 @@ import HomeFooter from '@/components/home/HomeFooter';
 const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <HomeHeader />
+      <MainNavigation />
       <div className="pt-[100px]">
         <HeroSection />
         <PartnersSection />
