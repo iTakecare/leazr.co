@@ -50,7 +50,7 @@ const FeatureSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 pt-32 bg-white">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
           <h2 className="text-[46px] font-bold text-gray-900 mb-4 relative">
