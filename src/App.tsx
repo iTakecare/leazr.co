@@ -55,8 +55,6 @@ import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -125,10 +123,6 @@ const App = () => {
           <Route path="/produits/:id" element={<ProductDetailPage />} />
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
-          
-          {/* Routes du blog */}
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:id" element={<BlogPostPage />} />
           
           {/* Routes admin protégées */}
           <Route path="/" element={
