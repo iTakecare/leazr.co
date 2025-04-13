@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ const AdvisorSection = () => {
                   </div>
                   
                   <Button 
-                    className="bg-[#48B5C3] hover:bg-[#48B5C3]/90 text-white font-semibold rounded-full px-8 py-3 text-lg h-auto"
+                    className="bg-[#48B5C3] hover:bg-[#48B5C3]/90 text-white font-semibold rounded-lg px-8 py-3 text-lg h-auto"
                   >
                     Parler à un conseiller
                   </Button>

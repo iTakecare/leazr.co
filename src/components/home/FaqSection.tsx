@@ -1,7 +1,5 @@
-
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
-import { Plus, Minus } from "lucide-react";
 import { 
   Accordion,
   AccordionContent,
@@ -57,7 +55,7 @@ const FaqSection = () => {
           <h2 className="text-[32px] md:text-[46px] font-bold text-gray-900 mb-2">
             Les questions fréquemment
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-6 py-2 rounded-full text-[32px] md:text-[46px] font-bold">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-6 py-2 rounded-lg text-[32px] md:text-[46px] font-bold">
             Posées
           </div>
         </div>
