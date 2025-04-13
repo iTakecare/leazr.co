@@ -5,20 +5,20 @@ import { Button } from "@/components/ui/button";
 
 const AdvisorSection = () => {
   return (
-    <section className="py-20 bg-transparent">
+    <section className="py-20 bg-transparent relative">
+      {/* Image blur en arrière-plan - positionnée par rapport à la section */}
+      <div className="absolute top-[-150px] right-0 w-[60%] h-[100%] z-0">
+        <img 
+          src="/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png" 
+          alt="Background blur" 
+          className="w-full h-full object-contain"
+        />
+      </div>
+      
       <Container maxWidth="custom">
         <div className="relative bg-transparent rounded-3xl overflow-hidden">
           {/* Rectangle gris clair en arrière-plan, ajusté pour s'aligner avec la fin de la photo */}
           <div className="absolute top-[40%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[56%]"></div>
-          
-          {/* Image blur en arrière-plan */}
-          <div className="absolute top-0 right-0 w-[60%] h-[70%] z-0">
-            <img 
-              src="/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png" 
-              alt="Background blur" 
-              className="w-full h-full object-cover"
-            />
-          </div>
           
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
