@@ -44,11 +44,12 @@ const ContactPage = () => {
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
-                Contactez-nous
+              <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl leading-tight mb-6">
+                Contactons-nous
               </h1>
               <p className="text-[#222222] text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-                Notre équipe est à votre disposition pour répondre à toutes vos questions concernant le leasing informatique reconditionné et vous accompagner dans votre démarche.
+                Parlons de votre projet. 
+                Envoyez-nous un message et nous vous contacterons sous un jour ouvrable.
               </p>
             </div>
           </div>
