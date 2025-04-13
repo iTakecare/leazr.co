@@ -31,13 +31,16 @@ const PartnersSection = () => {
         </div>
         
         <div className="relative overflow-hidden w-full bg-white/80 py-6 rounded-xl">
-          <div className="flex space-x-8 animate-marquee whitespace-nowrap">
+          <div className="flex space-x-12 animate-marquee">
             {duplicatedPartners.map((partner, index) => (
-              <div key={`${partner.id}-${index}`} className="flex items-center justify-center">
+              <div 
+                key={`${partner.id}-${index}`} 
+                className="flex items-center justify-center"
+              >
                 <img 
                   src={partner.logo} 
                   alt={partner.name} 
-                  className="h-12 md:h-16 object-contain max-w-[120px] md:max-w-[160px]"
+                  className="h-10 md:h-12 object-contain max-w-[100px] md:max-w-[130px] opacity-70 hover:opacity-100 transition-all duration-300 hover:scale-110"
                   title={partner.name}
                 />
               </div>
