@@ -139,6 +139,18 @@ const MainNavigation = () => {
             ))}
           </div>
           
+          {/* Ajout du lien Blog dans le menu mobile */}
+          <Link
+            to="/blog"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname.startsWith("/blog") && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Blog
+          </Link>
+          
           <Link
             to="/catalogue"
             className={cn(
@@ -260,6 +272,19 @@ const MainNavigation = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </li>
+            
+            {/* Ajout du lien vers le Blog */}
+            <li>
+              <Link
+                to="/blog"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname.startsWith("/blog") && "font-medium text-[#33638E]"
+                )}
+              >
+                Blog
+              </Link>
             </li>
             
             <li>

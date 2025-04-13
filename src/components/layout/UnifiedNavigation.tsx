@@ -84,6 +84,7 @@ const UnifiedNavigation = () => {
         </div>
 
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
+          {/* Menu mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
             {solutionsMenu.map((item, index) => (
@@ -128,6 +129,18 @@ const UnifiedNavigation = () => {
               </Link>
             ))}
           </div>
+          
+          {/* Nouvel élément Blog dans le menu mobile */}
+          <Link
+            to="/blog"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname.startsWith("/blog") && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Blog
+          </Link>
           
           <Link
             to="/contact"
@@ -251,6 +264,19 @@ const UnifiedNavigation = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </li>
+            
+            {/* Ajout du lien Blog */}
+            <li>
+              <Link
+                to="/blog"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname.startsWith("/blog") && "font-medium text-[#33638E]"
+                )}
+              >
+                Blog
+              </Link>
             </li>
             
             <li>
