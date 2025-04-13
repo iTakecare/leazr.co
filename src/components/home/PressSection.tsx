@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { PlayCircle } from "lucide-react";
@@ -56,11 +57,16 @@ const PressSection = () => {
   ];
 
   return (
-    <section className="py-16">
+    <section className="py-16 relative">
+      {/* Effet de blur sur la partie gauche de la section */}
+      <div className="absolute top-0 left-0 w-1/2 h-full z-0">
+        <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+      </div>
+      
       <Container maxWidth="custom">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Colonne de gauche: Titre et YouTube thumbnail */}
-          <div className="flex flex-col">
+          <div className="flex flex-col relative z-10">
             <h2 className="text-[46px] font-bold text-gray-900 mb-8 mr-2">
               La presse <span className="bg-[#48b5c34f] text-[#48b5c3] px-6 py-1 rounded-lg group-hover:bg-[#33638E] group-hover:text-white relative top-[-2px] ml-1">parle de nous</span>
             </h2>
@@ -89,7 +95,7 @@ const PressSection = () => {
           </div>
           
           {/* Colonne de droite: Logos en 3 rangées - avec liens cliquables */}
-          <div className="flex items-center justify-center h-full mt-8 md:mt-16">
+          <div className="flex items-center justify-center h-full mt-8 md:mt-16 relative z-10">
             <div className="grid grid-cols-3 grid-rows-3 gap-6 w-full">
               {mediaLogos.map((logo) => (
                 <div key={logo.id} className="flex items-center justify-center h-24 sm:h-28">
