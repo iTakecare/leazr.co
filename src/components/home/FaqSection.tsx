@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import { 
@@ -49,9 +50,12 @@ const FaqSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-transparent">
+    <section className="py-16 bg-transparent relative">
       <Container maxWidth="custom">
-        <div className="text-center mb-12">
+        {/* Fond flou derrière le titre */}
+        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-32 bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        
+        <div className="text-center mb-12 relative">
           <h2 className="text-[32px] md:text-[46px] font-bold text-gray-900 mb-2">
             Les questions fréquemment
           </h2>
