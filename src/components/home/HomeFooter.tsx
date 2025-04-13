@@ -5,7 +5,8 @@ import Container from "@/components/layout/Container";
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const HomeFooter = () => {
-  return <footer className="w-full">
+  return (
+    <footer className="w-full">
       <div className="w-full bg-gray-50 py-12">
         <Container maxWidth="lg">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -64,13 +65,15 @@ const HomeFooter = () => {
                 <li><Link to="/faq" className="text-gray-700 hover:text-itakecare-primary">FAQ</Link></li>
               </ul>
             </div>
+          </div>
           
           <div className="mt-12 pt-6 border-t border-gray-200 text-center text-gray-500 text-sm">
             © {new Date().getFullYear()} iTakecare. Tous droits réservés.
           </div>
         </Container>
       </div>
-    </footer>;
+    </footer>
+  );
 };
-export default HomeFooter;
 
+export default HomeFooter;
