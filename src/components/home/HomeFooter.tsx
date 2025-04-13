@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Container from "@/components/layout/Container";
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
+
 const HomeFooter = () => {
   return <footer className="w-full">
       <div className="w-full bg-gray-50 py-12">
@@ -33,11 +35,20 @@ const HomeFooter = () => {
             <div className="md:col-span-1">
               <h3 className="text-xl font-bold mb-4 text-gray-800">Catalogue</h3>
               <ul className="space-y-2">
-                <li><Link to="/catalogue/ordinateurs" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
-                <li><Link to="/catalogue/ecrans" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
-                <li><Link to="/catalogue/peripheriques" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
-                <li><Link to="/catalogue/serveurs" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
-                <li><Link to="/catalogue/reseau" className="text-gray-700 hover:text-itakecare-primary">Lorem</Link></li>
+                <li><Link to="/catalogue/ordinateurs" className="text-gray-700 hover:text-itakecare-primary">Leasing Apple Belgique</Link></li>
+                <li><Link to="/catalogue/ecrans" className="text-gray-700 hover:text-itakecare-primary">Leasing Lenovo Belgique</Link></li>
+                <li><Link to="/catalogue/peripheriques" className="text-gray-700 hover:text-itakecare-primary">Leasing HP Belgique</Link></li>
+                <li><Link to="/catalogue/serveurs" className="text-gray-700 hover:text-itakecare-primary">Leasing Microsoft Surface Belgique</Link></li>
+                <li><Link to="/catalogue/reseau" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Pro Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-pro-m1" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Pro M1 Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-pro-m2" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Pro M2 Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-pro-m3" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Pro M3 Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-air" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Air Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-air-m1" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Air M1 Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-air-m2" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Air M2 Belgique</Link></li>
+                <li><Link to="/catalogue/macbook-air-m3" className="text-gray-700 hover:text-itakecare-primary">Leasing Macbook Air M3 Belgique</Link></li>
+                <li><Link to="/catalogue/ipad-pro" className="text-gray-700 hover:text-itakecare-primary">Leasing iPad Pro Belgique</Link></li>
+                <li><Link to="/catalogue/iphone" className="text-gray-700 hover:text-itakecare-primary">Leasing iPhone Belgique</Link></li>
               </ul>
             </div>
             
@@ -57,3 +68,4 @@ const HomeFooter = () => {
     </footer>;
 };
 export default HomeFooter;
+
