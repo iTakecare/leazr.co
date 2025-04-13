@@ -25,7 +25,7 @@ const CtaSection = () => {
             <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
               Le leasing de matériel informatique
               <br />
-              n'a plus de <span className="bg-black/40 px-4 py-1 rounded-full text-white">secrets</span> pour vous
+              n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-full">secrets</span> pour vous
             </h2>
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <Button 
