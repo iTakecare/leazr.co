@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ContainerProps {
   children: React.ReactNode;
   className?: string;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "custom" | "7xl";
 }
 
 const Container: React.FC<ContainerProps> = ({ 
@@ -19,6 +19,7 @@ const Container: React.FC<ContainerProps> = ({
     lg: "max-w-screen-lg",
     xl: "max-w-screen-xl",
     "2xl": "max-w-screen-2xl",
+    "7xl": "max-w-[1320px]", // Match the width of the navigation bar
     full: "max-w-full",
     custom: "max-w-[1400px]"
   }[maxWidth];
