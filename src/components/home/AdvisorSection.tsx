@@ -11,6 +11,15 @@ const AdvisorSection = () => {
           {/* Rectangle gris clair en arrière-plan, ajusté pour s'aligner avec la fin de la photo */}
           <div className="absolute top-[40%] inset-x-0 bg-[#F1F1F1] rounded-3xl h-[56%]"></div>
           
+          {/* Image blur en arrière-plan */}
+          <div className="absolute top-0 right-0 w-[60%] h-[70%] z-0">
+            <img 
+              src="/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png" 
+              alt="Background blur" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
             <div className="w-full lg:w-3/5 z-10 p-12 lg:p-16">
@@ -26,7 +35,7 @@ const AdvisorSection = () => {
                 </p>
                 
                 {/* Flèche pointant vers l'image */}
-                <div className="hidden lg:block absolute top-[120px] right-[450px]">
+                <div className="hidden lg:block absolute top-[120px] right-[450px] z-20">
                   <img 
                     src="/lovable-uploads/9a1919eb-054c-4be8-acb5-0a02b18696da.png" 
                     alt="Flèche" 
@@ -56,7 +65,7 @@ const AdvisorSection = () => {
             </div>
             
             {/* Image de la conseillère */}
-            <div className="w-full lg:w-2/5 flex justify-end items-center lg:self-center">
+            <div className="w-full lg:w-2/5 flex justify-end items-center lg:self-center z-20">
               <img 
                 src="/lovable-uploads/56939bad-b11e-421e-8dca-13f8a485973b.png" 
                 alt="Conseillère iTakecare" 
