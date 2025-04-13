@@ -1,7 +1,7 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Menu, X } from "lucide-react";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,13 +11,14 @@ import { useCart } from "@/context/CartContext";
 const PublicHeader = () => {
   const { cartCount } = useCart();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   return (
     <header className="bg-white border-b shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-indigo-600 flex items-center">
+            <Link to="/" className="text-xl md:text-2xl font-bold text-indigo-600 flex items-center">
               <Logo showText={false} className="mr-2" />
               iTakecare
             </Link>
@@ -87,8 +88,41 @@ const PublicHeader = () => {
               <Button variant="outline" className="mr-2">Connexion</Button>
               <Button>S'inscrire</Button>
             </div>
+            
+            {/* Mobile menu toggle */}
+            <button 
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+        
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <nav className="flex flex-col space-y-3">
+              <Link to="/pourquoi" className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+                Pourquoi iTakecare ?
+              </Link>
+              <Link to="/mon-compte" className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+                MyiTakecare
+              </Link>
+              <Link to="/catalogue" className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+                Catalogue
+              </Link>
+              <Link to="/ressources" className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+                Ressources
+              </Link>
+              <div className="border-t pt-3 mt-3 flex flex-col space-y-2 px-4">
+                <Button variant="outline" className="w-full justify-center">Connexion</Button>
+                <Button className="w-full justify-center">S'inscrire</Button>
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -15,14 +15,14 @@ const PartnersSection = () => {
   return (
     <section className="py-10 -mt-[400px] relative z-10 bg-transparent">
       <Container maxWidth="custom">
-        <div className="text-center mb-12">
-          <h2 className="text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-[32px] md:text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
         </div>
         
-        <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
+        <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10 lg:gap-16">
           {partners.map((partner) => (
             <div key={partner.id} className="flex items-center">
-              <span className="text-[30px] font-medium">✱ {partner.name}</span>
+              <span className="text-xl md:text-[30px] font-medium">✱ {partner.name}</span>
             </div>
           ))}
         </div>
