@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -300,9 +299,8 @@ const ProductDetailPage = () => {
           </div>
           
           <div>
-            <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
+            <div className="space-y-4 sticky top-4">
               <div className="sticky top-4 rounded-t-lg overflow-hidden">
-                {/* Partie supérieure avec le dégradé */}
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                   <div className="flex items-center justify-between mb-1">
                     <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
@@ -322,7 +320,6 @@ const ProductDetailPage = () => {
                   <Separator className="mb-3 bg-white/20" />
                 </div>
                 
-                {/* Partie inférieure en blanc */}
                 <div className="bg-white p-4">
                   <h3 className="text-sm font-medium mb-2 text-gray-700">Configuration</h3>
                   
@@ -433,14 +430,13 @@ const ProductDetailPage = () => {
           </div>
         </div>
         
-        {/* Related products section - now using full width */}
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
           <RelatedProducts 
             category={productCategory} 
             currentProductId={product?.id} 
             brand={productBrand}
-            limit={6} // Increased limit to show more products
+            limit={6}
           />
         </div>
       </div>
