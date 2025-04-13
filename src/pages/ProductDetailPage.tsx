@@ -252,7 +252,7 @@ const ProductDetailPage = () => {
         <MainNavigation />
       </div>
       
-      <div className="bg-gray-50 py-2 mt-16">
+      <div className="bg-transparent py-2 mt-16">
         <div className="container mx-auto px-4">
           <Breadcrumb>
             <BreadcrumbItem>

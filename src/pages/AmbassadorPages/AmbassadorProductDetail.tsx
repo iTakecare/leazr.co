@@ -15,6 +15,7 @@ import ProductSpecificationsTable from "@/components/product-detail/ProductSpeci
 import { motion } from "framer-motion";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 import MainNavigation from "@/components/layout/MainNavigation";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 
 const AmbassadorProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -108,6 +109,27 @@ const AmbassadorProductDetail = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour au catalogue
             </Button>
+          </div>
+
+          <div className="container mx-auto px-4">
+            <Breadcrumb>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/ambassador/catalog">Catalogue Ambassadeur</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/ambassador/catalog?category=${product.category}`}>
+                  {product.category === "laptop" ? "Ordinateurs" : product.category}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/ambassador/catalog?brand=${product.brand}`}>
+                  {product.brand}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <span className="truncate max-w-[200px] inline-block">{product.name}</span>
+              </BreadcrumbItem>
+            </Breadcrumb>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
