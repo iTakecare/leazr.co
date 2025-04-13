@@ -92,7 +92,7 @@ const HeroSection = (): JSX.Element => {
         </div>
 
         {/* Testimonial section (responsive) - Modified for desktop position */}
-        <div className="fixed-bottom sm:absolute bottom-[-120px] md:bottom-[-100px] left-0 right-0 sm:left-[37px] flex flex-col sm:flex-row items-center w-full sm:w-auto px-4 sm:px-0 pb-4 sm:pb-0 bg-white sm:bg-transparent">
+        <div className="fixed-bottom sm:absolute bottom-[-120px] md:bottom-[-150px] left-0 right-0 sm:left-[37px] flex flex-col sm:flex-row items-center w-full sm:w-auto px-4 sm:px-0 pb-4 sm:pb-0 bg-white sm:bg-transparent">
           <div className="w-[50px] h-[50px] md:w-[68px] md:h-[68px] bg-[url(/65bb183cb2697d670222bf00-customer-img-1.png)] bg-cover bg-[50%_50%] mb-2 sm:mb-0 rounded-full" />
           <div className="ml-0 sm:ml-[15px] max-w-[300px] sm:max-w-[227px] text-center sm:text-left mb-3 sm:mb-0">
             <p className="font-normal text-[#222222] text-sm">
