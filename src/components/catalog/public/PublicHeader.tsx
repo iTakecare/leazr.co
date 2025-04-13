@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Globe, ChevronDown, Sparkles, ArrowRight, Headphones, Book, Briefcase } from "lucide-react";
+import { ShoppingCart, Menu, X, Globe, ChevronDown, Sparkles, ArrowRight, Headphones, Book, Briefcase, Monitor, Server, Recycle, Share2, HelpCircle, Building, FileText } from "lucide-react";
 import { 
   NavigationMenu, 
   NavigationMenuContent, 
@@ -42,6 +42,27 @@ const PublicHeader = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
+  // Menus mis à jour avec une structure cohérente
+  const solutionsMenu = [
+    { label: "Location d'équipement", href: "/solutions/location", icon: <Monitor className="h-4 w-4 text-[#48b5c3]" />, description: "Matériel informatique haute performance en location flexible" },
+    { label: "Gestion de parc", href: "/solutions/gestion-parc", icon: <Server className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
+    { label: "Services cloud", href: "/solutions/cloud", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Infrastructure cloud sécurisée et évolutive" },
+    { label: "Reconditionnement", href: "/solutions/reconditionnement", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Équipements reconditionnés et certifiés écologiques" },
+  ];
+
+  const servicesMenu = [
+    { label: "Pour entreprises", href: "/services/entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "Pour professionnels", href: "/services/professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "Formations", href: "/services/formations", icon: <FileText className="h-4 w-4 text-[#48b5c3]" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Support technique", href: "/services/support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+  ];
+
+  const durabiliteMenu = [
+    { label: "Notre engagement", href: "/durabilite/engagement", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Notre mission pour un numérique responsable" },
+    { label: "Économie circulaire", href: "/durabilite/economie-circulaire", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Comment nous contribuons à l'économie circulaire" },
+    { label: "Impact environnemental", href: "/durabilite/impact", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Nos actions pour réduire l'empreinte environnementale" },
+  ];
+  
   return (
     <header className={cn(
       "sticky top-0 z-30 transition-all duration-300",
@@ -75,34 +96,16 @@ const PublicHeader = () => {
                           Nos solutions d'équipement innovantes
                         </div>
                       </li>
-                      <ListItem 
-                        href="/solutions/location" 
-                        title="Location d'équipement"
-                        icon={<Sparkles className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Équipez vos équipes avec du matériel performant et écologique
-                      </ListItem>
-                      <ListItem 
-                        href="/solutions/entreprise" 
-                        title="Solutions entreprise"
-                        icon={<Briefcase className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Services adaptés à toutes les tailles d'entreprises
-                      </ListItem>
-                      <ListItem 
-                        href="/solutions/gestion" 
-                        title="Gestion de flotte"
-                        icon={<Globe className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Simplifiez la gestion de votre parc informatique
-                      </ListItem>
-                      <ListItem 
-                        href="/solutions/cloud" 
-                        title="Services cloud"
-                        icon={<Globe className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Solutions cloud sécurisées pour votre entreprise
-                      </ListItem>
+                      {solutionsMenu.map((item, index) => (
+                        <ListItem
+                          key={index}
+                          href={item.href}
+                          title={item.label}
+                          icon={item.icon}
+                        >
+                          {item.description}
+                        </ListItem>
+                      ))}
                       <li className="col-span-2 mt-3 pt-3 border-t border-gray-100">
                         <Link 
                           to="/solutions" 
@@ -120,47 +123,49 @@ const PublicHeader = () => {
                   <NavigationMenuTrigger 
                     className="text-sm font-medium text-gray-700 hover:text-[#33638E] transition-colors"
                   >
-                    Ressources
+                    Services
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-6">
-                      <ListItem 
-                        href="/blog" 
-                        title="Blog"
-                        icon={<Book className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Découvrez nos derniers articles et conseils
-                      </ListItem>
-                      <ListItem 
-                        href="/centre-aide" 
-                        title="Centre d'aide"
-                        icon={<Headphones className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Trouvez des réponses à vos questions
-                      </ListItem>
-                      <ListItem 
-                        href="/documentation" 
-                        title="Documentation"
-                        icon={<Book className="h-4 w-4 text-[#48b5c3]" />}
-                      >
-                        Guides techniques et documentation détaillée
-                      </ListItem>
+                    <ul className="grid w-[500px] gap-3 p-6 md:grid-cols-2">
+                      <li className="col-span-2">
+                        <div className="mb-2 text-sm font-medium text-[#33638E]">
+                          Nos services pour votre entreprise
+                        </div>
+                      </li>
+                      {servicesMenu.map((item, index) => (
+                        <ListItem
+                          key={index}
+                          href={item.href}
+                          title={item.label}
+                          icon={item.icon}
+                        >
+                          {item.description}
+                        </ListItem>
+                      ))}
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link
-                    to="/pourquoi" 
-                    className={cn(
-                      "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      location.pathname === "/pourquoi" 
-                        ? "text-[#33638E]" 
-                        : "text-gray-700 hover:text-[#33638E]"
-                    )}
+                  <NavigationMenuTrigger 
+                    className="text-sm font-medium text-gray-700 hover:text-[#33638E] transition-colors"
                   >
-                    Pourquoi iTakecare ?
-                  </Link>
+                    Durabilité
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-6">
+                      {durabiliteMenu.map((item, index) => (
+                        <ListItem
+                          key={index}
+                          href={item.href}
+                          title={item.label}
+                          icon={item.icon}
+                        >
+                          {item.description}
+                        </ListItem>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
@@ -176,14 +181,28 @@ const PublicHeader = () => {
                     Catalogue
                   </Link>
                 </NavigationMenuItem>
+                
+                <NavigationMenuItem>
+                  <Link
+                    to="/contact" 
+                    className={cn(
+                      "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      location.pathname === "/contact"
+                        ? "text-[#33638E]" 
+                        : "text-gray-700 hover:text-[#33638E]"
+                    )}
+                  >
+                    Contact
+                  </Link>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <button 
+            <Link
+              to="/panier"
               className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/panier')}
               aria-label="Voir le panier"
             >
               <ShoppingCart className="h-5 w-5 text-gray-700" />
@@ -195,7 +214,7 @@ const PublicHeader = () => {
                   {cartCount}
                 </span>
               )}
-            </button>
+            </Link>
             
             <DropdownMenu>
               <DropdownMenuTrigger className="hidden sm:flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -220,16 +239,16 @@ const PublicHeader = () => {
             <div className="hidden md:block">
               <Button 
                 variant="outline" 
-                className="rounded-lg text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E]"
+                className="rounded-[20px] text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E]"
                 onClick={() => navigate('/login')}
               >
-                Connexion
+                Se connecter
               </Button>
             </div>
             
             <div className="hidden md:block">
               <Button 
-                className="rounded-lg text-sm bg-[#33638E] hover:bg-[#48b5c3] transition-colors"
+                className="rounded-[20px] text-sm bg-[#48b5c3] hover:bg-[#33638E] transition-colors"
                 onClick={() => navigate('/signup')}
               >
                 S'inscrire
@@ -252,50 +271,46 @@ const PublicHeader = () => {
           <div className="md:hidden py-4 border-t animate-fade-in">
             <nav className="flex flex-col space-y-1">
               <div className="px-4 py-2 text-sm font-medium text-[#33638E]">Solutions</div>
-              <Link 
-                to="/solutions/location" 
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Sparkles className="mr-2 h-4 w-4 text-[#48b5c3]" />
-                Location d'équipement
-              </Link>
-              <Link 
-                to="/solutions/entreprise" 
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Briefcase className="mr-2 h-4 w-4 text-[#48b5c3]" />
-                Solutions entreprise
-              </Link>
+              {solutionsMenu.map((item, index) => (
+                <Link 
+                  key={index}
+                  to={item.href} 
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              ))}
               
-              <div className="px-4 py-2 text-sm font-medium text-[#33638E] mt-2">Ressources</div>
-              <Link 
-                to="/blog" 
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Book className="mr-2 h-4 w-4 text-[#48b5c3]" />
-                Blog
-              </Link>
-              <Link 
-                to="/centre-aide" 
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Headphones className="mr-2 h-4 w-4 text-[#48b5c3]" />
-                Centre d'aide
-              </Link>
+              <div className="px-4 py-2 text-sm font-medium text-[#33638E] mt-2">Services</div>
+              {servicesMenu.map((item, index) => (
+                <Link 
+                  key={index}
+                  to={item.href} 
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              ))}
+              
+              <div className="px-4 py-2 text-sm font-medium text-[#33638E] mt-2">Durabilité</div>
+              {durabiliteMenu.map((item, index) => (
+                <Link 
+                  key={index}
+                  to={item.href} 
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              ))}
               
               <div className="border-t my-2"></div>
               
-              <Link 
-                to="/pourquoi" 
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Pourquoi iTakecare ?
-              </Link>
               <Link 
                 to="/catalogue" 
                 className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
@@ -304,19 +319,27 @@ const PublicHeader = () => {
                 Catalogue
               </Link>
               
+              <Link 
+                to="/contact" 
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </Link>
+              
               <div className="border-t pt-3 mt-3 flex flex-col space-y-2 px-4">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-center rounded-lg"
+                  className="w-full justify-center rounded-[20px]"
                   onClick={() => {
                     navigate('/login');
                     setMobileMenuOpen(false);
                   }}
                 >
-                  Connexion
+                  Se connecter
                 </Button>
                 <Button 
-                  className="w-full justify-center rounded-lg bg-[#33638E] hover:bg-[#48b5c3]"
+                  className="w-full justify-center rounded-[20px] bg-[#48b5c3] hover:bg-[#33638E]"
                   onClick={() => {
                     navigate('/signup');
                     setMobileMenuOpen(false);
