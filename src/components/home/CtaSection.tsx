@@ -11,7 +11,7 @@ const CtaSection = () => {
     <section className="py-16 bg-transparent text-white">
       <Container maxWidth="custom">
         <div className="text-center relative">
-          {/* Image placée derrière le texte */}
+          {/* Image turquoise placée derrière le texte */}
           <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
             <img 
               src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" 
@@ -25,7 +25,7 @@ const CtaSection = () => {
             <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
               Le leasing de matériel informatique
               <br />
-              n'a plus de <span className="bg-black/40 px-4 py-1 rounded-full">secrets</span> pour vous
+              n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-full">secrets</span> pour vous
             </h2>
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <Button 
