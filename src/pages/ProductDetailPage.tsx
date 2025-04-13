@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -253,7 +254,7 @@ const ProductDetailPage = () => {
       </div>
       
       <div className="bg-white py-2 mt-24">
-        <div className="container mx-auto px-4 max-w-screen-lg">
+        <div className="container mx-auto px-4 max-w-[1320px]">
           <Breadcrumb>
             <BreadcrumbItem>
               <BreadcrumbLink href="/catalogue">Accueil catalogue</BreadcrumbLink>
@@ -275,7 +276,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
+      <div className="container mx-auto px-4 py-6 max-w-[1320px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <ProductImageDisplay 
