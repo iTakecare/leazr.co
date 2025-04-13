@@ -1,8 +1,7 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
+import HomeHeader from "@/components/home/HomeHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -72,9 +71,7 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-6">
-        <UnifiedNavigation />
-      </div>
+      <HomeHeader />
       
       <div className="bg-white py-2 mt-24">
         <div className="container mx-auto px-4 max-w-[1320px]">
@@ -160,4 +157,3 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
-
