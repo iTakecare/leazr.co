@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -142,7 +143,7 @@ const ProductDetailPage = () => {
           </div>
         </div>
         
-        <div className="mt-16 mb-32 bg-transparent/10 backdrop-blur-sm rounded-xl p-6">
+        <div className="mt-16 mb-32">
           <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
           <RelatedProducts 
             category={productCategory} 
