@@ -124,7 +124,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
                 <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1">{product.name}</h3>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">{product.brand}</span>
-                  <span className="text-sm font-semibold text-[#2d618f]">
+                  <span className="text-xs text-[#2d618f]"> {/* Réduit la taille du texte et change la couleur */}
                     {hasVariants ? "À partir de " : ""}
                     {formatCurrency(productPrice)}/mois
                   </span>
@@ -139,3 +139,4 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 };
 
 export default RelatedProducts;
+
