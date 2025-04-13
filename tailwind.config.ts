@@ -63,6 +63,7 @@ export default {
 				itakecare: {
 					primary: '#48B5C3',
 					secondary: '#33638E',
+					turquoise: '#41A6B2', // Ajout de la couleur turquoise pour le footer
 				}
 			},
 			fontFamily: {
