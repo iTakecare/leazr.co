@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import { Plus, Minus } from "lucide-react";
@@ -50,7 +51,7 @@ const FaqSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-transparent">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
           <h2 className="text-[32px] md:text-[46px] font-bold text-gray-900 mb-2">
