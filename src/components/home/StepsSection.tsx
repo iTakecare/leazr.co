@@ -5,18 +5,19 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent relative">
-      {/* Conteneur pour le titre avec son arrière-plan de flou */}
+    <section className="py-20 bg-white relative overflow-hidden">
+      {/* Image floutée en arrière-plan de toute la section avec opacité réduite */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-white opacity-70"></div>
+        <img 
+          src="/lovable-uploads/572544b8-bd61-4888-844b-e83bf02cd5b6.png" 
+          alt="Background blur" 
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      {/* Conteneur pour le titre avec effet spécial */}
       <div className="relative z-10 mb-16">
-        {/* Image blur positionnée uniquement derrière le titre */}
-        <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden">
-          <img 
-            src="/lovable-uploads/84dd4cbf-302d-402f-943c-fd5a5c7dbea9.png" 
-            alt="Background blur" 
-            className="w-full h-full object-cover opacity-80 rotate-180"
-          />
-        </div>
-        
         <Container maxWidth="custom">
           <div className="text-center relative z-10">
             <h2 className="text-[46px] font-bold text-gray-900 mb-4">
@@ -31,7 +32,7 @@ const StepsSection = () => {
       
       <Container maxWidth="custom">
         {/* Première étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch relative z-10">
           <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Search className="w-8 h-8 text-white" />
@@ -55,7 +56,7 @@ const StepsSection = () => {
         </div>
 
         {/* Deuxième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch relative z-10">
           <div className="flex justify-center order-2 md:order-1 h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
@@ -79,7 +80,7 @@ const StepsSection = () => {
         </div>
 
         {/* Troisième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch relative z-10">
           <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
             <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
               <Truck className="w-8 h-8 text-white" />
