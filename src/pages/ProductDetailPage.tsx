@@ -301,13 +301,11 @@ const ProductDetailPage = () => {
               <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
               <RelatedProducts category={productCategory} currentProductId={product?.id} brand={productBrand} />
             </div>
-            
-            
           </div>
           
           <div>
             <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
-              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-3">
+              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                 <div className="flex items-center justify-between mb-1">
                   <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
                     {productCategory === "laptop" ? "Ordinateur" : productCategory}
@@ -315,20 +313,18 @@ const ProductDetailPage = () => {
                   <span className="text-indigo-100 text-xs">{productBrand}</span>
                 </div>
                 
-                <h1 className="text-xl font-bold text-white">
+                <h1 className="text-xl font-bold text-white mb-2">
                   Leasing {productName}
                 </h1>
                 
-                <div className="text-sm text-indigo-100">
+                <div className="text-sm text-indigo-100 mb-2">
                   à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
                 </div>
-              </div>
-              
-              <div className="bg-white p-3 border-x border-b border-gray-100">
-                <Separator className="my-2" />
+                
+                <Separator className="mb-3 bg-white/20" />
                 
                 <div className="mb-3">
-                  <h3 className="text-sm font-medium mb-2 text-gray-800">Configuration</h3>
+                  <h3 className="text-sm font-medium mb-2 text-white">Configuration</h3>
                   
                   <div className="grid grid-cols-2 gap-2">
                     {configAttributes.map(attribute => {
@@ -343,31 +339,31 @@ const ProductDetailPage = () => {
                     })}
                     
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-700">Durée</label>
-                      <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1 text-xs">
+                      <label className="text-xs font-medium text-white">Durée</label>
+                      <div className="bg-white/10 rounded border border-white/20 px-2 py-1 text-xs text-white">
                         36 mois
                       </div>
                     </div>
                     
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-700">Quantité</label>
+                      <label className="text-xs font-medium text-white">Quantité</label>
                       <div className="flex items-center">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 rounded-r-none border-gray-200"
+                          className="h-6 w-6 rounded-r-none border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
                           onClick={() => handleQuantityChange(quantity - 1)}
                           disabled={quantity <= 1}
                         >
                           <MinusIcon className="h-3 w-3" />
                         </Button>
-                        <div className="h-6 px-2 flex items-center justify-center border-y border-gray-200 text-xs">
+                        <div className="h-6 px-2 flex items-center justify-center border-y border-white/30 text-xs text-white bg-white/10">
                           {quantity}
                         </div>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 rounded-l-none border-gray-200"
+                          className="h-6 w-6 rounded-l-none border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
                           onClick={() => handleQuantityChange(quantity + 1)}
                         >
                           <PlusIcon className="h-3 w-3" />
@@ -386,10 +382,10 @@ const ProductDetailPage = () => {
                   </div>
                 )}
                 
-                <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 mb-2">
+                <div className="p-2 rounded-lg mb-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Pour 36 mois</span>
-                    <span className="text-lg font-bold text-[#2d618f]">{formatCurrency(totalPrice)} HT / mois</span>
+                    <span className="text-xs text-white/80">Pour 36 mois</span>
+                    <span className="text-lg font-bold text-white">{formatCurrency(totalPrice)} HT / mois</span>
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-1 mt-2 mb-1">
@@ -403,7 +399,7 @@ const ProductDetailPage = () => {
                     />
                     <Button 
                       variant="outline" 
-                      className="text-xs w-full sm:w-auto border-blue-200 text-[#2d618f] hover:bg-blue-50 h-8 px-2"
+                      className="text-xs w-full sm:w-auto border-white/30 text-white bg-white/10 hover:bg-white/20 hover:text-white h-8 px-2"
                       onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                     >
                       <Info className="h-3 w-3 mr-1" />
@@ -411,13 +407,13 @@ const ProductDetailPage = () => {
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-1 text-[10px]">
-                    <div className="flex items-center text-gray-600">
-                      <Check className="h-2.5 w-2.5 text-[#347599] mr-1 flex-shrink-0" />
+                  <div className="grid grid-cols-2 gap-1 text-[10px] mt-2">
+                    <div className="flex items-center text-white/80">
+                      <Check className="h-2.5 w-2.5 text-white mr-1 flex-shrink-0" />
                       <span>Livraison gratuite</span>
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <Check className="h-2.5 w-2.5 text-[#347599] mr-1 flex-shrink-0" />
+                    <div className="flex items-center text-white/80">
+                      <Check className="h-2.5 w-2.5 text-white mr-1 flex-shrink-0" />
                       <span>Pas de loyer majoré</span>
                     </div>
                   </div>
@@ -425,7 +421,7 @@ const ProductDetailPage = () => {
                 
                 <Button 
                   variant="link" 
-                  className="text-xs text-[#2d618f] p-0"
+                  className="text-xs text-white p-0 hover:text-white/80"
                   onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
                 >
                   Besoin d&apos;aide ?
