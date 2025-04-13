@@ -15,7 +15,7 @@ const HeroSection = (): JSX.Element => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen items-center gap-10 md:gap-[77px] py-6 md:py-10 relative">
+    <div className="flex flex-col min-h-screen items-center gap-6 md:gap-10 py-4 md:py-10 relative">
       {/* Background image */}
       <div className="flex flex-col w-full h-screen items-start gap-2.5 absolute top-0 left-0">
         <img
@@ -28,50 +28,50 @@ const HeroSection = (): JSX.Element => {
       </div>
 
       {/* Hero content */}
-      <header className="relative w-full max-w-[1331px] mx-auto min-h-[400px] md:h-[537px] z-10 px-5 md:px-[37px]">
+      <header className="relative w-full max-w-[1331px] mx-auto min-h-[350px] md:min-h-[400px] md:h-[537px] z-10 px-4 md:px-[37px]">
         <div className="flex flex-col md:flex-row">
           {/* Left content */}
           <div className="w-full md:w-[723px] mb-8 md:mb-0">
-            <h1 className="font-black text-[#222222] text-3xl md:text-[50px] leading-tight">
+            <h1 className="font-black text-[#222222] text-2xl sm:text-3xl md:text-[50px] leading-tight">
               Leasing de matériel
             </h1>
             <div className="flex flex-wrap items-center group">
-              <h1 className="font-black text-[#222222] text-3xl md:text-[50px] leading-tight mb-2 md:mb-0">
+              <h1 className="font-black text-[#222222] text-2xl sm:text-3xl md:text-[50px] leading-tight mb-2 md:mb-0">
                 informatique
               </h1>
-              <Badge className="ml-2 md:ml-4 bg-[#48b5c34f] group-hover:bg-[#33638E] rounded-[10px] px-2 py-2 md:px-2.5 md:py-[18px] my-2">
-                <span className="font-black text-[#48b5c3] group-hover:text-white text-2xl md:text-[50px]">
+              <Badge className="ml-2 md:ml-4 bg-[#48b5c34f] group-hover:bg-[#33638E] rounded-[10px] px-2 py-1.5 md:px-2.5 md:py-[18px] my-2">
+                <span className="font-black text-[#48b5c3] group-hover:text-white text-lg sm:text-2xl md:text-[50px]">
                   Reconditionné
                 </span>
               </Badge>
             </div>
-            <h1 className="font-black text-[#222222] text-3xl md:text-[50px] leading-tight mb-4 md:mb-6">
+            <h1 className="font-black text-[#222222] text-2xl sm:text-3xl md:text-[50px] leading-tight mb-3 md:mb-6">
               sans contraintes
             </h1>
 
-            <p className="font-normal text-[#222222] text-base md:text-lg mb-4 md:mb-8">
+            <p className="font-normal text-[#222222] text-sm sm:text-base md:text-lg mb-3 md:mb-8">
               Optez pour un parc informatique performant et écoresponsable, à
               moindre coût :
             </p>
 
-            <ul className="space-y-1 mb-6 md:mb-10">
+            <ul className="space-y-1 sm:space-y-2 mb-4 md:mb-10">
               {benefits.map((benefit, index) => (
                 <li key={index} className="flex items-start">
-                  <span className="text-base md:text-lg mr-2">✅</span>
-                  <span className="font-normal text-[#222222] text-base md:text-lg">
+                  <span className="text-sm sm:text-base md:text-lg mr-2 mt-0.5">✅</span>
+                  <span className="font-normal text-[#222222] text-sm sm:text-base md:text-lg">
                     {benefit}
                   </span>
                 </li>
               ))}
             </ul>
 
-            <div className="flex flex-col sm:flex-row gap-4 sm:space-x-4">
-              <Button className="bg-[#48b5c3] hover:bg-[#33638E] rounded-[50px] font-bold text-base md:text-lg">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Button className="bg-[#48b5c3] hover:bg-[#33638E] rounded-[50px] font-bold text-sm sm:text-base md:text-lg">
                 Découvrir le catalogue
               </Button>
               <Button
                 variant="outline"
-                className="rounded-[50px] font-bold text-base md:text-lg hover:bg-[#48B5C3] hover:text-white"
+                className="rounded-[50px] font-bold text-sm sm:text-base md:text-lg hover:bg-[#48B5C3] hover:text-white mt-2 sm:mt-0"
               >
                 En savoir plus
               </Button>
@@ -94,25 +94,25 @@ const HeroSection = (): JSX.Element => {
         </div>
 
         {/* Testimonial section (responsive) */}
-        <div className="absolute bottom-[-60px] left-0 md:left-[37px] flex flex-col sm:flex-row items-center w-full md:w-auto px-4 md:px-0">
-          <div className="w-[50px] h-[50px] md:w-[68px] md:h-[68px] bg-[url(/65bb183cb2697d670222bf00-customer-img-1.png)] bg-cover bg-[50%_50%] mb-2 sm:mb-0" />
-          <div className="ml-0 sm:ml-[15px] max-w-[227px] text-center sm:text-left mb-4 sm:mb-0">
-            <p className="font-normal text-[#222222] text-xs">
+        <div className="absolute bottom-[-60px] sm:bottom-[-80px] left-0 md:left-[37px] flex flex-col sm:flex-row items-center w-full md:w-auto px-3 md:px-0">
+          <div className="w-[40px] h-[40px] md:w-[68px] md:h-[68px] bg-[url(/65bb183cb2697d670222bf00-customer-img-1.png)] bg-cover bg-[50%_50%] mb-2 sm:mb-0" />
+          <div className="ml-0 sm:ml-[15px] max-w-[227px] text-center sm:text-left mb-3 sm:mb-0">
+            <p className="font-normal text-[#222222] text-xs sm:text-sm">
               "Rapide et professionnel. Bien reçu mon MacBook Pro avec lequel
               j'écris ces lignes. Très content du matériel !"
             </p>
           </div>
           <Separator orientation="vertical" className="hidden sm:block mx-[25px] h-[47px]" />
-          <Separator orientation="horizontal" className="block sm:hidden w-[50%] my-4" />
+          <Separator orientation="horizontal" className="block sm:hidden w-[50%] my-3" />
           <div className="flex items-center">
             <img
-              className="w-[40px] h-[40px] md:w-[57px] md:h-[57px]"
+              className="w-[30px] h-[30px] md:w-[57px] md:h-[57px]"
               alt="Star rating"
               src="/png-clipart-yellow-star-illustration-yellow-star-color-star-blue.png"
             />
             <div className="ml-[10px]">
-              <p className="font-bold text-[#222222] text-base md:text-lg">4,8/5</p>
-              <p className="font-normal text-[#222222] text-base md:text-lg">
+              <p className="font-bold text-[#222222] text-sm md:text-lg">4,8/5</p>
+              <p className="font-normal text-[#222222] text-xs md:text-lg">
                 satisfactions clients
               </p>
             </div>
