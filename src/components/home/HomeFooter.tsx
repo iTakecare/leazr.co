@@ -19,7 +19,7 @@ const HomeFooter = () => {
         </div>
         
         <Container maxWidth="lg">
-          <div className="max-w-4xl mx-auto rounded-3xl p-8 relative z-10">
+          <div className="rounded-3xl p-8 relative z-10">
             <div className="text-center text-white">
               <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
                 Le leasing de matériel informatique<br />
@@ -104,3 +104,4 @@ const HomeFooter = () => {
 };
 
 export default HomeFooter;
+
