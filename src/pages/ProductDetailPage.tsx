@@ -299,8 +299,7 @@ const ProductDetailPage = () => {
           </div>
           
           <div className="relative">
-            <div id="product-config" className="sticky top-35">
-              {/* Gradient header */}
+            <div id="product-config" className="sticky top-[150px]">
               <div className="rounded-t-lg overflow-hidden">
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                   <div className="flex items-center justify-between mb-1">
