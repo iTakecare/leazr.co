@@ -30,14 +30,14 @@ const PartnersSection = () => {
           <h2 className="text-[28px] md:text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
         </div>
         
-        <div className="relative overflow-hidden w-full">
-          <div className="flex items-center whitespace-nowrap animate-marquee">
+        <div className="relative overflow-hidden w-full bg-white/80 py-6 rounded-xl">
+          <div className="flex space-x-8 animate-marquee whitespace-nowrap">
             {duplicatedPartners.map((partner, index) => (
-              <div key={`${partner.id}-${index}`} className="flex items-center mx-6 md:mx-10">
+              <div key={`${partner.id}-${index}`} className="flex items-center justify-center">
                 <img 
                   src={partner.logo} 
                   alt={partner.name} 
-                  className="h-12 md:h-16 object-contain"
+                  className="h-12 md:h-16 object-contain max-w-[120px] md:max-w-[160px]"
                   title={partner.name}
                 />
               </div>
