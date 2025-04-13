@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
@@ -6,8 +5,7 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 const StepsSection = () => {
   return (
     <section className="py-20 bg-transparent relative">
-      {/* Nouvelle image de fond pour le titre */}
-      <div className="absolute top-[10px] left-0 w-full h-[200px] z-0">
+      <div className="absolute top-[10px] left-0 w-full h-[200px] z-0 bg-transparent">
         <img 
           src="/lovable-uploads/69cf8d75-cc81-4f9d-b1be-17e469efeccf.png" 
           alt="Background" 
@@ -98,7 +96,6 @@ const StepsSection = () => {
         </div>
       </Container>
       
-      {/* Espace de transition réduit */}
       <div className="h-10 bg-transparent"></div>
     </section>
   );
