@@ -12,7 +12,7 @@ const CtaSection = () => {
       <Container maxWidth="custom">
         <div className="text-center relative">
           {/* Image turquoise placée derrière le texte */}
-          <div className="absolute inset-x-0 top-1/4 bottom-1/4 rounded-xl overflow-hidden z-0">
+          <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
             <img 
               src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" 
               alt="Fond turquoise" 
