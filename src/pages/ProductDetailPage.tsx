@@ -80,7 +80,7 @@ const ProductDetailPage = () => {
   const configAttributes = getConfigAttributes();
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pt-[120px]">
       <UnifiedNavigation />
       
       <div className="bg-white py-2">
