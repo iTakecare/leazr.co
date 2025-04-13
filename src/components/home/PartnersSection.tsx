@@ -13,7 +13,7 @@ const PartnersSection = () => {
   ];
 
   return (
-    <section className="py-10 -mt-[400px] relative z-10 bg-transparent">
+    <section className="py-10 -mt-[300px] relative z-10 bg-transparent">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
           <h2 className="text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
