@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -299,9 +300,16 @@ const ProductDetailPage = () => {
           </div>
           
           <div className="relative">
+            {/* Product configuration box with enhanced styling for visibility */}
             <div 
               id="product-config" 
-              className="sticky top-50 border-4 border-[#8B5CF6] rounded-lg shadow-2xl bg-white/10 backdrop-blur-sm"
+              className="sticky top-50 rounded-lg overflow-hidden shadow-xl !important"
+              style={{
+                border: "6px solid #8B5CF6",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                position: "relative",
+                zIndex: 10
+              }}
             >
               <div className="rounded-t-lg overflow-hidden">
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
