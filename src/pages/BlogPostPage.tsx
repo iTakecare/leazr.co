@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import HomeFooter from "@/components/home/HomeFooter";
+import HeroSection from "@/components/home/HeroSection";
 
 // Types pour les articles de blog
 interface BlogPost {
@@ -146,19 +148,23 @@ const BlogPostPage = () => {
   // Rediriger vers la page 404 si l'article n'existe pas
   if (!post) {
     return (
-      <>
+      <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
         <UnifiedNavigation />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-3xl font-bold mb-4">Article introuvable</h1>
-          <p className="mb-8">L'article que vous recherchez n'existe pas ou a été déplacé.</p>
-          <Button 
-            onClick={() => navigate('/blog')}
-            className="bg-[#48b5c3] hover:bg-[#3da6b4]"
-          >
-            Retour au blog
-          </Button>
+        <div className="pt-[100px]">
+          <HeroSection />
+          <div className="container mx-auto px-4 py-20 text-center">
+            <h1 className="text-3xl font-bold mb-4">Article introuvable</h1>
+            <p className="mb-8">L'article que vous recherchez n'existe pas ou a été déplacé.</p>
+            <Button 
+              onClick={() => navigate('/blog')}
+              className="bg-[#48b5c3] hover:bg-[#3da6b4]"
+            >
+              Retour au blog
+            </Button>
+          </div>
+          <HomeFooter />
         </div>
-      </>
+      </div>
     );
   }
   
@@ -181,160 +187,165 @@ const BlogPostPage = () => {
   };
   
   return (
-    <div className="min-h-screen bg-white pt-[120px] pb-24">
+    <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
       <UnifiedNavigation />
-      
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Bouton de retour */}
-        <Button 
-          variant="ghost" 
-          className="mb-8 text-gray-600 hover:text-[#33638E]"
-          onClick={() => navigate('/blog')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au blog
-        </Button>
+      <div className="pt-[100px]">
+        <HeroSection />
         
-        {/* En-tête de l'article */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-[#48b5c3] mb-4">
-            <span className="bg-[#E5F7F9] px-3 py-1 rounded-full">{post.category}</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-[#33638E] mb-4">{post.title}</h1>
-          <p className="text-xl text-gray-600 mb-6">{post.excerpt}</p>
+        <div className="container mx-auto px-4 max-w-4xl py-16">
+          {/* Bouton de retour */}
+          <Button 
+            variant="ghost" 
+            className="mb-8 text-gray-600 hover:text-[#33638E]"
+            onClick={() => navigate('/blog')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au blog
+          </Button>
           
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-gray-500">
-            <div className="flex items-center">
-              <Avatar className="h-8 w-8 mr-2">
-                <AvatarImage src="" alt={post.author} />
-                <AvatarFallback className="bg-[#33638E] text-white">
-                  {getInitials(post.author)}
-                </AvatarFallback>
-              </Avatar>
-              <span>{post.author}</span>
+          {/* En-tête de l'article */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 text-sm text-[#48b5c3] mb-4">
+              <span className="bg-[#E5F7F9] px-3 py-1 rounded-full">{post.category}</span>
             </div>
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span>{formatDate(post.date)}</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>{post.readTime} de lecture</span>
+            <h1 className="text-3xl md:text-4xl font-bold text-[#33638E] mb-4">{post.title}</h1>
+            <p className="text-xl text-gray-600 mb-6">{post.excerpt}</p>
+            
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-gray-500">
+              <div className="flex items-center">
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarImage src="" alt={post.author} />
+                  <AvatarFallback className="bg-[#33638E] text-white">
+                    {getInitials(post.author)}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{post.author}</span>
+              </div>
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                <span>{formatDate(post.date)}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>{post.readTime} de lecture</span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Image principale */}
-        <div className="mb-10 rounded-2xl overflow-hidden shadow-md">
-          <img 
-            src={post.image} 
-            alt={post.title} 
-            className="w-full h-[300px] md:h-[400px] object-cover"
+          
+          {/* Image principale */}
+          <div className="mb-10 rounded-2xl overflow-hidden shadow-md">
+            <img 
+              src={post.image} 
+              alt={post.title} 
+              className="w-full h-[300px] md:h-[400px] object-cover"
+            />
+          </div>
+          
+          {/* Contenu de l'article */}
+          <div 
+            className="prose prose-lg max-w-none mb-12"
+            dangerouslySetInnerHTML={{ __html: post.content }}
           />
-        </div>
-        
-        {/* Contenu de l'article */}
-        <div 
-          className="prose prose-lg max-w-none mb-12"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-        
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-10">
-          <Tag className="h-5 w-5 text-gray-500" />
-          {post.tags.map(tag => (
-            <span 
-              key={tag} 
-              className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm hover:bg-gray-200 cursor-pointer"
-              onClick={() => navigate(`/blog?tag=${tag}`)}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-        
-        {/* Partage */}
-        <div className="mb-10">
-          <Separator className="mb-6" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <span className="font-medium flex items-center">
-              <Share2 className="mr-2 h-5 w-5 text-gray-600" />
-              Partager cet article
-            </span>
-            <div className="flex gap-3">
-              <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur Facebook">
-                <Facebook className="h-5 w-5 text-[#1877F2]" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur Twitter">
-                <Twitter className="h-5 w-5 text-[#1DA1F2]" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur LinkedIn">
-                <Linkedin className="h-5 w-5 text-[#0A66C2]" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager par email">
-                <Mail className="h-5 w-5 text-gray-600" />
-              </Button>
+          
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mb-10">
+            <Tag className="h-5 w-5 text-gray-500" />
+            {post.tags.map(tag => (
+              <span 
+                key={tag} 
+                className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm hover:bg-gray-200 cursor-pointer"
+                onClick={() => navigate(`/blog?tag=${tag}`)}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          
+          {/* Partage */}
+          <div className="mb-10">
+            <Separator className="mb-6" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <span className="font-medium flex items-center">
+                <Share2 className="mr-2 h-5 w-5 text-gray-600" />
+                Partager cet article
+              </span>
+              <div className="flex gap-3">
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur Facebook">
+                  <Facebook className="h-5 w-5 text-[#1877F2]" />
+                </Button>
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur Twitter">
+                  <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                </Button>
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager sur LinkedIn">
+                  <Linkedin className="h-5 w-5 text-[#0A66C2]" />
+                </Button>
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Partager par email">
+                  <Mail className="h-5 w-5 text-gray-600" />
+                </Button>
+              </div>
+            </div>
+            <Separator className="mt-6" />
+          </div>
+          
+          {/* Section newsletter */}
+          <div className="bg-[#E5F7F9] rounded-2xl p-8 md:p-10 mb-16">
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-xl md:text-2xl font-bold text-[#33638E] mb-4">Vous avez aimé cet article ?</h2>
+              <p className="text-gray-600 mb-6">
+                Abonnez-vous à notre newsletter pour recevoir nos dernières publications et actualités
+                directement dans votre boîte mail.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                <input 
+                  type="email"
+                  placeholder="Votre adresse email" 
+                  className="px-4 py-2 border border-gray-300 rounded-full flex-1 focus:outline-none focus:ring-2 focus:ring-[#48b5c3]"
+                />
+                <Button className="bg-[#33638E] hover:bg-[#48b5c3] text-white rounded-full">
+                  S'abonner
+                </Button>
+              </div>
             </div>
           </div>
-          <Separator className="mt-6" />
-        </div>
-        
-        {/* Section newsletter */}
-        <div className="bg-[#E5F7F9] rounded-2xl p-8 md:p-10 mb-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-[#33638E] mb-4">Vous avez aimé cet article ?</h2>
-            <p className="text-gray-600 mb-6">
-              Abonnez-vous à notre newsletter pour recevoir nos dernières publications et actualités
-              directement dans votre boîte mail.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input 
-                type="email"
-                placeholder="Votre adresse email" 
-                className="px-4 py-2 border border-gray-300 rounded-full flex-1 focus:outline-none focus:ring-2 focus:ring-[#48b5c3]"
-              />
-              <Button className="bg-[#33638E] hover:bg-[#48b5c3] text-white rounded-full">
-                S'abonner
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Articles similaires */}
-        {relatedPosts.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6 text-[#33638E]">Articles similaires</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedPosts.map((relatedPost) => (
-                <div 
-                  key={relatedPost.id} 
-                  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/blog/${relatedPost.id}`)}
-                >
-                  <div className="h-40 overflow-hidden">
-                    <img 
-                      src={relatedPost.image} 
-                      alt={relatedPost.title} 
-                      className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <div className="flex gap-2 mb-2">
-                      <span className="bg-[#E5F7F9] text-[#48b5c3] text-xs px-2 py-1 rounded-full">
-                        {relatedPost.category}
-                      </span>
+          
+          {/* Articles similaires */}
+          {relatedPosts.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6 text-[#33638E]">Articles similaires</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {relatedPosts.map((relatedPost) => (
+                  <div 
+                    key={relatedPost.id} 
+                    className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/blog/${relatedPost.id}`)}
+                  >
+                    <div className="h-40 overflow-hidden">
+                      <img 
+                        src={relatedPost.image} 
+                        alt={relatedPost.title} 
+                        className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
+                      />
                     </div>
-                    <h3 className="text-lg font-bold mb-2 line-clamp-2">{relatedPost.title}</h3>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{formatDate(relatedPost.date)}</span>
-                      <span>{relatedPost.readTime}</span>
+                    <div className="p-4">
+                      <div className="flex gap-2 mb-2">
+                        <span className="bg-[#E5F7F9] text-[#48b5c3] text-xs px-2 py-1 rounded-full">
+                          {relatedPost.category}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 line-clamp-2">{relatedPost.title}</h3>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{formatDate(relatedPost.date)}</span>
+                        <span>{relatedPost.readTime}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        
+        <HomeFooter />
       </div>
     </div>
   );
