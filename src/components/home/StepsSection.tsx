@@ -1,33 +1,34 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent relative">
+    <section className="py-12 bg-transparent relative">
       <Container maxWidth="custom">
         {/* Fond flou derrière le titre */}
-        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-40 bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        <div className="absolute top-12 left-0 right-0 mx-auto w-[90%] max-w-4xl h-32 bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
         
-        <div className="text-center mb-12 relative">
-          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 relative">
+          <h2 className="text-[40px] font-bold text-gray-900 mb-3">
             Passer au leasing de matériel informatique
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-6 py-1 rounded-md text-3xl font-bold">
             en seulement 3 étapes
           </div>
         </div>
 
         {/* Première étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
-          <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
-            <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
-              <Search className="w-8 h-8 text-white" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-stretch">
+          <div className="bg-[#e1f5f7] rounded-3xl p-6 relative overflow-hidden h-full flex flex-col justify-center">
+            <div className="bg-[#48b5c3] rounded-full w-14 h-14 flex items-center justify-center mb-4">
+              <Search className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Choisissez votre matériel dans notre catalogue
             </h3>
-            <p className="text-lg text-gray-700">
+            <p className="text-base text-gray-700">
               Tout est inclus dans la mensualité qui apparaît : le prix de la location, la maintenance et la garantie.
             </p>
           </div>
@@ -43,7 +44,7 @@ const StepsSection = () => {
         </div>
 
         {/* Deuxième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-stretch">
           <div className="flex justify-center order-2 md:order-1 h-full">
             <div className="h-full w-full flex items-center justify-center">
               <img 
@@ -53,29 +54,29 @@ const StepsSection = () => {
               />
             </div>
           </div>
-          <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden order-1 md:order-2 h-full flex flex-col justify-center">
-            <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
-              <CheckCircle className="w-8 h-8 text-white" />
+          <div className="bg-[#e1f5f7] rounded-3xl p-6 relative overflow-hidden order-1 md:order-2 h-full flex flex-col justify-center">
+            <div className="bg-[#48b5c3] rounded-full w-14 h-14 flex items-center justify-center mb-4">
+              <CheckCircle className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Confirmez votre commande
             </h3>
-            <p className="text-lg text-gray-700">
+            <p className="text-base text-gray-700">
               Dès réception des documents, nous livrons votre matériel dans les plus bref délais (entre 3 à 5 jours) gratuitement.
             </p>
           </div>
         </div>
 
         {/* Troisième étape */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-          <div className="bg-[#e1f5f7] rounded-3xl p-8 relative overflow-hidden h-full flex flex-col justify-center">
-            <div className="bg-[#48b5c3] rounded-full w-16 h-16 flex items-center justify-center mb-6">
-              <Truck className="w-8 h-8 text-white" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+          <div className="bg-[#e1f5f7] rounded-3xl p-6 relative overflow-hidden h-full flex flex-col justify-center">
+            <div className="bg-[#48b5c3] rounded-full w-14 h-14 flex items-center justify-center mb-4">
+              <Truck className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Receptionnez votre matériel
             </h3>
-            <p className="text-lg text-gray-700">
+            <p className="text-base text-gray-700">
               Vous profitez immédiatement de votre nouveau matériel, l'esprit tranquille !
             </p>
           </div>
@@ -92,7 +93,7 @@ const StepsSection = () => {
       </Container>
       
       {/* Espace de transition réduit */}
-      <div className="h-10 bg-transparent"></div>
+      <div className="h-6 bg-transparent"></div>
     </section>
   );
 };
