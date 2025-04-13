@@ -7,11 +7,11 @@ const StepsSection = () => {
   return (
     <section className="py-20 bg-transparent relative">
       {/* Image blur en arrière-plan - positionnée par rapport à la section */}
-      <div className="absolute top-[-50px] left-0 w-[70%] h-[50%] z-0">
+      <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden">
         <img 
-          src="/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png" 
+          src="/lovable-uploads/84dd4cbf-302d-402f-943c-fd5a5c7dbea9.png" 
           alt="Background blur" 
-          className="w-full h-full object-contain opacity-70 rotate-180"
+          className="w-full h-full object-cover opacity-80 rotate-180"
         />
       </div>
       
