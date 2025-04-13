@@ -50,11 +50,10 @@ const FaqSection = () => {
   ];
 
   return (
-    <section className="py-16 bg-transparent relative overflow-hidden">
+    <section className="py-16 bg-transparent relative">
       <Container maxWidth="custom">
-        {/* Effets de flou animés derrière le titre */}
-        <div className="absolute top-10 left-0 right-0 mx-auto w-[90%] max-w-4xl h-40 bg-[#48b5c3]/15 blur-[60px] rounded-full animate-[pulse_10s_infinite_alternate]"></div>
-        <div className="absolute top-20 left-0 right-0 mx-auto w-[70%] max-w-3xl h-32 bg-[#48b5c3]/10 blur-[70px] rounded-full animate-[pulse_15s_infinite_alternate-reverse]"></div>
+        {/* Fond flou derrière le titre */}
+        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-32 bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
         
         <div className="text-center mb-12 relative">
           <h2 className="text-[32px] md:text-[46px] font-bold text-gray-900 mb-2">
