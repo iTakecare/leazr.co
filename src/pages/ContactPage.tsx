@@ -3,7 +3,6 @@ import React from "react";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import HomeFooter from "@/components/home/HomeFooter";
 import CtaSection from "@/components/home/CtaSection";
-import { Mail, Phone, MapPin, Globe, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,78 +54,15 @@ const ContactPage = () => {
           </div>
         </div>
         
-        {/* Contenu principal */}
+        {/* Contenu principal - Formulaire centré avec effet halo */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Coordonnées et infos de contact */}
-            <div className="bg-gray-50 rounded-3xl p-8 md:p-10">
-              <h2 className="text-2xl font-bold text-[#222222] mb-8">Nos coordonnées</h2>
-              
-              <div className="space-y-8">
-                <div className="flex items-start">
-                  <div className="bg-[#48b5c3]/20 p-3 rounded-full mr-4">
-                    <MapPin className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#222222] mb-1">Adresse</h3>
-                    <p className="text-gray-600">
-                      12 Rue de l'Innovation<br />
-                      1050 Bruxelles<br />
-                      Belgique
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-[#48b5c3]/20 p-3 rounded-full mr-4">
-                    <Phone className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#222222] mb-1">Téléphone</h3>
-                    <p className="text-gray-600">+32 2 123 45 67</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-[#48b5c3]/20 p-3 rounded-full mr-4">
-                    <Mail className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#222222] mb-1">Email</h3>
-                    <p className="text-gray-600">info@itakecare.com</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-[#48b5c3]/20 p-3 rounded-full mr-4">
-                    <Clock className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#222222] mb-1">Horaires</h3>
-                    <p className="text-gray-600">
-                      Lundi - Vendredi: 9h00 - 18h00<br />
-                      Weekend: Fermé
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-[#48b5c3]/20 p-3 rounded-full mr-4">
-                    <Globe className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#222222] mb-1">Zone de service</h3>
-                    <p className="text-gray-600">
-                      Belgique, Luxembourg, Pays-Bas, France
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto relative">
+            {/* Effet de halo flou derrière le formulaire */}
+            <div className="absolute inset-0 bg-[#48b5c3]/20 blur-3xl rounded-full transform -translate-y-10 scale-110 opacity-70 z-0"></div>
             
             {/* Formulaire de contact */}
-            <div className="bg-white rounded-3xl shadow-md p-8 md:p-10 border border-gray-100">
-              <h2 className="text-2xl font-bold text-[#222222] mb-8">Envoyez-nous un message</h2>
+            <div className="bg-white rounded-3xl shadow-md p-8 md:p-10 border border-gray-100 relative z-10">
+              <h2 className="text-2xl font-bold text-[#222222] mb-8 text-center">Envoyez-nous un message</h2>
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
