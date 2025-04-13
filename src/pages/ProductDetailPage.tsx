@@ -23,7 +23,6 @@ import ProductBenefits from "@/components/product-detail/ProductBenefits";
 import OrderProcess from "@/components/product-detail/OrderProcess";
 import ProductIncludedServices from "@/components/product-detail/ProductIncludedServices";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
-import CustomerReviews from "@/components/product-detail/CustomerReviews";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 import AddToCartButton from "@/components/product-detail/AddToCartButton";
 
@@ -303,9 +302,7 @@ const ProductDetailPage = () => {
               <RelatedProducts category={productCategory} currentProductId={product?.id} brand={productBrand} />
             </div>
             
-            <div className="mt-16">
-              <CustomerReviews />
-            </div>
+            
           </div>
           
           <div>
