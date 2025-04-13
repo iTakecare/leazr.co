@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 import MainNavigation from "@/components/layout/MainNavigation";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import ProductImageDisplay from "@/components/product-detail/ProductImageDisplay";
 
 const AmbassadorProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -40,42 +41,54 @@ const AmbassadorProductDetail = () => {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
-        <div className="py-6">
-          <MainNavigation />
+      <>
+        <div className="w-full bg-white shadow-sm">
+          <Container maxWidth="7xl">
+            <div className="py-6">
+              <MainNavigation />
+            </div>
+          </Container>
         </div>
-        <div className="py-8 mt-24">
-          <div className="flex items-center mb-6">
-            <Skeleton className="h-5 w-24" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Skeleton className="aspect-square rounded-xl" />
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-12 w-1/3" />
+        <Container maxWidth="7xl">
+          <div className="py-8 mt-24">
+            <div className="flex items-center mb-6">
+              <Skeleton className="h-5 w-24" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Skeleton className="aspect-square rounded-xl" />
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-12 w-1/3" />
+              </div>
             </div>
           </div>
-        </div>
-      </Container>
+        </Container>
+      </>
     );
   }
 
   if (error || !product) {
     return (
-      <Container maxWidth="lg">
-        <div className="py-6">
-          <MainNavigation />
+      <>
+        <div className="w-full bg-white shadow-sm">
+          <Container maxWidth="7xl">
+            <div className="py-6">
+              <MainNavigation />
+            </div>
+          </Container>
         </div>
-        <div className="py-8 mt-24">
-          <div className="text-center p-8 border rounded-md">
-            <p className="text-lg font-medium mb-2">Produit non trouvé</p>
-            <p className="text-muted-foreground mb-4">Le produit que vous recherchez n'existe pas ou a été supprimé.</p>
-            <Button onClick={() => navigate('/ambassador/catalog')}>Retour au catalogue</Button>
+        <Container maxWidth="7xl">
+          <div className="py-8 mt-24">
+            <div className="text-center p-8 border rounded-md">
+              <p className="text-lg font-medium mb-2">Produit non trouvé</p>
+              <p className="text-muted-foreground mb-4">Le produit que vous recherchez n'existe pas ou a été supprimé.</p>
+              <Button onClick={() => navigate('/ambassador/catalog')}>Retour au catalogue</Button>
+            </div>
           </div>
-        </div>
-      </Container>
+        </Container>
+      </>
     );
   }
 
@@ -90,17 +103,15 @@ const AmbassadorProductDetail = () => {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
-        <MainNavigation />
+      <div className="w-full bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <MainNavigation />
+        </div>
       </div>
-      <Container maxWidth="lg">
-        <motion.div 
-          className="py-6 md:py-8 mt-24"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center mb-6">
+      
+      <div className="bg-white py-4 mt-24 border-b">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex items-center mb-4">
             <Button
               variant="ghost"
               size="sm"
@@ -112,48 +123,47 @@ const AmbassadorProductDetail = () => {
             </Button>
           </div>
 
-          <div className="bg-white py-2 mb-4">
-            <Breadcrumb>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/ambassador/catalog">Catalogue Ambassadeur</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/ambassador/catalog?category=${product.category}`}>
-                  {product.category === "laptop" ? "Ordinateurs" : product.category}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/ambassador/catalog?brand=${product.brand}`}>
-                  {product.brand}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <span className="truncate max-w-[200px] inline-block">{product.name}</span>
-              </BreadcrumbItem>
-            </Breadcrumb>
-          </div>
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/ambassador/catalog">Catalogue Ambassadeur</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/ambassador/catalog?category=${product.category}`}>
+                {product.category === "laptop" ? "Ordinateurs" : product.category}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/ambassador/catalog?brand=${product.brand}`}>
+                {product.brand}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <span className="truncate max-w-[200px] inline-block">{product.name}</span>
+            </BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div className="relative bg-gray-50 rounded-xl overflow-hidden">
-              {!imageLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
-                </div>
-              )}
-              <img
-                src={product.image_url || '/placeholder.svg'}
-                alt={product.name}
-                className={`object-contain w-full aspect-square p-4 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                style={{ transition: "opacity 0.3s" }}
-                onLoad={() => setImageLoaded(true)}
+      <Container maxWidth="7xl">
+        <motion.div 
+          className="py-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+            <div className="lg:col-span-5">
+              <ProductImageDisplay 
+                imageUrl={product.image_url || '/placeholder.svg'} 
+                altText={product.name}
               />
             </div>
 
-            <div>
+            <div className="lg:col-span-7">
               {product.brand && (
                 <p className="text-sm text-gray-500 font-medium mb-1">{product.brand}</p>
               )}
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
               
               <div className="flex flex-wrap gap-2 mb-4">
                 {product.category && (
@@ -171,7 +181,7 @@ const AmbassadorProductDetail = () => {
               </div>
 
               {product.category && (
-                <div className="mb-4">
+                <div className="mb-5">
                   <CO2SavingsCalculator 
                     category={product.category} 
                     quantity={quantity}
@@ -181,19 +191,20 @@ const AmbassadorProductDetail = () => {
 
               <div className="mb-6">
                 {product.monthly_price ? (
-                  <div className="flex flex-col">
-                    <p className="text-xl font-bold text-blue-600 mb-1">
+                  <div className="py-3 px-4 bg-blue-50 rounded-lg inline-block">
+                    <span className="block text-sm text-gray-600 mb-1">Prix mensuel</span>
+                    <span className="text-2xl font-bold text-blue-700">
                       {hasVariants ? "À partir de " : ""}
                       {formatCurrency(product.monthly_price)}
                       <span className="text-sm font-normal text-gray-500"> /mois</span>
-                    </p>
+                    </span>
                   </div>
                 ) : null}
               </div>
 
               <Separator className="my-6" />
 
-              <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
+              <div className="bg-blue-50 border border-blue-100 rounded-md p-5 mb-6">
                 <div className="flex items-start gap-3">
                   <div className="rounded-full bg-blue-100 p-2">
                     <Info className="h-5 w-5 text-blue-600" />
@@ -208,7 +219,7 @@ const AmbassadorProductDetail = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-3">
                   <Wrench className="h-5 w-5 text-green-500" />
                   <span>Maintenance incluse</span>
@@ -223,11 +234,11 @@ const AmbassadorProductDetail = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <LifeBuoy className="h-5 w-5 text-green-500" />
-                  <span>Support technique dédié</span>
+                  <span>Support technique</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <RefreshCw className="h-5 w-5 text-green-500" />
-                  <span>Remplacement en cas de panne</span>
+                  <span>Remplacement si panne</span>
                 </div>
               </div>
             </div>
