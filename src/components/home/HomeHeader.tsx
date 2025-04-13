@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ChevronDown, ShoppingCart, Globe } from 'lucide-react';
+import { ShoppingCart, ChevronDown, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Logo from '@/components/layout/Logo';
+import { cn } from '@/lib/utils';
+import { useCart } from '@/context/CartContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,8 +12,6 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useCart } from '@/context/CartContext';
-import { cn } from '@/lib/utils';
 
 const HomeHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,10 +36,10 @@ const HomeHeader = () => {
   };
 
   const mainNavItems = [
-    { label: 'Solutions', href: '/solutions' },
-    { label: 'Ressources', href: '/ressources' },
-    { label: 'Pourquoi iTakecare', href: '/pourquoi' },
+    { label: 'Accueil', href: '/' },
     { label: 'Catalogue', href: '/catalogue' },
+    { label: 'Logiciel de gestion', href: '/solutions/gestion' },
+    { label: 'Blog', href: '/blog' },
     { label: 'Contact', href: '/contact' },
   ];
 
@@ -47,35 +47,28 @@ const HomeHeader = () => {
     <header className={cn(
       "fixed w-full z-50 transition-all duration-300",
       scrolled 
-        ? "bg-white/90 backdrop-blur-sm shadow-md py-2" 
-        : "bg-transparent py-4"
+        ? "bg-white shadow-sm py-2" 
+        : "bg-white py-4"
     )}>
       <div className="container mx-auto px-4 flex items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="flex items-center">
-            <div className={cn(
-              "p-3 rounded-full bg-white shadow-lg transition-all duration-300",
-              scrolled ? "scale-90" : "scale-100"
-            )}>
-              <Logo showText={false} className="h-8 w-8" />
-            </div>
-            <span className={cn(
-              "ml-3 text-xl font-bold transition-all duration-300",
-              scrolled ? "text-[#33638E]" : "text-white"
-            )}>
-              iTakecare
-            </span>
+            <img 
+              src="/lovable-uploads/653cda1e-cf1a-4e33-957d-39cbc3c149a4.png" 
+              alt="iTakecare Logo" 
+              className="h-10 w-auto"
+            />
           </Link>
         </div>
 
-        <nav className="hidden lg:flex items-center space-x-8">
+        <nav className="hidden lg:flex items-center space-x-10">
           {mainNavItems.map((item) => (
             <Link 
               key={item.href}
               to={item.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-[#48b5c3]",
-                scrolled ? "text-gray-700" : "text-white"
+                "text-base font-medium transition-colors hover:text-[#48b5c3]",
+                "text-gray-700"
               )}
             >
               {item.label}
@@ -85,27 +78,39 @@ const HomeHeader = () => {
 
         <div className="hidden lg:flex items-center space-x-4">
           <Link to="/panier" className="relative">
-            <ShoppingCart className={cn(
-              "w-5 h-5 transition-colors",
-              scrolled ? "text-gray-700" : "text-white"
-            )} />
+            <ShoppingCart className="w-6 h-6 text-gray-700" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#33638E] text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-[#33638E] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {cartCount}
               </span>
             )}
           </Link>
 
+          <Link to="/login">
+            <Button
+              variant="ghost"
+              className="text-gray-700 hover:text-[#48b5c3] font-medium"
+            >
+              Se connecter
+            </Button>
+          </Link>
+
+          <Link to="/catalogue">
+            <Button 
+              className="rounded-full bg-[#48b5c3] hover:bg-[#3da6b4] text-white font-medium px-6"
+            >
+              Catalogue
+            </Button>
+          </Link>
+
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center">
-              <Globe className={cn(
-                "h-5 w-5 transition-colors",
-                scrolled ? "text-gray-700" : "text-white"
-              )} />
-              <ChevronDown className={cn(
-                "ml-1 h-3 w-3 transition-colors",
-                scrolled ? "text-gray-700" : "text-white"
-              )} />
+              <img 
+                src="/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png" 
+                alt="French flag" 
+                className="h-6 w-6 rounded-full"
+              />
+              <ChevronDown className="ml-1 h-3 w-3 text-gray-700" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg">
               <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
@@ -120,37 +125,11 @@ const HomeHeader = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Link to="/login">
-            <Button
-              variant={scrolled ? "outline" : "secondary"}
-              className={cn(
-                "rounded-full text-sm",
-                !scrolled && "bg-white/20 text-white border-white/30 hover:bg-white/30"
-              )}
-            >
-              Se connecter
-            </Button>
-          </Link>
-
-          <Link to="/catalogue">
-            <Button 
-              className={cn(
-                "rounded-full bg-[#48b5c3] hover:bg-[#3da6b4] text-white text-sm shadow-md",
-                !scrolled && "shadow-lg"
-              )}
-            >
-              Catalogue
-            </Button>
-          </Link>
         </div>
 
         <div className="flex items-center space-x-4 lg:hidden">
           <Link to="/panier" className="relative">
-            <ShoppingCart className={cn(
-              "w-5 h-5 transition-colors",
-              scrolled ? "text-gray-700" : "text-white"
-            )} />
+            <ShoppingCart className="w-5 h-5 text-gray-700" />
             {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-[#33638E] text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                 {cartCount}
@@ -160,12 +139,7 @@ const HomeHeader = () => {
           
           <button 
             onClick={toggleMobileMenu}
-            className={cn(
-              "p-2 rounded-lg transition-colors",
-              scrolled 
-                ? "text-gray-700 hover:bg-gray-100" 
-                : "text-white hover:bg-white/10"
-            )}
+            className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
           >
             {mobileMenuOpen ? (
@@ -216,7 +190,11 @@ const HomeHeader = () => {
             <div className="flex items-center justify-center mt-8">
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center text-gray-700 hover:text-[#33638E]">
-                  <Globe className="h-5 w-5 mr-2" />
+                  <img 
+                    src="/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png" 
+                    alt="French flag" 
+                    className="h-6 w-6 rounded-full mr-2"
+                  />
                   Français
                   <ChevronDown className="ml-1 h-3 w-3" />
                 </DropdownMenuTrigger>
