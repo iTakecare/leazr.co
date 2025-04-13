@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import CustomerReviews from "@/components/product-detail/CustomerReviews";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 import AddToCartButton from "@/components/product-detail/AddToCartButton";
-import Container from "@/components/layout/Container";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,7 +91,7 @@ const ProductDetailPage = () => {
   
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-6">
           <MainNavigation />
         </div>
@@ -250,12 +248,12 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <Container maxWidth="7xl" className="py-6">
+      <div className="container mx-auto px-4 py-6">
         <MainNavigation />
-      </Container>
+      </div>
       
       <div className="bg-white py-2 mt-24">
-        <Container maxWidth="7xl">
+        <div className="container mx-auto px-4 max-w-screen-lg">
           <Breadcrumb>
             <BreadcrumbItem>
               <BreadcrumbLink href="/catalogue">Accueil catalogue</BreadcrumbLink>
@@ -274,10 +272,10 @@ const ProductDetailPage = () => {
               <span className="truncate max-w-[200px] inline-block">{productName}</span>
             </BreadcrumbItem>
           </Breadcrumb>
-        </Container>
+        </div>
       </div>
       
-      <Container maxWidth="7xl" className="py-6">
+      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <ProductImageDisplay 
@@ -439,7 +437,7 @@ const ProductDetailPage = () => {
             </div>
           </div>
         </div>
-      </Container>
+      </div>
       
       <ProductRequestForm 
         isOpen={isRequestFormOpen}

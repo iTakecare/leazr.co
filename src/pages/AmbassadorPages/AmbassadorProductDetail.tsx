@@ -40,7 +40,7 @@ const AmbassadorProductDetail = () => {
 
   if (isLoading) {
     return (
-      <Container maxWidth="7xl">
+      <Container maxWidth="lg">
         <div className="py-6">
           <MainNavigation />
         </div>
@@ -64,7 +64,7 @@ const AmbassadorProductDetail = () => {
 
   if (error || !product) {
     return (
-      <Container maxWidth="7xl">
+      <Container maxWidth="lg">
         <div className="py-6">
           <MainNavigation />
         </div>
@@ -90,10 +90,10 @@ const AmbassadorProductDetail = () => {
 
   return (
     <>
-      <Container maxWidth="7xl" className="px-4 py-6">
+      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
         <MainNavigation />
-      </Container>
-      <Container maxWidth="7xl">
+      </div>
+      <Container maxWidth="lg">
         <motion.div 
           className="py-6 md:py-8 mt-24"
           initial={{ opacity: 0, y: 10 }}
