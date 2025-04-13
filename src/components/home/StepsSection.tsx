@@ -5,9 +5,12 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent">
+    <section className="py-20 bg-transparent relative">
       <Container maxWidth="custom">
-        <div className="text-center mb-12">
+        {/* Fond flou derrière le titre */}
+        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-40 bg-[#48b5c3]/10 blur-[60px] rounded-full"></div>
+        
+        <div className="text-center mb-12 relative">
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Passer au leasing de matériel informatique
           </h2>
