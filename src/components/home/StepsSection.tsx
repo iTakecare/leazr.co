@@ -5,7 +5,7 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-b from-white to-blue-50/30">
+    <section className="py-20 bg-transparent">
       <Container maxWidth="custom">
         <div className="text-center mb-12">
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
@@ -90,7 +90,7 @@ const StepsSection = () => {
       </Container>
       
       {/* Dégradé de transition */}
-      <div className="h-24 bg-gradient-to-b from-blue-50/30 to-white"></div>
+      <div className="h-24 bg-gradient-to-b from-transparent to-white"></div>
     </section>
   );
 };

@@ -1,13 +1,12 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
 
 const AdvisorSection = () => {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-transparent">
       <Container maxWidth="custom">
-        <div className="relative bg-gray-50 rounded-3xl overflow-hidden">
+        <div className="relative bg-transparent rounded-3xl overflow-hidden">
           <div className="flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
             <div className="w-full lg:w-3/5 z-10 p-12 lg:p-16">
