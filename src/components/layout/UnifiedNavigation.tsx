@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from 'lucide-react';
+import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
@@ -130,6 +130,18 @@ const UnifiedNavigation = () => {
           </div>
           
           <Link
+            to="/blog"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md flex items-center",
+              location.pathname === "/blog" || location.pathname.startsWith("/blog/") ? "bg-[#33638E]/10 text-[#33638E]" : ""
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <BookOpen className="h-4 w-4 text-[#48b5c3] mr-2" />
+            Blog
+          </Link>
+          
+          <Link
             to="/contact"
             className={cn(
               "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
@@ -251,6 +263,18 @@ const UnifiedNavigation = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </li>
+            
+            <li>
+              <Link
+                to="/blog"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  (location.pathname === "/blog" || location.pathname.startsWith("/blog/")) && "font-medium text-[#33638E]"
+                )}
+              >
+                Blog
+              </Link>
             </li>
             
             <li>
