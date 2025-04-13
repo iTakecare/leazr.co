@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -305,26 +306,30 @@ const ProductDetailPage = () => {
           
           <div>
             <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
-              <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
-                    {productCategory === "laptop" ? "Ordinateur" : productCategory}
-                  </Badge>
-                  <span className="text-indigo-100 text-xs">{productBrand}</span>
+              <div className="rounded-t-lg overflow-hidden">
+                {/* Partie supérieure avec le dégradé */}
+                <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
+                      {productCategory === "laptop" ? "Ordinateur" : productCategory}
+                    </Badge>
+                    <span className="text-indigo-100 text-xs">{productBrand}</span>
+                  </div>
+                  
+                  <h1 className="text-xl font-bold text-white mb-2">
+                    Leasing {productName}
+                  </h1>
+                  
+                  <div className="text-sm text-indigo-100 mb-2">
+                    à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
+                  </div>
+                  
+                  <Separator className="mb-3 bg-white/20" />
                 </div>
                 
-                <h1 className="text-xl font-bold text-white mb-2">
-                  Leasing {productName}
-                </h1>
-                
-                <div className="text-sm text-indigo-100 mb-2">
-                  à partir de <span className="font-bold text-white">{formatCurrency(minMonthlyPrice)}/mois</span>
-                </div>
-                
-                <Separator className="mb-3 bg-white/20" />
-                
-                <div className="mb-3">
-                  <h3 className="text-sm font-medium mb-2 text-white">Configuration</h3>
+                {/* Partie inférieure en blanc */}
+                <div className="bg-white p-4">
+                  <h3 className="text-sm font-medium mb-2 text-gray-700">Configuration</h3>
                   
                   <div className="grid grid-cols-2 gap-2">
                     {configAttributes.map(attribute => {
@@ -339,31 +344,31 @@ const ProductDetailPage = () => {
                     })}
                     
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-white">Durée</label>
-                      <div className="bg-white/10 rounded border border-white/20 px-2 py-1 text-xs text-white">
+                      <label className="text-xs font-medium text-gray-700">Durée</label>
+                      <div className="bg-gray-50 rounded border border-gray-200 px-2 py-1 text-xs text-gray-700">
                         36 mois
                       </div>
                     </div>
                     
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-white">Quantité</label>
+                      <label className="text-xs font-medium text-gray-700">Quantité</label>
                       <div className="flex items-center">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 rounded-r-none border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                          className="h-6 w-6 rounded-r-none border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100"
                           onClick={() => handleQuantityChange(quantity - 1)}
                           disabled={quantity <= 1}
                         >
                           <MinusIcon className="h-3 w-3" />
                         </Button>
-                        <div className="h-6 px-2 flex items-center justify-center border-y border-white/30 text-xs text-white bg-white/10">
+                        <div className="h-6 px-2 flex items-center justify-center border-y border-gray-300 text-xs text-gray-700 bg-gray-50">
                           {quantity}
                         </div>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 rounded-l-none border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                          className="h-6 w-6 rounded-l-none border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100"
                           onClick={() => handleQuantityChange(quantity + 1)}
                         >
                           <PlusIcon className="h-3 w-3" />
@@ -374,7 +379,7 @@ const ProductDetailPage = () => {
                 </div>
                 
                 {productCategory && (
-                  <div className="mb-3">
+                  <div className="bg-white px-4 pb-3">
                     <CO2SavingsCalculator 
                       category={productCategory} 
                       quantity={quantity}
@@ -382,7 +387,7 @@ const ProductDetailPage = () => {
                   </div>
                 )}
                 
-                <div className="p-2 rounded-lg mb-2 bg-gray-50">
+                <div className="p-2 rounded-lg mb-2 bg-gray-50 mx-4">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Pour 36 mois</span>
                     <span className="text-lg font-bold text-gray-800">{formatCurrency(totalPrice)} HT / mois</span>
@@ -419,13 +424,15 @@ const ProductDetailPage = () => {
                   </div>
                 </div>
                 
-                <Button 
-                  variant="link" 
-                  className="text-xs text-gray-600 p-0 hover:text-gray-800"
-                  onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
-                >
-                  Besoin d&apos;aide ?
-                </Button>
+                <div className="px-4 pb-4">
+                  <Button 
+                    variant="link" 
+                    className="text-xs text-gray-600 p-0 hover:text-gray-800"
+                    onClick={() => toast.info("Un conseiller vous contactera bientôt.")}
+                  >
+                    Besoin d&apos;aide ?
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
