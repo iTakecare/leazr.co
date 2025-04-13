@@ -5,13 +5,22 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent">
-      <Container maxWidth="custom">
-        <div className="text-center mb-12">
-          <h2 className="text-[46px] font-bold text-gray-900 mb-4">
+    <section className="py-20 bg-transparent relative">
+      {/* Nouvelle image de fond pour le titre */}
+      <div className="absolute top-0 left-0 w-full h-[300px] z-0">
+        <img 
+          src="/lovable-uploads/69cf8d75-cc81-4f9d-b1be-17e469efeccf.png" 
+          alt="Background" 
+          className="w-full h-full object-cover opacity-30"
+        />
+      </div>
+      
+      <Container maxWidth="custom" className="relative z-10">
+        <div className="text-center mb-12 relative">
+          <h2 className="text-[46px] font-bold text-gray-900 mb-4 relative z-10">
             Passer au leasing de matériel informatique
           </h2>
-          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold">
+          <div className="inline-block bg-[#48b5c3]/20 text-[#48b5c3] px-8 py-2 rounded-md text-4xl font-bold relative z-10">
             en seulement 3 étapes
           </div>
         </div>
