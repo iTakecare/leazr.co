@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -298,9 +299,10 @@ const ProductDetailPage = () => {
             </div>
           </div>
           
-          <div>
-            <div className="space-y-4 sticky top-4">
-              <div className="sticky top-4 rounded-t-lg overflow-hidden">
+          <div className="relative">
+            <div id="product-config" className="sticky top-28">
+              {/* Gradient header */}
+              <div className="rounded-t-lg overflow-hidden">
                 <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                   <div className="flex items-center justify-between mb-1">
                     <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
