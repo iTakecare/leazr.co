@@ -100,7 +100,7 @@ const ProductDetailPage = () => {
       </div>
       
       <div className="container mx-auto px-4 py-6 max-w-[1320px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ProductMainContent 
             product={product}
             productName={productName}
@@ -109,7 +109,7 @@ const ProductDetailPage = () => {
             productBrand={productBrand}
           />
           
-          <div className="relative">
+          <div>
             <ProductConfigurationSection 
               product={product}
               productCategory={productCategory}

@@ -102,13 +102,13 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   return (
     <div 
       id="product-config" 
-      className="sticky top-50 !important"
+      className="sticky top-20"
       style={{
-        position: "relative",
+        position: "sticky",
         zIndex: 10
       }}
     >
-      <div className="rounded-xl overflow-hidden border-[6px] border-[#8B5CF6] shadow-2xl">
+      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
         <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
           <div className="flex items-center justify-between mb-1">
             <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
@@ -239,4 +239,3 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
 };
 
 export default ProductConfigurationSection;
-
