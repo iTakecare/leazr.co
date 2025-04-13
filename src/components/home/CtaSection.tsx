@@ -8,28 +8,27 @@ const CtaSection = () => {
   const navigate = useNavigate();
   
   return (
-    <section className="py-16 bg-gradient-to-r from-[#48B5C3] to-[#33638E] text-white">
+    <section className="py-16 bg-[#41A6B2] text-white">
       <Container maxWidth="custom">
         <div className="text-center">
-          <h2 className="text-[46px] font-bold mb-4">
-            Prêt à moderniser votre parc informatique de façon durable ?
+          <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
+            Le leasing de matériel informatique
+            <br />
+            n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-full">secrets</span> pour vous
           </h2>
-          <p className="text-lg mb-8 max-w-2xl mx-auto">
-            Contactez-nous dès aujourd'hui pour obtenir un devis personnalisé et découvrir comment nous pouvons vous aider à réduire vos coûts tout en agissant pour l'environnement.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4 mt-8">
             <Button 
-              className="bg-white text-[#48B5C3] hover:bg-gray-100 rounded-full px-8 text-[18px] font-bold h-auto py-3"
+              className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto"
               onClick={() => navigate("/catalogue")}
             >
-              Découvrir notre catalogue
+              Découvrir le catalogue
             </Button>
             <Button 
               variant="outline" 
-              className="border-white text-white hover:bg-white/10 rounded-full px-8 text-[18px] font-bold h-auto py-3"
+              className="bg-white hover:bg-gray-100 text-gray-800 font-bold border-none rounded-full px-8 py-3 h-auto"
               onClick={() => navigate("/contact")}
             >
-              Demander un devis
+              Parler à un conseiller
             </Button>
           </div>
         </div>
