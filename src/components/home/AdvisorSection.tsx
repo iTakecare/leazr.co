@@ -8,8 +8,8 @@ const AdvisorSection = () => {
     <section className="py-20 bg-transparent">
       <Container maxWidth="custom">
         <div className="relative bg-transparent rounded-3xl overflow-hidden">
-          {/* Rectangle gris clair en arrière-plan, ajusté pour s'arrêter au bas de l'image */}
-          <div className="absolute inset-0 bg-[#F1F1F1] rounded-3xl h-[90.5%]"></div>
+          {/* Rectangle gris clair en arrière-plan, ajusté pour commencer à 40% de la hauteur depuis le haut */}
+          <div className="absolute top-[40%] inset-x-0 bottom-0 bg-[#F1F1F1] rounded-3xl"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
