@@ -20,7 +20,7 @@ const BreadcrumbList = React.forwardRef<
   <ol
     ref={ref}
     className={cn(
-      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground",
+      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground bg-white rounded p-2",
       className
     )}
     {...props}
@@ -104,8 +104,8 @@ const Breadcrumb = React.forwardRef<
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   
   return (
-    <nav ref={ref} aria-label="breadcrumb" className={className} {...props}>
-      <ol className="flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground">
+    <nav ref={ref} aria-label="breadcrumb" className={cn("bg-white rounded shadow-sm", className)} {...props}>
+      <ol className="flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground p-2">
         {childrenArray.map((child, index) => (
           <React.Fragment key={index}>
             {child}

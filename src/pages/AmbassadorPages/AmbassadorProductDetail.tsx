@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -39,11 +40,11 @@ const AmbassadorProductDetail = () => {
 
   if (isLoading) {
     return (
-      <Container>
+      <Container maxWidth="lg">
         <div className="py-6">
           <MainNavigation />
         </div>
-        <div className="py-8 mt-16">
+        <div className="py-8 mt-24">
           <div className="flex items-center mb-6">
             <Skeleton className="h-5 w-24" />
           </div>
@@ -63,11 +64,11 @@ const AmbassadorProductDetail = () => {
 
   if (error || !product) {
     return (
-      <Container>
+      <Container maxWidth="lg">
         <div className="py-6">
           <MainNavigation />
         </div>
-        <div className="py-8 mt-16">
+        <div className="py-8 mt-24">
           <div className="text-center p-8 border rounded-md">
             <p className="text-lg font-medium mb-2">Produit non trouvé</p>
             <p className="text-muted-foreground mb-4">Le produit que vous recherchez n'existe pas ou a été supprimé.</p>
@@ -89,12 +90,12 @@ const AmbassadorProductDetail = () => {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
         <MainNavigation />
       </div>
-      <Container>
+      <Container maxWidth="lg">
         <motion.div 
-          className="py-6 md:py-8 mt-16"
+          className="py-6 md:py-8 mt-24"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
@@ -111,7 +112,7 @@ const AmbassadorProductDetail = () => {
             </Button>
           </div>
 
-          <div className="container mx-auto px-4">
+          <div className="bg-white py-2 mb-4">
             <Breadcrumb>
               <BreadcrumbItem>
                 <BreadcrumbLink href="/ambassador/catalog">Catalogue Ambassadeur</BreadcrumbLink>

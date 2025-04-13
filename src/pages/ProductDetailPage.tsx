@@ -70,7 +70,7 @@ const ProductDetailPage = () => {
         <div className="container mx-auto px-4 py-6">
           <MainNavigation />
         </div>
-        <div className="container mx-auto px-4 py-8 mt-16">
+        <div className="container mx-auto px-4 py-8 mt-24">
           <div className="flex items-center space-x-2 mb-6">
             <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
             <div className="h-4 w-32 bg-gray-200 animate-pulse rounded"></div>
@@ -95,7 +95,7 @@ const ProductDetailPage = () => {
         <div className="container mx-auto px-4 py-6">
           <MainNavigation />
         </div>
-        <div className="container mx-auto px-4 py-16 mt-16 text-center">
+        <div className="container mx-auto px-4 py-16 mt-24 text-center">
           <h2 className="text-2xl font-bold mb-4">Produit non trouvé</h2>
           <p className="text-gray-600 mb-8">Impossible de trouver les détails de ce produit.</p>
           <Button onClick={handleBackToCatalog}>
@@ -252,8 +252,8 @@ const ProductDetailPage = () => {
         <MainNavigation />
       </div>
       
-      <div className="bg-transparent py-2 mt-16">
-        <div className="container mx-auto px-4">
+      <div className="bg-white py-2 mt-24">
+        <div className="container mx-auto px-4 max-w-screen-lg">
           <Breadcrumb>
             <BreadcrumbItem>
               <BreadcrumbLink href="/catalogue">Accueil catalogue</BreadcrumbLink>
@@ -275,7 +275,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 max-w-screen-lg">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <ProductImageDisplay 
