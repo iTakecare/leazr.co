@@ -307,8 +307,8 @@ const ProductDetailPage = () => {
           <div>
             <div className="sticky top-4 rounded-lg overflow-hidden shadow-md">
               <div className="rounded-t-lg overflow-hidden">
-                {/* Partie supérieure avec le dégradé - Maintenant fixe lors du défilement */}
-                <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4 sticky top-4 z-10">
+                {/* Partie supérieure avec le dégradé */}
+                <div className="bg-gradient-to-br from-[#2d618f] via-[#347599] to-[#4ab6c4] text-white p-4">
                   <div className="flex items-center justify-between mb-1">
                     <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-xs py-0">
                       {productCategory === "laptop" ? "Ordinateur" : productCategory}
