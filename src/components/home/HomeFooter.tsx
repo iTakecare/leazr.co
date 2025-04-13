@@ -16,10 +16,7 @@ const HomeFooter = () => {
                   <span className="text-[#33638E]"></span>
                 </span>
               </div>
-              <p className="text-gray-700 mb-6">Leasing de matériel informatique reconditionné sans contraintes. 
-Optez pour un parc informatique performant et écoresponsable, à moindre coût.
-
-            </p>
+              <p className="text-gray-700 mb-6">Leasing de matériel informatique reconditionné sans contraintes. Optez pour un parc informatique performant et écoresponsable, à moindre coût.</p>
               <div className="flex space-x-3">
                 <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-10 h-10 rounded-full bg-[#41A6B2] text-white hover:bg-[#33638E] transition-colors">
                   <Facebook size={20} />
