@@ -84,7 +84,7 @@ const ProductDetailPage = () => {
     <div className="min-h-screen bg-white">
       <UnifiedNavigation />
       
-      <div className="bg-white py-2 mt-24">
+      <div className="bg-white py-2">
         <div className="container mx-auto px-4 max-w-[1320px]">
           <Breadcrumb>
             <BreadcrumbItem>
@@ -168,3 +168,4 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
+
