@@ -5,9 +5,18 @@ import { Search, CheckCircle, Truck } from "lucide-react";
 
 const StepsSection = () => {
   return (
-    <section className="py-20 bg-transparent">
+    <section className="py-20 bg-transparent relative">
+      {/* Image blur en arrière-plan - positionnée par rapport à la section */}
+      <div className="absolute top-[-50px] left-0 w-[70%] h-[50%] z-0">
+        <img 
+          src="/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png" 
+          alt="Background blur" 
+          className="w-full h-full object-contain opacity-70 rotate-180"
+        />
+      </div>
+      
       <Container maxWidth="custom">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 relative z-10">
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
             Passer au leasing de matériel informatique
           </h2>
