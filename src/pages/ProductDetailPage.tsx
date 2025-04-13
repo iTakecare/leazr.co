@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -83,27 +84,31 @@ const ProductDetailPage = () => {
     <div className="min-h-screen bg-white">
       <UnifiedNavigation />
       
-      <div className="container mx-auto px-4 max-w-[1320px] pt-4">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/catalogue">Accueil catalogue</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/catalogue?category=${productCategory}`}>
-              {productCategory === "laptop" ? "Ordinateurs" : productCategory}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/catalogue?brand=${productBrand}`}>
-              {productBrand}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <span className="truncate max-w-[200px] inline-block">{productName}</span>
-          </BreadcrumbItem>
-        </Breadcrumb>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+      <div className="bg-white py-2">
+        <div className="container mx-auto px-4 max-w-[1320px]">
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/catalogue">Accueil catalogue</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/catalogue?category=${productCategory}`}>
+                {productCategory === "laptop" ? "Ordinateurs" : productCategory}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/catalogue?brand=${productBrand}`}>
+                {productBrand}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <span className="truncate max-w-[200px] inline-block">{productName}</span>
+            </BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-6 max-w-[1320px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ProductMainContent 
             product={product}
             productName={productName}
@@ -163,3 +168,4 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
+
