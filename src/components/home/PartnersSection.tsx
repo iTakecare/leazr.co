@@ -40,7 +40,7 @@ const PartnersSection = () => {
                 <img 
                   src={partner.logo} 
                   alt={partner.name} 
-                  className="h-10 md:h-12 object-contain max-w-[100px] md:max-w-[130px] opacity-70 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
+                  className="h-10 md:h-12 object-contain max-w-[100px] md:max-w-[130px] opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
                   title={partner.name}
                 />
               </div>
