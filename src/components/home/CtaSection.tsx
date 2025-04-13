@@ -11,6 +11,18 @@ const CtaSection = () => {
     <section className="py-16 bg-transparent text-white">
       <Container maxWidth="custom">
         <div className="text-center">
+          {/* Rectangle turquoise ajouté au-dessus du texte */}
+          <div className="w-full h-60 bg-[#41A6B2] rounded-xl mb-8 relative overflow-hidden">
+            {/* Formes décoratives dans le coin supérieur gauche */}
+            <div className="absolute top-0 left-0 w-1/3 h-1/3">
+              <div className="absolute top-0 left-0 w-full h-full bg-[#33949F] transform -skew-x-12"></div>
+            </div>
+            {/* Formes décoratives dans le coin inférieur droit */}
+            <div className="absolute bottom-0 right-0 w-1/3 h-1/3">
+              <div className="absolute bottom-0 right-0 w-full h-full bg-[#33949F] transform skew-x-12"></div>
+            </div>
+          </div>
+          
           <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
             Le leasing de matériel informatique
             <br />
