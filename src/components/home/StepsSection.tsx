@@ -1,4 +1,3 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Search, CheckCircle, Truck } from "lucide-react";
@@ -8,7 +7,7 @@ const StepsSection = () => {
     <section className="py-20 bg-transparent relative">
       <Container maxWidth="custom">
         {/* Fond flou derrière le titre */}
-        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-40 bg-[#48b5c3]/10 blur-[60px] rounded-full"></div>
+        <div className="absolute top-16 left-0 right-0 mx-auto w-[90%] max-w-4xl h-40 bg-[#48b5c3]/30 blur-[60px] rounded-full"></div>
         
         <div className="text-center mb-12 relative">
           <h2 className="text-[46px] font-bold text-gray-900 mb-4">
