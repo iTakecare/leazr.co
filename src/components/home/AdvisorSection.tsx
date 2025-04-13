@@ -8,7 +8,10 @@ const AdvisorSection = () => {
     <section className="py-20 bg-transparent">
       <Container maxWidth="custom">
         <div className="relative bg-transparent rounded-3xl overflow-hidden">
-          <div className="flex flex-col lg:flex-row items-center">
+          {/* Rectangle gris clair en arrière-plan */}
+          <div className="absolute inset-0 bg-[#F1F1F1] rounded-3xl"></div>
+          
+          <div className="relative z-10 flex flex-col lg:flex-row items-center">
             {/* Partie texte gauche */}
             <div className="w-full lg:w-3/5 z-10 p-12 lg:p-16">
               <div className="mb-16">
@@ -53,11 +56,11 @@ const AdvisorSection = () => {
             </div>
             
             {/* Image de la conseillère */}
-            <div className="w-full lg:w-2/5 flex justify-end items-end self-end">
+            <div className="w-full lg:w-2/5 flex justify-end items-center lg:self-center">
               <img 
                 src="/lovable-uploads/56939bad-b11e-421e-8dca-13f8a485973b.png" 
                 alt="Conseillère iTakecare" 
-                className="w-full h-auto z-10"
+                className="w-full h-auto z-10 relative"
               />
             </div>
           </div>
