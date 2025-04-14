@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import MobileSidebar from "./MobileSidebar";
-import Badge from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   className?: string;

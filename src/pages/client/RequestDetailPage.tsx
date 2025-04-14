@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,6 @@ const RequestDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Charger les détails de la demande
   useEffect(() => {
     const fetchRequestDetails = async () => {
       if (!id) return;
@@ -38,7 +36,6 @@ const RequestDetailPage: React.FC = () => {
       setError(null);
       
       try {
-        // Vérifier d'abord dans localStorage pour les demandes en attente
         const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
         const localRequest = storedRequests.find((req: any) => req.id === id);
         
@@ -48,7 +45,6 @@ const RequestDetailPage: React.FC = () => {
           return;
         }
         
-        // Si pas trouvé localement, chercher dans la base de données
         try {
           const { data, error } = await supabase
             .from('offers')
@@ -78,7 +74,6 @@ const RequestDetailPage: React.FC = () => {
     fetchRequestDetails();
   }, [id]);
   
-  // Fonction pour déterminer la couleur du badge en fonction du statut
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'signed':
@@ -97,7 +92,6 @@ const RequestDetailPage: React.FC = () => {
     }
   };
   
-  // Fonction pour traduire le statut
   const translateStatus = (status: string) => {
     const statusMap: Record<string, string> = {
       'pending': 'En attente',
@@ -114,7 +108,6 @@ const RequestDetailPage: React.FC = () => {
     return statusMap[status] || status;
   };
   
-  // Fonction pour formater l'équipement
   const formatEquipment = (description: string) => {
     try {
       const equipment = JSON.parse(description);
@@ -286,7 +279,7 @@ const RequestDetailPage: React.FC = () => {
                   <p className="font-medium">Demande créée</p>
                   <p className="text-sm text-gray-500">
                     {request.created_at 
-                      ? formatDate(new Date(request.created_at)) 
+                      ? formatDate(request.created_at) 
                       : "Date inconnue"}
                   </p>
                 </div>
