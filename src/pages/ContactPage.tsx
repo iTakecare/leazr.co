@@ -1,4 +1,3 @@
-
 import React from "react";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import HomeFooter from "@/components/home/HomeFooter";
@@ -7,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { useLanguage } from "@/context/LanguageContext";
 
 type FormData = {
   name: string;
@@ -20,7 +18,6 @@ type FormData = {
 
 const ContactPage = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
-  const { t } = useLanguage();
 
   const onSubmit = (data: FormData) => {
     console.log("Form submitted:", data);
@@ -51,10 +48,11 @@ const ContactPage = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="max-w-3xl mx-auto text-center">
               <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl leading-tight mb-6">
-                {t("contact.title")}
+                Contactons-nous
               </h1>
               <p className="text-[#222222] text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-                {t("contact.subtitle")}
+                Parlons de votre projet. 
+                Envoyez-nous un message et nous vous contacterons sous un jour ouvrable.
               </p>
             </div>
           </div>
@@ -68,32 +66,32 @@ const ContactPage = () => {
             
             {/* Formulaire de contact */}
             <div className="bg-white rounded-3xl shadow-md p-8 md:p-10 border border-gray-100 relative z-10">
-              <h2 className="text-2xl font-bold text-[#222222] mb-8 text-center">{t("contact.form.title")}</h2>
+              <h2 className="text-2xl font-bold text-[#222222] mb-8 text-center">Envoyez-nous un message</h2>
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">{t("contact.form.name")}</label>
+                    <label className="block text-sm font-medium text-gray-700">Nom complet</label>
                     <Input
-                      {...register("name", { required: t("contact.form.name.error") })}
-                      placeholder={t("contact.form.name.placeholder")}
+                      {...register("name", { required: "Le nom est requis" })}
+                      placeholder="Votre nom"
                       className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                     />
                     {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">{t("contact.form.email")}</label>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
                     <Input
                       {...register("email", { 
-                        required: t("contact.form.email.error"),
+                        required: "L'email est requis",
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: t("contact.form.email.invalid")
+                          message: "Adresse email invalide"
                         }
                       })}
                       type="email"
-                      placeholder={t("contact.form.email.placeholder")}
+                      placeholder="votre@email.com"
                       className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                     />
                     {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
@@ -101,46 +99,46 @@ const ContactPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">{t("contact.form.phone")}</label>
+                  <label className="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
                   <Input
                     {...register("phone", {
                       pattern: {
                         value: /^(\+\d{1,3}[-.●]?)?\(?\d{3}\)?[-.●]?\d{3}[-.●]?\d{4}$/,
-                        message: t("contact.form.phone.invalid")
+                        message: "Numéro de téléphone invalide"
                       }
                     })}
                     type="tel"
-                    placeholder={t("contact.form.phone.placeholder")}
+                    placeholder="+33 6 12 34 56 78"
                     className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                   />
                   {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">{t("contact.form.company")}</label>
+                  <label className="block text-sm font-medium text-gray-700">Entreprise</label>
                   <Input
                     {...register("company")}
-                    placeholder={t("contact.form.company.placeholder")}
+                    placeholder="Nom de votre entreprise"
                     className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">{t("contact.form.subject")}</label>
+                  <label className="block text-sm font-medium text-gray-700">Sujet</label>
                   <Input
-                    {...register("subject", { required: t("contact.form.subject.error") })}
-                    placeholder={t("contact.form.subject.placeholder")}
+                    {...register("subject", { required: "Le sujet est requis" })}
+                    placeholder="Sujet de votre message"
                     className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                   />
                   {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">{t("contact.form.message")}</label>
+                  <label className="block text-sm font-medium text-gray-700">Message</label>
                   <Textarea
-                    {...register("message", { required: t("contact.form.message.error") })}
+                    {...register("message", { required: "Le message est requis" })}
                     rows={5}
-                    placeholder={t("contact.form.message.placeholder")}
+                    placeholder="Comment pouvons-nous vous aider ?"
                     className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
                   />
                   {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>}
@@ -150,7 +148,7 @@ const ContactPage = () => {
                   type="submit"
                   className="w-full bg-[#48b5c3] hover:bg-[#33638E] rounded-full py-3 px-6"
                 >
-                  {t("contact.form.submit")}
+                  Envoyer le message
                 </Button>
               </form>
             </div>
