@@ -12,16 +12,6 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   quantity, 
   onQuantityChange 
 }) => {
-  const handleDecrease = () => {
-    if (quantity > 1) {
-      onQuantityChange(quantity - 1);
-    }
-  };
-
-  const handleIncrease = () => {
-    onQuantityChange(quantity + 1);
-  };
-
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-gray-700">Quantité souhaitée</label>
@@ -30,7 +20,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           variant="outline"
           size="icon"
           className="h-10 w-10 rounded-r-none border-gray-200"
-          onClick={handleDecrease}
+          onClick={() => onQuantityChange(quantity - 1)}
           disabled={quantity <= 1}
         >
           <Minus className="h-4 w-4" />
@@ -42,7 +32,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           variant="outline"
           size="icon"
           className="h-10 w-10 rounded-l-none border-gray-200"
-          onClick={handleIncrease}
+          onClick={() => onQuantityChange(quantity + 1)}
         >
           <Plus className="h-4 w-4" />
         </Button>

@@ -6,5 +6,4 @@ export type CartItem = {
   quantity: number;
   duration: number;
   selectedOptions?: Record<string, string>;
-  monthlyPrice?: number;
 };
