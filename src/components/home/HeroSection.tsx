@@ -3,14 +3,17 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useLanguage } from "@/context/LanguageContext";
 
 const HeroSection = (): JSX.Element => {
+  const { t } = useLanguage();
+  
   // Benefits list
   const benefits = [
-    "Du matériel reconditionné haut de gamme, testé et garanti.",
-    "Un forfait tout compris : maintenance, support et mises à jour.",
-    "Remplacement sous 24h en cas de panne ou sinistre.",
-    "Un choix écoresponsable et économique pour votre entreprise.",
+    t("hero.benefit1"),
+    t("hero.benefit2"),
+    t("hero.benefit3"),
+    t("hero.benefit4"),
   ];
 
   return (
@@ -35,25 +38,24 @@ const HeroSection = (): JSX.Element => {
           {/* Left content */}
           <div className="w-full md:w-[723px] mb-8 md:mb-0">
             <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-[50px] leading-tight">
-              Leasing de matériel
+              {t("hero.title.leasing")}
             </h1>
             <div className="flex flex-wrap items-center group my-1 md:my-2">
               <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-[50px] leading-tight mr-2">
-                informatique
+                {t("hero.title.informatique")}
               </h1>
               <Badge className="bg-[#48b5c34f] group-hover:bg-[#33638E] rounded-[10px] px-2 py-1 md:px-2.5 md:py-[12px] my-1 md:my-2 inline-flex">
                 <span className="font-black text-[#48b5c3] group-hover:text-white text-3xl sm:text-4xl md:text-[50px]">
-                  Reconditionné
+                  {t("hero.title.reconditioned")}
                 </span>
               </Badge>
             </div>
             <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-[50px] leading-tight mb-3 md:mb-6">
-              sans contraintes
+              {t("hero.title.noconstraints")}
             </h1>
 
             <p className="font-normal text-[#222222] text-base md:text-lg mb-3 md:mb-8">
-              Optez pour un parc informatique performant et écoresponsable, à
-              moindre coût :
+              {t("hero.subtitle")}
             </p>
 
             <ul className="space-y-2 md:space-y-4 mb-6 md:mb-10">
@@ -69,13 +71,13 @@ const HeroSection = (): JSX.Element => {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button className="bg-[#48b5c3] hover:bg-[#33638E] rounded-[50px] font-bold text-base md:text-lg w-full sm:w-auto">
-                Découvrir le catalogue
+                {t("hero.cta.catalog")}
               </Button>
               <Button
                 variant="outline"
                 className="rounded-[50px] font-bold text-base md:text-lg hover:bg-[#48B5C3] hover:text-white w-full sm:w-auto mt-2 sm:mt-0"
               >
-                En savoir plus
+                {t("hero.cta.more")}
               </Button>
             </div>
           </div>
@@ -106,8 +108,7 @@ const HeroSection = (): JSX.Element => {
           <div className="w-[50px] h-[50px] md:w-[68px] md:h-[68px] bg-[url(/65bb183cb2697d670222bf00-customer-img-1.png)] bg-cover bg-[50%_50%] mb-2 sm:mb-0 rounded-full" />
           <div className="ml-0 sm:ml-[15px] max-w-[300px] sm:max-w-[227px] text-center sm:text-left mb-3 sm:mb-0">
             <p className="font-normal text-[#222222] text-sm">
-              "Rapide et professionnel. Bien reçu mon MacBook Pro avec lequel
-              j'écris ces lignes. Très content du matériel !"
+              {t("testimonial.content")}
             </p>
           </div>
           <Separator orientation="vertical" className="hidden sm:block mx-[25px] h-[47px]" />
@@ -124,7 +125,7 @@ const HeroSection = (): JSX.Element => {
             <div className="ml-[10px]">
               <p className="font-bold text-[#222222] text-base md:text-lg">4,8/5</p>
               <p className="font-normal text-[#222222] text-sm md:text-base">
-                satisfactions clients
+                {t("testimonial.rating")}
               </p>
             </div>
           </div>
