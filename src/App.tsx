@@ -101,7 +101,7 @@ const AmbassadorRoute = ({ children }) => {
   return children;
 };
 
-const App = () => {
+function App() {
   const location = useLocation();
   const { user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
   
@@ -229,6 +229,6 @@ const App = () => {
       <ShadcnToaster />
     </div>
   );
-};
+}
 
 export default App;
