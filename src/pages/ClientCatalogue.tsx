@@ -3,14 +3,21 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckCircle2, XSquare } from "lucide-react";
+import { Search, ArrowUpDown, Filter, TagIcon, ChevronDown, ChevronUp, CheckCircle2, XSquare, ArrowLeft } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import { Product } from "@/types/catalog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
+import { useProductDetails } from "@/hooks/products/useProductDetails";
+import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
+import ProductMainContent from "@/components/product-detail/ProductMainContent";
+import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
+import RelatedProducts from "@/components/product-detail/RelatedProducts";
+import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
+import ProductErrorState from "@/components/product-detail/ProductErrorState";
 import { 
   Accordion,
   AccordionContent,
@@ -27,7 +34,18 @@ import {
 
 const ClientCatalogue = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  
+  // Extraire l'ID du produit de l'URL si présent
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const productId = searchParams.get('productId');
+    if (productId) {
+      setSelectedProductId(productId);
+    }
+  }, [location]);
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -106,7 +124,31 @@ const ClientCatalogue = () => {
   }, [filteredProducts]);
 
   const handleProductClick = (product: Product) => {
-    navigate(`/client/produit/${product.id}`);
+    // Au lieu de naviguer, on définit le produit sélectionné
+    setSelectedProductId(product.id);
+    
+    // Mise à jour de l'URL avec l'ID du produit sans rechargement de la page
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set('productId', product.id);
+    
+    // Mise à jour de l'URL sans rechargement
+    const newUrl = `${location.pathname}?${searchParams.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  };
+
+  const handleBackToCatalog = () => {
+    // Retour au catalogue en effaçant l'ID du produit sélectionné
+    setSelectedProductId(null);
+    
+    // Mise à jour de l'URL pour retirer le paramètre productId
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.delete('productId');
+    
+    // Mise à jour de l'URL sans rechargement
+    const newUrl = searchParams.toString() 
+      ? `${location.pathname}?${searchParams.toString()}`
+      : location.pathname;
+    window.history.pushState({}, '', newUrl);
   };
 
   const handlePriceRangeChange = (values: number[]) => {
@@ -114,9 +156,16 @@ const ClientCatalogue = () => {
     setIsPriceFilterActive(true);
   };
 
+  // Rendu conditionnel basé sur la sélection d'un produit
+  if (selectedProductId) {
+    return <ProductDetailView 
+      productId={selectedProductId} 
+      onBackToCatalog={handleBackToCatalog} 
+    />;
+  }
+
   return (
     <div className="w-full max-w-full">
-      {/* Place CatalogHeader here, before the filter section */}
       <CatalogHeader />
       
       <div className="w-full max-w-full px-4">
@@ -425,6 +474,144 @@ const ClientCatalogue = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Composant pour l'affichage détaillé d'un produit
+const ProductDetailView = ({ 
+  productId, 
+  onBackToCatalog 
+}: { 
+  productId: string; 
+  onBackToCatalog: () => void 
+}) => {
+  const {
+    product,
+    isLoading,
+    error,
+    quantity,
+    handleQuantityChange,
+    isRequestFormOpen,
+    setIsRequestFormOpen,
+    selectedOptions,
+    handleOptionChange,
+    isOptionAvailable,
+    currentImage,
+    currentPrice,
+    selectedVariant,
+    duration,
+    totalPrice,
+    minMonthlyPrice,
+    specifications,
+    hasAttributeOptions,
+    variationAttributes,
+    getOptionsForAttribute
+  } = useProductDetails(productId);
+  
+  const attributeHelpers = useAttributeHelpers(
+    specifications,
+    variationAttributes,
+    selectedOptions
+  );
+  
+  const {
+    getDisplayName,
+    getConfigAttributes,
+    getCurrentValue
+  } = attributeHelpers;
+  
+  if (isLoading) {
+    return (
+      <>
+        <CatalogHeader />
+        <div className="w-full max-w-full px-4">
+          <ProductLoadingState />
+        </div>
+      </>
+    );
+  }
+  
+  if (error || !product) {
+    return (
+      <>
+        <CatalogHeader />
+        <div className="w-full max-w-full px-4">
+          <ProductErrorState onBackToCatalog={onBackToCatalog} />
+        </div>
+      </>
+    );
+  }
+  
+  const productName = product?.name || "Produit";
+  const productCategory = product?.category || "Autre";
+  const productBrand = product?.brand || "";
+  const productDescription = product?.description || "Aucune description disponible pour ce produit.";
+  
+  const configAttributes = getConfigAttributes();
+  
+  return (
+    <div className="w-full max-w-full">
+      <CatalogHeader 
+        title={`Catalogue › ${productName}`}
+        description={productCategory ? `Catégorie: ${productCategory}` : "Détails du produit"}
+      />
+      
+      <div className="w-full max-w-full px-4">
+        <Button 
+          variant="ghost" 
+          onClick={onBackToCatalog}
+          className="mb-4 flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour au catalogue
+        </Button>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          <ProductMainContent 
+            product={product}
+            productName={productName}
+            productDescription={productDescription}
+            currentImage={currentImage}
+            productBrand={productBrand}
+          />
+          
+          <div>
+            <ProductConfigurationSection 
+              product={product}
+              productCategory={productCategory}
+              productName={productName}
+              productBrand={productBrand}
+              currentPrice={currentPrice}
+              minMonthlyPrice={minMonthlyPrice}
+              totalPrice={totalPrice}
+              quantity={quantity}
+              duration={duration}
+              handleQuantityChange={handleQuantityChange}
+              selectedOptions={selectedOptions}
+              handleOptionChange={handleOptionChange}
+              isOptionAvailable={isOptionAvailable}
+              variationAttributes={variationAttributes}
+              specifications={specifications}
+              hasAttributeOptions={hasAttributeOptions}
+              getOptionsForAttribute={getOptionsForAttribute}
+              configAttributes={configAttributes}
+              getCurrentValue={getCurrentValue}
+              getDisplayName={getDisplayName}
+            />
+          </div>
+        </div>
+        
+        <div className="mt-8 mb-12">
+          <h2 className="text-xl font-bold mb-6">Produits similaires</h2>
+          <RelatedProducts 
+            category={productCategory} 
+            currentProductId={product?.id} 
+            brand={productBrand}
+            limit={4}
+          />
         </div>
       </div>
     </div>
