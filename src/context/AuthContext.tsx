@@ -260,12 +260,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const role = user.role?.toLowerCase();
       
-      if (role === 'admin' || user.email === "hello@itakecare.be" || user.email === "admin@itakecare.com" || user.email === "admin@test.com" || user.email === "alex@test.com") {
-        console.log("[AuthContext] Redirection admin, email/rôle trouvé:", role, user.email);
-        setTimeout(() => navigate("/dashboard"), 0);
-        return;
-      }
-      
       if (role === 'ambassador') {
         console.log("[AuthContext] Redirection ambassadeur, rôle trouvé:", role);
         setTimeout(() => navigate("/ambassador/dashboard"), 0);
@@ -281,6 +275,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (role === 'partner') {
         console.log("[AuthContext] Redirection partenaire, rôle trouvé:", role);
         setTimeout(() => navigate("/partner/dashboard"), 0);
+        return;
+      } 
+      
+      if (role === 'admin') {
+        console.log("[AuthContext] Redirection admin, rôle trouvé:", role);
+        setTimeout(() => navigate("/dashboard"), 0);
         return;
       }
       
@@ -381,8 +381,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return user?.role === "admin" ||
            user?.email === "admin@test.com" || 
            user?.email === "alex@test.com" ||
-           user?.email === "admin@itakecare.com" ||
-           user?.email === "hello@itakecare.be";
+           user?.email === "admin@itakecare.com";
   };
 
   const isClient = () => {
