@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -78,7 +79,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate('/login');  // Changed from '/' to '/login'
       toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);

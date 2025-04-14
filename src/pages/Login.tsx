@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import Container from '@/components/layout/Container';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home, ExternalLink } from 'lucide-react';
 import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 
@@ -217,9 +217,18 @@ const Login = () => {
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-2">
             <Logo className="scale-175 mb-6" showText={false} />
-            <p className="text-xl font-semibold text-black mb-12">
+            <p className="text-xl font-semibold text-black mb-4">
               iTakecare
             </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/')} 
+              className="mb-8 flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Aller sur le site
+            </Button>
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">
               Bienvenue
             </h2>
