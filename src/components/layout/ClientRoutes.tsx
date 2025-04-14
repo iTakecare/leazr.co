@@ -166,8 +166,9 @@ const ClientRoutes = () => {
         role: user?.role
       });
       
-      // Vérifier si l'utilisateur a le rôle client
-      if (!isClient()) {
+      // Vérifier si l'utilisateur tente d'accéder à la route /client
+      // et qu'il n'a pas de rôle client
+      if (location.pathname.startsWith('/client/') && !isClient()) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
         toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         
