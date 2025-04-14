@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,12 +39,14 @@ const ClientDashboard = () => {
           return;
         }
         
+        // Récupérer l'ID client
         const id = await getClientIdForUser(user.id, user.email || null);
         
         if (id) {
           console.log("Found client ID:", id);
           setClientId(id);
           
+          // Sample equipment data with real-looking information
           setEquipment([
             {
               id: "EQP-2023-001",
@@ -96,6 +99,7 @@ const ClientDashboard = () => {
     }
   }, [user]);
 
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -128,6 +132,7 @@ const ClientDashboard = () => {
     refreshContracts();
     refreshOffers();
     
+    // Donner l'impression que le rechargement prend un peu de temps
     setTimeout(() => {
       setLoading(false);
       toast.success("Données actualisées");
