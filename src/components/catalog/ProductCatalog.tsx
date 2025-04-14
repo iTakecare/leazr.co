@@ -45,6 +45,7 @@ interface ProductCatalogProps {
   onSelectProduct?: (product: Product) => void;
   editMode?: boolean;
   useDialog?: boolean;
+  onProductClick?: (productId: string) => void;
 }
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({
@@ -53,7 +54,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onSelectProduct = () => {},
   editMode = false,
   hideNavigation = false,
-  useDialog = false
+  useDialog = false,
+  onProductClick
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -257,7 +259,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   };
 
   const handleProductClick = (productId: string) => {
-    navigate(`/products/${productId}`);
+    if (onProductClick) {
+      onProductClick(productId);
+    } else {
+      navigate(`/products/${productId}`);
+    }
   };
 
   const catalogContent = (
