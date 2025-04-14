@@ -18,6 +18,7 @@ interface SidebarUserSectionProps {
   getUserDisplayName: () => string;
   getUserRole: () => string;
   handleLogout: () => void;
+  additionalButton?: React.ReactNode;
 }
 
 const SidebarUserSection = ({
@@ -26,7 +27,8 @@ const SidebarUserSection = ({
   getUserInitials,
   getUserDisplayName,
   getUserRole,
-  handleLogout
+  handleLogout,
+  additionalButton
 }: SidebarUserSectionProps) => {
   return (
     <div className={cn(
@@ -45,6 +47,8 @@ const SidebarUserSection = ({
               <p className="text-xs text-muted-foreground">{getUserRole()}</p>
             </div>
           </div>
+          
+          {additionalButton}
           
           <Button 
             variant="outline" 
