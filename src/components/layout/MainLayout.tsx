@@ -1,9 +1,10 @@
+
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useIsMobile } from '@/hooks/use-mobile';
-import MobileHeader from '@/components/layout/MobileHeader';
+import MobileHeader from './MobileHeader';  // Use relative import
 
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
