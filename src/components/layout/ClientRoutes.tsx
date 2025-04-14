@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 export const ClientLayout = ({ 
   children, 
-  showNavigation = true 
+  showNavigation = false 
 }: { 
   children: React.ReactNode, 
   showNavigation?: boolean 
@@ -234,7 +234,7 @@ const ClientRoutes = () => {
         <Route path="contracts" element={<ClientLayout><ClientContractsPage /></ClientLayout>} />
         <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
-        <Route path="catalog" element={<ClientLayout showNavigation={false}><PublicCatalog /></ClientLayout>} />
+        <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
