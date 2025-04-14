@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProductCatalog } from '@/components/catalog/ProductCatalog';
+import ProductCatalog from '@/components/catalog/ProductCatalog';
 
 const PublicCatalog = () => {
   return (
