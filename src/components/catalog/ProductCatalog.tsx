@@ -24,15 +24,14 @@ import { Input } from "@/components/ui/input";
 import { Product, ProductVariationAttributes } from "@/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
-import ProductGrid from "./ProductCatalogGrid";
-import ProductList from "./ProductCatalogList";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/formatters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductVariantSelector from "./ProductVariantSelector";
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
+import ProductGridCard from "@/components/catalog/public/ProductGridCard";
+import { useNavigate } from "react-router-dom";
 
 export type Category = 'all' | 'desktop' | 'laptop' | 'tablet' | 'smartphone' | 'display' | 'accessory' | 'peripheral' | 'other';
 export type ViewMode = 'grid' | 'list';
@@ -56,6 +55,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   hideNavigation = false,
   useDialog = false
 }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -256,6 +256,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     onClose();
   };
 
+  const handleProductClick = (productId: string) => {
+    navigate(`/products/${productId}`);
+  };
+
   const catalogContent = (
     <>
       {!hideNavigation && <UnifiedNavigation />}
@@ -444,27 +448,18 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     )}
                     
                     {viewMode === 'grid' ? (
-                      <ProductGrid 
-                        products={groupProducts}
-                        getProductImage={(product) => product.image_url || ''}
-                        getVariantsForProduct={getVariantsForProduct}
-                        isVariantGroupExpanded={isVariantGroupExpanded}
-                        toggleVariantGroup={toggleVariantGroup}
-                        onSelectProduct={handleProductSelect}
-                        hasVariantSupport={hasVariantSupport}
-                        editMode={editMode}
-                      />
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {groupProducts.map(product => (
+                          <div key={product.id}>
+                            <ProductGridCard
+                              product={product}
+                              onClick={() => handleProductClick(product.id || '')}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     ) : (
-                      <ProductList
-                        products={groupProducts}
-                        getProductImage={(product) => product.image_url || ''}
-                        getVariantsForProduct={getVariantsForProduct}
-                        isVariantGroupExpanded={isVariantGroupExpanded}
-                        toggleVariantGroup={toggleVariantGroup}
-                        onSelectProduct={handleProductSelect}
-                        hasVariantSupport={hasVariantSupport}
-                        editMode={editMode}
-                      />
+                      <div>List View</div>
                     )}
                   </div>
                 ))}
@@ -476,6 +471,12 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     </>
   );
 
+  const handleVariantClick = (selectedProduct: Product) => {
+    setShowVariantSelector(false);
+    onSelectProduct(selectedProduct);
+    onClose();
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {catalogContent}
@@ -485,7 +486,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           product={selectedVariantProduct}
           isOpen={showVariantSelector}
           onClose={() => setShowVariantSelector(false)}
-          onSelectVariant={handleVariantSelect}
+          onSelectVariant={handleVariantClick}
         />
       )}
     </div>
