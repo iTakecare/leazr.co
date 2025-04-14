@@ -25,7 +25,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   return (
     <Card className="mb-6">
       <CardHeader className="bg-primary/5">
-        <CardTitle className="text-lg">Équipement et financement</CardTitle>
+        <CardTitle className="text-base font-medium">Équipement et financement</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
