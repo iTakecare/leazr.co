@@ -98,6 +98,15 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         
         console.log("Demande envoyée avec succès:", result);
         toast.success("Votre demande a été envoyée avec succès");
+        
+        // Update sidebar notification count
+        const pendingRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+        const pendingCountElement = document.getElementById('pendingRequestsCount');
+        if (pendingCountElement) {
+          pendingCountElement.textContent = pendingRequests.length.toString();
+          pendingCountElement.style.display = pendingRequests.length > 0 ? 'flex' : 'none';
+        }
+        
         onClose();
         navigate("/demande-envoyee", {
           state: { 

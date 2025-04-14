@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, FileText, Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { formatDistanceToNow, formatCurrency } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { getAllClientRequests } from '@/services/requestInfoService';
 import { useToast } from '@/components/ui/use-toast';
 
 interface RequestItem {
@@ -20,7 +19,6 @@ interface RequestItem {
 
 const RequestsPage: React.FC = () => {
   const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [localRequests, setLocalRequests] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -31,25 +29,9 @@ const RequestsPage: React.FC = () => {
     setError(null);
     
     try {
-      // Récupérer les demandes depuis le localStorage en attendant la connexion à l'API
-      const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
-      setLocalRequests(storedRequests);
-      
-      // Tenter de récupérer les demandes depuis la base de données
-      try {
-        const { data, error } = await supabase
-          .from('offers')
-          .select('*')
-          .eq('type', 'client_request')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        setRequests(data || []);
-      } catch (dbError) {
-        console.error('Erreur lors de la récupération des demandes depuis la base de données:', dbError);
-        // En cas d'erreur, on garde les données du localStorage
-      }
+      const allRequests = await getAllClientRequests();
+      console.log("Fetched requests:", allRequests);
+      setRequests(allRequests);
     } catch (err) {
       console.error('Erreur lors du chargement des demandes:', err);
       setError('Impossible de charger vos demandes. Veuillez réessayer.');
@@ -60,6 +42,14 @@ const RequestsPage: React.FC = () => {
   
   useEffect(() => {
     fetchRequests();
+    
+    // Update sidebar notification count when component mounts
+    const pendingRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+    const pendingCountElement = document.getElementById('pendingRequestsCount');
+    if (pendingCountElement) {
+      pendingCountElement.textContent = pendingRequests.length.toString();
+      pendingCountElement.style.display = pendingRequests.length > 0 ? 'flex' : 'none';
+    }
   }, []);
   
   // Fonction pour déterminer la couleur du badge en fonction du statut
@@ -111,8 +101,6 @@ const RequestsPage: React.FC = () => {
     }
   };
   
-  const allRequests = [...requests, ...localRequests];
-  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -150,7 +138,7 @@ const RequestsPage: React.FC = () => {
         <div className="flex justify-center p-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : allRequests.length === 0 ? (
+      ) : requests.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow-sm text-center">
           <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <FileText className="h-10 w-10 text-gray-400" />
@@ -165,7 +153,7 @@ const RequestsPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allRequests.map((request) => (
+          {requests.map((request) => (
             <div key={request.id} className="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-medium text-lg line-clamp-1">{request.client_name}</h3>
@@ -190,7 +178,7 @@ const RequestsPage: React.FC = () => {
                   <h4 className="text-sm text-gray-500">Date</h4>
                   <p className="text-sm">
                     {request.created_at 
-                      ? formatDistanceToNow(new Date(request.created_at)) 
+                      ? formatDistanceToNow(request.created_at) 
                       : "Récemment"}
                   </p>
                 </div>

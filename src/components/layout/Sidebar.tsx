@@ -80,6 +80,13 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   useEffect(() => {
     const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
     setPendingRequests(storedRequests.length);
+    
+    const checkInterval = setInterval(() => {
+      const updatedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+      setPendingRequests(updatedRequests.length);
+    }, 5000);
+    
+    return () => clearInterval(checkInterval);
   }, []);
 
   const handleLogout = async () => {
@@ -208,14 +215,20 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 <span className="relative">
                   <FileText className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-3")} />
                   {pendingRequests > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    <span 
+                      id="pendingRequestsCount"
+                      className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center"
+                    >
                       {pendingRequests}
                     </span>
                   )}
                 </span>
                 {!collapsed && <span>Demandes</span>}
                 {!collapsed && pendingRequests > 0 && (
-                  <Badge className="ml-auto bg-red-500 text-white text-xs px-1.5">
+                  <Badge 
+                    id="pendingRequestsCountBadge"
+                    className="ml-auto bg-red-500 text-white text-xs px-1.5"
+                  >
                     {pendingRequests}
                   </Badge>
                 )}
