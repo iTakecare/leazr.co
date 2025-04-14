@@ -62,7 +62,6 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
       product: product,
       quantity,
       selectedOptions,
-      price: currentPrice,
       monthlyPrice: currentPrice,
       totalPrice: totalPrice,
       duration
