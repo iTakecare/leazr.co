@@ -155,7 +155,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     <div className="space-y-4">
       {Object.entries(groupedProducts).map(([group, groupProducts]) => (
         <div key={group} className="bg-card rounded-md overflow-hidden border">
-          <div className="bg-muted/40 px-4 py-2 font-medium text-lg">
+          <div className="bg-muted/40 px-4 py-2 font-medium text-base">
             {group}
           </div>
           <Accordion type="multiple" className="px-0">
