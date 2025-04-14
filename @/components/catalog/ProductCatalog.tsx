@@ -7,7 +7,7 @@ interface ProductCatalogProps {
   hideNavigation?: boolean;
 }
 
-export const ProductCatalog = ({ hideNavigation = false }: ProductCatalogProps) => {
+const ProductCatalog = ({ hideNavigation = false }: ProductCatalogProps) => {
   return (
     <>
       {!hideNavigation && <UnifiedNavigation />}
@@ -17,3 +17,5 @@ export const ProductCatalog = ({ hideNavigation = false }: ProductCatalogProps) 
     </>
   );
 };
+
+export default ProductCatalog;
