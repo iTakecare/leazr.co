@@ -7,7 +7,6 @@ import { Product } from '@/types/catalog';
 import { Filter, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useProductFilter } from '@/hooks/products/useProductFilter';
 import PublicProductGrid from '@/components/catalog/public/PublicProductGrid';
 
 const ClientCatalog = () => {
@@ -21,6 +20,7 @@ const ClientCatalog = () => {
   });
 
   const handleProductClick = (productId: string) => {
+    console.log("Navigating to client product detail:", productId);
     navigate(`/client/products/${productId}`);
   };
 

@@ -1,6 +1,6 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
@@ -13,12 +13,9 @@ import { useAttributeHelpers } from "@/components/product-detail/ProductAttribut
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface ClientProductDetailProps {
-  id?: string;
-}
-
-const ClientProductDetail = ({ id: propId }: ClientProductDetailProps) => {
+const ClientProductDetail = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   
   const {
     product,
@@ -41,7 +38,18 @@ const ClientProductDetail = ({ id: propId }: ClientProductDetailProps) => {
     hasAttributeOptions,
     variationAttributes,
     getOptionsForAttribute
-  } = useProductDetails(propId);
+  } = useProductDetails(id);
+  
+  // Log des informations du produit pour débogage
+  useEffect(() => {
+    if (product) {
+      console.log("ClientProductDetail: Produit chargé", {
+        id: product.id,
+        name: product.name,
+        price: product.monthly_price
+      });
+    }
+  }, [product]);
   
   const attributeHelpers = useAttributeHelpers(
     specifications,
@@ -127,6 +135,7 @@ const ClientProductDetail = ({ id: propId }: ClientProductDetailProps) => {
               configAttributes={configAttributes}
               getCurrentValue={getCurrentValue}
               getDisplayName={getDisplayName}
+              clientMode={true}
             />
           </div>
         </div>
@@ -138,6 +147,7 @@ const ClientProductDetail = ({ id: propId }: ClientProductDetailProps) => {
             currentProductId={product?.id} 
             brand={productBrand}
             limit={4}
+            linkPrefix="/client/products"
           />
         </div>
       </div>
