@@ -59,7 +59,6 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   
   const handleAddToCart = () => {
     addToCart({
-      productId: product.id,
       product: product,
       quantity,
       selectedOptions,
@@ -102,10 +101,10 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
       
       <ProductPriceDisplay 
         currentPrice={currentPrice}
+        minimumPrice={minMonthlyPrice}
         totalPrice={totalPrice}
         quantity={quantity}
         duration={duration}
-        minMonthlyPrice={minMonthlyPrice}
       />
       
       <div className="space-y-4">

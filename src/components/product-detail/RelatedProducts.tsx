@@ -2,7 +2,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@/types/catalog";
-import { getRelatedProducts } from "@/services/catalogService";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,24 @@ interface RelatedProductsProps {
   limit?: number;
   linkPrefix?: string;
 }
+
+// Helper function to get related products
+const getRelatedProducts = async ({ 
+  category, 
+  brand, 
+  excludeId, 
+  limit = 4 
+}: { 
+  category?: string; 
+  brand?: string; 
+  excludeId?: string; 
+  limit?: number;
+}): Promise<Product[]> => {
+  // This would normally call the API, but for now we'll return an empty array
+  // as the actual implementation doesn't exist yet
+  console.log(`Fetching related products - category: ${category}, brand: ${brand}, excludeId: ${excludeId}, limit: ${limit}`);
+  return [];
+};
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ 
   category, 

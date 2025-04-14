@@ -4,12 +4,18 @@ import { formatCurrency } from "@/utils/formatters";
 
 interface ProductPriceDisplayProps {
   currentPrice: number | null;
-  minimumPrice: number;
+  minimumPrice?: number;
+  totalPrice?: number;
+  quantity?: number;
+  duration?: number;
 }
 
 const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
   currentPrice,
-  minimumPrice
+  minimumPrice = 0,
+  totalPrice,
+  quantity = 1,
+  duration
 }) => {
   // Protection contre les valeurs invalides - effectuée une seule fois
   const { displayCurrentPrice, displayMinPrice } = useMemo(() => {
@@ -32,10 +38,35 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
     return formatCurrency(displayMinPrice);
   }, [displayMinPrice]);
   
+  // Format total price if provided
+  const formattedTotalPrice = useMemo(() => {
+    if (totalPrice && totalPrice > 0) {
+      return formatCurrency(totalPrice);
+    }
+    return null;
+  }, [totalPrice]);
+  
   return (
     <div className="text-lg text-gray-700 mb-4">
       {formattedCurrentPrice ? (
-        <span className="font-bold text-[#4ab6c4]">{formattedCurrentPrice}/mois</span>
+        <div>
+          <span className="font-bold text-[#4ab6c4]">{formattedCurrentPrice}/mois</span>
+          
+          {formattedTotalPrice && quantity && quantity > 1 && (
+            <div className="text-sm mt-1">
+              Total: <span className="font-semibold">{formattedTotalPrice}/mois</span> 
+              <span className="text-gray-500 text-xs ml-1">
+                (pour {quantity} {quantity > 1 ? 'unités' : 'unité'})
+              </span>
+            </div>
+          )}
+          
+          {duration && (
+            <div className="text-xs text-gray-500 mt-1">
+              Durée du contrat: {duration} mois
+            </div>
+          )}
+        </div>
       ) : (
         <>
           à partir de <span className="font-bold text-[#4ab6c4]">{formattedMinPrice}/mois</span>
