@@ -1,25 +1,44 @@
+import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '@/components/layout/Sidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { ScrollArea } from '@/components/ui/scroll-area';
+interface LayoutProps {
+  children: React.ReactNode;
+}
 
-export function Layout() {
+const Layout = ({ children }: LayoutProps) => {
+  const location = useLocation();
   const isMobile = useIsMobile();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const showSidebar = !isMobile || isMenuOpen;
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-background to-primary/5">
-      {!isMobile && <Sidebar />}
-      
-      <main className="flex-1 relative">
-        <div className="absolute inset-0 pointer-events-none bg-[url('/grid-pattern.svg')] bg-center opacity-[0.02]" />
-        <ScrollArea className="h-screen">
-          <div className="p-4 md:p-6 pb-24">
-            <Outlet />
-          </div>
-        </ScrollArea>
-      </main>
+    <div className="h-screen">
+      <Navbar onMenuClick={toggleMenu} />
+      <div className="md:flex h-[calc(100vh-64px)]">
+        {showSidebar && (
+          <Sidebar 
+            className={cn(
+              "md:block transition-all duration-300",
+              isMobile ? "fixed top-0 left-0 w-full h-full z-50 bg-white" : ""
+            )}
+            onLinkClick={() => isMobile && setIsMenuOpen(false)}
+          />
+        )}
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
-}
+};
+
+export { Layout };

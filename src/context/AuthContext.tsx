@@ -370,6 +370,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
       navigate("/login");
     } catch (error: any) {
       console.error("Signout error", error);

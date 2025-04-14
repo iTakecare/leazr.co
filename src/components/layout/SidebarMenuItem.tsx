@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Tooltip,
   TooltipContent,
@@ -21,14 +21,26 @@ interface SidebarMenuItemProps {
 }
 
 const SidebarMenuItem = ({ item, isActive, collapsed, onLinkClick }: SidebarMenuItemProps) => {
+  const navigate = useNavigate();
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (onLinkClick) {
+      onLinkClick();
+    }
+    
+    navigate(item.href);
+  };
+  
   return (
     <li key={item.href}>
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link
-              to={item.href}
-              onClick={onLinkClick}
+            <a
+              href={item.href}
+              onClick={handleClick}
               className={cn(
                 "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                 collapsed ? "justify-center px-2" : "px-3",
@@ -46,7 +58,7 @@ const SidebarMenuItem = ({ item, isActive, collapsed, onLinkClick }: SidebarMenu
                 )} 
               />
               {!collapsed && <span>{item.label}</span>}
-            </Link>
+            </a>
           </TooltipTrigger>
           {collapsed && (
             <TooltipContent side="right" className="font-medium">

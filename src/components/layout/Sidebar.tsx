@@ -39,7 +39,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
   const menuItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
     { label: "CRM", icon: Briefcase, href: "/clients" },
     { label: "Offres", icon: Receipt, href: "/offers" },
     { label: "Contrats", icon: FileText, href: "/contracts" },
