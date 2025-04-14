@@ -54,6 +54,11 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
     return attributesArray;
   };
 
+  const checkIsOptionAvailable = (optionName: string, value: string): boolean => {
+    // Appel de la fonction isOptionAvailable avec les deux paramètres requis
+    return isOptionAvailable(optionName, value);
+  };
+
   if (!hasVariants) {
     return (
       <div className="text-gray-500 text-xs">Aucune option de configuration disponible pour ce produit.</div>
@@ -93,7 +98,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
           </label>
           <div className="flex flex-wrap gap-1">
             {values.map((value) => {
-              const isAvailable = isOptionAvailable(option, value);
+              const isAvailable = checkIsOptionAvailable(option, value);
               const isSelected = selectedOptions[option] === value;
               
               return (

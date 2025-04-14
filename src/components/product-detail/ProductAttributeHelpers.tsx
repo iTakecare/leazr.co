@@ -14,6 +14,8 @@ export const useAttributeHelpers = (
   selectedOptions: Record<string, string> = {}
 ): AttributeHelpers => {
   const getDisplayName = (key: string): string => {
+    if (!key) return '';
+    
     const nameMap: Record<string, string> = {
       'condition': 'État',
       'etat': 'État',
@@ -37,6 +39,8 @@ export const useAttributeHelpers = (
   };
   
   const getCanonicalName = (key: string): string => {
+    if (!key) return '';
+    
     const canonicalMap: Record<string, string> = {
       'condition': 'condition',
       'etat': 'condition',
