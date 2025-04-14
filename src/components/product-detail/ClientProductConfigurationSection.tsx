@@ -23,7 +23,7 @@ interface ClientProductConfigurationSectionProps {
   handleOptionChange: (attributeName: string, value: string) => void;
   isOptionAvailable: (attributeName: string, value: string) => boolean;
   variationAttributes: Record<string, string[]>;
-  specifications: Record<string, string>;
+  specifications: Record<string, string | number>;
   hasAttributeOptions: boolean;
   getOptionsForAttribute: (attributeName: string) => string[];
   configAttributes: { name: string; values: string[] }[];
@@ -82,7 +82,7 @@ const ClientProductConfigurationSection: React.FC<ClientProductConfigurationSect
             </div>
 
             {/* Variant Selectors */}
-            {hasAttributeOptions && (
+            {hasAttributeOptions && configAttributes && configAttributes.length > 0 && (
               <div className="space-y-4">
                 {configAttributes.map((attribute) => (
                   <div key={attribute.name}>
@@ -107,7 +107,7 @@ const ClientProductConfigurationSection: React.FC<ClientProductConfigurationSect
               </label>
               <QuantitySelector
                 quantity={quantity}
-                onChange={handleQuantityChange}
+                onQuantityChange={handleQuantityChange}
                 min={1}
                 max={100}
               />

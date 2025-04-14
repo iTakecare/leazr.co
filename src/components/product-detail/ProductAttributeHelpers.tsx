@@ -4,7 +4,7 @@ import React from "react";
 export interface AttributeHelpers {
   getDisplayName: (key: string) => string;
   getCanonicalName: (key: string) => string;
-  getConfigAttributes: () => string[];
+  getConfigAttributes: () => { name: string; values: string[] }[];
   getCurrentValue: (attributeName: string) => string;
 }
 
@@ -14,6 +14,11 @@ export const useAttributeHelpers = (
   selectedOptions: Record<string, string> = {}
 ): AttributeHelpers => {
   const getDisplayName = (key: string): string => {
+    // Add null check before calling toLowerCase
+    if (!key) {
+      return "Attribut";
+    }
+    
     const nameMap: Record<string, string> = {
       'condition': 'État',
       'etat': 'État',
@@ -37,6 +42,11 @@ export const useAttributeHelpers = (
   };
   
   const getCanonicalName = (key: string): string => {
+    // Add null check before calling toLowerCase
+    if (!key) {
+      return "attribute";
+    }
+    
     const canonicalMap: Record<string, string> = {
       'condition': 'condition',
       'etat': 'condition',
@@ -75,12 +85,31 @@ export const useAttributeHelpers = (
       ...Object.keys(variationAttributes || {})
     ]);
     
-    const canonicalKeys = Array.from(allKeys).map(key => getCanonicalName(key));
-    const uniqueKeys = Array.from(new Set(canonicalKeys));
+    const result: { name: string; values: string[] }[] = [];
     
-    uniqueKeys.sort((a, b) => {
-      const indexA = priorityOrder.indexOf(a.toLowerCase());
-      const indexB = priorityOrder.indexOf(b.toLowerCase());
+    Array.from(allKeys).forEach(key => {
+      const canonicalKey = getCanonicalName(key);
+      
+      // Get values from either specs or variation attributes
+      let values: string[] = [];
+      if (variationAttributes[key]) {
+        values = variationAttributes[key];
+      } else if (specifications[key] !== undefined) {
+        values = [String(specifications[key])];
+      }
+      
+      if (values.length > 0) {
+        result.push({
+          name: key,
+          values: values
+        });
+      }
+    });
+    
+    // Sort by priority
+    result.sort((a, b) => {
+      const indexA = priorityOrder.indexOf(getCanonicalName(a.name).toLowerCase());
+      const indexB = priorityOrder.indexOf(getCanonicalName(b.name).toLowerCase());
       
       const valueA = indexA === -1 ? 999 : indexA;
       const valueB = indexB === -1 ? 999 : indexB;
@@ -88,10 +117,14 @@ export const useAttributeHelpers = (
       return valueA - valueB;
     });
     
-    return uniqueKeys;
+    return result;
   };
   
   const getCurrentValue = (attributeName: string): string => {
+    if (!attributeName) {
+      return "";
+    }
+    
     if (selectedOptions[attributeName] !== undefined) {
       return String(selectedOptions[attributeName]);
     }

@@ -33,7 +33,8 @@ const ClientFicheProduitWithCart = () => {
     totalPrice,
     minMonthlyPrice,
     specifications,
-    hasAttributeOptions,
+    hasVariants,
+    hasOptions,
     variationAttributes,
     getOptionsForAttribute
   } = useProductDetails(id);
@@ -68,6 +69,7 @@ const ClientFicheProduitWithCart = () => {
   const productDescription = product?.description || "Aucune description disponible pour ce produit.";
   
   const configAttributes = getConfigAttributes();
+  const hasAttributeOptions = hasVariants && hasOptions;
   
   return (
     <div className="w-full max-w-full">
