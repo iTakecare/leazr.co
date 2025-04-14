@@ -10,7 +10,6 @@ import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 
 const ClientFicheProduit = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,25 +55,11 @@ const ClientFicheProduit = () => {
   };
   
   if (isLoading) {
-    return (
-      <>
-        <CatalogHeader />
-        <div className="w-full max-w-full px-4">
-          <ProductLoadingState />
-        </div>
-      </>
-    );
+    return <ProductLoadingState />;
   }
   
   if (error || !product) {
-    return (
-      <>
-        <CatalogHeader />
-        <div className="w-full max-w-full px-4">
-          <ProductErrorState onBackToCatalog={handleBackToCatalog} />
-        </div>
-      </>
-    );
+    return <ProductErrorState onBackToCatalog={handleBackToCatalog} />;
   }
   
   const productName = product?.name || "Produit";
@@ -86,65 +71,58 @@ const ClientFicheProduit = () => {
   
   return (
     <div className="w-full max-w-full">
-      <CatalogHeader 
-        title={`Catalogue › ${productName}`}
-        description={productCategory ? `Catégorie: ${productCategory}` : "Détails du produit"}
-      />
+      <Button 
+        variant="ghost" 
+        onClick={handleBackToCatalog}
+        className="mb-4 flex items-center gap-2"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Retour au catalogue
+      </Button>
       
-      <div className="w-full max-w-full px-4">
-        <Button 
-          variant="ghost" 
-          onClick={handleBackToCatalog}
-          className="mb-4 flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour au catalogue
-        </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <ProductMainContent 
+          product={product}
+          productName={productName}
+          productDescription={productDescription}
+          currentImage={currentImage}
+          productBrand={productBrand}
+        />
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <ProductMainContent 
+        <div>
+          <ProductConfigurationSection 
             product={product}
+            productCategory={productCategory}
             productName={productName}
-            productDescription={productDescription}
-            currentImage={currentImage}
             productBrand={productBrand}
-          />
-          
-          <div>
-            <ProductConfigurationSection 
-              product={product}
-              productCategory={productCategory}
-              productName={productName}
-              productBrand={productBrand}
-              currentPrice={currentPrice}
-              minMonthlyPrice={minMonthlyPrice}
-              totalPrice={totalPrice}
-              quantity={quantity}
-              duration={duration}
-              handleQuantityChange={handleQuantityChange}
-              selectedOptions={selectedOptions}
-              handleOptionChange={handleOptionChange}
-              isOptionAvailable={isOptionAvailable}
-              variationAttributes={variationAttributes}
-              specifications={specifications}
-              hasAttributeOptions={hasAttributeOptions}
-              getOptionsForAttribute={getOptionsForAttribute}
-              configAttributes={configAttributes}
-              getCurrentValue={getCurrentValue}
-              getDisplayName={getDisplayName}
-            />
-          </div>
-        </div>
-        
-        <div className="mt-8 mb-12">
-          <h2 className="text-xl font-bold mb-6">Produits similaires</h2>
-          <RelatedProducts 
-            category={productCategory} 
-            currentProductId={product?.id} 
-            brand={productBrand}
-            limit={4}
+            currentPrice={currentPrice}
+            minMonthlyPrice={minMonthlyPrice}
+            totalPrice={totalPrice}
+            quantity={quantity}
+            duration={duration}
+            handleQuantityChange={handleQuantityChange}
+            selectedOptions={selectedOptions}
+            handleOptionChange={handleOptionChange}
+            isOptionAvailable={isOptionAvailable}
+            variationAttributes={variationAttributes}
+            specifications={specifications}
+            hasAttributeOptions={hasAttributeOptions}
+            getOptionsForAttribute={getOptionsForAttribute}
+            configAttributes={configAttributes}
+            getCurrentValue={getCurrentValue}
+            getDisplayName={getDisplayName}
           />
         </div>
+      </div>
+      
+      <div className="mt-8 mb-12">
+        <h2 className="text-xl font-bold mb-6">Produits similaires</h2>
+        <RelatedProducts 
+          category={productCategory} 
+          currentProductId={product?.id} 
+          brand={productBrand}
+          limit={4}
+        />
       </div>
     </div>
   );

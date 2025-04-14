@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -16,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import MobileSidebar from "./MobileSidebar";
-import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   className?: string;
@@ -37,7 +37,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<number>(0);
   
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
@@ -77,22 +76,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     fetchAvatar();
   }, [user]);
 
-  useEffect(() => {
-    const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
-    setPendingRequests(storedRequests.length);
-    
-    const checkInterval = setInterval(() => {
-      const updatedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
-      setPendingRequests(updatedRequests.length);
-    }, 5000);
-    
-    return () => clearInterval(checkInterval);
-  }, []);
-
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate('/login');  // Changed from '/' to '/login'
       toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
@@ -156,7 +143,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         getUserDisplayName={getUserDisplayName}
         getUserRole={getUserRole}
         handleLogout={handleLogout}
-        pendingRequests={pendingRequests}
       />
     );
   }
@@ -199,41 +185,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 onLinkClick={onLinkClick}
               />
             ))}
-            
-            <li>
-              <Link
-                to="/client/requests"
-                className={cn(
-                  "flex items-center py-2 px-3 rounded-lg text-sm transition-colors",
-                  isActive("/client/requests")
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground",
-                  collapsed && "justify-center px-0"
-                )}
-                onClick={onLinkClick}
-              >
-                <span className="relative">
-                  <FileText className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-3")} />
-                  {pendingRequests > 0 && (
-                    <span 
-                      id="pendingRequestsCount"
-                      className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center"
-                    >
-                      {pendingRequests}
-                    </span>
-                  )}
-                </span>
-                {!collapsed && <span>Demandes</span>}
-                {!collapsed && pendingRequests > 0 && (
-                  <Badge 
-                    id="pendingRequestsCountBadge"
-                    className="ml-auto bg-red-500 text-white text-xs px-1.5"
-                  >
-                    {pendingRequests}
-                  </Badge>
-                )}
-              </Link>
-            </li>
           </ul>
         </nav>
         
