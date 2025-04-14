@@ -144,7 +144,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientRoutes = () => {
-  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -162,9 +162,16 @@ const ClientRoutes = () => {
         isClient: isClient(),
         isAmbassador: isAmbassador(),
         isPartner: isPartner(),
+        isAdmin: isAdmin(),
         email: user?.email,
         role: user?.role
       });
+      
+      // Ignorer la vérification pour les admins
+      if (isAdmin()) {
+        console.log("[ClientRoutes] L'utilisateur est un administrateur, pas de redirection");
+        return;
+      }
       
       // Vérifier si l'utilisateur tente d'accéder à la route /client
       // et qu'il n'a pas de rôle client
@@ -196,7 +203,7 @@ const ClientRoutes = () => {
         return;
       }
     }
-  }, [isLoading, user, isClient, isPartner, isAmbassador, navigate, location, userRoleChecked]);
+  }, [isLoading, user, isClient, isPartner, isAmbassador, isAdmin, navigate, location, userRoleChecked]);
 
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;
@@ -210,7 +217,7 @@ const ClientRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isClient()) {
+  if (!isClient() && !isAdmin()) {
     console.log("[ClientRoutes] Utilisateur non client tentant d'accéder à la route client");
     return <Navigate to="/" replace />;
   }

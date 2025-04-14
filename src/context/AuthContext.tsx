@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // Fonction pour vérifier directement un rôle à partir des métadonnées utilisateur
   const checkRoleFromMetadata = (userMetadata: any) => {
     if (!userMetadata) return null;
     if (userMetadata.role === 'ambassador') return 'ambassador';
@@ -82,14 +80,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.session?.user) {
           console.log("[AuthContext] Session trouvée pour:", data.session.user.email);
           
-          // Récupérer le profil utilisateur de Supabase
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name, company, role')
             .eq('id', data.session.user.id)
             .single();
           
-          // Déterminer le rôle principal à partir des métadonnées
           const userRole = checkRoleFromMetadata(data.session.user.user_metadata) || 
                            profileData?.role || 
                            'client';
@@ -102,9 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             role: userRole,
           };
           
-          // Récupérer les IDs associés aux entités
           try {
-            // Tentative de trouver un enregistrement d'ambassadeur
             if (userRole === 'ambassador') {
               const { data: ambassadorData } = await supabase
                 .from('ambassadors')
@@ -118,7 +112,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               }
             }
             
-            // Tentative de trouver un enregistrement client
             if (userRole === 'client') {
               const { data: clientData } = await supabase
                 .from('clients')
@@ -132,7 +125,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               }
             }
             
-            // Tentative de trouver un enregistrement partenaire
             if (userRole === 'partner') {
               const { data: partnerData } = await supabase
                 .from('partners')
@@ -166,14 +158,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (session?.user) {
               console.log("[AuthContext] Session mise à jour pour:", session.user.email);
               
-              // Récupérer le profil utilisateur de Supabase
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('first_name, last_name, company, role')
                 .eq('id', session.user.id)
                 .single();
               
-              // Déterminer le rôle principal à partir des métadonnées
               const userRole = checkRoleFromMetadata(session.user.user_metadata) || 
                                profileData?.role || 
                                'client';
@@ -186,9 +176,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 role: userRole,
               };
               
-              // Récupérer les IDs associés aux entités
               try {
-                // Tentative de trouver un enregistrement d'ambassadeur
                 if (userRole === 'ambassador') {
                   const { data: ambassadorData } = await supabase
                     .from('ambassadors')
@@ -202,7 +190,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   }
                 }
                 
-                // Tentative de trouver un enregistrement client
                 if (userRole === 'client') {
                   const { data: clientData } = await supabase
                     .from('clients')
@@ -216,7 +203,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   }
                 }
                 
-                // Tentative de trouver un enregistrement partenaire
                 if (userRole === 'partner') {
                   const { data: partnerData } = await supabase
                     .from('partners')
@@ -272,7 +258,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (currentPath === "/" || currentPath === "") {
       console.log("[AuthContext] Utilisateur sur la page d'index, vérification des rôles:");
       
-      // Déterminer le rôle pour la redirection
       const role = user.role?.toLowerCase();
       
       if (role === 'ambassador') {
