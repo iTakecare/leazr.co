@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -89,8 +89,8 @@ const ClientProductDetail = ({ id: propId }: ClientProductDetailProps) => {
           <BreadcrumbItem>
             <BreadcrumbLink>{productCategory}</BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink>{productName}</BreadcrumbLink>
+          <BreadcrumbItem>
+            <BreadcrumbPage>{productName}</BreadcrumbPage>
           </BreadcrumbItem>
         </Breadcrumb>
       </div>
