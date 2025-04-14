@@ -1,3 +1,4 @@
+
 import React from "react";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import HomeFooter from "@/components/home/HomeFooter";
@@ -37,6 +38,9 @@ const ContactPage = () => {
               className="w-full h-full object-cover"
               alt="Background"
               src="/clip-path-group.png"
+              width="1920"
+              height="1080"
+              fetchpriority="high"
             />
             {/* Gradient fade to white overlay */}
             <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />

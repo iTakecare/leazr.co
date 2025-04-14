@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ const HeroSection = (): JSX.Element => {
           className="relative w-full h-screen object-cover"
           alt="Background"
           src="/clip-path-group.png"
+          width="1920" 
+          height="1080"
+          fetchpriority="high"
         />
         {/* Gradient fade to white overlay */}
         <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
@@ -82,11 +86,17 @@ const HeroSection = (): JSX.Element => {
               className="absolute w-[520px] h-[335px] top-0 right-0 object-cover"
               alt="Computer"
               src="/computer.png"
+              width="520"
+              height="335"
+              loading="lazy"
             />
             <img
               className="absolute w-[255px] h-[164px] bottom-[-95px] right-[580px] object-contain"
               alt="Arrow"
               src="/arrow.png"
+              width="255"
+              height="164"
+              loading="lazy"
             />
           </div>
         </div>
@@ -107,6 +117,9 @@ const HeroSection = (): JSX.Element => {
               className="w-[36px] h-[36px] md:w-[57px] md:h-[57px]"
               alt="Star rating"
               src="/png-clipart-yellow-star-illustration-yellow-star-color-star-blue.png"
+              width="57"
+              height="57"
+              loading="lazy"
             />
             <div className="ml-[10px]">
               <p className="font-bold text-[#222222] text-base md:text-lg">4,8/5</p>
