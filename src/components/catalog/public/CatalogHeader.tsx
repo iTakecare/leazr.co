@@ -13,9 +13,9 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
 }) => {
   return (
     <Container maxWidth="full" className="mb-8 bg-gradient-to-r from-blue-50/50 to-slate-50/50 py-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-3">{title}</h1>
-        <p className="text-muted-foreground text-base md:text-lg">
+      <div className="max-w-3xl mx-auto text-left">
+        <h1 className="text-2xl md:text-3xl font-bold mb-3 text-left">{title}</h1>
+        <p className="text-muted-foreground text-base md:text-lg text-left">
           {description}
         </p>
       </div>
