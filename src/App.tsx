@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/Login";
@@ -101,10 +102,12 @@ const App = () => {
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           <Route path="/client/offers/:id" element={<PublicOfferView />} />
           
+          {/* Blog and Contact routes commented out until components are created 
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           
           <Route path="/contact" element={<ContactPage />} />
+          */}
           
           <Route path="/" element={
             <AdminRoute>
@@ -132,6 +135,7 @@ const App = () => {
             <Route path="settings" element={<Settings />} />
             <Route path="create-offer" element={<CreateOffer />} />
             
+            {/* Ambassador and Partner routes commented out until components are created
             <Route path="ambassadors" element={<AmbassadorsList />} />
             <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
             <Route path="ambassadors/:id" element={<AmbassadorDetail />} />
@@ -148,10 +152,12 @@ const App = () => {
             <Route path="partners/:id/offers/:offerId" element={<PartnerOfferDetail />} />
             
             <Route path="create-test-users" element={<CreateTestUsers />} />
+            */}
           </Route>
           
           <Route path="/client/*" element={<ClientRoutes />} />
           
+          {/* Ambassador routes commented out until components are created
           <Route path="/ambassador" element={
             <AmbassadorRoute>
               <AmbassadorLayout />
@@ -171,7 +177,9 @@ const App = () => {
             <Route path="catalog" element={<AmbassadorCatalog />} />
             <Route path="catalog/:productId" element={<AmbassadorProductDetail />} />
           </Route>
+          */}
           
+          {/* Partner routes commented out until components are created
           <Route path="/partner" element={
             <PartnerRoute>
               <PartnerDashboard />
@@ -182,6 +190,7 @@ const App = () => {
               <PartnerDashboard />
             </PartnerRoute>
           } />
+          */}
           <Route path="/partner/offers" element={
             <PartnerRoute>
               <Offers />

@@ -79,7 +79,7 @@ const PublicProductGrid = ({
                   opt => opt.value === selectedSort
                 );
                 const nextIndex = (currentIndex + 1) % sortOptions.length;
-                setSelectedSort(sortOptions[nextIndex].value);
+                setSelectedSort(sortOptions[nextIndex].value as any);
               }}
             >
               <span className="text-sm font-medium">
