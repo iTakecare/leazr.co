@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -107,9 +107,6 @@ const App = () => {
   
   console.log("App rendering - current route:", location.pathname);
 
-  // Suppression de la redirection automatique depuis la page d'accueil
-  // Les utilisateurs peuvent maintenant accéder à la page d'accueil même s'ils sont connectés
-  
   return (
     <div>
       <AnimatePresence mode="wait">
@@ -136,7 +133,9 @@ const App = () => {
           
           <Route path="/" element={
             <AdminRoute>
-              <Layout />
+              <Layout>
+                <Outlet />
+              </Layout>
             </AdminRoute>
           }>
             <Route path="dashboard" element={<Dashboard />} />
