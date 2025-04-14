@@ -15,17 +15,21 @@ import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
 import ClientCatalogue from "@/pages/ClientCatalogue";
-import ClientFicheProduit from "@/pages/ClientFicheProduit";
+import ClientFicheProduitWithCart from "@/pages/ClientFicheProduitWithCart";
+import ClientCartPage from "@/pages/ClientCartPage";
+import { ClientCartProvider } from "@/context/ClientCartContext";
 import { toast } from "sonner";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <ClientSidebar />
-      <div className="flex-1 flex flex-col overflow-auto">
-        <main className="flex-1 overflow-auto p-8">{children}</main>
+    <ClientCartProvider>
+      <div className="flex h-screen overflow-hidden">
+        <ClientSidebar />
+        <div className="flex-1 flex flex-col overflow-auto">
+          <main className="flex-1 overflow-auto p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </ClientCartProvider>
   );
 };
 
@@ -237,7 +241,8 @@ const ClientRoutes = () => {
         <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><ClientCatalogue /></ClientLayout>} />
-        <Route path="produit/:id" element={<ClientLayout><ClientFicheProduit /></ClientLayout>} />
+        <Route path="produit/:id" element={<ClientLayout><ClientFicheProduitWithCart /></ClientLayout>} />
+        <Route path="cart" element={<ClientLayout><ClientCartPage /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
