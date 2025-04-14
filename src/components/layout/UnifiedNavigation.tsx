@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -18,6 +19,8 @@ const UnifiedNavigation = () => {
   const [scrolled, setScrolled] = useState(false);
   const { cartCount } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,6 +37,18 @@ const UnifiedNavigation = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleHubNavigation = () => {
+    if (isAdmin()) {
+      navigate('/dashboard');
+    } else if (isClient()) {
+      navigate('/client/dashboard');
+    } else if (isAmbassador()) {
+      navigate('/ambassador/dashboard');
+    } else if (isPartner()) {
+      navigate('/partner/dashboard');
+    }
   };
 
   // Menus mis à jour avec une structure cohérente
@@ -154,14 +169,27 @@ const UnifiedNavigation = () => {
           </Link>
           
           <div className="flex flex-col space-y-2 pt-4">
-            <Link to="/login">
+            {user ? (
               <Button
                 variant="outline"
                 className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleHubNavigation();
+                }}
               >
-                Se connecter
+                Mon Hub
               </Button>
-            </Link>
+            ) : (
+              <Link to="/login">
+                <Button
+                  variant="outline"
+                  className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
+                >
+                  Se connecter
+                </Button>
+              </Link>
+            )}
             <Link to="/catalogue">
               <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
                 Catalogue
@@ -308,14 +336,24 @@ const UnifiedNavigation = () => {
             )}
           </Link>
 
-          <Link to="/login">
+          {user ? (
             <Button
               variant="outline"
               className="rounded-[50px] font-bold text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E] transition-all"
+              onClick={handleHubNavigation}
             >
-              Se connecter
+              Mon Hub
             </Button>
-          </Link>
+          ) : (
+            <Link to="/login">
+              <Button
+                variant="outline"
+                className="rounded-[50px] font-bold text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E] transition-all"
+              >
+                Se connecter
+              </Button>
+            </Link>
+          )}
 
           <Link to="/catalogue">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-sm transition-all duration-300 hover:shadow-md">

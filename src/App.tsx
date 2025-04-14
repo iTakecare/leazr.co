@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useEffect } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -103,8 +104,30 @@ const AmbassadorRoute = ({ children }) => {
 
 const App = () => {
   const location = useLocation();
+  const { user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
   
   console.log("App rendering - current route:", location.pathname);
+
+  useEffect(() => {
+    // Rediriger l'utilisateur authentifié vers son tableau de bord approprié s'il visite l'URL racine
+    if (user && !isLoading && location.pathname === "/") {
+      console.log("Utilisateur connecté sur la page d'index, vérification du rôle pour redirection");
+      
+      if (isAdmin()) {
+        console.log("Redirection admin vers /dashboard");
+        // Ne pas rediriger tout de suite pour permettre à l'utilisateur de visiter la page d'accueil s'il le souhaite
+      } else if (isClient()) {
+        console.log("Redirection client vers /client/dashboard");
+        // Ne pas rediriger tout de suite pour permettre à l'utilisateur de visiter la page d'accueil s'il le souhaite
+      } else if (isAmbassador()) {
+        console.log("Redirection ambassadeur vers /ambassador/dashboard");
+        // Ne pas rediriger tout de suite pour permettre à l'utilisateur de visiter la page d'accueil s'il le souhaite
+      } else if (isPartner()) {
+        console.log("Redirection partenaire vers /partner/dashboard");
+        // Ne pas rediriger tout de suite pour permettre à l'utilisateur de visiter la page d'accueil s'il le souhaite
+      }
+    }
+  }, [user, isLoading, location.pathname, isAdmin, isClient, isAmbassador, isPartner]);
 
   return (
     <div>

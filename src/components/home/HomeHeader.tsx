@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,6 +18,8 @@ const HomeHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { cartCount } = useCart();
+  const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +36,18 @@ const HomeHeader = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleHubNavigation = () => {
+    if (isAdmin()) {
+      navigate('/dashboard');
+    } else if (isClient()) {
+      navigate('/client/dashboard');
+    } else if (isAmbassador()) {
+      navigate('/ambassador/dashboard');
+    } else if (isPartner()) {
+      navigate('/partner/dashboard');
+    }
   };
 
   const mainNavItems = [
@@ -86,14 +101,24 @@ const HomeHeader = () => {
             )}
           </Link>
 
-          <Link to="/login">
+          {user ? (
             <Button
-              variant="ghost"
+              variant="ghost" 
               className="text-gray-700 hover:text-[#48b5c3] font-medium"
+              onClick={handleHubNavigation}
             >
-              Se connecter
+              Mon Hub
             </Button>
-          </Link>
+          ) : (
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                className="text-gray-700 hover:text-[#48b5c3] font-medium"
+              >
+                Se connecter
+              </Button>
+            </Link>
+          )}
 
           <Link to="/catalogue">
             <Button 
@@ -168,15 +193,28 @@ const HomeHeader = () => {
             </nav>
             
             <div className="flex items-center space-x-4 mt-8">
-              <Link to="/login" className="flex-1">
+              {user ? (
                 <Button
                   variant="outline"
                   className="w-full rounded-full"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleHubNavigation();
+                  }}
                 >
-                  Se connecter
+                  Mon Hub
                 </Button>
-              </Link>
+              ) : (
+                <Link to="/login" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-full"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Se connecter
+                  </Button>
+                </Link>
+              )}
               <Link to="/catalogue" className="flex-1">
                 <Button 
                   className="w-full rounded-full bg-[#48b5c3] hover:bg-[#3da6b4]"

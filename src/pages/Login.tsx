@@ -23,7 +23,7 @@ const Login = () => {
   const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, session, user } = useAuth();
+  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
   useEffect(() => {
     const checkForResetToken = () => {
@@ -42,17 +42,23 @@ const Login = () => {
     
     if (!hasResetToken && session && user && !isResetMode) {
       console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
-      if (user.role === 'client') {
-        navigate('/client/dashboard');
-      } else if (user.ambassador_id) {
-        navigate('/ambassador/dashboard');
-      } else if (user.partner_id) {
-        navigate('/partners/' + user.partner_id + '/dashboard');
-      } else {
-        navigate('/');
-      }
+      redirectToDashboard();
     }
   }, [session, navigate, location, user, isResetMode]);
+
+  const redirectToDashboard = () => {
+    if (isAdmin()) {
+      navigate('/dashboard');
+    } else if (isClient()) {
+      navigate('/client/dashboard');
+    } else if (isAmbassador()) {
+      navigate('/ambassador/dashboard');
+    } else if (isPartner()) {
+      navigate('/partner/dashboard');
+    } else {
+      navigate('/client/dashboard'); // Redirection par défaut
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +74,8 @@ const Login = () => {
         console.error('Erreur lors de la connexion:', error);
         toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
       } else {
-        // Login success - let the useEffect handle redirection based on user role
+        toast.success('Connexion réussie');
+        redirectToDashboard();
       }
     } finally {
       setLoading(false);
