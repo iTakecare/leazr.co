@@ -5,9 +5,15 @@ import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 
 interface ProductCatalogProps {
   hideNavigation?: boolean;
+  isOpen?: boolean;
+  useDialog?: boolean;
 }
 
-const ProductCatalog = ({ hideNavigation = false }: ProductCatalogProps) => {
+const ProductCatalog = ({ 
+  hideNavigation = false, 
+  isOpen = true,
+  useDialog = false
+}: ProductCatalogProps) => {
   return (
     <>
       {!hideNavigation && <UnifiedNavigation />}

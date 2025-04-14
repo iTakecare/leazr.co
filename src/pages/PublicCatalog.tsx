@@ -5,7 +5,7 @@ import ProductCatalog from '@/components/catalog/ProductCatalog';
 const PublicCatalog = () => {
   return (
     <div className="h-full w-full overflow-auto">
-      <ProductCatalog hideNavigation={true} />
+      <ProductCatalog hideNavigation={true} isOpen={true} />
     </div>
   );
 };
