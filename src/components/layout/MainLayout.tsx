@@ -1,17 +1,14 @@
-
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useIsMobile } from '@/hooks/use-mobile';
-import MobileHeader from './MobileHeader';
+import MobileHeader from '@/components/layout/MobileHeader';
 
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
   
-  // Initialisez le compteur de demandes au chargement
   useEffect(() => {
-    // Function to update the pending requests count in the sidebar
     const updatePendingRequestsCount = () => {
       const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
       const pendingCountElement = document.getElementById('pendingRequestsCount');
@@ -28,7 +25,6 @@ const MainLayout: React.FC = () => {
       }
     };
     
-    // Update immediately and set up interval
     updatePendingRequestsCount();
     const interval = setInterval(updatePendingRequestsCount, 5000);
     
