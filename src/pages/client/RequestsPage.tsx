@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Clock, FileText, Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Plus, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, formatCurrency } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
 import { getAllClientRequests } from '@/services/requestInfoService';
@@ -50,6 +51,10 @@ const RequestsPage: React.FC = () => {
       pendingCountElement.textContent = pendingRequests.length.toString();
       pendingCountElement.style.display = pendingRequests.length > 0 ? 'flex' : 'none';
     }
+    
+    // Recharger les demandes toutes les 30 secondes
+    const interval = setInterval(fetchRequests, 30000);
+    return () => clearInterval(interval);
   }, []);
   
   // Fonction pour déterminer la couleur du badge en fonction du statut
@@ -91,10 +96,18 @@ const RequestsPage: React.FC = () => {
   // Fonction pour formatter la description de l'équipement
   const formatEquipmentDescription = (description: string) => {
     try {
-      const equipment = JSON.parse(description);
-      if (Array.isArray(equipment)) {
-        return equipment.map(item => item.name).join(', ');
+      if (!description) return "Aucune description";
+      
+      // Check if it's already a JSON string
+      if (description.startsWith('[') || description.startsWith('{')) {
+        const equipment = JSON.parse(description);
+        if (Array.isArray(equipment)) {
+          return equipment.map(item => item.name || item.title || "Produit").join(', ');
+        } else if (equipment.name || equipment.title) {
+          return equipment.name || equipment.title;
+        }
       }
+      
       return description;
     } catch (err) {
       return description;

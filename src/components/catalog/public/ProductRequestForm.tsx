@@ -68,7 +68,12 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
 
-      const equipmentDescription = `${product?.name} ${quantity > 1 ? `(${quantity} unités)` : ''} - ${optionsDescription ? `Options: ${optionsDescription}` : 'Configuration standard'} - Durée: ${duration} mois`;
+      const equipmentDescription = JSON.stringify({
+        productName: product?.name,
+        quantity: quantity,
+        options: selectedOptions,
+        duration: duration
+      });
 
       // Calculer le montant financé à partir de la mensualité
       // Utiliser le coefficient standard 3.27 pour les demandes client
@@ -108,7 +113,7 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         }
         
         onClose();
-        navigate("/demande-envoyee", {
+        navigate("/client/requests", {
           state: { 
             success: true, 
             companyName: formData.company,

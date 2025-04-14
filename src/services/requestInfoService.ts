@@ -78,12 +78,19 @@ export const getAllClientRequests = async () => {
     const dbRequestIds = new Set(data.map(req => req.id));
     const filteredLocalRequests = storedRequests.filter(req => !dbRequestIds.has(req.id));
     
+    console.log("Combined requests:", {
+      fromDb: data.length,
+      fromLocal: filteredLocalRequests.length,
+      total: data.length + filteredLocalRequests.length
+    });
+    
     return [...data, ...filteredLocalRequests];
   } catch (dbError) {
     console.error("Error fetching from database, falling back to localStorage:", dbError);
     
     // Fallback to localStorage if API fails
     const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+    console.log("Fallback to localStorage requests:", storedRequests.length);
     return storedRequests;
   }
 };

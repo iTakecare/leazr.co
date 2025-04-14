@@ -46,7 +46,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ cartTotal, itemsCount }) => {
         </div>
         
         <Button className="w-full mt-6" size="lg" asChild>
-          <Link to="/client/requests/new">
+          <Link to="/panier/demande">
             Passer ma demande
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -54,7 +54,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ cartTotal, itemsCount }) => {
         
         <div className="mt-4 text-center">
           <Button variant="link" asChild>
-            <Link to="/catalogue">Continuer mes achats</Link>
+            <Link to="/client/catalog">Continuer mes achats</Link>
           </Button>
         </div>
       </div>
