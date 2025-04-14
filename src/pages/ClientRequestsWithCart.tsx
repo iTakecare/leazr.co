@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useClientOffers } from "@/hooks/useClientOffers";
@@ -65,7 +64,6 @@ const ClientRequestsWithCart = () => {
     );
   }
 
-  // Si le panier est vide et que l'utilisateur essaie d'aller sur l'onglet de commande, le rediriger vers le panier
   if (activeTab === 'order' && cartItemCount === 0) {
     navigate('/client/requests?action=view-cart');
     return null;
@@ -98,9 +96,7 @@ const ClientRequestsWithCart = () => {
           <TabsContent value="requests">
             <Card className="border-none shadow-md">
               <CardContent className="p-0">
-                {/* Contenu original de la page de demandes */}
                 <div className="p-6">
-                  {/* Ce composant sera laissé tel quel, nous ne modifions pas le code existant */}
                   <p className="text-muted-foreground">Vos demandes seront affichées ici.</p>
                 </div>
               </CardContent>

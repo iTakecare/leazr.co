@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -49,7 +48,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     const checkClientAssociation = async () => {
       if (!user) return;
       
-      // Si l'utilisateur est un admin, pas besoin de vérifier l'association client
       if (isAdmin()) {
         console.log("L'utilisateur est un administrateur, pas besoin de vérifier l'association client");
         setCheckingClient(false);
@@ -72,7 +70,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           console.log("Cache client ID effacé pour la nouvelle tentative");
         }
         
-        // Si l'utilisateur a un rôle spécifique qui n'est pas 'client', ne pas vérifier l'association
         if (user.role && user.role !== 'client') {
           setCheckingClient(false);
           console.log(`L'utilisateur a un rôle ${user.role}, pas besoin de vérifier l'association client`);
@@ -174,19 +171,16 @@ const ClientRoutes = () => {
         role: user?.role
       });
       
-      // Si l'utilisateur est admin et essaie d'accéder aux routes client
       if (isAdmin() && location.pathname.startsWith('/client/')) {
         console.log("[ClientRoutes] L'utilisateur est un administrateur sur une route client, redirection vers la dashboard admin");
         navigate('/dashboard', { replace: true });
         return;
       }
       
-      // Si l'utilisateur n'est pas admin et n'est pas client
       if (!isAdmin() && !isClient() && location.pathname.startsWith('/client/')) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
         toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         
-        // Rediriger l'utilisateur en fonction du rôle
         if (isAmbassador()) {
           console.log("[ClientRoutes] L'utilisateur est un ambassadeur, redirection vers le tableau de bord ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
@@ -218,7 +212,6 @@ const ClientRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Admins ne devraient pas être dirigés vers les routes client
   if (isAdmin()) {
     return <Navigate to="/dashboard" replace />;
   }
