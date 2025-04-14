@@ -48,11 +48,12 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         const nlTranslations = await import('../translations/nl.json');
         const deTranslations = await import('../translations/de.json');
         
+        // Accéder aux données de traduction via la propriété default
         setTranslations({
-          fr: frTranslations,
-          en: enTranslations,
-          nl: nlTranslations,
-          de: deTranslations,
+          fr: frTranslations.default,
+          en: enTranslations.default,
+          nl: nlTranslations.default,
+          de: deTranslations.default,
         });
       } catch (error) {
         console.error('Failed to load translations:', error);
