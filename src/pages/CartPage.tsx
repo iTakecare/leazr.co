@@ -1,14 +1,20 @@
+
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
-import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, ArrowLeft } from 'lucide-react';
 import MainNavigation from '@/components/layout/MainNavigation';
 
-const CartPage: React.FC = () => {
+interface CartPageProps {
+  inClientDashboard?: boolean;
+}
+
+const CartPage: React.FC<CartPageProps> = ({ inClientDashboard = false }) => {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const navigate = useNavigate();
   
   const handleRemoveItem = (productId: string) => {
     removeFromCart(productId);
@@ -20,14 +26,30 @@ const CartPage: React.FC = () => {
     }
   };
   
+  const handleBackToCatalog = () => {
+    if (inClientDashboard) {
+      navigate('/client/catalog');
+    } else {
+      navigate('/catalogue');
+    }
+  };
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
-      </div>
+    <div className={`min-h-screen ${inClientDashboard ? 'bg-white' : 'bg-gray-50'}`}>
+      {!inClientDashboard && (
+        <div className="container mx-auto px-4 py-6">
+          <MainNavigation />
+        </div>
+      )}
       
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Mon panier</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold">Mon panier</h1>
+          <Button variant="outline" onClick={handleBackToCatalog}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au catalogue
+          </Button>
+        </div>
         
         {items.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-sm text-center">
@@ -38,8 +60,8 @@ const CartPage: React.FC = () => {
             <p className="text-gray-500 mb-6">
               Parcourez notre catalogue pour trouver des équipements à louer.
             </p>
-            <Button asChild>
-              <Link to="/catalogue">Voir le catalogue</Link>
+            <Button onClick={handleBackToCatalog}>
+              Voir le catalogue
             </Button>
           </div>
         ) : (
@@ -157,15 +179,15 @@ const CartPage: React.FC = () => {
                   </div>
                   
                   <Button className="w-full mt-6" size="lg" asChild>
-                    <Link to="/demande">
+                    <Link to={inClientDashboard ? "/client/requests" : "/demande"}>
                       Passer ma demande
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                   
                   <div className="mt-4 text-center">
-                    <Button variant="link" asChild>
-                      <Link to="/catalogue">Continuer mes achats</Link>
+                    <Button variant="link" onClick={handleBackToCatalog}>
+                      Continuer mes achats
                     </Button>
                   </div>
                 </div>

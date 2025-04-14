@@ -16,6 +16,7 @@ import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
 import { toast } from "sonner";
+import CartPage from "@/pages/CartPage";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -236,6 +237,7 @@ const ClientRoutes = () => {
         <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
+        <Route path="cart" element={<ClientLayout><CartPage inClientDashboard={true} /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
