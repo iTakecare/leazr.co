@@ -4,6 +4,8 @@ import { Product } from "@/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { getCategories as fetchCategories } from "@/services/catalogService";
 
+export type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc';
+
 export const useProductFilter = (products: Product[] = []) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("tous");
@@ -12,6 +14,7 @@ export const useProductFilter = (products: Product[] = []) => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showInStock, setShowInStock] = useState<boolean | null>(null);
   const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
+  const [selectedSort, setSelectedSort] = useState<SortOption>("name-asc");
   
   // Fetch categories with translations from the database
   const { data: categoriesData = [] } = useQuery({
@@ -31,7 +34,6 @@ export const useProductFilter = (products: Product[] = []) => {
   useEffect(() => {
     if (products && products.length > 0) {
       const range = getPriceRange();
-      console.log("Setting initial price range:", range);
       setPriceRange(range);
       setIsPriceFilterActive(false); // Reset price filter active state
     }
@@ -42,8 +44,6 @@ export const useProductFilter = (products: Product[] = []) => {
     
     let filtered = [...products];
     
-    console.log(`Filtration en cours. Produits disponibles: ${filtered.length}`);
-    
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -52,7 +52,6 @@ export const useProductFilter = (products: Product[] = []) => {
         (product.brand?.toLowerCase().includes(query)) ||
         (product.description?.toLowerCase().includes(query))
       );
-      console.log(`Après filtrage par recherche: ${filtered.length} produits`);
     }
     
     // Filter by product type
@@ -61,20 +60,17 @@ export const useProductFilter = (products: Product[] = []) => {
         product.is_parent || 
         (product.variant_combination_prices && product.variant_combination_prices.length > 0)
       );
-      console.log(`Après filtrage par type (parents): ${filtered.length} produits`);
     } else if (selectedTab === "variantes") {
       filtered = filtered.filter(product => 
         product.variation_attributes && 
         Object.keys(product.variation_attributes).length > 0
       );
-      console.log(`Après filtrage par type (variantes): ${filtered.length} produits`);
     } else if (selectedTab === "individuels") {
       filtered = filtered.filter(product => 
         !product.is_parent && 
         (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) &&
         (!product.variant_combination_prices || product.variant_combination_prices.length === 0)
       );
-      console.log(`Après filtrage par type (individuels): ${filtered.length} produits`);
     }
     
     // Filter by selected category
@@ -82,22 +78,17 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         product.category === selectedCategory
       );
-      console.log(`Après filtrage par catégorie (${selectedCategory}): ${filtered.length} produits`);
     }
     
     // Filter by price range - only if the price filter is active
     const [minPrice, maxPrice] = getPriceRange();
     if (isPriceFilterActive && (priceRange[0] > minPrice || priceRange[1] < maxPrice)) {
-      console.log(`Filtrage par prix actif: ${priceRange[0]} - ${priceRange[1]} (limites: ${minPrice} - ${maxPrice})`);
       filtered = filtered.filter(product => {
         const price = product.price ? parseFloat(String(product.price)) : 0;
         const monthlyPrice = product.monthly_price ? parseFloat(String(product.monthly_price)) : 0;
         const actualPrice = monthlyPrice > 0 ? monthlyPrice : price;
         return actualPrice >= priceRange[0] && actualPrice <= priceRange[1];
       });
-      console.log(`Après filtrage par prix: ${filtered.length} produits`);
-    } else {
-      console.log("Pas de filtrage par prix (filtre désactivé ou plage complète)");
     }
     
     // Filter by brand
@@ -105,7 +96,6 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         product.brand && selectedBrands.includes(product.brand)
       );
-      console.log(`Après filtrage par marque: ${filtered.length} produits`);
     }
     
     // Filter by stock status
@@ -113,16 +103,29 @@ export const useProductFilter = (products: Product[] = []) => {
       filtered = filtered.filter(product => 
         showInStock ? (product.stock && product.stock > 0) : (product.stock === 0 || !product.stock)
       );
-      console.log(`Après filtrage par stock: ${filtered.length} produits`);
     }
     
-    console.log(`Produits filtrés: ${filtered.length}`);
-    filtered.forEach((product, index) => {
-      console.log(`Produit filtré ${index + 1}: ${product.name} (ID: ${product.id})`);
-      console.log(`- is_variation: ${product.is_variation}, parent_id: ${product.parent_id}`);
+    // Sort filtered products
+    return sortProducts(filtered);
+  };
+
+  const sortProducts = (productsToSort: Product[]): Product[] => {
+    const [sortBy, direction] = selectedSort.split('-') as ['name' | 'price', 'asc' | 'desc'];
+    return [...productsToSort].sort((a, b) => {
+      if (sortBy === 'name') {
+        const nameA = `${a.brand || ''} ${a.name}`.toLowerCase();
+        const nameB = `${b.brand || ''} ${b.name}`.toLowerCase();
+        return direction === 'asc' 
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
+      } else {
+        const priceA = a.monthly_price || 0;
+        const priceB = b.monthly_price || 0;
+        return direction === 'asc' 
+          ? priceA - priceB
+          : priceB - priceA;
+      }
     });
-    
-    return filtered;
   };
 
   // Get unique categories from products with translations
@@ -191,7 +194,6 @@ export const useProductFilter = (products: Product[] = []) => {
     const min = Math.floor(Math.min(...validPrices));
     const max = Math.ceil(Math.max(...validPrices));
     
-    console.log(`Plage de prix calculée: ${min} - ${max} (sur ${validPrices.length} prix valides)`);
     return [min, max];
   };
   
@@ -219,12 +221,13 @@ export const useProductFilter = (products: Product[] = []) => {
     categories: getCategoriesFromProducts(),
     brands: getBrands(),
     priceRangeLimits: getPriceRange(),
+    selectedSort,
+    setSelectedSort,
     resetFilters: () => {
       setSearchQuery("");
       setSelectedTab("tous");
       setSelectedCategory(null);
       const fullRange = getPriceRange();
-      console.log(`Réinitialisation des filtres. Nouvelle plage de prix: ${fullRange[0]} - ${fullRange[1]}`);
       setPriceRange(fullRange);
       setIsPriceFilterActive(false);
       setSelectedBrands([]);
