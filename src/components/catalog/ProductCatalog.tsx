@@ -54,7 +54,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onSelectProduct = () => {},
   editMode = false,
   hideNavigation = false,
-  useDialog = true
+  useDialog = false
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("all");
