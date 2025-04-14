@@ -29,7 +29,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, userRoleChecked } = useAuth();
+  const { user, isLoading, isClient, userRoleChecked, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -48,6 +48,13 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkClientAssociation = async () => {
       if (!user) return;
+      
+      // Si l'utilisateur est un admin, pas besoin de vérifier l'association client
+      if (isAdmin()) {
+        console.log("L'utilisateur est un administrateur, pas besoin de vérifier l'association client");
+        setCheckingClient(false);
+        return;
+      }
       
       const hash = window.location.hash || location.hash;
       if (hash && hash.includes('type=recovery')) {
@@ -117,7 +124,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
     } else {
       setCheckingClient(false);
     }
-  }, [user, isLoading, retryCount, location, navigate]);
+  }, [user, isLoading, retryCount, location, navigate, isAdmin]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -167,15 +174,15 @@ const ClientRoutes = () => {
         role: user?.role
       });
       
-      // Ignorer la vérification pour les admins
-      if (isAdmin()) {
-        console.log("[ClientRoutes] L'utilisateur est un administrateur, pas de redirection");
+      // Si l'utilisateur est admin et essaie d'accéder aux routes client
+      if (isAdmin() && location.pathname.startsWith('/client/')) {
+        console.log("[ClientRoutes] L'utilisateur est un administrateur sur une route client, redirection vers la dashboard admin");
+        navigate('/dashboard', { replace: true });
         return;
       }
       
-      // Vérifier si l'utilisateur tente d'accéder à la route /client
-      // et qu'il n'a pas de rôle client
-      if (location.pathname.startsWith('/client/') && !isClient()) {
+      // Si l'utilisateur n'est pas admin et n'est pas client
+      if (!isAdmin() && !isClient() && location.pathname.startsWith('/client/')) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
         toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         
@@ -189,12 +196,6 @@ const ClientRoutes = () => {
         if (isPartner()) {
           console.log("[ClientRoutes] L'utilisateur est un partenaire, redirection vers le tableau de bord partenaire");
           navigate('/partner/dashboard', { replace: true });
-          return;
-        }
-        
-        if (user.role === "admin") {
-          console.log("[ClientRoutes] L'utilisateur est un administrateur, redirection vers le tableau de bord administrateur");
-          navigate('/dashboard', { replace: true });
           return;
         }
         
@@ -215,6 +216,11 @@ const ClientRoutes = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Admins ne devraient pas être dirigés vers les routes client
+  if (isAdmin()) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (!isClient() && !isAdmin()) {
