@@ -11,11 +11,10 @@ import ClientsLoading from "@/components/clients/ClientsLoading";
 import ClientsError from "@/components/clients/ClientsError";
 import { linkUserToClient } from "@/utils/clientUserAssociation";
 import { supabase } from "@/integrations/supabase/client";
+import PublicCatalog from "@/pages/PublicCatalog";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
-import ClientCatalogue from "@/pages/ClientCatalogue";
-import ClientFicheProduit from "@/pages/ClientFicheProduit";
 import { toast } from "sonner";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
@@ -236,8 +235,7 @@ const ClientRoutes = () => {
         <Route path="contracts" element={<ClientLayout><ClientContractsPage /></ClientLayout>} />
         <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
-        <Route path="catalog" element={<ClientLayout><ClientCatalogue /></ClientLayout>} />
-        <Route path="produit/:id" element={<ClientLayout><ClientFicheProduit /></ClientLayout>} />
+        <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="itakecare" element={<ClientLayout><ClientITakecarePage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
