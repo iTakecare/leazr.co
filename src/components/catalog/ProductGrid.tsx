@@ -9,10 +9,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProductGridProps {
   products: Product[];
-  linkPrefix?: string; // Ajout d'un préfixe configurable pour les liens
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, linkPrefix = "/products" }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
   const isMobile = useIsMobile();
   
   const itemVariants = {
@@ -46,7 +45,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, linkPrefix = "/prod
     );
   }
 
-  console.log(`ProductGrid: Rendering ${products.length} products with linkPrefix: ${linkPrefix}`);
+  console.log(`ProductGrid: Rendering ${products.length} products`);
   products.forEach((product, index) => {
     console.log(`ProductGrid product ${index + 1}: ${product.name} (ID: ${product.id})`);
   });
@@ -56,7 +55,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, linkPrefix = "/prod
       {products.map((product) => (
         <motion.div key={product.id} variants={itemVariants}>
           <Link
-            to={`${linkPrefix}/${product.id}`}
+            to={`/products/${product.id}`}
             className="block h-full"
           >
             <ProductCard product={product} />

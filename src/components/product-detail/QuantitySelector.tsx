@@ -5,12 +5,12 @@ import { Minus, Plus } from "lucide-react";
 
 interface QuantitySelectorProps {
   quantity: number;
-  onChange: (quantity: number) => void;
+  onQuantityChange: (quantity: number) => void;
 }
 
 const QuantitySelector: React.FC<QuantitySelectorProps> = ({ 
   quantity, 
-  onChange 
+  onQuantityChange 
 }) => {
   return (
     <div className="space-y-2">
@@ -20,7 +20,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           variant="outline"
           size="icon"
           className="h-10 w-10 rounded-r-none border-gray-200"
-          onClick={() => onChange(quantity - 1)}
+          onClick={() => onQuantityChange(quantity - 1)}
           disabled={quantity <= 1}
         >
           <Minus className="h-4 w-4" />
@@ -32,7 +32,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           variant="outline"
           size="icon"
           className="h-10 w-10 rounded-l-none border-gray-200"
-          onClick={() => onChange(quantity + 1)}
+          onClick={() => onQuantityChange(quantity + 1)}
         >
           <Plus className="h-4 w-4" />
         </Button>

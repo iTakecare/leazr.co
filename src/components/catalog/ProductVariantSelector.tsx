@@ -63,6 +63,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       }
 
       try {
+        // Create a Record<string, string> for the variant combinations by converting all values to strings
         const stringAttributes: Record<string, string> = {};
         Object.entries(selectedOptions).forEach(([key, value]) => {
           stringAttributes[key] = String(value);
@@ -73,6 +74,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           if (price) {
             setCurrentPrice(price.monthly_price || price.price);
             
+            // Convert ProductAttributes to ensure type compatibility
             const attributesAsStrings: Record<string, string> = {};
             if (selectedOptions) {
               Object.entries(selectedOptions).forEach(([key, value]) => {
@@ -92,6 +94,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           }
         }
         
+        // Convert selectedOptions to string values for findVariantByAttributes
         const attributesAsStrings: Record<string, string> = {};
         Object.entries(selectedOptions).forEach(([key, value]) => {
           attributesAsStrings[key] = String(value);
@@ -124,7 +127,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     }));
   };
 
-  const isOptionAvailable = (value: string): boolean => {
+  const isOptionAvailable = (optionName: string, value: string): boolean => {
     return true;
   };
 
@@ -192,12 +195,12 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
               
               {hasVariants && (
                 <VariantSelector
-                  label="Options"
-                  options={Object.keys(product.variation_attributes || {})}
-                  value={Object.keys(selectedOptions)[0] || ""}
-                  onChange={(value) => handleOptionChange(value, "")}
+                  variationAttributes={product.variation_attributes || {}}
+                  selectedOptions={selectedOptions}
+                  onOptionChange={handleOptionChange}
                   isOptionAvailable={isOptionAvailable}
-                  getDisplayName={(value) => value}
+                  hasVariants={hasVariants}
+                  hasOptions={hasOptions}
                 />
               )}
               

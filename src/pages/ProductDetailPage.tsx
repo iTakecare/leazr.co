@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -12,15 +11,8 @@ import ProductMainContent from "@/components/product-detail/ProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 
-interface ProductDetailPageProps {
-  id?: string;
-  hideNavigation?: boolean;
-  inClientDashboard?: boolean;
-}
-
-const ProductDetailPage = ({ id: propId, hideNavigation = false, inClientDashboard = false }: ProductDetailPageProps) => {
-  const params = useParams<{ id: string }>();
-  const id = propId || params.id;
+const ProductDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const {
@@ -59,17 +51,13 @@ const ProductDetailPage = ({ id: propId, hideNavigation = false, inClientDashboa
   } = attributeHelpers;
   
   const handleBackToCatalog = () => {
-    if (inClientDashboard) {
-      navigate("/client/catalog");
-    } else {
-      navigate("/catalogue");
-    }
+    navigate("/catalogue");
   };
   
   if (isLoading) {
     return (
       <>
-        {!hideNavigation && <UnifiedNavigation />}
+        <UnifiedNavigation />
         <ProductLoadingState />
       </>
     );
@@ -78,7 +66,7 @@ const ProductDetailPage = ({ id: propId, hideNavigation = false, inClientDashboa
   if (error || !product) {
     return (
       <>
-        {!hideNavigation && <UnifiedNavigation />}
+        <UnifiedNavigation />
         <ProductErrorState onBackToCatalog={handleBackToCatalog} />
       </>
     );
@@ -92,8 +80,8 @@ const ProductDetailPage = ({ id: propId, hideNavigation = false, inClientDashboa
   const configAttributes = getConfigAttributes();
   
   return (
-    <div className={`min-h-screen bg-white ${!hideNavigation ? 'pt-[120px]' : 'pt-0'} pb-24`}>
-      {!hideNavigation && <UnifiedNavigation />}
+    <div className="min-h-screen bg-white pt-[120px] pb-24">
+      <UnifiedNavigation />
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
