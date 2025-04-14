@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -115,6 +116,7 @@ const ClientCatalogue = () => {
 
   return (
     <div className="w-full max-w-full">
+      {/* Place CatalogHeader here, before the filter section */}
       <CatalogHeader />
       
       <div className="w-full max-w-full px-4">
