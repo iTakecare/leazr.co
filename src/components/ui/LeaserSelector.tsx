@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
@@ -11,7 +10,7 @@ import { Leaser } from "@/types/equipment";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Building2, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getLeasers, getDefaultLeaser } from "@/services/leaserService";
+import { getLeasers } from "@/services/leaserService";
 import { toast } from "sonner";
 
 interface LeaserSelectorProps {
@@ -36,27 +35,17 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
     try {
       const fetchedLeasers = await getLeasers();
       setLeasers(fetchedLeasers);
-      
-      // Si aucun leaser n'est sélectionné, on prend celui par défaut
-      if (!selectedLeaser) {
-        const defaultLeaser = await getDefaultLeaser();
-        if (defaultLeaser) {
-          onSelect(defaultLeaser);
-        }
-      }
     } catch (error) {
       console.error("Error fetching leasers:", error);
       toast.error("Failed to load leasers");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedLeaser, onSelect]);
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchLeasers();
-    }
-  }, [fetchLeasers, isOpen]);
+    fetchLeasers();
+  }, [fetchLeasers]);
 
   const filteredLeasers = leasers.filter((leaser) =>
     leaser.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -123,11 +112,6 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
                         {leaser.ranges.length} tranches
                       </div>
                     </div>
-                    {leaser.is_default && (
-                      <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                        Par défaut
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}

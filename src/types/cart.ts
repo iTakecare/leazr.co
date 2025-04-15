@@ -1,6 +1,5 @@
 
 import { Product } from './catalog';
-import { Leaser } from './equipment';
 
 export type CartItem = {
   product: Product;
@@ -8,5 +7,4 @@ export type CartItem = {
   duration: number;
   selectedOptions?: Record<string, string>;
   monthlyPrice?: number;
-  leaser?: Leaser;
 };

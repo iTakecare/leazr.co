@@ -3,7 +3,6 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Image as ImageIcon, Loader2, X, Plus, Trash2 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
@@ -32,7 +31,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
-  const [isDefault, setIsDefault] = useState<boolean>(currentLeaser?.is_default || false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
@@ -148,7 +146,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       const leaserData: Omit<Leaser, "id"> = {
         name: formData.get("name") as string,
         logo_url: previewUrl,
-        is_default: isDefault,
         ranges: tempRanges
       };
       
@@ -172,20 +169,6 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
             defaultValue={currentLeaser?.name || ""}
             required
           />
-        </div>
-        
-        <div className="flex items-center space-x-2 py-2">
-          <Checkbox 
-            id="is_default" 
-            checked={isDefault} 
-            onCheckedChange={(checked) => setIsDefault(checked as boolean)}
-          />
-          <Label 
-            htmlFor="is_default" 
-            className="cursor-pointer font-medium text-sm"
-          >
-            Définir comme leaser par défaut
-          </Label>
         </div>
         
         <div className="space-y-2">
