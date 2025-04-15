@@ -22,7 +22,14 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers } from "@/services/leaserService";
+import { 
+  getLeasers, 
+  addLeaser, 
+  updateLeaser, 
+  deleteLeaser, 
+  insertDefaultLeasers,
+  setDefaultLeaser
+} from "@/services/leaserService";
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
@@ -120,6 +127,8 @@ const LeaserManager = () => {
           );
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
+          // Recharger la liste pour s'assurer que tous les changements sont pris en compte
+          initializeLeasers();
         }
       } else {
         const addedLeaser = await addLeaser(leaserData);
@@ -128,6 +137,8 @@ const LeaserManager = () => {
           setLeasers(prevLeasers => [...prevLeasers, addedLeaser]);
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
+          // Recharger la liste pour s'assurer que tous les changements sont pris en compte
+          initializeLeasers();
         }
       }
     } catch (error: any) {
@@ -155,6 +166,34 @@ const LeaserManager = () => {
         console.error("Erreur lors de la suppression du leaser:", error);
         toast.error(`Erreur: ${error.message}`);
       }
+    }
+  };
+  
+  const handleSetDefaultLeaser = async (id: string) => {
+    // Vérifier que l'ID est un UUID valide
+    if (!isUUID(id)) {
+      toast.error(`ID du leaser non valide: ${id}`);
+      return;
+    }
+    
+    try {
+      console.log("Définition du leaser par défaut avec ID:", id);
+      const success = await setDefaultLeaser(id);
+      if (success) {
+        // Mettre à jour l'état local
+        setLeasers(prevLeasers => 
+          prevLeasers.map(leaser => ({
+            ...leaser,
+            is_default: leaser.id === id
+          }))
+        );
+        toast.success("Leaser défini par défaut avec succès");
+        // Recharger la liste pour s'assurer que tous les changements sont pris en compte
+        initializeLeasers();
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la définition du leaser par défaut:", error);
+      toast.error(`Erreur: ${error.message}`);
     }
   };
   
@@ -189,6 +228,7 @@ const LeaserManager = () => {
             isLoading={isLoading}
             onEdit={handleOpenSheet}
             onDelete={handleDeleteLeaser}
+            onSetDefault={handleSetDefaultLeaser}
           />
         </CardContent>
       </Card>

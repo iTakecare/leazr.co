@@ -9,7 +9,8 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Building2, Pencil, Trash2, Tag, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Building2, Pencil, Trash2, Tag, Loader2, Star } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -18,9 +19,10 @@ interface LeaserListProps {
   isLoading: boolean;
   onEdit: (leaser: Leaser) => void;
   onDelete: (id: string) => void;
+  onSetDefault?: (id: string) => void;
 }
 
-const LeaserList = ({ leasers, isLoading, onEdit, onDelete }: LeaserListProps) => {
+const LeaserList = ({ leasers, isLoading, onEdit, onDelete, onSetDefault }: LeaserListProps) => {
   return (
     <>
       {isLoading ? (
@@ -53,7 +55,15 @@ const LeaserList = ({ leasers, isLoading, onEdit, onDelete }: LeaserListProps) =
                         <Building2 className="h-4 w-4 text-primary" />
                       </AvatarFallback>
                     </Avatar>
-                    {leaser.name}
+                    <div>
+                      {leaser.name}
+                      {leaser.is_default && (
+                        <Badge variant="outline" className="ml-2 bg-primary/5">
+                          <Star className="h-3 w-3 mr-1 text-amber-500 fill-amber-500" />
+                          Par défaut
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -71,6 +81,17 @@ const LeaserList = ({ leasers, isLoading, onEdit, onDelete }: LeaserListProps) =
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {onSetDefault && !leaser.is_default && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onSetDefault(leaser.id)}
+                        title="Définir comme leaser par défaut"
+                      >
+                        <Star className="h-4 w-4" />
+                        <span className="sr-only">Définir par défaut</span>
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm" 
