@@ -121,20 +121,6 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
               <p>Erreur: {diagnosticInfo.rlsError}</p>
             </div>
           )}
-          
-          {diagnosticInfo.errorLogs && diagnosticInfo.errorLogs.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-medium">Journaux d'erreurs récents:</h4>
-              <ul className="mt-2 space-y-2">
-                {diagnosticInfo.errorLogs.map((log: any) => (
-                  <li key={log.id} className="p-2 bg-muted-foreground/10 rounded">
-                    <p><span className="font-medium">Contexte:</span> {log.error_context}</p>
-                    <p><span className="font-medium">Date:</span> {new Date(log.created_at).toLocaleString()}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
     </div>

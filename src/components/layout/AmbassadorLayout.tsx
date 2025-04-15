@@ -21,7 +21,8 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
         user: !!user,
         role: user.role,
         isAmbassador: isAmbassador(),
-        email: user?.email
+        email: user?.email,
+        ambassador_id: user?.ambassador_id
       });
       
       // Simple vérification : si l'utilisateur n'est pas un ambassadeur, rediriger
@@ -40,6 +41,12 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
           navigate("/", { replace: true });
         }
         return;
+      }
+      
+      // Vérifier si l'ID d'ambassadeur est disponible
+      if (!user.ambassador_id) {
+        console.log("[AmbassadorLayout] ID d'ambassadeur manquant");
+        toast.error("Votre profil d'ambassadeur n'est pas correctement configuré");
       }
     } else if (!isLoading && userRoleChecked && !user) {
       // Si non authentifié, rediriger vers la page de connexion
