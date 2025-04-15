@@ -20,7 +20,6 @@ export interface Leaser {
   name: string;
   logo_url?: string;
   ranges: LeaserRange[];
-  is_default?: boolean;
 }
 
 export interface LeaserRange {
