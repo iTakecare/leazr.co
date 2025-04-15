@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
@@ -8,10 +9,11 @@ import {
 } from "@/components/ui/sheet";
 import { Leaser } from "@/types/equipment";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Loader2, Search } from "lucide-react";
+import { Building2, Loader2, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getLeasers } from "@/services/leaserService";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface LeaserSelectorProps {
   isOpen: boolean;
@@ -106,8 +108,18 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
                         <Building2 className="h-4 w-4 text-primary" />
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="font-medium">{leaser.name}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">
+                          {leaser.name}
+                          {leaser.is_default && (
+                            <Badge variant="outline" className="ml-2 text-xs border-amber-500 text-amber-500 flex items-center gap-1" size="sm">
+                              <Star className="h-3 w-3 fill-amber-500" />
+                              Par défaut
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {leaser.ranges.length} tranches
                       </div>
