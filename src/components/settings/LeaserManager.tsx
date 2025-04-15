@@ -22,14 +22,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { 
-  getLeasers, 
-  addLeaser, 
-  updateLeaser, 
-  deleteLeaser, 
-  insertDefaultLeasers,
-  setDefaultLeaser
-} from "@/services/leaserService";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers, setDefaultLeaser } from "@/services/leaserService";
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
@@ -127,8 +120,6 @@ const LeaserManager = () => {
           );
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
-          // Recharger la liste pour s'assurer que tous les changements sont pris en compte
-          initializeLeasers();
         }
       } else {
         const addedLeaser = await addLeaser(leaserData);
@@ -137,8 +128,6 @@ const LeaserManager = () => {
           setLeasers(prevLeasers => [...prevLeasers, addedLeaser]);
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
-          // Recharger la liste pour s'assurer que tous les changements sont pris en compte
-          initializeLeasers();
         }
       }
     } catch (error: any) {
@@ -169,7 +158,7 @@ const LeaserManager = () => {
     }
   };
   
-  const handleSetDefaultLeaser = async (id: string) => {
+  const handleSetDefault = async (id: string) => {
     // Vérifier que l'ID est un UUID valide
     if (!isUUID(id)) {
       toast.error(`ID du leaser non valide: ${id}`);
@@ -177,19 +166,17 @@ const LeaserManager = () => {
     }
     
     try {
-      console.log("Définition du leaser par défaut avec ID:", id);
+      console.log("Définition du leaser par défaut, ID:", id);
       const success = await setDefaultLeaser(id);
       if (success) {
-        // Mettre à jour l'état local
+        // Mettre à jour la liste locale
         setLeasers(prevLeasers => 
           prevLeasers.map(leaser => ({
             ...leaser,
             is_default: leaser.id === id
           }))
         );
-        toast.success("Leaser défini par défaut avec succès");
-        // Recharger la liste pour s'assurer que tous les changements sont pris en compte
-        initializeLeasers();
+        toast.success("Leaser par défaut défini avec succès");
       }
     } catch (error: any) {
       console.error("Erreur lors de la définition du leaser par défaut:", error);
@@ -228,7 +215,7 @@ const LeaserManager = () => {
             isLoading={isLoading}
             onEdit={handleOpenSheet}
             onDelete={handleDeleteLeaser}
-            onSetDefault={handleSetDefaultLeaser}
+            onSetDefault={handleSetDefault}
           />
         </CardContent>
       </Card>
