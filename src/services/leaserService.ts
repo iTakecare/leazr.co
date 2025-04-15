@@ -17,7 +17,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         id, 
         name,
         logo_url,
-        is_default,
         ranges:leaser_ranges(
           id,
           min,
@@ -43,7 +42,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       id: leaser.id,
       name: leaser.name,
       logo_url: leaser.logo_url,
-      is_default: leaser.is_default,
       ranges: leaser.ranges.sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -52,89 +50,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     console.error('Exception lors du chargement des leasers:', error);
     // En cas d'erreur, retourner les leasers par défaut
     return defaultLeasers;
-  }
-};
-
-/**
- * Récupère le leaser défini par défaut
- * @returns Le leaser par défaut ou null si aucun
- */
-export const getDefaultLeaser = async (): Promise<Leaser | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('leasers')
-      .select(`
-        id, 
-        name,
-        logo_url,
-        is_default,
-        ranges:leaser_ranges(
-          id,
-          min,
-          max,
-          coefficient
-        )
-      `)
-      .eq('is_default', true)
-      .single();
-      
-    if (error) {
-      // Si aucun leaser par défaut n'est défini, on renvoie le premier leaser
-      const leasers = await getLeasers();
-      return leasers.length > 0 ? leasers[0] : null;
-    }
-    
-    return {
-      id: data.id,
-      name: data.name,
-      logo_url: data.logo_url,
-      is_default: data.is_default,
-      ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
-    };
-  } catch (error) {
-    console.error('Exception lors du chargement du leaser par défaut:', error);
-    // En cas d'erreur, retourner le premier leaser par défaut
-    const leasers = await getLeasers();
-    return leasers.length > 0 ? leasers[0] : null;
-  }
-};
-
-/**
- * Définit un leaser comme étant celui par défaut
- * @param id ID du leaser à définir par défaut
- * @returns true si l'opération a réussi, false sinon
- */
-export const setDefaultLeaser = async (id: string): Promise<boolean> => {
-  try {
-    // D'abord, réinitialiser tous les leasers pour qu'aucun ne soit par défaut
-    const { error: resetError } = await supabase
-      .from('leasers')
-      .update({ is_default: false })
-      .neq('id', id); // Exclure l'ID que nous allons définir comme par défaut
-      
-    if (resetError) {
-      console.error('Erreur lors de la réinitialisation des leasers par défaut:', resetError);
-      toast.error("Erreur lors de la définition du leaser par défaut");
-      return false;
-    }
-    
-    // Ensuite, définir le leaser spécifié comme étant par défaut
-    const { error } = await supabase
-      .from('leasers')
-      .update({ is_default: true })
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Erreur lors de la définition du leaser par défaut:', error);
-      toast.error("Erreur lors de la définition du leaser par défaut");
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Exception lors de la définition du leaser par défaut:', error);
-    toast.error("Erreur lors de la définition du leaser par défaut");
-    return false;
   }
 };
 
@@ -151,7 +66,6 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         id, 
         name,
         logo_url,
-        is_default,
         ranges:leaser_ranges(
           id,
           min,
@@ -175,7 +89,6 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       id: data.id,
       name: data.name,
       logo_url: data.logo_url,
-      is_default: data.is_default,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     };
   } catch (error) {
@@ -191,25 +104,11 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
  */
 export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser | null> => {
   try {
-    // Si ce leaser est défini par défaut, réinitialiser d'abord tous les autres leasers
-    if (leaser.is_default) {
-      const { error: resetError } = await supabase
-        .from('leasers')
-        .update({ is_default: false });
-        
-      if (resetError) {
-        console.error('Erreur lors de la réinitialisation des leasers par défaut:', resetError);
-        toast.error("Erreur lors de la création du leaser");
-        return null;
-      }
-    }
-    
     const { data, error } = await supabase
       .from('leasers')
       .insert({
         name: leaser.name,
-        logo_url: leaser.logo_url || null,
-        is_default: !!leaser.is_default
+        logo_url: leaser.logo_url || null
       })
       .select()
       .single();
@@ -262,27 +161,12 @@ export const addLeaser = createLeaser;
  */
 export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Promise<boolean> => {
   try {
-    // Si ce leaser est défini par défaut, réinitialiser d'abord tous les autres leasers
-    if (leaser.is_default) {
-      const { error: resetError } = await supabase
-        .from('leasers')
-        .update({ is_default: false })
-        .neq('id', id);
-        
-      if (resetError) {
-        console.error('Erreur lors de la réinitialisation des leasers par défaut:', resetError);
-        toast.error("Erreur lors de la mise à jour du leaser");
-        return false;
-      }
-    }
-    
     // Mettre à jour les informations de base du leaser
     const { error } = await supabase
       .from('leasers')
       .update({
         name: leaser.name,
-        logo_url: leaser.logo_url || null,
-        is_default: !!leaser.is_default
+        logo_url: leaser.logo_url || null
       })
       .eq('id', id);
     
@@ -340,29 +224,6 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
  */
 export const deleteLeaser = async (id: string): Promise<boolean> => {
   try {
-    // Vérifier si le leaser à supprimer est le leaser par défaut
-    const { data, error: checkError } = await supabase
-      .from('leasers')
-      .select('is_default')
-      .eq('id', id)
-      .single();
-      
-    if (checkError) {
-      console.error('Erreur lors de la vérification du leaser:', checkError);
-    } else if (data.is_default) {
-      // Si c'est le leaser par défaut, il faut en définir un autre
-      const { data: otherLeasers, error: othersError } = await supabase
-        .from('leasers')
-        .select('id')
-        .neq('id', id)
-        .limit(1);
-        
-      if (!othersError && otherLeasers && otherLeasers.length > 0) {
-        // Définir un autre leaser comme étant par défaut
-        await setDefaultLeaser(otherLeasers[0].id);
-      }
-    }
-    
     // Supprimer d'abord les tranches associées
     const { error: rangeError } = await supabase
       .from('leaser_ranges')
@@ -425,8 +286,7 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
         .insert({
           id: leaser.id,  // Conserver l'ID d'origine pour garantir la cohérence
           name: leaser.name,
-          logo_url: leaser.logo_url || null,
-          is_default: !!leaser.is_default
+          logo_url: leaser.logo_url || null
         })
         .select()
         .single();
@@ -466,8 +326,6 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
 export default {
   getLeasers,
   getLeaserById,
-  getDefaultLeaser,
-  setDefaultLeaser,
   createLeaser,
   addLeaser,
   updateLeaser,

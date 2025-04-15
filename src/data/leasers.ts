@@ -6,7 +6,6 @@ export const defaultLeasers = [
     id: "bf9a7b68-287a-4ed0-8fd0-1f0c3c28f9b8",
     name: "Grenke",
     logo_url: null,
-    is_default: true,
     ranges: [
       { id: "75e0d12a-6780-4e9e-a9e4-3c1f5a4f5c49", min: 500, max: 2500, coefficient: 3.55 },
       { id: "d82c5b3f-c230-4eea-a9a2-389d68f5290e", min: 2500.01, max: 5000, coefficient: 3.27 },
