@@ -120,6 +120,11 @@ const LeaserManager = () => {
           );
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
+          
+          // Si le leaser est défini comme par défaut, mettre à jour les autres leasers
+          if (leaserData.is_default) {
+            initializeLeasers(); // Recharger tous les leasers pour refléter les changements
+          }
         }
       } else {
         const addedLeaser = await addLeaser(leaserData);
@@ -128,6 +133,11 @@ const LeaserManager = () => {
           setLeasers(prevLeasers => [...prevLeasers, addedLeaser]);
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
+          
+          // Si le leaser est défini comme par défaut, mettre à jour les autres leasers
+          if (leaserData.is_default) {
+            initializeLeasers(); // Recharger tous les leasers pour refléter les changements
+          }
         }
       }
     } catch (error: any) {
@@ -189,6 +199,7 @@ const LeaserManager = () => {
             isLoading={isLoading}
             onEdit={handleOpenSheet}
             onDelete={handleDeleteLeaser}
+            onRefresh={initializeLeasers}
           />
         </CardContent>
       </Card>
