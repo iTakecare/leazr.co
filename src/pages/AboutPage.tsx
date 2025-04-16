@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ const AboutPage = () => {
               <span className="text-[#33638E]">iTakecare</span> - L'IT réinventé
             </h1>
             <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
-              backgroundColor: 'rgba(51, 99, 142, 0.25)', // Darker blue background
+              backgroundColor: 'rgba(41, 128, 185, 0.35)', // Darker blue-green background
               color: '#48b5c3'
             }}>
               pour les entreprises
@@ -94,8 +93,7 @@ const AboutPage = () => {
               </p>
               <p className="text-[#222222] text-lg mb-6">
                 La solution s'est donc présentée à lui tout naturellement : proposer du matériel de 
-                qualité, intégrer la maintenance et la garantie, dans un système de « pack » avec une 
-                seule mensualité, tout inclus et surtout sans surprise. Pour lui, cela permet à ses clients 
+                qualité, intégrer la maintenance et la garantie, dans un système de « pack » avec une seule mensualité, tout inclus et surtout sans surprise. Pour lui, cela permet à ses clients 
                 d'avoir l'esprit tranquille, dès qu'il s'agit de penser à leur informatique... Fini tout cela, ils 
                 gèrent leur entreprise, iTakecare met ses compétences à leur service.
               </p>
