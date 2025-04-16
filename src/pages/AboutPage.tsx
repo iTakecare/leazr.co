@@ -28,10 +28,10 @@ const AboutPage = () => {
         <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
           <div className="text-center">
             <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
-              <span className="text-[#48b5c3]">iTakecare</span> - L'IT réinventé
+              <span className="text-[#33638E]">iTakecare</span> - L'IT réinventé
             </h1>
-            <div className="inline-block text-[#48b5c3] px-6 py-3 rounded-full text-2xl sm:text-3xl md:text-4xl font-bold mb-8">
-              pour les entreprises
+            <div className="inline-block text-[#48b5c3] px-6 py-3 rounded-full text-2xl sm:text-3xl md:text-4xl font-bold mb-8 bg-yellow-100">
+              <strong>pour les entreprises</strong>
             </div>
             <p className="text-[#222222] text-lg max-w-3xl mx-auto">
               Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. Chez 
