@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -87,8 +88,8 @@ const AboutPage = () => {
               pour les entreprises
             </div>
             <p className="text-[#222222] text-xl md:text-xl max-w-3xl mx-auto">
-              Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. Chez 
-              ITakeCare, nous avons voulu changer cela. Notre solution ? Un modèle de leasing intelligent qui vous 
+              Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. 
+              Chez iTakecare, nous avons voulu changer cela. Notre solution ? Un modèle de leasing intelligent qui vous 
               permet d'avoir un équipement toujours à jour, sans surprise et sans surcoût.
             </p>
           </div>
