@@ -10,15 +10,36 @@ const AboutPage = () => {
     <div className="flex flex-col min-h-screen bg-white">
       <UnifiedNavigation />
       
-      {/* Hero Section */}
-      <div className="pt-[100px] flex flex-col items-center">
-        <div className="w-full max-w-[1320px] px-4 py-20 text-center">
-          <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
-            À propos d'<span className="text-[#48b5c3]">iTakecare</span>
-          </h1>
-          <p className="text-[#222222] text-lg max-w-3xl mx-auto mb-8">
-            Découvrez notre histoire, notre mission et nos valeurs qui guident notre action au quotidien.
-          </p>
+      {/* Hero Section with same background as homepage */}
+      <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative">
+        {/* Background image - same as homepage */}
+        <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
+          <img
+            className="relative w-full h-[60vh] object-cover"
+            alt="Background"
+            src="/clip-path-group.png"
+            width="1920" 
+            height="1080"
+          />
+          {/* Gradient fade to white overlay */}
+          <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
+        </div>
+
+        {/* Hero content */}
+        <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
+          <div className="bg-white/90 p-8 md:p-12 rounded-lg shadow-lg max-w-4xl mx-auto">
+            <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
+              ITake Care - L'IT réinventé
+            </h1>
+            <div className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-6 py-3 rounded-full text-xl sm:text-2xl md:text-3xl font-bold mb-8">
+              pour les entreprises
+            </div>
+            <p className="text-[#222222] text-lg max-w-3xl mx-auto">
+              Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. Chez 
+              ITakeCare, nous avons voulu changer cela. Notre solution ? Un modèle de leasing intelligent qui vous 
+              permet d'avoir un équipement toujours à jour, sans surprise et sans surcoût.
+            </p>
+          </div>
         </div>
       </div>
 
