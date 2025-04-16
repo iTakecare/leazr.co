@@ -30,8 +30,11 @@ const AboutPage = () => {
             <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
               <span className="text-[#33638E]">iTakecare</span> - L'IT réinventé
             </h1>
-            <div className="inline-block text-[#48b5c3] px-6 py-3 rounded-full text-2xl sm:text-3xl md:text-4xl font-bold mb-8 bg-yellow-100">
-              <strong>pour les entreprises</strong>
+            <div className="inline-block text-[#48b5c3] text-3xl sm:text-4xl md:text-5xl font-bold mb-8 rounded-full py-2 px-8" style={{ 
+              backgroundColor: 'rgba(135, 206, 235, 0.2)',
+              color: '#48b5c3'
+            }}>
+              pour les entreprises
             </div>
             <p className="text-[#222222] text-lg max-w-3xl mx-auto">
               Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. Chez 
