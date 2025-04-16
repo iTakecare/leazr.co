@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -103,36 +104,6 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Nos valeurs Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="w-full max-w-[1320px] mx-auto px-4">
-          <h2 className="font-bold text-[#222222] text-3xl mb-12 text-center">Nos valeurs</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Fiabilité</h3>
-              <p className="text-[#222222]">
-                Du matériel testé et garanti, prêt à l'emploi. 
-                Nous nous engageons à fournir des équipements de qualité et un service irréprochable.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Simplicité</h3>
-              <p className="text-[#222222]">
-                Un service clé en main pour un IT sans prise de tête.
-                Nous simplifions la gestion informatique pour que vous puissiez vous concentrer sur votre cœur de métier.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Écoresponsabilité</h3>
-              <p className="text-[#222222]">
-                Une solution durable qui limite le gaspillage électronique.
-                Nous contribuons activement à réduire l'impact environnemental du numérique.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Notre fondateur Section - Reprenant la section "La personne derrière iTakecare" de l'image */}
       <section className="py-16">
         <div className="w-full max-w-[1320px] mx-auto px-4">
@@ -167,6 +138,36 @@ const AboutPage = () => {
                 <h3 className="font-bold text-[#222222] text-xl">Gianni Sergi</h3>
                 <p className="text-[#48b5c3]">Fondateur d'iTakecare</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Nos valeurs Section - DÉPLACÉ APRÈS LA SECTION FONDATEUR */}
+      <section className="py-16 bg-gray-50">
+        <div className="w-full max-w-[1320px] mx-auto px-4">
+          <h2 className="font-bold text-[#222222] text-3xl mb-12 text-center">Nos valeurs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Fiabilité</h3>
+              <p className="text-[#222222]">
+                Du matériel testé et garanti, prêt à l'emploi. 
+                Nous nous engageons à fournir des équipements de qualité et un service irréprochable.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Simplicité</h3>
+              <p className="text-[#222222]">
+                Un service clé en main pour un IT sans prise de tête.
+                Nous simplifions la gestion informatique pour que vous puissiez vous concentrer sur votre cœur de métier.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Écoresponsabilité</h3>
+              <p className="text-[#222222]">
+                Une solution durable qui limite le gaspillage électronique.
+                Nous contribuons activement à réduire l'impact environnemental du numérique.
+              </p>
             </div>
           </div>
         </div>
