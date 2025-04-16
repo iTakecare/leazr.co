@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -116,7 +115,7 @@ const AboutPage = () => {
                   Notre mission : simplifier l'IT, optimiser vos coûts.
                 </h2>
               </div>
-              <p className="text-[#222222] text-lg mb-8">
+              <p className="text-[#222222] text-xl mb-8">
                 Nous croyons que chaque entreprise mérite une informatique performante et flexible. En
                 proposant du matériel reconditionné de qualité et une gestion optimisée, nous vous
                 aidons à évoluer sans contrainte.
@@ -124,35 +123,21 @@ const AboutPage = () => {
               <div className="h-0.5 w-full bg-gray-200 mb-8"></div>
               
               <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 flex-shrink-0">
-                    <Check className="h-6 w-6 text-[#48b5c3]" />
+                {[
+                  { title: "Fiabilité", description: "Du matériel testé et garanti, prêt à l'emploi." },
+                  { title: "Simplicité", description: "Un service clé en main pour un IT sans prise de tête." },
+                  { title: "Écoresponsabilité", description: "Une solution durable qui limite le gaspillage électronique." }
+                ].map((value, index) => (
+                  <div key={index} className="flex items-start gap-4">
+                    <div className="mt-1 flex-shrink-0">
+                      <Check className="h-6 w-6 text-[#48b5c3]" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold mb-2">{value.title}</h3>
+                      <p className="text-lg text-gray-700">{value.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">Fiabilité</h3>
-                    <p className="text-gray-700">Du matériel testé et garanti, prêt à l'emploi.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 flex-shrink-0">
-                    <Check className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">Simplicité</h3>
-                    <p className="text-gray-700">Un service clé en main pour un IT sans prise de tête.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 flex-shrink-0">
-                    <Check className="h-6 w-6 text-[#48b5c3]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">Écoresponsabilité</h3>
-                    <p className="text-gray-700">Une solution durable qui limite le gaspillage électronique.</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
