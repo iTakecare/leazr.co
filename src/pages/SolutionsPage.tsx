@@ -68,9 +68,9 @@ const SolutionsPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="/lovable-uploads/e054083d-ed0f-49f5-ba69-fb357e8af592.png" 
+                src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
                 alt="Matériel informatique" 
-                className="rounded-lg shadow-xl w-full h-auto"
+                className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
             </div>
           </div>
@@ -108,9 +108,9 @@ const SolutionsPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="/computer.png" 
+                src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6"
                 alt="Gestion de parc informatique" 
-                className="rounded-lg shadow-xl w-full h-auto"
+                className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
             </div>
           </div>
@@ -148,7 +148,7 @@ const SolutionsPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="/clip-path-group.png" 
+                src="https://images.unsplash.com/photo-1605810230434-7631ac76ec81"
                 alt="Services cloud" 
                 className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
@@ -188,9 +188,9 @@ const SolutionsPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="/arrow.png" 
+                src="https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7"
                 alt="Reconditionnement d'équipements" 
-                className="rounded-lg shadow-xl w-full h-auto"
+                className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
             </div>
           </div>
