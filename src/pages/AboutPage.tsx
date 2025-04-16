@@ -106,7 +106,7 @@ const AboutPage = () => {
       {/* Notre fondateur Section - Increased spacing from previous section */}
       <section className="py-16 mt-32">
         <div className="w-full max-w-[1320px] mx-auto px-4">
-          <h2 className="font-extrabold text-[#222222] text-4xl mb-8">
+          <h2 className="font-extrabold text-[#222222] text-3xl mb-6">
             La personne derrière iTakecare ?
           </h2>
           <div className="flex flex-col md:flex-row items-center gap-12">
