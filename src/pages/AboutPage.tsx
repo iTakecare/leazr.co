@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,6 @@ const AboutPage = () => {
     <div className="flex flex-col min-h-screen bg-white">
       <UnifiedNavigation />
       
-      {/* Hero Section with same background as homepage */}
       <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative">
         <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
           <img
@@ -79,7 +77,7 @@ const AboutPage = () => {
         <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
           <div className="text-center">
             <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
-              I Take Care - L'IT réinventé
+              iTakecare - L'IT réinventé
             </h1>
             <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
               backgroundColor: 'rgba(29, 174, 219, 0.35)', // Bright Blue from palette: #1EAEDB
@@ -96,7 +94,6 @@ const AboutPage = () => {
         </div>
       </div>
 
-      {/* Mission Section - Increased vertical padding */}
       <section className="py-16 bg-white relative">
         <div className="absolute top-0 right-0 w-1/2 h-full z-0">
           <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
@@ -146,7 +143,6 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Notre fondateur Section - Increased spacing from previous section */}
       <section className="py-16 mt-32 relative">
         <div className="absolute top-0 left-0 w-1/2 h-full z-0">
           <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
@@ -191,7 +187,6 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Nos valeurs Section */}
       <section className="py-16">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <h2 className="font-bold text-[#222222] text-3xl mb-12 text-center">Nos valeurs</h2>
@@ -221,7 +216,6 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* La presse Section */}
       <section className="py-16 relative">
         <div className="absolute top-0 left-0 w-1/2 h-full z-0">
           <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
@@ -280,7 +274,6 @@ const AboutPage = () => {
         </Container>
       </section>
 
-      {/* Replacing the CTA Section with the one from home page */}
       <CtaSection />
 
       <HomeFooter />
