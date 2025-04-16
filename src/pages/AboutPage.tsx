@@ -96,8 +96,12 @@ const AboutPage = () => {
       </div>
 
       {/* Mission Section - Increased vertical padding */}
-      <section className="py-16 bg-white">
-        <div className="w-full max-w-[1320px] mx-auto px-4">
+      <section className="py-16 bg-white relative">
+        <div className="absolute top-0 right-0 w-1/2 h-full z-0">
+          <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        </div>
+        
+        <div className="w-full max-w-[1320px] mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <img 
@@ -108,7 +112,6 @@ const AboutPage = () => {
             </div>
             <div className="md:w-1/2">
               <div className="relative">
-                <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-[120%] h-[140%] bg-[#48b5c3]/15 blur-2xl rounded-[40%_60%_70%_30%/40%_50%_60%_50%]"></div>
                 <h2 className="relative font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6 z-10">
                   Notre mission : simplifier l'IT, optimiser vos coûts.
                 </h2>
