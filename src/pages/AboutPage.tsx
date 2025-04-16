@@ -106,7 +106,9 @@ const AboutPage = () => {
       {/* Notre fondateur Section - Reprenant la section "La personne derrière iTakecare" de l'image */}
       <section className="py-16">
         <div className="w-full max-w-[1320px] mx-auto px-4">
-          <h2 className="font-bold text-[#222222] text-3xl mb-8">La personne derrière iTakecare ?</h2>
+          <h2 className="font-extrabold text-[#222222] text-3xl mb-8">
+            La personne derrière iTakecare ?
+          </h2>
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-2/3">
               <p className="text-[#222222] text-lg mb-6">
