@@ -66,7 +66,7 @@ const ServicesPage = () => {
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <Building className="w-16 h-16 text-[#48b5c3] mb-6" />
-              <h2 className="font-bold text-[#222222] text-3xl mb-4">Services pour entreprises</h2>
+              <h2 className="font-bold text-[#222222] text-3xl sm:text-4xl mb-4">Services pour entreprises</h2>
               <p className="text-[#222222] text-lg mb-6">
                 Solutions adaptées aux besoins des entreprises de toutes tailles.
                 Nous vous accompagnons dans la mise en place et la gestion de votre infrastructure informatique.
@@ -91,7 +91,7 @@ const ServicesPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="https://images.unsplash.com/photo-1518770660439-4636190af475" 
+                src="https://images.unsplash.com/photo-1551434678-e076c223a692" 
                 alt="Services pour entreprises" 
                 className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
@@ -131,7 +131,7 @@ const ServicesPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d" 
+                src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40" 
                 alt="Services pour professionnels" 
                 className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
@@ -175,8 +175,8 @@ const ServicesPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f" 
-                alt="Formations" 
+                src="https://images.unsplash.com/photo-1594608661623-aa0bd3a69799" 
+                alt="Formations informatiques" 
                 className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
             </div>
@@ -215,7 +215,7 @@ const ServicesPage = () => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6" 
+                src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf" 
                 alt="Support technique" 
                 className="rounded-lg shadow-xl w-full h-auto object-cover"
               />
@@ -224,28 +224,34 @@ const ServicesPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-transparent text-white">
+      {/* CTA Section - Updated to match the style of About page */}
+      <section className="py-16 bg-white">
         <Container maxWidth="custom">
-          <div className="text-center relative">
-            <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
-              <img src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" alt="Fond turquoise" className="w-full h-full object-cover" />
+          <div className="relative px-6 py-24 overflow-hidden bg-gradient-to-r from-[#1EAEDB] to-[#33949F] rounded-3xl">
+            <div className="relative z-10">
+              <div className="mx-auto text-center max-w-4xl">
+                <h2 className="text-[32px] md:text-[46px] text-white font-extrabold mb-6 leading-tight">
+                  Prêt à optimiser votre infrastructure IT ?
+                </h2>
+                <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl mx-auto">
+                  Nos services informatiques vous accompagnent dans toutes les étapes de votre transformation numérique.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 mt-8">
+                  <Button className="bg-white text-[#33949F] hover:bg-gray-100 font-bold rounded-full px-8 py-6 h-auto text-lg">
+                    Demander un devis
+                  </Button>
+                  <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold rounded-full px-8 py-6 h-auto text-lg">
+                    Nous contacter
+                  </Button>
+                </div>
+              </div>
             </div>
             
-            <div className="relative z-10 py-16">
-              <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
-                Prêt à optimiser votre infrastructure IT ?
-                <br />
-                L'informatique <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">n'aura plus de secrets</span> pour vous
-              </h2>
-              <div className="flex flex-wrap justify-center gap-4 mt-8">
-                <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto">
-                  Demander un devis
-                </Button>
-                <Button variant="outline" className="bg-white hover:bg-gray-100 text-gray-800 font-bold border-none rounded-full px-8 py-3 h-auto">
-                  Nous contacter
-                </Button>
-              </div>
+            <div className="absolute top-0 right-0 -mt-16 -mr-16">
+              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
+            </div>
+            <div className="absolute bottom-0 left-0 -mb-16 -ml-16">
+              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
             </div>
           </div>
         </Container>
