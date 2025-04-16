@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -54,7 +53,7 @@ const AboutPage = () => {
               <img 
                 src="/lovable-uploads/93b1f0bc-f724-452e-9187-7fbf56303736.png" 
                 alt="Personne travaillant sur un ordinateur portable avec un carnet de notes" 
-                className="w-full h-auto rounded-lg shadow-lg"
+                className="w-3/4 h-auto rounded-lg shadow-lg mx-auto"
               />
             </div>
             <div className="md:w-1/2">
