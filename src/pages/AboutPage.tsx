@@ -3,6 +3,7 @@ import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
 import HomeFooter from '@/components/home/HomeFooter';
+import { Check } from 'lucide-react';
 
 const AboutPage = () => {
   return (
@@ -44,6 +45,64 @@ const AboutPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Mission Section - NEWLY ADDED */}
+      <section className="py-16 bg-white">
+        <div className="w-full max-w-[1320px] mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center gap-12">
+            <div className="md:w-1/2">
+              <img 
+                src="/lovable-uploads/1aa14a0c-93f6-43b7-acbc-d219bbd9c46e.png" 
+                alt="Personne travaillant sur un ordinateur portable" 
+                className="w-full h-auto rounded-lg"
+              />
+            </div>
+            <div className="md:w-1/2">
+              <h2 className="font-bold text-[#222222] text-3xl sm:text-4xl mb-6">
+                Notre mission : simplifier l'IT, optimiser vos coûts.
+              </h2>
+              <p className="text-[#222222] text-lg mb-8">
+                Nous croyons que chaque entreprise mérite une informatique performante et flexible. En
+                proposant du matériel reconditionné de qualité et une gestion optimisée, nous vous
+                aidons à évoluer sans contrainte.
+              </p>
+              <div className="h-0.5 w-full bg-gray-200 mb-8"></div>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 flex-shrink-0">
+                    <Check className="h-6 w-6 text-[#48b5c3]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Fiabilité</h3>
+                    <p className="text-gray-700">Du matériel testé et garanti, prêt à l'emploi.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 flex-shrink-0">
+                    <Check className="h-6 w-6 text-[#48b5c3]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Simplicité</h3>
+                    <p className="text-gray-700">Un service clé en main pour un IT sans prise de tête.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 flex-shrink-0">
+                    <Check className="h-6 w-6 text-[#48b5c3]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Écoresponsabilité</h3>
+                    <p className="text-gray-700">Une solution durable qui limite le gaspillage électronique.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Notre histoire Section */}
       <section className="py-16 bg-gray-50">
