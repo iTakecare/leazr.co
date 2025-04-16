@@ -103,8 +103,8 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Notre fondateur Section - Added more vertical spacing */}
-      <section className="py-16 mt-16">
+      {/* Notre fondateur Section - Updated margin-top to mt-25 */}
+      <section className="py-16 mt-25">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <h2 className="font-extrabold text-[#222222] text-4xl mb-8">
             La personne derrière iTakecare ?
