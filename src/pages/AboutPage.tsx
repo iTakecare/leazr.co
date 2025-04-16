@@ -45,8 +45,8 @@ const AboutPage = () => {
         </div>
       </div>
 
-      {/* Mission Section - Reduced padding and increased title size */}
-      <section className="py-8 bg-white">
+      {/* Mission Section - Further reduced padding and bolded title */}
+      <section className="py-4 bg-white">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
@@ -57,7 +57,7 @@ const AboutPage = () => {
               />
             </div>
             <div className="md:w-1/2">
-              <h2 className="font-bold text-[#222222] text-4xl sm:text-5xl mb-6">
+              <h2 className="font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6">
                 Notre mission : simplifier l'IT, optimiser vos coûts.
               </h2>
               <p className="text-[#222222] text-lg mb-8">
