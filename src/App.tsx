@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/Login";
@@ -59,6 +60,12 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import ContactPage from "./pages/ContactPage";
 
+// Nouvelles pages
+import SolutionsPage from "./pages/SolutionsPage";
+import ServicesPage from "./pages/ServicesPage";
+import DurabilityPage from "./pages/DurabilityPage";
+import AboutPage from "./pages/AboutPage";
+
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
   
@@ -113,6 +120,26 @@ const App = () => {
         <Routes location={location} key={location.pathname}>
           <Route index element={<Index />} />
           <Route path="/" element={<Index />} />
+          
+          {/* Nouvelles routes pour les pages principales */}
+          <Route path="/solutions" element={<SolutionsPage />} />
+          <Route path="/solutions/location" element={<SolutionsPage />} />
+          <Route path="/solutions/gestion-parc" element={<SolutionsPage />} />
+          <Route path="/solutions/cloud" element={<SolutionsPage />} />
+          <Route path="/solutions/reconditionnement" element={<SolutionsPage />} />
+          
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/services/entreprises" element={<ServicesPage />} />
+          <Route path="/services/professionnels" element={<ServicesPage />} />
+          <Route path="/services/formations" element={<ServicesPage />} />
+          <Route path="/services/support" element={<ServicesPage />} />
+          
+          <Route path="/durabilite" element={<DurabilityPage />} />
+          <Route path="/durabilite/engagement" element={<DurabilityPage />} />
+          <Route path="/durabilite/economie-circulaire" element={<DurabilityPage />} />
+          <Route path="/durabilite/impact" element={<DurabilityPage />} />
+          
+          <Route path="/a-propos" element={<AboutPage />} />
           
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />

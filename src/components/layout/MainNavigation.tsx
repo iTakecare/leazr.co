@@ -33,31 +33,25 @@ const MainNavigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Updated navigation menu items with icons and dropdowns
+  // Updated navigation menu items with icons and dropdowns, pointing to the new pages
   const solutionsMenu = [
-    { label: "Location d'équipement", href: "/solutions/location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
-    { label: "Gestion de parc", href: "/solutions/gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
-    { label: "Services cloud", href: "/solutions/cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: "Infrastructure cloud sécurisée et évolutive" },
-    { label: "Reconditionnement", href: "/solutions/reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Équipements reconditionnés et certifiés écologiques" },
+    { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
+    { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
+    { label: "Services cloud", href: "/solutions#cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: "Infrastructure cloud sécurisée et évolutive" },
+    { label: "Reconditionnement", href: "/solutions#reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Équipements reconditionnés et certifiés écologiques" },
   ];
 
   const servicesMenu = [
-    { label: "Pour entreprises", href: "/services/entreprises", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "Pour professionnels", href: "/services/professionnels", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Formations", href: "/services/formations", icon: <FileText className="w-4 h-4 mr-2" />, description: "Programmes de formation pour vos équipes" },
-    { label: "Support technique", href: "/services/support", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Assistance technique dédiée et réactive" },
+    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "Formations", href: "/services#formations", icon: <FileText className="w-4 h-4 mr-2" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Assistance technique dédiée et réactive" },
   ];
 
   const durabiliteMenu = [
-    { label: "Notre engagement", href: "/durabilite/engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Notre mission pour un numérique responsable" },
-    { label: "Économie circulaire", href: "/durabilite/economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Comment nous contribuons à l'économie circulaire" },
-    { label: "Impact environnemental", href: "/durabilite/impact", icon: <Globe className="w-4 h-4 mr-2" />, description: "Nos actions pour réduire l'empreinte environnementale" },
-  ];
-
-  const ressourcesMenu = [
-    { label: "Blog", href: "/blog", icon: <FileText className="w-4 h-4 mr-2" />, description: "Articles et actualités sur le numérique responsable" },
-    { label: "Centre d'aide", href: "/aide", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Guides et documentation détaillée" },
-    { label: "Témoignages", href: "/temoignages", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Retours d'expérience de nos clients" },
+    { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Notre mission pour un numérique responsable" },
+    { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Comment nous contribuons à l'économie circulaire" },
+    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="w-4 h-4 mr-2" />, description: "Nos actions pour réduire l'empreinte environnementale" },
   ];
 
   const toggleMobileMenu = () => {
@@ -139,7 +133,19 @@ const MainNavigation = () => {
             ))}
           </div>
           
-          {/* Ajout du lien Blog dans le menu mobile */}
+          {/* Ajout du lien À propos dans le menu mobile */}
+          <Link
+            to="/a-propos"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname === "/a-propos" && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            À propos
+          </Link>
+          
+          {/* Blog dans le menu mobile */}
           <Link
             to="/blog"
             className={cn(
@@ -149,17 +155,6 @@ const MainNavigation = () => {
             onClick={() => setMobileMenuOpen(false)}
           >
             Blog
-          </Link>
-          
-          <Link
-            to="/catalogue"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname === "/catalogue" && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Catalogue
           </Link>
           
           <Link
@@ -274,7 +269,20 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Ajout du lien vers le Blog */}
+            {/* Ajout du lien À propos */}
+            <li>
+              <Link
+                to="/a-propos"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname === "/a-propos" && "font-medium text-[#33638E]"
+                )}
+              >
+                À propos
+              </Link>
+            </li>
+            
+            {/* Blog existant */}
             <li>
               <Link
                 to="/blog"
@@ -284,18 +292,6 @@ const MainNavigation = () => {
                 )}
               >
                 Blog
-              </Link>
-            </li>
-            
-            <li>
-              <Link
-                to="/catalogue"
-                className={cn(
-                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
-                  location.pathname === "/catalogue" && "font-medium text-[#33638E]"
-                )}
-              >
-                Catalogue
               </Link>
             </li>
             

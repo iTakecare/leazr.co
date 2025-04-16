@@ -51,25 +51,25 @@ const UnifiedNavigation = () => {
     }
   };
 
-  // Menus mis à jour avec une structure cohérente
+  // Menus mis à jour avec les liens vers les nouvelles sections
   const solutionsMenu = [
-    { label: "Location d'équipement", href: "/solutions/location", icon: <Monitor className="h-4 w-4 text-[#48b5c3]" />, description: "Matériel informatique haute performance en location flexible" },
-    { label: "Gestion de parc", href: "/solutions/gestion-parc", icon: <Server className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
-    { label: "Services cloud", href: "/solutions/cloud", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Infrastructure cloud sécurisée et évolutive" },
-    { label: "Reconditionnement", href: "/solutions/reconditionnement", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Équipements reconditionnés et certifiés écologiques" },
+    { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="h-4 w-4 text-[#48b5c3]" />, description: "Matériel informatique haute performance en location flexible" },
+    { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
+    { label: "Services cloud", href: "/solutions#cloud", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Infrastructure cloud sécurisée et évolutive" },
+    { label: "Reconditionnement", href: "/solutions#reconditionnement", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Équipements reconditionnés et certifiés écologiques" },
   ];
 
   const servicesMenu = [
-    { label: "Pour entreprises", href: "/services/entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "Pour professionnels", href: "/services/professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Formations", href: "/services/formations", icon: <FileText className="h-4 w-4 text-[#48b5c3]" />, description: "Programmes de formation pour vos équipes" },
-    { label: "Support technique", href: "/services/support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "Formations", href: "/services#formations", icon: <FileText className="h-4 w-4 text-[#48b5c3]" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
   ];
 
   const durabiliteMenu = [
-    { label: "Notre engagement", href: "/durabilite/engagement", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Notre mission pour un numérique responsable" },
-    { label: "Économie circulaire", href: "/durabilite/economie-circulaire", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Comment nous contribuons à l'économie circulaire" },
-    { label: "Impact environnemental", href: "/durabilite/impact", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Nos actions pour réduire l'empreinte environnementale" },
+    { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Notre mission pour un numérique responsable" },
+    { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Comment nous contribuons à l'économie circulaire" },
+    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Nos actions pour réduire l'empreinte environnementale" },
   ];
 
   return (
@@ -145,7 +145,19 @@ const UnifiedNavigation = () => {
             ))}
           </div>
           
-          {/* Nouvel élément Blog dans le menu mobile */}
+          {/* Nouvel élément À propos dans le menu mobile */}
+          <Link
+            to="/a-propos"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname === "/a-propos" && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            À propos
+          </Link>
+          
+          {/* Blog dans le menu mobile */}
           <Link
             to="/blog"
             className={cn(
@@ -294,7 +306,20 @@ const UnifiedNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Ajout du lien Blog */}
+            {/* Ajout du lien À propos */}
+            <li>
+              <Link
+                to="/a-propos"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname === "/a-propos" && "font-medium text-[#33638E]"
+                )}
+              >
+                À propos
+              </Link>
+            </li>
+            
+            {/* Blog existant */}
             <li>
               <Link
                 to="/blog"
