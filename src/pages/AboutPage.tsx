@@ -192,52 +192,19 @@ const AboutPage = () => {
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <h2 className="font-bold text-[#222222] text-3xl mb-12 text-center">Nos valeurs</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Fiabilité</h3>
-              <p className="text-[#222222]">
-                Du matériel testé et garanti, prêt à l'emploi. 
-                Nous nous engageons à fournir des équipements de qualité et un service irréprochable.
-              </p>
-            </div>
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Simplicité</h3>
-              <p className="text-[#222222]">
-                Un service clé en main pour un IT sans prise de tête.
-                Nous simplifions la gestion informatique pour que vous puissiez vous concentrer sur votre cœur de métier.
-              </p>
-            </div>
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Écoresponsabilité</h3>
-              <p className="text-[#222222]">
-                Une solution durable qui limite le gaspillage électronique.
-                Nous contribuons activement à réduire l'impact environnemental du numérique.
-              </p>
-            </div>
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Évolution</h3>
-              <p className="text-[#222222]">
-                Tournés vers l'avenir, nous travaillons à devancer les besoins des professionnels. 
-                Attachés au concret, nous adaptons nos idées créatives à la réalité du terrain. 
-                Selon nous, la proximité est au service d'une haute exigence de qualité. 
-                Persuadés que la flexibilité est un gage de compétitivité, nous cultivons un environnement qui favorise l'inventivité et l'agilité.
-              </p>
-            </div>
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Confiance</h3>
-              <p className="text-[#222222]">
-                Nous valorisons les relations humaines authentiques et favorisons des liens durables avec nos clients, nos partenaires et nos collaborateurs. 
-                Accessibles et disponibles, nous sommes généreux dans nos interactions. 
-                Nous sommes convaincus que se soutenir les uns les autres nous donnent des ailes.
-              </p>
-            </div>
-            <div className="p-8 rounded-lg shadow-lg">
-              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Entraide</h3>
-              <p className="text-[#222222]">
-                Nous accordons une importance primordiale à se rendre disponibles pour nous entraider. 
-                En partageant nos connaissances et nos expériences, nous contribuons au développement 
-                des uns des autres. C'est un plaisir de se sentir utile et de semer des sourires sur notre chemin.
-              </p>
-            </div>
+            {[
+              { title: "Entraide", description: "Nous accordons une importance primordiale à se rendre disponibles pour nous entraider. En partageant nos connaissances et nos expériences, nous contribuons au développement des uns des autres. C'est un plaisir de se sentir utile et de semer des sourires sur notre chemin." },
+              { title: "Confiance", description: "Nous valorisons les relations humaines authentiques et favorisons des liens durables avec nos clients, nos partenaires et nos collaborateurs. Accessibles et disponibles, nous sommes généreux dans nos interactions. Nous sommes convaincus que se soutenir les uns les autres nous donnent des ailes." },
+              { title: "Écoresponsabilité", description: "Une solution durable qui limite le gaspillage électronique. Nous contribuons activement à réduire l'impact environnemental du numérique." },
+              { title: "Fiabilité", description: "Du matériel testé et garanti, prêt à l'emploi. Nous nous engageons à fournir des équipements de qualité et un service irréprochable." },
+              { title: "Simplicité", description: "Un service clé en main pour un IT sans prise de tête. Nous simplifions la gestion informatique pour que vous puissiez vous concentrer sur votre cœur de métier." },
+              { title: "Évolution", description: "Tournés vers l'avenir, nous travaillons à devancer les besoins des professionnels. Attachés au concret, nous adaptons nos idées créatives à la réalité du terrain. Selon nous, la proximité est au service d'une haute exigence de qualité. Persuadés que la flexibilité est un gage de compétitivité, nous cultivons un environnement qui favorise l'inventivité et l'agilité." }
+            ].map((value, index) => (
+              <div key={index} className="p-8 rounded-lg shadow-lg">
+                <h3 className="font-bold text-[#48b5c3] text-xl mb-4">{value.title}</h3>
+                <p className="text-[#222222]">{value.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
