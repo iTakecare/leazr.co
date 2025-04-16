@@ -52,9 +52,9 @@ const AboutPage = () => {
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <img 
-                src="/lovable-uploads/1aa14a0c-93f6-43b7-acbc-d219bbd9c46e.png" 
-                alt="Personne travaillant sur un ordinateur portable" 
-                className="w-full h-auto rounded-lg"
+                src="/lovable-uploads/93b1f0bc-f724-452e-9187-7fbf56303736.png" 
+                alt="Personne travaillant sur un ordinateur portable avec un carnet de notes" 
+                className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
             <div className="md:w-1/2">
