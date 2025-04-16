@@ -129,7 +129,7 @@ const AboutPage = () => {
             </div>
             <div className="md:w-1/3">
               <img 
-                src="/lovable-uploads/e054083d-ed0f-49f5-ba69-fb357e8af592.png" 
+                src="/lovable-uploads/cdbb563f-cccb-4d4a-b040-245c565379e1.png" 
                 alt="Gianni, fondateur d'iTakecare" 
                 className="rounded-full shadow-xl w-64 h-64 object-cover mx-auto"
               />
