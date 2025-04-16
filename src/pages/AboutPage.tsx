@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ const AboutPage = () => {
               <span className="text-[#33638E]">iTakecare</span> - L'IT réinventé
             </h1>
             <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
-              backgroundColor: 'rgba(41, 128, 185, 0.35)', // Darker blue-green background
+              backgroundColor: 'rgba(29, 174, 219, 0.35)', // Bright Blue from palette: #1EAEDB
               color: '#48b5c3'
             }}>
               pour les entreprises
