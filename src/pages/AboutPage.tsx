@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -145,8 +146,12 @@ const AboutPage = () => {
       </section>
 
       {/* Notre fondateur Section - Increased spacing from previous section */}
-      <section className="py-16 mt-32">
-        <div className="w-full max-w-[1320px] mx-auto px-4">
+      <section className="py-16 mt-32 relative">
+        <div className="absolute top-0 left-0 w-1/2 h-full z-0">
+          <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        </div>
+        
+        <div className="w-full max-w-[1320px] mx-auto px-4 relative z-10">
           <h2 className="font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6">
             La personne derrière iTakecare ?
           </h2>
