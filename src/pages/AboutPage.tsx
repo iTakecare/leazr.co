@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -63,8 +62,7 @@ const AboutPage = () => {
     <div className="flex flex-col min-h-screen bg-white">
       <UnifiedNavigation />
       
-      <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative pt-32 md:pt-48">
-        {/* Ajout de pt-32 et md:pt-48 pour augmenter l'espace en haut */}
+      <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative pt-16 md:pt-24">
         <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
           <img
             className="relative w-full h-[60vh] object-cover"
@@ -284,4 +282,3 @@ const AboutPage = () => {
 };
 
 export default AboutPage;
-
