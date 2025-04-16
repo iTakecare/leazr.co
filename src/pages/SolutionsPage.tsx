@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -60,9 +59,13 @@ const SolutionsPage = () => {
         </div>
       </div>
 
-      {/* Location d'équipement Section */}
-      <section id="location" className="py-16 bg-gray-50">
-        <div className="w-full max-w-[1320px] mx-auto px-4">
+      {/* Location d'équipement Section - with blur effect like About page */}
+      <section id="location" className="py-16 relative">
+        <div className="absolute top-0 right-0 w-1/2 h-full z-0">
+          <div className="absolute top-[15%] left-[10%] w-[80%] h-[70%] bg-[#48b5c3]/15 blur-[60px] rounded-full"></div>
+        </div>
+        
+        <div className="w-full max-w-[1320px] mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <Monitor className="w-16 h-16 text-[#48b5c3] mb-6" />
