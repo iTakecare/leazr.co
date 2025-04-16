@@ -194,25 +194,25 @@ const AboutPage = () => {
       </section>
 
       {/* Nos valeurs Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <h2 className="font-bold text-[#222222] text-3xl mb-12 text-center">Nos valeurs</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-lg">
+            <div className="p-8 rounded-lg shadow-lg">
               <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Fiabilité</h3>
               <p className="text-[#222222]">
                 Du matériel testé et garanti, prêt à l'emploi. 
                 Nous nous engageons à fournir des équipements de qualité et un service irréprochable.
               </p>
             </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg">
+            <div className="p-8 rounded-lg shadow-lg">
               <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Simplicité</h3>
               <p className="text-[#222222]">
                 Un service clé en main pour un IT sans prise de tête.
                 Nous simplifions la gestion informatique pour que vous puissiez vous concentrer sur votre cœur de métier.
               </p>
             </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg">
+            <div className="p-8 rounded-lg shadow-lg">
               <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Écoresponsabilité</h3>
               <p className="text-[#222222]">
                 Une solution durable qui limite le gaspillage électronique.
