@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -35,14 +34,12 @@ const CollapsibleProductList = ({
 }: CollapsibleProductListProps) => {
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   
-  // Si les produits sont fournis en props, utilisez-les, sinon récupérez-les
   const { data: fetchedProducts = [], isLoading, refetch } = useQuery({
     queryKey: ["products", includeAdminOnly],
     queryFn: () => getProducts({ includeAdminOnly }),
-    enabled: !providedProducts, // Ne récupère les produits que s'ils ne sont pas déjà fournis
+    enabled: !providedProducts,
   });
 
-  // Mise à jour des produits locaux quand les produits fournis ou récupérés changent
   useEffect(() => {
     setLocalProducts(providedProducts || fetchedProducts);
   }, [providedProducts, fetchedProducts]);
@@ -77,7 +74,6 @@ const CollapsibleProductList = ({
     try {
       await onDeleteProduct(productId);
       
-      // Mise à jour des produits locaux après la suppression
       setLocalProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
       
       toast({
@@ -120,14 +116,14 @@ const CollapsibleProductList = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{product.name}</h3>
+                    <h3 className="font-normal text-sm">{product.name}</h3>
                     {product.admin_only && (
                       <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">
                         Admin uniquement
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {product.category} • 
                     {!product.is_parent && formatCurrency(product.price || 0)}
                   </p>
