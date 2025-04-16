@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -106,9 +107,12 @@ const AboutPage = () => {
               />
             </div>
             <div className="md:w-1/2">
-              <h2 className="font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6">
-                Notre mission : simplifier l'IT, optimiser vos coûts.
-              </h2>
+              <div className="relative">
+                <div className="absolute -inset-1 bg-[#48b5c3]/20 blur-xl rounded-lg"></div>
+                <h2 className="relative font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6 z-10">
+                  Notre mission : simplifier l'IT, optimiser vos coûts.
+                </h2>
+              </div>
               <p className="text-[#222222] text-lg mb-8">
                 Nous croyons que chaque entreprise mérite une informatique performante et flexible. En
                 proposant du matériel reconditionné de qualité et une gestion optimisée, nous vous
