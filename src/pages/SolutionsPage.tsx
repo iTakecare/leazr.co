@@ -1,10 +1,10 @@
-
 import React, { useEffect } from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Monitor, Server, Globe, Recycle } from 'lucide-react';
 import HomeFooter from '@/components/home/HomeFooter';
+import Container from '@/components/layout/Container';
 
 const SolutionsPage = () => {
   useEffect(() => {
@@ -198,21 +198,30 @@ const SolutionsPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-[#33638E] text-white">
-        <div className="w-full max-w-[1320px] mx-auto px-4 text-center">
-          <h2 className="font-bold text-3xl mb-6">Prêt à optimiser votre infrastructure IT ?</h2>
-          <p className="text-lg mb-8 max-w-2xl mx-auto">
-            Contactez-nous dès aujourd'hui pour découvrir comment nos solutions peuvent répondre à vos besoins spécifiques.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-white text-[#33638E] hover:bg-gray-100 rounded-[50px] font-bold">
-              Demander un devis
-            </Button>
-            <Button variant="outline" className="text-white border-white hover:bg-white/10 rounded-[50px] font-bold">
-              Nous contacter
-            </Button>
+      <section className="py-16 bg-transparent text-white">
+        <Container maxWidth="custom">
+          <div className="text-center relative">
+            <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
+              <img src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" alt="Fond turquoise" className="w-full h-full object-cover" />
+            </div>
+            
+            <div className="relative z-10 py-16">
+              <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
+                Prêt à optimiser votre infrastructure IT ?
+                <br />
+                n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">secrets</span> pour vous
+              </h2>
+              <div className="flex flex-wrap justify-center gap-4 mt-8">
+                <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto">
+                  Demander un devis
+                </Button>
+                <Button variant="outline" className="bg-white hover:bg-gray-100 text-gray-800 font-bold border-none rounded-full px-8 py-3 h-auto">
+                  Nous contacter
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        </Container>
       </section>
 
       <HomeFooter />
