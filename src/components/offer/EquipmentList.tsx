@@ -154,7 +154,9 @@ const EquipmentList = ({
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2">Équipement</th>
-                  <th className="text-left py-2">Prix unitaire</th>
+                  {!hideFinancialDetails && (
+                    <th className="text-left py-2">Prix unitaire</th>
+                  )}
                   <th className="text-center py-2">Qté</th>
                   {!hideFinancialDetails && <th className="text-right py-2">Marge</th>}
                   <th className="text-right py-2">Total</th>
@@ -165,7 +167,9 @@ const EquipmentList = ({
                 {equipmentList.map((item) => (
                   <tr key={item.id} className="border-b border-gray-100">
                     <td className="py-3">{item.title}</td>
-                    <td className="py-3">{hideFinancialDetails ? "—" : formatCurrency(item.purchasePrice)}</td>
+                    {!hideFinancialDetails && (
+                      <td className="py-3">{formatCurrency(item.purchasePrice)}</td>
+                    )}
                     <td className="py-3">
                       <div className="flex items-center justify-center gap-1">
                         <Button

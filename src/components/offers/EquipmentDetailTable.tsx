@@ -20,13 +20,15 @@ interface EquipmentDetailTableProps {
   totalMonthly: number;
   totalMargin: number;
   totalMarginWithDifference?: number;
+  hideFinancialDetails?: boolean;
 }
 
 const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   equipment,
   totalMonthly,
   totalMargin,
-  totalMarginWithDifference
+  totalMarginWithDifference,
+  hideFinancialDetails = false
 }) => {
   // Calcul du nombre total d'articles
   const totalArticles = equipment.reduce((sum, item) => sum + item.quantity, 0);
@@ -147,7 +149,9 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
             <tr className="border-b border-gray-200">
               <th className="text-left py-2 px-4 font-medium text-gray-600">Désignation</th>
               <th className="text-center py-2 px-4 font-medium text-gray-600">Quantité</th>
-              <th className="text-right py-2 px-4 font-medium text-gray-600">Prix mensuel</th>
+              {!hideFinancialDetails && (
+                <th className="text-right py-2 px-4 font-medium text-gray-600">Prix mensuel</th>
+              )}
               <th className="text-right py-2 px-4 font-medium text-gray-600">Total mensuel</th>
               <th className="text-right py-2 px-4 font-medium text-gray-600">Détails</th>
             </tr>
@@ -186,7 +190,9 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                       </div>
                     </td>
                     <td className="py-3 px-4 text-center">{item.quantity}</td>
-                    <td className="py-3 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
+                    {!hideFinancialDetails && (
+                      <td className="py-3 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
+                    )}
                     <td className="py-3 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
                     <td className="py-3 px-4 text-right text-gray-500 text-sm">
                       {hasDetails(item) ? (
@@ -219,15 +225,17 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
           <span className="text-gray-600 mb-1">Mensualité totale</span>
           <span className="text-xl font-semibold text-blue-600">{formatCurrency(totalMonthly)}</span>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-          <div className="flex items-center text-green-600 mb-1">
-            <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-            <span className="text-gray-600">Marge générée</span>
+        {!hideFinancialDetails && (
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+            <div className="flex items-center text-green-600 mb-1">
+              <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+              </svg>
+              <span className="text-gray-600">Marge générée</span>
+            </div>
+            <span className="text-xl font-semibold text-green-600">{formatCurrency(finalMargin)}</span>
           </div>
-          <span className="text-xl font-semibold text-green-600">{formatCurrency(finalMargin)}</span>
-        </div>
+        )}
       </div>
     </div>
   );
