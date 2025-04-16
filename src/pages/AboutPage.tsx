@@ -45,8 +45,8 @@ const AboutPage = () => {
         </div>
       </div>
 
-      {/* Mission Section - Further reduced padding and bolded title */}
-      <section className="py-4 bg-white">
+      {/* Mission Section - Reduced padding to py-2 */}
+      <section className="py-2 bg-white">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
