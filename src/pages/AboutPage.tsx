@@ -213,6 +213,31 @@ const AboutPage = () => {
                 Nous contribuons activement à réduire l'impact environnemental du numérique.
               </p>
             </div>
+            <div className="p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Évolution</h3>
+              <p className="text-[#222222]">
+                Tournés vers l'avenir, nous travaillons à devancer les besoins des professionnels. 
+                Attachés au concret, nous adaptons nos idées créatives à la réalité du terrain. 
+                Selon nous, la proximité est au service d'une haute exigence de qualité. 
+                Persuadés que la flexibilité est un gage de compétitivité, nous cultivons un environnement qui favorise l'inventivité et l'agilité.
+              </p>
+            </div>
+            <div className="p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Confiance</h3>
+              <p className="text-[#222222]">
+                Nous valorisons les relations humaines authentiques et favorisons des liens durables avec nos clients, nos partenaires et nos collaborateurs. 
+                Accessibles et disponibles, nous sommes généreux dans nos interactions. 
+                Nous sommes convaincus que se soutenir les uns les autres nous donnent des ailes.
+              </p>
+            </div>
+            <div className="p-8 rounded-lg shadow-lg">
+              <h3 className="font-bold text-[#48b5c3] text-xl mb-4">Entraide</h3>
+              <p className="text-[#222222]">
+                Nous accordons une importance primordiale à se rendre disponibles pour nous entraider. 
+                En partageant nos connaissances et nos expériences, nous contribuons au développement 
+                des uns des autres. C'est un plaisir de se sentir utile et de semer des sourires sur notre chemin.
+              </p>
+            </div>
           </div>
         </div>
       </section>
