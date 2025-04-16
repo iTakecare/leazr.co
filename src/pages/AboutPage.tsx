@@ -108,7 +108,7 @@ const AboutPage = () => {
             </div>
             <div className="md:w-1/2">
               <div className="relative">
-                <div className="absolute -inset-1 bg-[#48b5c3]/20 blur-xl rounded-lg"></div>
+                <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-[120%] h-[140%] bg-[#48b5c3]/15 blur-2xl rounded-[40%_60%_70%_30%/40%_50%_60%_50%]"></div>
                 <h2 className="relative font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6 z-10">
                   Notre mission : simplifier l'IT, optimiser vos coûts.
                 </h2>
