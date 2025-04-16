@@ -1,8 +1,5 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import HomeFooter from '@/components/home/HomeFooter';
 
 const AboutPage = () => {
@@ -27,16 +24,16 @@ const AboutPage = () => {
 
         {/* Hero content */}
         <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
-          <div className="bg-white/90 p-8 md:p-12 rounded-lg shadow-lg max-w-4xl mx-auto">
+          <div className="text-center">
             <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-5xl leading-tight mb-6">
-              ITake Care - L'IT réinventé
+              <span className="text-[#48b5c3]">iTakecare</span> - L'IT réinventé
             </h1>
-            <div className="inline-block bg-[#48b5c3]/30 text-[#48b5c3] px-6 py-3 rounded-full text-xl sm:text-2xl md:text-3xl font-bold mb-8">
+            <div className="inline-block text-[#48b5c3] px-6 py-3 rounded-full text-2xl sm:text-3xl md:text-4xl font-bold mb-8">
               pour les entreprises
             </div>
             <p className="text-[#222222] text-lg max-w-3xl mx-auto">
               Trop d'entreprises immobilisent leur trésorerie dans du matériel qui devient vite obsolète. Chez 
-              ITakeCare, nous avons voulu changer cela. Notre solution ? Un modèle de leasing intelligent qui vous 
+              iTakecare, nous avons voulu changer cela. Notre solution ? Un modèle de leasing intelligent qui vous 
               permet d'avoir un équipement toujours à jour, sans surprise et sans surcoût.
             </p>
           </div>
