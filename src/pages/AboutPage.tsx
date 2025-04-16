@@ -1,5 +1,7 @@
+
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
+import { Button } from '@/components/ui/button';
 import HomeFooter from '@/components/home/HomeFooter';
 
 const AboutPage = () => {
