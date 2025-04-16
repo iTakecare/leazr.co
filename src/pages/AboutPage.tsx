@@ -48,9 +48,6 @@ const AboutPage = () => {
       {/* Mission Section - Increased vertical padding */}
       <section className="py-16 bg-white">
         <div className="w-full max-w-[1320px] mx-auto px-4">
-          <h2 className="font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6">
-            Notre mission : simplifier l'IT, optimiser vos coûts.
-          </h2>
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
               <img 
@@ -60,6 +57,9 @@ const AboutPage = () => {
               />
             </div>
             <div className="md:w-1/2">
+              <h2 className="font-extrabold text-[#222222] text-4xl sm:text-5xl mb-6">
+                Notre mission : simplifier l'IT, optimiser vos coûts.
+              </h2>
               <p className="text-[#222222] text-lg mb-8">
                 Nous croyons que chaque entreprise mérite une informatique performante et flexible. En
                 proposant du matériel reconditionné de qualité et une gestion optimisée, nous vous
