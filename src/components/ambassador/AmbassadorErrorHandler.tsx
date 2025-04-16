@@ -29,6 +29,18 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         .eq('user_id', authData.user?.id)
         .maybeSingle();
       
+      // Vérifier si l'ambassadeur existe avec l'email de l'utilisateur si pas trouvé par user_id
+      let alternativeAmbassadorData = null;
+      if (!ambassadorData && authData.user?.email) {
+        const { data: altData } = await supabase
+          .from('ambassadors')
+          .select('id, name, email')
+          .eq('email', authData.user.email)
+          .maybeSingle();
+        
+        alternativeAmbassadorData = altData;
+      }
+      
       // Vérifier les politiques RLS
       const { data: rlsTestData, error: rlsError } = await supabase
         .from('ambassador_clients')
@@ -46,8 +58,11 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       setDiagnosticInfo({
         isAuthenticated: !!authData.user,
         userId: authData.user?.id,
+        userEmail: authData.user?.email,
         hasAmbassadorProfile: !!ambassadorData,
         ambassadorId: ambassadorData?.id,
+        alternativeAmbassadorFound: !!alternativeAmbassadorData,
+        alternativeAmbassadorId: alternativeAmbassadorData?.id,
         rlsAccess: !rlsError,
         rlsError: rlsError ? rlsError.message : null,
         errorLogs
@@ -55,8 +70,12 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       
       if (!authData.user) {
         toast.error("Vous n'êtes pas connecté. Veuillez vous reconnecter.");
-      } else if (!ambassadorData) {
-        toast.error("Vous n'avez pas de profil ambassadeur. Veuillez contacter l'administrateur.");
+      } else if (!ambassadorData && !alternativeAmbassadorData) {
+        toast.error("Nous n'avons pas trouvé votre profil ambassadeur. Veuillez contacter l'administrateur.");
+      } else if (ambassadorData && !ambassadorData.id) {
+        toast.error("Votre profil ambassadeur est incomplet. Veuillez contacter l'administrateur.");
+      } else if (alternativeAmbassadorData) {
+        toast.warning("Nous avons trouvé un profil ambassadeur avec votre email, mais il n'est pas lié à votre compte utilisateur.");
       } else if (rlsError) {
         toast.error("Problème d'accès à la base de données. Vos permissions sont peut-être insuffisantes.");
       } else {
@@ -112,8 +131,15 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
           <h3 className="font-medium text-sm">Informations de diagnostic</h3>
           <p>Authentifié: {diagnosticInfo.isAuthenticated ? "Oui" : "Non"}</p>
           <p>ID Utilisateur: {diagnosticInfo.userId || "Non disponible"}</p>
+          <p>Email: {diagnosticInfo.userEmail || "Non disponible"}</p>
           <p>Profil ambassadeur: {diagnosticInfo.hasAmbassadorProfile ? "Trouvé" : "Non trouvé"}</p>
           <p>ID Ambassadeur: {diagnosticInfo.ambassadorId || "Non disponible"}</p>
+          {diagnosticInfo.alternativeAmbassadorFound && (
+            <div className="p-2 bg-yellow-100 rounded text-yellow-800">
+              <p>Ambassadeur alternatif trouvé par email: ID {diagnosticInfo.alternativeAmbassadorId}</p>
+              <p className="text-xs mt-1">Ce profil ambassadeur correspond à votre email mais n'est pas lié à votre compte utilisateur.</p>
+            </div>
+          )}
           <p>Accès base de données: {diagnosticInfo.rlsAccess ? "OK" : "Problème"}</p>
           
           {diagnosticInfo.rlsError && (

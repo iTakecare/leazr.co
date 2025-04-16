@@ -15,7 +15,8 @@ import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandl
 const AmbassadorDashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const ambassadorId = user?.ambassador_id;
+  // Utiliser un état pour stocker l'ID d'ambassadeur trouvé par la recherche alternative
+  const [resolvedAmbassadorId, setResolvedAmbassadorId] = useState<string | null>(user?.ambassador_id || null);
   
   const [stats, setStats] = useState({
     clientsCount: 0,
@@ -29,12 +30,51 @@ const AmbassadorDashboardPage = () => {
   const [recentOffers, setRecentOffers] = useState([]);
   const [error, setError] = useState(null);
 
+  // Fonction pour rechercher l'ID de l'ambassadeur par email si non trouvé dans le profil utilisateur
+  const findAmbassadorId = async () => {
+    if (user?.ambassador_id) {
+      setResolvedAmbassadorId(user.ambassador_id);
+      return user.ambassador_id;
+    }
+    
+    if (!user?.email) return null;
+    
+    try {
+      console.log("Recherche d'un ambassadeur associé à l'email:", user.email);
+      
+      const { data, error } = await supabase
+        .from("ambassadors")
+        .select("id")
+        .eq("email", user.email)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Erreur lors de la recherche de l'ambassadeur:", error);
+        return null;
+      }
+      
+      if (data && data.id) {
+        console.log("Ambassadeur trouvé par email:", data.id);
+        setResolvedAmbassadorId(data.id);
+        return data.id;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Exception lors de la recherche de l'ambassadeur:", error);
+      return null;
+    }
+  };
+
   const loadStats = async () => {
     setLoading(true);
     setError(null);
+    
     try {
+      const ambassadorId = resolvedAmbassadorId || await findAmbassadorId();
+      
       if (!ambassadorId) {
-        console.warn("Aucun ID d'ambassadeur trouvé dans le profil utilisateur");
+        console.warn("Aucun ID d'ambassadeur trouvé dans le profil utilisateur ou par email");
         setError("Identifiant d'ambassadeur non trouvé");
         setLoading(false);
         return;
@@ -176,7 +216,7 @@ const AmbassadorDashboardPage = () => {
 
   useEffect(() => {
     loadStats();
-  }, [ambassadorId]);
+  }, [resolvedAmbassadorId]);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -212,7 +252,7 @@ const AmbassadorDashboardPage = () => {
             <AmbassadorErrorHandler 
               message={`Erreur: ${error}. Veuillez réessayer plus tard ou contacter l'assistance.`}
               onRetry={() => {
-                window.location.reload();
+                findAmbassadorId().then(() => loadStats());
               }}
               showDiagnosticInfo={true}
             />

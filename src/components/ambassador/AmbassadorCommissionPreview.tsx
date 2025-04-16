@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -24,40 +24,42 @@ const AmbassadorCommissionPreview = ({
     levelName: ""
   });
   const [isCalculating, setIsCalculating] = useState(false);
-  const calculationAttemptedRef = useRef(false);
-  const equipmentSignatureRef = useRef("");
+  const [hasAttemptedCalculation, setHasAttemptedCalculation] = useState(false);
+  const calculationRequestedRef = useRef(false);
   const totalPaymentRef = useRef(0);
   
-  // Ne pas rendre le composant si les IDs nécessaires sont manquants
-  if (!ambassadorId || !commissionLevelId) {
-    return null;
-  }
-
-  // Nous utilisons un effect simple avec une dépendance sur equipmentList.length uniquement
+  // Vérifier si nous avons les informations nécessaires pour calculer la commission
+  const canCalculateCommission = totalMonthlyPayment > 0 && equipmentList.length > 0;
+  
   useEffect(() => {
     // Ne pas calculer si déjà calculé ou si les équipements sont vides
-    if (!equipmentList || equipmentList.length === 0) return;
+    if (!canCalculateCommission) return;
     
     // Ne pas recalculer si le montant total n'a pas changé de manière significative
     const newTotalMonthlyPayment = totalMonthlyPayment || 0;
-    if (Math.abs(totalPaymentRef.current - newTotalMonthlyPayment) < 0.01) return;
-    totalPaymentRef.current = newTotalMonthlyPayment;
+    if (Math.abs(totalPaymentRef.current - newTotalMonthlyPayment) < 0.01 && hasAttemptedCalculation) return;
     
-    // Calculer une empreinte des équipements une seule fois
-    if (calculationAttemptedRef.current) return;
-    calculationAttemptedRef.current = true;
+    totalPaymentRef.current = newTotalMonthlyPayment;
+    calculationRequestedRef.current = true;
+    setHasAttemptedCalculation(true);
     
     // Calculer le montant financé à partir de la mensualité et du coefficient applicable
     const calculateCommission = async () => {
       setIsCalculating(true);
       
       try {
+        console.log("Calculating commission with params:", {
+          totalMonthlyPayment,
+          ambassadorId,
+          commissionLevelId,
+          equipmentCount: equipmentList.length
+        });
+        
         // Importer dynamiquement pour éviter les cycles de dépendances
         const { calculateCommissionByLevel } = await import('@/utils/calculator');
         
         // D'abord, estimer le montant financé avec un coefficient de départ
-        // pour déterminer la bonne tranche de coefficient
-        let initialCoefficient = 3.27; // Valeur moyenne pour commencer (mise à jour avec la valeur correcte)
+        let initialCoefficient = 3.27; // Valeur moyenne pour commencer
         let financedAmount = calculateFinancedAmount(newTotalMonthlyPayment, initialCoefficient);
         
         // Maintenant, obtenir le coefficient précis basé sur le montant financé estimé
@@ -70,13 +72,18 @@ const AmbassadorCommissionPreview = ({
         
         console.log(`Commission Preview: Mensualité ${newTotalMonthlyPayment}€, Coefficient ${preciseCoefficient}, Montant financé ${financedAmount}€`);
         
+        // Utiliser un ID de niveau de commission par défaut si aucun n'est fourni
+        const levelIdToUse = commissionLevelId || "default";
+        
         // Calculer la commission basée sur le montant financé
         const commissionData = await calculateCommissionByLevel(
           financedAmount,
-          commissionLevelId,
+          levelIdToUse,
           'ambassador',
-          ambassadorId
+          ambassadorId || "default"
         );
+        
+        console.log("Commission calculation result:", commissionData);
         
         setCommission({
           amount: commissionData.amount || 0,
@@ -95,7 +102,11 @@ const AmbassadorCommissionPreview = ({
     
     // Nettoyage
     return () => clearTimeout(timer);
-  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment]); // Ajout de totalMonthlyPayment aux dépendances
+  }, [ambassadorId, commissionLevelId, equipmentList.length, totalMonthlyPayment, canCalculateCommission, hasAttemptedCalculation]);
+
+  if (!canCalculateCommission && !hasAttemptedCalculation) {
+    return null; // Ne pas rendre le composant si nous n'avons pas encore suffisamment d'informations
+  }
 
   return (
     <Card className="border border-gray-200 shadow-sm">

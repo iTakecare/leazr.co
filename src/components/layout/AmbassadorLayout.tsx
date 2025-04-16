@@ -43,10 +43,11 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
         return;
       }
       
-      // Vérifier si l'ID d'ambassadeur est disponible
+      // Permettre l'accès même si l'ID ambassadeur est manquant
+      // Simplement enregistrer un avertissement mais ne pas bloquer l'accès
       if (!user.ambassador_id) {
-        console.log("[AmbassadorLayout] ID d'ambassadeur manquant");
-        toast.error("Votre profil d'ambassadeur n'est pas correctement configuré");
+        console.log("[AmbassadorLayout] ID d'ambassadeur manquant mais permettant l'accès");
+        // Nous ne bloquons pas l'accès, permettant ainsi la navigation dans l'espace ambassadeur
       }
     } else if (!isLoading && userRoleChecked && !user) {
       // Si non authentifié, rediriger vers la page de connexion
