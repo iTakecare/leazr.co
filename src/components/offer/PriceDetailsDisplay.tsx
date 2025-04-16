@@ -46,7 +46,7 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-700">Montant financé:</span>
+          <span className="text-gray-700">Prix avec marge:</span>
           <span className="text-gray-900">{formatCurrency(priceWithMargin)}</span>
         </div>
         <div className="flex justify-between items-center">

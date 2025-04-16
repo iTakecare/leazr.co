@@ -35,6 +35,16 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
   
   const lastEquipmentPriceRef = useRef(0);
   const lastLeaserIdRef = useRef("");
+  const lastEquipmentMarginRef = useRef(0);
+
+  // Ajout d'un ref pour suivre les changements de marge
+  useEffect(() => {
+    // Recalculer quand le prix ou la marge change
+    if (equipment.purchasePrice !== lastEquipmentPriceRef.current || 
+        equipment.margin !== lastEquipmentMarginRef.current) {
+      calculateMonthlyPayment();
+    }
+  }, [equipment.purchasePrice, equipment.margin]);
 
   const toggleAdaptMonthlyPayment = () => {
     setGlobalMarginAdjustment(prev => ({
@@ -63,12 +73,14 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
 
   const calculateMonthlyPayment = () => {
     if (equipment.purchasePrice === lastEquipmentPriceRef.current && 
-        leaser?.id === lastLeaserIdRef.current) {
+        leaser?.id === lastLeaserIdRef.current &&
+        equipment.margin === lastEquipmentMarginRef.current) {
       return;
     }
     
     lastEquipmentPriceRef.current = equipment.purchasePrice;
     lastLeaserIdRef.current = leaser?.id || "";
+    lastEquipmentMarginRef.current = equipment.margin;
     
     const financedAmount = calculateFinancedAmount(equipment);
     const coef = findCoefficient(financedAmount);

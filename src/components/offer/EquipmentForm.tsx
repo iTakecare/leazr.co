@@ -55,6 +55,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const marginAmount = calculatedMargin.percentage > 0 
     ? calculatedMargin.amount 
     : equipment.purchasePrice * (equipment.margin / 100);
+  
+  // Calcul correct du prix avec marge
   const priceWithMargin = equipment.purchasePrice + marginAmount;
 
   useEffect(() => {
