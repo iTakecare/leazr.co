@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -116,7 +117,7 @@ const CollapsibleProductList = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-normal text-sm">{product.name}</h3>
+                    <h3 className="text-xs font-medium">{product.name}</h3>
                     {product.admin_only && (
                       <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">
                         Admin uniquement
