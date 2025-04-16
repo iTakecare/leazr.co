@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -107,7 +108,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     
     const marginAmount = requiredTotal - equipment.purchasePrice;
     
-    const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
+    // Correction: calculer le pourcentage en divisant par le montant financé (requiredTotal)
+    // plutôt que par le prix d'achat
+    const marginPercentage = (marginAmount / requiredTotal) * 100;
     
     setCalculatedMargin({
       percentage: Number(marginPercentage.toFixed(2)),
@@ -292,7 +295,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
-    const marginPercentage = (marginAmount / totalBaseAmount) * 100;
+    
+    // Correction: calculer le pourcentage en divisant la marge par le montant financé
+    const marginPercentage = (marginAmount / totalFinancedAmount) * 100;
 
     setGlobalMarginAdjustment({
       percentage: Number(marginPercentage.toFixed(2)),

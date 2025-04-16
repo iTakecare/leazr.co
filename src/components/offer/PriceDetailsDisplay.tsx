@@ -1,6 +1,6 @@
 
 import React from "react";
-import { formatCurrency, formatPercentageWithComma } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 
 interface PriceDetailsDisplayProps {
   marginAmount: number;
@@ -19,69 +19,46 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   hideFinancialDetails = false,
   calculatedMargin
 }) => {
-  // Vérification et calculs sécurisés
-  const safeMarginAmount = !isNaN(marginAmount) && isFinite(marginAmount) ? marginAmount : 0;
-  const safePriceWithMargin = !isNaN(priceWithMargin) && isFinite(priceWithMargin) ? priceWithMargin : 0;
+  if (hideFinancialDetails) {
+    return (
+      <div className="p-4 border rounded-lg bg-gray-50">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-700 font-medium">Mensualité:</span>
+          <span className="text-gray-900 font-bold">
+            {formatCurrency(displayMonthlyPayment)}
+          </span>
+        </div>
+      </div>
+    );
+  }
   
-  // Calcul sécurisé du prix sans marge
-  const priceWithoutMargin = Math.max(0, safePriceWithMargin - safeMarginAmount);
-  
-  // Utiliser la marge calculée si disponible, sinon calculer
-  const marginPercentage = calculatedMargin?.percentage || (priceWithoutMargin > 0 
-    ? (safeMarginAmount / priceWithoutMargin) * 100 
-    : 0);
-  
-  // Utiliser le montant de marge calculé si disponible
-  const displayMarginAmount = calculatedMargin?.amount || safeMarginAmount;
-  
-  // Prix avec marge basé sur le montant calculé
-  const displayPriceWithMargin = priceWithoutMargin + displayMarginAmount;
-
-  // Formater uniquement quand nécessaire pour le rendu
-  const safeMonthlyPayment = !isNaN(displayMonthlyPayment) && isFinite(displayMonthlyPayment) 
-    ? displayMonthlyPayment 
-    : 0;
-
-  // Calcul du montant financé à partir de la mensualité et du coefficient
-  // Application stricte de la formule: montant financé = (mensualité × 100) ÷ coefficient
-  const financedAmount = coefficient > 0 ? (safeMonthlyPayment * 100) / coefficient : 0;
-
-  // Éviter les recalculs inutiles de formatage en les mémorisant
-  const formattedMarginAmount = formatCurrency(displayMarginAmount);
-  const formattedMarginPercentage = formatPercentageWithComma(marginPercentage);
-  const formattedPriceWithMargin = formatCurrency(displayPriceWithMargin);
-  const formattedMonthlyPayment = formatCurrency(safeMonthlyPayment);
-  const formattedFinancedAmount = formatCurrency(financedAmount);
+  // Utilisez la marge calculée si disponible, sinon utilisez la marge fournie
+  const displayMarginAmount = calculatedMargin ? calculatedMargin.amount : marginAmount;
+  const displayPercentage = calculatedMargin ? calculatedMargin.percentage : (marginAmount / priceWithMargin) * 100;
 
   return (
-    <div className="space-y-2 border-t pt-4 mt-4">
-      {!hideFinancialDetails && (
-        <>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Marge :</span>
-            <span className="font-medium">
-              {formattedMarginAmount} ({formattedMarginPercentage})
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Prix avec marge :</span>
-            <span className="font-medium">{formattedPriceWithMargin}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Coefficient appliqué :</span>
-            <span className="font-medium">{coefficient.toFixed(3)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Montant financé :</span>
-            <span className="font-medium">{formattedFinancedAmount}</span>
-          </div>
-        </>
-      )}
-      <div className="flex justify-between items-center border-t pt-2 mt-2">
-        <span className="text-blue-600 font-medium">Mensualité unitaire :</span>
-        <span className="text-blue-600 font-medium text-lg">
-          {formattedMonthlyPayment}
-        </span>
+    <div className="p-4 border rounded-lg bg-gray-50">
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-700">Marge:</span>
+          <span className="text-gray-900">
+            {formatCurrency(displayMarginAmount)} ({displayPercentage.toFixed(2)}%)
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-700">Montant financé:</span>
+          <span className="text-gray-900">{formatCurrency(priceWithMargin)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-700">Coefficient:</span>
+          <span className="text-gray-900">{coefficient.toFixed(3)}</span>
+        </div>
+        <div className="flex justify-between items-center border-t pt-2 mt-2">
+          <span className="text-gray-700 font-medium">Mensualité:</span>
+          <span className="text-gray-900 font-bold">
+            {formatCurrency(displayMonthlyPayment)}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -1,21 +1,18 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, Package, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Equipment } from "@/types/equipment";
-import { formatPercentageWithComma } from "@/utils/formatters";
-import { useAuth } from "@/context/AuthContext";
+import { Search } from "lucide-react";
 
 interface EquipmentFormFieldsProps {
   equipment: Equipment;
   handleChange: (field: keyof Equipment, value: string | number) => void;
   errors: Record<string, boolean>;
   onOpenCatalog: () => void;
-  calculatedMargin: { percentage: number; amount: number };
+  calculatedMargin?: { percentage: number; amount: number };
   hideFinancialDetails?: boolean;
-  onRemove?: () => void;
 }
 
 const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
@@ -24,121 +21,104 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   errors,
   onOpenCatalog,
   calculatedMargin,
-  hideFinancialDetails = false,
-  onRemove
+  hideFinancialDetails = false
 }) => {
-  const { isAdmin } = useAuth();
-  
-  // Only show financial details to admins
-  const shouldDisplayFinancialDetails = isAdmin() && !hideFinancialDetails;
+  const marginToDisplay = calculatedMargin && calculatedMargin.percentage > 0 
+    ? calculatedMargin.percentage 
+    : equipment.margin;
 
   return (
-    <div className="space-y-3 relative">
-      {/* Bouton pour supprimer l'équipement si onRemove est fourni */}
-      {onRemove && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onRemove}
-          className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-50 border border-red-200 hover:bg-red-100"
-          title="Supprimer cet équipement"
-        >
-          <X className="h-3.5 w-3.5 text-red-500" />
-        </Button>
-      )}
-      
+    <div className="space-y-4">
       <div>
-        <Label htmlFor="title" className="text-xs font-medium text-gray-600">Intitulé du matériel</Label>
+        <Label htmlFor="title" className={`block font-medium ${errors.title ? 'text-red-500' : 'text-gray-700'}`}>
+          Désignation du produit *
+        </Label>
         <div className="mt-1 flex gap-2">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Package className="h-4 w-4 text-gray-400" />
-            </div>
-            <Input
-              id="title"
-              value={equipment.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              className={`pl-10 text-sm py-1 h-9 ${errors.title ? "border-red-500" : "border-gray-200"}`}
-              placeholder="Nom du matériel"
-            />
-          </div>
+          <Input
+            id="title"
+            type="text"
+            value={equipment.title}
+            onChange={(e) => handleChange('title', e.target.value)}
+            className={`${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+            placeholder="Nom du produit"
+          />
           <Button
             type="button"
-            variant="outline"
             onClick={onOpenCatalog}
-            className="flex items-center h-9 px-2"
-            size="sm"
+            className="min-w-[44px] p-2 bg-gray-100 hover:bg-gray-200 text-gray-700"
           >
-            <Search className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Catalogue</span>
+            <Search className="h-5 w-5" />
           </Button>
         </div>
-        {errors.title && <p className="text-xs text-red-500 mt-0.5">Ce champ est requis</p>}
+        {errors.title && (
+          <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
+        )}
       </div>
-
-      {shouldDisplayFinancialDetails && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 bg-gray-50 p-2 rounded-md border border-gray-100">
-          <div>
-            <Label htmlFor="price" className="text-xs font-medium text-gray-600">Prix d'achat (€)</Label>
-            <div className="mt-0.5 relative">
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={equipment.purchasePrice || ""}
-                onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                className={`pl-7 text-sm py-1 h-8 ${errors.purchasePrice ? "border-red-500" : "border-gray-200"}`}
-                placeholder="0.00"
-              />
-              <span className="absolute left-2.5 top-2 text-gray-500 pointer-events-none text-xs">€</span>
-            </div>
-            {errors.purchasePrice && <p className="text-xs text-red-500 mt-0.5">Entrez un prix valide</p>}
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="purchasePrice" className={`block font-medium ${errors.purchasePrice ? 'text-red-500' : 'text-gray-700'}`}>
+            Prix d'achat (€) *
+          </Label>
+          <div className="mt-1 relative">
+            <Input
+              id="purchasePrice"
+              type="number"
+              min="0"
+              step="0.01"
+              value={equipment.purchasePrice === 0 ? '' : equipment.purchasePrice}
+              onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
+              className={`pl-8 ${errors.purchasePrice ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="0.00"
+            />
+            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
           </div>
-
+          {errors.purchasePrice && (
+            <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
+          )}
+        </div>
+        
+        <div>
+          <Label htmlFor="quantity" className="block font-medium text-gray-700">
+            Quantité
+          </Label>
+          <div className="mt-1">
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              step="1"
+              value={equipment.quantity}
+              onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 1)}
+              className="border-gray-300"
+            />
+          </div>
+        </div>
+        
+        {!hideFinancialDetails && (
           <div>
-            <Label htmlFor="margin" className="text-xs font-medium text-gray-600">Marge (%)</Label>
-            <div className="mt-0.5 relative">
+            <Label htmlFor="margin" className={`block font-medium ${errors.margin ? 'text-red-500' : 'text-gray-700'}`}>
+              Marge (%)
+            </Label>
+            <div className="mt-1 relative">
               <Input
                 id="margin"
                 type="number"
                 min="0"
                 step="0.01"
-                value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
-                onChange={(e) => handleChange("margin", e.target.value)}
-                className={`pl-7 text-sm py-1 h-8 ${errors.margin ? "border-red-500" : ""} ${calculatedMargin.percentage > 0 ? "bg-green-50 border-green-300" : "border-gray-200"}`}
+                value={marginToDisplay === 0 ? '' : marginToDisplay}
+                onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
+                className={`pl-8 ${errors.margin ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="0.00"
               />
-              <span className="absolute left-2.5 top-2 text-gray-500 pointer-events-none text-xs">%</span>
+              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">%</span>
             </div>
-            {calculatedMargin.percentage > 0 && (
-              <p className="text-xs text-green-600 mt-0.5">
-                Marge calculée: {formatPercentageWithComma(calculatedMargin.percentage)}
-              </p>
+            {errors.margin && (
+              <p className="mt-1 text-sm text-red-500">Ce champ doit être supérieur ou égal à 0</p>
             )}
-            {errors.margin && <p className="text-xs text-red-500 mt-0.5">Entrez une marge valide</p>}
           </div>
-        </div>
-      )}
-
-      {/* Champs cachés pour préserver les valeurs quand les champs sont masqués */}
-      {!shouldDisplayFinancialDetails && (
-        <>
-          <input
-            type="hidden"
-            name="purchasePrice"
-            value={equipment.purchasePrice || ""}
-            onChange={(e) => handleChange("purchasePrice", e.target.value)}
-          />
-          <input
-            type="hidden"
-            name="margin"
-            value={calculatedMargin.percentage > 0 ? calculatedMargin.percentage : (equipment.margin || "")}
-            onChange={(e) => handleChange("margin", e.target.value)}
-          />
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
