@@ -131,7 +131,7 @@ const AboutPage = () => {
               <img 
                 src="/lovable-uploads/cdbb563f-cccb-4d4a-b040-245c565379e1.png" 
                 alt="Gianni, fondateur d'iTakecare" 
-                className="rounded-full shadow-xl w-64 h-64 object-cover mx-auto"
+                className="rounded-full shadow-xl w-80 h-80 object-cover mx-auto"
               />
               <div className="text-center mt-4">
                 <h3 className="font-bold text-[#222222] text-xl">Gianni Sergi</h3>
