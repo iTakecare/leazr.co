@@ -45,7 +45,7 @@ const AboutPage = () => {
         </div>
       </div>
 
-      {/* Mission Section - MOVED UP DIRECTLY AFTER HERO SECTION */}
+      {/* Mission Section - MOVED IMMEDIATELY AFTER HERO SECTION */}
       <section className="py-16 bg-white">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-12">
