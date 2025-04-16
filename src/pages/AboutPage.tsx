@@ -80,8 +80,9 @@ const AboutPage = () => {
               iTakecare - L'IT réinventé
             </h1>
             <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
-              backgroundColor: 'rgba(29, 174, 219, 0.35)', // Bright Blue from palette: #1EAEDB
-              color: '#48b5c3'
+              backgroundColor: 'rgba(29, 174, 219, 0.35)', 
+              color: '#48b5c3',
+              fontWeight: 900
             }}>
               pour les entreprises
             </div>
