@@ -1,10 +1,10 @@
-
 import React from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
 import HomeFooter from '@/components/home/HomeFooter';
 import { Check, PlayCircle } from 'lucide-react';
 import Container from '@/components/layout/Container';
+import CtaSection from '@/components/home/CtaSection';
 
 const AboutPage = () => {
   const mediaLogos = [
@@ -279,23 +279,8 @@ const AboutPage = () => {
         </Container>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-[#33638E] text-white">
-        <div className="w-full max-w-[1320px] mx-auto px-4 text-center">
-          <h2 className="font-bold text-3xl mb-6">Rejoignez la révolution IT</h2>
-          <p className="text-lg mb-8 max-w-2xl mx-auto">
-            Découvrez comment iTakecare peut transformer votre approche de l'équipement informatique.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-white text-[#33638E] hover:bg-gray-100 rounded-[50px] font-bold">
-              Découvrir nos offres
-            </Button>
-            <Button variant="outline" className="text-white border-white hover:bg-white/10 rounded-[50px] font-bold">
-              Nous contacter
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Replacing the CTA Section with the one from home page */}
+      <CtaSection />
 
       <HomeFooter />
     </div>
