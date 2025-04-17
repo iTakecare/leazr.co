@@ -17,7 +17,7 @@ const FeaturedArticle = ({ title, image, excerpt, slug }: FeaturedArticleProps) 
         <div className="flex flex-col md:flex-row items-center gap-8 lg:gap-16">
           <div className="w-full md:w-1/2">
             <img 
-              src={image}
+              src="/lovable-uploads/bd59707a-2419-4827-b053-ae8e517c967b.png"
               alt={title}
               className="w-full h-auto rounded-lg shadow-md"
             />
