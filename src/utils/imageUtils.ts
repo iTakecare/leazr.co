@@ -28,7 +28,7 @@ export async function uploadImage(
     console.log(`Tentative d'upload du fichier...`);
     
     const { data, error } = await supabase.storage
-      .from("blog-images")
+      .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true
@@ -42,7 +42,7 @@ export async function uploadImage(
     
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from("blog-images")
+      .from(bucketName)
       .getPublicUrl(filePath);
     
     if (!urlData?.publicUrl) {
@@ -60,7 +60,7 @@ export async function uploadImage(
     toast.error("Erreur lors du téléchargement de l'image");
     throw error;
   }
-}
+};
 
 // Simplified function for basic URL manipulation - no JSON parsing needed
 export function getCacheBustedUrl(url: string | null | undefined): string {
