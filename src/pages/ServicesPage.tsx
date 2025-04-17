@@ -235,10 +235,10 @@ const ServicesPage = () => {
               <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
                 Des services informatiques
                 <br />
-                adaptés à tous vos besoins
+                <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">adaptés</span> à tous vos besoins
               </h2>
               <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Découvrez comment notre expertise peut transformer votre environnement de travail et <span className="bg-[#33949F]/40 px-2 py-1 rounded-lg">Booster</span> votre productivité.
+                Découvrez comment notre expertise peut transformer votre environnement de travail et booster votre productivité.
               </p>
               <div className="flex flex-wrap justify-center gap-4 mt-8">
                 <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto">
