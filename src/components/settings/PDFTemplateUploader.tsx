@@ -64,11 +64,11 @@ const PDFTemplateUploader: React.FC<PDFTemplateUploaderProps> = ({
     setUploadError(null);
 
     try {
-      const result = await uploadImage(fileSelected, bucketName, folderPath);
+      const uploadUrl = await uploadImage(fileSelected, bucketName, folderPath);
       
-      if (result && result.url) {
+      if (uploadUrl) {
         if (onFileUploaded) {
-          onFileUploaded(result.url, fileSelected.name);
+          onFileUploaded(uploadUrl, fileSelected.name);
         }
         setUploadSuccess(true);
         toast.success("Fichier téléchargé avec succès");

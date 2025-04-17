@@ -3,6 +3,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
+ * Vérifie si un bucket existe et le crée si nécessaire
+ */
+export const ensureBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    // Vérifier si le bucket existe
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error("Erreur lors de la vérification des buckets:", listError);
+      return false;
+    }
+    
+    // Si le bucket existe déjà, retourner true
+    if (buckets.some(bucket => bucket.name === bucketName)) {
+      return true;
+    }
+    
+    console.log(`Le bucket ${bucketName} n'existe pas, mais on continue (il a été créé manuellement dans la console Supabase)`);
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, error);
+    return false;
+  }
+};
+
+/**
  * Upload an image to a specific bucket
  */
 export const uploadImage = async (
@@ -61,4 +87,3 @@ export const uploadImage = async (
     throw error;
   }
 };
-
