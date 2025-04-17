@@ -5,7 +5,6 @@ import { Separator } from '@/components/ui/separator';
 import { Share2, Recycle, Globe } from 'lucide-react';
 import HomeFooter from '@/components/home/HomeFooter';
 import Container from '@/components/layout/Container';
-import PageContentDisplay from '@/components/website/PageContentDisplay';
 
 const DurabilityPage = () => {
   useEffect(() => {
@@ -55,13 +54,6 @@ const DurabilityPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Section de contenu dynamique depuis la base de données */}
-      <section className="py-8">
-        <Container>
-          <PageContentDisplay slug="durability" />
-        </Container>
-      </section>
 
       {/* Notre engagement Section - with blur effect */}
       <section id="engagement" className="py-16 relative">
