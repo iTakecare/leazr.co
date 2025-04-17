@@ -64,7 +64,7 @@ const BlogPostPage = () => {
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
       <UnifiedNavigation />
       
-      <div className="pt-16 pb-12">
+      <div className="pt-24 pb-12">  {/* Increased top padding from pt-16 to pt-24 */}
         {loading ? (
           <div className="container mx-auto px-4 py-12 text-center">
             <p className="text-xl">Chargement de l'article...</p>
@@ -121,3 +121,4 @@ const BlogPostPage = () => {
 };
 
 export default BlogPostPage;
+
