@@ -66,7 +66,7 @@ export const updatePage = async (page: Partial<PageContent> & { slug: string }):
         content: page.content,
         meta_title: page.meta_title,
         meta_description: page.meta_description,
-        updated_at: new Date()
+        updated_at: new Date().toISOString()
       })
       .eq('slug', page.slug);
     
