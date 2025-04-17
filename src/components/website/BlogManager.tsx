@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ import {
   createBlogPost, 
   updateBlogPost, 
   deleteBlogPost,
+  addDemoBlogPost,
   BlogPost
 } from "@/services/blogService";
 import { uploadImage } from "@/utils/imageUtils";
