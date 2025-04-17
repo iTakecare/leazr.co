@@ -49,9 +49,9 @@ const BlogHero = ({
           <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
             Le pouvoir du leasing pour la
           </h1>
-          <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
-            backgroundColor: 'rgba(72, 181, 195, 0.2)', 
-            color: '#33638E',
+          <div className="inline-block text-[#0EA5E9] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
+            backgroundColor: 'rgba(14, 165, 233, 0.2)', 
+            color: '#0EA5E9',
             fontWeight: 900
           }}>
             réussite des entreprises
@@ -84,3 +84,4 @@ const BlogHero = ({
 };
 
 export default BlogHero;
+
