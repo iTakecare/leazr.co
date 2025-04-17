@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +16,7 @@ import {
   DialogDescription, 
   DialogFooter, 
   DialogHeader, 
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from "@/components/ui/dialog";
 import { 
   Tabs, 
@@ -67,9 +65,20 @@ const BlogManager = () => {
 
   const loadBlogPosts = async () => {
     setIsLoading(true);
-    const data = await getAllBlogPostsForAdmin();
-    setPosts(data);
-    setIsLoading(false);
+    try {
+      const data = await getAllBlogPostsForAdmin();
+      console.log("Blog posts loaded:", data);
+      setPosts(data);
+    } catch (error) {
+      console.error("Error loading blog posts:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les articles du blog",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -110,7 +119,15 @@ const BlogManager = () => {
       return;
     }
 
+    if (!currentPost.slug) {
+      setCurrentPost({
+        ...currentPost,
+        slug: handleSlugify(currentPost.title)
+      });
+    }
+
     try {
+      setIsUploading(true);
       if (currentPost.id) {
         await updateBlogPost(currentPost.id, currentPost);
         toast({
@@ -134,6 +151,8 @@ const BlogManager = () => {
         description: "Une erreur est survenue lors de l'enregistrement de l'article",
         variant: "destructive"
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -265,13 +284,54 @@ const BlogManager = () => {
     }
   };
 
+  const addDemoBlogPost = async () => {
+    const demoPost = {
+      title: "Réussites, défis et conseils d'entrepreneurs",
+      slug: "reussites-defis-et-conseils-entrepreneurs",
+      content: "<p>Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.</p><h2>Les clés du succès entrepreneurial</h2><p>L'entrepreneuriat est un parcours rempli de défis et d'opportunités. Les entrepreneurs qui réussissent partagent souvent certaines qualités comme la persévérance, l'adaptabilité et une vision claire.</p><h3>Stratégies financières pour la croissance</h3><p>Une gestion financière saine est essentielle à la croissance de toute entreprise. Cela inclut la planification budgétaire, l'optimisation fiscale et l'accès aux bons outils de financement.</p>",
+      excerpt: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis.",
+      category: "Témoignages",
+      is_published: true,
+      is_featured: true,
+      author_name: "Équipe iTakecare",
+      author_role: "Experts en leasing informatique",
+      read_time: "9 minutes de lecture",
+      meta_title: "Réussites, défis et conseils d'entrepreneurs | iTakecare",
+      meta_description: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.",
+      image_url: "/lovable-uploads/e054083d-ed0f-49f5-ba69-fb357e8af592.png"
+    };
+
+    try {
+      await createBlogPost(demoPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
+      toast({
+        title: "Succès",
+        description: "L'article de démonstration a été créé avec succès",
+      });
+      loadBlogPosts();
+    } catch (error) {
+      console.error("Erreur lors de la création de l'article de démonstration:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la création de l'article de démonstration",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Articles du blog</h2>
-        <Button onClick={handleNewPost}>
-          <Plus className="mr-2 h-4 w-4" /> Nouvel article
-        </Button>
+        <div className="flex gap-2">
+          {posts.length === 0 && (
+            <Button variant="outline" onClick={addDemoBlogPost}>
+              <Plus className="mr-2 h-4 w-4" /> Ajouter un article démo
+            </Button>
+          )}
+          <Button onClick={handleNewPost}>
+            <Plus className="mr-2 h-4 w-4" /> Nouvel article
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -292,7 +352,7 @@ const BlogManager = () => {
             {posts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  Aucun article trouvé. Créez votre premier article !
+                  Aucun article trouvé. Créez votre premier article ou ajoutez un article de démonstration !
                 </TableCell>
               </TableRow>
             ) : (

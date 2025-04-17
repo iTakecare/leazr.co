@@ -131,6 +131,7 @@ export const getBlogCategories = async (): Promise<{category: string, count: num
 // Récupérer tous les articles (y compris les brouillons) pour le back-office
 export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
+    console.log("Fetching blog posts for admin...");
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
@@ -141,6 +142,7 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
       return [];
     }
     
+    console.log("Blog posts data:", data);
     return data || [];
   } catch (error) {
     console.error('Exception lors de la récupération des articles pour l\'admin:', error);
