@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +44,7 @@ import {
   BlogPost
 } from "@/services/blogService";
 import { uploadImage } from "@/utils/imageUtils";
+import { uploadImage as uploadImageAdvanced } from "@/services/fileUploadService";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -246,20 +246,30 @@ const BlogManager = () => {
       setIsUploading(true);
       const file = files[0];
       
-      console.log("Uploading image file:", file.name, "size:", file.size);
+      console.log("Téléchargement du fichier image:", file.name, "taille:", file.size);
       toast({
         title: "Information",
         description: "Téléchargement de l'image en cours...",
       });
       
-      const imageUrl = await uploadImage(file, 'blog-images');
+      let imageUrl = null;
+      
+      try {
+        console.log("Tentative d'utilisation du service fileUploadService...");
+        const result = await uploadImageAdvanced(file, 'blog-images');
+        imageUrl = result?.url || null;
+        console.log("Résultat du service avancé:", result);
+      } catch (advancedError) {
+        console.warn("Erreur avec le service avancé, passage au service basique:", advancedError);
+        imageUrl = await uploadImage(file, 'blog-images');
+      }
       
       if (imageUrl) {
-        console.log("Image uploaded successfully:", imageUrl);
+        console.log("Image téléchargée avec succès, URL:", imageUrl);
         
-        setCurrentPost({
-          ...currentPost,
-          image_url: imageUrl
+        setCurrentPost(prevState => {
+          if (!prevState) return null;
+          return { ...prevState, image_url: imageUrl };
         });
         
         toast({
@@ -267,13 +277,13 @@ const BlogManager = () => {
           description: "L'image a été téléchargée avec succès",
         });
       } else {
-        throw new Error("Échec de l'upload");
+        throw new Error("Échec du téléchargement de l'image");
       }
     } catch (error: any) {
-      console.error("Erreur lors de l'upload de l'image:", error);
+      console.error("Erreur lors du téléchargement de l'image:", error);
       toast({
         title: "Erreur",
-        description: `Une erreur est survenue lors de l'upload de l'image: ${error.message}`,
+        description: `Une erreur est survenue lors du téléchargement de l'image: ${error.message}`,
         variant: "destructive"
       });
     } finally {

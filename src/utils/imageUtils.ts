@@ -11,31 +11,54 @@ export async function uploadImage(
   folderPath: string = ""
 ): Promise<string | null> {
   try {
-    console.log(`Starting image upload for file: ${file.name} to bucket: ${bucketName}, size: ${file.size} bytes`);
+    console.log(`Début du téléchargement de l'image: ${file.name} vers le bucket: ${bucketName}, taille: ${file.size} octets`);
     
     // Validate file size
     if (file.size > 5 * 1024 * 1024) {
+      console.error("Image trop volumineuse (max 5MB)");
       toast.error("L'image est trop volumineuse (max 5MB)");
       return null;
     }
     
     // Check if bucket exists and create it if needed
     try {
-      const { data: buckets } = await supabase.storage.listBuckets();
+      console.log("Vérification de l'existence du bucket...");
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
+      
+      if (bucketListError) {
+        console.error("Erreur lors de la récupération des buckets:", bucketListError);
+      }
+      
       const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
       
       if (!bucketExists) {
-        console.log(`Bucket ${bucketName} does not exist, attempting to create it`);
+        console.log(`Bucket ${bucketName} n'existe pas, tentative de création...`);
         const { error: createError } = await supabase.storage.createBucket(bucketName, { public: true });
         if (createError) {
-          console.error('Error creating bucket:', createError);
+          console.error('Erreur lors de la création du bucket:', createError);
           toast.error(`Erreur lors de la création du bucket: ${createError.message}`);
           return null;
         }
-        console.log(`Bucket ${bucketName} created successfully`);
+        console.log(`Bucket ${bucketName} créé avec succès`);
+        
+        // Définir les politiques d'accès public
+        try {
+          console.log("Configuration des politiques d'accès...");
+          // Cette requête peut échouer mais ce n'est pas bloquant
+          await supabase.rpc('create_storage_policy', {
+            bucket_name: bucketName,
+            policy_name: `${bucketName}_public_select`,
+            definition: 'TRUE',
+            policy_type: 'SELECT'
+          });
+        } catch (policyError) {
+          console.warn("Erreur non bloquante lors de la création des politiques:", policyError);
+        }
+      } else {
+        console.log(`Bucket ${bucketName} existe déjà`);
       }
     } catch (bucketError) {
-      console.error('Error checking buckets:', bucketError);
+      console.error('Erreur lors de la vérification des buckets:', bucketError);
     }
     
     // Generate a unique filename to prevent conflicts
@@ -52,9 +75,10 @@ export async function uploadImage(
     else if (extension === 'webp') contentType = 'image/webp';
     else if (extension === 'gif') contentType = 'image/gif';
     
-    console.log(`Using content type: ${contentType} for file ${fileName}`);
+    console.log(`Utilisation du type MIME: ${contentType} pour le fichier ${fileName}`);
     
     // Upload the file with explicit content type
+    console.log(`Tentative d'upload du fichier...`);
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
@@ -64,12 +88,12 @@ export async function uploadImage(
       });
     
     if (error) {
-      console.error('Upload error:', error.message);
+      console.error('Erreur d\'upload:', error.message);
       toast.error(`Erreur d'upload: ${error.message}`);
       return null;
     }
     
-    console.log("Upload successful:", data?.path);
+    console.log("Upload réussi:", data?.path);
     
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -77,14 +101,15 @@ export async function uploadImage(
       .getPublicUrl(filePath);
     
     if (!urlData?.publicUrl) {
+      console.error("Impossible d'obtenir l'URL publique");
       toast.error("Impossible d'obtenir l'URL publique");
       return null;
     }
     
-    console.log(`Image uploaded successfully: ${urlData.publicUrl}`);
+    console.log(`Image téléchargée avec succès: ${urlData.publicUrl}`);
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Image upload error:', error);
+    console.error('Erreur générale d\'upload d\'image:', error);
     toast.error("Erreur lors du téléchargement de l'image");
     return null;
   }
