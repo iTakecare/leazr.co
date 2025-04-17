@@ -1,74 +1,7 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-/**
- * Vérifie si un bucket existe et le crée s'il n'existe pas
- */
-export const ensureBucket = async (bucketName: string): Promise<boolean> => {
-  try {
-    // Handle special case for blog images - use standardized name
-    const normalizedBucketName = bucketName === "Blog Images" ? "blog-images" : bucketName;
-    
-    // Vérifier si le bucket existe
-    const { data: buckets, error } = await supabase.storage.listBuckets();
-    if (error) {
-      console.error('Erreur lors de la vérification des buckets:', error);
-      return false;
-    }
-
-    // Si le bucket existe, retourner true
-    if (buckets.some(bucket => bucket.name === normalizedBucketName)) {
-      return true;
-    }
-
-    // Si le bucket n'existe pas, essayer de le créer avec la fonction Edge
-    try {
-      const response = await fetch('/api/create-storage-bucket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ bucketName: normalizedBucketName }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          console.log(`Bucket ${normalizedBucketName} créé avec succès via Edge Function`);
-          return true;
-        }
-      }
-      
-      console.error(`Échec de la création du bucket ${normalizedBucketName} via Edge Function`);
-    } catch (edgeFnError) {
-      console.error(`Erreur lors de l'appel Edge Function:`, edgeFnError);
-    }
-
-    // Essayer de créer le bucket directement (fallback)
-    try {
-      const { error: createError } = await supabase.storage.createBucket(normalizedBucketName, {
-        public: true
-      });
-
-      if (createError) {
-        if (createError.message.includes('already exists')) {
-          return true;
-        }
-        console.error(`Erreur lors de la création du bucket ${normalizedBucketName}:`, createError);
-        return false;
-      }
-
-      return true;
-    } catch (createError) {
-      console.error(`Erreur lors de la création du bucket ${normalizedBucketName}:`, createError);
-      return false;
-    }
-  } catch (error) {
-    console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
-    return false;
-  }
-};
 
 /**
  * Détecte l'extension de fichier à partir du nom du fichier
@@ -133,8 +66,7 @@ export const enforceCorrectMimeType = (file: File): File => {
 };
 
 /**
- * Upload une image dans un bucket en utilisant une requête fetch directe pour s'assurer
- * que le type MIME est correctement défini
+ * Upload une image dans un bucket
  */
 export const uploadImage = async (
   file: File,
@@ -170,7 +102,7 @@ export const uploadImage = async (
     
     console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes, to bucket: ${normalizedBucketName}`);
 
-    // Tenter d'uploader directement
+    // Upload directement dans le bucket
     const { data, error } = await supabase.storage
       .from(normalizedBucketName)
       .upload(filePath, fileWithCorrectMime, {
@@ -181,9 +113,7 @@ export const uploadImage = async (
     if (error) {
       console.error(`Erreur lors de l'upload: ${error.message}`);
       toast.error(`Erreur lors de l'upload: ${error.message}`);
-      
-      // Fallback - retourner une URL locale
-      return { url: `/lovable-uploads/${fileName}` };
+      throw error;
     }
 
     // Récupérer l'URL publique
@@ -191,15 +121,16 @@ export const uploadImage = async (
       .from(normalizedBucketName)
       .getPublicUrl(filePath);
 
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      throw new Error("Impossible d'obtenir l'URL publique");
+    }
+
     console.log(`Image téléchargée avec succès: ${publicUrlData.publicUrl}`);
     return { url: publicUrlData.publicUrl };
   } catch (error) {
     console.error('Erreur lors de l\'upload:', error);
     toast.error("Erreur lors de l'upload du fichier");
-    
-    // Fallback - retourner une URL locale
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-    return { url: `/lovable-uploads/${fileName}` };
+    throw error;
   }
 };
 
@@ -214,9 +145,13 @@ export const uploadFiles = async (
   const urls: string[] = [];
 
   for (const file of files) {
-    const result = await uploadImage(file, bucketName, folderPath);
-    if (result) {
-      urls.push(result.url);
+    try {
+      const result = await uploadImage(file, bucketName, folderPath);
+      if (result) {
+        urls.push(result.url);
+      }
+    } catch (error) {
+      console.error(`Erreur lors de l'upload du fichier ${file.name}:`, error);
     }
   }
 
@@ -269,4 +204,13 @@ export const listFiles = async (
     console.error('Erreur lors de la récupération des fichiers:', error);
     return [];
   }
+};
+
+/**
+ * Pour la rétrocompatibilité - juste un alias pour les anciennes références
+ */
+export const ensureBucket = (bucketName: string): Promise<boolean> => {
+  // Ne fait plus rien - le bucket est supposé exister
+  console.log(`Bucket ${bucketName} supposé exister, pas de création nécessaire`);
+  return Promise.resolve(true);
 };

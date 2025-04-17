@@ -1,9 +1,10 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Vérifie si un bucket existe et le crée s'il n'existe pas
+ * Vérification simplifiée de l'existence d'un bucket
  */
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
@@ -18,62 +19,11 @@ export const ensureBucketExists = async (bucketName: string): Promise<boolean> =
     if (buckets.some(bucket => bucket.name === bucketName)) {
       return true;
     }
-
-    // Si le bucket n'existe pas, essayer de le créer avec la fonction Edge
-    try {
-      const response = await fetch('/api/create-storage-bucket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ bucketName }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          console.log(`Bucket ${bucketName} créé avec succès via Edge Function`);
-          return true;
-        }
-      }
-      
-      console.error(`Échec de la création du bucket ${bucketName} via Edge Function`);
-    } catch (edgeFnError) {
-      console.error(`Erreur lors de l'appel Edge Function:`, edgeFnError);
-    }
-
-    // Essayer la fonction RPC
-    try {
-      const { data, error } = await supabase.rpc('create_storage_bucket', { bucket_name: bucketName });
-      if (!error) {
-        console.log(`Bucket ${bucketName} créé via RPC`);
-        return true;
-      }
-    } catch (rpcError) {
-      console.error(`Erreur RPC:`, rpcError);
-    }
-
-    // Essayer de créer le bucket directement (fallback)
-    try {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true
-      });
-
-      if (createError) {
-        if (createError.message.includes('already exists')) {
-          return true;
-        }
-        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-        return false;
-      }
-
-      return true;
-    } catch (createError) {
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-      return false;
-    }
+    
+    console.log(`Le bucket ${bucketName} n'existe pas. Il faut le créer via la console Supabase.`);
+    return false;
   } catch (error) {
-    console.error(`Erreur lors de la vérification/création du bucket ${bucketName}:`, error);
+    console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, error);
     return false;
   }
 };
@@ -132,7 +82,7 @@ export const getCacheBustedUrl = (url: string | null | undefined): string => {
 };
 
 /**
- * Upload un fichier dans Supabase Storage avec une méthode hybride (fetch API + fallback SDK)
+ * Upload un fichier dans Supabase Storage
  */
 export const uploadFileDirectly = async (
   file: File,
@@ -146,6 +96,13 @@ export const uploadFileDirectly = async (
       return null;
     }
     
+    // Vérifier si le bucket existe
+    const bucketExists = await ensureBucketExists(bucketName);
+    if (!bucketExists) {
+      toast.error(`Le bucket ${bucketName} n'existe pas.`);
+      throw new Error(`Le bucket ${bucketName} n'existe pas.`);
+    }
+    
     // Générer un nom de fichier unique
     const timestamp = Date.now();
     const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-');
@@ -157,43 +114,18 @@ export const uploadFileDirectly = async (
     
     console.log(`Uploading file ${uniqueFileName} with content type ${contentType}`);
     
-    // Méthode 1: Utiliser fetch directement 
-    try {
-      const formData = new FormData();
-      const blob = new Blob([await file.arrayBuffer()], { type: contentType });
-      formData.append('file', blob, uniqueFileName);
-      
-      const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${fullPath}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
-          'x-upsert': 'true'
-        },
-        body: formData
+    // Upload via l'API Supabase
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fullPath, file, {
+        contentType,
+        upsert: true,
+        cacheControl: "3600"
       });
-      
-      if (!response.ok) {
-        console.log("Fetch upload failed, trying SDK fallback method");
-        throw new Error("Fetch upload failed");
-      }
-    } catch (fetchError) {
-      console.log("Falling back to Supabase SDK", fetchError);
-      
-      // Méthode 2: Utiliser l'API Supabase comme fallback
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(fullPath, file, {
-          contentType,
-          upsert: true,
-          cacheControl: "3600"
-        });
-      
-      if (error) {
-        console.error("Upload error via SDK:", error);
-        throw error;
-      }
+    
+    if (error) {
+      console.error("Upload error:", error);
+      throw error;
     }
     
     // Récupérer l'URL publique
@@ -209,6 +141,6 @@ export const uploadFileDirectly = async (
     return { url: publicUrlData.publicUrl, fileName: uniqueFileName };
   } catch (error) {
     console.error("Upload error:", error);
-    return null;
+    throw error;
   }
 };
