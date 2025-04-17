@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { uploadFileDirectly, getCacheBustedUrl, ensureBucketExists } from "@/services/directFileUploadService";
+import { ensureBucket, uploadImage, getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface AvatarUploaderProps {
   initialImageUrl?: string;
@@ -65,27 +65,23 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
     
     try {
       // Ensure bucket exists
-      const bucketCreated = await ensureBucketExists(bucketName);
-      
-      if (!bucketCreated) {
-        throw new Error(`Impossible de créer ou d'accéder au bucket ${bucketName}`);
-      }
+      await ensureBucket(bucketName);
       
       // Use our direct upload method
-      const result = await uploadFileDirectly(file, bucketName, folderPath);
+      const url = await uploadImage(file, bucketName, folderPath);
       
-      if (result && result.url) {
-        console.log(`Image uploaded successfully: ${result.url}`);
+      if (url) {
+        console.log(`Image uploaded successfully: ${url}`);
         
         // Verify the URL isn't JSON
-        if (result.url.startsWith('{') || result.url.startsWith('[')) {
+        if (url.startsWith('{') || url.startsWith('[')) {
           throw new Error("L'URL retournée est un JSON, pas une URL d'image valide");
         }
         
-        setImageUrl(result.url);
+        setImageUrl(url);
         
         if (onImageUploaded) {
-          onImageUploaded(result.url);
+          onImageUploaded(url);
         }
         
         toast.success("Image téléchargée avec succès");

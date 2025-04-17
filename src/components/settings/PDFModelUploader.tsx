@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, FileText, CheckCircle2, XCircle } from "lucide-react";
-import { uploadFileDirectly, ensureBucketExists } from "@/services/directFileUploadService";
+import { ensureBucket, uploadImage } from "@/services/fileUploadService";
 
 interface PDFModelUploaderProps {
   onFileUploaded?: (url: string, fileName: string) => void;
@@ -65,14 +65,14 @@ const PDFModelUploader: React.FC<PDFModelUploaderProps> = ({
 
     try {
       // Ensure bucket exists
-      await ensureBucketExists(bucketName);
+      await ensureBucket(bucketName);
       
-      // Use our new direct upload method
-      const result = await uploadFileDirectly(fileSelected, bucketName, folderPath);
+      // Use our direct upload method
+      const url = await uploadImage(fileSelected, bucketName, folderPath);
       
-      if (result && result.url) {
+      if (url) {
         if (onFileUploaded) {
-          onFileUploaded(result.url, fileSelected.name);
+          onFileUploaded(url, fileSelected.name);
         }
         setUploadSuccess(true);
         toast.success("Fichier téléchargé avec succès");
