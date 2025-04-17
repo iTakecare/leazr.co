@@ -140,31 +140,35 @@ const BlogManager = () => {
 
     try {
       setIsUploading(true);
+      console.log("Début de la sauvegarde de l'article...");
+      
       if (currentPost.id) {
-        console.log("Updating blog post:", currentPost);
+        console.log("Mise à jour de l'article existant:", currentPost);
         const result = await updateBlogPost(currentPost.id, currentPost);
         if (result) {
           toast({
             title: "Succès",
             description: "L'article a été mis à jour avec succès",
           });
+          console.log("Article mis à jour avec succès:", result);
         } else {
           throw new Error("La mise à jour de l'article a échoué");
         }
       } else {
-        console.log("Creating new blog post:", currentPost);
+        console.log("Création d'un nouvel article:", currentPost);
         const result = await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
         if (result) {
           toast({
             title: "Succès",
             description: "L'article a été créé avec succès",
           });
+          console.log("Article créé avec succès:", result);
         } else {
           throw new Error("La création de l'article a échoué");
         }
       }
       
-      loadBlogPosts();
+      await loadBlogPosts();
       setIsEditing(false);
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de l'article:", error);
@@ -253,15 +257,27 @@ const BlogManager = () => {
       });
       
       let imageUrl = null;
+      let uploadError = null;
       
       try {
         console.log("Tentative d'utilisation du service fileUploadService...");
         const result = await uploadImageAdvanced(file, 'blog-images');
         imageUrl = result?.url || null;
         console.log("Résultat du service avancé:", result);
-      } catch (advancedError) {
+      } catch (advancedError: any) {
         console.warn("Erreur avec le service avancé, passage au service basique:", advancedError);
-        imageUrl = await uploadImage(file, 'blog-images');
+        uploadError = advancedError;
+      }
+      
+      if (!imageUrl) {
+        console.log("Tentative d'utilisation du service basique...");
+        try {
+          imageUrl = await uploadImage(file, 'blog-images');
+          console.log("Résultat du service basique:", imageUrl);
+        } catch (basicError: any) {
+          console.error("Erreur avec le service basique:", basicError);
+          uploadError = uploadError || basicError;
+        }
       }
       
       if (imageUrl) {
@@ -277,7 +293,13 @@ const BlogManager = () => {
           description: "L'image a été téléchargée avec succès",
         });
       } else {
-        throw new Error("Échec du téléchargement de l'image");
+        const errorMessage = uploadError ? `${uploadError.message}` : "Échec du téléchargement de l'image";
+        console.error(errorMessage);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
       console.error("Erreur lors du téléchargement de l'image:", error);
