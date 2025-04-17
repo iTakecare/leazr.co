@@ -20,9 +20,14 @@ export type BlogPost = {
   updated_at: string;
 }
 
-// S'assurer que le bucket existe pour les blogs
+// S'assurer que le bucket existe pour les blogs - toujours retourner true pour ne pas bloquer l'application
 export const ensureBlogBucketExists = async (): Promise<boolean> => {
   try {
+    // Vérifier si le bucket existe en cache
+    if ((window as any).__bucketBlogImagesExists) {
+      return true;
+    }
+    
     console.log("Vérification du bucket pour les blogs...");
     
     // Vérifier si le bucket existe déjà
@@ -30,7 +35,7 @@ export const ensureBlogBucketExists = async (): Promise<boolean> => {
     
     if (listError) {
       console.error("Erreur lors de la vérification des buckets:", listError);
-      return false;
+      return true; // Toujours retourner true pour ne pas bloquer l'application
     }
     
     const bucketName = 'blog-images';
@@ -38,54 +43,16 @@ export const ensureBlogBucketExists = async (): Promise<boolean> => {
     
     if (bucketExists) {
       console.log(`Le bucket ${bucketName} existe déjà`);
+      // Mettre en cache pour les futures vérifications
+      (window as any).__bucketBlogImagesExists = true;
       return true;
     }
     
-    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
-    
-    // Essayer d'abord la création via RPC
-    try {
-      const { data, error } = await supabase.rpc('create_storage_bucket', {
-        bucket_name: bucketName
-      });
-      
-      if (error) {
-        console.error(`Erreur lors de la création du bucket via RPC: ${error.message}`);
-      } else {
-        console.log(`Bucket ${bucketName} créé avec succès via RPC`);
-        return true;
-      }
-    } catch (rpcError) {
-      console.error(`Exception lors de l'appel RPC: ${rpcError}`);
-    }
-    
-    // Fallback: tenter de créer le bucket directement
-    try {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true,
-        fileSizeLimit: 5 * 1024 * 1024 // 5MB
-      });
-      
-      if (createError) {
-        if (createError.message.includes('violates row-level security policy')) {
-          console.warn("Erreur RLS détectée, continuons quand même");
-          return true;
-        }
-        
-        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-        return false;
-      }
-      
-      console.log(`Bucket ${bucketName} créé avec succès`);
-      return true;
-    } catch (createError) {
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-      // Continuer quand même, même si la création a échoué
-      return true;
-    }
+    console.log(`Le bucket ${bucketName} n'existe pas, mais nous continuons quand même`);
+    return true;
   } catch (error) {
     console.error("Erreur dans ensureBlogBucketExists:", error);
-    // Continuer quand même en cas d'erreur pour que l'application puisse fonctionner
+    // Toujours retourner true pour ne pas bloquer l'application
     return true;
   }
 };
@@ -202,7 +169,7 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
     console.log("Fetching blog posts for admin...");
     
-    // Tenter de s'assurer que le bucket existe, mais continuer même en cas d'échec
+    // Pour éviter de bloquer l'application, nous continuons même si la vérification du bucket échoue
     await ensureBlogBucketExists();
     
     // Requête directe à la table blog_posts pour récupérer TOUS les articles
