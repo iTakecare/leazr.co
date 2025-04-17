@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Users, Package, Settings, 
   Calculator, ShieldCheck, Menu, ChevronRight, ChevronLeft,
-  X, Receipt, FileText, LogOut, ExternalLink
+  X, Receipt, FileText, LogOut, ExternalLink, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,6 +45,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Catalogue", icon: Package, href: "/catalog" },
     { label: "Pack iTakecare", icon: ShieldCheck, href: "/i-take-care" },
     { label: "Calculateur", icon: Calculator, href: "/create-offer" },
+    { label: "Site Web", icon: Globe, href: "/website-manager" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
@@ -79,7 +79,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');  // Changed from '/' to '/login'
+      navigate('/login');
       toast.success("Déconnexion réussie");
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
