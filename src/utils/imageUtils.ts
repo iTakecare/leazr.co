@@ -33,9 +33,8 @@ export async function uploadImage(
       console.log(`Tentative d'upload du fichier...`);
       
       // Important: Use 'blog-images' (with dash) instead of 'Blog Images' (with space)
-      // Supabase API endpoints don't work well with spaces in bucket names
       const { data, error } = await supabase.storage
-        .from("blog-images")
+        .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -49,7 +48,7 @@ export async function uploadImage(
       
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from("blog-images")
+        .from(bucketName)
         .getPublicUrl(filePath);
       
       if (!urlData?.publicUrl) {
