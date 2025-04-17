@@ -66,7 +66,7 @@ const BlogPostPage = () => {
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
       <UnifiedNavigation />
       
-      <div className="pt-[100px]">
+      <div className="pt-16">
         {/* Hero Section simplifié pour les articles */}
         <BlogHero 
           searchQuery=""

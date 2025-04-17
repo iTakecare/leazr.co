@@ -31,18 +31,33 @@ const BlogHero = ({
   };
 
   return (
-    <div className="w-full bg-white pt-16 pb-12 relative">
-      <div className="absolute inset-0 bg-[#f8f8f6] pattern-grid-lg opacity-20"></div>
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-[#222222]">
-            Le pouvoir du leasing pour la{" "}
-            <span className="bg-[#48b5c3]/20 text-[#33638E] px-4 py-1 rounded-lg">
-              réussite des entreprises
-            </span>
+    <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative">
+      {/* Background image avec overlay */}
+      <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
+        <img
+          className="relative w-full h-[60vh] object-cover"
+          alt="Background"
+          src="/clip-path-group.png"
+          width="1920" 
+          height="1080"
+        />
+        <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
+      </div>
+
+      <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
+        <div className="text-center">
+          <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
+            Le pouvoir du leasing pour la
           </h1>
+          <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
+            backgroundColor: 'rgba(72, 181, 195, 0.2)', 
+            color: '#33638E',
+            fontWeight: 900
+          }}>
+            réussite des entreprises
+          </div>
           
-          <p className="text-gray-600 mt-6 mb-8">
+          <p className="text-gray-600 mt-6 mb-8 text-xl max-w-2xl mx-auto">
             Recevez les derniers articles dans votre boîte mail !
           </p>
           

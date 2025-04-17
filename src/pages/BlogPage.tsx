@@ -71,11 +71,14 @@ const BlogPage = () => {
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
       <UnifiedNavigation />
       
-      <div className="pt-[100px]">
+      <div className="pt-16">
         {/* Hero Section avec titre et newsletter */}
         <BlogHero 
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          categories={categories}
+          activeCategory={activeCategory}
+          onCategoryChange={handleCategoryChange}
         />
         
         {/* Featured Article Section */}
