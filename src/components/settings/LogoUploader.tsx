@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { ensureBucketExists, uploadFileDirectly } from "@/services/directFileUploadService";
+import { ensureBucketExists, uploadFileDirectly, getCacheBustedUrl } from "@/services/directFileUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -33,7 +33,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   };
   
   // Ajouter un paramètre de cache-busting à l'URL
-  const getCacheBustedUrl = (url: string | null): string => {
+  const getCacheBustedUrlLocal = (url: string | null): string => {
     if (!url) return '';
     
     // Si c'est un objet JSON, ne pas l'utiliser
@@ -86,19 +86,19 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
       }
       
       // Upload du fichier
-      const result = await uploadFileDirectly(file, bucketName, folderPath);
+      const url = await uploadFileDirectly(file, bucketName, folderPath);
       
-      if (result && result.url) {
+      if (url) {
         // S'assurer que l'URL n'est pas un objet JSON
-        if (isPotentiallyJSON(result.url)) {
+        if (isPotentiallyJSON(url)) {
           throw new Error("L'URL retournée semble être un JSON, pas une URL d'image valide");
         }
         
-        setLogoUrl(result.url);
+        setLogoUrl(url);
         setUploadSuccess(true);
         
         if (onLogoUploaded) {
-          onLogoUploaded(result.url);
+          onLogoUploaded(url);
         }
         
         toast.success("Logo téléchargé avec succès");
@@ -138,7 +138,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   };
 
   // URL avec cache-busting pour l'affichage
-  const displayLogoUrl = logoUrl ? getCacheBustedUrl(logoUrl) : '';
+  const displayLogoUrl = logoUrl ? getCacheBustedUrlLocal(logoUrl) : '';
 
   return (
     <div className="space-y-4">
