@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -279,15 +278,15 @@ const BlogManager = () => {
       // Ensure the blog-images bucket exists
       await ensureBucket('blog-images');
       
-      const result = await uploadImage(file, 'blog-images');
+      const imageUrl = await uploadImage(file, 'blog-images');
       
-      if (result) {
-        console.log("Image uploaded successfully:", result);
+      if (imageUrl) {
+        console.log("Image uploaded successfully:", imageUrl);
         
         // Immediately update the currentPost state with new image URL
         setCurrentPost({
           ...currentPost,
-          image_url: typeof result === 'string' ? result : result.url
+          image_url: imageUrl
         });
         
         toast({
@@ -321,13 +320,10 @@ const BlogManager = () => {
       
       console.log("Uploading author avatar:", file.name, "size:", file.size);
       
-      const result = await uploadImage(file, 'blog-author-avatars');
+      const avatarUrl = await uploadImage(file, 'blog-author-avatars');
       
-      if (result) {
-        console.log("Avatar uploaded successfully:", result);
-        
-        // Ensure consistent URL format
-        const avatarUrl = typeof result === 'string' ? result : result.url;
+      if (avatarUrl) {
+        console.log("Avatar uploaded successfully:", avatarUrl);
         
         // Update the current post state
         setCurrentPost({
