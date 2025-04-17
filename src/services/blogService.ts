@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type BlogPost = {
@@ -19,43 +20,6 @@ export type BlogPost = {
   created_at: string;
   updated_at: string;
 }
-
-// S'assurer que le bucket existe pour les blogs - toujours retourner true pour ne pas bloquer l'application
-export const ensureBlogBucketExists = async (): Promise<boolean> => {
-  try {
-    // Vérifier si le bucket existe en cache
-    if ((window as any).__bucketBlogImagesExists) {
-      return true;
-    }
-    
-    console.log("Vérification du bucket pour les blogs...");
-    
-    // Vérifier si le bucket existe déjà
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error("Erreur lors de la vérification des buckets:", listError);
-      return true; // Toujours retourner true pour ne pas bloquer l'application
-    }
-    
-    const bucketName = 'blog-images';
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-    
-    if (bucketExists) {
-      console.log(`Le bucket ${bucketName} existe déjà`);
-      // Mettre en cache pour les futures vérifications
-      (window as any).__bucketBlogImagesExists = true;
-      return true;
-    }
-    
-    console.log(`Le bucket ${bucketName} n'existe pas, mais nous continuons quand même`);
-    return true;
-  } catch (error) {
-    console.error("Erreur dans ensureBlogBucketExists:", error);
-    // Toujours retourner true pour ne pas bloquer l'application
-    return true;
-  }
-};
 
 // Récupérer tous les articles publiés
 export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
@@ -169,9 +133,6 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
     console.log("Fetching blog posts for admin...");
     
-    // Pour éviter de bloquer l'application, nous continuons même si la vérification du bucket échoue
-    await ensureBlogBucketExists();
-    
     // Requête directe à la table blog_posts pour récupérer TOUS les articles
     const { data, error } = await supabase
       .from('blog_posts')
@@ -209,9 +170,6 @@ export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at
       ...blogPost,
       content: blogPost.content?.substring(0, 100) + "..." // Tronquer pour les logs
     }, null, 2));
-    
-    // Tenter d'assurer que le bucket existe, mais continuer même en cas d'échec
-    await ensureBlogBucketExists();
     
     // Vérifier que le slug est défini et unique
     if (!blogPost.slug) {

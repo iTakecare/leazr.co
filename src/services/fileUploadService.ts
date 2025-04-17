@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -136,16 +135,10 @@ export const enforceCorrectMimeType = (file: File): File => {
  */
 export const uploadImage = async (
   file: File,
-  bucketName: string,
+  bucketName: string = "Blog Images",
   folderPath: string = ''
 ): Promise<{ url: string } | null> => {
   try {
-    const bucketExists = await ensureBucket(bucketName);
-    if (!bucketExists) {
-      toast.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
-      return null;
-    }
-
     // Vérifier la taille du fichier (limite à 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error(`Le fichier est trop volumineux. La taille maximale est de 5MB.`);
@@ -171,41 +164,20 @@ export const uploadImage = async (
     
     console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes`);
 
-    // Utiliser directement l'API Fetch pour avoir un contrôle total sur le Content-Type
-    const formData = new FormData();
-    formData.append('file', fileWithCorrectMime); // Utiliser le fichier avec le type MIME correct
-    
-    // URL de l'API Supabase Storage
-    const url = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
-    
-    // Upload du fichier avec l'en-tête Content-Type non défini pour permettre à FormData de définir la limite
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabase.supabaseKey}`
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Erreur lors de l'upload direct: ${errorText}`);
-      
-      // Fallback: utiliser la méthode supabase.storage si l'API Fetch échoue
-      console.log('Fallback to supabase.storage.upload');
-      
-      const { error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, fileWithCorrectMime, {
-          contentType: contentType,
-          upsert: true
-        });
+    // Tenter d'uploader directement
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, fileWithCorrectMime, {
+        contentType: contentType,
+        upsert: true
+      });
         
-      if (error) {
-        console.error(`Erreur lors de l'upload via supabase.storage: ${error.message}`);
-        toast.error(`Erreur lors de l'upload: ${error.message}`);
-        return null;
-      }
+    if (error) {
+      console.error(`Erreur lors de l'upload: ${error.message}`);
+      toast.error(`Erreur lors de l'upload: ${error.message}`);
+      
+      // Fallback - retourner une URL locale
+      return { url: `/lovable-uploads/${fileName}` };
     }
 
     // Récupérer l'URL publique

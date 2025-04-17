@@ -288,70 +288,7 @@ const BlogManager = () => {
         description: "Téléchargement de l'image en cours...",
       });
       
-      let imageUrl: string | null = null;
-      let uploadError: any = null;
-      
-      try {
-        console.log("Tentative d'utilisation du service fileUploadService...");
-        const result = await uploadImageAdvanced(file, 'blog-images');
-        if (result?.url) {
-          imageUrl = result.url;
-          console.log("Image téléchargée avec succès via le service avancé:", imageUrl);
-        } else {
-          console.warn("Le service avancé n'a pas retourné d'URL");
-        }
-      } catch (advancedError: any) {
-        console.warn("Erreur avec le service avancé:", advancedError);
-        uploadError = advancedError;
-      }
-      
-      if (!imageUrl) {
-        console.log("Tentative d'utilisation du service basique...");
-        try {
-          imageUrl = await uploadImage(file, 'blog-images');
-          if (imageUrl) {
-            console.log("Image téléchargée avec succès via le service basique:", imageUrl);
-          } else {
-            console.warn("Le service basique n'a pas retourné d'URL");
-          }
-        } catch (basicError: any) {
-          console.error("Erreur avec le service basique:", basicError);
-          uploadError = uploadError || basicError;
-        }
-      }
-      
-      if (!imageUrl) {
-        try {
-          console.log("Tentative d'upload direct via fetch...");
-          
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          const url = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/blog-images/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-          
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw`
-            },
-            body: formData
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const bucketName = 'blog-images';
-            const filePath = data.Key.split(`${bucketName}/`)[1];
-            
-            const imageUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/${bucketName}/${filePath}`;
-            console.log("Image téléchargée avec succès via fetch direct:", imageUrl);
-          } else {
-            console.error("Échec de l'upload direct:", await response.text());
-          }
-        } catch (fetchError: any) {
-          console.error("Erreur lors de l'upload direct:", fetchError);
-          uploadError = uploadError || fetchError;
-        }
-      }
+      const imageUrl = await uploadImage(file, 'Blog Images');
       
       if (imageUrl) {
         console.log("Image téléchargée avec succès, URL finale:", imageUrl);
@@ -366,11 +303,10 @@ const BlogManager = () => {
           description: "L'image a été téléchargée avec succès",
         });
       } else {
-        const errorMessage = uploadError ? `${uploadError.message}` : "Échec du téléchargement de l'image";
-        console.error(errorMessage);
+        console.error("Échec du téléchargement de l'image");
         toast({
           title: "Erreur",
-          description: `Échec de l'upload: ${errorMessage}`,
+          description: "Échec de l'upload de l'image",
           variant: "destructive"
         });
       }
