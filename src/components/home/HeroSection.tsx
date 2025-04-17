@@ -1,30 +1,14 @@
-
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-
 const HeroSection = (): JSX.Element => {
   // Benefits list
-  const benefits = [
-    "Du matériel reconditionné haut de gamme, testé et garanti.",
-    "Un forfait tout compris : maintenance, support et mises à jour.",
-    "Remplacement sous 24h en cas de panne ou sinistre.",
-    "Un choix écoresponsable et économique pour votre entreprise.",
-  ];
-
-  return (
-    <div className="flex flex-col min-h-screen items-center gap-6 md:gap-10 py-4 md:py-10 relative">
+  const benefits = ["Du matériel reconditionné haut de gamme, testé et garanti.", "Un forfait tout compris : maintenance, support et mises à jour.", "Remplacement sous 24h en cas de panne ou sinistre.", "Un choix écoresponsable et économique pour votre entreprise."];
+  return <div className="flex flex-col min-h-screen items-center gap-6 md:gap-10 py-4 md:py-10 relative">
       {/* Background image */}
       <div className="flex flex-col w-full h-screen items-start gap-2.5 absolute top-0 left-0">
-        <img
-          className="relative w-full h-screen object-cover"
-          alt="Background"
-          src="/clip-path-group.png"
-          width="1920" 
-          height="1080"
-          fetchPriority="high"
-        />
+        <img className="relative w-full h-screen object-cover" alt="Background" src="/clip-path-group.png" width="1920" height="1080" fetchPriority="high" />
         {/* Gradient fade to white overlay */}
         <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
       </div>
@@ -47,9 +31,7 @@ const HeroSection = (): JSX.Element => {
                 </span>
               </Badge>
             </div>
-            <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-[50px] leading-tight mb-3 md:mb-6">
-              sans contraintes
-            </h1>
+            <h1 className="font-black text-[#222222] text-3xl sm:text-4xl md:text-[50px] leading-tight mb-3 md:mb-6">premium sans contraintes</h1>
 
             <p className="font-normal text-[#222222] text-base md:text-lg mb-3 md:mb-8">
               Optez pour un parc informatique performant et écoresponsable, à
@@ -57,24 +39,19 @@ const HeroSection = (): JSX.Element => {
             </p>
 
             <ul className="space-y-2 md:space-y-4 mb-6 md:mb-10">
-              {benefits.map((benefit, index) => (
-                <li key={index} className="flex items-start">
+              {benefits.map((benefit, index) => <li key={index} className="flex items-start">
                   <span className="text-base md:text-lg mr-2 mt-0.5">✅</span>
                   <span className="font-normal text-[#222222] text-base md:text-lg">
                     {benefit}
                   </span>
-                </li>
-              ))}
+                </li>)}
             </ul>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button className="bg-[#48b5c3] hover:bg-[#33638E] rounded-[50px] font-bold text-base md:text-lg w-full sm:w-auto">
                 Découvrir le catalogue
               </Button>
-              <Button
-                variant="outline"
-                className="rounded-[50px] font-bold text-base md:text-lg hover:bg-[#48B5C3] hover:text-white w-full sm:w-auto mt-2 sm:mt-0"
-              >
+              <Button variant="outline" className="rounded-[50px] font-bold text-base md:text-lg hover:bg-[#48B5C3] hover:text-white w-full sm:w-auto mt-2 sm:mt-0">
                 En savoir plus
               </Button>
             </div>
@@ -82,22 +59,8 @@ const HeroSection = (): JSX.Element => {
 
           {/* Right content - images (hidden on mobile) */}
           <div className="relative flex-1 hidden md:block">
-            <img
-              className="absolute w-[520px] h-[335px] top-0 right-0 object-cover"
-              alt="Computer"
-              src="/computer.png"
-              width="520"
-              height="335"
-              loading="lazy"
-            />
-            <img
-              className="absolute w-[255px] h-[164px] bottom-[-95px] right-[580px] object-contain"
-              alt="Arrow"
-              src="/arrow.png"
-              width="255"
-              height="164"
-              loading="lazy"
-            />
+            <img className="absolute w-[520px] h-[335px] top-0 right-0 object-cover" alt="Computer" src="/computer.png" width="520" height="335" loading="lazy" />
+            <img className="absolute w-[255px] h-[164px] bottom-[-95px] right-[580px] object-contain" alt="Arrow" src="/arrow.png" width="255" height="164" loading="lazy" />
           </div>
         </div>
 
@@ -113,14 +76,7 @@ const HeroSection = (): JSX.Element => {
           <Separator orientation="vertical" className="hidden sm:block mx-[25px] h-[47px]" />
           <Separator orientation="horizontal" className="block sm:hidden w-[50%] my-3" />
           <div className="flex items-center">
-            <img
-              className="w-[36px] h-[36px] md:w-[57px] md:h-[57px]"
-              alt="Star rating"
-              src="/png-clipart-yellow-star-illustration-yellow-star-color-star-blue.png"
-              width="57"
-              height="57"
-              loading="lazy"
-            />
+            <img className="w-[36px] h-[36px] md:w-[57px] md:h-[57px]" alt="Star rating" src="/png-clipart-yellow-star-illustration-yellow-star-color-star-blue.png" width="57" height="57" loading="lazy" />
             <div className="ml-[10px]">
               <p className="font-bold text-[#222222] text-base md:text-lg">4,8/5</p>
               <p className="font-normal text-[#222222] text-sm md:text-base">
@@ -130,8 +86,6 @@ const HeroSection = (): JSX.Element => {
           </div>
         </div>
       </header>
-    </div>
-  );
+    </div>;
 };
-
 export default HeroSection;
