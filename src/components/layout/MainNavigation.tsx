@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +32,6 @@ const MainNavigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Updated navigation menu items with icons and dropdowns, pointing to the new pages
   const solutionsMenu = [
     { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
     { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
@@ -42,10 +40,10 @@ const MainNavigation = () => {
   ];
 
   const servicesMenu = [
-    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Formations", href: "/services#formations", icon: <FileText className="w-4 h-4 mr-2" />, description: "Programmes de formation pour vos équipes" },
-    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Assistance technique dédiée et réactive" },
+    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique" },
+    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
   ];
 
   const durabiliteMenu = [
@@ -73,7 +71,6 @@ const MainNavigation = () => {
             />
           </Link>
           
-          {/* Mobile menu toggle button */}
           <button 
             onClick={toggleMobileMenu} 
             className="p-2 md:hidden"
@@ -83,9 +80,7 @@ const MainNavigation = () => {
           </button>
         </div>
 
-        {/* Mobile navigation */}
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
-          {/* Solutions dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
             {solutionsMenu.map((item, index) => (
@@ -101,7 +96,6 @@ const MainNavigation = () => {
             ))}
           </div>
           
-          {/* Services dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
             {servicesMenu.map((item, index) => (
@@ -117,7 +111,6 @@ const MainNavigation = () => {
             ))}
           </div>
           
-          {/* Durabilité dropdown for mobile */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
             {durabiliteMenu.map((item, index) => (
@@ -133,7 +126,6 @@ const MainNavigation = () => {
             ))}
           </div>
           
-          {/* Ajout du lien À propos dans le menu mobile */}
           <Link
             to="/a-propos"
             className={cn(
@@ -145,7 +137,6 @@ const MainNavigation = () => {
             À propos
           </Link>
           
-          {/* Blog dans le menu mobile */}
           <Link
             to="/blog"
             className={cn(
@@ -185,10 +176,8 @@ const MainNavigation = () => {
           </div>
         </div>
 
-        {/* Desktop navigation */}
         <nav className="hidden md:block ml-[40px]">
           <ul className="flex space-x-[25px]">
-            {/* Solutions dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -215,7 +204,6 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
 
-            {/* Services dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -242,7 +230,6 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Durabilité dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -269,7 +256,6 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Ajout du lien À propos */}
             <li>
               <Link
                 to="/a-propos"
@@ -282,7 +268,6 @@ const MainNavigation = () => {
               </Link>
             </li>
             
-            {/* Blog existant */}
             <li>
               <Link
                 to="/blog"

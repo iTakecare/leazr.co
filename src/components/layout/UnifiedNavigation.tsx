@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from 'lucide-react';
@@ -51,7 +50,6 @@ const UnifiedNavigation = () => {
     }
   };
 
-  // Menus mis à jour avec les liens vers les nouvelles sections
   const solutionsMenu = [
     { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="h-4 w-4 text-[#48b5c3]" />, description: "Matériel informatique haute performance en location flexible" },
     { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
@@ -62,7 +60,7 @@ const UnifiedNavigation = () => {
   const servicesMenu = [
     { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
     { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Formations", href: "/services#formations", icon: <FileText className="h-4 w-4 text-[#48b5c3]" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique" },
     { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
   ];
 

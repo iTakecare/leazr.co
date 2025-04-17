@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Globe, ChevronDown, Sparkles, ArrowRight, Headphones, Book, Briefcase, Monitor, Server, Recycle, Share2, HelpCircle, Building, FileText } from "lucide-react";
+import { ShoppingCart, Menu, X, Globe, ChevronDown, Sparkles, ArrowRight, Headphones, Book, Briefcase, Monitor, Server, Recycle, Share2, HelpCircle, Building, FileText, Cpu } from "lucide-react";
 import { 
   NavigationMenu, 
   NavigationMenuContent, 
@@ -42,7 +41,6 @@ const PublicHeader = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   
-  // Menus mis à jour avec une structure cohérente et les liens vers les nouvelles pages
   const solutionsMenu = [
     { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="h-4 w-4 text-[#48b5c3]" />, description: "Matériel informatique haute performance en location flexible" },
     { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
@@ -53,10 +51,10 @@ const PublicHeader = () => {
   const servicesMenu = [
     { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
     { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Formations", href: "/services#formations", icon: <FileText className="h-4 w-4 text-[#48b5c3]" />, description: "Programmes de formation pour vos équipes" },
+    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique" },
     { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
   ];
-
+  
   const durabiliteMenu = [
     { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Notre mission pour un numérique responsable" },
     { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Comment nous contribuons à l'économie circulaire" },
@@ -189,7 +187,7 @@ const PublicHeader = () => {
                       "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname === "/catalogue" || location.pathname.startsWith("/produits")
                         ? "text-[#33638E]" 
-                        : "text-gray-700 hover:text-[#33638E]"
+                        : "text-gray-700 hover:text-[#33658E]"
                     )}
                   >
                     Catalogue
@@ -269,7 +267,6 @@ const PublicHeader = () => {
               </Button>
             </div>
             
-            {/* Mobile menu toggle */}
             <button 
               className="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -280,7 +277,6 @@ const PublicHeader = () => {
           </div>
         </div>
         
-        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t animate-fade-in">
             <nav className="flex flex-col space-y-1">
@@ -325,7 +321,6 @@ const PublicHeader = () => {
               
               <div className="border-t my-2"></div>
               
-              {/* Ajout du lien À propos dans le menu mobile */}
               <Link 
                 to="/a-propos" 
                 className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
