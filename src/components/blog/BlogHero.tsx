@@ -6,9 +6,18 @@ import { Button } from "@/components/ui/button";
 interface BlogHeroProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  categories?: {category: string, count: number}[];
+  activeCategory?: string | null;
+  onCategoryChange?: (category: string | null) => void;
 }
 
-const BlogHero = ({ searchQuery, setSearchQuery }: BlogHeroProps) => {
+const BlogHero = ({ 
+  searchQuery, 
+  setSearchQuery, 
+  categories = [], 
+  activeCategory = null, 
+  onCategoryChange = () => {} 
+}: BlogHeroProps) => {
   const [email, setEmail] = useState("");
   
   const handleSubscribe = (e: React.FormEvent) => {

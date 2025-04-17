@@ -21,10 +21,10 @@ const BlogCard = ({ post }: BlogCardProps) => {
     
     // Si la catégorie est "Catégorie", utiliser une couleur différente selon l'index
     if (category === "Catégorie") {
-      // Déterminer la couleur basée sur l'ID du post
-      const id = post.id;
+      // Déterminer la couleur basée sur l'ID du post - convert string ID to number for modulo operation
+      const idNumber = typeof post.id === 'string' ? parseInt(post.id, 10) : Number(post.id);
       const colors = ["text-purple-600", "text-green-600", "text-yellow-600", "text-[#48b5c3]", "text-purple-600", "text-green-600"];
-      return colors[id % colors.length];
+      return colors[idNumber % colors.length] || colors[0];
     }
     
     return colors[category.toLowerCase()] || "text-[#48b5c3]";
@@ -45,15 +45,15 @@ const BlogCard = ({ post }: BlogCardProps) => {
           )}
           <div className="p-5">
             <div className={`text-sm font-medium mb-2 ${getCategoryColor(post.category)}`}>
-              Catégorie
+              {post.category || "Catégorie"}
             </div>
             <h3 className="text-xl font-bold mb-2 text-[#222222] group-hover:text-[#48b5c3] transition-colors">
-              Réussites, défis et conseils d'entrepreneurs
+              {post.title || "Réussites, défis et conseils d'entrepreneurs"}
             </h3>
             <div className="flex items-center text-gray-500 text-sm mb-2">
-              <span>18 mars 2025</span>
+              <span>{new Date(post.created_at).toLocaleDateString('fr-FR')}</span>
               <span className="mx-2">•</span>
-              <span>9 minutes de lecture</span>
+              <span>{post.read_time || "9 minutes de lecture"}</span>
             </div>
           </div>
         </div>
