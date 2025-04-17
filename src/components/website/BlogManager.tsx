@@ -275,48 +275,6 @@ const BlogManager = () => {
     }
   };
 
-  const handleAuthorAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!currentPost) return;
-
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      setIsUploading(true);
-      const file = files[0];
-      
-      console.log("Uploading author avatar:", file.name, "size:", file.size);
-      
-      const avatarUrl = await uploadImage(file, 'blog-author-avatars');
-      
-      if (avatarUrl) {
-        console.log("Avatar uploaded successfully:", avatarUrl);
-        
-        // Update the current post state
-        setCurrentPost({
-          ...currentPost,
-          author_avatar: avatarUrl
-        });
-        
-        toast({
-          title: "Succès",
-          description: "L'avatar a été téléchargé avec succès",
-        });
-      } else {
-        throw new Error("Échec de l'upload");
-      }
-    } catch (error: any) {
-      console.error("Erreur lors de l'upload de l'avatar:", error);
-      toast({
-        title: "Erreur",
-        description: `Une erreur est survenue lors de l'upload de l'avatar: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleAddDemoPost = async () => {
     try {
       setIsLoading(true);
@@ -617,52 +575,6 @@ const BlogManager = () => {
                         placeholder="https://exemple.com/image.jpg"
                         value={currentPost?.image_url || ""}
                         onChange={(e) => setCurrentPost({...currentPost, image_url: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Avatar de l'auteur</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <div className="space-y-4">
-                    <div className="flex justify-center">
-                      {currentPost?.author_avatar ? (
-                        <img 
-                          src={currentPost.author_avatar} 
-                          alt="Avatar de l'auteur" 
-                          className="w-16 h-16 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center">
-                          <Upload className="h-6 w-6 text-gray-500" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="author_avatar_file">Télécharger un avatar</Label>
-                      <Input
-                        id="author_avatar_file"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAuthorAvatarUpload}
-                        disabled={isUploading}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                    
-                    <div className="- OR -">ou</div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="author_avatar_url">URL de l'avatar</Label>
-                      <Input
-                        id="author_avatar_url"
-                        type="text"
-                        placeholder="https://exemple.com/avatar.jpg"
-                        value={currentPost?.author_avatar || ""}
-                        onChange={(e) => setCurrentPost({...currentPost, author_avatar: e.target.value})}
                       />
                     </div>
                   </div>

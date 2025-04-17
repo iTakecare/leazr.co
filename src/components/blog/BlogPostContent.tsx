@@ -1,6 +1,5 @@
 
 import React, { useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Facebook, Linkedin, Twitter } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -66,20 +65,6 @@ const BlogPostContent = ({ blogPost }: BlogPostContentProps) => {
       <div className="prose prose-lg max-w-none mb-10 cms-content">
         <div dangerouslySetInnerHTML={{ __html: blogPost.content }} />
       </div>
-      
-      {/* Section title */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-16 mb-8 text-center">
-        Développer votre entreprise : stratégies financières pour la croissance
-      </h2>
-      
-      {/* Explanatory paragraph */}
-      <p className="text-gray-700 mb-8">
-        Examinez les considérations et stratégies financières des entreprises souhaitant se développer et se développer. Discutez des options de financement, de la planification financière et de la manière dont les fonctionnalités peuvent faciliter la gestion des finances en période de croissance. Ces types d'articles de blog couvrent un éventail de sujets financiers et comptables importants, offrant des informations et des conseils précieux au public cible.
-      </p>
-      
-      <p className="text-gray-700 mb-16">
-        Proposez des formules d'abonnement pour son logiciel de comptabilité cloud. Les utilisateurs peuvent choisir parmi différents niveaux de tarification pour accéder à la plateforme, en fonction de la taille et des besoins de leur entreprise. L'abonnement comprend l'accès à toutes les fonctionnalités du logiciel et à des mises à jour régulières.
-      </p>
       
       {/* Back to blog button */}
       <div className="mt-8 mb-12">
