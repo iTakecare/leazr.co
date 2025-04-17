@@ -77,8 +77,9 @@ export const uploadImage = async (
     const contentType = getImageMimeType(file);
     console.log(`Type MIME détecté: ${contentType}`);
     
-    // Créer un nouveau Blob avec le type MIME explicite
-    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    // Lire le contenu du fichier pour créer un nouveau blob avec le bon type MIME
+    const fileArrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
     const fileWithCorrectType = new File([fileBlob], file.name, { type: contentType });
     
     // Generate a unique filename to prevent conflicts
@@ -88,19 +89,14 @@ export const uploadImage = async (
     
     console.log(`Préparation de l'upload avec type MIME: ${contentType} pour le fichier: ${filePath}`);
     
-    // Options d'upload explicites
-    const uploadOptions = {
-      contentType: contentType,
-      cacheControl: '3600',
-      upsert: true
-    };
-    
-    console.log(`Tentative d'upload du fichier avec options:`, uploadOptions);
-    
-    // Upload with explicit content type
+    // Upload avec contentType explicite et options supplémentaires
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, fileWithCorrectType, uploadOptions);
+      .upload(filePath, fileWithCorrectType, {
+        contentType: contentType,
+        cacheControl: '3600',
+        upsert: true
+      });
     
     if (error) {
       console.error('Erreur d\'upload:', error.message);

@@ -114,10 +114,15 @@ export const uploadFileDirectly = async (
     
     console.log(`Uploading file ${uniqueFileName} with content type ${contentType}`);
     
+    // Créer un nouveau Blob avec le type MIME correct pour s'assurer que le fichier est uploadé avec le bon type
+    const fileArrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
+    const fileWithCorrectType = new File([fileBlob], fileName, { type: contentType });
+    
     // Upload via l'API Supabase
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(fullPath, file, {
+      .upload(fullPath, fileWithCorrectType, {
         contentType,
         upsert: true,
         cacheControl: "3600"

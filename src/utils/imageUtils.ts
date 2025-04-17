@@ -24,8 +24,9 @@ export async function uploadImage(
     const contentType = getImageMimeType(file);
     console.log(`Type MIME détecté: ${contentType}`);
     
-    // Créer un nouveau Blob avec le type MIME explicite
-    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    // Lire le contenu du fichier pour créer un nouveau blob avec le bon type MIME
+    const fileArrayBuffer = await file.arrayBuffer();
+    const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
     const fileWithCorrectType = new File([fileBlob], file.name, { type: contentType });
     
     // Generate a unique filename to prevent conflicts
@@ -42,7 +43,7 @@ export async function uploadImage(
       upsert: true
     };
     
-    console.log(`Tentative d'upload du fichier...`);
+    console.log(`Tentative d'upload du fichier avec options:`, uploadOptions);
     
     const { data, error } = await supabase.storage
       .from(bucketName)
