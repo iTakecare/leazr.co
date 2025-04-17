@@ -224,17 +224,24 @@ const ServicesPage = () => {
         </div>
       </section>
 
-      {/* CTA Section - Updated to match the style of About page */}
+      {/* CTA Section - Mise à jour pour correspondre au style de la page About */}
       <section className="py-16 bg-white">
         <Container maxWidth="custom">
-          <div className="relative px-6 py-24 overflow-hidden bg-gradient-to-r from-[#1EAEDB] to-[#33949F] rounded-3xl">
-            <div className="relative z-10">
+          <div className="relative overflow-hidden rounded-3xl">
+            {/* Arrière-plan avec dégradé */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#1EAEDB] to-[#33949F] z-0"></div>
+            
+            {/* Effets de flou comme sur la page About */}
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-[#33949F]/30 blur-[80px] rounded-full z-0"></div>
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#33949F]/30 blur-[80px] rounded-full z-0"></div>
+            
+            <div className="relative px-6 py-24 z-10">
               <div className="mx-auto text-center max-w-4xl">
                 <h2 className="text-[32px] md:text-[46px] text-white font-extrabold mb-6 leading-tight">
-                  Prêt à optimiser votre infrastructure IT ?
+                  Des services informatiques <br />adaptés à tous vos besoins
                 </h2>
-                <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl mx-auto">
-                  Nos services informatiques vous accompagnent dans toutes les étapes de votre transformation numérique.
+                <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  Découvrez comment notre expertise peut transformer votre environnement de travail et booster votre productivité.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4 mt-8">
                   <Button className="bg-white text-[#33949F] hover:bg-gray-100 font-bold rounded-full px-8 py-6 h-auto text-lg">
@@ -245,13 +252,6 @@ const ServicesPage = () => {
                   </Button>
                 </div>
               </div>
-            </div>
-            
-            <div className="absolute top-0 right-0 -mt-16 -mr-16">
-              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
-            </div>
-            <div className="absolute bottom-0 left-0 -mb-16 -ml-16">
-              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
             </div>
           </div>
         </Container>
