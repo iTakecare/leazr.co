@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -144,7 +145,7 @@ const SolutionsPage = () => {
       </section>
 
       {/* Services cloud Section */}
-      <section id="cloud" className="py-16 bg-gray-50">
+      <section id="cloud" className="py-16">
         <div className="w-full max-w-[1320px] mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="md:w-1/2">
