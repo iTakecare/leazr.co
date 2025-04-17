@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, FileText, CheckCircle2, XCircle } from "lucide-react";
-import { uploadFileDirectly } from "@/services/directFileUploadService";
+import { uploadFileDirectly, ensureBucketExists } from "@/services/directFileUploadService";
 
 interface PDFTemplateUploaderProps {
   onFileUploaded?: (url: string, fileName: string) => void;
@@ -63,6 +64,10 @@ const PDFTemplateUploader: React.FC<PDFTemplateUploaderProps> = ({
     setUploadError(null);
 
     try {
+      // Ensure bucket exists
+      await ensureBucketExists(bucketName);
+      
+      // Use our new direct upload method
       const result = await uploadFileDirectly(fileSelected, bucketName, folderPath);
       
       if (result && result.url) {

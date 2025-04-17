@@ -1,6 +1,5 @@
 
-import { v4 as uuidv4 } from 'uuid';
-import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -54,35 +53,7 @@ export const detectMimeTypeFromExtension = (fileName: string): string => {
 };
 
 /**
- * Ajoute un paramètre de cache-busting à une URL d'image
- */
-export const getCacheBustedUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  
-  // Vérifier si l'URL est un objet JSON (cas d'erreur)
-  if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
-    console.error("URL invalide (JSON détecté):", url);
-    return '';
-  }
-  
-  // Ajouter le paramètre cache-busting
-  const timestamp = Date.now();
-  
-  // Ne pas ajouter de cache-busting aux URLs data:
-  if (url.startsWith('data:')) {
-    return url;
-  }
-  
-  // Si l'URL contient déjà des paramètres, ajouter le cache-busting
-  if (url.includes('?')) {
-    return `${url}&t=${timestamp}`;
-  }
-  
-  return `${url}?t=${timestamp}`;
-};
-
-/**
- * Upload un fichier dans Supabase Storage avec détection MIME plus précise
+ * NOUVELLE APPROCHE: Upload direct via fetch au lieu de l'API Supabase Storage
  */
 export const uploadFileDirectly = async (
   file: File,
@@ -110,61 +81,78 @@ export const uploadFileDirectly = async (
     const fullPath = folderPath ? `${folderPath}/${uniqueFileName}` : uniqueFileName;
     
     // Déterminer le type de contenu en fonction de l'extension du fichier
-    let contentType = file.type || detectMimeTypeFromExtension(file.name);
-    
-    // Si c'est une image, s'assurer qu'elle a le bon type MIME
-    if (contentType.startsWith('image/') || 
-        file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-      // Forcer le content type basé sur l'extension pour les images
-      contentType = detectMimeTypeFromExtension(file.name);
-    }
+    const contentType = detectMimeTypeFromExtension(file.name);
     
     console.log(`Uploading file ${uniqueFileName} with content type ${contentType}`);
     
-    // Créer un nouveau fichier avec le bon type MIME
-    const fileArrayBuffer = await file.arrayBuffer();
-    const correctTypeFile = new File(
-      [fileArrayBuffer], 
-      uniqueFileName, 
-      { type: contentType }
-    );
+    // Créer un FormData pour l'upload manuel
+    const formData = new FormData();
     
-    // Vérification du fichier à uploader
-    console.log('Fichier prêt pour upload:', {
-      name: correctTypeFile.name,
-      type: correctTypeFile.type,
-      size: correctTypeFile.size
+    // Créer un nouveau blob avec le type MIME explicite
+    const blob = new Blob([await file.arrayBuffer()], { type: contentType });
+    const fileWithCorrectType = new File([blob], uniqueFileName, { type: contentType });
+    
+    formData.append('file', fileWithCorrectType);
+    
+    // Obtenir le token d'accès pour l'authentification
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    
+    const uploadUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/${bucketName}/${fullPath}`;
+    
+    // Upload via fetch directement à l'API REST de Supabase
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        // Ne pas définir Content-Type ici, laissez-le être défini automatiquement par le FormData
+      },
+      body: formData
     });
     
-    // Upload via l'API Supabase avec content type explicite
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(fullPath, correctTypeFile, {
-        contentType: contentType, // Important: spécifier le contentType explicitement
-        upsert: true,
-        cacheControl: "3600"
-      });
-    
-    if (error) {
-      console.error("Upload error:", error);
-      throw error;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload error:', errorText);
+      throw new Error(`Erreur d'upload: ${response.status} ${response.statusText}`);
     }
     
-    // Récupérer l'URL publique
-    const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fullPath);
+    // Construire l'URL publique
+    const publicUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/${bucketName}/${fullPath}`;
     
-    if (!publicUrlData || !publicUrlData.publicUrl) {
-      throw new Error("Impossible d'obtenir l'URL publique");
-    }
+    console.log("File uploaded successfully:", publicUrl);
+    console.log(`Content-Type utilisé pour l'upload: ${contentType}`);
     
-    console.log("File uploaded successfully:", publicUrlData.publicUrl);
-    console.log(`Type MIME à vérifier dans le dashboard Supabase: ${contentType}`);
-    
-    return { url: publicUrlData.publicUrl, fileName: uniqueFileName };
+    return { url: publicUrl, fileName: uniqueFileName };
   } catch (error) {
     console.error("Upload error:", error);
     throw error;
   }
+};
+
+/**
+ * Ajoute un paramètre de cache-busting à une URL d'image
+ */
+export const getCacheBustedUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  
+  // Vérifier si l'URL est un objet JSON (cas d'erreur)
+  if (typeof url === 'string' && (url.startsWith('{') || url.startsWith('['))) {
+    console.error("URL invalide (JSON détecté):", url);
+    return '';
+  }
+  
+  // Ajouter le paramètre cache-busting
+  const timestamp = Date.now();
+  
+  // Ne pas ajouter de cache-busting aux URLs data:
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  
+  // Si l'URL contient déjà des paramètres, ajouter le cache-busting
+  if (url.includes('?')) {
+    return `${url}&t=${timestamp}`;
+  }
+  
+  return `${url}?t=${timestamp}`;
 };
