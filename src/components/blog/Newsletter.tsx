@@ -1,50 +1,68 @@
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer une adresse email valide",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call
+    // Simuler l'envoi (à remplacer par une vraie API)
     setTimeout(() => {
-      toast.success("Merci pour votre inscription à notre newsletter!");
+      toast({
+        title: "Succès",
+        description: "Vous êtes maintenant inscrit à notre newsletter !",
+      });
       setEmail("");
       setIsSubmitting(false);
     }, 1000);
   };
 
   return (
-    <div className="w-full bg-[#f8f8f6] py-16 my-16">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <h2 className="text-3xl font-bold mb-3">Restez informé</h2>
-        <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-          Abonnez-vous à notre newsletter pour recevoir nos derniers articles, conseils et actualités sur le leasing informatique durable.
+    <div className="bg-[#f8f8f6] rounded-xl p-8 my-12">
+      <div className="text-center max-w-2xl mx-auto">
+        <h3 className="text-2xl font-bold mb-3">Restez informé</h3>
+        <p className="text-gray-600 mb-6">
+          Inscrivez-vous à notre newsletter pour recevoir nos derniers articles, conseils et offres spéciales directement dans votre boîte mail.
         </p>
         
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
           <Input
             type="email"
             placeholder="Votre adresse email"
+            className="flex-grow"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="flex-grow py-6 px-4 rounded-full"
           />
           <Button 
-            type="submit" 
-            className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-full py-6"
+            type="submit"
+            className="bg-[#48b5c3] hover:bg-[#3da6b4] whitespace-nowrap"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Inscription..." : "S'inscrire"}
           </Button>
         </form>
+        
+        <p className="text-xs text-gray-500 mt-4">
+          En vous inscrivant, vous acceptez de recevoir nos emails. Vous pouvez vous désinscrire à tout moment.
+        </p>
       </div>
     </div>
   );

@@ -1,24 +1,31 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Share2, Facebook, Linkedin, Twitter } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BlogPost } from "@/services/blogService";
 
 interface BlogPostContentProps {
-  title: string;
-  content: React.ReactNode;
-  date: string;
-  category: string;
-  image: string;
-  author: {
-    name: string;
-    role: string;
-    avatar: string;
-  };
+  blogPost: BlogPost;
 }
 
-const BlogPostContent = ({ title, content, date, category, image, author }: BlogPostContentProps) => {
+const BlogPostContent = ({ blogPost }: BlogPostContentProps) => {
+  useEffect(() => {
+    // Mettre à jour les métadonnées de la page
+    document.title = blogPost.meta_title || blogPost.title;
+    
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription && blogPost.meta_description) {
+      metaDescription.setAttribute('content', blogPost.meta_description);
+    } else if (blogPost.meta_description) {
+      const meta = document.createElement('meta');
+      meta.name = "description";
+      meta.content = blogPost.meta_description;
+      document.head.appendChild(meta);
+    }
+  }, [blogPost]);
+
   return (
     <article className="max-w-3xl mx-auto px-4 py-8">
       {/* Back to blog button */}
@@ -35,38 +42,48 @@ const BlogPostContent = ({ title, content, date, category, image, author }: Blog
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <Badge variant="outline" className="bg-[#f8f8f6] text-[#48b5c3] rounded-full">
-            {category}
+            {blogPost.category}
           </Badge>
-          <span className="text-sm text-gray-500">{date}</span>
+          <span className="text-sm text-gray-500">
+            {new Date(blogPost.created_at).toLocaleDateString('fr-FR')}
+          </span>
         </div>
         
-        <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-6">{title}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-6">{blogPost.title}</h1>
         
-        <div className="flex items-center gap-4 mb-8">
-          <img 
-            src={author.avatar} 
-            alt={author.name} 
-            className="w-12 h-12 rounded-full"
-          />
-          <div>
-            <h3 className="font-medium">{author.name}</h3>
-            <p className="text-sm text-gray-500">{author.role}</p>
+        {blogPost.author_name && (
+          <div className="flex items-center gap-4 mb-8">
+            {blogPost.author_avatar && (
+              <img 
+                src={blogPost.author_avatar} 
+                alt={blogPost.author_name} 
+                className="w-12 h-12 rounded-full"
+              />
+            )}
+            <div>
+              <h3 className="font-medium">{blogPost.author_name}</h3>
+              {blogPost.author_role && (
+                <p className="text-sm text-gray-500">{blogPost.author_role}</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       {/* Featured image */}
-      <div className="mb-8 rounded-xl overflow-hidden">
-        <img 
-          src={image} 
-          alt={title} 
-          className="w-full h-auto"
-        />
-      </div>
+      {blogPost.image_url && (
+        <div className="mb-8 rounded-xl overflow-hidden">
+          <img 
+            src={blogPost.image_url} 
+            alt={blogPost.title} 
+            className="w-full h-auto"
+          />
+        </div>
+      )}
       
       {/* Article content */}
-      <div className="prose prose-lg max-w-none mb-10">
-        {content}
+      <div className="prose prose-lg max-w-none mb-10 cms-content">
+        <div dangerouslySetInnerHTML={{ __html: blogPost.content }} />
       </div>
       
       {/* Social sharing */}

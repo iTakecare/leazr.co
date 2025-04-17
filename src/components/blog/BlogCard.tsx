@@ -1,18 +1,13 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import { BlogPost } from "@/services/blogService";
 
 interface BlogCardProps {
-  title: string;
-  excerpt: string;
-  date: string;
-  category: string;
-  image: string;
-  slug: string;
-  readTime: string;
+  post: BlogPost;
 }
 
-const BlogCard = ({ title, excerpt, date, category, image, slug, readTime }: BlogCardProps) => {
+const BlogCard = ({ post }: BlogCardProps) => {
   // Determine category color based on category name
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
@@ -35,27 +30,36 @@ const BlogCard = ({ title, excerpt, date, category, image, slug, readTime }: Blo
 
   return (
     <div className="group">
-      <Link to={`/blog/${slug}`} className="block">
+      <Link to={`/blog/${post.slug}`} className="block">
         <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="h-[220px] overflow-hidden">
-            <img 
-              src={image} 
-              alt={title} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          </div>
+          {post.image_url && (
+            <div className="h-[220px] overflow-hidden">
+              <img 
+                src={post.image_url} 
+                alt={post.title} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          )}
           <div className="p-5">
-            <div className={`text-sm font-medium mb-2 ${getCategoryColor(category)}`}>
-              {category}
+            <div className={`text-sm font-medium mb-2 ${getCategoryColor(post.category)}`}>
+              {post.category}
             </div>
             <h3 className="text-xl font-bold mb-2 text-[#222222] group-hover:text-[#48b5c3] transition-colors">
-              {title}
+              {post.title}
             </h3>
             <div className="flex items-center text-gray-500 text-sm mb-2">
-              <span>{date}</span>
-              <span className="mx-2">•</span>
-              <span>{readTime}</span>
+              <span>{new Date(post.created_at).toLocaleDateString('fr-FR')}</span>
+              {post.read_time && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span>{post.read_time}</span>
+                </>
+              )}
             </div>
+            {post.excerpt && (
+              <p className="text-gray-600 line-clamp-3">{post.excerpt}</p>
+            )}
           </div>
         </div>
       </Link>

@@ -1,62 +1,76 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-const BlogHero = () => {
-  const [email, setEmail] = useState("");
+interface BlogHeroProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  categories: { category: string; count: number }[];
+  activeCategory: string | null;
+  onCategoryChange: (category: string | null) => void;
+}
 
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Logic to handle subscription
-    console.log("Subscribing email:", email);
-    setEmail("");
-    // Add toast notification here if needed
-  };
-
+const BlogHero = ({ 
+  searchQuery, 
+  setSearchQuery, 
+  categories, 
+  activeCategory, 
+  onCategoryChange 
+}: BlogHeroProps) => {
   return (
-    <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative">
-      {/* Background image - kept from original */}
-      <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
-        <img
-          className="relative w-full h-[60vh] object-cover"
-          alt="Background"
-          src="/clip-path-group.png"
-        />
-        {/* Gradient fade to white overlay */}
-        <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
-      </div>
-
-      {/* Hero content */}
-      <header className="relative w-full max-w-[1000px] mx-auto z-10 px-5 md:px-[37px] mt-24 text-center">
-        <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl leading-tight mb-6">
-          Le pouvoir du leasing pour la
-          <div className="inline-block bg-[#48b5c3]/30 rounded-lg px-6 py-2 mt-2 mx-auto">
-            <span className="text-[#48b5c3] font-black">réussite des entreprises</span>
+    <div className="bg-[#f8f8f6] py-16">
+      <div className="container mx-auto px-4">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#222222]">
+            Notre Blog
+          </h1>
+          <p className="text-lg text-gray-600 mb-8">
+            Découvrez nos derniers articles, conseils et nouvelles du monde de l'IT et du leasing de matériel reconditionné.
+          </p>
+          
+          <div className="relative mb-8">
+            <Input
+              type="text"
+              placeholder="Rechercher un article..."
+              className="pl-10 py-6 rounded-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-        </h1>
-        
-        <p className="font-normal text-[#222222] text-base md:text-lg mb-8 max-w-[700px] mx-auto">
-          Recevez les derniers articles dans votre boîte mail !
-        </p>
-
-        <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-          <Input 
-            placeholder="Entrez votre email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="py-6 px-4 rounded-md border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-          />
-          <Button 
-            type="submit"
-            className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-md font-medium py-2 px-6 min-w-[110px]"
-          >
-            S'abonner
-          </Button>
-        </form>
-      </header>
+          
+          <div className="flex flex-wrap justify-center gap-2">
+            <Badge
+              variant={activeCategory === null ? "default" : "outline"}
+              className={`px-4 py-2 cursor-pointer ${
+                activeCategory === null
+                  ? "bg-[#48b5c3] text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+              onClick={() => onCategoryChange(null)}
+            >
+              Tous
+            </Badge>
+            
+            {categories.map((cat) => (
+              <Badge
+                key={cat.category}
+                variant={activeCategory === cat.category ? "default" : "outline"}
+                className={`px-4 py-2 cursor-pointer ${
+                  activeCategory === cat.category
+                    ? "bg-[#48b5c3] text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+                onClick={() => onCategoryChange(cat.category)}
+              >
+                {cat.category} ({cat.count})
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

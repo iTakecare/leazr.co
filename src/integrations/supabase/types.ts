@@ -138,6 +138,66 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          author_avatar: string | null
+          author_name: string | null
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          read_time: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_name?: string | null
+          author_role?: string | null
+          category: string
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          read_time?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_avatar?: string | null
+          author_name?: string | null
+          author_role?: string | null
+          category?: string
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          read_time?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string
@@ -1857,6 +1917,57 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_blog_categories: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          category: string
+          count: number
+        }[]
+      }
+      get_blog_post_by_slug: {
+        Args: { post_slug: string }
+        Returns: {
+          author_avatar: string | null
+          author_name: string | null
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          read_time: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }[]
+      }
+      get_blog_posts: {
+        Args: { category_filter?: string }
+        Returns: {
+          author_avatar: string | null
+          author_name: string | null
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          read_time: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }[]
+      }
       get_brands: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1870,6 +1981,28 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_featured_blog_posts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          author_avatar: string | null
+          author_name: string | null
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          read_time: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }[]
       }
       get_menus_cms: {
         Args: { location_name: string }
@@ -1947,6 +2080,28 @@ export type Database = {
           primaryColor: string
           secondaryColor: string
           templateImages: Json | null
+          updated_at: string
+        }[]
+      }
+      get_related_blog_posts: {
+        Args: { post_id: string; limit_count?: number }
+        Returns: {
+          author_avatar: string | null
+          author_name: string | null
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          read_time: string | null
+          slug: string
+          title: string
           updated_at: string
         }[]
       }

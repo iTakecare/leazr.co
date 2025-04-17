@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,34 +36,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
-
-// Simulons des données de blog pour le prototype
-const MOCK_POSTS = [
-  { 
-    id: 1, 
-    title: "Comment le leasing de matériel reconditionné réduit l'empreinte carbone de votre entreprise",
-    status: "published",
-    author: "Marie Dupont",
-    date: "12 avril 2025",
-    category: "Développement durable" 
-  },
-  { 
-    id: 2, 
-    title: "Guide complet: Choisir le bon MacBook Pro pour votre équipe",
-    status: "published",
-    author: "Thomas Lambert",
-    date: "5 avril 2025",
-    category: "Matériel" 
-  },
-  { 
-    id: 3, 
-    title: "5 avantages fiscaux du leasing de matériel informatique",
-    status: "draft",
-    author: "Sophie Leroy",
-    date: "En cours de rédaction",
-    category: "Finance" 
-  },
-];
+import { useToast } from "@/components/ui/use-toast";
+import { 
+  getAllBlogPostsForAdmin, 
+  createBlogPost, 
+  updateBlogPost, 
+  deleteBlogPost,
+  BlogPost
+} from "@/services/blogService";
+import { useNavigate } from "react-router-dom";
 
 const CATEGORIES = [
   "Développement durable",
@@ -75,47 +56,146 @@ const CATEGORIES = [
 ];
 
 const BlogManager = () => {
-  const [posts, setPosts] = useState(MOCK_POSTS);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentPost, setCurrentPost] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPost, setCurrentPost] = useState<Partial<BlogPost> | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const loadBlogPosts = async () => {
+    setIsLoading(true);
+    const data = await getAllBlogPostsForAdmin();
+    setPosts(data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadBlogPosts();
+  }, []);
 
   const handleNewPost = () => {
     setCurrentPost({
-      id: null,
       title: "",
+      slug: "",
       content: "",
       excerpt: "",
-      status: "draft",
-      category: "",
-      author: "",
-      metaTitle: "",
-      metaDescription: ""
+      category: CATEGORIES[0],
+      is_published: false,
+      is_featured: false,
+      author_name: "",
+      author_role: "",
+      meta_title: "",
+      meta_description: ""
     });
     setIsEditing(true);
   };
 
-  const handleEditPost = (post: any) => {
-    // Dans un cas réel, nous chargerions tout le contenu depuis la base de données
+  const handleEditPost = (post: BlogPost) => {
     setCurrentPost({
-      ...post,
-      content: "<p>Contenu de l'article...</p>",
-      excerpt: "Extrait de l'article...",
-      metaTitle: post.title,
-      metaDescription: "Description de l'article pour les moteurs de recherche."
+      ...post
     });
     setIsEditing(true);
   };
 
-  const handleSavePost = () => {
-    // TODO: Implémenter la sauvegarde dans la base de données
-    console.log("Sauvegarder l'article", currentPost);
-    setIsEditing(false);
+  const handleSavePost = async () => {
+    if (!currentPost || !currentPost.title || !currentPost.content || !currentPost.category) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      if (currentPost.id) {
+        // Mise à jour d'un article existant
+        await updateBlogPost(currentPost.id, currentPost);
+        toast({
+          title: "Succès",
+          description: "L'article a été mis à jour avec succès",
+        });
+      } else {
+        // Création d'un nouvel article
+        await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
+        toast({
+          title: "Succès",
+          description: "L'article a été créé avec succès",
+        });
+      }
+      
+      // Recharger la liste des articles
+      loadBlogPosts();
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement de l'article:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement de l'article",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeletePost = (postId: number) => {
-    // TODO: Implémenter la suppression dans la base de données
-    console.log("Supprimer l'article", postId);
-    setPosts(posts.filter(post => post.id !== postId));
+  const handleDeletePost = async (postId: string) => {
+    try {
+      const success = await deleteBlogPost(postId);
+      
+      if (success) {
+        toast({
+          title: "Succès",
+          description: "L'article a été supprimé avec succès",
+        });
+        
+        // Recharger la liste des articles
+        loadBlogPosts();
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la suppression de l'article",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'article:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression de l'article",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSlugify = (title: string) => {
+    // Fonction pour générer un slug à partir du titre
+    if (!currentPost) return;
+    
+    const slug = title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '') // Supprime les caractères spéciaux
+      .replace(/\s+/g, '-') // Remplace les espaces par des tirets
+      .replace(/--+/g, '-') // Supprime les tirets multiples
+      .trim();
+    
+    setCurrentPost({ ...currentPost, slug });
+  };
+
+  const handleViewPost = (slug: string) => {
+    navigate(`/blog/${slug}`);
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentPost) return;
+    
+    const newTitle = e.target.value;
+    setCurrentPost({ ...currentPost, title: newTitle });
+    
+    // Si le slug est vide ou correspond à un slug généré précédemment,
+    // générer automatiquement un nouveau slug
+    if (!currentPost.slug || currentPost.slug === handleSlugify(currentPost.title || '')) {
+      handleSlugify(newTitle);
+    }
   };
 
   return (
@@ -127,55 +207,73 @@ const BlogManager = () => {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Titre</TableHead>
-            <TableHead>Catégorie</TableHead>
-            <TableHead>Auteur</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {posts.map((post) => (
-            <TableRow key={post.id}>
-              <TableCell className="font-medium">{post.title}</TableCell>
-              <TableCell>{post.category}</TableCell>
-              <TableCell>{post.author}</TableCell>
-              <TableCell>{post.date}</TableCell>
-              <TableCell>
-                {post.status === "published" ? (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                    Publié
-                  </span>
-                ) : (
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                    Brouillon
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="text-right space-x-2">
-                <Button variant="ghost" size="icon" onClick={() => handleEditPost(post)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-red-500 hover:text-red-700"
-                  onClick={() => handleDeletePost(post.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
+      {isLoading ? (
+        <div className="py-8 text-center">Chargement des articles...</div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Titre</TableHead>
+              <TableHead>Catégorie</TableHead>
+              <TableHead>Auteur</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {posts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  Aucun article trouvé. Créez votre premier article !
+                </TableCell>
+              </TableRow>
+            ) : (
+              posts.map((post) => (
+                <TableRow key={post.id}>
+                  <TableCell className="font-medium">{post.title}</TableCell>
+                  <TableCell>{post.category}</TableCell>
+                  <TableCell>{post.author_name || "Non spécifié"}</TableCell>
+                  <TableCell>
+                    {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                  </TableCell>
+                  <TableCell>
+                    {post.is_published ? (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                        Publié
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                        Brouillon
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditPost(post)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewPost(post.slug)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="max-w-4xl">
@@ -197,17 +295,29 @@ const BlogManager = () => {
             
             <TabsContent value="content" className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Titre</Label>
+                <Label htmlFor="title">Titre *</Label>
                 <Input 
                   id="title" 
                   value={currentPost?.title || ""} 
-                  onChange={(e) => setCurrentPost({...currentPost, title: e.target.value})}
+                  onChange={handleTitleChange}
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug URL *</Label>
+                <Input 
+                  id="slug" 
+                  value={currentPost?.slug || ""} 
+                  onChange={(e) => setCurrentPost({...currentPost, slug: e.target.value})}
+                />
+                <p className="text-sm text-gray-500">
+                  Identifiant unique utilisé dans l'URL de l'article (ex: mon-article)
+                </p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Catégorie</Label>
+                  <Label htmlFor="category">Catégorie *</Label>
                   <Select 
                     value={currentPost?.category || ""} 
                     onValueChange={(value) => setCurrentPost({...currentPost, category: value})}
@@ -229,10 +339,19 @@ const BlogManager = () => {
                   <Label htmlFor="author">Auteur</Label>
                   <Input 
                     id="author" 
-                    value={currentPost?.author || ""} 
-                    onChange={(e) => setCurrentPost({...currentPost, author: e.target.value})}
+                    value={currentPost?.author_name || ""} 
+                    onChange={(e) => setCurrentPost({...currentPost, author_name: e.target.value})}
                   />
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="author_role">Fonction de l'auteur</Label>
+                <Input 
+                  id="author_role" 
+                  value={currentPost?.author_role || ""} 
+                  onChange={(e) => setCurrentPost({...currentPost, author_role: e.target.value})}
+                />
               </div>
               
               <div className="space-y-2">
@@ -243,13 +362,27 @@ const BlogManager = () => {
                   onChange={(e) => setCurrentPost({...currentPost, excerpt: e.target.value})}
                   rows={3}
                 />
+                <p className="text-sm text-gray-500">
+                  Court résumé de l'article qui apparaîtra dans les listes d'articles
+                </p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="content">Contenu</Label>
+                <Label htmlFor="content">Contenu *</Label>
                 <RichTextEditor 
                   value={currentPost?.content || ""} 
                   onChange={(value) => setCurrentPost({...currentPost, content: value})}
+                  className="min-h-[300px]"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="read_time">Temps de lecture</Label>
+                <Input 
+                  id="read_time" 
+                  value={currentPost?.read_time || ""} 
+                  onChange={(e) => setCurrentPost({...currentPost, read_time: e.target.value})}
+                  placeholder="Ex: 5 minutes de lecture"
                 />
               </div>
             </TabsContent>
@@ -259,8 +392,8 @@ const BlogManager = () => {
                 <Label htmlFor="metaTitle">Titre SEO</Label>
                 <Input 
                   id="metaTitle" 
-                  value={currentPost?.metaTitle || ""} 
-                  onChange={(e) => setCurrentPost({...currentPost, metaTitle: e.target.value})}
+                  value={currentPost?.meta_title || ""} 
+                  onChange={(e) => setCurrentPost({...currentPost, meta_title: e.target.value})}
                 />
                 <p className="text-sm text-gray-500">
                   Le titre qui apparaîtra dans les résultats de recherche. Idéalement entre 50 et 60 caractères.
@@ -271,8 +404,8 @@ const BlogManager = () => {
                 <Label htmlFor="metaDescription">Description SEO</Label>
                 <Textarea 
                   id="metaDescription" 
-                  value={currentPost?.metaDescription || ""} 
-                  onChange={(e) => setCurrentPost({...currentPost, metaDescription: e.target.value})}
+                  value={currentPost?.meta_description || ""} 
+                  onChange={(e) => setCurrentPost({...currentPost, meta_description: e.target.value})}
                   rows={3}
                 />
                 <p className="text-sm text-gray-500">
@@ -287,9 +420,9 @@ const BlogManager = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
                   <div className="space-y-2">
                     <div className="flex justify-center">
-                      {currentPost?.image ? (
+                      {currentPost?.image_url ? (
                         <img 
-                          src={currentPost.image} 
+                          src={currentPost.image_url} 
                           alt="Aperçu" 
                           className="max-h-48 rounded"
                         />
@@ -299,32 +432,57 @@ const BlogManager = () => {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">
-                      Glissez-déposez une image ici ou
+                    <Input
+                      type="text"
+                      placeholder="URL de l'image"
+                      value={currentPost?.image_url || ""}
+                      onChange={(e) => setCurrentPost({...currentPost, image_url: e.target.value})}
+                      className="mt-4"
+                    />
+                    <p className="text-sm text-gray-500 mt-2">
+                      Entrez l'URL de l'image de couverture pour cet article
                     </p>
-                    <Button variant="outline" size="sm">
-                      Parcourir
-                    </Button>
                   </div>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Avatar de l'auteur</Label>
+                <Input
+                  type="text"
+                  placeholder="URL de l'avatar"
+                  value={currentPost?.author_avatar || ""}
+                  onChange={(e) => setCurrentPost({...currentPost, author_avatar: e.target.value})}
+                />
+                <p className="text-sm text-gray-500">
+                  Entrez l'URL de l'image de l'auteur
+                </p>
               </div>
             </TabsContent>
           </Tabs>
 
           <DialogFooter>
             <div className="flex items-center gap-2">
-              <Select 
-                value={currentPost?.status || "draft"} 
-                onValueChange={(value) => setCurrentPost({...currentPost, status: value})}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Brouillon</SelectItem>
-                  <SelectItem value="published">Publié</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 mr-4">
+                <Label htmlFor="is_published" className="text-sm">Publié</Label>
+                <input
+                  type="checkbox"
+                  id="is_published"
+                  checked={currentPost?.is_published || false}
+                  onChange={(e) => setCurrentPost({...currentPost, is_published: e.target.checked})}
+                  className="rounded"
+                />
+              </div>
+              <div className="flex items-center gap-2 mr-4">
+                <Label htmlFor="is_featured" className="text-sm">En vedette</Label>
+                <input
+                  type="checkbox"
+                  id="is_featured"
+                  checked={currentPost?.is_featured || false}
+                  onChange={(e) => setCurrentPost({...currentPost, is_featured: e.target.checked})}
+                  className="rounded"
+                />
+              </div>
               <Button variant="outline" onClick={() => setIsEditing(false)}>
                 Annuler
               </Button>

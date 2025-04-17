@@ -4,21 +4,17 @@ import { Button } from "@/components/ui/button";
 import BlogCard from "./BlogCard";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BlogPost } from "@/services/blogService";
 
 interface RelatedPostsProps {
-  posts: Array<{
-    id: number;
-    title: string;
-    excerpt: string;
-    date: string;
-    category: string;
-    image: string;
-    slug: string;
-    readTime: string;
-  }>;
+  posts: BlogPost[];
 }
 
 const RelatedPosts = ({ posts }: RelatedPostsProps) => {
+  if (posts.length === 0) {
+    return null;
+  }
+
   return (
     <div className="py-12 bg-[#f8f8f6]">
       <div className="container mx-auto px-4">
@@ -36,13 +32,7 @@ const RelatedPosts = ({ posts }: RelatedPostsProps) => {
           {posts.map(post => (
             <BlogCard 
               key={post.id}
-              title={post.title}
-              excerpt={post.excerpt}
-              date={post.date}
-              category={post.category}
-              image={post.image}
-              slug={post.slug}
-              readTime={post.readTime}
+              post={post}
             />
           ))}
         </div>
