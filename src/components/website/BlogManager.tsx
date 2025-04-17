@@ -15,7 +15,8 @@ import {
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { 
   Tabs, 
@@ -249,7 +250,6 @@ const BlogManager = () => {
       if (imageUrl) {
         console.log("Image uploaded successfully:", imageUrl);
         
-        // Immediately update the currentPost state with new image URL
         setCurrentPost({
           ...currentPost,
           image_url: imageUrl
