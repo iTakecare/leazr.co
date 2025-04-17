@@ -141,26 +141,34 @@ const BlogManager = () => {
     try {
       setIsUploading(true);
       if (currentPost.id) {
-        await updateBlogPost(currentPost.id, currentPost);
-        toast({
-          title: "Succès",
-          description: "L'article a été mis à jour avec succès",
-        });
+        const result = await updateBlogPost(currentPost.id, currentPost);
+        if (result) {
+          toast({
+            title: "Succès",
+            description: "L'article a été mis à jour avec succès",
+          });
+        } else {
+          throw new Error("La mise à jour de l'article a échoué");
+        }
       } else {
-        await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
-        toast({
-          title: "Succès",
-          description: "L'article a été créé avec succès",
-        });
+        const result = await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
+        if (result) {
+          toast({
+            title: "Succès",
+            description: "L'article a été créé avec succès",
+          });
+        } else {
+          throw new Error("La création de l'article a échoué");
+        }
       }
       
       loadBlogPosts();
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de l'article:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'enregistrement de l'article",
+        description: `Une erreur est survenue lors de l'enregistrement de l'article: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -235,13 +243,53 @@ const BlogManager = () => {
     try {
       setIsUploading(true);
       const file = files[0];
+      
+      console.log("Uploading image file:", file.name, "size:", file.size);
+      
+      // Make sure the bucket exists first (using a helper function)
+      const ensureBucket = async (bucketName: string) => {
+        try {
+          // Try to import from fileStorage first
+          try {
+            const fileStorage = await import('@/services/fileStorage');
+            if (fileStorage.ensureBucket) {
+              return await fileStorage.ensureBucket(bucketName);
+            }
+          } catch (e) {
+            console.log("Could not find ensureBucket in fileStorage, trying storageService");
+          }
+          
+          // Try storageService as fallback
+          try {
+            const storageService = await import('@/services/storageService');
+            if (storageService.ensureStorageBucket) {
+              return await storageService.ensureStorageBucket(bucketName);
+            }
+          } catch (e) {
+            console.log("Could not find ensureStorageBucket in storageService, using default uploadImage");
+          }
+          
+          return true; // Assume bucket exists if we can't check
+        } catch (e) {
+          console.error("Error ensuring bucket exists:", e);
+          return true; // Proceed anyway
+        }
+      };
+      
+      // Ensure the blog-images bucket exists
+      await ensureBucket('blog-images');
+      
       const result = await uploadImage(file, 'blog-images');
       
       if (result) {
+        console.log("Image uploaded successfully:", result);
+        
+        // Immediately update the currentPost state with new image URL
         setCurrentPost({
           ...currentPost,
-          image_url: result
+          image_url: typeof result === 'string' ? result : result.url
         });
+        
         toast({
           title: "Succès",
           description: "L'image a été téléchargée avec succès",
@@ -249,11 +297,11 @@ const BlogManager = () => {
       } else {
         throw new Error("Échec de l'upload");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'upload de l'image:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'upload de l'image",
+        description: `Une erreur est survenue lors de l'upload de l'image: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -270,13 +318,23 @@ const BlogManager = () => {
     try {
       setIsUploading(true);
       const file = files[0];
+      
+      console.log("Uploading author avatar:", file.name, "size:", file.size);
+      
       const result = await uploadImage(file, 'blog-author-avatars');
       
       if (result) {
+        console.log("Avatar uploaded successfully:", result);
+        
+        // Ensure consistent URL format
+        const avatarUrl = typeof result === 'string' ? result : result.url;
+        
+        // Update the current post state
         setCurrentPost({
           ...currentPost,
-          author_avatar: result
+          author_avatar: avatarUrl
         });
+        
         toast({
           title: "Succès",
           description: "L'avatar a été téléchargé avec succès",
@@ -284,11 +342,11 @@ const BlogManager = () => {
       } else {
         throw new Error("Échec de l'upload");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'upload de l'avatar:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'upload de l'avatar",
+        description: `Une erreur est survenue lors de l'upload de l'avatar: ${error.message}`,
         variant: "destructive"
       });
     } finally {

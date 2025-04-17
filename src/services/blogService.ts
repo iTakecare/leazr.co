@@ -151,7 +151,7 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
     } else if (data) {
       // Log les IDs et titres des articles récupérés pour débogage
       data.forEach(post => {
-        console.log(`Post fetched: ID=${post.id}, Title=${post.title}`);
+        console.log(`Post fetched: ID=${post.id}, Title=${post.title}, Image=${post.image_url}`);
       });
     }
     
@@ -166,6 +166,8 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
 export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>): Promise<BlogPost | null> => {
   try {
     console.log("Creating blog post:", blogPost.title);
+    console.log("Post data:", JSON.stringify(blogPost, null, 2));
+    
     const { data, error } = await supabase
       .from('blog_posts')
       .insert([{ ...blogPost }])
@@ -189,6 +191,8 @@ export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at
 export const updateBlogPost = async (id: string, blogPost: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
     console.log("Updating blog post:", id);
+    console.log("Update data:", JSON.stringify(blogPost, null, 2));
+    
     const { data, error } = await supabase
       .from('blog_posts')
       .update({ 
@@ -205,6 +209,7 @@ export const updateBlogPost = async (id: string, blogPost: Partial<BlogPost>): P
     }
     
     console.log("Blog post updated successfully:", id);
+    console.log("Updated data:", data);
     return data;
   } catch (error) {
     console.error('Exception lors de la mise à jour de l\'article:', error);

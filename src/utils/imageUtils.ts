@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -10,6 +11,8 @@ export async function uploadImage(
   folderPath: string = ""
 ): Promise<string | null> {
   try {
+    console.log(`Starting image upload for file: ${file.name} to bucket: ${bucketName}`);
+    
     // Validate file size
     if (file.size > 5 * 1024 * 1024) {
       toast.error("L'image est trop volumineuse (max 5MB)");
@@ -30,12 +33,46 @@ export async function uploadImage(
     
     console.log(`Using direct fetch method to upload: ${fileName} with Content-Type: ${contentType}`);
     
+    // Check if the bucket exists first
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    
+    if (bucketError) {
+      console.error("Error checking buckets:", bucketError);
+    } else {
+      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+      if (!bucketExists) {
+        console.log(`Bucket ${bucketName} doesn't exist, attempting to create it...`);
+        try {
+          const { error } = await supabase.storage.createBucket(bucketName, {
+            public: true,
+            fileSizeLimit: 5242880 // 5MB
+          });
+          
+          if (error) {
+            if (error.message.includes('already exists')) {
+              console.log(`Bucket ${bucketName} already exists`);
+            } else {
+              console.error(`Error creating bucket ${bucketName}:`, error);
+              // Continue anyway, the upload might still work
+            }
+          } else {
+            console.log(`Successfully created bucket ${bucketName}`);
+          }
+        } catch (e) {
+          console.error("Error creating bucket:", e);
+          // Continue anyway, the upload might still work
+        }
+      }
+    }
+    
     // Use direct fetch API for better control over Content-Type
     const formData = new FormData();
     formData.append('file', file);
     
     // Get the storage URL and key
     const storageUrl = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
+    
+    console.log(`Uploading to URL: ${storageUrl}`);
     
     // Upload using fetch with explicit content-type in body
     const response = await fetch(storageUrl, {
@@ -50,7 +87,25 @@ export async function uploadImage(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Upload error:', errorText);
-      throw new Error(`Upload failed: ${errorText}`);
+      
+      // Try fallback method with supabase.storage API
+      console.log("Direct upload failed, trying supabase.storage API as fallback...");
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          contentType: contentType,
+          upsert: true
+        });
+      
+      if (uploadError) {
+        console.error("Fallback upload also failed:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+      
+      console.log("Fallback upload succeeded:", uploadData);
+    } else {
+      console.log("Direct upload succeeded");
     }
     
     // Get public URL
