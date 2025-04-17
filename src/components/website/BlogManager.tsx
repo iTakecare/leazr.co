@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,14 +109,12 @@ const BlogManager = () => {
 
     try {
       if (currentPost.id) {
-        // Mise à jour d'un article existant
         await updateBlogPost(currentPost.id, currentPost);
         toast({
           title: "Succès",
           description: "L'article a été mis à jour avec succès",
         });
       } else {
-        // Création d'un nouvel article
         await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
         toast({
           title: "Succès",
@@ -125,7 +122,6 @@ const BlogManager = () => {
         });
       }
       
-      // Recharger la liste des articles
       loadBlogPosts();
       setIsEditing(false);
     } catch (error) {
@@ -148,7 +144,6 @@ const BlogManager = () => {
           description: "L'article a été supprimé avec succès",
         });
         
-        // Recharger la liste des articles
         loadBlogPosts();
       } else {
         toast({
@@ -167,18 +162,13 @@ const BlogManager = () => {
     }
   };
 
-  const handleSlugify = (title: string) => {
-    // Fonction pour générer un slug à partir du titre
-    if (!currentPost) return;
-    
-    const slug = title
+  const handleSlugify = (title: string): string => {
+    return title
       .toLowerCase()
-      .replace(/[^\w\s-]/g, '') // Supprime les caractères spéciaux
-      .replace(/\s+/g, '-') // Remplace les espaces par des tirets
-      .replace(/--+/g, '-') // Supprime les tirets multiples
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')     // Replace spaces with dashes
+      .replace(/--+/g, '-')     // Remove multiple dashes
       .trim();
-    
-    setCurrentPost({ ...currentPost, slug });
   };
 
   const handleViewPost = (slug: string) => {
@@ -191,8 +181,6 @@ const BlogManager = () => {
     const newTitle = e.target.value;
     setCurrentPost({ ...currentPost, title: newTitle });
     
-    // Si le slug est vide ou correspond à un slug généré précédemment,
-    // générer automatiquement un nouveau slug
     if (!currentPost.slug || currentPost.slug === handleSlugify(currentPost.title || '')) {
       handleSlugify(newTitle);
     }
