@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -224,33 +223,27 @@ const ServicesPage = () => {
         </div>
       </section>
 
-      {/* CTA Section - Mise à jour pour correspondre au style de la page About */}
-      <section className="py-16 bg-white">
+      {/* CTA Section - using the same style as HomePage CtaSection */}
+      <section className="py-16 bg-transparent text-white">
         <Container maxWidth="custom">
-          <div className="relative overflow-hidden rounded-3xl">
-            {/* Arrière-plan avec dégradé */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#1EAEDB] to-[#33949F] z-0"></div>
+          <div className="text-center relative">
+            <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
+              <img src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" alt="Fond turquoise" className="w-full h-full object-cover" />
+            </div>
             
-            {/* Effets de flou comme sur la page About */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-[#33949F]/30 blur-[80px] rounded-full z-0"></div>
-            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#33949F]/30 blur-[80px] rounded-full z-0"></div>
-            
-            <div className="relative px-6 py-24 z-10">
-              <div className="mx-auto text-center max-w-4xl">
-                <h2 className="text-[32px] md:text-[46px] text-white font-extrabold mb-6 leading-tight">
-                  Des services informatiques <br />adaptés à tous vos besoins
-                </h2>
-                <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
-                  Découvrez comment notre expertise peut transformer votre environnement de travail et booster votre productivité.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4 mt-8">
-                  <Button className="bg-white text-[#33949F] hover:bg-gray-100 font-bold rounded-full px-8 py-6 h-auto text-lg">
-                    Demander un devis
-                  </Button>
-                  <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold rounded-full px-8 py-6 h-auto text-lg">
-                    Nous contacter
-                  </Button>
-                </div>
+            <div className="relative z-10 py-16">
+              <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
+                Des services informatiques adaptés
+                <br />
+                n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">secrets</span> pour vous
+              </h2>
+              <div className="flex flex-wrap justify-center gap-4 mt-8">
+                <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto">
+                  Demander un devis
+                </Button>
+                <Button variant="outline" className="bg-white hover:bg-gray-100 text-gray-800 font-bold border-none rounded-full px-8 py-3 h-auto">
+                  Parler à un conseiller
+                </Button>
               </div>
             </div>
           </div>
