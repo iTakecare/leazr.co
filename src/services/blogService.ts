@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type BlogPost = {
@@ -20,6 +19,70 @@ export type BlogPost = {
   created_at: string;
   updated_at: string;
 }
+
+// S'assurer que le bucket existe pour les blogs
+export const ensureBlogBucketExists = async (): Promise<boolean> => {
+  try {
+    console.log("Vérification du bucket pour les blogs...");
+    
+    // Vérifier si le bucket existe déjà
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error("Erreur lors de la vérification des buckets:", listError);
+      return false;
+    }
+    
+    const bucketName = 'blog-images';
+    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
+      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
+    }
+    
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
+    
+    // Tenter de créer le bucket
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 5 * 1024 * 1024 // 5MB
+    });
+    
+    if (createError) {
+      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+      return false;
+    }
+    
+    console.log(`Bucket ${bucketName} créé avec succès`);
+    
+    // Créer les politiques d'accès public
+    try {
+      await supabase.rpc('create_storage_policy', {
+        bucket_name: bucketName,
+        policy_name: `${bucketName}_public_select`,
+        definition: 'TRUE',
+        policy_type: 'SELECT'
+      });
+      
+      await supabase.rpc('create_storage_policy', {
+        bucket_name: bucketName,
+        policy_name: `${bucketName}_public_insert`,
+        definition: 'TRUE',
+        policy_type: 'INSERT'
+      });
+      
+      console.log(`Politiques d'accès créées pour le bucket ${bucketName}`);
+    } catch (policyError) {
+      console.warn(`Erreur lors de la création des politiques (non bloquant):`, policyError);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Erreur dans ensureBlogBucketExists:", error);
+    return false;
+  }
+};
 
 // Récupérer tous les articles publiés
 export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
@@ -133,6 +196,9 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
     console.log("Fetching blog posts for admin...");
     
+    // Vérifier que le bucket existe
+    await ensureBlogBucketExists();
+    
     // Requête directe à la table blog_posts pour récupérer TOUS les articles
     const { data, error } = await supabase
       .from('blog_posts')
@@ -166,7 +232,31 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
 export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>): Promise<BlogPost | null> => {
   try {
     console.log("Creating blog post:", blogPost.title);
-    console.log("Post data:", JSON.stringify(blogPost, null, 2));
+    console.log("Post data:", JSON.stringify({
+      ...blogPost,
+      content: blogPost.content?.substring(0, 100) + "..." // Tronquer pour les logs
+    }, null, 2));
+    
+    // Vérifier que le bucket existe
+    await ensureBlogBucketExists();
+    
+    // Vérifier que le slug est défini et unique
+    if (!blogPost.slug) {
+      console.error("Erreur: Le slug est requis");
+      return null;
+    }
+    
+    // Vérifier si le slug existe déjà
+    const { data: existingPost } = await supabase
+      .from('blog_posts')
+      .select('id')
+      .eq('slug', blogPost.slug)
+      .single();
+    
+    if (existingPost) {
+      console.warn(`Un article avec le slug '${blogPost.slug}' existe déjà, génération d'un slug unique`);
+      blogPost.slug = `${blogPost.slug}-${Date.now()}`;
+    }
     
     const { data, error } = await supabase
       .from('blog_posts')

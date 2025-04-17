@@ -3,6 +3,76 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
+ * Crée un bucket s'il n'existe pas déjà et configure les politiques d'accès
+ */
+async function ensureBucketExists(bucketName: string): Promise<boolean> {
+  try {
+    console.log(`Vérification de l'existence du bucket: ${bucketName}`);
+    
+    // Vérifier si le bucket existe déjà
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error("Erreur lors de la vérification des buckets:", listError);
+      return false;
+    }
+    
+    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
+      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
+    }
+    
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
+    
+    try {
+      // Tenter de créer le bucket directement
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 5 * 1024 * 1024 // 5MB
+      });
+      
+      if (createError) {
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        return false;
+      }
+      
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      
+      // Ajouter automatiquement les politiques d'accès (via RPC)
+      try {
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_select`,
+          definition: 'TRUE',
+          policy_type: 'SELECT'
+        });
+        
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: bucketName,
+          policy_name: `${bucketName}_public_insert`,
+          definition: 'TRUE', 
+          policy_type: 'INSERT'
+        });
+        
+        console.log("Politiques d'accès créées pour le bucket");
+        return true;
+      } catch (policyError) {
+        console.warn("Erreur lors de la création des politiques (non bloquant):", policyError);
+        return true; // On continue même si la création des politiques échoue
+      }
+    } catch (error) {
+      console.error("Exception lors de la création du bucket:", error);
+      return false;
+    }
+  } catch (error) {
+    console.error("Erreur générale dans ensureBucketExists:", error);
+    return false;
+  }
+}
+
+/**
  * Uploads an image to Supabase storage and returns the public URL
  */
 export async function uploadImage(
@@ -17,6 +87,14 @@ export async function uploadImage(
     if (file.size > 5 * 1024 * 1024) {
       console.error("Image trop volumineuse (max 5MB)");
       toast.error("L'image est trop volumineuse (max 5MB)");
+      return null;
+    }
+    
+    // S'assurer que le bucket existe
+    const bucketExists = await ensureBucketExists(bucketName);
+    if (!bucketExists) {
+      console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé`);
+      toast.error(`Erreur: Impossible de créer l'espace de stockage pour les images`);
       return null;
     }
     
@@ -48,48 +126,6 @@ export async function uploadImage(
     
     if (error) {
       console.error('Erreur d\'upload:', error.message);
-      
-      // If bucket doesn't exist, try creating it via RPC
-      if (error.message.includes('bucket') || error.message.includes('not found')) {
-        try {
-          console.log(`Tentative de création du bucket ${bucketName} via RPC...`);
-          const { error: rpcError } = await supabase.rpc('create_storage_bucket', { bucket_name: bucketName });
-          
-          if (rpcError) {
-            console.error('Erreur lors de la création du bucket via RPC:', rpcError);
-          } else {
-            console.log(`Bucket ${bucketName} créé avec succès via RPC, nouvel essai d'upload...`);
-            
-            // Try upload again
-            const { data: retryData, error: retryError } = await supabase.storage
-              .from(bucketName)
-              .upload(filePath, file, {
-                contentType: contentType,
-                upsert: true,
-                cacheControl: '3600'
-              });
-              
-            if (retryError) {
-              console.error('Erreur lors du second essai d\'upload:', retryError);
-              toast.error(`Erreur d'upload: ${retryError.message}`);
-              return null;
-            }
-            
-            // If retry succeeded, get the URL
-            const { data: retryUrlData } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(filePath);
-              
-            if (retryUrlData?.publicUrl) {
-              console.log(`Image téléchargée avec succès après création du bucket: ${retryUrlData.publicUrl}`);
-              return retryUrlData.publicUrl;
-            }
-          }
-        } catch (rpcError) {
-          console.error('Exception lors de la création du bucket:', rpcError);
-        }
-      }
-      
       toast.error(`Erreur d'upload: ${error.message}`);
       return null;
     }

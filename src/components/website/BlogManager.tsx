@@ -128,53 +128,85 @@ const BlogManager = () => {
         description: "Veuillez remplir tous les champs obligatoires",
         variant: "destructive"
       });
+      console.error("Validation échouée:", { 
+        title: currentPost?.title, 
+        content: currentPost?.content?.substring(0, 50) + "...",
+        category: currentPost?.category
+      });
       return;
     }
 
     if (!currentPost.slug) {
-      setCurrentPost({
-        ...currentPost,
-        slug: handleSlugify(currentPost.title)
-      });
+      const newSlug = handleSlugify(currentPost.title);
+      console.log(`Génération du slug automatique: "${currentPost.title}" -> "${newSlug}"`);
+      setCurrentPost(prev => ({
+        ...prev,
+        slug: newSlug
+      }));
     }
 
     try {
       setIsUploading(true);
       console.log("Début de la sauvegarde de l'article...");
+      console.log("Données de l'article:", JSON.stringify({
+        ...currentPost,
+        content: currentPost.content?.substring(0, 100) + "..."
+      }, null, 2));
+      
+      let result = null;
       
       if (currentPost.id) {
-        console.log("Mise à jour de l'article existant:", currentPost);
-        const result = await updateBlogPost(currentPost.id, currentPost);
+        console.log("Mise à jour de l'article existant:", currentPost.id);
+        result = await updateBlogPost(currentPost.id, currentPost);
+        
         if (result) {
+          console.log("Article mis à jour avec succès:", result.id);
           toast({
             title: "Succès",
             description: "L'article a été mis à jour avec succès",
           });
-          console.log("Article mis à jour avec succès:", result);
         } else {
-          throw new Error("La mise à jour de l'article a échoué");
+          console.error("Échec de la mise à jour de l'article");
+          toast({
+            title: "Erreur",
+            description: "La mise à jour de l'article a échoué",
+            variant: "destructive"
+          });
         }
       } else {
-        console.log("Création d'un nouvel article:", currentPost);
-        const result = await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
+        console.log("Création d'un nouvel article");
+        const postToCreate = {
+          ...currentPost,
+          slug: currentPost.slug || handleSlugify(currentPost.title)
+        } as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>;
+        
+        result = await createBlogPost(postToCreate);
+        
         if (result) {
+          console.log("Article créé avec succès:", result.id);
           toast({
             title: "Succès",
             description: "L'article a été créé avec succès",
           });
-          console.log("Article créé avec succès:", result);
         } else {
-          throw new Error("La création de l'article a échoué");
+          console.error("Échec de la création de l'article");
+          toast({
+            title: "Erreur",
+            description: "La création de l'article a échoué",
+            variant: "destructive"
+          });
         }
       }
       
-      await loadBlogPosts();
-      setIsEditing(false);
+      if (result) {
+        await loadBlogPosts();
+        setIsEditing(false);
+      }
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de l'article:", error);
       toast({
         title: "Erreur",
-        description: `Une erreur est survenue lors de l'enregistrement de l'article: ${error.message}`,
+        description: `Une erreur est survenue lors de l'enregistrement: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -256,16 +288,20 @@ const BlogManager = () => {
         description: "Téléchargement de l'image en cours...",
       });
       
-      let imageUrl = null;
-      let uploadError = null;
+      let imageUrl: string | null = null;
+      let uploadError: any = null;
       
       try {
         console.log("Tentative d'utilisation du service fileUploadService...");
         const result = await uploadImageAdvanced(file, 'blog-images');
-        imageUrl = result?.url || null;
-        console.log("Résultat du service avancé:", result);
+        if (result?.url) {
+          imageUrl = result.url;
+          console.log("Image téléchargée avec succès via le service avancé:", imageUrl);
+        } else {
+          console.warn("Le service avancé n'a pas retourné d'URL");
+        }
       } catch (advancedError: any) {
-        console.warn("Erreur avec le service avancé, passage au service basique:", advancedError);
+        console.warn("Erreur avec le service avancé:", advancedError);
         uploadError = advancedError;
       }
       
@@ -273,15 +309,52 @@ const BlogManager = () => {
         console.log("Tentative d'utilisation du service basique...");
         try {
           imageUrl = await uploadImage(file, 'blog-images');
-          console.log("Résultat du service basique:", imageUrl);
+          if (imageUrl) {
+            console.log("Image téléchargée avec succès via le service basique:", imageUrl);
+          } else {
+            console.warn("Le service basique n'a pas retourné d'URL");
+          }
         } catch (basicError: any) {
           console.error("Erreur avec le service basique:", basicError);
           uploadError = uploadError || basicError;
         }
       }
       
+      if (!imageUrl) {
+        try {
+          console.log("Tentative d'upload direct via fetch...");
+          
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const url = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/blog-images/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw`
+            },
+            body: formData
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const bucketName = 'blog-images';
+            const filePath = data.Key.split(`${bucketName}/`)[1];
+            
+            const imageUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/${bucketName}/${filePath}`;
+            console.log("Image téléchargée avec succès via fetch direct:", imageUrl);
+          } else {
+            console.error("Échec de l'upload direct:", await response.text());
+          }
+        } catch (fetchError: any) {
+          console.error("Erreur lors de l'upload direct:", fetchError);
+          uploadError = uploadError || fetchError;
+        }
+      }
+      
       if (imageUrl) {
-        console.log("Image téléchargée avec succès, URL:", imageUrl);
+        console.log("Image téléchargée avec succès, URL finale:", imageUrl);
         
         setCurrentPost(prevState => {
           if (!prevState) return null;
@@ -297,7 +370,7 @@ const BlogManager = () => {
         console.error(errorMessage);
         toast({
           title: "Erreur",
-          description: errorMessage,
+          description: `Échec de l'upload: ${errorMessage}`,
           variant: "destructive"
         });
       }
@@ -305,7 +378,7 @@ const BlogManager = () => {
       console.error("Erreur lors du téléchargement de l'image:", error);
       toast({
         title: "Erreur",
-        description: `Une erreur est survenue lors du téléchargement de l'image: ${error.message}`,
+        description: `Une erreur est survenue lors du téléchargement: ${error.message}`,
         variant: "destructive"
       });
     } finally {
