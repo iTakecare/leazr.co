@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -97,7 +96,7 @@ export async function uploadImage(
   folderPath: string = ""
 ): Promise<string | null> {
   try {
-    console.log(`Début du téléchargement de l'image: ${file.name} vers le bucket: ${bucketName}, taille: ${file.size} octets`);
+    console.log(`Début du téléchargement de l'image: ${file.name} vers le bucket: ${bucketName}`);
     
     // Validate file size
     if (file.size > 5 * 1024 * 1024) {
@@ -105,54 +104,27 @@ export async function uploadImage(
       toast.error("L'image est trop volumineuse (max 5MB)");
       return null;
     }
-    
-    // S'assurer que le bucket existe
-    await ensureBucketExists(bucketName);
-    console.log("Poursuite du téléchargement même si le bucket pourrait ne pas exister");
-    
+
     // Generate a unique filename to prevent conflicts
     const timestamp = Date.now();
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-    
-    // Determine content type based on file extension
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    let contentType = 'image/jpeg'; // Default
-    
-    if (extension === 'png') contentType = 'image/png';
-    else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
-    else if (extension === 'webp') contentType = 'image/webp';
-    else if (extension === 'gif') contentType = 'image/gif';
-    
-    console.log(`Utilisation du type MIME: ${contentType} pour le fichier ${fileName}`);
-    
-    // Création du nom de fichier pour stockage local (fallback)
-    const localFileName = `/lovable-uploads/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-    
-    // Essayer Supabase Storage
+
+    // Try uploading directly via Supabase Storage
     try {
       console.log(`Tentative d'upload du fichier...`);
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
-          contentType: contentType,
-          upsert: true, 
-          cacheControl: '3600'
+          cacheControl: '3600',
+          upsert: true
         });
       
       if (error) {
-        // Si erreur RLS, continuer avec le fallback
-        if (error.message.includes('violates row-level security policy')) {
-          console.warn("Erreur RLS détectée, utilisation du fallback local");
-          return localFileName;
-        }
-        
         console.error('Erreur d\'upload:', error.message);
         toast.error(`Erreur d'upload: ${error.message}`);
-        return localFileName;
+        return null;
       }
-      
-      console.log("Upload réussi:", data?.path);
       
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -162,23 +134,21 @@ export async function uploadImage(
       if (!urlData?.publicUrl) {
         console.error("Impossible d'obtenir l'URL publique");
         toast.error("Impossible d'obtenir l'URL publique");
-        return localFileName;
+        return null;
       }
       
       console.log(`Image téléchargée avec succès: ${urlData.publicUrl}`);
       return urlData.publicUrl;
+      
     } catch (error) {
-      console.error('Erreur générale d\'upload d\'image:', error);
-      // Fallback pour le développement local
-      return localFileName;
+      console.error('Erreur générale d\'upload:', error);
+      toast.error("Erreur lors du téléchargement de l'image");
+      return null;
     }
   } catch (error) {
-    console.error('Erreur générale d\'upload d\'image:', error);
+    console.error('Erreur générale:', error);
     toast.error("Erreur lors du téléchargement de l'image");
-    
-    // Fallback pour le développement local
-    const timestamp = Date.now();
-    return `/lovable-uploads/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+    return null;
   }
 }
 
