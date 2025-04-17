@@ -46,6 +46,10 @@ const getImageMimeType = (file: File): string => {
       return 'image/gif';
     case 'webp':
       return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'pdf':
+      return 'application/pdf';
     default:
       return 'application/octet-stream';
   }
@@ -68,25 +72,35 @@ export const uploadImage = async (
       toast.error("L'image est trop volumineuse (max 5MB)");
       return null;
     }
-
+    
+    // Créer un nouveau Blob avec le type MIME correct
+    const contentType = getImageMimeType(file);
+    console.log(`Type MIME détecté: ${contentType}`);
+    
+    // Créer un nouveau Blob avec le type MIME explicite
+    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    const fileWithCorrectType = new File([fileBlob], file.name, { type: contentType });
+    
     // Generate a unique filename to prevent conflicts
     const timestamp = Date.now();
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    // Get proper MIME type
-    const contentType = getImageMimeType(file);
-    console.log(`Type MIME détecté: ${contentType}`);
+    console.log(`Préparation de l'upload avec type MIME: ${contentType} pour le fichier: ${filePath}`);
     
-    console.log(`Tentative d'upload du fichier...`);
+    // Options d'upload explicites
+    const uploadOptions = {
+      contentType: contentType,
+      cacheControl: '3600',
+      upsert: true
+    };
     
+    console.log(`Tentative d'upload du fichier avec options:`, uploadOptions);
+    
+    // Upload with explicit content type
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
-        contentType,
-        cacheControl: '3600',
-        upsert: true
-      });
+      .upload(filePath, fileWithCorrectType, uploadOptions);
     
     if (error) {
       console.error('Erreur d\'upload:', error.message);

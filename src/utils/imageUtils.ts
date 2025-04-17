@@ -20,19 +20,33 @@ export async function uploadImage(
       return null;
     }
 
+    // Détecter le type MIME correct
+    const contentType = getImageMimeType(file);
+    console.log(`Type MIME détecté: ${contentType}`);
+    
+    // Créer un nouveau Blob avec le type MIME explicite
+    const fileBlob = new Blob([await file.arrayBuffer()], { type: contentType });
+    const fileWithCorrectType = new File([fileBlob], file.name, { type: contentType });
+    
     // Generate a unique filename to prevent conflicts
     const timestamp = Date.now();
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
+    console.log(`Préparation de l'upload avec type MIME: ${contentType} pour le fichier: ${filePath}`);
+    
+    // Options d'upload explicites
+    const uploadOptions = {
+      contentType: contentType,
+      cacheControl: '3600',
+      upsert: true
+    };
+    
     console.log(`Tentative d'upload du fichier...`);
     
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true
-      });
+      .upload(filePath, fileWithCorrectType, uploadOptions);
     
     if (error) {
       console.error('Erreur d\'upload:', error.message);
@@ -61,6 +75,32 @@ export async function uploadImage(
     throw error;
   }
 };
+
+// Fonction utilitaire pour détecter le type MIME à partir du fichier ou de son extension
+function getImageMimeType(file: File): string {
+  // Vérifier d'abord le type MIME du fichier
+  if (file.type.startsWith('image/')) {
+    return file.type;
+  }
+
+  // Si le type n'est pas défini, déduire à partir de l'extension
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
+  }
+}
 
 // Simplified function for basic URL manipulation - no JSON parsing needed
 export function getCacheBustedUrl(url: string | null | undefined): string {
