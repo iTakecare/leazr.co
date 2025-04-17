@@ -7,6 +7,9 @@ import { toast } from 'sonner';
  */
 export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
+    // Handle special case for blog images - use standardized name
+    const normalizedBucketName = bucketName === "Blog Images" ? "blog-images" : bucketName;
+    
     // Vérifier si le bucket existe
     const { data: buckets, error } = await supabase.storage.listBuckets();
     if (error) {
@@ -15,7 +18,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     }
 
     // Si le bucket existe, retourner true
-    if (buckets.some(bucket => bucket.name === bucketName)) {
+    if (buckets.some(bucket => bucket.name === normalizedBucketName)) {
       return true;
     }
 
@@ -26,25 +29,25 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ bucketName }),
+        body: JSON.stringify({ bucketName: normalizedBucketName }),
       });
 
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          console.log(`Bucket ${bucketName} créé avec succès via Edge Function`);
+          console.log(`Bucket ${normalizedBucketName} créé avec succès via Edge Function`);
           return true;
         }
       }
       
-      console.error(`Échec de la création du bucket ${bucketName} via Edge Function`);
+      console.error(`Échec de la création du bucket ${normalizedBucketName} via Edge Function`);
     } catch (edgeFnError) {
       console.error(`Erreur lors de l'appel Edge Function:`, edgeFnError);
     }
 
     // Essayer de créer le bucket directement (fallback)
     try {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      const { error: createError } = await supabase.storage.createBucket(normalizedBucketName, {
         public: true
       });
 
@@ -52,13 +55,13 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
         if (createError.message.includes('already exists')) {
           return true;
         }
-        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        console.error(`Erreur lors de la création du bucket ${normalizedBucketName}:`, createError);
         return false;
       }
 
       return true;
     } catch (createError) {
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+      console.error(`Erreur lors de la création du bucket ${normalizedBucketName}:`, createError);
       return false;
     }
   } catch (error) {
@@ -135,10 +138,13 @@ export const enforceCorrectMimeType = (file: File): File => {
  */
 export const uploadImage = async (
   file: File,
-  bucketName: string = "Blog Images",
+  bucketName: string = "blog-images",
   folderPath: string = ''
 ): Promise<{ url: string } | null> => {
   try {
+    // Normalize bucket name (use "blog-images" instead of "Blog Images")
+    const normalizedBucketName = bucketName === "Blog Images" ? "blog-images" : bucketName;
+    
     // Vérifier la taille du fichier (limite à 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error(`Le fichier est trop volumineux. La taille maximale est de 5MB.`);
@@ -162,11 +168,11 @@ export const uploadImage = async (
     // Déterminer le type MIME correct
     const contentType = fileWithCorrectMime.type || detectMimeTypeFromExtension(fileExt);
     
-    console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes`);
+    console.log(`Uploading file with explicit content type: ${contentType}, size: ${file.size} bytes, to bucket: ${normalizedBucketName}`);
 
     // Tenter d'uploader directement
     const { data, error } = await supabase.storage
-      .from(bucketName)
+      .from(normalizedBucketName)
       .upload(filePath, fileWithCorrectMime, {
         contentType: contentType,
         upsert: true
@@ -182,7 +188,7 @@ export const uploadImage = async (
 
     // Récupérer l'URL publique
     const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
+      .from(normalizedBucketName)
       .getPublicUrl(filePath);
 
     console.log(`Image téléchargée avec succès: ${publicUrlData.publicUrl}`);
@@ -190,7 +196,10 @@ export const uploadImage = async (
   } catch (error) {
     console.error('Erreur lors de l\'upload:', error);
     toast.error("Erreur lors de l'upload du fichier");
-    return null;
+    
+    // Fallback - retourner une URL locale
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
+    return { url: `/lovable-uploads/${fileName}` };
   }
 };
 

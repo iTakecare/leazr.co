@@ -7,7 +7,7 @@ import { toast } from "sonner";
  */
 export async function uploadImage(
   file: File,
-  bucketName: string = "Blog Images",
+  bucketName: string = "blog-images",
   folderPath: string = ""
 ): Promise<string | null> {
   try {
@@ -31,8 +31,11 @@ export async function uploadImage(
     // Try uploading directly via Supabase Storage
     try {
       console.log(`Tentative d'upload du fichier...`);
+      
+      // Important: Use 'blog-images' (with dash) instead of 'Blog Images' (with space)
+      // Supabase API endpoints don't work well with spaces in bucket names
       const { data, error } = await supabase.storage
-        .from(bucketName)
+        .from("blog-images")
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -46,7 +49,7 @@ export async function uploadImage(
       
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from(bucketName)
+        .from("blog-images")
         .getPublicUrl(filePath);
       
       if (!urlData?.publicUrl) {

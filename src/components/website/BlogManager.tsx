@@ -44,7 +44,7 @@ import {
   BlogPost
 } from "@/services/blogService";
 import { uploadImage } from "@/utils/imageUtils";
-import { uploadImage as uploadImageAdvanced } from "@/services/fileUploadService";
+import { ensureBucket } from "@/services/fileUploadService";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -56,6 +56,8 @@ const CATEGORIES = [
   "Témoignages",
   "Maintenance"
 ];
+
+const BLOG_BUCKET_NAME = "blog-images";
 
 const BlogManager = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -288,7 +290,9 @@ const BlogManager = () => {
         description: "Téléchargement de l'image en cours...",
       });
       
-      const imageUrl = await uploadImage(file, 'Blog Images');
+      await ensureBucket(BLOG_BUCKET_NAME);
+      
+      const imageUrl = await uploadImage(file, BLOG_BUCKET_NAME);
       
       if (imageUrl) {
         console.log("Image téléchargée avec succès, URL finale:", imageUrl);
