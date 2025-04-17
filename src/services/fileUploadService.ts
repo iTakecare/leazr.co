@@ -28,6 +28,29 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   }
 };
 
+const getImageMimeType = (file: File): string => {
+  // Vérifier d'abord le type MIME du fichier
+  if (file.type.startsWith('image/')) {
+    return file.type;
+  }
+
+  // Si le type n'est pas défini, déduire à partir de l'extension
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
 /**
  * Upload an image to a specific bucket
  */
@@ -51,11 +74,16 @@ export const uploadImage = async (
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
+    // Get proper MIME type
+    const contentType = getImageMimeType(file);
+    console.log(`Type MIME détecté: ${contentType}`);
+    
     console.log(`Tentative d'upload du fichier...`);
     
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
+        contentType,
         cacheControl: '3600',
         upsert: true
       });
