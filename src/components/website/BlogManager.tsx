@@ -14,7 +14,6 @@ import {
   Dialog, 
   DialogContent, 
   DialogDescription, 
-  DialogFooter, 
   DialogHeader, 
   DialogTitle
 } from "@/components/ui/dialog";
@@ -563,19 +562,12 @@ const BlogManager = () => {
                       <p className="text-xs text-gray-500 mt-1">
                         Formats acceptés: JPG, PNG, GIF, WEBP (max 5MB)
                       </p>
-                    </div>
-                    
-                    <div className="- OR -">ou</div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="image_url">URL de l'image</Label>
-                      <Input
-                        id="image_url"
-                        type="text"
-                        placeholder="https://exemple.com/image.jpg"
-                        value={currentPost?.image_url || ""}
-                        onChange={(e) => setCurrentPost({...currentPost, image_url: e.target.value})}
-                      />
+                      
+                      {isUploading && (
+                        <div className="text-center text-sm text-blue-500">
+                          Upload en cours...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
