@@ -1,15 +1,14 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, BoxSelect, TicketCheck, BarChart3, Shield, Boxes } from "lucide-react";
 import { Link } from "react-router-dom";
-import MainNavigation from "@/components/layout/MainNavigation";
+import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import HomeFooter from "@/components/home/HomeFooter";
 
 const HubPage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainNavigation />
+      <UnifiedNavigation />
       
       {/* Hero Section avec le même style que AboutPage */}
       <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative pt-16 md:pt-24">
