@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "@/components/ui/rich-text-editor";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   getAllBlogPostsForAdmin, 
@@ -43,6 +44,7 @@ import {
   deleteBlogPost,
   BlogPost
 } from "@/services/blogService";
+import { uploadImage } from "@/utils/imageUtils";
 import { useNavigate } from "react-router-dom";
 
 const CATEGORIES = [
@@ -59,6 +61,7 @@ const BlogManager = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPost, setCurrentPost] = useState<Partial<BlogPost> | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -179,10 +182,86 @@ const BlogManager = () => {
     if (!currentPost) return;
     
     const newTitle = e.target.value;
-    setCurrentPost({ ...currentPost, title: newTitle });
+    const newSlug = currentPost.slug === '' || 
+                   (currentPost.slug && currentPost.title && 
+                    currentPost.slug === handleSlugify(currentPost.title)) 
+                   ? handleSlugify(newTitle) 
+                   : currentPost.slug;
     
-    if (!currentPost.slug || currentPost.slug === handleSlugify(currentPost.title || '')) {
-      handleSlugify(newTitle);
+    setCurrentPost({ 
+      ...currentPost, 
+      title: newTitle,
+      slug: newSlug
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentPost) return;
+
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploading(true);
+      const file = files[0];
+      const result = await uploadImage(file, 'blog-images');
+      
+      if (result) {
+        setCurrentPost({
+          ...currentPost,
+          image_url: result
+        });
+        toast({
+          title: "Succès",
+          description: "L'image a été téléchargée avec succès",
+        });
+      } else {
+        throw new Error("Échec de l'upload");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'upload de l'image:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'upload de l'image",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleAuthorAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentPost) return;
+
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploading(true);
+      const file = files[0];
+      const result = await uploadImage(file, 'blog-author-avatars');
+      
+      if (result) {
+        setCurrentPost({
+          ...currentPost,
+          author_avatar: result
+        });
+        toast({
+          title: "Succès",
+          description: "L'avatar a été téléchargé avec succès",
+        });
+      } else {
+        throw new Error("Échec de l'upload");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'upload de l'avatar:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'upload de l'avatar",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -405,8 +484,8 @@ const BlogManager = () => {
             <TabsContent value="media" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>Image principale</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                  <div className="space-y-2">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="space-y-4">
                     <div className="flex justify-center">
                       {currentPost?.image_url ? (
                         <img 
@@ -416,35 +495,86 @@ const BlogManager = () => {
                         />
                       ) : (
                         <div className="h-20 w-20 bg-gray-200 rounded flex items-center justify-center">
-                          <Plus className="h-8 w-8 text-gray-500" />
+                          <Upload className="h-8 w-8 text-gray-500" />
                         </div>
                       )}
                     </div>
-                    <Input
-                      type="text"
-                      placeholder="URL de l'image"
-                      value={currentPost?.image_url || ""}
-                      onChange={(e) => setCurrentPost({...currentPost, image_url: e.target.value})}
-                      className="mt-4"
-                    />
-                    <p className="text-sm text-gray-500 mt-2">
-                      Entrez l'URL de l'image de couverture pour cet article
-                    </p>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Télécharger une image</Label>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Formats acceptés: JPG, PNG, GIF, WEBP (max 5MB)
+                      </p>
+                    </div>
+                    
+                    <div className="- OR -">ou</div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="image_url">URL de l'image</Label>
+                      <Input
+                        id="image_url"
+                        type="text"
+                        placeholder="https://exemple.com/image.jpg"
+                        value={currentPost?.image_url || ""}
+                        onChange={(e) => setCurrentPost({...currentPost, image_url: e.target.value})}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label>Avatar de l'auteur</Label>
-                <Input
-                  type="text"
-                  placeholder="URL de l'avatar"
-                  value={currentPost?.author_avatar || ""}
-                  onChange={(e) => setCurrentPost({...currentPost, author_avatar: e.target.value})}
-                />
-                <p className="text-sm text-gray-500">
-                  Entrez l'URL de l'image de l'auteur
-                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      {currentPost?.author_avatar ? (
+                        <img 
+                          src={currentPost.author_avatar} 
+                          alt="Avatar de l'auteur" 
+                          className="w-16 h-16 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center">
+                          <Upload className="h-6 w-6 text-gray-500" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="author_avatar_file">Télécharger un avatar</Label>
+                      <Input
+                        id="author_avatar_file"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAuthorAvatarUpload}
+                        disabled={isUploading}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    
+                    <div className="- OR -">ou</div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="author_avatar_url">URL de l'avatar</Label>
+                      <Input
+                        id="author_avatar_url"
+                        type="text"
+                        placeholder="https://exemple.com/avatar.jpg"
+                        value={currentPost?.author_avatar || ""}
+                        onChange={(e) => setCurrentPost({...currentPost, author_avatar: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -474,8 +604,8 @@ const BlogManager = () => {
               <Button variant="outline" onClick={() => setIsEditing(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleSavePost}>
-                Enregistrer
+              <Button onClick={handleSavePost} disabled={isUploading}>
+                {isUploading ? "Upload en cours..." : "Enregistrer"}
               </Button>
             </div>
           </DialogFooter>
