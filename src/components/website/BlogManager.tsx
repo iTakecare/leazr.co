@@ -40,7 +40,6 @@ import {
   createBlogPost, 
   updateBlogPost, 
   deleteBlogPost,
-  addDemoBlogPost,
   BlogPost
 } from "@/services/blogService";
 import { uploadImage } from "@/utils/imageUtils";
@@ -140,6 +139,7 @@ const BlogManager = () => {
     try {
       setIsUploading(true);
       if (currentPost.id) {
+        console.log("Updating blog post:", currentPost);
         const result = await updateBlogPost(currentPost.id, currentPost);
         if (result) {
           toast({
@@ -150,6 +150,7 @@ const BlogManager = () => {
           throw new Error("La mise à jour de l'article a échoué");
         }
       } else {
+        console.log("Creating new blog post:", currentPost);
         const result = await createBlogPost(currentPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
         if (result) {
           toast({
@@ -244,6 +245,10 @@ const BlogManager = () => {
       const file = files[0];
       
       console.log("Uploading image file:", file.name, "size:", file.size);
+      toast({
+        title: "Information",
+        description: "Téléchargement de l'image en cours...",
+      });
       
       const imageUrl = await uploadImage(file, 'blog-images');
       

@@ -7,7 +7,7 @@ import { toast } from "sonner";
  */
 export async function uploadImage(
   file: File,
-  bucketName: string,
+  bucketName: string = "blog-images",
   folderPath: string = ""
 ): Promise<string | null> {
   try {
@@ -19,12 +19,31 @@ export async function uploadImage(
       return null;
     }
     
+    // Check if bucket exists and create it if needed
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+      
+      if (!bucketExists) {
+        console.log(`Bucket ${bucketName} does not exist, attempting to create it`);
+        const { error: createError } = await supabase.storage.createBucket(bucketName, { public: true });
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          toast.error(`Erreur lors de la création du bucket: ${createError.message}`);
+          return null;
+        }
+        console.log(`Bucket ${bucketName} created successfully`);
+      }
+    } catch (bucketError) {
+      console.error('Error checking buckets:', bucketError);
+    }
+    
     // Generate a unique filename to prevent conflicts
     const timestamp = Date.now();
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    // Determine correct content type based on file extension
+    // Determine content type based on file extension
     const extension = fileName.split('.').pop()?.toLowerCase();
     let contentType = 'image/jpeg'; // Default
     
@@ -35,12 +54,13 @@ export async function uploadImage(
     
     console.log(`Using content type: ${contentType} for file ${fileName}`);
     
-    // Direct upload approach
+    // Upload the file with explicit content type
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         contentType: contentType,
-        upsert: true
+        upsert: true,
+        cacheControl: '3600'
       });
     
     if (error) {
