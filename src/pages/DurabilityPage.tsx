@@ -5,7 +5,6 @@ import { Separator } from '@/components/ui/separator';
 import { Share2, Recycle, Globe } from 'lucide-react';
 import HomeFooter from '@/components/home/HomeFooter';
 import Container from '@/components/layout/Container';
-
 const DurabilityPage = () => {
   useEffect(() => {
     // Scroll to the section if hash is present in URL
@@ -13,38 +12,32 @@ const DurabilityPage = () => {
     if (hash) {
       const element = document.querySelector(hash);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+        element.scrollIntoView({
+          behavior: 'smooth'
+        });
       }
     }
   }, []);
-
-  return (
-    <div className="flex flex-col min-h-screen bg-white">
+  return <div className="flex flex-col min-h-screen bg-white">
       <UnifiedNavigation />
       
       {/* Hero Section - Styled like the About page */}
       <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative pt-16 md:pt-24">
         <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
-          <img
-            className="relative w-full h-[60vh] object-cover"
-            alt="Background"
-            src="/clip-path-group.png"
-            width="1920" 
-            height="1080"
-          />
+          <img className="relative w-full h-[60vh] object-cover" alt="Background" src="/clip-path-group.png" width="1920" height="1080" />
           <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
         </div>
 
         <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
           <div className="text-center">
             <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
-              Notre engagement pour une <span className="text-[#48b5c3]">IT durable</span>
+              Notre engagement pour une <span className="text-[#48b5c3]">durable</span>
             </h1>
-            <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
-              backgroundColor: 'rgba(29, 174, 219, 0.35)', 
-              color: '#48b5c3',
-              fontWeight: 900
-            }}>
+            <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{
+            backgroundColor: 'rgba(29, 174, 219, 0.35)',
+            color: '#48b5c3',
+            fontWeight: 900
+          }}>
               pour notre planète
             </div>
             <p className="text-[#222222] text-xl md:text-xl max-w-3xl mx-auto">
@@ -89,11 +82,7 @@ const DurabilityPage = () => {
               </Button>
             </div>
             <div className="md:w-1/2">
-              <img 
-                src="https://images.unsplash.com/photo-1501854140801-50d01698950b" 
-                alt="Notre engagement écologique" 
-                className="rounded-lg shadow-xl w-full h-auto object-cover"
-              />
+              <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b" alt="Notre engagement écologique" className="rounded-lg shadow-xl w-full h-auto object-cover" />
             </div>
           </div>
         </div>
@@ -129,11 +118,7 @@ const DurabilityPage = () => {
               </Button>
             </div>
             <div className="md:w-1/2">
-              <img 
-                src="https://images.unsplash.com/photo-1581093588401-fbb62a02f120" 
-                alt="Économie circulaire" 
-                className="rounded-lg shadow-xl w-full h-auto object-cover"
-              />
+              <img src="https://images.unsplash.com/photo-1581093588401-fbb62a02f120" alt="Économie circulaire" className="rounded-lg shadow-xl w-full h-auto object-cover" />
             </div>
           </div>
         </div>
@@ -173,11 +158,7 @@ const DurabilityPage = () => {
               </Button>
             </div>
             <div className="md:w-1/2">
-              <img 
-                src="https://images.unsplash.com/photo-1615729947596-a598e5de0ab3" 
-                alt="Impact environnemental" 
-                className="rounded-lg shadow-xl w-full h-auto object-cover"
-              />
+              <img src="https://images.unsplash.com/photo-1615729947596-a598e5de0ab3" alt="Impact environnemental" className="rounded-lg shadow-xl w-full h-auto object-cover" />
             </div>
           </div>
         </div>
@@ -235,8 +216,6 @@ const DurabilityPage = () => {
       </section>
 
       <HomeFooter />
-    </div>
-  );
+    </div>;
 };
-
 export default DurabilityPage;
