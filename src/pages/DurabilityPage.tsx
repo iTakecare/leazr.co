@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import UnifiedNavigation from '@/components/layout/UnifiedNavigation';
 import { Button } from '@/components/ui/button';
@@ -205,34 +204,31 @@ const DurabilityPage = () => {
         </div>
       </section>
 
-      {/* CTA Section - Updated to match the style of About page */}
-      <section className="py-16 bg-white">
+      {/* CTA Section - Updated to match the homepage CtaSection */}
+      <section className="py-16 bg-transparent text-white">
         <Container maxWidth="custom">
-          <div className="relative px-6 py-24 overflow-hidden bg-gradient-to-r from-[#1EAEDB] to-[#33949F] rounded-3xl">
-            <div className="relative z-10">
-              <div className="mx-auto text-center max-w-4xl">
-                <h2 className="text-[32px] md:text-[46px] text-white font-extrabold mb-6 leading-tight">
-                  Prêt à rejoindre notre démarche écologique ?
-                </h2>
-                <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl mx-auto">
-                  Ensemble, réduisons notre impact environnemental tout en optimisant votre infrastructure informatique.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4 mt-8">
-                  <Button className="bg-white text-[#33949F] hover:bg-gray-100 font-bold rounded-full px-8 py-6 h-auto text-lg">
-                    Découvrir nos offres
-                  </Button>
-                  <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold rounded-full px-8 py-6 h-auto text-lg">
-                    Nous contacter
-                  </Button>
-                </div>
-              </div>
+          <div className="text-center relative">
+            <div className="absolute inset-x-0 top-0 bottom-0 rounded-xl overflow-hidden z-0">
+              <img src="/lovable-uploads/f3127226-39ba-4431-a251-f9b5cf02613d.png" alt="Fond turquoise" className="w-full h-full object-cover" />
             </div>
             
-            <div className="absolute top-0 right-0 -mt-16 -mr-16">
-              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
-            </div>
-            <div className="absolute bottom-0 left-0 -mb-16 -ml-16">
-              <div className="w-64 h-64 bg-[#48b5c3]/20 rounded-full blur-3xl"></div>
+            <div className="relative z-10 py-16">
+              <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
+                Prêt à rejoindre notre démarche 
+                <br />
+                <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">durable</span> ?
+              </h2>
+              <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
+                Ensemble, réduisons notre impact environnemental tout en optimisant votre infrastructure informatique.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 mt-8">
+                <Button className="bg-[#33949F] hover:bg-[#2C8089] text-white font-bold rounded-full px-8 py-3 h-auto">
+                  Découvrir nos offres
+                </Button>
+                <Button variant="outline" className="bg-white hover:bg-gray-100 text-gray-800 font-bold border-none rounded-full px-8 py-3 h-auto">
+                  Nous contacter
+                </Button>
+              </div>
             </div>
           </div>
         </Container>
