@@ -34,7 +34,7 @@ export async function uploadImage(
       
       // Important: Use 'blog-images' (with dash) instead of 'Blog Images' (with space)
       const { data, error } = await supabase.storage
-        .from(bucketName)
+        .from("blog-images")
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -48,7 +48,7 @@ export async function uploadImage(
       
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from(bucketName)
+        .from("blog-images")
         .getPublicUrl(filePath);
       
       if (!urlData?.publicUrl) {
