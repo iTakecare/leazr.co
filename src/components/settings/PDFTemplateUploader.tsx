@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, FileText, CheckCircle2, XCircle } from "lucide-react";
-import { uploadImage } from "@/services/fileUploadService";
+import { uploadFileDirectly } from "@/services/directFileUploadService";
 
 interface PDFTemplateUploaderProps {
   onFileUploaded?: (url: string, fileName: string) => void;
@@ -64,11 +63,11 @@ const PDFTemplateUploader: React.FC<PDFTemplateUploaderProps> = ({
     setUploadError(null);
 
     try {
-      const uploadUrl = await uploadImage(fileSelected, bucketName, folderPath);
+      const result = await uploadFileDirectly(fileSelected, bucketName, folderPath);
       
-      if (uploadUrl) {
+      if (result && result.url) {
         if (onFileUploaded) {
-          onFileUploaded(uploadUrl, fileSelected.name);
+          onFileUploaded(result.url, fileSelected.name);
         }
         setUploadSuccess(true);
         toast.success("Fichier téléchargé avec succès");

@@ -24,30 +24,32 @@ export async function uploadImage(
     const contentType = getImageMimeType(file);
     console.log(`Type MIME détecté: ${contentType}`);
     
-    // Lire le contenu du fichier pour créer un nouveau blob avec le bon type MIME
-    const fileArrayBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
-    const fileWithCorrectType = new File([fileBlob], file.name, { type: contentType });
-    
-    // Generate a unique filename to prevent conflicts
+    // Générer un nom de fichier unique pour éviter les conflits
     const timestamp = Date.now();
     const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
     
-    console.log(`Préparation de l'upload avec type MIME: ${contentType} pour le fichier: ${filePath}`);
+    // Cloner le fichier avec le bon type MIME
+    const arrayBuffer = await file.arrayBuffer();
+    const correctTypeFile = new File([arrayBuffer], fileName, { 
+      type: contentType 
+    });
     
-    // Options d'upload explicites
-    const uploadOptions = {
-      contentType: contentType,
-      cacheControl: '3600',
-      upsert: true
-    };
+    // Log pour débug
+    console.log(`Fichier prêt pour upload:`, {
+      name: correctTypeFile.name,
+      type: correctTypeFile.type,
+      size: correctTypeFile.size
+    });
     
-    console.log(`Tentative d'upload du fichier avec options:`, uploadOptions);
-    
+    // Upload avec les options explicites de content type
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, fileWithCorrectType, uploadOptions);
+      .upload(filePath, correctTypeFile, {
+        contentType: contentType,
+        cacheControl: '3600',
+        upsert: true
+      });
     
     if (error) {
       console.error('Erreur d\'upload:', error.message);
@@ -68,6 +70,8 @@ export async function uploadImage(
     }
     
     console.log(`Image téléchargée avec succès: ${urlData.publicUrl}`);
+    console.log(`Type MIME à vérifier dans le dashboard Supabase: ${contentType}`);
+    
     return urlData.publicUrl;
     
   } catch (error) {

@@ -82,7 +82,7 @@ export const getCacheBustedUrl = (url: string | null | undefined): string => {
 };
 
 /**
- * Upload un fichier dans Supabase Storage
+ * Upload un fichier dans Supabase Storage avec détection MIME plus précise
  */
 export const uploadFileDirectly = async (
   file: File,
@@ -110,20 +110,37 @@ export const uploadFileDirectly = async (
     const fullPath = folderPath ? `${folderPath}/${uniqueFileName}` : uniqueFileName;
     
     // Déterminer le type de contenu en fonction de l'extension du fichier
-    const contentType = file.type || detectMimeTypeFromExtension(file.name);
+    let contentType = file.type || detectMimeTypeFromExtension(file.name);
+    
+    // Si c'est une image, s'assurer qu'elle a le bon type MIME
+    if (contentType.startsWith('image/') || 
+        file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+      // Forcer le content type basé sur l'extension pour les images
+      contentType = detectMimeTypeFromExtension(file.name);
+    }
     
     console.log(`Uploading file ${uniqueFileName} with content type ${contentType}`);
     
-    // Créer un nouveau Blob avec le type MIME correct pour s'assurer que le fichier est uploadé avec le bon type
+    // Créer un nouveau fichier avec le bon type MIME
     const fileArrayBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([fileArrayBuffer], { type: contentType });
-    const fileWithCorrectType = new File([fileBlob], fileName, { type: contentType });
+    const correctTypeFile = new File(
+      [fileArrayBuffer], 
+      uniqueFileName, 
+      { type: contentType }
+    );
     
-    // Upload via l'API Supabase
+    // Vérification du fichier à uploader
+    console.log('Fichier prêt pour upload:', {
+      name: correctTypeFile.name,
+      type: correctTypeFile.type,
+      size: correctTypeFile.size
+    });
+    
+    // Upload via l'API Supabase avec content type explicite
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(fullPath, fileWithCorrectType, {
-        contentType,
+      .upload(fullPath, correctTypeFile, {
+        contentType: contentType, // Important: spécifier le contentType explicitement
         upsert: true,
         cacheControl: "3600"
       });
@@ -143,6 +160,8 @@ export const uploadFileDirectly = async (
     }
     
     console.log("File uploaded successfully:", publicUrlData.publicUrl);
+    console.log(`Type MIME à vérifier dans le dashboard Supabase: ${contentType}`);
+    
     return { url: publicUrlData.publicUrl, fileName: uniqueFileName };
   } catch (error) {
     console.error("Upload error:", error);
