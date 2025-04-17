@@ -60,7 +60,7 @@ const UnifiedNavigation = () => {
   const servicesMenu = [
     { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
     { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique" },
+    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique", badge: "Gratuit" },
     { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
   ];
 
@@ -124,6 +124,11 @@ const UnifiedNavigation = () => {
               >
                 {item.icon}
                 <span className="ml-2">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -270,6 +275,11 @@ const UnifiedNavigation = () => {
                         <div className="flex items-center">
                           {item.icon}
                           <span className="ml-2 font-medium">{item.label}</span>
+                          {item.badge && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              {item.badge}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500 mt-1 ml-6">{item.description}</p>
                       </Link>

@@ -59,6 +59,7 @@ import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDe
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import ContactPage from "./pages/ContactPage";
+import HubPage from "./pages/HubPage";
 
 import SolutionsPage from "./pages/SolutionsPage";
 import ServicesPage from "./pages/ServicesPage";
@@ -153,6 +154,8 @@ function App() {
       <Route path="/blog/:slug" element={<BlogPostPage />} />
       
       <Route path="/contact" element={<ContactPage />} />
+      
+      <Route path="/hub" element={<HubPage />} />
       
       <Route path="/" element={
         <AdminRoute>
