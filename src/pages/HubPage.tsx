@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, BoxSelect, TicketCheck, BarChart3, Shield, Boxes } from "lucide-react";
@@ -7,17 +8,35 @@ import HomeFooter from "@/components/home/HomeFooter";
 
 const HubPage = () => {
   return (
-    <div className="min-h-screen bg-[#f8f8f6]">
+    <div className="flex flex-col min-h-screen bg-white">
       <MainNavigation />
       
-      {/* Hero Section */}
-      <div className="relative isolate pt-24 lg:px-8 bg-gradient-to-b from-[#f8f8f6] to-white">
-        <div className="mx-auto max-w-2xl py-24 sm:py-32">
+      {/* Hero Section avec le même style que AboutPage */}
+      <div className="flex flex-col min-h-[60vh] items-center gap-6 md:gap-10 py-4 md:py-10 relative pt-16 md:pt-24">
+        <div className="flex flex-col w-full h-[60vh] items-start gap-2.5 absolute top-0 left-0">
+          <img
+            className="relative w-full h-[60vh] object-cover"
+            alt="Background"
+            src="/clip-path-group.png"
+            width="1920" 
+            height="1080"
+          />
+          <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
+        </div>
+
+        <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-[#33638E] sm:text-6xl">
+            <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
               Hub iTakecare
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
+            <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{ 
+              backgroundColor: 'rgba(72, 181, 195, 0.2)', 
+              color: '#48b5c3',
+              fontWeight: 900
+            }}>
+              pour les entreprises
+            </div>
+            <p className="text-[#222222] text-xl md:text-xl max-w-3xl mx-auto">
               Votre espace centralisé pour une gestion informatique simplifiée. Gérez vos équipements, vos contrats et vos tickets en toute simplicité.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
