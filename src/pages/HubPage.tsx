@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, BoxSelect, TicketCheck, BarChart3, Shield, Boxes } from "lucide-react";
 import { Link } from "react-router-dom";
 import MainNavigation from "@/components/layout/MainNavigation";
-import { HomeFooter } from "@/components/home/HomeFooter";
+import HomeFooter from "@/components/home/HomeFooter";
 
 const HubPage = () => {
   return (
