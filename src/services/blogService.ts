@@ -132,6 +132,7 @@ export const getBlogCategories = async (): Promise<{category: string, count: num
 export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
     console.log("Fetching blog posts for admin...");
+    // We're querying directly from the blog_posts table to ensure we fetch ALL posts regardless of status
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
@@ -142,7 +143,7 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
       return [];
     }
     
-    console.log("Blog posts data:", data);
+    console.log(`Admin blog posts fetched: ${data?.length || 0} posts`);
     return data || [];
   } catch (error) {
     console.error('Exception lors de la récupération des articles pour l\'admin:', error);
@@ -153,6 +154,7 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
 // Créer un nouvel article
 export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>): Promise<BlogPost | null> => {
   try {
+    console.log("Creating blog post:", blogPost.title);
     const { data, error } = await supabase
       .from('blog_posts')
       .insert([{ ...blogPost }])
@@ -164,6 +166,7 @@ export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at
       return null;
     }
     
+    console.log("Blog post created successfully:", data?.id);
     return data;
   } catch (error) {
     console.error('Exception lors de la création de l\'article:', error);
@@ -174,6 +177,7 @@ export const createBlogPost = async (blogPost: Omit<BlogPost, 'id' | 'created_at
 // Mettre à jour un article
 export const updateBlogPost = async (id: string, blogPost: Partial<BlogPost>): Promise<BlogPost | null> => {
   try {
+    console.log("Updating blog post:", id);
     const { data, error } = await supabase
       .from('blog_posts')
       .update({ 
@@ -189,6 +193,7 @@ export const updateBlogPost = async (id: string, blogPost: Partial<BlogPost>): P
       return null;
     }
     
+    console.log("Blog post updated successfully:", id);
     return data;
   } catch (error) {
     console.error('Exception lors de la mise à jour de l\'article:', error);
@@ -199,6 +204,7 @@ export const updateBlogPost = async (id: string, blogPost: Partial<BlogPost>): P
 // Supprimer un article
 export const deleteBlogPost = async (id: string): Promise<boolean> => {
   try {
+    console.log("Deleting blog post:", id);
     const { error } = await supabase
       .from('blog_posts')
       .delete()
@@ -209,6 +215,7 @@ export const deleteBlogPost = async (id: string): Promise<boolean> => {
       return false;
     }
     
+    console.log("Blog post deleted successfully:", id);
     return true;
   } catch (error) {
     console.error('Exception lors de la suppression de l\'article:', error);
