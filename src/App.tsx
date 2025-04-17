@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import { useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
+import WebsiteManagerPage from "./pages/WebsiteManagerPage";
 
 import Signup from "./pages/Signup";
 import PublicCatalog from "./pages/PublicCatalog";
@@ -178,6 +179,7 @@ function App() {
         <Route path="i-take-care" element={<ITakecarePage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="create-offer" element={<CreateOffer />} />
+        <Route path="website-manager" element={<WebsiteManagerPage />} />
         
         <Route path="ambassadors" element={<AmbassadorsList />} />
         <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
