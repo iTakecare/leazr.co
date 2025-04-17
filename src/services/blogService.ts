@@ -132,7 +132,8 @@ export const getBlogCategories = async (): Promise<{category: string, count: num
 export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
   try {
     console.log("Fetching blog posts for admin...");
-    // We're querying directly from the blog_posts table to ensure we fetch ALL posts regardless of status
+    
+    // Requête directe à la table blog_posts pour récupérer TOUS les articles
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
@@ -140,10 +141,20 @@ export const getAllBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
     
     if (error) {
       console.error('Erreur lors de la récupération des articles pour l\'admin:', error);
-      return [];
+      throw new Error(`Erreur DB: ${error.message}`);
     }
     
     console.log(`Admin blog posts fetched: ${data?.length || 0} posts`);
+    
+    if (data && data.length === 0) {
+      console.log("Attention: Aucun article trouvé dans la base de données");
+    } else if (data) {
+      // Log les IDs et titres des articles récupérés pour débogage
+      data.forEach(post => {
+        console.log(`Post fetched: ID=${post.id}, Title=${post.title}`);
+      });
+    }
+    
     return data || [];
   } catch (error) {
     console.error('Exception lors de la récupération des articles pour l\'admin:', error);
@@ -220,5 +231,45 @@ export const deleteBlogPost = async (id: string): Promise<boolean> => {
   } catch (error) {
     console.error('Exception lors de la suppression de l\'article:', error);
     return false;
+  }
+};
+
+// Ajouter un article de démonstration
+export const addDemoBlogPost = async (): Promise<BlogPost | null> => {
+  try {
+    console.log("Creating demo blog post...");
+    
+    const demoPost = {
+      title: "Réussites, défis et conseils d'entrepreneurs",
+      slug: "reussites-defis-et-conseils-entrepreneurs",
+      content: "<p>Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.</p><h2>Les clés du succès entrepreneurial</h2><p>L'entrepreneuriat est un parcours rempli de défis et d'opportunités. Les entrepreneurs qui réussissent partagent souvent certaines qualités comme la persévérance, l'adaptabilité et une vision claire.</p><h3>Stratégies financières pour la croissance</h3><p>Une gestion financière saine est essentielle à la croissance de toute entreprise. Cela inclut la planification budgétaire, l'optimisation fiscale et l'accès aux bons outils de financement.</p>",
+      excerpt: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis.",
+      category: "Témoignages",
+      is_published: true,
+      is_featured: true,
+      author_name: "Équipe iTakecare",
+      author_role: "Experts en leasing informatique",
+      read_time: "9 minutes de lecture",
+      meta_title: "Réussites, défis et conseils d'entrepreneurs | iTakecare",
+      meta_description: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.",
+      image_url: "/lovable-uploads/e054083d-ed0f-49f5-ba69-fb357e8af592.png"
+    };
+    
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .insert([demoPost])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Erreur lors de la création de l\'article de démonstration:', error);
+      return null;
+    }
+    
+    console.log("Demo blog post created successfully:", data?.id);
+    return data;
+  } catch (error) {
+    console.error('Exception lors de la création de l\'article de démonstration:', error);
+    return null;
   }
 };

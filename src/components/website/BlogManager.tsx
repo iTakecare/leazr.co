@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,17 +34,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "@/components/ui/rich-text-editor";
-import { Plus, Pencil, Trash2, Eye, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Upload, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   getAllBlogPostsForAdmin, 
   createBlogPost, 
   updateBlogPost, 
   deleteBlogPost,
+  addDemoBlogPost,
   BlogPost
 } from "@/services/blogService";
 import { uploadImage } from "@/utils/imageUtils";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const CATEGORIES = [
   "Développement durable",
@@ -58,6 +61,7 @@ const BlogManager = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPost, setCurrentPost] = useState<Partial<BlogPost> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -65,12 +69,20 @@ const BlogManager = () => {
 
   const loadBlogPosts = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      console.log("Tentative de chargement des articles du blog...");
       const data = await getAllBlogPostsForAdmin();
       console.log("Blog posts loaded:", data);
       setPosts(data);
-    } catch (error) {
+      
+      if (data.length === 0) {
+        console.log("Aucun article trouvé dans la réponse");
+      }
+    } catch (error: any) {
       console.error("Error loading blog posts:", error);
+      setError(`Impossible de charger les articles du blog: ${error.message}`);
       toast({
         title: "Erreur",
         description: "Impossible de charger les articles du blog",
@@ -284,37 +296,29 @@ const BlogManager = () => {
     }
   };
 
-  const addDemoBlogPost = async () => {
-    const demoPost = {
-      title: "Réussites, défis et conseils d'entrepreneurs",
-      slug: "reussites-defis-et-conseils-entrepreneurs",
-      content: "<p>Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.</p><h2>Les clés du succès entrepreneurial</h2><p>L'entrepreneuriat est un parcours rempli de défis et d'opportunités. Les entrepreneurs qui réussissent partagent souvent certaines qualités comme la persévérance, l'adaptabilité et une vision claire.</p><h3>Stratégies financières pour la croissance</h3><p>Une gestion financière saine est essentielle à la croissance de toute entreprise. Cela inclut la planification budgétaire, l'optimisation fiscale et l'accès aux bons outils de financement.</p>",
-      excerpt: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis.",
-      category: "Témoignages",
-      is_published: true,
-      is_featured: true,
-      author_name: "Équipe iTakecare",
-      author_role: "Experts en leasing informatique",
-      read_time: "9 minutes de lecture",
-      meta_title: "Réussites, défis et conseils d'entrepreneurs | iTakecare",
-      meta_description: "Découvrez les histoires inspirantes d'entrepreneurs qui ont réussi à développer leur entreprise malgré les défis. Ce guide offre des conseils pratiques et des stratégies éprouvées pour la croissance de votre activité.",
-      image_url: "/lovable-uploads/e054083d-ed0f-49f5-ba69-fb357e8af592.png"
-    };
-
+  const handleAddDemoPost = async () => {
     try {
-      await createBlogPost(demoPost as Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>);
-      toast({
-        title: "Succès",
-        description: "L'article de démonstration a été créé avec succès",
-      });
-      loadBlogPosts();
-    } catch (error) {
+      setIsLoading(true);
+      const newPost = await addDemoBlogPost();
+      
+      if (newPost) {
+        toast({
+          title: "Succès",
+          description: "L'article de démonstration a été créé avec succès",
+        });
+        loadBlogPosts();
+      } else {
+        throw new Error("Échec de la création de l'article démo");
+      }
+    } catch (error: any) {
       console.error("Erreur lors de la création de l'article de démonstration:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la création de l'article de démonstration",
+        description: `Une erreur est survenue: ${error.message}`,
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -324,7 +328,7 @@ const BlogManager = () => {
         <h2 className="text-xl font-semibold">Articles du blog</h2>
         <div className="flex gap-2">
           {posts.length === 0 && (
-            <Button variant="outline" onClick={addDemoBlogPost}>
+            <Button variant="outline" onClick={handleAddDemoPost} disabled={isLoading}>
               <Plus className="mr-2 h-4 w-4" /> Ajouter un article démo
             </Button>
           )}
@@ -333,6 +337,13 @@ const BlogManager = () => {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {isLoading ? (
         <div className="py-8 text-center">Chargement des articles...</div>
