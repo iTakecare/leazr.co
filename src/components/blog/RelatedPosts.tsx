@@ -14,6 +14,7 @@ interface RelatedPostsProps {
     category: string;
     image: string;
     slug: string;
+    readTime: string;
   }>;
 }
 
@@ -41,6 +42,7 @@ const RelatedPosts = ({ posts }: RelatedPostsProps) => {
               category={post.category}
               image={post.image}
               slug={post.slug}
+              readTime={post.readTime}
             />
           ))}
         </div>

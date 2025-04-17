@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, Navigate } from "react-router-dom";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
@@ -17,6 +18,7 @@ const blogPosts = [
     category: "Développement durable",
     image: "/lovable-uploads/56939bad-b11e-421e-8dca-13f8a485973b.png",
     slug: "leasing-materiel-reconditionne-empreinte-carbone",
+    readTime: "9 minutes de lecture",
     author: {
       name: "Marie Dupont",
       role: "Responsable Développement Durable",
@@ -31,6 +33,7 @@ const blogPosts = [
     category: "Matériel",
     image: "/lovable-uploads/1c9b904d-1c96-4dff-994c-4daaf6fd3ec1.png",
     slug: "guide-choix-macbook-pro-equipe",
+    readTime: "7 minutes de lecture",
     author: {
       name: "Thomas Lambert",
       role: "Expert Technique",
@@ -45,6 +48,7 @@ const blogPosts = [
     category: "Finance",
     image: "/lovable-uploads/ad810d22-f182-4048-aae9-fd658e229330.png",
     slug: "avantages-fiscaux-leasing-informatique",
+    readTime: "6 minutes de lecture",
     author: {
       name: "Sophie Leroy",
       role: "Conseillère Financière",
@@ -59,6 +63,7 @@ const blogPosts = [
     category: "Tendances",
     image: "/lovable-uploads/10277032-6bec-4f1c-a1b5-884fb4f2a2ce.png",
     slug: "tendances-travail-hybride-equipment-it",
+    readTime: "8 minutes de lecture",
     author: {
       name: "Jean Dubois",
       role: "Analyste de Marché",
@@ -73,6 +78,7 @@ const blogPosts = [
     category: "Témoignages",
     image: "/lovable-uploads/5c6e8763-e237-4646-96d9-c54a63bf6893.png",
     slug: "cas-client-pme-economie-it-reconditionnement",
+    readTime: "10 minutes de lecture",
     author: {
       name: "Claire Martin",
       role: "Responsable Relations Clients",
@@ -87,6 +93,7 @@ const blogPosts = [
     category: "Maintenance",
     image: "/lovable-uploads/c8fe2b25-222e-46ff-9a1f-e567d4e08db8.png",
     slug: "meilleures-pratiques-prolonger-duree-vie-parc-informatique",
+    readTime: "8 minutes de lecture",
     author: {
       name: "Paul Legrand",
       role: "Technicien Senior",
