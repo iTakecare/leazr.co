@@ -72,13 +72,10 @@ const BlogPage = () => {
       <UnifiedNavigation />
       
       <div className="pt-[100px]">
-        {/* Hero Section avec titre et recherche */}
+        {/* Hero Section avec titre et newsletter */}
         <BlogHero 
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          categories={categories}
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
         />
         
         {/* Featured Article Section */}
@@ -89,8 +86,7 @@ const BlogPage = () => {
         {/* Latest Articles Section */}
         <div className="container mx-auto px-4 py-12">
           <h2 className="text-3xl font-bold mb-8 text-[#222222]">
-            {activeCategory ? `Articles - ${activeCategory}` : "Derniers articles"}
-            {searchQuery && ` - Résultats pour "${searchQuery}"`}
+            Derniers articles
           </h2>
           
           {loading ? (

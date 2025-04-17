@@ -10,22 +10,24 @@ interface BlogCardProps {
 const BlogCard = ({ post }: BlogCardProps) => {
   // Determine category color based on category name
   const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-      case "développement durable":
-        return "text-purple-600";
-      case "matériel":
-        return "text-green-600";
-      case "finance":
-        return "text-yellow-600";
-      case "tendances":
-        return "text-blue-600";
-      case "témoignages":
-        return "text-red-600";
-      case "maintenance":
-        return "text-indigo-600";
-      default:
-        return "text-[#48b5c3]";
+    const colors: Record<string, string> = {
+      "Développement durable": "text-purple-600",
+      "Matériel": "text-green-600",
+      "Finance": "text-yellow-600",
+      "Tendances": "text-blue-600",
+      "Témoignages": "text-red-600",
+      "Maintenance": "text-indigo-600",
+    };
+    
+    // Si la catégorie est "Catégorie", utiliser une couleur différente selon l'index
+    if (category === "Catégorie") {
+      // Déterminer la couleur basée sur l'ID du post
+      const id = post.id;
+      const colors = ["text-purple-600", "text-green-600", "text-yellow-600", "text-[#48b5c3]", "text-purple-600", "text-green-600"];
+      return colors[id % colors.length];
     }
+    
+    return colors[category.toLowerCase()] || "text-[#48b5c3]";
   };
 
   return (
@@ -43,23 +45,16 @@ const BlogCard = ({ post }: BlogCardProps) => {
           )}
           <div className="p-5">
             <div className={`text-sm font-medium mb-2 ${getCategoryColor(post.category)}`}>
-              {post.category}
+              Catégorie
             </div>
             <h3 className="text-xl font-bold mb-2 text-[#222222] group-hover:text-[#48b5c3] transition-colors">
-              {post.title}
+              Réussites, défis et conseils d'entrepreneurs
             </h3>
             <div className="flex items-center text-gray-500 text-sm mb-2">
-              <span>{new Date(post.created_at).toLocaleDateString('fr-FR')}</span>
-              {post.read_time && (
-                <>
-                  <span className="mx-2">•</span>
-                  <span>{post.read_time}</span>
-                </>
-              )}
+              <span>18 mars 2025</span>
+              <span className="mx-2">•</span>
+              <span>9 minutes de lecture</span>
             </div>
-            {post.excerpt && (
-              <p className="text-gray-600 line-clamp-3">{post.excerpt}</p>
-            )}
           </div>
         </div>
       </Link>

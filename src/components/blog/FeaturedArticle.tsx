@@ -27,14 +27,18 @@ const FeaturedArticle = ({ post }: FeaturedArticleProps) => {
             )}
           </div>
           <div className="w-full md:w-1/2">
-            <h2 className="font-bold text-[#222222] text-2xl sm:text-3xl md:text-4xl mb-6">
-              {post.title}
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#222222] mb-4">
+              Réussites, défis et conseils d'entrepreneurs
             </h2>
-            {post.excerpt && (
-              <p className="text-[#222222] text-base md:text-lg mb-6">
-                {post.excerpt}
-              </p>
-            )}
+            <p className="text-[#222222] text-base mb-4">
+              Dès que vous atteignez un certain nombre d'équipements, vous accédez gratuitement à notre logiciel.
+            </p>
+            <p className="text-[#222222] text-base mb-4">
+              Pas d'abonnement, pas de coûts cachés : un outil simple et efficace pour faciliter votre gestion IT.
+            </p>
+            <p className="text-[#222222] text-base mb-6">
+              Vous voulez en savoir plus ?
+            </p>
             <Link to={`/blog/${post.slug}`}>
               <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-md font-medium text-white px-6 py-2">
                 En savoir plus
