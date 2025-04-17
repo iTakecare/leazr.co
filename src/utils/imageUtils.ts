@@ -25,94 +25,37 @@ export async function uploadImage(
     
     // Determine correct content type based on file extension
     const extension = fileName.split('.').pop()?.toLowerCase();
-    const contentType = extension === 'png' ? 'image/png' : 
-                        extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' :
-                        extension === 'webp' ? 'image/webp' :
-                        extension === 'gif' ? 'image/gif' : 'image/png';
+    let contentType = 'image/jpeg'; // Default
     
-    console.log(`Using direct fetch method to upload: ${fileName} with Content-Type: ${contentType}`);
+    if (extension === 'png') contentType = 'image/png';
+    else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+    else if (extension === 'webp') contentType = 'image/webp';
+    else if (extension === 'gif') contentType = 'image/gif';
     
-    // Check if the bucket exists first
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    console.log(`Using content type: ${contentType} for file ${fileName}`);
     
-    if (bucketError) {
-      console.error("Error checking buckets:", bucketError);
-    } else {
-      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-      if (!bucketExists) {
-        console.log(`Bucket ${bucketName} doesn't exist, attempting to create it...`);
-        try {
-          const { error } = await supabase.storage.createBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 5242880 // 5MB
-          });
-          
-          if (error) {
-            if (error.message.includes('already exists')) {
-              console.log(`Bucket ${bucketName} already exists`);
-            } else {
-              console.error(`Error creating bucket ${bucketName}:`, error);
-              // Continue anyway, the upload might still work
-            }
-          } else {
-            console.log(`Successfully created bucket ${bucketName}`);
-          }
-        } catch (e) {
-          console.error("Error creating bucket:", e);
-          // Continue anyway, the upload might still work
-        }
-      }
+    // Simple direct upload approach for better reliability
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        contentType: contentType,
+        upsert: true,
+        cacheControl: '3600'
+      });
+    
+    if (error) {
+      console.error('Upload error:', error.message);
+      throw new Error(`Upload failed: ${error.message}`);
     }
     
-    // Use direct fetch API for better control over Content-Type
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Get the storage URL and key
-    const storageUrl = `${supabase.supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`;
-    
-    console.log(`Uploading to URL: ${storageUrl}`);
-    
-    // Upload using fetch with explicit content-type in body
-    const response = await fetch(storageUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabase.supabaseKey}`,
-        'x-upsert': 'true'
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Upload error:', errorText);
-      
-      // Try fallback method with supabase.storage API
-      console.log("Direct upload failed, trying supabase.storage API as fallback...");
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          contentType: contentType,
-          upsert: true
-        });
-      
-      if (uploadError) {
-        console.error("Fallback upload also failed:", uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-      
-      console.log("Fallback upload succeeded:", uploadData);
-    } else {
-      console.log("Direct upload succeeded");
-    }
+    console.log("Upload successful:", data);
     
     // Get public URL
     const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
     
-    if (!urlData || !urlData.publicUrl) {
+    if (!urlData?.publicUrl) {
       throw new Error('Could not get public URL');
     }
     

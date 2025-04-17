@@ -245,39 +245,6 @@ const BlogManager = () => {
       
       console.log("Uploading image file:", file.name, "size:", file.size);
       
-      // Make sure the bucket exists first (using a helper function)
-      const ensureBucket = async (bucketName: string) => {
-        try {
-          // Try to import from fileStorage first
-          try {
-            const fileStorage = await import('@/services/fileStorage');
-            if (fileStorage.ensureBucket) {
-              return await fileStorage.ensureBucket(bucketName);
-            }
-          } catch (e) {
-            console.log("Could not find ensureBucket in fileStorage, trying storageService");
-          }
-          
-          // Try storageService as fallback
-          try {
-            const storageService = await import('@/services/storageService');
-            if (storageService.ensureStorageBucket) {
-              return await storageService.ensureStorageBucket(bucketName);
-            }
-          } catch (e) {
-            console.log("Could not find ensureStorageBucket in storageService, using default uploadImage");
-          }
-          
-          return true; // Assume bucket exists if we can't check
-        } catch (e) {
-          console.error("Error ensuring bucket exists:", e);
-          return true; // Proceed anyway
-        }
-      };
-      
-      // Ensure the blog-images bucket exists
-      await ensureBucket('blog-images');
-      
       const imageUrl = await uploadImage(file, 'blog-images');
       
       if (imageUrl) {
