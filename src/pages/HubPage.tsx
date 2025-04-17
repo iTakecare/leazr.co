@@ -3,13 +3,17 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, BoxSelect, TicketCheck, BarChart3, Shield, Boxes } from "lucide-react";
 import { Link } from "react-router-dom";
+import MainNavigation from "@/components/layout/MainNavigation";
+import { HomeFooter } from "@/components/home/HomeFooter";
 
 const HubPage = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f8f8f6]">
+      <MainNavigation />
+      
       {/* Hero Section */}
-      <div className="relative isolate px-6 pt-24 lg:px-8">
-        <div className="mx-auto max-w-2xl py-16 sm:py-24">
+      <div className="relative isolate pt-24 lg:px-8 bg-gradient-to-b from-[#f8f8f6] to-white">
+        <div className="mx-auto max-w-2xl py-24 sm:py-32">
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-[#33638E] sm:text-6xl">
               Hub iTakecare
@@ -30,7 +34,7 @@ const HubPage = () => {
       </div>
 
       {/* Features Section */}
-      <div className="py-24 sm:py-32">
+      <div className="py-24 sm:py-32 bg-white">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl lg:text-center">
             <h2 className="text-3xl font-bold tracking-tight text-[#33638E] sm:text-4xl">
@@ -139,6 +143,8 @@ const HubPage = () => {
           </div>
         </div>
       </div>
+      
+      <HomeFooter />
     </div>
   );
 };
