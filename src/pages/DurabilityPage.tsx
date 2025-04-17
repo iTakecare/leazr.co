@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Share2, Recycle, Globe } from 'lucide-react';
 import HomeFooter from '@/components/home/HomeFooter';
 import Container from '@/components/layout/Container';
+
 const DurabilityPage = () => {
   useEffect(() => {
     // Scroll to the section if hash is present in URL
@@ -18,6 +19,7 @@ const DurabilityPage = () => {
       }
     }
   }, []);
+
   return <div className="flex flex-col min-h-screen bg-white">
       <UnifiedNavigation />
       
@@ -31,7 +33,7 @@ const DurabilityPage = () => {
         <div className="relative w-full max-w-[1320px] mx-auto px-4 py-20 text-center z-10 mt-12">
           <div className="text-center">
             <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
-              Notre engagement pour une <span className="text-[#48b5c3]">durable</span>
+              Notre engagement durable
             </h1>
             <div className="inline-block text-[#48b5c3] text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 rounded-lg py-2 px-8" style={{
             backgroundColor: 'rgba(29, 174, 219, 0.35)',
@@ -218,4 +220,5 @@ const DurabilityPage = () => {
       <HomeFooter />
     </div>;
 };
+
 export default DurabilityPage;
