@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +14,7 @@ const CtaSection = () => {
           
           {/* Contenu texte et boutons positionnés au-dessus de l'image */}
           <div className="relative z-10 py-16">
-            <h2 className="text-[32px] md:text-[46px] font-bold mb-4">
+            <h2 className="md:text-[46px] font-bold mb-4 text-3xl px-[21px]">
               Le leasing de matériel informatique
               <br />
               n'a plus de <span className="bg-[#33949F]/40 px-4 py-1 rounded-lg text-slate-950">secrets</span> pour vous
@@ -34,4 +33,3 @@ const CtaSection = () => {
     </section>;
 };
 export default CtaSection;
-
