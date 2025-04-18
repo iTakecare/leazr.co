@@ -1,3 +1,4 @@
+
 import React from "react";
 import Container from "@/components/layout/Container";
 
@@ -31,7 +32,7 @@ const PartnersSection = () => {
         </div>
         
         <div className="relative overflow-hidden w-full bg-white/80 py-6 rounded-xl">
-          <div className="flex space-x-12 animate-marquee">
+          <div className="flex space-x-16 animate-marquee">
             {duplicatedPartners.map((partner, index) => (
               <div 
                 key={`${partner.id}-${index}`} 
@@ -40,7 +41,7 @@ const PartnersSection = () => {
                 <img 
                   src={partner.logo} 
                   alt={partner.name} 
-                  className="h-10 md:h-12 object-contain max-w-[100px] md:max-w-[130px] opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
+                  className="h-16 md:h-20 object-contain max-w-[150px] md:max-w-[200px] opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
                   title={partner.name}
                 />
               </div>
@@ -53,3 +54,4 @@ const PartnersSection = () => {
 };
 
 export default PartnersSection;
+
