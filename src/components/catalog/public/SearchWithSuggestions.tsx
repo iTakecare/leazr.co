@@ -4,7 +4,8 @@ import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import { Product } from "@/types/catalog";
-import { products as mockProducts } from "@/data/products";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const SearchWithSuggestions = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -12,13 +13,31 @@ export const SearchWithSuggestions = () => {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
-  // We'll use the filteredProducts from useProductFilter or fallback to our mock data
-  const { filteredProducts } = useProductFilter(mockProducts);
+  const fetchProducts = async (): Promise<Product[]> => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .or('admin_only.is.null,admin_only.eq.false');
+      
+    if (error) {
+      console.error("Error fetching products:", error);
+      throw error;
+    }
+    
+    return data || [];
+  };
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products-search"],
+    queryFn: fetchProducts,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
   
-  const suggestions = filteredProducts
+  const suggestions = products
     .filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .slice(0, 5);
@@ -63,9 +82,9 @@ export const SearchWithSuggestions = () => {
               onClick={() => handleProductClick(product)}
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-3"
             >
-              {product.imageUrl && (
+              {product.image_url && (
                 <img 
-                  src={product.imageUrl} 
+                  src={product.image_url} 
                   alt={product.name} 
                   className="w-10 h-10 object-cover rounded"
                 />
