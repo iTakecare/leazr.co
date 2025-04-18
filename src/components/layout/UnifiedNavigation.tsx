@@ -148,42 +148,43 @@ const UnifiedNavigation = () => {
             ))}
           </div>
           
-          {/* Nouvel élément À propos dans le menu mobile */}
-          <Link
-            to="/a-propos"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname === "/a-propos" && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            À propos
-          </Link>
+          {/* À propos, Blog, Contact en ligne horizontale sur mobile */}
+          <div className="flex justify-between items-center px-4 py-2">
+            <Link
+              to="/a-propos"
+              className={cn(
+                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                location.pathname === "/a-propos" && "text-[#33638E]"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              À propos
+            </Link>
+            
+            <Link
+              to="/blog"
+              className={cn(
+                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                location.pathname.startsWith("/blog") && "text-[#33638E]"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            
+            <Link
+              to="/contact"
+              className={cn(
+                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                location.pathname === "/contact" && "text-[#33638E]"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
+          </div>
           
-          {/* Blog dans le menu mobile */}
-          <Link
-            to="/blog"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname.startsWith("/blog") && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Blog
-          </Link>
-          
-          <Link
-            to="/contact"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname === "/contact" && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Contact
-          </Link>
-          
-          <div className="flex flex-col space-y-2 pt-4">
+          <div className="flex flex-col space-y-2 pt-2 px-4">
             {user ? (
               <Button
                 variant="outline"
