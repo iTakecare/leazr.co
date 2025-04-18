@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Product } from "@/types/catalog";
 import { useQuery } from "@tanstack/react-query";
@@ -19,14 +18,40 @@ export const useProductFilter = (products: Product[] = []) => {
     queryFn: fetchCategories
   });
   
+  // Predefined category translations
+  const categoryTranslations: Record<string, string> = {
+    'desktop': 'Ordinateurs fixes',
+    'laptop': 'Ordinateurs portables',
+    'tablet': 'Tablettes',
+    'smartphone': 'Smartphones',
+    'display': 'Écrans',
+    'accessory': 'Accessoires',
+    'peripheral': 'Périphériques',
+    'other': 'Autres',
+    'all': 'Toutes catégories'
+  };
+
   // Create a map of category names to their translations
-  const categoryTranslations = new Map<string, string>();
-  categoriesData.forEach(category => {
-    if (category.name && category.translation) {
-      categoryTranslations.set(category.name, category.translation);
-    }
-  });
-  
+  const getCategoriesFromProducts = (): {name: string, translation: string}[] => {
+    if (!products || products.length === 0) return [];
+    
+    const categoriesSet = new Set<string>();
+    
+    products.forEach(product => {
+      if (product.category && product.category !== '') {
+        categoriesSet.add(product.category);
+      }
+    });
+    
+    // Convert to array and sort by the French translation
+    return Array.from(categoriesSet).map(categoryName => {
+      const translation = categoryTranslations[categoryName] || 
+                          categoriesData.find(c => c.name === categoryName)?.translation || 
+                          categoryName;
+      return { name: categoryName, translation };
+    }).sort((a, b) => a.translation.localeCompare(b.translation));
+  };
+
   // Reset price range when products change
   useEffect(() => {
     if (products && products.length > 0) {
@@ -125,25 +150,6 @@ export const useProductFilter = (products: Product[] = []) => {
     return filtered;
   };
 
-  // Get unique categories from products with translations
-  const getCategoriesFromProducts = (): {name: string, translation: string}[] => {
-    if (!products || products.length === 0) return [];
-    
-    const categoriesSet = new Set<string>();
-    
-    products.forEach(product => {
-      if (product.category && product.category !== '') {
-        categoriesSet.add(product.category);
-      }
-    });
-    
-    // Convert to array and sort by the French translation if available, otherwise by name
-    return Array.from(categoriesSet).map(categoryName => {
-      const translation = categoryTranslations.get(categoryName) || categoryName;
-      return { name: categoryName, translation };
-    }).sort((a, b) => a.translation.localeCompare(b.translation));
-  };
-  
   // Get unique brands from products
   const getBrands = (): string[] => {
     if (!products || products.length === 0) return [];
