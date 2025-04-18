@@ -218,7 +218,7 @@ const AboutPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="flex flex-col relative z-10">
               <h2 className="text-3xl sm:text-[46px] font-bold text-gray-900 mb-8 mr-2">
-                La presse <span className="whitespace-nowrap bg-[#48b5c34f] text-[#48b5c3] px-4 sm:px-6 py-1 rounded-lg group-hover:bg-[#33638E] group-hover:text-white relative top-[-2px] ml-1 text-base sm:text-inherit">parle de nous</span>
+                La presse <span className="whitespace-nowrap bg-[#48b5c34f] text-[#48b5c3] px-4 sm:px-6 py-1 rounded-lg group-hover:bg-[#33638E] group-hover:text-white relative top-[-2px] ml-1 text-2xl sm:text-4xl">parle de nous</span>
               </h2>
               
               <div className="relative group mt-4">
