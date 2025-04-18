@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
 import { Product } from "@/types/catalog";
+import { products as mockProducts } from "@/data/products";
 
 export const SearchWithSuggestions = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -11,13 +12,16 @@ export const SearchWithSuggestions = () => {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
-  const { products } = useProductFilter([]);
+  // We'll use the filteredProducts from useProductFilter or fallback to our mock data
+  const { filteredProducts } = useProductFilter(mockProducts);
   
-  const suggestions = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  ).slice(0, 5);
+  const suggestions = filteredProducts
+    .filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+    .slice(0, 5);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
