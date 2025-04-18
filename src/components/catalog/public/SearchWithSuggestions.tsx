@@ -56,7 +56,7 @@ export const SearchWithSuggestions = () => {
       />
       
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg z-50">
+        <div className="absolute mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg z-50 max-h-80 overflow-y-auto">
           {suggestions.map((product) => (
             <button
               key={product.id}
