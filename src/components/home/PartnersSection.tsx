@@ -25,7 +25,7 @@ const PartnersSection = () => {
   const duplicatedPartners = [...partners, ...partners];
 
   return (
-    <section className="py-10 mt-[-100px] sm:mt-[-150px] md:mt-[-300px] relative z-10 bg-transparent">
+    <section className="py-10 mt-[-120px] sm:mt-[-180px] md:mt-[-350px] relative z-10 bg-transparent">
       <Container maxWidth="custom">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-[28px] md:text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
@@ -41,7 +41,7 @@ const PartnersSection = () => {
                 <img 
                   src={partner.logo} 
                   alt={partner.name} 
-                  className="h-16 md:h-20 object-contain max-w-[150px] md:max-w-[200px] opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
+                  className="h-12 md:h-16 object-contain max-w-[120px] md:max-w-[160px] opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110 rounded-lg"
                   title={partner.name}
                 />
               </div>
