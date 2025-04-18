@@ -25,7 +25,7 @@ const PartnersSection = () => {
   const duplicatedPartners = [...partners, ...partners];
 
   return (
-    <section className="py-10 mt-[-50px] sm:mt-[-100px] md:mt-[-250px] relative z-10 bg-transparent">
+    <section className="py-10 mt-[-100px] sm:mt-[-150px] md:mt-[-300px] relative z-10 bg-transparent">
       <Container maxWidth="custom">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-[28px] md:text-[46px] font-bold text-gray-900">Ils nous font confiance</h2>
@@ -54,4 +54,3 @@ const PartnersSection = () => {
 };
 
 export default PartnersSection;
-
