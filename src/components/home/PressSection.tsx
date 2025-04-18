@@ -49,7 +49,7 @@ const PressSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="flex flex-col relative z-10">
             <h2 className="text-3xl sm:text-[46px] font-bold text-gray-900 mb-8 mr-2">
-              La presse <span className="whitespace-nowrap bg-[#4ab6c4] px-4 sm:px-6 py-2 rounded-lg group-hover:bg-[##4ab6c4] relative top-[-2px] ml-1 sm:text-4xl text-itakecare-primary text-xl">parle de nous</span>
+              La presse <span className="whitespace-nowrap bg-[#4ab6c4] px-4 sm:px-6 py-2 rounded-lg group-hover:bg-[##4ab6c4] relative top-[-2px] ml-1 sm:text-4xl text-xl text-white">parle de nous</span>
             </h2>
             
             <div className="relative group mt-4">
