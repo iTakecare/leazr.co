@@ -5,7 +5,7 @@ import { Search, ArrowRight, MessageCircle } from "lucide-react";
 
 const CatalogHeader = () => {
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-[#275D8C] via-[#347599] to-[#4196b4] shadow-xl overflow-hidden">
+    <div className="rounded-2xl bg-gradient-to-br from-[#275D8C] via-[#4196b4] to-[#48B5C3] shadow-xl overflow-hidden">
       <div className="relative flex flex-col md:flex-row max-h-[460px] md:max-h-[380px]">
         <div className="z-10 p-6 md:p-8 md:w-3/5">
           <h1 className="font-bold text-2xl md:text-3xl lg:text-4xl text-white leading-tight mb-3">
@@ -35,15 +35,7 @@ const CatalogHeader = () => {
           </div>
         </div>
 
-        <div className="md:w-2/5 md:h-full relative">
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#275D8C]/50 to-[#275D8C] z-10 md:block hidden"></div>
-          <img 
-            src="/lovable-uploads/1d3ac6e1-5c24-4197-af4f-5aa8f2dd014b.png" 
-            alt="Équipement premium reconditionné" 
-            className="w-full h-60 md:h-full object-cover object-center"
-          />
-          <div className="absolute top-0 right-0 bottom-0 left-0 bg-gradient-to-t from-[#275D8C] to-transparent opacity-70 md:hidden"></div>
-        </div>
+        {/* Suppression de l'image d'arrière-plan */}
       </div>
       
       <div className="bg-white p-3 border-t border-gray-100">
