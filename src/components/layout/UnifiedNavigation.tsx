@@ -96,123 +96,123 @@ const UnifiedNavigation = () => {
           </button>
         </div>
 
-        <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
-          {/* Menu mobile */}
-          <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
-            {solutionsMenu.map((item, index) => (
+        {mobileMenuOpen && (
+          <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
+            <div className="border-b border-gray-200 pb-2 mb-2">
+              <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
+              {solutionsMenu.map((item, index) => (
+                <Link
+                  key={index}
+                  to={item.href}
+                  className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+            
+            <div className="border-b border-gray-200 pb-2 mb-2">
+              <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
+              {servicesMenu.map((item, index) => (
+                <Link
+                  key={index}
+                  to={item.href}
+                  className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+            
+            <div className="border-b border-gray-200 pb-2 mb-2">
+              <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
+              {durabiliteMenu.map((item, index) => (
+                <Link
+                  key={index}
+                  to={item.href}
+                  className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+            
+            <div className="flex justify-between items-center px-4 py-2">
               <Link
-                key={index}
-                to={item.href}
-                className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
-              </Link>
-            ))}
-          </div>
-          
-          <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
-            {servicesMenu.map((item, index) => (
-              <Link
-                key={index}
-                to={item.href}
-                className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
-                {item.badge && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                    {item.badge}
-                  </span>
+                to="/a-propos"
+                className={cn(
+                  "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                  location.pathname === "/a-propos" && "text-[#33638E]"
                 )}
-              </Link>
-            ))}
-          </div>
-          
-          <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
-            {durabiliteMenu.map((item, index) => (
-              <Link
-                key={index}
-                to={item.href}
-                className="py-2 px-4 flex items-center text-[#222222] text-sm hover:bg-[#33638E]/10 rounded-md"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
+                À propos
               </Link>
-            ))}
-          </div>
-          
-          {/* À propos, Blog, Contact en ligne horizontale sur mobile */}
-          <div className="flex justify-between items-center px-4 py-2">
-            <Link
-              to="/a-propos"
-              className={cn(
-                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
-                location.pathname === "/a-propos" && "text-[#33638E]"
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              À propos
-            </Link>
-            
-            <Link
-              to="/blog"
-              className={cn(
-                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
-                location.pathname.startsWith("/blog") && "text-[#33638E]"
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Blog
-            </Link>
-            
-            <Link
-              to="/contact"
-              className={cn(
-                "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
-                location.pathname === "/contact" && "text-[#33638E]"
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact
-            </Link>
-          </div>
-          
-          <div className="flex flex-col space-y-2 pt-2 px-4">
-            {user ? (
-              <Button
-                variant="outline"
-                className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleHubNavigation();
-                }}
+              
+              <Link
+                to="/blog"
+                className={cn(
+                  "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                  location.pathname.startsWith("/blog") && "text-[#33638E]"
+                )}
+                onClick={() => setMobileMenuOpen(false)}
               >
-                Mon Hub
-              </Button>
-            ) : (
-              <Link to="/login">
+                Blog
+              </Link>
+              
+              <Link
+                to="/contact"
+                className={cn(
+                  "text-center font-medium text-[#222222] text-sm rounded-md hover:text-[#33638E]",
+                  location.pathname === "/contact" && "text-[#33638E]"
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </Link>
+            </div>
+            
+            <div className="flex flex-col space-y-2 pt-2 px-4">
+              {user ? (
                 <Button
                   variant="outline"
                   className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleHubNavigation();
+                  }}
                 >
-                  Se connecter
+                  Mon Hub
+                </Button>
+              ) : (
+                <Link to="/login">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
+                  >
+                    Se connecter
+                  </Button>
+                </Link>
+              )}
+              <Link to="/catalogue">
+                <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
+                  Catalogue
                 </Button>
               </Link>
-            )}
-            <Link to="/catalogue">
-              <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
-                Catalogue
-              </Button>
-            </Link>
+            </div>
           </div>
-        </div>
+        )}
 
         <nav className="hidden md:block ml-[40px]">
           <ul className="flex space-x-[25px]">
@@ -315,7 +315,6 @@ const UnifiedNavigation = () => {
               </DropdownMenu>
             </li>
             
-            {/* Ajout du lien À propos */}
             <li>
               <Link
                 to="/a-propos"
@@ -328,7 +327,6 @@ const UnifiedNavigation = () => {
               </Link>
             </li>
             
-            {/* Blog existant */}
             <li>
               <Link
                 to="/blog"
