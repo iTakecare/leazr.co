@@ -23,7 +23,7 @@ const AdvisorSection = () => {
                     choix du matériel ?
                   </span>
                 </h2>
-                <p className="text-3xl md:text-5xl font-bold text-gray-900">
+                <p className="md:text-5xl font-bold text-gray-900 text-3xl">
                   On est là pour vous aider !
                 </p>
                 
