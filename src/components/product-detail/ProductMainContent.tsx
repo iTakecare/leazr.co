@@ -29,14 +29,14 @@ const ProductMainContent: React.FC<ProductMainContentProps> = ({
         altText={productName} 
       />
       
-      <div className="mt-8">
+      <div className="mt-6">
         <ProductDescription 
           title={`Descriptif ${productBrand} ${productName}`}
           description={productDescription} 
         />
       </div>
       
-      <div className="mt-8">
+      <div className="mt-6">
         <ProductBenefits />
         
         <OrderProcess />

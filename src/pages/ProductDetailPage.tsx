@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -10,6 +11,8 @@ import ProductConfigurationSection from "@/components/product-detail/ProductConf
 import ProductMainContent from "@/components/product-detail/ProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +87,41 @@ const ProductDetailPage = () => {
       <UnifiedNavigation />
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBackToCatalog}
+              className="flex items-center text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" /> 
+              Retour au catalogue
+            </Button>
+          </div>
+          
+          <Breadcrumb className="mb-4">
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/catalogue">Catalogue</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={`/catalogue?category=${productCategory}`}>
+                {productCategory}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {productBrand && (
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/catalogue?brand=${productBrand}`}>
+                  {productBrand}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            )}
+            <BreadcrumbItem>
+              <span>{productName}</span>
+            </BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ProductMainContent 
             product={product}
