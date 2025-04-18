@@ -1,9 +1,9 @@
-
 import React from "react";
 import Container from "@/components/layout/Container";
 
 const PartnersSection = () => {
   const partners = [
+    { id: 15, name: "WinFinance", logo: "/lovable-uploads/0ed0c11a-0792-402d-9649-288aa573fc4c.png" },
     { id: 1, name: "Le Chiffre", logo: "/lovable-uploads/273e8a35-7b57-42b0-b601-382d95b1baaa.png" },
     { id: 2, name: "Sublime Émoi", logo: "/lovable-uploads/c1480966-a304-4d92-9d91-c70cbefbf2a8.png" },
     { id: 3, name: "JNS Ascenseurs", logo: "/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png" },
