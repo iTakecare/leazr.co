@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Category } from "@/types/catalog";
+import { supabase } from "@/integrations/supabase/client";
 
 const CategoryManager = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
