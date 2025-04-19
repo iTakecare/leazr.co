@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProductFilter } from "@/hooks/products/useProductFilter";
-import { 
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -17,18 +17,31 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { 
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const PublicCatalog = () => {
   const navigate = useNavigate();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"name-asc" | "name-desc" | "price-asc" | "price-desc">("name-asc");
+
+  const sortOptions = [
+    { value: "name-asc", label: "Nom (A-Z)" },
+    { value: "name-desc", label: "Nom (Z-A)" },
+    { value: "price-asc", label: "Prix (croissant)" },
+    { value: "price-desc", label: "Prix (décroissant)" },
+  ] as const;
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -151,18 +164,7 @@ const PublicCatalog = () => {
   };
 
   const getSortLabel = () => {
-    switch (sortOrder) {
-      case "name-asc":
-        return "Nom (A-Z)";
-      case "name-desc":
-        return "Nom (Z-A)";
-      case "price-asc":
-        return "Prix (croissant)";
-      case "price-desc":
-        return "Prix (décroissant)";
-      default:
-        return "Trier par";
-    }
+    return sortOptions.find(option => option.value === sortOrder)?.label || "Trier par";
   };
 
   return (
@@ -418,10 +420,25 @@ const PublicCatalog = () => {
                 <p className="text-gray-600">
                   {groupedProducts.length} produit{groupedProducts.length > 1 ? 's' : ''} trouvé{groupedProducts.length > 1 ? 's' : ''}
                 </p>
-                <Button variant="outline" className="flex items-center gap-2" onClick={handleSortChange}>
-                  <ArrowUpDown className="h-4 w-4" />
-                  {getSortLabel()}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <ArrowUpDown className="h-4 w-4" />
+                      {getSortLabel()}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-white">
+                    {sortOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => setSortOrder(option.value)}
+                        className={sortOrder === option.value ? "bg-accent" : ""}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               
               {isLoading ? (
