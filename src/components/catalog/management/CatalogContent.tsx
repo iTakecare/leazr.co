@@ -3,6 +3,8 @@ import React from "react";
 import { Product } from "@/types/catalog";
 import AccordionProductList from "@/components/catalog/AccordionProductList";
 import ProductGrid from "@/components/catalog/ProductGrid";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CatalogContentProps {
   products: Product[];
@@ -21,6 +23,27 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   groupingOption,
   onProductDeleted
 }) => {
+  // Récupérer les traductions des catégories
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("name, translation");
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Créer un map des traductions
+  const categoryTranslations = React.useMemo(() => {
+    return categories.reduce((acc, cat) => ({
+      ...acc,
+      [cat.name]: cat.translation
+    }), {} as Record<string, string>);
+  }, [categories]);
+
   // Debug log to check products data
   console.log("CatalogContent: Products count:", products.length);
   console.log("CatalogContent: Products with variants:", products.filter(p => 
@@ -29,16 +52,10 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
     (p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0)
   ).length);
 
-  // Log specific details for each product to help debugging
-  products.forEach(p => {
-    console.log(`CatalogContent: Product "${p.name}" (${p.id}):`, {
-      isParent: p.is_parent,
-      hasVariantPrices: p.variant_combination_prices?.length > 0,
-      variantPricesCount: p.variant_combination_prices?.length || 0,
-      hasVariationAttrs: p.variation_attributes && Object.keys(p.variation_attributes || {}).length > 0,
-      variationAttrs: p.variation_attributes
-    });
-  });
+  // Fonction pour obtenir la traduction d'une catégorie
+  const getCategoryTranslation = (categoryName: string): string => {
+    return categoryTranslations[categoryName] || categoryName;
+  };
 
   if (error) {
     return (
@@ -62,12 +79,18 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
     <>
       {viewMode === "accordion" ? (
         <AccordionProductList 
-          products={products} 
+          products={products.map(product => ({
+            ...product,
+            category: getCategoryTranslation(product.category || '')
+          }))} 
           onProductDeleted={onProductDeleted} 
           groupingOption={groupingOption} 
         />
       ) : (
-        <ProductGrid products={products} />
+        <ProductGrid products={products.map(product => ({
+          ...product,
+          category: getCategoryTranslation(product.category || '')
+        }))} />
       )}
     </>
   );
