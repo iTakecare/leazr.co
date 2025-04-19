@@ -5,7 +5,7 @@ const PressSection = () => {
   // Logos des médias avec leurs liens
   const mediaLogos = [{
     id: 1,
-    src: "/lovable-uploads/98b42b6b-cc49-4ced-8e29-02f6bfbca203.png",
+    src: "/lovable-uploads/073e7dbf-ca5c-4daf-b802-7f6b7ac52c8d.png",
     alt: "Pas de Planète B",
     url: "https://auvio.rtbf.be/media/y-a-pas-de-planete-b-y-a-pas-de-planete-b-3247466"
   }, {
@@ -15,7 +15,7 @@ const PressSection = () => {
     url: "https://www.solutions-magazine.com/travail-hybride-parc-it-reconditionne/"
   }, {
     id: 3,
-    src: "/lovable-uploads/44ed9a0d-fc12-42a5-aef6-3613cc9322fc.png",
+    src: "/lovable-uploads/98b42b6b-cc49-4ced-8e29-02f6bfbca203.png",
     alt: "Grenke",
     url: "https://www.grenke.be/fr/grenke-insights/news/2023/le-leasing---une-solution-pour-sequiper-en-informatique/"
   }, {
@@ -30,7 +30,7 @@ const PressSection = () => {
     url: "https://www.dhnet.be/regions/charleroi/2024/05/03/itakecare-la-start-up-carolo-qui-fait-parler-delle-son-fondateur-gianni-sergi-est-courtise-aux-quatre-coins-du-pays-4WQHC2XJINCTHO722MC7J464UE/"
   }, {
     id: 6,
-    src: "/lovable-uploads/073e7dbf-ca5c-4daf-b802-7f6b7ac52c8d.png",
+    src: "/lovable-uploads/44ed9a0d-fc12-42a5-aef6-3613cc9322fc.png",
     alt: "Tendances Trends",
     url: "https://trends.levif.be/a-la-une/clever-together/itakecare-propose-des-solutions-durables-et-economiques/"
   }, {
