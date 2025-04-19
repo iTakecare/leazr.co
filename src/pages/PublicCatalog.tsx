@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
@@ -29,7 +28,8 @@ import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 const PublicCatalog = () => {
   const navigate = useNavigate();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  
+  const [sortOrder, setSortOrder] = useState<"name-asc" | "name-desc" | "price-asc" | "price-desc">("name-asc");
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () => getProducts({ includeAdminOnly: false }),
@@ -106,6 +106,29 @@ const PublicCatalog = () => {
     return parentProducts;
   }, [filteredProducts]);
 
+  const filteredAndSortedProducts = React.useMemo(() => {
+    if (!filteredProducts) return [];
+    
+    return [...filteredProducts].sort((a, b) => {
+      switch (sortOrder) {
+        case "name-asc":
+          return (a.name || "").localeCompare(b.name || "");
+        case "name-desc":
+          return (b.name || "").localeCompare(a.name || "");
+        case "price-asc":
+          const priceA = a.monthly_price || a.price || 0;
+          const priceB = b.monthly_price || b.price || 0;
+          return priceA - priceB;
+        case "price-desc":
+          const priceC = a.monthly_price || a.price || 0;
+          const priceD = b.monthly_price || b.price || 0;
+          return priceD - priceC;
+        default:
+          return 0;
+      }
+    });
+  }, [filteredProducts, sortOrder]);
+
   const handleProductClick = (product: Product) => {
     navigate(`/produits/${product.id}`);
   };
@@ -113,6 +136,33 @@ const PublicCatalog = () => {
   const handlePriceRangeChange = (values: number[]) => {
     setPriceRange(values as [number, number]);
     setIsPriceFilterActive(true);
+  };
+
+  const handleSortChange = () => {
+    const orders: Array<"name-asc" | "name-desc" | "price-asc" | "price-desc"> = [
+      "name-asc",
+      "name-desc",
+      "price-asc",
+      "price-desc"
+    ];
+    const currentIndex = orders.indexOf(sortOrder);
+    const nextIndex = (currentIndex + 1) % orders.length;
+    setSortOrder(orders[nextIndex]);
+  };
+
+  const getSortLabel = () => {
+    switch (sortOrder) {
+      case "name-asc":
+        return "Nom (A-Z)";
+      case "name-desc":
+        return "Nom (Z-A)";
+      case "price-asc":
+        return "Prix (croissant)";
+      case "price-desc":
+        return "Prix (décroissant)";
+      default:
+        return "Trier par";
+    }
   };
 
   return (
@@ -368,9 +418,9 @@ const PublicCatalog = () => {
                 <p className="text-gray-600">
                   {groupedProducts.length} produit{groupedProducts.length > 1 ? 's' : ''} trouvé{groupedProducts.length > 1 ? 's' : ''}
                 </p>
-                <Button variant="outline" className="flex items-center">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  Trier par
+                <Button variant="outline" className="flex items-center gap-2" onClick={handleSortChange}>
+                  <ArrowUpDown className="h-4 w-4" />
+                  {getSortLabel()}
                 </Button>
               </div>
               
@@ -399,7 +449,7 @@ const PublicCatalog = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {groupedProducts.map((product) => (
+                  {filteredAndSortedProducts.map((product) => (
                     <ProductGridCard 
                       key={product.id} 
                       product={product} 
