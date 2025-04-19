@@ -1,62 +1,67 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import { toast } from "sonner";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { 
-  getCategories, 
-  addCategory, 
-  updateCategory, 
-  deleteCategory 
-} from "@/services/catalogService";
-import { 
-  PlusCircle, 
-  Edit, 
-  Trash2, 
-  ChevronRight 
-} from "lucide-react";
-import { toast } from "sonner";
 import { Category } from "@/types/catalog";
 
 const CategoryManager = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", translation: "" });
-  const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  
+
   const queryClient = useQueryClient();
 
-  // Fetch categories
+  // Fetch categories query
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: getCategories
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+      
+      if (error) throw error;
+      return data;
+    }
   });
 
   // Add category mutation
   const addCategoryMutation = useMutation({
-    mutationFn: addCategory,
+    mutationFn: async (categoryData: Omit<Category, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert([categoryData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Catégorie ajoutée avec succès");
       setIsAddModalOpen(false);
       setNewCategory({ name: "", translation: "" });
+      toast.success("Catégorie ajoutée avec succès");
     },
     onError: (error) => {
       console.error("Error adding category:", error);
@@ -66,12 +71,22 @@ const CategoryManager = () => {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: updateCategory,
+    mutationFn: async ({ id, ...categoryData }: Category) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .update(categoryData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Catégorie mise à jour avec succès");
       setIsEditModalOpen(false);
-      setEditCategory(null);
+      setSelectedCategory(null);
+      toast.success("Catégorie mise à jour avec succès");
     },
     onError: (error) => {
       console.error("Error updating category:", error);
@@ -81,15 +96,17 @@ const CategoryManager = () => {
 
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
-    mutationFn: deleteCategory,
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
-      setIsDeleteModalOpen(false);
-      setSelectedCategory(null);
-      if (activeCategory === selectedCategory?.name) {
-        setActiveCategory(null);
-      }
     },
     onError: (error) => {
       console.error("Error deleting category:", error);
@@ -97,129 +114,79 @@ const CategoryManager = () => {
     }
   });
 
-  // Handle adding a new category
   const handleAddCategory = () => {
-    if (!newCategory.name.trim()) {
-      toast.error("Le nom de la catégorie est requis");
+    if (!newCategory.name.trim() || !newCategory.translation.trim()) {
+      toast.error("Tous les champs sont requis");
       return;
     }
     addCategoryMutation.mutate(newCategory);
   };
 
-  // Handle updating a category
   const handleUpdateCategory = () => {
-    if (!editCategory || !editCategory.name.trim()) {
-      toast.error("Le nom de la catégorie est requis");
+    if (!selectedCategory || !selectedCategory.name.trim() || !selectedCategory.translation.trim()) {
+      toast.error("Tous les champs sont requis");
       return;
     }
-    
-    updateCategoryMutation.mutate({
-      originalName: selectedCategory?.name || "",
-      name: editCategory.name,
-      translation: editCategory.translation || ""
-    });
+    updateCategoryMutation.mutate(selectedCategory);
   };
 
-  // Handle deleting a category
-  const handleDeleteCategory = () => {
-    if (!selectedCategory) return;
-    deleteCategoryMutation.mutate({ name: selectedCategory.name });
-  };
-
-  // Open edit modal with selected category
-  const openEditModal = (category: Category) => {
-    setSelectedCategory(category);
-    setEditCategory({ ...category });
-    setIsEditModalOpen(true);
-  };
-
-  // Open delete confirmation modal
-  const openDeleteModal = (category: Category) => {
-    setSelectedCategory(category);
-    setIsDeleteModalOpen(true);
-  };
-
-  // Handle category selection
-  const handleCategorySelect = (category: Category) => {
-    setActiveCategory(category.name);
-    // Here you could trigger a filter or other actions when a category is selected
+  const handleDeleteCategory = (id: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette catégorie ?")) {
+      deleteCategoryMutation.mutate(id);
+    }
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <Card className="flex-1 border-none shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between py-2">
-          <CardTitle className="text-lg font-medium">Catégories</CardTitle>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsAddModalOpen(true)}
-            className="h-8 w-8 p-0"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="sr-only">Ajouter une catégorie</span>
-          </Button>
-        </CardHeader>
-        <CardContent className="p-2">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-            </div>
-          ) : categories.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              Aucune catégorie trouvée
-            </div>
-          ) : (
-            <ul className="space-y-1">
-              {categories.map((category) => (
-                <li 
-                  key={category.id || category.name} 
-                  className={`flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                    activeCategory === category.name ? "bg-gray-100 font-medium" : ""
-                  }`}
-                  onClick={() => handleCategorySelect(category)}
-                >
-                  <div className="flex items-center space-x-2 truncate">
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="truncate">{category.name}</span>
-                    {category.translation && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        ({category.translation})
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-1 flex-shrink-0 opacity-0 group-hover:opacity-100">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(category);
-                      }}
-                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      <span className="sr-only">Modifier</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteModal(category);
-                      }}
-                      className="h-7 w-7 p-0 text-destructive opacity-0 group-hover:opacity-100 hover:opacity-100 hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only">Supprimer</span>
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-medium">Gérer les catégories</h2>
+        <Button onClick={() => setIsAddModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter une catégorie
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-4">Chargement...</div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead>Traduction</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell>{category.name}</TableCell>
+                <TableCell>{category.translation}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteCategory(category.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
 
       {/* Add Category Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -234,16 +201,16 @@ const CategoryManager = () => {
                 id="name"
                 value={newCategory.name}
                 onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                placeholder="Nom de la catégorie"
+                placeholder="ex: laptop"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="translation">Traduction (optionnel)</Label>
+              <Label htmlFor="translation">Traduction</Label>
               <Input
                 id="translation"
                 value={newCategory.translation}
                 onChange={(e) => setNewCategory({ ...newCategory, translation: e.target.value })}
-                placeholder="Traduction"
+                placeholder="ex: Ordinateur portable"
               />
             </div>
           </div>
@@ -251,9 +218,7 @@ const CategoryManager = () => {
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleAddCategory} disabled={addCategoryMutation.isPending}>
-              {addCategoryMutation.isPending ? "Ajout en cours..." : "Ajouter"}
-            </Button>
+            <Button onClick={handleAddCategory}>Ajouter</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -269,18 +234,28 @@ const CategoryManager = () => {
               <Label htmlFor="edit-name">Nom</Label>
               <Input
                 id="edit-name"
-                value={editCategory?.name || ""}
-                onChange={(e) => setEditCategory({ ...editCategory!, name: e.target.value })}
-                placeholder="Nom de la catégorie"
+                value={selectedCategory?.name || ""}
+                onChange={(e) =>
+                  setSelectedCategory(
+                    selectedCategory
+                      ? { ...selectedCategory, name: e.target.value }
+                      : null
+                  )
+                }
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-translation">Traduction (optionnel)</Label>
+              <Label htmlFor="edit-translation">Traduction</Label>
               <Input
                 id="edit-translation"
-                value={editCategory?.translation || ""}
-                onChange={(e) => setEditCategory({ ...editCategory!, translation: e.target.value })}
-                placeholder="Traduction"
+                value={selectedCategory?.translation || ""}
+                onChange={(e) =>
+                  setSelectedCategory(
+                    selectedCategory
+                      ? { ...selectedCategory, translation: e.target.value }
+                      : null
+                  )
+                }
               />
             </div>
           </div>
@@ -288,36 +263,7 @@ const CategoryManager = () => {
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleUpdateCategory} disabled={updateCategoryMutation.isPending}>
-              {updateCategoryMutation.isPending ? "Mise à jour en cours..." : "Mettre à jour"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Category Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Supprimer la catégorie</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              Êtes-vous sûr de vouloir supprimer la catégorie <strong>{selectedCategory?.name}</strong> ?
-              Cette action est irréversible.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-              Annuler
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteCategory}
-              disabled={deleteCategoryMutation.isPending}
-            >
-              {deleteCategoryMutation.isPending ? "Suppression en cours..." : "Supprimer"}
-            </Button>
+            <Button onClick={handleUpdateCategory}>Mettre à jour</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

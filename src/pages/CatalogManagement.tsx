@@ -3,8 +3,9 @@ import React from "react";
 import Container from "@/components/layout/Container";
 import ProductEditor from "@/components/catalog/ProductEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award } from "lucide-react";
+import { Award, Folder } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
+import CategoryManager from "@/components/catalog/CategoryManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -37,17 +38,19 @@ const CatalogManagement = () => {
   return (
     <Container>
       <div className="py-6 md:py-8">
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4 w-full justify-start mobile-tabs-full">
             <TabsTrigger value="catalog">Catalogue</TabsTrigger>
+            <TabsTrigger value="categories">
+              <Folder className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Catégories" : <span>Catégories</span>}
+            </TabsTrigger>
             <TabsTrigger value="brands">
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
             </TabsTrigger>
           </TabsList>
           
-          {/* Tab content */}
           <TabsContent value="catalog">
             {/* Container for the header with limited width */}
             <div className="max-w-4xl mx-auto">
@@ -55,9 +58,7 @@ const CatalogManagement = () => {
             </div>
             
             <div className="mt-6">
-              {/* Main content - removing the sidebar layout */}
               <div className="w-full">
-                {/* View options */}
                 <ProductsViewOptions 
                   groupingOption={groupingOption}
                   onGroupingChange={setGroupingOption}
@@ -65,7 +66,6 @@ const CatalogManagement = () => {
                   onViewModeChange={handleViewModeChange}
                 />
                 
-                {/* Catalog content */}
                 <CatalogContent 
                   products={products}
                   isLoading={isLoading}
@@ -78,13 +78,16 @@ const CatalogManagement = () => {
             </div>
           </TabsContent>
           
+          <TabsContent value="categories">
+            <CategoryManager />
+          </TabsContent>
+          
           <TabsContent value="brands">
             <BrandManager />
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Product editor dialog */}
       <ProductEditor 
         isOpen={isAddProductOpen} 
         onClose={() => setIsAddProductOpen(false)} 
