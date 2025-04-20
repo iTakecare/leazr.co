@@ -329,7 +329,8 @@ const TranslationManager = () => {
             placeholder="Rechercher..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            prefix={<Search className="h-4 w-4 text-gray-400" />}
+            // Fix for the TypeScript error - Remove the prefix prop with React Element
+            startAdornment={<Search className="h-4 w-4 text-gray-400" />}
           />
           <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
