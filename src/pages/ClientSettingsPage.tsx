@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const ClientSettingsPage = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [firstName, setFirstName] = useState(user?.first_name || "");
@@ -88,7 +88,6 @@ const ClientSettingsPage = () => {
     
     setLoading(true);
     try {
-      // Mise à jour du profil dans la base de données
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -105,12 +104,6 @@ const ClientSettingsPage = () => {
       if (error) {
         throw error;
       }
-      
-      // Mise à jour du contexte utilisateur pour refléter les changements
-      await updateUserProfile({
-        first_name: firstName,
-        last_name: lastName
-      });
       
       toast.success("Paramètres mis à jour avec succès");
     } catch (error) {

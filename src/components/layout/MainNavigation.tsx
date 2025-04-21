@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +13,15 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useTranslationContext } from "@/context/TranslationContext";
+import { LanguageSelector } from "./LanguageSelector";
 
 const MainNavigation = () => {
   const { cartCount } = useCart();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { t } = useTranslationContext();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,23 +37,23 @@ const MainNavigation = () => {
   }, []);
 
   const solutionsMenu = [
-    { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
-    { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
-    { label: "Services cloud", href: "/solutions#cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: "Infrastructure cloud sécurisée et évolutive" },
-    { label: "Reconditionnement", href: "/solutions#reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Équipements reconditionnés et certifiés écologiques" },
+    { label: t('equipment_rental', 'solutions'), href: "/solutions#location", icon: <Monitor className="w-4 h-4 mr-2" />, description: t('equipment_rental_desc', 'solutions') },
+    { label: t('fleet_management', 'solutions'), href: "/solutions#gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: t('fleet_management_desc', 'solutions') },
+    { label: t('cloud_services', 'solutions'), href: "/solutions#cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: t('cloud_services_desc', 'solutions') },
+    { label: t('refurbishing', 'solutions'), href: "/solutions#reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: t('refurbishing_desc', 'solutions') },
   ];
 
   const servicesMenu = [
-    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique", badge: "Gratuit" },
-    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: t('for_businesses', 'services'), href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: t('for_businesses_desc', 'services') },
+    { label: t('for_professionals', 'services'), href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: t('for_professionals_desc', 'services') },
+    { label: t('itakecare_hub', 'services'), href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: t('itakecare_hub_desc', 'services'), badge: t('free', 'services') },
+    { label: t('technical_support', 'services'), href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: t('technical_support_desc', 'services') },
   ];
 
   const durabiliteMenu = [
-    { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Notre mission pour un numérique responsable" },
-    { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Comment nous contribuons à l'économie circulaire" },
-    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="w-4 h-4 mr-2" />, description: "Nos actions pour réduire l'empreinte environnementale" },
+    { label: t('our_commitment', 'sustainability'), href: "/durabilite#engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: t('our_commitment_desc', 'sustainability') },
+    { label: t('circular_economy', 'sustainability'), href: "/durabilite#economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: t('circular_economy_desc', 'sustainability') },
+    { label: t('environmental_impact', 'sustainability'), href: "/durabilite#impact", icon: <Globe className="w-4 h-4 mr-2" />, description: t('environmental_impact_desc', 'sustainability') },
   ];
 
   const toggleMobileMenu = () => {
@@ -74,7 +78,7 @@ const MainNavigation = () => {
           <button 
             onClick={toggleMobileMenu} 
             className="p-2 md:hidden"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileMenuOpen ? t('close_menu', 'navigation') : t('open_menu', 'navigation')}
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -82,7 +86,7 @@ const MainNavigation = () => {
 
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
           <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
+            <div className="font-medium text-[#33638E] mb-2 px-4">{t('solutions', 'navigation')}</div>
             {solutionsMenu.map((item, index) => (
               <Link
                 key={index}
@@ -97,7 +101,7 @@ const MainNavigation = () => {
           </div>
           
           <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
+            <div className="font-medium text-[#33638E] mb-2 px-4">{t('services', 'navigation')}</div>
             {servicesMenu.map((item, index) => (
               <Link
                 key={index}
@@ -112,7 +116,7 @@ const MainNavigation = () => {
           </div>
           
           <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
+            <div className="font-medium text-[#33638E] mb-2 px-4">{t('sustainability', 'navigation')}</div>
             {durabiliteMenu.map((item, index) => (
               <Link
                 key={index}
@@ -134,7 +138,7 @@ const MainNavigation = () => {
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
-            À propos
+            {t('about', 'navigation')}
           </Link>
           
           <Link
@@ -145,7 +149,7 @@ const MainNavigation = () => {
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
-            Blog
+            {t('blog', 'navigation')}
           </Link>
           
           <Link
@@ -156,7 +160,7 @@ const MainNavigation = () => {
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
-            Contact
+            {t('contact', 'navigation')}
           </Link>
           
           <div className="flex flex-col space-y-2 pt-4">
@@ -165,12 +169,12 @@ const MainNavigation = () => {
                 variant="outline"
                 className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
               >
-                Se connecter
+                {t('login', 'navigation')}
               </Button>
             </Link>
             <Link to="/catalogue">
               <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
-                Catalogue
+                {t('catalog', 'navigation')}
               </Button>
             </Link>
           </div>
@@ -182,7 +186,7 @@ const MainNavigation = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
-                    Solutions <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                    {t('solutions', 'navigation')} <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
@@ -208,7 +212,7 @@ const MainNavigation = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
-                    Services <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                    {t('services', 'navigation')} <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
@@ -234,7 +238,7 @@ const MainNavigation = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
-                    Durabilité <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                    {t('sustainability', 'navigation')} <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
@@ -264,7 +268,7 @@ const MainNavigation = () => {
                   location.pathname === "/a-propos" && "font-medium text-[#33638E]"
                 )}
               >
-                À propos
+                {t('about', 'navigation')}
               </Link>
             </li>
             
@@ -276,7 +280,7 @@ const MainNavigation = () => {
                   location.pathname.startsWith("/blog") && "font-medium text-[#33638E]"
                 )}
               >
-                Blog
+                {t('blog', 'navigation')}
               </Link>
             </li>
             
@@ -288,7 +292,7 @@ const MainNavigation = () => {
                   location.pathname === "/contact" && "font-medium text-[#33638E]"
                 )}
               >
-                Contact
+                {t('contact', 'navigation')}
               </Link>
             </li>
           </ul>
@@ -314,34 +318,17 @@ const MainNavigation = () => {
               variant="outline"
               className="rounded-[50px] font-bold text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E] transition-all"
             >
-              Se connecter
+              {t('login', 'navigation')}
             </Button>
           </Link>
 
           <Link to="/catalogue">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-sm transition-all duration-300 hover:shadow-md">
-              Catalogue
+              {t('catalog', 'navigation')}
             </Button>
           </Link>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center ml-2 p-2 rounded-full hover:bg-gray-100 transition-colors">
-              <Globe className="w-5 h-5 text-gray-700" />
-              <ChevronDown className="w-3 h-3 ml-1 text-gray-700" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
-              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
-                Français
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-100" />
-              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
-                English
-              </DropdownMenuItem>
-              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
-                Español
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <LanguageSelector />
         </div>
       </div>
     </div>

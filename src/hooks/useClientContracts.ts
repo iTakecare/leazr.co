@@ -1,10 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const supabase = getSupabaseClient();
 
 export type ClientContract = {
   id: string;
@@ -39,6 +37,7 @@ export const useClientContracts = () => {
     
     try {
       // Si forceClientId est fourni, nous l'utilisons directement
+      // (utile pour afficher les contrats d'un client spécifique dans la page de détail)
       if (forceClientId) {
         console.log("Fetching contracts with forced client ID:", forceClientId);
         setClientId(forceClientId);
@@ -81,8 +80,8 @@ export const useClientContracts = () => {
       
       // Sinon, chercher l'ID client à partir de l'email
       await fetchClientIdFromEmail(user.email);
-    } catch (err: any) {
-      console.error("Error in fetchContracts:", err);
+    } catch (error) {
+      console.error("Error in fetchContracts:", error);
       setLoading(false);
       setError("Erreur lors de la récupération des contrats");
       toast.error("Erreur lors du chargement des contrats");
@@ -138,39 +137,6 @@ export const useClientContracts = () => {
           }
         }
         
-        // Essayer de chercher par nom + prénom de l'utilisateur si disponible
-        if (user?.first_name && user?.last_name) {
-          const fullName = `${user.first_name} ${user.last_name}`.trim();
-          console.log("Trying to find client by full name:", fullName);
-          
-          const { data: clientByName, error: nameError } = await supabase
-            .from('clients')
-            .select('id, name, email, user_id')
-            .ilike('name', `%${fullName}%`)
-            .maybeSingle();
-            
-          if (clientByName) {
-            console.log("Found client by name:", clientByName);
-            setClientId(clientByName.id);
-            
-            // Associer le client à l'utilisateur si pas déjà fait
-            if (!clientByName.user_id && user?.id) {
-              await supabase
-                .from('clients')
-                .update({ 
-                  user_id: user.id,
-                  email: email || clientByName.email
-                })
-                .eq('id', clientByName.id);
-              
-              console.log(`Associated client ${clientByName.id} with user ${user.id}`);
-            }
-            
-            await fetchContractsByClientId(clientByName.id);
-            return;
-          }
-        }
-        
         setLoading(false);
         setError("Aucun compte client trouvé pour cet email");
         return;
@@ -196,6 +162,9 @@ export const useClientContracts = () => {
         // Cas où le client est déjà associé à un autre utilisateur
         console.log(`Client ${clientData.id} is already associated with a different user: ${clientData.user_id}`);
         console.log(`Current user is: ${user?.id}`);
+        
+        // On peut décider de créer un nouveau client pour cet utilisateur si nécessaire
+        // Ou simplement notifier l'utilisateur de l'incohérence
       }
       
       setClientId(clientData.id);
@@ -309,67 +278,7 @@ export const useClientContracts = () => {
         setContracts(updatedContracts);
       } else {
         console.log("No contracts found by client_name either");
-        
-        // Comme dernier recours, chercher dans toutes les offres du client
-        try {
-          const { data: offers, error: offersError } = await supabase
-            .from('offers')
-            .select('*')
-            .eq('client_id', clientId)
-            .eq('converted_to_contract', true);
-            
-          if (offersError) throw offersError;
-            
-          if (offers && offers.length > 0) {
-            console.log(`Found ${offers.length} offers converted to contracts, checking for matching contracts`);
-            
-            // Pour chaque offre, vérifier s'il existe un contrat correspondant
-            for (const offer of offers) {
-              const { data: relatedContract, error: relatedError } = await supabase
-                .from('contracts')
-                .select('*')
-                .eq('offer_id', offer.id)
-                .maybeSingle();
-                
-              if (relatedError) {
-                console.error(`Error checking contract for offer ${offer.id}:`, relatedError);
-                continue;
-              }
-              
-              if (relatedContract) {
-                console.log(`Found contract ${relatedContract.id} for offer ${offer.id}`);
-                
-                // Si le contrat n'a pas de client_id, le mettre à jour
-                if (!relatedContract.client_id) {
-                  const updatedContract = { ...relatedContract, client_id: clientId };
-                  
-                  const { error: updateError } = await supabase
-                    .from('contracts')
-                    .update({ client_id: clientId })
-                    .eq('id', relatedContract.id);
-                    
-                  if (updateError) {
-                    console.error(`Error updating contract ${relatedContract.id}:`, updateError);
-                  } else {
-                    console.log(`Updated client_id for contract ${relatedContract.id}`);
-                  }
-                  
-                  setContracts([updatedContract]);
-                  break;
-                } else {
-                  setContracts([relatedContract]);
-                  break;
-                }
-              }
-            }
-          }
-        } catch (offersErr) {
-          console.error("Error checking client offers:", offersErr);
-        }
-        
-        if (contracts.length === 0) {
-          setContracts([]);
-        }
+        setContracts([]);
       }
       
       setLoading(false);
@@ -485,7 +394,7 @@ export const useClientContracts = () => {
     error,
     clientId,
     refresh,
-    debug: runDiagnostics, 
-    fetchContracts
+    debug: runDiagnostics,
+    fetchContracts // Export cette fonction pour permettre à d'autres composants de forcer le chargement des contrats
   };
 };
