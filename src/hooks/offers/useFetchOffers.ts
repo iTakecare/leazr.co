@@ -1,11 +1,10 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
-import { useAuth } from "@/context/AuthContext";
 
 // Define and export the Offer interface
 export interface Offer extends OfferData {
@@ -17,20 +16,17 @@ export interface Offer extends OfferData {
 }
 
 export const useFetchOffers = () => {
-  const { user } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
 
-  const fetchOffers = useCallback(async () => {
+  const fetchOffers = async () => {
     setLoading(true);
     setLoadingError(null);
 
     try {
       console.log("Fetching offers with includeConverted =", includeConverted);
-      console.log("Logged in user:", user?.id);
-      
       const data = await getOffers(includeConverted);
       
       if (data) {
@@ -80,7 +76,7 @@ export const useFetchOffers = () => {
     } finally {
       setLoading(false);
     }
-  }, [includeConverted, user?.id]);
+  };
 
   useEffect(() => {
     fetchOffers();
@@ -101,7 +97,7 @@ export const useFetchOffers = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchOffers]);
+  }, [includeConverted]);
 
   return {
     offers,
