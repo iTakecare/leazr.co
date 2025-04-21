@@ -26,12 +26,14 @@ import { Client } from "@/types/client";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
-  const { contracts, loading: contractsLoading, error: contractsError, refresh: refreshContracts } = useClientContracts();
-  const { offers, loading: offersLoading, error: offersError, refresh: refreshOffers } = useClientOffers();
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clientId, setClientId] = useState(null);
+  const [clientId, setClientId] = useState<string | null>(null);
   const [clientData, setClientData] = useState<Client | null>(null);
+  
+  // Pass clientId to the hooks for better data fetching
+  const { contracts, loading: contractsLoading, error: contractsError, refresh: refreshContracts } = useClientContracts(null, clientId);
+  const { offers, loading: offersLoading, error: offersError, refresh: refreshOffers } = useClientOffers(null, clientId);
 
   useEffect(() => {
     const fetchClientData = async () => {

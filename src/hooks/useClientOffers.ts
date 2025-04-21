@@ -24,7 +24,7 @@ export interface ClientOffer {
   equipment_data?: any[]; // Adding equipment_data property
 }
 
-export const useClientOffers = (clientEmail?: string) => {
+export const useClientOffers = (clientEmail?: string, clientId?: string | null) => {
   const [offers, setOffers] = useState<ClientOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +34,21 @@ export const useClientOffers = (clientEmail?: string) => {
     setError(null);
 
     try {
+      console.log("Fetching offers for:", clientEmail, clientId);
+      
       let query = supabase
         .from('offers')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // If clientEmail is provided, filter offers by client_email
-      if (clientEmail) {
+      // Apply filters based on available parameters
+      if (clientId) {
+        // If clientId is provided, filter by client_id
+        console.log("Filtering offers by client_id:", clientId);
+        query = query.eq('client_id', clientId);
+      } else if (clientEmail) {
+        // If only email is provided, filter by client_email
+        console.log("Filtering offers by client_email:", clientEmail);
         query = query.eq('client_email', clientEmail);
       }
 
@@ -49,6 +57,8 @@ export const useClientOffers = (clientEmail?: string) => {
       if (error) {
         throw new Error(error.message);
       }
+
+      console.log(`Retrieved ${data?.length || 0} offers for client`, data);
 
       // Process the data to ensure financed_amount is calculated for all offers
       const processedData = (data || []).map(offer => {
@@ -98,7 +108,7 @@ export const useClientOffers = (clientEmail?: string) => {
 
   useEffect(() => {
     fetchOffers();
-  }, [clientEmail]);
+  }, [clientEmail, clientId]);
 
   const refresh = () => {
     fetchOffers();
