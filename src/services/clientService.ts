@@ -194,6 +194,78 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 };
 
 /**
+ * Recherche un client par ID et vérifie son statut de visibilité
+ * @param id ID du client à rechercher
+ * @returns Informations détaillées sur le client, y compris son statut de visibilité
+ */
+export const findClientById = async (id: string): Promise<{
+  client: Client | null;
+  isAmbassadorClient: boolean;
+  exists: boolean;
+  message: string;
+}> => {
+  try {
+    // Vérifier si le client existe dans la base de données
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (clientError) {
+      if (clientError.code === 'PGRST116') {
+        // Code pour "pas de ligne trouvée"
+        return {
+          client: null,
+          isAmbassadorClient: false,
+          exists: false,
+          message: `Aucun client trouvé avec l'ID: ${id}`
+        };
+      }
+      console.error(`Erreur lors de la recherche du client avec l'ID ${id}:`, clientError);
+      throw clientError;
+    }
+
+    // Vérifier si le client est associé à un ambassadeur
+    const { data: ambassadorLink, error: ambassadorError } = await supabase
+      .from('ambassador_clients')
+      .select('*')
+      .eq('client_id', id)
+      .limit(1);
+
+    if (ambassadorError) {
+      console.error(`Erreur lors de la vérification du lien ambassadeur pour le client ${id}:`, ambassadorError);
+    }
+
+    const isAmbassadorClient = ambassadorLink && ambassadorLink.length > 0;
+    
+    // Informations de débogage
+    let message = `Client trouvé avec l'ID: ${id}. `;
+    message += isAmbassadorClient 
+      ? `Ce client est associé à un ambassadeur et apparaît uniquement lorsque l'option "Afficher les clients des ambassadeurs" est activée.`
+      : `Ce client est un client standard et devrait apparaître dans la liste normale des clients.`;
+
+    // Récupérer les détails complets du client
+    const client = await getClientById(id);
+
+    return {
+      client,
+      isAmbassadorClient,
+      exists: true,
+      message
+    };
+  } catch (error) {
+    console.error(`Exception lors de la recherche du client avec l'ID ${id}:`, error);
+    return {
+      client: null,
+      isAmbassadorClient: false,
+      exists: false,
+      message: `Erreur lors de la recherche du client: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+};
+
+/**
  * Met à jour un client existant
  * @param id ID du client à mettre à jour
  * @param updates Les mises à jour à appliquer au client
