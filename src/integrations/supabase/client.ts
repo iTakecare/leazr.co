@@ -34,12 +34,13 @@ let adminSupabaseInstance = null;
 
 export const getAdminSupabaseClient = () => {
   if (!adminSupabaseInstance) {
+    // Create a new client for admin operations, avoiding auth persistence
     adminSupabaseInstance = createClient<Database>(
       SUPABASE_URL, 
       SERVICE_ROLE_KEY,
       {
         auth: {
-          persistSession: false
+          persistSession: false // Avoid conflicts with user sessions
         }
       }
     );

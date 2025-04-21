@@ -1,3 +1,4 @@
+
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -10,9 +11,10 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Utiliser directement le client administrateur pour contourner les politiques RLS
+    // Utiliser le client admin directement, sans récréer une instance
     const adminClient = getAdminSupabaseClient();
     
+    // S'assurer que la requête est correctement formée
     const { data, error } = await adminClient
       .from('clients')
       .insert(clientData)
