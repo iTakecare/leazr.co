@@ -82,6 +82,7 @@ export const useFetchOffers = () => {
       }
     } catch (err: any) {
       console.error("Erreur dans fetchOffers:", err);
+      console.error("Détails de l'erreur:", JSON.stringify(err, null, 2));
       setLoadingError(err.message || "Erreur de connexion");
       
       if (!useAdmin) {

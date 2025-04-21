@@ -42,7 +42,7 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     console.log("[TEST] Tentative d'insertion avec client admin...");
     
     try {
-      // Log headers being used for debugging - avoid accessing protected property
+      // Log des informations pour le débogage
       console.log("[TEST] Test insertion avec client admin...");
       
       // Test explicite du client admin sans authentification utilisateur
@@ -108,7 +108,6 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     
     // Test basique d'authentification avec la clé
     console.log("[TEST] Test de connexion au projet Supabase...");
-    // Avoid accessing protected property
     console.log("[TEST] Test de connexion avec client admin...");
     
     // Try to select something from a system table we know exists
@@ -141,7 +140,7 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
         };
       }
       
-      console.log("[TEST] Test de sélection réussi, données:", selectData);
+      console.log("[TEST] Test de sélection réussi:", selectData);
       
       // Test réussi
       return { 

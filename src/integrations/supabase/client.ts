@@ -3,61 +3,73 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw";
-const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTg3ODM4MiwiZXhwIjoyMDU3NDU0MzgyfQ.39wjC_Ld_qXnExyLgCawiip5hBDfCY6Hkb1rktomIxk";
+// Définition des constantes d'environnement
+export const SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw";
+export const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTg3ODM4MiwiZXhwIjoyMDU3NDU0MzgyfQ.39wjC_Ld_qXnExyLgCawiip5hBDfCY6Hkb1rktomIxk";
 
-// Create a singleton instance for the public client
+// Variable singleton pour le client public
 let supabaseInstance = null;
 
-// Function to get supabase client with anon key
+/**
+ * Obtient une instance du client Supabase avec la clé anonyme
+ */
 export const getSupabaseClient = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    });
+    supabaseInstance = createClient<Database>(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        },
+        global: {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_PUBLISHABLE_KEY
+          }
+        }
+      }
+    );
+    console.log("Client Supabase initialisé avec la clé publique");
   }
   return supabaseInstance;
 };
 
-// Function to get admin supabase client with service role key
-// IMPORTANT: This creates a NEW instance each time with NO AUTH state to avoid conflicts
+/**
+ * Obtient une instance fraîche du client Supabase avec la clé service_role
+ * IMPORTANT: Cette fonction crée UNE NOUVELLE INSTANCE à chaque appel
+ */
 export const getAdminSupabaseClient = () => {
-  console.log("[ADMIN CLIENT] Creating fresh admin client with service role");
+  console.log("[ADMIN CLIENT] Création d'un client admin avec la clé service_role");
   
-  // Create a completely fresh client instance with the service role key
-  // Do NOT use any existing auth state or session - completely isolated instance
+  // Créer une instance complètement nouvelle avec la clé service_role
   const adminClient = createClient<Database>(
     SUPABASE_URL, 
     SERVICE_ROLE_KEY,
     {
       auth: {
-        persistSession: false, // Critical: Don't persist admin auth state
-        autoRefreshToken: false, // Don't refresh tokens for admin
-        detectSessionInUrl: false, // Don't detect session in URL for admin
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
       },
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY, // Include API key in headers
-        },
-      },
+          'apikey': SERVICE_ROLE_KEY
+        }
+      }
     }
   );
   
   return adminClient;
 };
 
-// For backwards compatibility
+// Pour la compatibilité avec le code existant
 export const supabase = getSupabaseClient();
 
-// Export storage URL and key properly as constants instead of properties
+// Exporter l'URL et la clé de stockage comme constantes
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;
 export const SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY;
-
-// Export constants for use in other modules
-export { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SERVICE_ROLE_KEY };

@@ -24,14 +24,20 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   const runDiagnostics = async () => {
     setIsLoading(true);
     try {
-      // Show service role key format (not the full key for security)
+      // Vérification des clés
+      console.log('Vérification des clés API...');
+      
+      // Masquer les clés pour la sécurité
       const serviceRoleKeyMasked = SERVICE_ROLE_KEY ? 
-        `${SERVICE_ROLE_KEY.substring(0, 15)}...${SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 15)}` : 
+        `${SERVICE_ROLE_KEY.substring(0, 10)}...${SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 10)}` : 
         'Not defined';
         
       const publishableKeyMasked = SUPABASE_PUBLISHABLE_KEY ? 
-        `${SUPABASE_PUBLISHABLE_KEY.substring(0, 15)}...${SUPABASE_PUBLISHABLE_KEY.substring(SUPABASE_PUBLISHABLE_KEY.length - 15)}` : 
+        `${SUPABASE_PUBLISHABLE_KEY.substring(0, 10)}...${SUPABASE_PUBLISHABLE_KEY.substring(SUPABASE_PUBLISHABLE_KEY.length - 10)}` : 
         'Not defined';
+      
+      console.log('Clé publique:', publishableKeyMasked);
+      console.log('Clé service role:', serviceRoleKeyMasked);
       
       // Test regular client session
       let regularAuthStatus = 'Unknown';
@@ -70,8 +76,10 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         adminTestResult = testError 
           ? `Error: ${testError.message}`
           : `Success: Found ${testData ? JSON.stringify(testData) : 'no data'}`;
-      } catch (e) {
-        adminTestResult = `Exception: ${e instanceof Error ? e.message : 'Unknown error'}`;
+      } catch (insertError) {
+        adminTestResult = `Exception: ${insertError instanceof Error 
+          ? insertError.message 
+          : 'Unknown error'}`;
       }
       
       // Test direct offer retrieval
@@ -90,13 +98,15 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         offersTestResult = `Exception: ${e instanceof Error ? e.message : 'Unknown error'}`;
       }
       
-      // Get client headers
-      const clientHeaders = {};
+      // Get client headers for debugging
+      let clientHeaders = {};
       try {
         const client = getSupabaseClient();
-        if (client.rest && client.rest.headers) {
-          Object.assign(clientHeaders, client.rest.headers);
-        }
+        // Ne pas accéder directement aux propriétés protégées
+        clientHeaders = { 
+          apiKeyLength: SUPABASE_PUBLISHABLE_KEY?.length || 0,
+          serviceKeyLength: SERVICE_ROLE_KEY?.length || 0
+        };
       } catch (e) {
         console.error("Error getting client headers", e);
       }
@@ -350,7 +360,7 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   );
 };
 
-// This imports getSupabaseClient and createClient for the manual test function
+// Ces fonctions accessoires doivent être conservées
 function getSupabaseClient() {
   return supabase;
 }

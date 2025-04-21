@@ -1,10 +1,11 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
     console.log("Récupération des offres en cours...");
     
-    // First try with the normal client
+    // D'abord, essayez avec le client standard
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       console.log("Utilisateur connecté:", userData?.user?.id || "Non connecté");
@@ -16,12 +17,12 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
 
       if (error) {
         console.error("Erreur avec le client standard:", error);
-        throw error; // This will be caught by the outer try/catch
+        throw error; // Sera attrapé par le try/catch externe
       }
       
       console.log(`${data?.length || 0} offres récupérées avec succès via client standard`);
       
-      // Filter converted offers if needed
+      // Filtrer les offres convertis si nécessaire
       const filteredData = includeConverted 
         ? data 
         : data?.filter(offer => !offer.converted_to_contract);
@@ -33,8 +34,10 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       console.error("Tentative avec client standard échouée:", clientError);
       console.log("Tentative avec le client admin...");
       
-      // If standard client fails, try with admin client
+      // Si le client standard échoue, essayer avec le client admin
       const adminClient = getAdminSupabaseClient();
+      
+      console.log("Client admin créé, tentative de récupération des offres...");
       
       // Ensure we're not passing any invalid or stale tokens
       const { data: adminData, error: adminError } = await adminClient
@@ -44,12 +47,13 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       
       if (adminError) {
         console.error("Erreur avec le client admin:", adminError);
+        console.error("Détails de l'erreur:", JSON.stringify(adminError, null, 2));
         throw adminError;
       }
       
       console.log(`${adminData?.length || 0} offres récupérées avec succès via client admin`);
       
-      // Filter converted offers if needed
+      // Filtrer les offres convertis si nécessaire
       const filteredData = includeConverted 
         ? adminData 
         : adminData?.filter(offer => !offer.converted_to_contract);
