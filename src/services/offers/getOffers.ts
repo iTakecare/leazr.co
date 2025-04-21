@@ -35,7 +35,7 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     console.error("Failed with standard client, trying admin client...", standardClientError);
     
     try {
-      // Try with manually created admin client
+      // Try with admin client
       const adminClient = getAdminSupabaseClient();
       
       const { data, error } = await adminClient
