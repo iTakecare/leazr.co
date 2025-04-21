@@ -1866,6 +1866,10 @@ export type Database = {
         Args: { bucket_name: string }
         Returns: boolean
       }
+      check_function_exists: {
+        Args: { function_name: string }
+        Returns: boolean
+      }
       check_table_exists: {
         Args: { table_name: string }
         Returns: boolean
@@ -2131,6 +2135,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      mark_clients_as_duplicates: {
+        Args: { client_ids: string[]; main_client_id: string }
+        Returns: boolean
+      }
       organize_product_variants: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2152,6 +2160,10 @@ export type Database = {
           translation: string
           updated_at: string
         }
+      }
+      update_client_user_account: {
+        Args: { client_id: string; user_id: string }
+        Returns: boolean
       }
       update_offer_margins: {
         Args: Record<PropertyKey, never>
