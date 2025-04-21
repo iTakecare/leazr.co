@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import CollaboratorsList from "@/components/clients/CollaboratorsList";
 import { toast } from "sonner";
-import { getClientById } from "@/services/clientService";
+import { getClientById, syncClientUserAccountStatus } from "@/services/clientService";
 import { resetPassword, createUserAccount } from "@/services/accountService";
 import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info
+  AlertCircle, Info, RefreshCw
 } from "lucide-react";
 
 export default function ClientDetail() {
@@ -24,6 +25,7 @@ export default function ClientDetail() {
   const [loading, setLoading] = useState(true);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isSyncingAccount, setIsSyncingAccount] = useState(false);
 
   const fetchClient = async () => {
     if (!id) return;
@@ -97,6 +99,26 @@ export default function ClientDetail() {
     }
   };
 
+  const handleSyncAccountStatus = async () => {
+    if (!id) return;
+    
+    setIsSyncingAccount(true);
+    try {
+      const success = await syncClientUserAccountStatus(id);
+      if (success) {
+        await fetchClient();
+        toast.success("Statut du compte utilisateur synchronisé avec succès");
+      } else {
+        toast.error("Échec de la synchronisation du statut du compte");
+      }
+    } catch (error) {
+      console.error("Error syncing account status:", error);
+      toast.error("Erreur lors de la synchronisation du statut du compte");
+    } finally {
+      setIsSyncingAccount(false);
+    }
+  };
+
   const handleCollaboratorAdded = () => {
     fetchClient();
     toast.success("Collaborateur ajouté avec succès");
@@ -139,6 +161,7 @@ export default function ClientDetail() {
   });
 
   const hasUserAccount = Boolean(client.has_user_account);
+  const hasUserId = Boolean(client.user_id);
 
   return (
     <div className="container py-8 space-y-6">
@@ -270,10 +293,21 @@ export default function ClientDetail() {
 
         <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
           <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Compte utilisateur
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Compte utilisateur
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleSyncAccountStatus} 
+                disabled={isSyncingAccount}
+                title="Synchroniser le statut du compte"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncingAccount ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
             <CardDescription>Accès au portail client</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -286,6 +320,11 @@ export default function ClientDetail() {
                     {client.user_account_created_at && (
                       <span className="text-xs text-green-700">
                         Créé le {formatDate(client.user_account_created_at)}
+                      </span>
+                    )}
+                    {client.user_id && (
+                      <span className="block text-xs text-green-700">
+                        ID: {client.user_id}
                       </span>
                     )}
                   </div>
@@ -305,7 +344,15 @@ export default function ClientDetail() {
               <div className="space-y-4">
                 <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">Ce client n'a pas encore de compte utilisateur pour accéder au portail.</p>
+                  <div>
+                    <p className="text-sm">Ce client n'a pas encore de compte utilisateur pour accéder au portail.</p>
+                    {hasUserId && (
+                      <p className="text-xs mt-2 font-medium">
+                        Un ID utilisateur est associé mais le compte est marqué comme inactif.
+                        Utilisez le bouton de synchronisation pour corriger.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {client.email ? (
                   <Button 

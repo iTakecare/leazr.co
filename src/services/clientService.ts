@@ -1,4 +1,3 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -488,5 +487,104 @@ export const getCollaboratorsByClientId = async (clientId: string): Promise<Coll
   } catch (error) {
     console.error(`Erreur lors de la récupération des collaborateurs:`, error);
     return [];
+  }
+};
+
+/**
+ * Corrige l'état du compte utilisateur d'un client
+ * Utilisé pour synchroniser le statut du compte lorsqu'il y a une incohérence
+ */
+export const syncClientUserAccountStatus = async (clientId: string): Promise<boolean> => {
+  try {
+    // Récupérer les détails actuels du client
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('id, email, user_id')
+      .eq('id', clientId)
+      .single();
+      
+    if (clientError || !client) {
+      console.error(`Erreur lors de la récupération du client ${clientId}:`, clientError);
+      return false;
+    }
+    
+    // Si le client a un user_id, vérifier si l'utilisateur existe
+    if (client.user_id) {
+      const { data: userExists, error: userCheckError } = await supabase.rpc(
+        'check_user_exists_by_id',
+        { user_id: client.user_id }
+      );
+      
+      if (userCheckError) {
+        console.error("Erreur lors de la vérification de l'utilisateur:", userCheckError);
+        return false;
+      }
+      
+      // Mettre à jour le statut du compte utilisateur en fonction de l'existence de l'utilisateur
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({
+          has_user_account: userExists,
+          // Si l'utilisateur existe mais que la date n'est pas définie, la définir maintenant
+          user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : undefined
+        })
+        .eq('id', clientId);
+        
+      if (updateError) {
+        console.error(`Erreur lors de la mise à jour du statut du compte utilisateur:`, updateError);
+        return false;
+      }
+      
+      return true;
+    } else if (client.email) {
+      // Si le client n'a pas de user_id mais a un email, vérifier si un utilisateur avec cet email existe
+      const { data: userId, error: emailCheckError } = await supabase.rpc(
+        'get_user_id_by_email',
+        { user_email: client.email }
+      );
+      
+      if (emailCheckError) {
+        console.error("Erreur lors de la recherche de l'utilisateur par email:", emailCheckError);
+        return false;
+      }
+      
+      if (userId) {
+        // Si un utilisateur avec cet email existe, lier le client à cet utilisateur
+        const { error: linkError } = await supabase
+          .from('clients')
+          .update({
+            user_id: userId,
+            has_user_account: true,
+            user_account_created_at: new Date().toISOString()
+          })
+          .eq('id', clientId);
+          
+        if (linkError) {
+          console.error(`Erreur lors de la liaison du client à l'utilisateur:`, linkError);
+          return false;
+        }
+        
+        return true;
+      }
+    }
+    
+    // Si aucune correspondance n'est trouvée, réinitialiser le statut du compte
+    const { error: resetError } = await supabase
+      .from('clients')
+      .update({
+        has_user_account: false,
+        user_account_created_at: null
+      })
+      .eq('id', clientId);
+      
+    if (resetError) {
+      console.error(`Erreur lors de la réinitialisation du statut du compte:`, resetError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Erreur dans syncClientUserAccountStatus:", error);
+    return false;
   }
 };
