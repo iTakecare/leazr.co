@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,13 +30,11 @@ const ClientRequestsNotifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fonction pour charger les demandes client depuis localStorage
   const fetchPendingRequests = () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Récupérer les demandes stockées localement
       const storedRequests = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
       setPendingRequests(storedRequests);
       console.log("Local client requests loaded:", storedRequests);
@@ -52,12 +49,10 @@ const ClientRequestsNotifications = () => {
   useEffect(() => {
     fetchPendingRequests();
     
-    // Vérifier périodiquement s'il y a de nouvelles demandes
     const checkInterval = setInterval(fetchPendingRequests, 30000);
     return () => clearInterval(checkInterval);
   }, []);
 
-  // Simuler la mise à jour du statut d'une demande
   const handleUpdateStatus = (requestId: string, newStatus: string) => {
     try {
       const updatedRequests = pendingRequests.filter(req => req.id !== requestId);

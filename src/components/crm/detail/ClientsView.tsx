@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Sheet,
@@ -9,84 +8,103 @@ import {
 } from "@/components/ui/sheet";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { User, Building2 } from "lucide-react";
+import { FileText, Mail, Phone, User } from "lucide-react";
 import { formatDateToFrench } from "@/utils/formatters";
 
 interface ClientsViewProps {
   isOpen: boolean;
   onClose: () => void;
-  owner: { id: string; name: string; type: "ambassador" | "partner" };
-  clients: Array<{
+  client: {
     id: string;
     name: string;
-    company?: string;
-    status: string;
+    email: string;
+    phone: string;
     createdAt: string;
-  }>;
+    offers: Array<{
+      id: string;
+      title: string;
+      amount: number;
+      status: string;
+    }>;
+  };
 }
 
 const ClientsView = ({
   isOpen,
   onClose,
-  owner,
-  clients,
+  client,
 }: ClientsViewProps) => {
-  const title = owner.type === "ambassador" 
-    ? `Clients de ${owner.name}` 
-    : `Clients du partenaire ${owner.name}`;
-
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl">
+      <SheetContent className="overflow-y-auto sm:max-w-lg">
         <SheetHeader className="pb-6">
-          <SheetTitle>{title}</SheetTitle>
+          <SheetTitle>Informations du client</SheetTitle>
           <SheetDescription>
-            Liste des clients attribués
+            Détails du client et historique des offres
           </SheetDescription>
         </SheetHeader>
 
-        {clients.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell>
-                    <div className="font-medium">{client.name}</div>
-                    {client.company && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Building2 className="h-3 w-3 mr-1" />
-                        {client.company}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
-                      client.status === 'active' 
-                        ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                    }>
-                      {client.status === 'active' ? 'Actif' : 'Inactif'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {formatDateToFrench(new Date(client.createdAt))}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Aucun client n'est attribué</p>
+        <div className="grid gap-4">
+          <div className="border rounded-md p-4">
+            <h4 className="text-sm font-medium">Informations personnelles</h4>
+            <div className="grid gap-2 mt-2">
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>{client.name}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <a href={`mailto:${client.email}`} className="hover:underline">
+                  {client.email}
+                </a>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{client.phone}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span>Client depuis le {formatDateToFrench(client.createdAt)}</span>
+              </div>
+            </div>
           </div>
-        )}
+
+          <div className="border rounded-md p-4">
+            <h4 className="text-sm font-medium">Historique des offres</h4>
+            {client.offers.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Offre</TableHead>
+                    <TableHead>Montant</TableHead>
+                    <TableHead>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {client.offers.map((offer) => (
+                    <TableRow key={offer.id}>
+                      <TableCell>
+                        <div className="font-medium">{offer.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Créée le {formatDateToFrench(new Date())}
+                        </div>
+                      </TableCell>
+                      <TableCell>{offer.amount}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{offer.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="mx-auto h-12 w-12 text-gray-300" />
+                <p className="text-muted-foreground mt-2">Aucune offre enregistrée</p>
+              </div>
+            )}
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
