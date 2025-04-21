@@ -1,3 +1,4 @@
+
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -18,23 +19,28 @@ export const createClient = async (clientData: any) => {
       .single();
     
     if (error) {
-      console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
+      console.warn("Échec de création de client avec le client standard, tentative directe:", error);
       
-      // Si échec avec le client standard, essayer avec le client admin
-      const adminClient = getAdminSupabaseClient();
-      const adminResponse = await adminClient
+      // Si échec avec le client standard, essayer avec l'insertion directe sans client admin
+      // Cette approche contourne le problème de clé API
+      const { data: directData, error: directError } = await supabase
         .from('clients')
-        .insert(clientData)
+        .insert({
+          ...clientData,
+          // Assurez-vous que tous les champs obligatoires sont présents
+          created_at: new Date(),
+          updated_at: new Date()
+        })
         .select()
         .single();
         
-      if (adminResponse.error) {
-        console.error("Erreur de création de client même avec le client admin:", adminResponse.error);
-        throw adminResponse.error;
+      if (directError) {
+        console.error("Erreur de création de client avec insertion directe:", directError);
+        throw directError;
       }
       
-      console.log("Client created successfully with admin client:", adminResponse.data);
-      return adminResponse.data;
+      console.log("Client created successfully with direct insertion:", directData);
+      return directData;
     }
     
     console.log("Client created successfully with standard client:", data);
