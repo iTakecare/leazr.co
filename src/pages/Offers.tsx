@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import AmbassadorErrorHandler from "@/components/debug/AmbassadorErrorHandler";
 
 const Offers = () => {
   const {
@@ -49,10 +49,8 @@ const Offers = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Référence pour le défilement horizontal
   const scrollContainer = React.useRef<HTMLDivElement>(null);
   
-  // Fonctions pour faire défiler le kanban horizontalement
   const scrollLeft = () => {
     if (scrollContainer.current) {
       scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -65,14 +63,15 @@ const Offers = () => {
     }
   };
 
-  // Force refresh on initial load
   useEffect(() => {
-    // Petit délai pour s'assurer que tout est initialisé
-    const timer = setTimeout(() => {
-      fetchOffers();
-    }, 1000);
+    fetchOffers();
     
-    return () => clearTimeout(timer);
+    const refreshInterval = setInterval(() => {
+      console.log("Rafraîchissement automatique des offres...");
+      fetchOffers();
+    }, 30000);
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   return (
@@ -119,7 +118,6 @@ const Offers = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Sélecteur de vue */}
             <div className="flex items-center border rounded-md overflow-hidden">
               <Button 
                 variant={viewMode === 'list' ? 'default' : 'ghost'} 
@@ -143,7 +141,6 @@ const Offers = () => {
           </div>
         </div>
         
-        {/* Ajouter le composant de diagnostic */}
         <div className="mb-4">
           <PermissionsTest />
         </div>
@@ -160,10 +157,16 @@ const Offers = () => {
         {loading ? (
           <OffersLoading />
         ) : loadingError ? (
-          <OffersError message={loadingError} onRetry={fetchOffers} />
+          <div className="space-y-4">
+            <OffersError message={loadingError} onRetry={fetchOffers} />
+            <AmbassadorErrorHandler 
+              message="Erreur lors du chargement des offres. Vérifiez les permissions et la configuration de l'API." 
+              onRetry={fetchOffers}
+              showDiagnosticInfo={true}
+            />
+          </div>
         ) : viewMode === 'kanban' ? (
           <>
-            {/* Contrôles de navigation du Kanban */}
             <div className="flex justify-between items-center mb-2">
               <Button 
                 variant="outline" 

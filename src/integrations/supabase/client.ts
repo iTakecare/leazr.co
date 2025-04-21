@@ -36,7 +36,7 @@ export const getAdminSupabaseClient = () => {
   
   // Create a completely fresh client instance with the service role key
   // Do NOT use any existing auth state or session - completely isolated instance
-  return createClient<Database>(
+  const adminClient = createClient<Database>(
     SUPABASE_URL, 
     SERVICE_ROLE_KEY,
     {
@@ -54,6 +54,8 @@ export const getAdminSupabaseClient = () => {
       },
     }
   );
+  
+  return adminClient;
 };
 
 // For backwards compatibility

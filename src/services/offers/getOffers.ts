@@ -1,53 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const mockOffers = [
-  {
-    id: "1",
-    client_name: "Entreprise ABC",
-    amount: 25000,
-    monthly_payment: 720,
-    commission: 1250,
-    status: "accepted",
-    workflow_status: "client_approved",
-    created_at: "2025-03-01T09:30:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "2",
-    client_name: "Clinique Santé+",
-    amount: 18500,
-    monthly_payment: 540,
-    commission: 925,
-    status: "pending",
-    workflow_status: "client_waiting",
-    created_at: "2025-03-05T14:15:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "3",
-    client_name: "Cabinet Dentaire Sourire",
-    amount: 32000,
-    monthly_payment: 910,
-    commission: 1600,
-    status: "rejected",
-    workflow_status: "client_no_response",
-    created_at: "2025-02-22T11:20:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "4",
-    client_name: "Centre Imagerie Médicale",
-    amount: 45000,
-    monthly_payment: 1250,
-    commission: 2250,
-    status: "accepted",
-    workflow_status: "leaser_approved",
-    created_at: "2025-02-15T10:00:00Z",
-    type: "admin_offer"
-  }
-];
-
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
     console.log("Récupération des offres en cours...");
@@ -56,7 +9,6 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     const { data, error } = await supabase
       .from('offers')
       .select('*, clients(name, email, company)')
-      .eq('converted_to_contract', includeConverted ? true : false)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -66,18 +18,21 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     console.log(`${data?.length || 0} offres récupérées avec succès`);
     
+    // Filtrer les offres converties si nécessaire
+    const filteredData = includeConverted 
+      ? data 
+      : data?.filter(offer => !offer.converted_to_contract);
+    
+    console.log(`${filteredData?.length || 0} offres filtrées après critère de conversion`);
+    
     // Retourner les données récupérées ou un tableau vide si pas de données
-    return data || [];
+    return filteredData || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des offres:", error);
-    console.log("IMPORTANT: Utilisation des données mockées en dernier recours");
+    console.log("Erreur détaillée:", JSON.stringify(error, null, 2));
     
-    // N'utiliser les données mockées qu'en dernier recours
-    const mockOffersWithType = mockOffers.map(offer => ({
-      ...offer,
-      type: 'admin_offer'
-    }));
-    return mockOffersWithType;
+    // Ne pas retourner de données mockées en cas d'erreur
+    return [];
   }
 };
 
