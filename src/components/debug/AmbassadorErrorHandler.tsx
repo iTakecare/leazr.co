@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { AlertCircle, RefreshCw, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
+import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface AmbassadorErrorHandlerProps {
@@ -19,13 +19,14 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   const runDiagnostics = async () => {
     setIsLoading(true);
     try {
+      // Show service role key format (not the full key for security)
+      const serviceRoleKeyMasked = SERVICE_ROLE_KEY ? 
+        `${SERVICE_ROLE_KEY.substring(0, 10)}...${SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 10)}` : 
+        'Not defined';
+        
       // Test both client instances
       const regularClient = supabase;
       const adminClient = getAdminSupabaseClient();
-      
-      // Compare headers between both clients
-      const regularHeaders = regularClient?.restUrl ? 'Regular client initialized' : 'Regular client not properly initialized';
-      const adminHeaders = 'Admin client initialized with custom auth settings';
       
       // Test admin client capabilities
       let adminTestResult = 'Failed to test';
@@ -44,10 +45,10 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       
       // Set diagnostic info
       setDiagnosticInfo({
-        regularClient: regularHeaders,
-        adminClient: adminHeaders,
+        serviceRoleKeyFormat: serviceRoleKeyMasked,
         adminClientTest: adminTestResult,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        errorContext: message
       });
       
       toast.success("Diagnostics terminés");
@@ -95,7 +96,7 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         </AlertDescription>
       </Alert>
       
-      {diagnosticInfo && showDiagnosticInfo && (
+      {diagnosticInfo && (
         <div className="mt-4 p-4 bg-muted rounded-md border text-xs font-mono overflow-x-auto">
           <pre className="whitespace-pre-wrap">
             {JSON.stringify(diagnosticInfo, null, 2)}

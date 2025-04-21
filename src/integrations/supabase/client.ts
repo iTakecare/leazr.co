@@ -30,27 +30,23 @@ export const getSupabaseClient = () => {
 };
 
 // Function to get admin supabase client with service role key
-// IMPORTANT: This creates a NEW instance each time to avoid auth conflicts
+// IMPORTANT: This creates a NEW instance each time with NO AUTH state to avoid conflicts
 export const getAdminSupabaseClient = () => {
-  console.log("[ADMIN CLIENT] Creating new admin client with SERVICE_ROLE_KEY");
-  
-  // Create a completely fresh client instance with no shared state
+  // Create a completely fresh client instance with the service role key
   return createClient<Database>(
     SUPABASE_URL, 
     SERVICE_ROLE_KEY,
     {
       auth: {
-        persistSession: false, // Never persist admin sessions
-        autoRefreshToken: false, // Don't refresh tokens
-        detectSessionInUrl: false, // Don't look for sessions in URL
-        storageKey: `admin-storage-${Date.now()}`, // Use unique storage key each time
+        persistSession: false, // Don't persist admin auth state
+        autoRefreshToken: false, // Don't refresh tokens for admin
+        detectSessionInUrl: false, // Don't detect session in URL for admin
       },
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY, // Explicitly set apikey header
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, // Explicitly set Authorization header
-          'X-Client-Info': `admin-client-${Date.now()}`, // Unique client info
+          'apikey': SERVICE_ROLE_KEY, // Add explicit apikey header
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, // Add explicit Authorization header
         },
       },
     }

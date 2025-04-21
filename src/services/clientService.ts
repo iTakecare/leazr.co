@@ -10,23 +10,13 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("[CLIENT SERVICE] Creating client:", clientData);
     
-    // Création d'une nouvelle instance du client admin avec la clé de service
+    // Create a fresh admin client instance
     const adminClient = getAdminSupabaseClient();
     
-    // Log pour le debug
-    console.log("[CLIENT SERVICE] Admin client created, verifying session...");
+    // Log for debugging
+    console.log("[CLIENT SERVICE] Admin client created for client creation");
     
-    // Vérifier la session pour confirmer que le client admin fonctionne
-    const { data: sessionData, error: sessionError } = await adminClient.auth.getSession();
-    
-    if (sessionError) {
-      console.error("[CLIENT SERVICE] Error verifying admin client session:", sessionError);
-      throw new Error(`Admin client session verification failed: ${sessionError.message}`);
-    }
-    
-    console.log("[CLIENT SERVICE] Admin client session verified, proceeding with client creation");
-    
-    // S'assurer que la requête est correctement formée
+    // Insert the client data using the admin client
     const { data, error } = await adminClient
       .from('clients')
       .insert(clientData)
@@ -34,11 +24,11 @@ export const createClient = async (clientData: any) => {
       .single();
     
     if (error) {
-      console.error("[CLIENT SERVICE] Erreur lors de la création du client avec le client admin:", error);
+      console.error("[CLIENT SERVICE] Error creating client with admin client:", error);
       throw error;
     }
     
-    console.log("[CLIENT SERVICE] Client created successfully with admin client:", data);
+    console.log("[CLIENT SERVICE] Client created successfully:", data);
     return data;
   } catch (error) {
     console.error("[CLIENT SERVICE] Exception in createClient:", error);
