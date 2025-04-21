@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
@@ -7,7 +6,8 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
   try {
     console.log("Fetching offers with includeConverted:", includeConverted);
     
-    const query = supabase
+    // Construction de la requête de base
+    let query = supabase
       .from('offers')
       .select('*, clients(name, email, company)');
     
@@ -19,19 +19,8 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     // Trier par date de création (les plus récentes en premier)
     query.order('created_at', { ascending: false });
     
-    // Ajouter un timeout pour éviter que la requête ne prenne trop de temps
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => {
-        console.error("Timeout lors de la récupération des offres");
-        reject(new Error("Timeout lors de la récupération des offres"));
-      }, 10000)
-    );
-    
-    // Exécuter la requête avec un timeout
-    const { data, error } = await Promise.race([
-      query,
-      timeoutPromise
-    ]) as any;
+    // Exécuter la requête sans timeout qui pourrait causer des problèmes
+    const { data, error } = await query;
     
     if (error) {
       console.error("Erreur lors de la récupération des offres:", error);
