@@ -1,5 +1,5 @@
 
-import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY } from "@/integrations/supabase/client";
+import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
@@ -105,13 +105,28 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     
     // Test basique d'authentification avec la clé
     console.log("[TEST] Test de connexion au projet Supabase...");
-    const { data: projectData, error: projectError } = await adminClient.rpc('postgres_version');
     
-    if (projectError) {
-      return {
-        success: false, 
-        message: `Erreur de connexion au projet: ${projectError.message}`
-      };
+    // Instead of using the RPC function 'postgres_version', use a simple query to test the connection
+    const { data: healthData, error: healthError } = await adminClient
+      .from('_health')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+    
+    if (healthError) {
+      // If the _health table doesn't exist, try an alternative approach
+      // Try to select something from a system table we know exists
+      const { data: clientsData, error: clientsError } = await adminClient
+        .from('clients')
+        .select('count(*)')
+        .limit(1);
+      
+      if (clientsError) {
+        return {
+          success: false, 
+          message: `Erreur de connexion au projet: ${clientsError.message}`
+        };
+      }
     }
     
     // Test direct de sélection avec le client admin
