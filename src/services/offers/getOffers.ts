@@ -1,63 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const mockOffers = [
-  {
-    id: "1",
-    client_name: "Entreprise ABC",
-    amount: 25000,
-    monthly_payment: 720,
-    commission: 1250,
-    status: "accepted",
-    workflow_status: "client_approved",
-    created_at: "2025-03-01T09:30:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "2",
-    client_name: "Clinique Santé+",
-    amount: 18500,
-    monthly_payment: 540,
-    commission: 925,
-    status: "pending",
-    workflow_status: "client_waiting",
-    created_at: "2025-03-05T14:15:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "3",
-    client_name: "Cabinet Dentaire Sourire",
-    amount: 32000,
-    monthly_payment: 910,
-    commission: 1600,
-    status: "rejected",
-    workflow_status: "client_no_response",
-    created_at: "2025-02-22T11:20:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "4",
-    client_name: "Centre Imagerie Médicale",
-    amount: 45000,
-    monthly_payment: 1250,
-    commission: 2250,
-    status: "accepted",
-    workflow_status: "leaser_approved",
-    created_at: "2025-02-15T10:00:00Z",
-    type: "admin_offer"
-  },
-  {
-    id: "5",
-    client_name: "Demande Client",
-    amount: 15000,
-    monthly_payment: 450,
-    status: "pending",
-    workflow_status: "draft",
-    created_at: "2025-03-10T16:30:00Z",
-    type: "client_request"
-  }
-];
+import { OfferData } from "./types";
 
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
@@ -96,21 +40,13 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     console.log(`Retrieved ${data?.length || 0} offers from database`);
     
-    // Si les données sont disponibles, les retourner
-    if (data && data.length > 0) {
-      // Log pour le débogage
-      const clientRequests = data.filter(offer => offer.type === 'client_request');
-      console.log(`Found ${clientRequests.length} client requests among offers`);
-      
-      return data;
-    } else {
-      console.warn("Aucune offre trouvée, utilisation des données mockées");
-      return mockOffers;
-    }
+    // Retourner les données ou un tableau vide, mais jamais de données de démonstration
+    return data || [];
   } catch (error) {
     console.error("Erreur complète lors de la récupération des offres:", error);
-    toast.error("Erreur lors du chargement des offres. Utilisation des données de démonstration.");
-    return mockOffers;
+    toast.error("Erreur lors du chargement des offres.");
+    // Retourner un tableau vide en cas d'erreur, pas de données de démonstration
+    return [];
   }
 };
 
