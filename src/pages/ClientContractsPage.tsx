@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 const ClientContractsPage = () => {
-  const { contracts, loading, error, refresh, debug, clientId } = useClientContracts();
+  const { contracts, isLoading, error, refresh, debug, clientId } = useClientContracts();
   const params = useParams();
   const urlClientId = params.id;
   const [userData, setUserData] = useState(null);
@@ -114,7 +114,7 @@ const ClientContractsPage = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full">
         <h1 className="text-3xl font-bold mb-6">Mes Contrats</h1>
@@ -134,7 +134,7 @@ const ClientContractsPage = () => {
             <div className="text-center">
               <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
               <h2 className="text-xl font-semibold mb-2">Erreur</h2>
-              <p className="text-muted-foreground mb-4">{error}</p>
+              <p className="text-muted-foreground mb-4">{error.message || "Une erreur s'est produite"}</p>
               <div className="flex gap-2 justify-center">
                 <Button onClick={handleRefresh} variant="outline">
                   <RefreshCw className="mr-2 h-4 w-4" /> Réessayer

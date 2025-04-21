@@ -83,7 +83,7 @@ const ClientRequestsPage = () => {
   }
 
   if (error) {
-    return <ClientsError errorMessage={error.message} onRetry={refresh} />;
+    return <ClientsError errorMessage={error.message} onRetry={() => refresh()} />;
   }
 
   const getStatusBadge = (status) => {
@@ -106,6 +106,11 @@ const ClientRequestsPage = () => {
     }
   };
 
+  const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    refresh();
+  };
+
   return (
     <motion.div 
       initial="hidden"
@@ -119,7 +124,7 @@ const ClientRequestsPage = () => {
           <p className="text-muted-foreground">Suivez l'état de vos demandes d'équipement</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={refresh} className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             Actualiser
           </Button>
