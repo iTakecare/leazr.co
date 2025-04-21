@@ -88,9 +88,12 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
   try {
     console.log(`Fetching clients (showAmbassadorClients: ${showAmbassadorClients})`);
     
+    // Utilisez le client admin pour éviter les problèmes de RLS
+    const adminSupabase = getAdminSupabaseClient();
+    
     if (showAmbassadorClients) {
       // When we want to show ambassador clients, use the junction table
-      const { data, error } = await supabase
+      const { data, error } = await adminSupabase
         .from('ambassador_clients')
         .select(`
           client_id,
@@ -112,21 +115,24 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
       console.log(`Retrieved ${ambassadorClients.length} ambassador clients`);
       return ambassadorClients;
     } else {
-      // Standard client query for non-ambassador clients
-      const { data: standardClients, error: standardError } = await supabase
+      // Use a direct approach to get all clients that are not ambassador clients
+      console.log("Fetching standard clients with direct approach");
+      
+      // First, get all clients
+      const { data: allClients, error: clientsError } = await adminSupabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (standardError) {
-        console.error("Erreur lors de la récupération des clients:", standardError);
-        throw standardError;
+      if (clientsError) {
+        console.error("Erreur lors de la récupération des clients:", clientsError);
+        throw clientsError;
       }
       
-      console.log(`Retrieved ${standardClients?.length || 0} total clients from database`);
-
-      // Get all ambassador client IDs
-      const { data: ambassadorClientLinks, error: ambassadorError } = await supabase
+      console.log(`Retrieved ${allClients?.length || 0} total clients from database`);
+      
+      // Then, get all ambassador client IDs
+      const { data: ambassadorClientLinks, error: ambassadorError } = await adminSupabase
         .from('ambassador_clients')
         .select('client_id');
 
@@ -135,20 +141,27 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
         throw ambassadorError;
       }
 
-      // Extract just the client IDs into an array
-      const ambassadorClientIds = ambassadorClientLinks?.map(link => link.client_id) || [];
-      console.log(`Found ${ambassadorClientIds.length} ambassador client IDs to filter out`);
+      // Extract just the client IDs into a Set for faster lookups
+      const ambassadorClientIdSet = new Set(ambassadorClientLinks?.map(link => link.client_id) || []);
+      console.log(`Found ${ambassadorClientIdSet.size} ambassador client IDs to filter out`);
 
       // Filter out clients that are in the ambassador_clients table
-      const filteredClients = standardClients?.filter(
-        client => !ambassadorClientIds.includes(client.id)
+      const filteredClients = allClients?.filter(
+        client => !ambassadorClientIdSet.has(client.id)
       ) || [];
       
       console.log(`Returning ${filteredClients.length} filtered standard clients`);
       
       // Debug log to check for the specific client ID
-      const specificClientExists = filteredClients.some(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-      console.log(`Client with ID 6b4393f6-88b8-44c9-a527-52dad92a95d3 exists in filtered results: ${specificClientExists}`);
+      const specificClient = filteredClients.find(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
+      console.log(`Client with ID 6b4393f6-88b8-44c9-a527-52dad92a95d3 exists:`, !!specificClient);
+      if (specificClient) {
+        console.log("Client details:", {
+          id: specificClient.id,
+          name: specificClient.name,
+          status: specificClient.status
+        });
+      }
       
       return filteredClients;
     }

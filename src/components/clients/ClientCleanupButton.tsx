@@ -6,7 +6,11 @@ import { Eraser } from "lucide-react";
 import { cleanupDuplicateClients } from "@/utils/clientUserAssociation";
 import { useAuth } from "@/context/AuthContext";
 
-export default function ClientCleanupButton() {
+interface ClientCleanupButtonProps {
+  refreshClients?: () => Promise<void>;
+}
+
+export default function ClientCleanupButton({ refreshClients }: ClientCleanupButtonProps) {
   const [isProcessing, setIsProcessing] = React.useState(false);
   const { isAdmin } = useAuth();
   
@@ -19,6 +23,9 @@ export default function ClientCleanupButton() {
       
       if (result.success) {
         toast.success(`Nettoyage des doublons effectué avec succès. ${result.mergedCount} clients fusionnés.`);
+        if (refreshClients) {
+          await refreshClients();
+        }
       } else {
         toast.error(`Erreur lors du nettoyage des doublons: ${result.error}`);
       }

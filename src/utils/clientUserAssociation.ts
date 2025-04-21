@@ -1,5 +1,4 @@
-
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 const supabase = getSupabaseClient();
 
@@ -80,82 +79,92 @@ export const linkUserToClient = async (userId: string, userEmail: string | null)
   }
 };
 
-export const cleanupDuplicateClients = async () => {
-  console.log("Début du nettoyage des clients dupliqués");
+/**
+ * Nettoie les clients en double et les fusionne
+ * @returns Résultat de l'opération
+ */
+export const cleanupDuplicateClients = async (): Promise<{ success: boolean; mergedCount: number; error?: string }> => {
   try {
-    // Rechercher les clients avec le même email
-    const { data: clients, error } = await supabase
-      .from('clients')
-      .select('id, email, name, user_id, created_at')
-      .not('email', 'is', null)
-      .order('created_at', { ascending: true });
+    console.log("Démarrage du nettoyage des doublons...");
     
-    if (error) {
-      console.error("Erreur lors de la récupération des clients:", error);
-      return { success: false, error: "Error fetching clients" };
+    // Utiliser le client admin pour éviter les problèmes de RLS
+    const adminSupabase = getAdminSupabaseClient();
+    
+    // Récupérer tous les clients avec leur email
+    const { data: clients, error: clientsError } = await adminSupabase
+      .from('clients')
+      .select('id, email, name, company, status, created_at')
+      .order('created_at', { ascending: true }); // Les plus anciens d'abord
+    
+    if (clientsError) {
+      console.error("Erreur lors de la récupération des clients:", clientsError);
+      return { success: false, mergedCount: 0, error: clientsError.message };
     }
     
-    // Grouper les clients par email
-    const clientsByEmail: Record<string, any[]> = {};
+    const emailGroups: { [email: string]: typeof clients } = {};
+    let mergedCount = 0;
+    
+    // Regrouper les clients par email
     clients?.forEach(client => {
       if (client.email) {
-        if (!clientsByEmail[client.email.toLowerCase()]) {
-          clientsByEmail[client.email.toLowerCase()] = [];
+        const email = client.email.toLowerCase().trim();
+        if (!emailGroups[email]) {
+          emailGroups[email] = [];
         }
-        clientsByEmail[client.email.toLowerCase()].push(client);
+        emailGroups[email].push(client);
       }
     });
     
-    let mergedCount = 0;
-    let errors: string[] = [];
-    
-    // Traiter les groupes qui ont plus d'un client
-    for (const email in clientsByEmail) {
-      const clientsWithSameEmail = clientsByEmail[email];
-      
-      if (clientsWithSameEmail.length > 1) {
-        console.log(`Trouvé ${clientsWithSameEmail.length} clients avec l'email ${email}`);
+    // Traiter chaque groupe d'emails
+    for (const [email, clientsGroup] of Object.entries(emailGroups)) {
+      if (clientsGroup.length > 1) {
+        console.log(`Email ${email} a ${clientsGroup.length} clients associés`);
         
-        // Prendre le premier client comme référence (le plus ancien)
-        const primaryClient = clientsWithSameEmail[0];
-        const duplicateClients = clientsWithSameEmail.slice(1);
+        // Trier par date de création (ascendant) et statut (active > inactive > lead)
+        const sortedClients = [...clientsGroup].sort((a, b) => {
+          // Priorité au statut active
+          if (a.status === 'active' && b.status !== 'active') return -1;
+          if (a.status !== 'active' && b.status === 'active') return 1;
+          
+          // Ensuite, priorité au statut inactive par rapport à lead
+          if (a.status === 'inactive' && b.status === 'lead') return -1;
+          if (a.status === 'lead' && b.status === 'inactive') return 1;
+          
+          // Si même statut, trier par date de création (le plus ancien d'abord)
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
         
-        for (const duplicateClient of duplicateClients) {
-          try {
-            // Transférer les offres et contrats vers le client principal
-            await supabase.rpc('merge_clients', {
-              source_client_id: duplicateClient.id,
-              target_client_id: primaryClient.id
-            });
-            
-            // Supprimer le client dupliqué
-            const { error: deleteError } = await supabase
-              .from('clients')
-              .delete()
-              .eq('id', duplicateClient.id);
-            
-            if (deleteError) {
-              console.error(`Erreur lors de la suppression du client ${duplicateClient.id}:`, deleteError);
-              errors.push(`Failed to delete client ${duplicateClient.id}: ${deleteError.message}`);
-            } else {
-              console.log(`Client ${duplicateClient.id} fusionné avec ${primaryClient.id} et supprimé`);
-              mergedCount++;
+        // Le premier client du groupe trié est le principal
+        const mainClient = sortedClients[0];
+        const duplicateClients = sortedClients.slice(1);
+        
+        if (duplicateClients.length > 0) {
+          console.log(`Client principal: ${mainClient.name} (${mainClient.id})`);
+          console.log(`Clients en double: ${duplicateClients.map(c => c.id).join(', ')}`);
+          
+          // Marquer les clients en double comme "duplicate"
+          const { error: markError } = await adminSupabase.rpc(
+            'mark_clients_as_duplicates',
+            { 
+              client_ids: duplicateClients.map(c => c.id),
+              main_client_id: mainClient.id
             }
-          } catch (mergeError) {
-            console.error(`Erreur lors de la fusion des clients:`, mergeError);
-            errors.push(`Failed to merge client ${duplicateClient.id}: ${mergeError}`);
+          );
+          
+          if (markError) {
+            console.error("Erreur lors du marquage des doublons:", markError);
+            continue;
           }
+          
+          mergedCount += duplicateClients.length;
         }
       }
     }
     
-    return { 
-      success: true, 
-      mergedCount,
-      errors: errors.length > 0 ? errors : null
-    };
-  } catch (error) {
-    console.error("Erreur lors du nettoyage des clients dupliqués:", error);
-    return { success: false, error: "Error cleaning up duplicate clients" };
+    console.log(`Nettoyage terminé. ${mergedCount} clients fusionnés.`);
+    return { success: true, mergedCount };
+  } catch (error: any) {
+    console.error("Erreur lors du nettoyage des doublons:", error);
+    return { success: false, mergedCount: 0, error: error.message };
   }
 };

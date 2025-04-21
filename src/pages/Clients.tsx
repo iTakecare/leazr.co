@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useClients } from "@/hooks/useClients";
 import ClientsList from "@/components/crm/ClientsList";
+import ClientCleanupButton from "@/components/clients/ClientCleanupButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,13 +35,15 @@ const Clients = () => {
     clients, 
     isLoading, 
     error, 
-    searchTerm: clientSearchTerm, 
     setSearchTerm: setClientSearchTerm, 
     selectedStatus, 
     setSelectedStatus,
     showAmbassadorClients,
-    setShowAmbassadorClients
+    setShowAmbassadorClients,
+    refreshClients
   } = useClients();
+  
+  console.log(`Clients page rendering with ${clients.length} clients (loading: ${isLoading})`);
   
   useEffect(() => {
     setClientSearchTerm(searchTerm);
@@ -177,15 +181,18 @@ const Clients = () => {
                               className="pl-9 w-full"
                             />
                           </div>
-                          <Button 
-                            onClick={handleAddClient} 
-                            variant="default" 
-                            size="sm" 
-                            className="sm:ml-2 gap-1"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            <span className={isMobile ? "" : ""}>Nouveau client</span>
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              onClick={handleAddClient} 
+                              variant="default" 
+                              size="sm" 
+                              className="gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              <span>Nouveau client</span>
+                            </Button>
+                            <ClientCleanupButton refreshClients={refreshClients} />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -218,6 +225,7 @@ const Clients = () => {
                     error={error} 
                     showAmbassadorClients={showAmbassadorClients}
                     onToggleAmbassadorClients={setShowAmbassadorClients}
+                    refreshClients={refreshClients}
                   />
                 }
               </CardContent>
