@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
@@ -11,13 +12,19 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       .from('offers')
       .select('*, clients(name, email, company)');
     
+    // Afficher la requête pour le débogage
+    console.log("Building Supabase query for offers table...");
+    
     // Appliquer le filtre uniquement si includeConverted est false
     if (!includeConverted) {
-      query.eq('converted_to_contract', false);
+      query = query.eq('converted_to_contract', false);
+      console.log("Filtering out converted offers");
     }
     
     // Trier par date de création (les plus récentes en premier)
-    query.order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
+    
+    console.log("Executing Supabase query...");
     
     // Exécuter la requête sans timeout qui pourrait causer des problèmes
     const { data, error } = await query;
@@ -27,7 +34,23 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       throw error;
     }
     
-    console.log(`Retrieved ${data?.length || 0} offers from database`);
+    console.log(`Retrieved ${data?.length || 0} offers from database:`, data);
+    
+    // Vérifier si les données sont vides ou nulles
+    if (!data || data.length === 0) {
+      console.log("No offers found in the database");
+      
+      // Vérifier l'état de la table offers directement
+      const { count, error: countError } = await supabase
+        .from('offers')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error("Error counting offers:", countError);
+      } else {
+        console.log(`Total offers in database (regardless of filters): ${count}`);
+      }
+    }
     
     // Retourner les données ou un tableau vide, mais jamais de données de démonstration
     return data || [];
