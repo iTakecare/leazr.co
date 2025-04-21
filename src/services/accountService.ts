@@ -92,57 +92,22 @@ export const createUserAccount = async (
     
     console.log("Utilisateur créé avec succès:", data.user.id);
     
-    // Update the entity with the user ID using an RPC function or admin client to bypass RLS
-    // Cette approche garantit que la mise à jour fonctionne même avec RLS
-    const adminClient = getAdminSupabaseClient();
+    // Update the entity with the user ID in the database
+    const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
     
-    if (userType === "client") {
-      const { error: updateError } = await adminClient
-        .from("clients")
-        .update({
-          has_user_account: true,
-          user_account_created_at: new Date().toISOString(),
-          user_id: data.user.id
-        })
-        .eq('id', entity.id);
-        
-      if (updateError) {
-        console.error(`Erreur lors de la mise à jour du client:`, updateError);
-        toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
-        
-        // Essayer une approche différente si le client admin échoue
-        try {
-          // Utiliser la fonction RPC pour mettre à jour le client en contournant RLS
-          const { error: rpcError } = await supabase.rpc('update_client_user_account', {
-            client_id: entity.id,
-            user_id: data.user.id
-          });
-          
-          if (rpcError) {
-            console.error(`Erreur RPC lors de la mise à jour du client:`, rpcError);
-            // Si l'erreur persiste, on continue malgré tout car l'utilisateur a été créé
-          }
-        } catch (rpcError) {
-          console.error(`Exception lors de l'appel RPC:`, rpcError);
-        }
-      }
-    } else {
-      // Pour les autres types (partenaires, ambassadeurs)
-      const tableName = userType === "partner" ? "partners" : "ambassadors";
-      
-      const { error: updateError } = await adminClient
-        .from(tableName)
-        .update({
-          has_user_account: true,
-          user_account_created_at: new Date().toISOString(),
-          user_id: data.user.id
-        })
-        .eq('id', entity.id);
-        
-      if (updateError) {
-        console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
-        toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
-      }
+    const { error: updateError } = await supabase
+      .from(tableName)
+      .update({
+        has_user_account: true,
+        user_account_created_at: new Date().toISOString(),
+        user_id: data.user.id
+      })
+      .eq('id', entity.id);
+    
+    if (updateError) {
+      console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
+      toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
+      return false;
     }
     
     // Send welcome email

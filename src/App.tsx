@@ -23,7 +23,6 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import { useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import WebsiteManagerPage from "./pages/WebsiteManagerPage";
-import { installDatabaseFunctions } from "@/helpers/supabase-functions";
 
 import Signup from "./pages/Signup";
 import PublicCatalog from "./pages/PublicCatalog";
@@ -114,10 +113,6 @@ function App() {
   const { user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
   
   console.log("App rendering - current route:", location.pathname);
-
-  useEffect(() => {
-    installDatabaseFunctions().catch(console.error);
-  }, []);
 
   return (
     <Routes>
