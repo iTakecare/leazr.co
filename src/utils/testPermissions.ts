@@ -42,6 +42,9 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     console.log("[TEST] Tentative d'insertion avec client admin...");
     
     try {
+      // Log headers being used for debugging
+      console.log("[TEST] Headers utilisés:", adminClient.rest.headers);
+      
       // Test explicite du client admin sans authentification utilisateur
       const { data, error } = await adminClient
         .from('clients')
@@ -54,7 +57,7 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
         console.error("[TEST] Détails de l'erreur:", JSON.stringify(error, null, 2));
         return { 
           success: false, 
-          message: `Erreur: ${error.message} (Code: ${error.code})`
+          message: `Erreur: ${error.message} (Code: ${error.code})` 
         };
       }
       
@@ -105,6 +108,7 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     
     // Test basique d'authentification avec la clé
     console.log("[TEST] Test de connexion au projet Supabase...");
+    console.log("[TEST] Headers utilisés:", adminClient.rest.headers);
     
     // Try to select something from a system table we know exists
     const { data: clientsData, error: clientsError } = await adminClient
@@ -155,6 +159,45 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     return { 
       success: false, 
       message: `Exception lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}` 
+    };
+  }
+};
+
+/**
+ * Teste explicitement la récupération des offres
+ */
+export const testOffersRetrieval = async (): Promise<{success: boolean; message: string; data?: any}> => {
+  try {
+    console.log("[TEST] Test de récupération des offres...");
+    
+    // Récupération du client admin
+    const adminClient = getAdminSupabaseClient();
+    
+    // Test de récupération des offres
+    const { data, error } = await adminClient
+      .from('offers')
+      .select('id, client_name, created_at')
+      .limit(5);
+    
+    if (error) {
+      console.error("[TEST] Erreur lors de la récupération des offres:", error);
+      return {
+        success: false,
+        message: `Erreur: ${error.message} (Code: ${error.code || 'inconnu'})`
+      };
+    }
+    
+    console.log("[TEST] Récupération des offres réussie, nombre d'offres:", data?.length || 0);
+    return {
+      success: true,
+      message: `${data?.length || 0} offres récupérées avec succès`,
+      data: data
+    };
+  } catch (error) {
+    console.error("[TEST] Exception lors du test de récupération des offres:", error);
+    return {
+      success: false,
+      message: `Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
     };
   }
 };

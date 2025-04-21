@@ -19,12 +19,6 @@ export const getSupabaseClient = () => {
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
-      global: {
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_PUBLISHABLE_KEY // Ajout explicite de l'apikey dans les headers
-        },
-      },
     });
   }
   return supabaseInstance;
@@ -49,8 +43,7 @@ export const getAdminSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, // Explicit auth header
-          'apikey': SERVICE_ROLE_KEY, // Explicit apikey header
+          'apikey': SERVICE_ROLE_KEY, // Include API key in headers
         },
       },
     }

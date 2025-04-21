@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";
@@ -23,10 +23,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import AmbassadorErrorHandler from "@/components/debug/AmbassadorErrorHandler";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Offers = () => {
   const {
     filteredOffers,
+    offers,
     loading,
     loadingError,
     searchTerm,
@@ -42,10 +44,13 @@ const Offers = () => {
     setIncludeConverted,
     fetchOffers,
     handleResendOffer,
-    handleDownloadPdf
+    handleDownloadPdf,
+    lastFetchAttempt,
+    fetchCount
   } = useOffers();
   
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
+  const [showPermissionsTest, setShowPermissionsTest] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -69,7 +74,7 @@ const Offers = () => {
     const refreshInterval = setInterval(() => {
       console.log("Rafraîchissement automatique des offres...");
       fetchOffers();
-    }, 30000);
+    }, 15000);
     
     return () => clearInterval(refreshInterval);
   }, []);
@@ -115,6 +120,16 @@ const Offers = () => {
                     onCheckedChange={setIncludeConverted}
                   />
                 </div>
+                <div className="flex items-center justify-between p-2">
+                  <Label htmlFor="show-permissions" className="flex items-center cursor-pointer">
+                    <span>Afficher outils diagnostic</span>
+                  </Label>
+                  <Switch 
+                    id="show-permissions"
+                    checked={showPermissionsTest}
+                    onCheckedChange={setShowPermissionsTest}
+                  />
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             
@@ -141,18 +156,34 @@ const Offers = () => {
           </div>
         </div>
         
-        <div className="mb-4">
-          <PermissionsTest />
-        </div>
+        {showPermissionsTest && (
+          <div className="mb-4">
+            <PermissionsTest />
+          </div>
+        )}
         
         <Button 
           variant="outline" 
           size="sm" 
           onClick={() => fetchOffers()}
-          className="mb-4"
+          className="mb-4 flex items-center"
         >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Actualiser les offres manuellement
+          {fetchCount > 0 && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              (Dernière tentative: {new Date(lastFetchAttempt).toLocaleTimeString()})
+            </span>
+          )}
         </Button>
+        
+        {loadingError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erreur de chargement</AlertTitle>
+            <AlertDescription>{loadingError}</AlertDescription>
+          </Alert>
+        )}
         
         {loading ? (
           <OffersLoading />
@@ -206,6 +237,31 @@ const Offers = () => {
             onDownloadPdf={handleDownloadPdf}
             isUpdatingStatus={isUpdatingStatus}
           />
+        )}
+        
+        {!loading && !loadingError && filteredOffers.length === 0 && (
+          <div className="bg-muted/20 rounded-lg p-8 text-center">
+            <h3 className="text-lg font-medium mb-2">Aucune offre trouvée</h3>
+            <p className="text-muted-foreground mb-4">
+              {offers.length > 0 
+                ? "Aucune offre ne correspond à vos critères de recherche" 
+                : "Il n'y a pas encore d'offres dans le système"}
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm('');
+                setActiveTab('all');
+                setActiveType('all');
+              }}
+              className="mr-2"
+            >
+              Réinitialiser les filtres
+            </Button>
+            <Button asChild>
+              <Link to="/create-offer">Créer une offre</Link>
+            </Button>
+          </div>
         )}
       </div>
     </PageTransition>

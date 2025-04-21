@@ -21,14 +21,16 @@ export const useFetchOffers = () => {
   const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
   const [lastFetchAttempt, setLastFetchAttempt] = useState(Date.now());
+  const [fetchCount, setFetchCount] = useState(0);
 
   const fetchOffers = async (useAdmin: boolean = false) => {
     setLoading(true);
     setLoadingError(null);
     setLastFetchAttempt(Date.now());
+    setFetchCount(prev => prev + 1);
 
     try {
-      console.log(`Démarrage de la récupération des offres... (useAdmin: ${useAdmin})`);
+      console.log(`Démarrage de la récupération des offres... (useAdmin: ${useAdmin}, tentative: ${fetchCount + 1})`);
       
       const data = await getOffers(includeConverted);
       
@@ -112,11 +114,11 @@ export const useFetchOffers = () => {
         console.log('Statut de souscription au canal realtime:', status);
       });
       
-    // Rafraîchir automatiquement toutes les 30 secondes
+    // Refresh automatically every 15 seconds
     const refreshInterval = setInterval(() => {
       console.log("Rafraîchissement automatique des offres...");
       fetchOffers();
-    }, 30000);
+    }, 15000);
     
     return () => {
       supabase.removeChannel(channel);
@@ -132,6 +134,7 @@ export const useFetchOffers = () => {
     setIncludeConverted,
     fetchOffers: () => fetchOffers(false),
     setOffers,
-    lastFetchAttempt
+    lastFetchAttempt,
+    fetchCount
   };
 };
