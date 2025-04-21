@@ -1,3 +1,4 @@
+
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -20,21 +21,47 @@ export const createClient = async (clientData: any) => {
     if (error) {
       console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
       
-      // Si échec avec le client standard, essayer avec le client admin
-      const adminClient = getAdminSupabaseClient();
-      const adminResponse = await adminClient
-        .from('clients')
-        .insert(clientData)
-        .select()
-        .single();
-        
-      if (adminResponse.error) {
-        console.error("Erreur de création de client même avec le client admin:", adminResponse.error);
-        throw adminResponse.error;
-      }
+      // Si on est en mode développement, on affiche l'erreur pour faciliter le debug
+      console.error("Erreur détaillée:", JSON.stringify(error));
       
-      console.log("Client created successfully with admin client:", adminResponse.data);
-      return adminResponse.data;
+      if (error.code === '42501') {
+        // Si l'erreur est due aux politiques RLS, essayez une approche différente
+        // plutôt que d'utiliser le client admin qui nécessite une clé service_role
+        console.log("Tentative de création avec un INSERT direct et la méthode rpc:");
+        
+        try {
+          // Essayer d'utiliser une fonction RPC si disponible ou ajouter user_id
+          const authData = await supabase.auth.getUser();
+          
+          if (authData.data.user) {
+            // Injecter l'ID utilisateur pour satisfaire les politiques RLS
+            const clientWithUserId = {
+              ...clientData,
+              // Si l'utilisateur est un admin, ne pas définir user_id pour que le client soit "global"
+              user_id: clientData.user_id || authData.data.user.id
+            };
+            
+            const { data: insertData, error: insertError } = await supabase
+              .from('clients')
+              .insert(clientWithUserId)
+              .select()
+              .single();
+              
+            if (insertError) {
+              throw insertError;
+            }
+            
+            return insertData;
+          } else {
+            throw new Error("Utilisateur non authentifié");
+          }
+        } catch (rpcError) {
+          console.error("Échec de la méthode alternative:", rpcError);
+          throw rpcError;
+        }
+      } else {
+        throw error;
+      }
     }
     
     console.log("Client created successfully with standard client:", data);
