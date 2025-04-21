@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
 import { Offer } from '@/types/offer';
 import { toast } from 'sonner';
 

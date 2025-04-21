@@ -39,6 +39,9 @@ export const getAdminSupabaseClient = () => {
   );
 };
 
+// For backward compatibility (if any code is still using getSupabaseClient)
+export const getSupabaseClient = getAdminSupabaseClient;
+
 // Export storage URL and key as constants
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;
 export const SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY;

@@ -1,5 +1,5 @@
 
-import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY, SUPABASE_URL, getSupabaseClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
