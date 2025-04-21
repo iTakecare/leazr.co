@@ -79,24 +79,6 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         
-        // Si l'utilisateur a un client_id mais pas de rôle, lui attribuer le rôle 'client'
-        if (user.client_id && (!user.role || user.role === '')) {
-          // Mettre à jour le profil avec le rôle client
-          try {
-            await supabase
-              .from('profiles')
-              .update({ role: 'client' })
-              .eq('id', user.id);
-            
-            console.log("Rôle client attribué à l'utilisateur avec client_id");
-          } catch (error) {
-            console.error("Erreur lors de la mise à jour du rôle utilisateur:", error);
-          }
-          
-          setCheckingClient(false);
-          return;
-        }
-        
         const { data: associatedClient, error: clientError } = await supabase
           .from('clients')
           .select('id, name, email, user_id, status')
@@ -200,7 +182,7 @@ const ClientRoutes = () => {
       }
       
       // Si l'utilisateur n'est pas admin et n'est pas client
-      if (!isAdmin() && !isClient() && !user.client_id && location.pathname.startsWith('/client/')) {
+      if (!isAdmin() && !isClient() && location.pathname.startsWith('/client/')) {
         console.log("[ClientRoutes] L'utilisateur n'est pas un client", user);
         toast.error("Vous tentez d'accéder à un espace client mais vous n'avez pas ce rôle");
         

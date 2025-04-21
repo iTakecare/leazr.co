@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -22,7 +23,7 @@ const Login = () => {
   const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
   useEffect(() => {
     const checkForResetToken = () => {
@@ -39,33 +40,23 @@ const Login = () => {
 
     const hasResetToken = checkForResetToken();
     
-    if (!hasResetToken && user && !isResetMode) {
+    if (!hasResetToken && session && user && !isResetMode) {
       console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
       redirectToDashboard();
     }
-  }, [navigate, location, user, isResetMode]);
+  }, [session, navigate, location, user, isResetMode]);
 
   const redirectToDashboard = () => {
-    console.log("Redirection vers le tableau de bord, rôle:", user?.role);
-    
     if (isAdmin()) {
-      console.log("Redirection vers le tableau de bord admin");
       navigate('/dashboard');
     } else if (isClient()) {
-      console.log("Redirection vers le tableau de bord client");
       navigate('/client/dashboard');
     } else if (isAmbassador()) {
-      console.log("Redirection vers le tableau de bord ambassadeur");
       navigate('/ambassador/dashboard');
     } else if (isPartner()) {
-      console.log("Redirection vers le tableau de bord partenaire");
       navigate('/partner/dashboard');
-    } else if (user?.client_id) {
-      console.log("L'utilisateur a un client_id mais pas de rôle, redirection vers le tableau de bord client");
-      navigate('/client/dashboard');
     } else {
-      console.log("Aucun rôle spécifique reconnu, redirection vers l'accueil");
-      navigate('/'); 
+      navigate('/client/dashboard'); // Redirection par défaut
     }
   };
 
@@ -78,20 +69,14 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const response = await signIn(email, password);
-      if (response?.error) {
-        console.error('Erreur lors de la connexion:', response.error);
-        toast.error('Échec de la connexion : ' + (response.error.message || 'Erreur inconnue'));
+      const { error } = await signIn(email, password);
+      if (error) {
+        console.error('Erreur lors de la connexion:', error);
+        toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
       } else {
         toast.success('Connexion réussie');
-        console.log("Login réussi, redirection...");
-        setTimeout(() => {
-          redirectToDashboard();
-        }, 500);
+        redirectToDashboard();
       }
-    } catch (error: any) {
-      console.error('Exception lors de la connexion:', error);
-      toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
     } finally {
       setLoading(false);
     }

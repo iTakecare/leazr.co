@@ -1,60 +1,72 @@
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import HomePage from '@/pages/home/index';
+import React, { useEffect, useState } from "react";
+import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
+import HeroSection from "@/components/home/HeroSection";
+import PartnersSection from "@/components/home/PartnersSection";
+import FeatureSection from "@/components/home/FeatureSection";
+import PressSection from "@/components/home/PressSection";
+import StepsSection from "@/components/home/StepsSection";
+import AdvisorSection from "@/components/home/AdvisorSection";
+import FaqSection from "@/components/home/FaqSection";
+import CtaSection from "@/components/home/CtaSection";
+import HomeFooter from "@/components/home/HomeFooter";
+import { getPageBySlug } from "@/services/pageService";
 
 const Index = () => {
-  const { user, isAdmin, isClient, isAmbassador, isPartner, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const [pageData, setPageData] = useState({
+    title: "",
+    meta_title: "",
+    meta_description: "",
+    content: ""
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Cette fonction gère la redirection basée sur le rôle de l'utilisateur
-    const handleAuthRedirect = () => {
-      // Ne rediriger que si l'utilisateur est authentifié et que le chargement est terminé
-      if (user && !isLoading) {
-        console.log("Index: utilisateur authentifié détecté avec le rôle:", user.role);
+    const loadPageContent = async () => {
+      setLoading(true);
+      const data = await getPageBySlug('home');
+      if (data) {
+        setPageData({
+          title: data.title,
+          meta_title: data.meta_title || "",
+          meta_description: data.meta_description || "",
+          content: data.content || ""
+        });
         
-        if (isAdmin()) {
-          console.log("Index: redirection vers le tableau de bord admin");
-          navigate('/dashboard');
-          return;
-        } 
-        
-        if (isClient()) {
-          console.log("Index: redirection vers le tableau de bord client");
-          navigate('/client/dashboard');
-          return;
-        } 
-        
-        if (isAmbassador()) {
-          console.log("Index: redirection vers le tableau de bord ambassadeur");
-          navigate('/ambassador/dashboard');
-          return;
-        } 
-        
-        if (isPartner()) {
-          console.log("Index: redirection vers le tableau de bord partenaire");
-          navigate('/partner/dashboard');
-          return;
+        // Mettre à jour les métadonnées de la page
+        document.title = data.meta_title || "iTakecare";
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (metaDescription) {
+          metaDescription.setAttribute('content', data.meta_description || "");
+        } else {
+          const meta = document.createElement('meta');
+          meta.name = "description";
+          meta.content = data.meta_description || "";
+          document.head.appendChild(meta);
         }
-
-        // Si l'utilisateur est connecté mais n'a pas de rôle spécifique, 
-        // on vérifie s'il a un client_id pour lui assigner le rôle de client
-        if (user.client_id) {
-          console.log("Index: utilisateur avec client_id mais sans rôle, redirection vers tableau de bord client");
-          navigate('/client/dashboard');
-          return;
-        }
-
-        console.log("Index: utilisateur connecté sans rôle reconnu");
       }
+      setLoading(false);
     };
 
-    handleAuthRedirect();
-  }, [user, isLoading, navigate, isAdmin, isClient, isAmbassador, isPartner]);
+    loadPageContent();
+  }, []);
 
-  return <HomePage />;
+  return (
+    <div className="bg-white min-h-screen flex flex-col overflow-x-hidden font-['Inter']">
+      <UnifiedNavigation />
+      <div className="pt-[100px]">
+        <HeroSection />
+        <PartnersSection />
+        <FeatureSection />
+        <PressSection />
+        <StepsSection />
+        <AdvisorSection />
+        <FaqSection />
+        <CtaSection />
+        <HomeFooter />
+      </div>
+    </div>
+  );
 };
 
 export default Index;

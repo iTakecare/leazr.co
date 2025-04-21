@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -82,7 +83,7 @@ const TranslationManager = () => {
     section: "common",
   });
   const [activeSection, setActiveSection] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Fetch translations query
   const { data: translations = [], isLoading } = useQuery({
@@ -308,12 +309,12 @@ const TranslationManager = () => {
   // Filter translations based on active section and search query
   const filteredTranslations = translations.filter(translation => {
     const matchesSection = activeSection === "all" || translation.section === activeSection;
-    const matchesSearch = searchTerm === "" || 
-      translation.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      translation.fr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      translation.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      translation.nl.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      translation.de.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchQuery === "" || 
+      translation.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      translation.fr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      translation.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      translation.nl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      translation.de.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesSection && matchesSearch;
   });
@@ -323,17 +324,14 @@ const TranslationManager = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Gestion des Traductions</h2>
         <div className="flex space-x-2">
-          <div className="relative">
-            <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <Input
-              className="pl-8"
-              placeholder="Rechercher une traduction..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <Input
+            className="w-64"
+            placeholder="Rechercher..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            // Fix for the TypeScript error - Remove the prefix prop with React Element
+            startAdornment={<Search className="h-4 w-4 text-gray-400" />}
+          />
           <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Ajouter une traduction
