@@ -12,7 +12,7 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     const testId = uuidv4();
     const testEmail = `test-${testId.substring(0, 8)}@test.com`;
     
-    // Utiliser le client admin pour contourner les restrictions RLS
+    // Obtenir une nouvelle instance de client admin
     const adminClient = getAdminSupabaseClient();
     
     const testClientData = {

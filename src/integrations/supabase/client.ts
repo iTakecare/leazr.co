@@ -33,18 +33,25 @@ export const getSupabaseClient = () => {
 let adminSupabaseInstance = null;
 
 export const getAdminSupabaseClient = () => {
-  if (!adminSupabaseInstance) {
-    // Create a new client for admin operations, avoiding auth persistence
-    adminSupabaseInstance = createClient<Database>(
-      SUPABASE_URL, 
-      SERVICE_ROLE_KEY,
-      {
-        auth: {
-          persistSession: false // Avoid conflicts with user sessions
-        }
-      }
-    );
-  }
+  // Always create a fresh instance for admin requests to avoid auth conflicts
+  // This resolves issues with cached tokens and sessions
+  adminSupabaseInstance = createClient<Database>(
+    SUPABASE_URL, 
+    SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false, // Important: never persist admin sessions
+        autoRefreshToken: false
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+          // Add an identifying header to help debug admin requests
+          'X-Client-Info': 'admin-client'
+        },
+      },
+    }
+  );
   return adminSupabaseInstance;
 };
 

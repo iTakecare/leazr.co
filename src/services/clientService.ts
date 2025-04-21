@@ -11,7 +11,7 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Utiliser le client admin directement, sans récréer une instance
+    // Créer une nouvelle instance de client admin pour chaque requête
     const adminClient = getAdminSupabaseClient();
     
     // S'assurer que la requête est correctement formée
