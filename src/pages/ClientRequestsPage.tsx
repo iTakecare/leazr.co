@@ -1,8 +1,7 @@
 
 import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useClientOffers } from "@/hooks/useClientOffers";
-import { Offer } from "@/types/offer";
+import { useClientOffers, ClientOffer } from "@/hooks/useClientOffers";
 import ClientsError from "@/components/clients/ClientsError";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ClientRequestsPage = () => {
   const { user } = useAuth();
-  const { offers, isLoading, error, refresh } = useClientOffers();
+  const { offers, loading, error, refresh } = useClientOffers();
 
   // Animation variants
   const containerVariants = {
@@ -70,7 +69,7 @@ const ClientRequestsPage = () => {
     };
   }, [user?.id, refresh]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="w-full p-8">
         <h1 className="text-3xl font-bold mb-6">Mes Demandes</h1>
@@ -83,7 +82,7 @@ const ClientRequestsPage = () => {
   }
 
   if (error) {
-    return <ClientsError errorMessage={error.message} onRetry={() => refresh()} />;
+    return <ClientsError errorMessage={error} onRetry={refresh} />;
   }
 
   const getStatusBadge = (status) => {
@@ -106,11 +105,6 @@ const ClientRequestsPage = () => {
     }
   };
 
-  const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    refresh();
-  };
-
   return (
     <motion.div 
       initial="hidden"
@@ -124,7 +118,7 @@ const ClientRequestsPage = () => {
           <p className="text-muted-foreground">Suivez l'état de vos demandes d'équipement</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+          <Button variant="outline" onClick={refresh} className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             Actualiser
           </Button>
@@ -147,7 +141,7 @@ const ClientRequestsPage = () => {
         </Card>
       ) : (
         <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={containerVariants}>
-          {offers.map((offer: Offer) => (
+          {offers.map((offer: ClientOffer) => (
             <motion.div key={offer.id} variants={itemVariants}>
               <Card className="h-full shadow-md hover:shadow-lg transition-all overflow-hidden border-t-4 border-t-yellow-500/60">
                 <CardHeader className="bg-gradient-to-r from-muted/30 to-transparent flex flex-col gap-4">

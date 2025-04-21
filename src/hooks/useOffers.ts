@@ -11,9 +11,7 @@ export const useOffers = () => {
     includeConverted, 
     setIncludeConverted, 
     fetchOffers, 
-    setOffers,
-    lastFetchAttempt,
-    fetchCount
+    setOffers 
   } = useFetchOffers();
 
   const {
@@ -60,8 +58,6 @@ export const useOffers = () => {
     handleDownloadPdf,
     handleUpdateWorkflowStatus,
     handleRequestInfo,
-    handleProcessInfoResponse,
-    lastFetchAttempt,
-    fetchCount
+    handleProcessInfoResponse
   };
 };

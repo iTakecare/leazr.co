@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";
@@ -12,7 +12,6 @@ import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
-import PermissionsTest from "@/components/debug/PermissionsTest";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -22,13 +21,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import AmbassadorErrorHandler from "@/components/debug/AmbassadorErrorHandler";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Offers = () => {
   const {
     filteredOffers,
-    offers,
     loading,
     loadingError,
     searchTerm,
@@ -44,18 +40,17 @@ const Offers = () => {
     setIncludeConverted,
     fetchOffers,
     handleResendOffer,
-    handleDownloadPdf,
-    lastFetchAttempt,
-    fetchCount
+    handleDownloadPdf
   } = useOffers();
   
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
-  const [showPermissionsTest, setShowPermissionsTest] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Référence pour le défilement horizontal
   const scrollContainer = React.useRef<HTMLDivElement>(null);
   
+  // Fonctions pour faire défiler le kanban horizontalement
   const scrollLeft = () => {
     if (scrollContainer.current) {
       scrollContainer.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -67,17 +62,6 @@ const Offers = () => {
       scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
-
-  useEffect(() => {
-    fetchOffers();
-    
-    const refreshInterval = setInterval(() => {
-      console.log("Rafraîchissement automatique des offres...");
-      fetchOffers();
-    }, 15000);
-    
-    return () => clearInterval(refreshInterval);
-  }, []);
 
   return (
     <PageTransition>
@@ -120,19 +104,10 @@ const Offers = () => {
                     onCheckedChange={setIncludeConverted}
                   />
                 </div>
-                <div className="flex items-center justify-between p-2">
-                  <Label htmlFor="show-permissions" className="flex items-center cursor-pointer">
-                    <span>Afficher outils diagnostic</span>
-                  </Label>
-                  <Switch 
-                    id="show-permissions"
-                    checked={showPermissionsTest}
-                    onCheckedChange={setShowPermissionsTest}
-                  />
-                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             
+            {/* Sélecteur de vue */}
             <div className="flex items-center border rounded-md overflow-hidden">
               <Button 
                 variant={viewMode === 'list' ? 'default' : 'ghost'} 
@@ -156,48 +131,13 @@ const Offers = () => {
           </div>
         </div>
         
-        {showPermissionsTest && (
-          <div className="mb-4">
-            <PermissionsTest />
-          </div>
-        )}
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => fetchOffers()}
-          className="mb-4 flex items-center"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Actualiser les offres manuellement
-          {fetchCount > 0 && (
-            <span className="ml-2 text-xs text-muted-foreground">
-              (Dernière tentative: {new Date(lastFetchAttempt).toLocaleTimeString()})
-            </span>
-          )}
-        </Button>
-        
-        {loadingError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erreur de chargement</AlertTitle>
-            <AlertDescription>{loadingError}</AlertDescription>
-          </Alert>
-        )}
-        
         {loading ? (
           <OffersLoading />
         ) : loadingError ? (
-          <div className="space-y-4">
-            <OffersError message={loadingError} onRetry={fetchOffers} />
-            <AmbassadorErrorHandler 
-              message="Erreur lors du chargement des offres. Vérifiez les permissions et la configuration de l'API." 
-              onRetry={fetchOffers}
-              showDiagnosticInfo={true}
-            />
-          </div>
+          <OffersError message={loadingError} onRetry={fetchOffers} />
         ) : viewMode === 'kanban' ? (
           <>
+            {/* Contrôles de navigation du Kanban */}
             <div className="flex justify-between items-center mb-2">
               <Button 
                 variant="outline" 
@@ -237,31 +177,6 @@ const Offers = () => {
             onDownloadPdf={handleDownloadPdf}
             isUpdatingStatus={isUpdatingStatus}
           />
-        )}
-        
-        {!loading && !loadingError && filteredOffers.length === 0 && (
-          <div className="bg-muted/20 rounded-lg p-8 text-center">
-            <h3 className="text-lg font-medium mb-2">Aucune offre trouvée</h3>
-            <p className="text-muted-foreground mb-4">
-              {offers.length > 0 
-                ? "Aucune offre ne correspond à vos critères de recherche" 
-                : "Il n'y a pas encore d'offres dans le système"}
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSearchTerm('');
-                setActiveTab('all');
-                setActiveType('all');
-              }}
-              className="mr-2"
-            >
-              Réinitialiser les filtres
-            </Button>
-            <Button asChild>
-              <Link to="/create-offer">Créer une offre</Link>
-            </Button>
-          </div>
         )}
       </div>
     </PageTransition>

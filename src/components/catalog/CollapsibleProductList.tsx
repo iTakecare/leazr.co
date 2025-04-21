@@ -21,7 +21,6 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
-import { transformDatabaseProducts } from "@/utils/productTransformer";
 
 interface CollapsibleProductListProps {
   products?: Product[];
@@ -43,12 +42,7 @@ const CollapsibleProductList = ({
   });
 
   useEffect(() => {
-    if (providedProducts) {
-      setLocalProducts(providedProducts);
-    } else if (fetchedProducts) {
-      // Ensure proper typing when setting products
-      setLocalProducts(fetchedProducts);
-    }
+    setLocalProducts(providedProducts || fetchedProducts);
   }, [providedProducts, fetchedProducts]);
 
   const itemVariants = {

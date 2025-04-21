@@ -1,94 +1,108 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
-import { Offer } from '@/types/offer';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { getSupabaseClient } from "@/integrations/supabase/client";
+import { calculateFinancedAmount } from "@/utils/calculator";
 
-export const useClientOffers = () => {
-  const { user } = useAuth();
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const navigate = useNavigate();
+const supabase = getSupabaseClient();
 
-  const fetchOffers = async (clientEmail?: string) => {
-    if (!user || !user.id) {
-      setIsLoading(false);
-      return;
-    }
+export interface ClientOffer {
+  id: string;
+  client_name: string;
+  client_email?: string;
+  amount: number;
+  monthly_payment: number;
+  equipment_description?: string;
+  created_at: string;
+  status: string;
+  workflow_status?: string;
+  type: string;
+  financed_amount?: number;
+  coefficient?: number;
+  signature_data?: string;
+  signed_at?: string;
+  signer_name?: string;
+  equipment_data?: any[]; // Adding equipment_data property
+}
 
-    setIsLoading(true);
+export const useClientOffers = (clientEmail?: string) => {
+  const [offers, setOffers] = useState<ClientOffer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchOffers = async () => {
+    setLoading(true);
     setError(null);
 
     try {
-      console.log("Fetching client offers for user:", user.id);
-      
-      // Récupérer les offres pour les clients liés à l'utilisateur
-      let { data: clientOffers, error: offersError } = await supabase
+      let query = supabase
         .from('offers')
-        .select(`
-          *,
-          clients!offers_client_id_fkey (
-            id,
-            name,
-            company
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (offersError) {
-        console.error("Error fetching offers:", offersError);
-        throw new Error("Erreur lors de la récupération des offres");
-      }
-
-      // Récupérer les informations du profil pour les offres
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error("Error fetching profile:", profileError);
+      // If clientEmail is provided, filter offers by client_email
+      if (clientEmail) {
+        query = query.eq('client_email', clientEmail);
       }
-      
-      const profile = profileData || { first_name: '', last_name: '' };
 
-      if (clientOffers) {
-        console.log(`Found ${clientOffers.length} offers for user`);
-        
-        // Transformer les données pour utilisation dans l'interface
-        const formattedOffers = clientOffers.map(offer => ({
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Process the data to ensure financed_amount is calculated for all offers
+      const processedData = (data || []).map(offer => {
+        // Parse equipment_description if it's a JSON string
+        let equipment_data = null;
+        if (offer.equipment_description && typeof offer.equipment_description === 'string') {
+          try {
+            equipment_data = JSON.parse(offer.equipment_description);
+          } catch (e) {
+            console.log('Error parsing equipment data:', e);
+          }
+        }
+
+        // If financed_amount is missing or zero but we have monthly_payment
+        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
+          // Get coefficient - either from the offer or use a default of 3.27
+          const coefficient = offer.coefficient || 3.27;
+          
+          // Calculate and add financed amount - ensure we're using numbers
+          const calculatedAmount = calculateFinancedAmount(
+            Number(offer.monthly_payment), 
+            Number(coefficient)
+          );
+          
+          console.log(`Calculated missing financed amount for client offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
+          
+          return {
+            ...offer,
+            financed_amount: calculatedAmount,
+            equipment_data: equipment_data
+          };
+        }
+        return {
           ...offer,
-          clientName: offer.clients?.name || offer.client_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Client sans nom',
-          clientCompany: offer.clients?.company || ''
-        }));
-        
-        setOffers(formattedOffers);
-      } else {
-        setOffers([]);
-      }
-    } catch (err) {
-      console.error("Error in useClientOffers:", err);
-      setError(err instanceof Error ? err : new Error('Une erreur est survenue'));
+          equipment_data: equipment_data
+        };
+      });
+
+      setOffers(processedData || []);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Erreur lors de la récupération des offres:", err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOffers();
-  }, [user]);
+  }, [clientEmail]);
 
-  // Add the expected properties using the same names the components expect
-  return { 
-    offers, 
-    isLoading, 
-    error,
-    // Aliases for backward compatibility
-    loading: isLoading,
-    refresh: fetchOffers
+  const refresh = () => {
+    fetchOffers();
   };
+
+  return { offers, loading, error, refresh };
 };

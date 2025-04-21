@@ -22,7 +22,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Category } from "@/types/catalog";
-import { supabase } from "@/integrations/supabase/client";
 
 const CategoryManager = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -48,7 +47,7 @@ const CategoryManager = () => {
 
   // Add category mutation
   const addCategoryMutation = useMutation({
-    mutationFn: async (categoryData: { name: string; translation: string }) => {
+    mutationFn: async (categoryData: Omit<Category, "id" | "created_at" | "updated_at">) => {
       const { data, error } = await supabase
         .from("categories")
         .insert([categoryData])
@@ -72,17 +71,11 @@ const CategoryManager = () => {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: async (category: Category) => {
-      // Create a properly typed update object
-      const updateData = {
-        name: category.name,
-        translation: category.translation
-      };
-
+    mutationFn: async ({ id, ...categoryData }: Category) => {
       const { data, error } = await supabase
         .from("categories")
-        .update(updateData)
-        .eq("id", category.id)
+        .update(categoryData)
+        .eq("id", id)
         .select()
         .single();
 
@@ -130,7 +123,7 @@ const CategoryManager = () => {
   };
 
   const handleUpdateCategory = () => {
-    if (!selectedCategory || !selectedCategory.name.trim() || !selectedCategory.translation?.trim()) {
+    if (!selectedCategory || !selectedCategory.name.trim() || !selectedCategory.translation.trim()) {
       toast.error("Tous les champs sont requis");
       return;
     }

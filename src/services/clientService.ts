@@ -8,32 +8,39 @@ import { Client, CreateClientData } from '@/types/client';
  */
 export const createClient = async (clientData: any) => {
   try {
-    console.log("[CLIENT SERVICE] Creating client with admin client:", clientData);
+    console.log("Creating client:", clientData);
     
-    // Create a completely fresh admin client instance with no auth state
-    const adminClient = getAdminSupabaseClient();
-    
-    // Force bypass RLS using service role
-    console.log("[CLIENT SERVICE] Inserting client with service role...");
-    const { data, error } = await adminClient
+    // Essayer d'abord avec le client standard (si les politiques RLS le permettent)
+    const { data, error } = await supabase
       .from('clients')
       .insert(clientData)
       .select()
       .single();
     
     if (error) {
-      console.error("[CLIENT SERVICE] Error creating client:", error);
-      console.error("[CLIENT SERVICE] Error details:", JSON.stringify(error, null, 2));
-      throw error;
+      console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
+      
+      // Si échec avec le client standard, essayer avec le client admin
+      const adminClient = getAdminSupabaseClient();
+      const adminResponse = await adminClient
+        .from('clients')
+        .insert(clientData)
+        .select()
+        .single();
+        
+      if (adminResponse.error) {
+        console.error("Erreur de création de client même avec le client admin:", adminResponse.error);
+        throw adminResponse.error;
+      }
+      
+      console.log("Client created successfully with admin client:", adminResponse.data);
+      return adminResponse.data;
     }
     
-    console.log("[CLIENT SERVICE] Client created successfully:", data);
+    console.log("Client created successfully with standard client:", data);
     return data;
   } catch (error) {
-    console.error("[CLIENT SERVICE] Exception in createClient:", error);
-    if (error.message && error.message.includes("JWT")) {
-      console.error("[CLIENT SERVICE] Likely an API key or JWT issue");
-    }
+    console.error("Exception in createClient:", error);
     throw error;
   }
 };

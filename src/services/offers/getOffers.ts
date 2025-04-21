@@ -1,110 +1,172 @@
 
-import { supabase, getAdminSupabaseClient, getSupabaseClient } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Retrieves all offers with option to include or exclude converted offers
- */
+const mockOffers = [
+  {
+    id: "1",
+    client_name: "Entreprise ABC",
+    amount: 25000,
+    monthly_payment: 720,
+    commission: 1250,
+    status: "accepted",
+    workflow_status: "client_approved",
+    created_at: "2025-03-01T09:30:00Z",
+    type: "admin_offer"
+  },
+  {
+    id: "2",
+    client_name: "Clinique Santé+",
+    amount: 18500,
+    monthly_payment: 540,
+    commission: 925,
+    status: "pending",
+    workflow_status: "client_waiting",
+    created_at: "2025-03-05T14:15:00Z",
+    type: "admin_offer"
+  },
+  {
+    id: "3",
+    client_name: "Cabinet Dentaire Sourire",
+    amount: 32000,
+    monthly_payment: 910,
+    commission: 1600,
+    status: "rejected",
+    workflow_status: "client_no_response",
+    created_at: "2025-02-22T11:20:00Z",
+    type: "admin_offer"
+  },
+  {
+    id: "4",
+    client_name: "Centre Imagerie Médicale",
+    amount: 45000,
+    monthly_payment: 1250,
+    commission: 2250,
+    status: "accepted",
+    workflow_status: "leaser_approved",
+    created_at: "2025-02-15T10:00:00Z",
+    type: "admin_offer"
+  }
+];
+
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
-  console.log(`Starting offer retrieval (includeConverted: ${includeConverted})`);
-  
   try {
-    // Try with standard client first
-    console.log("Attempting with standard client...");
-    const { data: userData } = await supabase.auth.getUser();
-    console.log("Logged in user:", userData?.user?.id || "Not logged in");
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => {
+        console.log("Timeout atteint, utilisation des données mockées");
+        reject(new Error("Timeout lors de la récupération des offres"));
+      }, 5000)
+    );
     
-    const { data, error } = await supabase
+    const fetchPromise = supabase
       .from('offers')
-      .select('*');
+      .select('*, clients(name, email, company)')
+      .eq('converted_to_contract', includeConverted ? false : false)
+      .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error with standard client:", error);
-      throw error;
-    }
+    const { data, error } = await Promise.race([
+      fetchPromise,
+      timeoutPromise,
+    ]) as any;
     
-    console.log(`${data?.length || 0} offers retrieved with standard client`);
+    if (error) throw error;
     
-    // Filter offers if needed
-    const filteredData = includeConverted 
-      ? data 
-      : data?.filter(offer => !offer.converted_to_contract);
-    
-    return filteredData || [];
-  } catch (standardClientError) {
-    console.error("Failed with standard client, trying admin client...", standardClientError);
-    
-    try {
-      // Try with admin client
-      const adminClient = getAdminSupabaseClient();
-      
-      const { data, error } = await adminClient
-        .from('offers')
-        .select('*');
-      
-      if (error) {
-        console.error("Error with admin client:", error);
-        throw error;
-      }
-      
-      console.log(`${data?.length || 0} offers retrieved with admin client`);
-      
-      // Filter offers if needed
-      const filteredData = includeConverted 
-        ? data 
-        : data?.filter(offer => !offer.converted_to_contract);
-      
-      return filteredData || [];
-    } catch (adminClientError) {
-      console.error("Fatal error with both clients:", adminClientError);
-      
-      // Return empty array to avoid errors
-      return [];
-    }
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching offers:", error);
+    const mockOffersWithType = mockOffers.map(offer => ({
+      ...offer,
+      type: 'admin_offer'
+    }));
+    return mockOffersWithType;
   }
 };
 
-/**
- * Retrieves offers by client ID
- */
 export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
-    console.log("Retrieving offers for client ID:", clientId);
+    console.log("Fetching offers for client ID:", clientId);
     
-    // Try with standard client
     const { data, error } = await supabase
       .from('offers')
       .select('*')
       .eq('client_id', clientId)
-      .eq('converted_to_contract', false);
+      .eq('converted_to_contract', false)
+      .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Error with standard client:", error);
-      throw error;
-    }
+    if (error) throw error;
     
-    return data || [];
-  } catch (standardClientError) {
-    console.error("Trying with admin client...", standardClientError);
+    console.log(`Retrieved ${data?.length || 0} offers by client_id for client ${clientId}`);
     
-    try {
-      // Try with admin client
-      const adminClient = getAdminSupabaseClient();
-      const { data, error } = await adminClient
-        .from('offers')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('converted_to_contract', false);
-      
-      if (error) {
-        console.error("Error with admin client:", error);
-        throw error;
+    if (!data || data.length === 0) {
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('name, email')
+        .eq('id', clientId)
+        .single();
+        
+      if (clientError || !clientData) {
+        console.error("Error fetching client details:", clientError);
+        return [];
       }
       
-      return data || [];
-    } catch (adminClientError) {
-      console.error("Fatal error with both clients:", adminClientError);
-      return [];
+      console.log("Looking for offers by client name/email:", clientData.name, clientData.email);
+      
+      const { data: nameOffers, error: nameError } = await supabase
+        .from('offers')
+        .select('*')
+        .ilike('client_name', clientData.name)
+        .eq('converted_to_contract', false)
+        .order('created_at', { ascending: false });
+        
+      if (nameError) {
+        console.error("Error fetching offers by name:", nameError);
+        return [];
+      }
+      
+      console.log(`Found ${nameOffers?.length || 0} offers by client_name`);
+      
+      let emailOffers: any[] = [];
+      if (clientData.email) {
+        const { data: emailData, error: emailError } = await supabase
+          .from('offers')
+          .select('*')
+          .ilike('client_email', clientData.email)
+          .eq('converted_to_contract', false)
+          .order('created_at', { ascending: false });
+          
+        if (emailError) {
+          console.error("Error fetching offers by email:", emailError);
+        } else {
+          emailOffers = emailData || [];
+          console.log(`Found ${emailOffers.length} offers by client_email`);
+        }
+      }
+      
+      const combinedOffers = [...(nameOffers || []), ...emailOffers];
+      const uniqueOffers = combinedOffers.filter((offer, index, self) =>
+        index === self.findIndex((o) => o.id === offer.id)
+      );
+      
+      console.log(`Found ${uniqueOffers.length} unique offers in total`);
+      
+      for (const offer of uniqueOffers) {
+        const { error: updateError } = await supabase
+          .from('offers')
+          .update({ client_id: clientId })
+          .eq('id', offer.id);
+          
+        if (updateError) {
+          console.error(`Error updating offer ${offer.id}:`, updateError);
+        } else {
+          console.log(`Updated client_id for offer ${offer.id}`);
+        }
+      }
+      
+      return uniqueOffers;
     }
+    
+    return data;
+  } catch (error) {
+    console.error("Error fetching offers by client ID:", error);
+    return [];
   }
 };

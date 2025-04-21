@@ -1,9 +1,10 @@
+
 import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, FileCheck, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from "@/utils/formatters";
 
 interface ActivityFeedProps {
   activities: any[];
@@ -77,7 +78,7 @@ export const ActivityFeed = ({ activities, isLoading = false }: ActivityFeedProp
       <CardContent>
         <div className="space-y-8">
           {activities.map((activity) => {
-            const timeAgo = formatDistanceToNow(new Date(activity.created_at));
+            const timeAgo = formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale: fr });
             const newStatusInfo = getStatusLabel(activity.new_status);
             
             return (
