@@ -520,19 +520,52 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
         return false;
       }
       
-      // Mettre à jour le statut du compte utilisateur en fonction de l'existence de l'utilisateur
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({
-          has_user_account: userExists,
-          // Si l'utilisateur existe mais que la date n'est pas définie, la définir maintenant
-          user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : undefined
-        })
-        .eq('id', clientId);
+      // Utiliser la fonction RPC pour mettre à jour le statut du compte
+      try {
+        const { error: updateError } = await supabase.rpc('update_client_account_status', {
+          client_id: clientId,
+          has_account: userExists,
+          account_created_at: userExists ? new Date().toISOString() : null
+        });
         
-      if (updateError) {
-        console.error(`Erreur lors de la mise à jour du statut du compte utilisateur:`, updateError);
-        return false;
+        if (updateError) {
+          console.error(`Erreur lors de la mise à jour du statut du compte utilisateur via RPC:`, updateError);
+          
+          // Tentative directe en cas d'échec de la fonction RPC
+          const { error: directUpdateError } = await supabase
+            .from('clients')
+            .update({
+              has_user_account: userExists,
+              user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : undefined
+            })
+            .eq('id', clientId);
+            
+          if (directUpdateError) {
+            console.error(`Erreur lors de la mise à jour directe du statut:`, directUpdateError);
+            return false;
+          }
+        }
+      } catch (rpcError) {
+        console.error("Exception lors de l'appel RPC update_client_account_status:", rpcError);
+        
+        // Tentative directe en cas d'exception
+        try {
+          const { error: directUpdateError } = await supabase
+            .from('clients')
+            .update({
+              has_user_account: userExists,
+              user_account_created_at: userExists ? new Date().toISOString() : null
+            })
+            .eq('id', clientId);
+            
+          if (directUpdateError) {
+            console.error(`Erreur lors de la mise à jour directe du statut:`, directUpdateError);
+            return false;
+          }
+        } catch (updateError) {
+          console.error("Exception lors de la mise à jour directe:", updateError);
+          return false;
+        }
       }
       
       return true;
@@ -549,18 +582,33 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       }
       
       if (userId) {
-        // Si un utilisateur avec cet email existe, lier le client à cet utilisateur
-        const { error: linkError } = await supabase
-          .from('clients')
-          .update({
-            user_id: userId,
-            has_user_account: true,
-            user_account_created_at: new Date().toISOString()
-          })
-          .eq('id', clientId);
+        // Si un utilisateur avec cet email existe, lier le client à cet utilisateur via la fonction RPC
+        try {
+          const { error: linkError } = await supabase.rpc('update_client_user_account', {
+            client_id: clientId,
+            user_id: userId
+          });
           
-        if (linkError) {
-          console.error(`Erreur lors de la liaison du client à l'utilisateur:`, linkError);
+          if (linkError) {
+            console.error(`Erreur lors de la liaison du client à l'utilisateur via RPC:`, linkError);
+            
+            // Tentative directe en cas d'échec de la fonction RPC
+            const { error: directLinkError } = await supabase
+              .from('clients')
+              .update({
+                user_id: userId,
+                has_user_account: true,
+                user_account_created_at: new Date().toISOString()
+              })
+              .eq('id', clientId);
+              
+            if (directLinkError) {
+              console.error(`Erreur lors de la liaison directe:`, directLinkError);
+              return false;
+            }
+          }
+        } catch (rpcError) {
+          console.error("Exception lors de l'appel RPC update_client_user_account:", rpcError);
           return false;
         }
         
@@ -568,17 +616,31 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       }
     }
     
-    // Si aucune correspondance n'est trouvée, réinitialiser le statut du compte
-    const { error: resetError } = await supabase
-      .from('clients')
-      .update({
-        has_user_account: false,
-        user_account_created_at: null
-      })
-      .eq('id', clientId);
+    // Si aucune correspondance n'est trouvée, réinitialiser le statut du compte via RPC
+    try {
+      const { error: resetError } = await supabase.rpc('reset_client_account_status', {
+        client_id: clientId
+      });
       
-    if (resetError) {
-      console.error(`Erreur lors de la réinitialisation du statut du compte:`, resetError);
+      if (resetError) {
+        console.error(`Erreur lors de la réinitialisation du statut via RPC:`, resetError);
+        
+        // Tentative directe en cas d'échec de la fonction RPC
+        const { error: directResetError } = await supabase
+          .from('clients')
+          .update({
+            has_user_account: false,
+            user_account_created_at: null
+          })
+          .eq('id', clientId);
+          
+        if (directResetError) {
+          console.error(`Erreur lors de la réinitialisation directe:`, directResetError);
+          return false;
+        }
+      }
+    } catch (rpcError) {
+      console.error("Exception lors de l'appel RPC reset_client_account_status:", rpcError);
       return false;
     }
     

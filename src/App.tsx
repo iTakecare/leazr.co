@@ -114,6 +114,10 @@ function App() {
   
   console.log("App rendering - current route:", location.pathname);
 
+  useEffect(() => {
+    installDatabaseFunctions().catch(console.error);
+  }, []);
+
   return (
     <Routes>
       <Route index element={<Index />} />
