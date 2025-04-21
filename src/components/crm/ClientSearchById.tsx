@@ -19,10 +19,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ClientSearchById = ({ 
   onClientFound, 
-  onToggleAmbassadorClients 
+  onToggleAmbassadorClients,
+  searchClientById
 }: { 
   onClientFound?: (clientId: string) => void,
-  onToggleAmbassadorClients?: (value: boolean) => void
+  onToggleAmbassadorClients?: (value: boolean) => void,
+  searchClientById?: (clientId: string) => Promise<any>
 }) => {
   const [clientId, setClientId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -37,7 +39,10 @@ const ClientSearchById = ({
 
     setIsSearching(true);
     try {
-      const result = await findClientById(clientId.trim());
+      // Use the passed search function if available, otherwise use the service directly
+      const searchFunction = searchClientById || findClientById;
+      const result = await searchFunction(clientId.trim());
+      
       setSearchResult(result);
       console.log("Résultat de la recherche:", result);
       

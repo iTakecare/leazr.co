@@ -24,6 +24,7 @@ interface ClientsListProps {
   error: Error | null;
   showAmbassadorClients: boolean;
   onToggleAmbassadorClients: (value: boolean) => void;
+  totalClientsCount?: number;
 }
 
 const ClientsList: React.FC<ClientsListProps> = ({ 
@@ -31,7 +32,8 @@ const ClientsList: React.FC<ClientsListProps> = ({
   isLoading, 
   error, 
   showAmbassadorClients,
-  onToggleAmbassadorClients
+  onToggleAmbassadorClients,
+  totalClientsCount = 0
 }) => {
   const navigate = useNavigate();
 
@@ -54,6 +56,11 @@ const ClientsList: React.FC<ClientsListProps> = ({
     navigate(`/clients/${id}`);
   };
 
+  const handleToggleAmbassadorClients = (checked: boolean) => {
+    console.log("Toggling ambassador clients filter to:", checked);
+    onToggleAmbassadorClients(checked);
+  };
+
   if (isLoading) {
     return <ClientsLoading />;
   }
@@ -72,7 +79,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
           <Switch 
             id="show-ambassador-clients" 
             checked={showAmbassadorClients}
-            onCheckedChange={onToggleAmbassadorClients}
+            onCheckedChange={handleToggleAmbassadorClients}
           />
           <Label htmlFor="show-ambassador-clients">
             {showAmbassadorClients ? "Afficher les clients standard" : "Afficher les clients des ambassadeurs"}
@@ -91,6 +98,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
               <div className="mt-2 text-xs">
                 <p>Clients affichés: {clients.length}</p>
                 <p>Mode actuel: {showAmbassadorClients ? "Clients d'ambassadeurs" : "Clients standard"}</p>
+                <p>Clients totaux trouvés: {totalClientsCount}</p>
               </div>
             </TooltipContent>
           </Tooltip>
