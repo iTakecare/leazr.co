@@ -50,29 +50,29 @@ const mockOffers = [
 
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => {
-        console.log("Timeout atteint, utilisation des données mockées");
-        reject(new Error("Timeout lors de la récupération des offres"));
-      }, 5000)
-    );
+    console.log("Récupération des offres en cours...");
     
-    const fetchPromise = supabase
+    // Directement requêter sans timeout parallèle
+    const { data, error } = await supabase
       .from('offers')
       .select('*, clients(name, email, company)')
-      .eq('converted_to_contract', includeConverted ? false : false)
+      .eq('converted_to_contract', includeConverted ? true : false)
       .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Erreur lors de la récupération des offres:", error);
+      throw error;
+    }
     
-    const { data, error } = await Promise.race([
-      fetchPromise,
-      timeoutPromise,
-    ]) as any;
+    console.log(`${data?.length || 0} offres récupérées avec succès`);
     
-    if (error) throw error;
-    
+    // Retourner les données récupérées ou un tableau vide si pas de données
     return data || [];
   } catch (error) {
-    console.error("Error fetching offers:", error);
+    console.error("Erreur lors de la récupération des offres:", error);
+    console.log("IMPORTANT: Utilisation des données mockées en dernier recours");
+    
+    // N'utiliser les données mockées qu'en dernier recours
     const mockOffersWithType = mockOffers.map(offer => ({
       ...offer,
       type: 'admin_offer'

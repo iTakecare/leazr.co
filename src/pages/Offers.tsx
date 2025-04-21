@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
+import PermissionsTest from "@/components/debug/PermissionsTest";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -62,6 +64,16 @@ const Offers = () => {
       scrollContainer.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
+
+  // Force refresh on initial load
+  useEffect(() => {
+    // Petit délai pour s'assurer que tout est initialisé
+    const timer = setTimeout(() => {
+      fetchOffers();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <PageTransition>
@@ -130,6 +142,20 @@ const Offers = () => {
             </div>
           </div>
         </div>
+        
+        {/* Ajouter le composant de diagnostic */}
+        <div className="mb-4">
+          <PermissionsTest />
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => fetchOffers()}
+          className="mb-4"
+        >
+          Actualiser les offres manuellement
+        </Button>
         
         {loading ? (
           <OffersLoading />

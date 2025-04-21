@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
@@ -25,9 +26,12 @@ export const useFetchOffers = () => {
     setLoadingError(null);
 
     try {
+      console.log("Démarrage de la récupération des offres...");
       const data = await getOffers(includeConverted);
       
       if (data) {
+        console.log(`${data.length} offres récupérées, traitement en cours...`);
+        
         // Process each offer to ensure financed_amount is calculated if not present
         const processedOffers = data.map(offer => {
           // If financed_amount is missing or zero but we have monthly_payment
@@ -59,14 +63,16 @@ export const useFetchOffers = () => {
           monthly_payment: Number(offer.monthly_payment)
         })) as Offer[];
         
+        console.log(`${validOffers.length} offres traitées et prêtes à afficher`);
         setOffers(validOffers);
       } else {
+        console.log("Aucune offre récupérée");
         setOffers([]);
       }
     } catch (err: any) {
-      console.error("Error in fetchOffers:", err);
+      console.error("Erreur dans fetchOffers:", err);
       setLoadingError(err);
-      toast.error("Erreur lors du chargement des offres");
+      toast.error("Erreur lors du chargement des offres. Veuillez vérifier les permissions d'accès aux données.");
     } finally {
       setLoading(false);
     }
@@ -82,8 +88,9 @@ export const useFetchOffers = () => {
         event: '*', 
         schema: 'public', 
         table: 'offers' 
-      }, () => {
-        console.log('Offer change detected, refreshing...');
+      }, (payload) => {
+        console.log('Modification d\'offre détectée:', payload);
+        console.log('Actualisation des offres...');
         fetchOffers();
       })
       .subscribe();
