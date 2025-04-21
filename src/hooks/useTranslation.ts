@@ -47,17 +47,27 @@ export const useTranslation = () => {
     queryKey: ['translations'],
     queryFn: async () => {
       try {
+        // First, check if the translations table exists
+        const { data: checkResult, error: checkError } = await supabase.rpc('check_table_exists', { 
+          table_name: 'translations' 
+        });
+        
+        if (checkError || !checkResult) {
+          console.log('Translations table does not exist, using default translations');
+          return DEFAULT_TRANSLATIONS;
+        }
+        
         const { data, error } = await supabase
           .from('translations')
           .select('*');
         
         if (error) {
           console.error('Erreur lors de la récupération des traductions:', error);
-          // Return default translations if there's an error (likely table doesn't exist)
+          // Return default translations if there's an error
           return DEFAULT_TRANSLATIONS;
         }
         
-        return data;
+        return data.length > 0 ? data : DEFAULT_TRANSLATIONS;
       } catch (e) {
         console.error('Exception lors de la récupération des traductions:', e);
         // Return default translations on exception

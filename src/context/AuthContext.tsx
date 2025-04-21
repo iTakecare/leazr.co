@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { AuthChangeEvent, Session, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Database } from '@/types/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
 export interface UserProfile {
   id?: string;
@@ -20,7 +21,7 @@ export interface UserProfile {
 
 export interface AuthContextProps {
   user: UserProfile | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ data?: any, error?: any }>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, metadata?: any) => Promise<void>;
   loading: boolean;
@@ -38,7 +39,6 @@ export interface AuthContextProps {
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const supabase = useSupabaseClient<Database>();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getSession();
 
-    supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthContext] État d'authentification changé, événement:", event);
       setSession(session);
 
@@ -75,9 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
       }
     });
-  }, [supabase]);
 
-  const extendSessionData = async (userAuth: any) => {
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const extendSessionData = async (userAuth: User) => {
     try {
       console.log("[AuthContext] Vérification de la session...");
       
@@ -159,9 +163,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      console.log("[AuthContext] Connexion réussie:", data);
+      const response = await supabase.auth.signInWithPassword({ email, password });
+      if (response.error) throw response.error;
+      console.log("[AuthContext] Connexion réussie:", response.data);
+      return response;
     } catch (error: any) {
       console.error("[AuthContext] Erreur lors de la connexion:", error.message);
       throw error;

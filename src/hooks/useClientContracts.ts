@@ -15,6 +15,9 @@ export interface ClientContract {
   equipment_data?: any[]; // Similar structured data as ClientOffer
   leaser_name?: string;
   tracking_number?: string;
+  leaser_logo?: string;
+  delivery_carrier?: string;
+  estimated_delivery?: string;
 }
 
 export const useClientContracts = () => {

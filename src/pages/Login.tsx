@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -23,7 +22,7 @@ const Login = () => {
   const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
   useEffect(() => {
     const checkForResetToken = () => {
@@ -40,11 +39,11 @@ const Login = () => {
 
     const hasResetToken = checkForResetToken();
     
-    if (!hasResetToken && session && user && !isResetMode) {
+    if (!hasResetToken && user && !isResetMode) {
       console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
       redirectToDashboard();
     }
-  }, [session, navigate, location, user, isResetMode]);
+  }, [navigate, location, user, isResetMode]);
 
   const redirectToDashboard = () => {
     if (isAdmin()) {
