@@ -106,27 +106,17 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     // Test basique d'authentification avec la clé
     console.log("[TEST] Test de connexion au projet Supabase...");
     
-    // Instead of using the RPC function 'postgres_version', use a simple query to test the connection
-    const { data: healthData, error: healthError } = await adminClient
-      .from('_health')
-      .select('*')
-      .limit(1)
-      .maybeSingle();
+    // Try to select something from a system table we know exists
+    const { data: clientsData, error: clientsError } = await adminClient
+      .from('clients')
+      .select('count(*)')
+      .limit(1);
     
-    if (healthError) {
-      // If the _health table doesn't exist, try an alternative approach
-      // Try to select something from a system table we know exists
-      const { data: clientsData, error: clientsError } = await adminClient
-        .from('clients')
-        .select('count(*)')
-        .limit(1);
-      
-      if (clientsError) {
-        return {
-          success: false, 
-          message: `Erreur de connexion au projet: ${clientsError.message}`
-        };
-      }
+    if (clientsError) {
+      return {
+        success: false, 
+        message: `Erreur de connexion au projet: ${clientsError.message}`
+      };
     }
     
     // Test direct de sélection avec le client admin
