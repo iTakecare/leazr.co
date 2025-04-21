@@ -11,8 +11,10 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Créer une nouvelle instance de client admin pour chaque requête
+    // Création d'une nouvelle instance du client admin avec la clé de service
     const adminClient = getAdminSupabaseClient();
+    
+    console.log("Admin client created successfully, proceeding with client creation");
     
     // S'assurer que la requête est correctement formée
     const { data, error } = await adminClient

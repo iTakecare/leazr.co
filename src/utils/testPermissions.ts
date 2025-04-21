@@ -15,6 +15,20 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     // Obtenir une nouvelle instance de client admin
     const adminClient = getAdminSupabaseClient();
     
+    // Vérifions que nous avons bien la clé admin
+    console.log("Vérification de la configuration du client admin...");
+    const { data: roleData, error: roleError } = await adminClient.auth.getSession();
+    
+    if (roleError) {
+      console.error("Erreur lors de la vérification du client admin:", roleError);
+      return { 
+        success: false, 
+        message: `Erreur lors de la vérification du client admin: ${roleError.message}` 
+      };
+    }
+    
+    console.log("Client admin vérifié avec succès:", roleData);
+    
     const testClientData = {
       id: testId,
       name: "Client Test",
@@ -66,8 +80,18 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     // Récupération du client admin
     const adminClient = getAdminSupabaseClient();
     
-    // Analyse de la configuration du client
-    console.log("Client admin créé avec succès");
+    // Test des informations d'authentification du client admin
+    const { data: authData, error: authError } = await adminClient.auth.getSession();
+    
+    if (authError) {
+      console.error("Erreur lors de la vérification de l'authentification du client admin:", authError);
+      return { 
+        success: false, 
+        message: `Erreur d'authentification du client admin: ${authError.message}` 
+      };
+    }
+    
+    console.log("Client admin créé avec succès, session:", authData);
     
     // Tentative d'appel à un endpoint simple
     const { data: testData, error: testError } = await adminClient
