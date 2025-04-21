@@ -28,7 +28,7 @@ export const LanguageSelector = () => {
         />
         <ChevronDown className="ml-1 h-3 w-3 text-gray-700" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg">
+      <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
         {SUPPORTED_LANGUAGES.map((lang, index) => (
           <React.Fragment key={lang.code}>
             {index > 0 && <DropdownMenuSeparator />}

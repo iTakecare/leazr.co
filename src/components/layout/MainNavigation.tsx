@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTranslationContext } from "@/context/TranslationContext";
 import { LanguageSelector } from "./LanguageSelector";
+
+// ... keep existing code (MainNavigation component definition and hooks)
 
 const MainNavigation = () => {
   const { cartCount } = useCart();
@@ -65,7 +66,9 @@ const MainNavigation = () => {
       "fixed top-0 left-0 right-0 z-50 flex justify-center px-4 py-6 transition-all duration-300",
       scrolled ? "bg-white/95 backdrop-blur-sm shadow-md" : "bg-white"
     )}>
+      {/* Container for navigation */}
       <div className="relative w-full max-w-[1320px] mx-auto h-auto md:h-[82px] bg-[#f8f8f6] rounded-[20px] md:rounded-[50px] border-2 border-solid border-[#e1e1e1] flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-3 md:py-0 transition-all duration-300 hover:border-[#48B5C3]/30">
+        {/* Logo and mobile menu button */}
         <div className="flex items-center justify-between w-full md:w-auto">
           <Link to="/" className="group">
             <img
@@ -84,7 +87,9 @@ const MainNavigation = () => {
           </button>
         </div>
 
+        {/* Mobile menu */}
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
+          {/* Solutions */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">{t('solutions', 'navigation')}</div>
             {solutionsMenu.map((item, index) => (
@@ -100,6 +105,7 @@ const MainNavigation = () => {
             ))}
           </div>
           
+          {/* Services */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">{t('services', 'navigation')}</div>
             {servicesMenu.map((item, index) => (
@@ -115,6 +121,7 @@ const MainNavigation = () => {
             ))}
           </div>
           
+          {/* Sustainability */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">{t('sustainability', 'navigation')}</div>
             {durabiliteMenu.map((item, index) => (
@@ -129,7 +136,8 @@ const MainNavigation = () => {
               </Link>
             ))}
           </div>
-          
+
+          {/* About, Blog, Contact links */}
           <Link
             to="/a-propos"
             className={cn(
@@ -162,7 +170,8 @@ const MainNavigation = () => {
           >
             {t('contact', 'navigation')}
           </Link>
-          
+
+          {/* Login and Catalogue Buttons */}
           <div className="flex flex-col space-y-2 pt-4">
             <Link to="/login">
               <Button
@@ -178,10 +187,17 @@ const MainNavigation = () => {
               </Button>
             </Link>
           </div>
+          
+          {/* Language Selector centered in mobile menu */}
+          <div className="flex items-center justify-center mt-4">
+            <LanguageSelector />
+          </div>
         </div>
 
+        {/* Desktop navigation menu */}
         <nav className="hidden md:block ml-[40px]">
           <ul className="flex space-x-[25px]">
+            {/* Solutions Dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -208,6 +224,7 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
 
+            {/* Services Dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -234,6 +251,7 @@ const MainNavigation = () => {
               </DropdownMenu>
             </li>
             
+            {/* Sustainability Dropdown */}
             <li className="relative group">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -259,7 +277,8 @@ const MainNavigation = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </li>
-            
+
+            {/* About */}
             <li>
               <Link
                 to="/a-propos"
@@ -271,7 +290,7 @@ const MainNavigation = () => {
                 {t('about', 'navigation')}
               </Link>
             </li>
-            
+            {/* Blog */}
             <li>
               <Link
                 to="/blog"
@@ -283,7 +302,7 @@ const MainNavigation = () => {
                 {t('blog', 'navigation')}
               </Link>
             </li>
-            
+            {/* Contact */}
             <li>
               <Link
                 to="/contact"
@@ -298,6 +317,7 @@ const MainNavigation = () => {
           </ul>
         </nav>
 
+        {/* Desktop buttons: cart, login, catalogue, language */}
         <div className="hidden md:flex items-center space-x-4">
           <Link to="/panier" className="relative group">
             <ShoppingCart className="w-6 h-6 text-gray-700 group-hover:text-[#33638E] transition-colors" />
