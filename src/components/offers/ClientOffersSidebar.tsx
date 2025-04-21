@@ -15,7 +15,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
   clientEmail = ''
 }) => {
   const navigate = useNavigate();
-  const { offers, loading, error } = useClientOffers(clientEmail);
+  const { offers, isLoading, error } = useClientOffers();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   
   const toggleMobileSidebar = () => {
@@ -49,7 +49,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
         </div>
         
         <div className="flex-1 overflow-auto">
-          {loading ? (
+          {isLoading ? (
             <div className="p-4 text-center text-sm text-slate-500">
               Chargement de vos offres...
             </div>
