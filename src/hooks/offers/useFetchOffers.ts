@@ -5,7 +5,7 @@ import { getOffers } from "@/services/offers/getOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 
-// Définir et exporter l'interface Offer
+// Define and export Offer interface
 export interface Offer {
   id: string;
   client_name: string;
@@ -22,7 +22,7 @@ export interface Offer {
   financed_amount?: number;
   signature_data?: string;
   type?: string;
-  [key: string]: any; // Pour les propriétés additionnelles
+  [key: string]: any; // For additional properties
 }
 
 export const useFetchOffers = () => {
@@ -40,14 +40,14 @@ export const useFetchOffers = () => {
     setFetchCount(prev => prev + 1);
 
     try {
-      console.log(`Tentative #${fetchCount + 1} de récupération des offres...`);
+      console.log(`Attempt #${fetchCount + 1} to retrieve offers...`);
       
       const data = await getOffers(includeConverted);
       
       if (data && data.length > 0) {
-        console.log(`${data.length} offres récupérées, traitement...`);
+        console.log(`${data.length} offers retrieved, processing...`);
         
-        // Traitement des offres pour calculer financed_amount si manquant
+        // Process offers to calculate financed_amount if missing
         const processedOffers = data.map(offer => {
           if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
             const coefficient = offer.coefficient || 3.27;
@@ -63,23 +63,23 @@ export const useFetchOffers = () => {
           return offer;
         });
         
-        // S'assurer que chaque offre a un champ created_at
+        // Ensure each offer has a created_at field
         const validOffers = processedOffers.map(offer => ({
           ...offer,
           created_at: offer.created_at || new Date().toISOString(),
           monthly_payment: Number(offer.monthly_payment || 0)
         })) as Offer[];
         
-        console.log(`${validOffers.length} offres traitées et prêtes à afficher`);
+        console.log(`${validOffers.length} offers processed and ready to display`);
         setOffers(validOffers);
       } else {
-        console.log("Aucune offre récupérée ou liste vide");
+        console.log("No offers retrieved or empty list");
         setOffers([]);
       }
     } catch (err: any) {
-      console.error("Erreur lors de la récupération des offres:", err);
-      setLoadingError(err.message || "Erreur de connexion à Supabase");
-      toast.error("Erreur de chargement des offres. Vérifiez la connexion à Supabase.");
+      console.error("Error retrieving offers:", err);
+      setLoadingError(err.message || "Error connecting to Supabase");
+      toast.error("Error loading offers. Check Supabase connection.");
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export const useFetchOffers = () => {
   useEffect(() => {
     fetchOffers();
     
-    // Écouter les mises à jour en temps réel
+    // Listen for real-time updates
     const channel = supabase
       .channel('offers-changes')
       .on('postgres_changes', { 
@@ -96,7 +96,7 @@ export const useFetchOffers = () => {
         schema: 'public', 
         table: 'offers' 
       }, () => {
-        console.log('Modification d\'offre détectée, actualisation...');
+        console.log('Offer modification detected, refreshing...');
         fetchOffers();
       })
       .subscribe();

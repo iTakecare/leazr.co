@@ -3,39 +3,39 @@ import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client
 import { toast } from "sonner";
 
 /**
- * Récupère toutes les offres en tenant compte du filtre pour inclure ou non les offres converties
+ * Retrieves all offers with option to include or exclude converted offers
  */
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
-  console.log(`Démarrage de la récupération des offres (includeConverted: ${includeConverted})`);
+  console.log(`Starting offer retrieval (includeConverted: ${includeConverted})`);
   
   try {
-    // Récupération avec le client standard
-    console.log("Tentative avec le client standard...");
+    // Try with standard client first
+    console.log("Attempting with standard client...");
     const { data: userData } = await supabase.auth.getUser();
-    console.log("Utilisateur connecté:", userData?.user?.id || "Non connecté");
+    console.log("Logged in user:", userData?.user?.id || "Not logged in");
     
     const { data, error } = await supabase
       .from('offers')
       .select('*');
     
     if (error) {
-      console.error("Erreur avec client standard:", error);
+      console.error("Error with standard client:", error);
       throw error;
     }
     
-    console.log(`${data?.length || 0} offres récupérées avec client standard`);
+    console.log(`${data?.length || 0} offers retrieved with standard client`);
     
-    // Filtrer les offres si nécessaire
+    // Filter offers if needed
     const filteredData = includeConverted 
       ? data 
       : data?.filter(offer => !offer.converted_to_contract);
     
     return filteredData || [];
   } catch (standardClientError) {
-    console.error("Échec avec client standard, tentative avec client admin...", standardClientError);
+    console.error("Failed with standard client, trying admin client...", standardClientError);
     
     try {
-      // Tenter avec un client admin créé manuellement
+      // Try with manually created admin client
       const adminClient = getAdminSupabaseClient();
       
       const { data, error } = await adminClient
@@ -43,35 +43,35 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         .select('*');
       
       if (error) {
-        console.error("Erreur avec client admin:", error);
+        console.error("Error with admin client:", error);
         throw error;
       }
       
-      console.log(`${data?.length || 0} offres récupérées avec client admin`);
+      console.log(`${data?.length || 0} offers retrieved with admin client`);
       
-      // Filtrer les offres si nécessaire
+      // Filter offers if needed
       const filteredData = includeConverted 
         ? data 
         : data?.filter(offer => !offer.converted_to_contract);
       
       return filteredData || [];
     } catch (adminClientError) {
-      console.error("Erreur fatale avec les deux clients:", adminClientError);
+      console.error("Fatal error with both clients:", adminClientError);
       
-      // Retourner un tableau vide pour éviter les erreurs
+      // Return empty array to avoid errors
       return [];
     }
   }
 };
 
 /**
- * Récupère les offres par ID client
+ * Retrieves offers by client ID
  */
 export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
-    console.log("Récupération des offres pour client ID:", clientId);
+    console.log("Retrieving offers for client ID:", clientId);
     
-    // Essai avec client standard
+    // Try with standard client
     const { data, error } = await supabase
       .from('offers')
       .select('*')
@@ -79,16 +79,16 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
       .eq('converted_to_contract', false);
     
     if (error) {
-      console.error("Erreur avec client standard:", error);
+      console.error("Error with standard client:", error);
       throw error;
     }
     
     return data || [];
   } catch (standardClientError) {
-    console.error("Tentative avec client admin...", standardClientError);
+    console.error("Trying with admin client...", standardClientError);
     
     try {
-      // Essai avec client admin
+      // Try with admin client
       const adminClient = getAdminSupabaseClient();
       const { data, error } = await adminClient
         .from('offers')
@@ -97,13 +97,13 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
         .eq('converted_to_contract', false);
       
       if (error) {
-        console.error("Erreur avec client admin:", error);
+        console.error("Error with admin client:", error);
         throw error;
       }
       
       return data || [];
     } catch (adminClientError) {
-      console.error("Erreur fatale avec les deux clients:", adminClientError);
+      console.error("Fatal error with both clients:", adminClientError);
       return [];
     }
   }

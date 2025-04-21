@@ -4,46 +4,46 @@ import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
 /**
- * Teste si les autorisations pour la création de clients sont correctement configurées
+ * Tests if client creation permissions are properly configured
  */
 export const testClientCreationPermission = async (): Promise<{success: boolean; message?: string; clientId?: string}> => {
   try {
-    console.log("Test de création d'un client...");
+    console.log("Testing client creation...");
     const testId = uuidv4();
     const testEmail = `test-${testId.substring(0, 8)}@test.com`;
     
-    // Vérifier que la clé de service est définie
+    // Check if service key is defined
     if (!SERVICE_ROLE_KEY) {
       return { 
         success: false, 
-        message: "SERVICE_ROLE_KEY n'est pas définie ou est vide" 
+        message: "SERVICE_ROLE_KEY is not defined or is empty" 
       };
     }
     
-    console.log("[TEST] Création d'un client admin pour le test...");
+    console.log("[TEST] Creating admin client for testing...");
     
-    // Obtenir une nouvelle instance de client admin
+    // Get a new admin client instance
     const adminClient = getAdminSupabaseClient();
     
-    // Données de test pour le client
+    // Test data for client
     const testClientData = {
       id: testId,
-      name: "Client Test",
+      name: "Test Client",
       email: testEmail,
-      company: "Entreprise Test",
+      company: "Test Company",
       phone: "+32000000000",
-      address: "Rue de Test 123",
-      city: "Test Ville",
+      address: "Test Street 123",
+      city: "Test City",
       postal_code: "1000",
       country: "BE",
       vat_number: "BE0123456789",
       status: "active" as const
     };
     
-    console.log("[TEST] Tentative d'insertion avec client admin...");
+    console.log("[TEST] Attempting insertion with admin client...");
     
     try {
-      // Test d'insertion avec le client admin
+      // Test insertion with admin client
       const { data, error } = await adminClient
         .from('clients')
         .insert(testClientData)
@@ -51,62 +51,62 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
         .single();
       
       if (error) {
-        console.error("[TEST] Erreur lors du test de création client:", error);
+        console.error("[TEST] Error testing client creation:", error);
         return { 
           success: false, 
-          message: `Erreur: ${error.message} (Code: ${error.code})` 
+          message: `Error: ${error.message} (Code: ${error.code})` 
         };
       }
       
-      console.log("[TEST] Test de création client réussi");
+      console.log("[TEST] Client creation test successful");
       return { success: true, clientId: testId };
     } catch (insertError) {
-      console.error("[TEST] Exception lors de l'insertion du client test:", insertError);
+      console.error("[TEST] Exception during test client insertion:", insertError);
       return { 
         success: false, 
         message: insertError instanceof Error 
           ? `Exception: ${insertError.message}` 
-          : 'Erreur inconnue lors de l\'insertion' 
+          : 'Unknown error during insertion' 
       };
     }
   } catch (error) {
-    console.error("[TEST] Exception globale lors du test de création client:", error);
+    console.error("[TEST] Global exception during client creation test:", error);
     return { 
       success: false, 
-      message: error instanceof Error ? error.message : 'Erreur inconnue' 
+      message: error instanceof Error ? error.message : 'Unknown error' 
     };
   }
 };
 
 /**
- * Teste spécifiquement la configuration du client admin
+ * Specifically tests admin client configuration
  */
 export const testAdminClientConfiguration = async (): Promise<{success: boolean; message: string}> => {
   try {
-    console.log("[TEST] Test de la configuration du client admin...");
+    console.log("[TEST] Testing admin client configuration...");
     
-    // Vérifier que la clé de service est définie et valide
+    // Check if service key is defined and valid
     if (!SERVICE_ROLE_KEY) {
       return { 
         success: false, 
-        message: "La clé de service (SERVICE_ROLE_KEY) est vide ou non définie" 
+        message: "Service key (SERVICE_ROLE_KEY) is empty or undefined" 
       };
     }
     
     if (SERVICE_ROLE_KEY.length < 30) {
       return {
         success: false,
-        message: "La clé de service semble invalide (trop courte)"
+        message: "Service key appears invalid (too short)"
       };
     }
     
-    // Récupération du client admin
+    // Get admin client
     const adminClient = getAdminSupabaseClient();
     
-    // Test basique de connexion
-    console.log("[TEST] Test de connexion avec client admin...");
+    // Basic connection test
+    console.log("[TEST] Testing connection with admin client...");
     
-    // Test simple de sélection
+    // Simple selection test
     try {
       const { data, error } = await adminClient
         .from('clients')
@@ -114,45 +114,45 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
         .limit(1);
       
       if (error) {
-        console.error("[TEST] Échec du test de connexion:", error);
+        console.error("[TEST] Connection test failed:", error);
         return { 
           success: false, 
-          message: `Erreur de connexion: ${error.message}` 
+          message: `Connection error: ${error.message}` 
         };
       }
       
-      console.log("[TEST] Test de connexion réussi");
+      console.log("[TEST] Connection test successful");
       return { 
         success: true, 
-        message: "La configuration du client admin est correcte" 
+        message: "Admin client configuration is correct" 
       };
     } catch (testError) {
-      console.error("[TEST] Exception lors du test:", testError);
+      console.error("[TEST] Exception during test:", testError);
       return { 
         success: false, 
-        message: `Exception: ${testError instanceof Error ? testError.message : 'Erreur inconnue'}` 
+        message: `Exception: ${testError instanceof Error ? testError.message : 'Unknown error'}` 
       };
     }
   } catch (error) {
-    console.error("[TEST] Exception globale:", error);
+    console.error("[TEST] Global exception:", error);
     return { 
       success: false, 
-      message: `Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}` 
+      message: `Exception: ${error instanceof Error ? error.message : 'Unknown error'}` 
     };
   }
 };
 
 /**
- * Teste explicitement la récupération des offres
+ * Explicitly tests offer retrieval
  */
 export const testOffersRetrieval = async (): Promise<{success: boolean; message: string; data?: any}> => {
   try {
-    console.log("[TEST] Test de récupération des offres...");
+    console.log("[TEST] Testing offer retrieval...");
     
-    // Récupération du client admin
+    // Get admin client
     const adminClient = getAdminSupabaseClient();
     
-    // Test de récupération des offres
+    // Test offer retrieval
     try {
       const { data, error } = await adminClient
         .from('offers')
@@ -160,31 +160,31 @@ export const testOffersRetrieval = async (): Promise<{success: boolean; message:
         .limit(5);
       
       if (error) {
-        console.error("[TEST] Erreur lors de la récupération des offres:", error);
+        console.error("[TEST] Error retrieving offers:", error);
         return {
           success: false,
-          message: `Erreur: ${error.message}`
+          message: `Error: ${error.message}`
         };
       }
       
-      console.log("[TEST] Récupération des offres réussie:", data?.length || 0, "offres");
+      console.log("[TEST] Offer retrieval successful:", data?.length || 0, "offers");
       return {
         success: true,
-        message: `${data?.length || 0} offres récupérées avec succès`,
+        message: `${data?.length || 0} offers successfully retrieved`,
         data: data
       };
     } catch (retrievalError) {
-      console.error("[TEST] Exception lors de la récupération:", retrievalError);
+      console.error("[TEST] Exception during retrieval:", retrievalError);
       return {
         success: false,
-        message: `Exception: ${retrievalError instanceof Error ? retrievalError.message : 'Erreur inconnue'}`
+        message: `Exception: ${retrievalError instanceof Error ? retrievalError.message : 'Unknown error'}`
       };
     }
   } catch (error) {
-    console.error("[TEST] Exception globale:", error);
+    console.error("[TEST] Global exception:", error);
     return {
       success: false,
-      message: `Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      message: `Exception: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 };
