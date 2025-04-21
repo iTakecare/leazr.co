@@ -13,15 +13,12 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useTranslationContext } from '@/context/TranslationContext';
-import { LanguageSelector } from '../layout/LanguageSelector';
 
 const HomeHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { cartCount } = useCart();
   const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
-  const { t } = useTranslationContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,11 +51,11 @@ const HomeHeader = () => {
   };
 
   const mainNavItems = [
-    { label: t('home', 'navigation'), href: '/' },
-    { label: t('catalog', 'navigation'), href: '/catalogue' },
-    { label: t('management_software', 'navigation'), href: '/solutions/gestion' },
-    { label: t('blog', 'navigation'), href: '/blog' },
-    { label: t('contact', 'navigation'), href: '/contact' },
+    { label: 'Accueil', href: '/' },
+    { label: 'Catalogue', href: '/catalogue' },
+    { label: 'Logiciel de gestion', href: '/solutions/gestion' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Contact', href: '/contact' },
   ];
 
   return (
@@ -110,7 +107,7 @@ const HomeHeader = () => {
               className="text-gray-700 hover:text-[#48b5c3] font-medium"
               onClick={handleHubNavigation}
             >
-              {t('my_hub', 'navigation')}
+              Mon Hub
             </Button>
           ) : (
             <Link to="/login">
@@ -118,7 +115,7 @@ const HomeHeader = () => {
                 variant="ghost"
                 className="text-gray-700 hover:text-[#48b5c3] font-medium"
               >
-                {t('login', 'navigation')}
+                Se connecter
               </Button>
             </Link>
           )}
@@ -127,11 +124,32 @@ const HomeHeader = () => {
             <Button 
               className="rounded-full bg-[#48b5c3] hover:bg-[#3da6b4] text-white font-medium px-6"
             >
-              {t('catalog', 'navigation')}
+              Catalogue
             </Button>
           </Link>
 
-          <LanguageSelector />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center">
+              <img 
+                src="/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png" 
+                alt="French flag" 
+                className="h-6 w-6 rounded-full"
+              />
+              <ChevronDown className="ml-1 h-3 w-3 text-gray-700" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg">
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                Français
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                English
+              </DropdownMenuItem>
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                Español
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center space-x-4 lg:hidden">
@@ -184,7 +202,7 @@ const HomeHeader = () => {
                     handleHubNavigation();
                   }}
                 >
-                  {t('my_hub', 'navigation')}
+                  Mon Hub
                 </Button>
               ) : (
                 <Link to="/login" className="flex-1">
@@ -193,7 +211,7 @@ const HomeHeader = () => {
                     className="w-full rounded-full"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {t('login', 'navigation')}
+                    Se connecter
                   </Button>
                 </Link>
               )}
@@ -202,13 +220,35 @@ const HomeHeader = () => {
                   className="w-full rounded-full bg-[#48b5c3] hover:bg-[#3da6b4]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {t('catalog', 'navigation')}
+                  Catalogue
                 </Button>
               </Link>
             </div>
             
             <div className="flex items-center justify-center mt-8">
-              <LanguageSelector />
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-gray-700 hover:text-[#33638E]">
+                  <img 
+                    src="/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png" 
+                    alt="French flag" 
+                    className="h-6 w-6 rounded-full mr-2"
+                  />
+                  Français
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-36 bg-white rounded-xl p-2 shadow-lg">
+                  <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                    Français
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                    English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                    Español
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
