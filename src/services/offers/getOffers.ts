@@ -10,10 +10,10 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       const { data: userData, error: userError } = await supabase.auth.getUser();
       console.log("Utilisateur connecté:", userData?.user?.id || "Non connecté");
       
+      // Version simplifiée de la requête pour éviter les problèmes de parsing SQL
       const { data, error } = await supabase
         .from('offers')
-        .select('*, clients(name, email, company)')
-        .order('created_at', { ascending: false });
+        .select('*, clients(name, email, company)');
 
       if (error) {
         console.error("Erreur avec le client standard:", error);
@@ -39,11 +39,10 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       
       console.log("Client admin créé, tentative de récupération des offres...");
       
-      // Ensure we're not passing any invalid or stale tokens
+      // Version simplifiée de la requête pour éviter les problèmes de parsing SQL
       const { data: adminData, error: adminError } = await adminClient
         .from('offers')
-        .select('*, clients(name, email, company)')
-        .order('created_at', { ascending: false });
+        .select('*, clients(name, email, company)');
       
       if (adminError) {
         console.error("Erreur avec le client admin:", adminError);
@@ -80,8 +79,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
       .from('offers')
       .select('*')
       .eq('client_id', clientId)
-      .eq('converted_to_contract', false)
-      .order('created_at', { ascending: false });
+      .eq('converted_to_contract', false);
     
     // Si échec, essayer avec le client admin
     if (error) {
@@ -91,8 +89,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
         .from('offers')
         .select('*')
         .eq('client_id', clientId)
-        .eq('converted_to_contract', false)
-        .order('created_at', { ascending: false });
+        .eq('converted_to_contract', false);
       
       data = adminResult.data;
       error = adminResult.error;
@@ -146,8 +143,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
         .from('offers')
         .select('*')
         .ilike('client_name', clientData.name)
-        .eq('converted_to_contract', false)
-        .order('created_at', { ascending: false });
+        .eq('converted_to_contract', false);
       
       nameOffers = nameResult.data || [];
       nameError = nameResult.error;
@@ -160,8 +156,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
           .from('offers')
           .select('*')
           .ilike('client_name', clientData.name)
-          .eq('converted_to_contract', false)
-          .order('created_at', { ascending: false });
+          .eq('converted_to_contract', false);
         
         nameOffers = adminNameResult.data || [];
         nameError = adminNameResult.error;
@@ -184,8 +179,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
           .from('offers')
           .select('*')
           .ilike('client_email', clientData.email)
-          .eq('converted_to_contract', false)
-          .order('created_at', { ascending: false });
+          .eq('converted_to_contract', false);
         
         emailOffers = emailResult.data || [];
         emailError = emailResult.error;
@@ -198,8 +192,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
             .from('offers')
             .select('*')
             .ilike('client_email', clientData.email)
-            .eq('converted_to_contract', false)
-            .order('created_at', { ascending: false });
+            .eq('converted_to_contract', false);
           
           emailOffers = adminEmailResult.data || [];
           emailError = adminEmailResult.error;

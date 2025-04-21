@@ -24,12 +24,6 @@ export const getSupabaseClient = () => {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true
-        },
-        global: {
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_PUBLISHABLE_KEY
-          }
         }
       }
     );
@@ -54,12 +48,6 @@ export const getAdminSupabaseClient = () => {
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false
-      },
-      global: {
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY
-        }
       }
     }
   );
