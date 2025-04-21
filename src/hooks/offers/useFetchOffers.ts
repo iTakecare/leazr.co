@@ -2,23 +2,33 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
-import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
-import { OfferData } from "@/services/offers/types";
 
 // Define and export the Offer interface
-export interface Offer extends OfferData {
+export interface Offer {
   id: string;
   client_name: string;
   monthly_payment: number;
   created_at: string;
   ambassador_id?: string;
+  amount: number;
+  status: string;
+  workflow_status?: string;
+  client_id?: string;
+  client_email?: string;
+  equipment_description?: string;
+  converted_to_contract?: boolean;
+  financed_amount?: number;
+  signature_data?: string;
+  type?: string;
+  [key: string]: any; // Pour les propriétés additionnelles
 }
 
 export const useFetchOffers = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const [includeConverted, setIncludeConverted] = useState(false);
   const [lastFetchAttempt, setLastFetchAttempt] = useState(Date.now());
   const [fetchCount, setFetchCount] = useState(0);
@@ -37,22 +47,15 @@ export const useFetchOffers = () => {
       if (data && data.length > 0) {
         console.log(`${data.length} offres récupérées, traitement en cours...`);
         
-        // Process each offer to ensure financed_amount is calculated if not present
+        // Traitement des offres pour s'assurer que toutes les propriétés requises sont présentes
         const processedOffers = data.map(offer => {
-          // If financed_amount is missing or zero but we have monthly_payment
+          // S'assurer que financed_amount est calculé si manquant
           if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
-            // Get coefficient - either from the offer or use a default of 3.27
             const coefficient = offer.coefficient || 3.27;
-            
-            // Calculate and add financed amount
-            // We need to ensure we're passing a number to calculateFinancedAmount
             const calculatedAmount = calculateFinancedAmount(
               Number(offer.monthly_payment), 
               Number(coefficient)
             );
-            
-            console.log(`Calculated missing financed amount for offer ${offer.id}: ${calculatedAmount}€ (monthly: ${offer.monthly_payment}€, coef: ${coefficient})`);
-            
             return {
               ...offer,
               financed_amount: calculatedAmount
@@ -61,36 +64,23 @@ export const useFetchOffers = () => {
           return offer;
         });
         
-        // Ensure each offer has a created_at field even if it's missing
+        // S'assurer que chaque offre a un champ created_at
         const validOffers = processedOffers.map(offer => ({
           ...offer,
           created_at: offer.created_at || new Date().toISOString(),
-          monthly_payment: Number(offer.monthly_payment)
+          monthly_payment: Number(offer.monthly_payment || 0)
         })) as Offer[];
         
         console.log(`${validOffers.length} offres traitées et prêtes à afficher`);
         setOffers(validOffers);
       } else {
         console.log("Aucune offre récupérée ou liste vide");
-        
-        if (!useAdmin) {
-          console.log("Tentative avec le client admin...");
-          return fetchOffers(true);
-        }
-        
         setOffers([]);
       }
     } catch (err: any) {
       console.error("Erreur dans fetchOffers:", err);
-      console.error("Détails de l'erreur:", JSON.stringify(err, null, 2));
-      setLoadingError(err.message || "Erreur de connexion");
-      
-      if (!useAdmin) {
-        console.log("Tentative avec le client admin après erreur...");
-        return fetchOffers(true);
-      }
-      
-      toast.error("Erreur lors du chargement des offres. Vérifiez les permissions d'accès aux données.");
+      setLoadingError(err.message || "Erreur de connexion à Supabase");
+      toast.error("Erreur lors du chargement des offres. Vérifiez la connexion à Supabase.");
     } finally {
       setLoading(false);
     }
@@ -99,25 +89,21 @@ export const useFetchOffers = () => {
   useEffect(() => {
     fetchOffers();
     
-    // Listen for real-time updates
+    // Écouter les mises à jour en temps réel
     const channel = supabase
       .channel('offers-changes')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'offers' 
-      }, (payload) => {
-        console.log('Modification d\'offre détectée:', payload);
-        console.log('Actualisation des offres...');
+      }, () => {
+        console.log('Modification d\'offre détectée, actualisation des offres...');
         fetchOffers();
       })
-      .subscribe((status) => {
-        console.log('Statut de souscription au canal realtime:', status);
-      });
+      .subscribe();
       
-    // Refresh automatically every 15 seconds
+    // Rafraîchir automatiquement toutes les 15 secondes
     const refreshInterval = setInterval(() => {
-      console.log("Rafraîchissement automatique des offres...");
       fetchOffers();
     }, 15000);
     

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AlertCircle, RefreshCw, HelpCircle, FileDown, Clipboard, Check, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -36,9 +36,6 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         `${SUPABASE_PUBLISHABLE_KEY.substring(0, 10)}...${SUPABASE_PUBLISHABLE_KEY.substring(SUPABASE_PUBLISHABLE_KEY.length - 10)}` : 
         'Not defined';
       
-      console.log('Clé publique:', publishableKeyMasked);
-      console.log('Clé service role:', serviceRoleKeyMasked);
-      
       // Test regular client session
       let regularAuthStatus = 'Unknown';
       let regularClientTest = 'Not tested';
@@ -52,13 +49,13 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         // Test a simple query with regular client
         const { data: testData, error: testError } = await supabase
           .from('clients')
-          .select('count(*)')
+          .select('id')
           .limit(1);
           
         regularClientTest = testError 
           ? `Error: ${testError.message}`
-          : `Success: Found ${testData ? JSON.stringify(testData) : 'no data'}`;
-      } catch (e) {
+          : `Success: Found ${testData?.length || 0} clients`;
+      } catch (e: any) {
         regularAuthStatus = `Error: ${e.message}`;
       }
       
@@ -70,13 +67,13 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         console.log('Testing admin client...');
         const { data: testData, error: testError } = await adminClient
           .from('clients')
-          .select('count(*)')
+          .select('id')
           .limit(1);
           
         adminTestResult = testError 
           ? `Error: ${testError.message}`
-          : `Success: Found ${testData ? JSON.stringify(testData) : 'no data'}`;
-      } catch (insertError) {
+          : `Success: Found ${testData?.length || 0} clients`;
+      } catch (insertError: any) {
         adminTestResult = `Exception: ${insertError instanceof Error 
           ? insertError.message 
           : 'Unknown error'}`;
@@ -88,27 +85,14 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         const adminClient = getAdminSupabaseClient();
         const { data: offersData, error: offersError } = await adminClient
           .from('offers')
-          .select('count(*)')
+          .select('id')
           .limit(1);
           
         offersTestResult = offersError 
           ? `Error: ${offersError.message}`
-          : `Success: Found ${offersData ? JSON.stringify(offersData) : 'no data'}`;
-      } catch (e) {
+          : `Success: Found ${offersData?.length || 0} offers`;
+      } catch (e: any) {
         offersTestResult = `Exception: ${e instanceof Error ? e.message : 'Unknown error'}`;
-      }
-      
-      // Get client headers for debugging
-      let clientHeaders = {};
-      try {
-        const client = getSupabaseClient();
-        // Ne pas accéder directement aux propriétés protégées
-        clientHeaders = { 
-          apiKeyLength: SUPABASE_PUBLISHABLE_KEY?.length || 0,
-          serviceKeyLength: SERVICE_ROLE_KEY?.length || 0
-        };
-      } catch (e) {
-        console.error("Error getting client headers", e);
       }
       
       // Set diagnostic info
@@ -117,7 +101,6 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         supabaseUrl: SUPABASE_URL,
         regularClientSession: regularAuthStatus,
         regularClientTest: regularClientTest,
-        clientHeaders: JSON.stringify(clientHeaders, null, 2),
         publishableKeyFormat: publishableKeyMasked,
         serviceRoleKeyFormat: serviceRoleKeyMasked,
         adminClientTest: adminTestResult,
@@ -132,7 +115,7 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       });
       
       toast.success("Diagnostics terminés");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur durant les diagnostics:", error);
       toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       setDiagnosticInfo({
@@ -149,28 +132,13 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
     
     try {
       // Create a fresh admin client
-      const adminClient = createClient(
-        SUPABASE_URL,
-        SERVICE_ROLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-          },
-          global: {
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SERVICE_ROLE_KEY,
-            },
-          },
-        }
-      );
+      const adminClient = getAdminSupabaseClient();
       
       // Test the client with a simple query
       const { data, error } = await adminClient
         .from('clients')
-        .select('count(*)');
+        .select('id')
+        .limit(5);
         
       setManualTest({
         timestamp: new Date().toISOString(),
@@ -185,7 +153,7 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       } else {
         toast.success("Test réussi");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur durant le test manuel:", error);
       setManualTest({
         timestamp: new Date().toISOString(),
@@ -359,15 +327,5 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
     </div>
   );
 };
-
-// Ces fonctions accessoires doivent être conservées
-function getSupabaseClient() {
-  return supabase;
-}
-
-function createClient(url, key, options) {
-  // Import dynamically to avoid circular imports
-  return getAdminSupabaseClient();
-}
 
 export default AmbassadorErrorHandler;

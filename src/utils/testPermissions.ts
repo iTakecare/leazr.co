@@ -113,7 +113,7 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
     // Try to select something from a system table we know exists
     const { data: clientsData, error: clientsError } = await adminClient
       .from('clients')
-      .select('count')
+      .select('id')
       .limit(1);
     
     if (clientsError) {
