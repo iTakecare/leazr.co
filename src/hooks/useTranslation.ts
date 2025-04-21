@@ -18,6 +18,21 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: '/lovable-uploads/1a2c73b1-a23a-47a8-a5f1-a95dc330e92a.png' },
 ];
 
+// Default translations as fallback when the table doesn't exist
+const DEFAULT_TRANSLATIONS: any[] = [
+  { section: 'common', key: 'save', fr: 'Enregistrer', en: 'Save', nl: 'Opslaan', de: 'Speichern' },
+  { section: 'common', key: 'cancel', fr: 'Annuler', en: 'Cancel', nl: 'Annuleren', de: 'Abbrechen' },
+  { section: 'common', key: 'edit', fr: 'Modifier', en: 'Edit', nl: 'Bewerken', de: 'Bearbeiten' },
+  { section: 'common', key: 'delete', fr: 'Supprimer', en: 'Delete', nl: 'Verwijderen', de: 'Löschen' },
+  { section: 'common', key: 'confirm', fr: 'Confirmer', en: 'Confirm', nl: 'Bevestigen', de: 'Bestätigen' },
+  { section: 'common', key: 'back', fr: 'Retour', en: 'Back', nl: 'Terug', de: 'Zurück' },
+  { section: 'common', key: 'next', fr: 'Suivant', en: 'Next', nl: 'Volgende', de: 'Weiter' },
+  { section: 'common', key: 'loading', fr: 'Chargement...', en: 'Loading...', nl: 'Laden...', de: 'Wird geladen...' },
+  { section: 'common', key: 'search', fr: 'Rechercher', en: 'Search', nl: 'Zoeken', de: 'Suchen' },
+  { section: 'common', key: 'settings', fr: 'Paramètres', en: 'Settings', nl: 'Instellingen', de: 'Einstellungen' },
+  { section: 'common', key: 'dashboard', fr: 'Tableau de bord', en: 'Dashboard', nl: 'Dashboard', de: 'Dashboard' }
+];
+
 /**
  * Hook pour gérer les traductions multilingues
  */
@@ -31,16 +46,23 @@ export const useTranslation = () => {
   const { data: translations = [], isLoading } = useQuery({
     queryKey: ['translations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('translations')
-        .select('*');
-      
-      if (error) {
-        console.error('Erreur lors de la récupération des traductions:', error);
-        return [];
+      try {
+        const { data, error } = await supabase
+          .from('translations')
+          .select('*');
+        
+        if (error) {
+          console.error('Erreur lors de la récupération des traductions:', error);
+          // Return default translations if there's an error (likely table doesn't exist)
+          return DEFAULT_TRANSLATIONS;
+        }
+        
+        return data;
+      } catch (e) {
+        console.error('Exception lors de la récupération des traductions:', e);
+        // Return default translations on exception
+        return DEFAULT_TRANSLATIONS;
       }
-      
-      return data;
     },
     // Garder les données en cache pendant 5 minutes
     staleTime: 1000 * 60 * 5,
@@ -72,9 +94,8 @@ export const useTranslation = () => {
     }
     
     // Si aucune traduction n'est trouvée, retourner la clé
-    console.warn(`Traduction manquante: ${section}.${key}`);
     return key;
-  }, [translationsMap]);
+  }, [translationsMap, language]);
   
   // Mettre à jour la langue lorsque localStorage change (par exemple, dans un autre onglet)
   useEffect(() => {
