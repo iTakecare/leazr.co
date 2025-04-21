@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { findClientById } from "@/services/clientService";
 import { toast } from "sonner";
 import {
   Card,
@@ -39,8 +38,11 @@ const ClientSearchById = ({
 
     setIsSearching(true);
     try {
+      // Dynamically import to avoid circular dependencies
+      const clientService = await import('@/services/clientService');
+      
       // Use the passed search function if available, otherwise use the service directly
-      const searchFunction = searchClientById || findClientById;
+      const searchFunction = searchClientById || clientService.findClientById;
       const result = await searchFunction(clientId.trim());
       
       setSearchResult(result);

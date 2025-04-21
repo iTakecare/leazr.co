@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllClients, findClientById } from '@/services/clientService';
+import { getAllClients } from '@/services/clientService';
 import type { Client as ClientType } from '@/types/client';
 
 export const useClients = () => {
@@ -54,10 +54,6 @@ export const useClients = () => {
 
   // Make sure filteredClients is always initialized as an array
   const filteredClients = clients ? clients.filter((client) => {
-    // Debug client visibility
-    const isAmbassadorClient = !!client.is_ambassador_client;
-    const shouldBeVisible = showAmbassadorClients === isAmbassadorClient;
-    
     // Check if matches search term
     const matchesSearch = 
       searchTerm === "" ||
@@ -77,6 +73,8 @@ export const useClients = () => {
   const searchClientById = async (clientId: string) => {
     try {
       setIsLoading(true);
+      // Import dynamically to avoid circular dependencies
+      const { findClientById } = await import('@/services/clientService');
       const result = await findClientById(clientId);
       return result;
     } catch (error) {
