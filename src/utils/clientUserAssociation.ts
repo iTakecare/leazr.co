@@ -1,10 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
  * Associe un compte utilisateur à un client basé sur l'email
  * Cette fonction cherche un client par email et met à jour son user_id
- * REMARQUE: Cette fonction n'essaie plus de créer un client automatiquement
  */
 export const linkUserToClient = async (userId: string, userEmail: string): Promise<string | null> => {
   try {
@@ -120,10 +120,41 @@ export const linkUserToClient = async (userId: string, userEmail: string): Promi
       return clientToUse.id;
     }
     
-    // 3. Si aucun client correspondant n'est trouvé, on ne crée PLUS de client automatiquement
-    console.log("Aucun client trouvé pour cet email, la création automatique est désactivée");
-    toast.warning("Aucun client correspondant à votre compte n'a été trouvé. Veuillez contacter l'administrateur.");
-    return null;
+    // 3. Si aucun client n'est trouvé, créer un nouveau client automatiquement
+    // Modification ici pour créer automatiquement un client lorsqu'aucun n'est trouvé
+    console.log("Aucun client trouvé pour cet email, création automatique...");
+    
+    try {
+      // Créer un nouveau client avec les informations de base
+      const { data: newClient, error: createError } = await supabase
+        .from('clients')
+        .insert({
+          name: userEmail.split('@')[0], // Utiliser la partie locale de l'email comme nom par défaut
+          email: userEmail,
+          user_id: userId,
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error("Erreur lors de la création automatique du client:", createError);
+        toast.error("Impossible de créer un client automatiquement. Veuillez contacter l'administrateur.");
+        return null;
+      }
+      
+      console.log(`Client créé automatiquement: ${newClient.id}`);
+      toast.success("Un profil client a été créé automatiquement pour votre compte");
+      
+      localStorage.setItem(`client_id_${userId}`, newClient.id);
+      return newClient.id;
+    } catch (createError) {
+      console.error("Exception lors de la création automatique du client:", createError);
+      toast.error("Erreur lors de la création automatique du client");
+      return null;
+    }
   } catch (error) {
     console.error("Erreur dans linkUserToClient:", error);
     return null;
