@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus, Search } from "lucide-react";
+import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus, Search, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -35,6 +35,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -153,8 +160,21 @@ const Clients = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <CardTitle className="text-xl">Clients</CardTitle>
-                        <CardDescription>
+                        <CardDescription className="flex items-center gap-1">
                           Gérez vos clients
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p>Vous voyez {showAmbassadorClients ? "les clients d'ambassadeurs" : "les clients standard"}</p>
+                                  <p className="mt-1 text-xs">Total: {clients.length} clients</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </CardDescription>
                       </div>
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">

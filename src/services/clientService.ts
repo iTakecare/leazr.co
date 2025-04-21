@@ -85,42 +85,43 @@ export const createClient = async (clientData: any) => {
  */
 export const getAllClients = async (showAmbassadorClients: boolean = false): Promise<Client[]> => {
   try {
+    console.log(`Récupération des clients avec filtre ambassadeur: ${showAmbassadorClients}`);
+    
     if (showAmbassadorClients) {
-      // When we want to show ambassador clients, use the junction table
+      // Récupérer les clients des ambassadeurs
       const { data, error } = await supabase
         .from('ambassador_clients')
         .select(`
           client_id,
           clients:client_id (*)
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
       if (error) {
         console.error("Erreur lors de la récupération des clients des ambassadeurs:", error);
         throw error;
       }
 
-      // Extract the actual client objects from the nested response
+      // Extraire les données des clients depuis la réponse imbriquée
       const ambassadorClients = data?.map(item => ({
         ...item.clients,
         is_ambassador_client: true
       })) || [];
       
+      console.log(`${ambassadorClients.length} clients d'ambassadeurs trouvés`);
       return ambassadorClients;
     } else {
-      // Standard client query for non-ambassador clients
-      // We need to exclude clients that are in the ambassador_clients table
-      const { data: standardClients, error: standardError } = await supabase
+      // Récupérer tous les clients standard
+      const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (standardError) {
-        console.error("Erreur lors de la récupération des clients:", standardError);
-        throw standardError;
+      if (error) {
+        console.error("Erreur lors de la récupération des clients:", error);
+        throw error;
       }
 
-      // Get all ambassador client IDs
+      // Récupérer les IDs des clients des ambassadeurs pour les filtrer
       const { data: ambassadorClientLinks, error: ambassadorError } = await supabase
         .from('ambassador_clients')
         .select('client_id');
@@ -130,14 +131,17 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
         throw ambassadorError;
       }
 
-      // Extract just the client IDs into an array
+      // Extraire les IDs des clients des ambassadeurs
       const ambassadorClientIds = ambassadorClientLinks?.map(link => link.client_id) || [];
-
-      // Filter out clients that are in the ambassador_clients table
-      const filteredClients = standardClients?.filter(
+      
+      // Filtrer pour exclure les clients des ambassadeurs
+      const filteredClients = data?.filter(
         client => !ambassadorClientIds.includes(client.id)
       ) || [];
-
+      
+      console.log(`${filteredClients.length} clients standards trouvés sur ${data?.length || 0} clients totaux`);
+      console.log(`${ambassadorClientIds.length} clients d'ambassadeurs exclus`);
+      
       return filteredClients;
     }
   } catch (error) {
@@ -205,6 +209,8 @@ export const findClientById = async (id: string): Promise<{
   message: string;
 }> => {
   try {
+    console.log(`Recherche du client avec l'ID: ${id}`);
+    
     // Vérifier si le client existe dans la base de données
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
@@ -215,6 +221,7 @@ export const findClientById = async (id: string): Promise<{
     if (clientError) {
       if (clientError.code === 'PGRST116') {
         // Code pour "pas de ligne trouvée"
+        console.log(`Aucun client trouvé avec l'ID: ${id}`);
         return {
           client: null,
           isAmbassadorClient: false,
@@ -238,6 +245,7 @@ export const findClientById = async (id: string): Promise<{
     }
 
     const isAmbassadorClient = ambassadorLink && ambassadorLink.length > 0;
+    console.log(`Client ${id} est un client d'ambassadeur: ${isAmbassadorClient}`);
     
     // Informations de débogage
     let message = `Client trouvé avec l'ID: ${id}. `;
@@ -246,7 +254,7 @@ export const findClientById = async (id: string): Promise<{
       : `Ce client est un client standard et devrait apparaître dans la liste normale des clients.`;
 
     // Récupérer les détails complets du client
-    const client = await getClientById(id);
+    const client = clientData;
 
     return {
       client,
@@ -608,7 +616,7 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
             .from('clients')
             .update({
               has_user_account: userExists,
-              user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : undefined
+              user_account_created_at: userExists ? new Date().toISOString() : null
             })
             .eq('id', clientId);
             

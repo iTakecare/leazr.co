@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SearchIcon, AlertCircle, CheckCircle2 } from "lucide-react";
+import { SearchIcon, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -39,6 +39,7 @@ const ClientSearchById = ({
     try {
       const result = await findClientById(clientId.trim());
       setSearchResult(result);
+      console.log("Résultat de la recherche:", result);
       
       if (result.exists) {
         toast.success("Client trouvé");
@@ -112,6 +113,10 @@ const ClientSearchById = ({
                 </Alert>
                 
                 <div className="grid gap-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ID:</span>
+                    <span className="font-mono text-xs">{searchResult.client?.id || 'N/A'}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nom:</span>
                     <span className="font-medium">{searchResult.client?.name || 'N/A'}</span>

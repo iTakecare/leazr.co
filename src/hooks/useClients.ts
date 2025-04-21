@@ -22,6 +22,7 @@ export const useClients = () => {
         
         if (clientsData && clientsData.length > 0) {
           console.log('Clients récupérés:', clientsData.length);
+          console.log('Premier client récupéré:', clientsData[0]);
           
           // Ensure clients have updated_at property
           const formattedClients: ClientType[] = clientsData.map(client => ({

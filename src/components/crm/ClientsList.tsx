@@ -9,6 +9,14 @@ import { deleteClient } from '@/services/clientService';
 import { toast } from 'sonner';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ClientsListProps {
   clients: Client[];
@@ -59,15 +67,34 @@ const ClientsList: React.FC<ClientsListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <Switch 
-          id="show-ambassador-clients" 
-          checked={showAmbassadorClients}
-          onCheckedChange={onToggleAmbassadorClients}
-        />
-        <Label htmlFor="show-ambassador-clients">
-          {showAmbassadorClients ? "Afficher les clients standard" : "Afficher les clients des ambassadeurs"}
-        </Label>
+      <div className="flex flex-col sm:flex-row items-start gap-4">
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="show-ambassador-clients" 
+            checked={showAmbassadorClients}
+            onCheckedChange={onToggleAmbassadorClients}
+          />
+          <Label htmlFor="show-ambassador-clients">
+            {showAmbassadorClients ? "Afficher les clients standard" : "Afficher les clients des ambassadeurs"}
+          </Label>
+        </div>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-2">
+                <Info className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>Les clients standards sont les clients directs. Les clients des ambassadeurs sont associés à un ambassadeur et ne sont visibles qu'en activant ce commutateur.</p>
+              <div className="mt-2 text-xs">
+                <p>Clients affichés: {clients.length}</p>
+                <p>Mode actuel: {showAmbassadorClients ? "Clients d'ambassadeurs" : "Clients standard"}</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
       <ClientList
