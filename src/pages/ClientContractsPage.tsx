@@ -14,7 +14,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 const ClientContractsPage = () => {
@@ -59,6 +58,9 @@ const ClientContractsPage = () => {
 
   const handleDebug = async () => {
     try {
+      // Run the debug function from the hook
+      if (debug) debug();
+      
       // Collect diagnostic information
       const { data: userData } = await supabase.auth.getUser();
       
@@ -105,8 +107,6 @@ const ClientContractsPage = () => {
       // Open debug dialog
       setDebugOpen(true);
       
-      // Also run the console debug
-      debug();
       toast.info("Diagnostic terminé, consultez les résultats");
     } catch (error) {
       console.error("Error running diagnostics:", error);

@@ -11,8 +11,13 @@ export interface ClientContract {
   created_at: string;
   status: string;
   leaser_name?: string;
+  leaser_logo?: string;
   equipment_description?: string;
   offer_id?: string;
+  tracking_number?: string;
+  estimated_delivery?: string;
+  delivery_carrier?: string;
+  delivery_status?: string;
 }
 
 export const useClientContracts = (clientEmail?: string | null, clientId?: string | null) => {
@@ -20,12 +25,13 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchContracts = async () => {
+  const fetchContracts = async (specificClientId?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`Fetching contracts for: ${clientEmail || ''} / Client ID: ${clientId || ''}`);
+      const idToUse = specificClientId || clientId;
+      console.log(`Fetching contracts for: ${clientEmail || ''} / Client ID: ${idToUse || ''}`);
       
       let query = supabase
         .from('contracts')
@@ -33,10 +39,10 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
         .order('created_at', { ascending: false });
 
       // Apply filters based on available parameters
-      if (clientId) {
+      if (idToUse) {
         // If clientId is provided, filter by client_id
-        console.log("Filtering contracts by client_id:", clientId);
-        query = query.eq('client_id', clientId);
+        console.log("Filtering contracts by client_id:", idToUse);
+        query = query.eq('client_id', idToUse);
       } else if (clientEmail) {
         // If only email is provided, filter by client using client related info
         const { data: clientData } = await supabase
@@ -71,9 +77,17 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
     fetchContracts();
   }, [clientEmail, clientId]);
 
-  const refresh = () => {
-    fetchContracts();
+  const refresh = (specificClientId?: string) => {
+    fetchContracts(specificClientId);
   };
 
-  return { contracts, loading, error, refresh };
+  const debug = () => {
+    console.log("Debug information for contracts:");
+    console.log("Current client ID:", clientId);
+    console.log("Current client email:", clientEmail);
+    console.log("Contracts count:", contracts.length);
+    console.log("Contracts:", contracts);
+  };
+
+  return { contracts, loading, error, refresh, debug, clientId };
 };

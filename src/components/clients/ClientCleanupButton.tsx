@@ -15,8 +15,14 @@ export default function ClientCleanupButton() {
   const handleCleanup = async () => {
     try {
       setIsProcessing(true);
-      await cleanupDuplicateClients();
-      toast.success("Nettoyage des doublons effectué avec succès");
+      const result = await cleanupDuplicateClients();
+      
+      if (result.success) {
+        toast.success(`Nettoyage des doublons effectué avec succès. ${result.mergedCount} clients fusionnés.`);
+      } else {
+        toast.error(`Erreur lors du nettoyage des doublons: ${result.error}`);
+      }
+      
       setIsProcessing(false);
     } catch (error) {
       console.error("Erreur lors du nettoyage des doublons:", error);
