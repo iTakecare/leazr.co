@@ -11,54 +11,62 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Essayer d'abord avec le client standard (si les politiques RLS le permettent)
+    // Récupérer l'utilisateur authentifié pour obtenir son ID et rôle
+    const authData = await supabase.auth.getUser();
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.data.user?.id)
+      .single();
+    
+    const userRole = profileData?.role || 'client';
+    console.log("User role:", userRole);
+    
+    // Si l'utilisateur est un admin, on n'a pas besoin de définir user_id
+    // Pour les autres rôles, on doit définir user_id pour satisfaire les politiques RLS
+    const dataToInsert = {
+      ...clientData,
+      // Ne définir user_id que si l'utilisateur n'est pas admin
+      user_id: userRole !== 'admin' ? authData.data.user?.id : clientData.user_id
+    };
+    
+    // Essayer d'abord avec le client standard
     const { data, error } = await supabase
       .from('clients')
-      .insert(clientData)
+      .insert(dataToInsert)
       .select()
       .single();
     
     if (error) {
-      console.warn("Échec de création de client avec le client standard, tentative avec le client admin:", error);
-      
-      // Si on est en mode développement, on affiche l'erreur pour faciliter le debug
+      console.warn("Échec de création de client avec le client standard:", error);
       console.error("Erreur détaillée:", JSON.stringify(error));
       
       if (error.code === '42501') {
-        // Si l'erreur est due aux politiques RLS, essayez une approche différente
-        // plutôt que d'utiliser le client admin qui nécessite une clé service_role
-        console.log("Tentative de création avec un INSERT direct et la méthode rpc:");
+        // Si l'erreur est due aux politiques RLS, essayer une approche différente
+        console.log("Tentative alternative avec user_id explicite:");
         
-        try {
-          // Essayer d'utiliser une fonction RPC si disponible ou ajouter user_id
-          const authData = await supabase.auth.getUser();
+        // Essayer à nouveau en forçant les infos utilisateur
+        const clientWithExplicitUserId = {
+          ...dataToInsert,
+          // Forcer l'attribution explicite de l'ID utilisateur
+          user_id: authData.data.user?.id
+        };
+        
+        console.log("Tentative avec données:", clientWithExplicitUserId);
+        
+        const { data: insertData, error: insertError } = await supabase
+          .from('clients')
+          .insert(clientWithExplicitUserId)
+          .select()
+          .single();
           
-          if (authData.data.user) {
-            // Injecter l'ID utilisateur pour satisfaire les politiques RLS
-            const clientWithUserId = {
-              ...clientData,
-              // Si l'utilisateur est un admin, ne pas définir user_id pour que le client soit "global"
-              user_id: clientData.user_id || authData.data.user.id
-            };
-            
-            const { data: insertData, error: insertError } = await supabase
-              .from('clients')
-              .insert(clientWithUserId)
-              .select()
-              .single();
-              
-            if (insertError) {
-              throw insertError;
-            }
-            
-            return insertData;
-          } else {
-            throw new Error("Utilisateur non authentifié");
-          }
-        } catch (rpcError) {
-          console.error("Échec de la méthode alternative:", rpcError);
-          throw rpcError;
+        if (insertError) {
+          console.error("Échec de la tentative alternative:", insertError);
+          throw insertError;
         }
+        
+        console.log("Client créé avec succès (méthode alternative):", insertData);
+        return insertData;
       } else {
         throw error;
       }
