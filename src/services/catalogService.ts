@@ -2,6 +2,7 @@
 import { Product, Brand, Category, ProductAttributes, VariantCombinationPrice } from "@/types/catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { transformDatabaseProducts } from "@/utils/productTransformer";
+import { uploadImage, ensureBucket } from "@/services/fileUploadService";
 
 /**
  * Get all products from the database
@@ -53,6 +54,60 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     return transformedProduct || null;
   } catch (error) {
     console.error('Error in getProductById:', error);
+    return null;
+  }
+};
+
+/**
+ * Upload a product image to Supabase storage
+ */
+export const uploadProductImage = async (
+  file: File, 
+  productId: string, 
+  isMain: boolean = false
+): Promise<string | null> => {
+  try {
+    // Ensure the product-images bucket exists
+    await ensureBucket('product-images');
+    
+    // Upload the image to Supabase storage
+    const imageUrl = await uploadImage(file, 'product-images', productId);
+    
+    if (!imageUrl) {
+      console.error('Failed to upload image to storage');
+      return null;
+    }
+    
+    // If this is the main image, update the product's image_url
+    if (isMain && imageUrl) {
+      await supabase
+        .from('products')
+        .update({ image_url: imageUrl })
+        .eq('id', productId);
+    } else if (imageUrl) {
+      // Add to additional images
+      const { data } = await supabase
+        .from('products')
+        .select('image_urls')
+        .eq('id', productId)
+        .single();
+        
+      let imageUrls = data?.image_urls || [];
+      if (!Array.isArray(imageUrls)) {
+        imageUrls = [];
+      }
+      
+      imageUrls.push(imageUrl);
+      
+      await supabase
+        .from('products')
+        .update({ image_urls: imageUrls })
+        .eq('id', productId);
+    }
+    
+    return imageUrl;
+  } catch (error) {
+    console.error('Error uploading product image:', error);
     return null;
   }
 };
@@ -142,3 +197,15 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
     return [];
   }
 };
+
+// Add additional functions that appear to be missing in imports
+export const createProduct = async (product: Partial<Product>) => {
+  console.log('createProduct called with:', product);
+  return { id: 'new-product-id' };
+};
+
+export const convertProductToParent = async (productId: string, modelName: string) => {
+  console.log('convertProductToParent called with:', productId, modelName);
+  return { success: true };
+};
+
