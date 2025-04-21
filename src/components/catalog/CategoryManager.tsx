@@ -48,7 +48,7 @@ const CategoryManager = () => {
 
   // Add category mutation
   const addCategoryMutation = useMutation({
-    mutationFn: async (categoryData: Omit<Category, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (categoryData: { name: string; translation: string }) => {
       const { data, error } = await supabase
         .from("categories")
         .insert([categoryData])
@@ -72,11 +72,17 @@ const CategoryManager = () => {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, ...categoryData }: Category) => {
+    mutationFn: async (category: Category) => {
+      // Create a properly typed update object
+      const updateData = {
+        name: category.name,
+        translation: category.translation
+      };
+
       const { data, error } = await supabase
         .from("categories")
-        .update(categoryData)
-        .eq("id", id)
+        .update(updateData)
+        .eq("id", category.id)
         .select()
         .single();
 
@@ -124,7 +130,7 @@ const CategoryManager = () => {
   };
 
   const handleUpdateCategory = () => {
-    if (!selectedCategory || !selectedCategory.name.trim() || !selectedCategory.translation.trim()) {
+    if (!selectedCategory || !selectedCategory.name.trim() || !selectedCategory.translation?.trim()) {
       toast.error("Tous les champs sont requis");
       return;
     }

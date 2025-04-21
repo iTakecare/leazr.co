@@ -8,7 +8,7 @@ export interface Product {
   description: string;
   price: number;
   monthly_price?: number;
-  currentPrice?: number; // Ajout de currentPrice au type Product
+  currentPrice?: number;
   imageUrl?: string;
   specifications?: Record<string, string | number>;
   tier?: string; // Silver, gold, or platinum
@@ -89,7 +89,7 @@ export interface Product {
   is_variation?: boolean;
   parent_id?: string;
   variants?: Product[]; // List of product variants
-  variation_attributes?: ProductVariationAttributes; // Available attribute options for this product
+  variation_attributes?: ProductVariationAttributes | Record<string, string[]>; // Available attribute options for this product
   variant_combination_prices?: VariantCombinationPrice[]; // Prices for specific attribute combinations
   variants_count?: number; // Count of variants for this product
   has_variants?: boolean; // Whether this product has variants
@@ -103,6 +103,13 @@ export interface Product {
   image_urls?: string[]; // Additional images
   imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
+  
+  // Database compatibility fields
+  created_at?: string;
+  updated_at?: string;
+  
+  // For JSON conversion compatibility
+  [key: string]: any;
 }
 
 // Product attribute definition
@@ -168,7 +175,7 @@ export interface Category {
   id: string;
   name: string;
   slug?: string;
-  translation?: string;
+  translation: string; // Updated to be required
   description?: string;
   imageUrl?: string;
   products?: Product[];
