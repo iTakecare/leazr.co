@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Client, Collaborator, CreateClientData } from '@/types/client';
 
@@ -246,13 +245,26 @@ export const deleteClient = async (id: string): Promise<boolean> => {
 /**
  * Vérifie si un numéro de TVA est valide
  * @param vatNumber Numéro de TVA à vérifier
+ * @param countryCode Code pays optionnel
  * @returns Résultat de la validation
  */
-export const verifyVatNumber = async (vatNumber: string) => {
+export const verifyVatNumber = async (vatNumber: string, countryCode?: string) => {
   try {
     // Si le numéro est vide, on considère qu'il est valide (pas obligatoire)
     if (!vatNumber || vatNumber.trim() === '') {
-      return { isValid: true, message: "Aucun numéro de TVA fourni" };
+      return { 
+        isValid: true, 
+        valid: true,
+        message: "Aucun numéro de TVA fourni",
+        companyName: '',
+        address: '',
+        addressParsed: {
+          streetAddress: '',
+          postalCode: '',
+          city: '',
+          country: ''
+        }
+      };
     }
 
     // Simuler une validation simple (dans une implémentation réelle, connectez-vous à l'API VIES)
@@ -260,13 +272,57 @@ export const verifyVatNumber = async (vatNumber: string) => {
     const isValidFormat = /^[A-Z]{2}[0-9A-Z]{2,12}$/.test(vatNumber);
     
     if (!isValidFormat) {
-      return { isValid: false, message: "Format de numéro de TVA invalide" };
+      return { 
+        isValid: false, 
+        valid: false,
+        message: "Format de numéro de TVA invalide",
+        error: "Format de numéro de TVA invalide",
+        companyName: '',
+        address: '',
+        addressParsed: {
+          streetAddress: '',
+          postalCode: '',
+          city: '',
+          country: countryCode || ''
+        }
+      };
     }
     
-    return { isValid: true, message: "Numéro de TVA valide" };
+    // Simuler une réponse d'API pour fournir les données de test
+    // Dans un environnement réel, cela proviendrait d'une API comme VIES
+    const mockCompanyData = {
+      companyName: 'Société de Démonstration',
+      address: 'Rue de l\'Exemple 123, 1000 Bruxelles, Belgique',
+      addressParsed: {
+        streetAddress: 'Rue de l\'Exemple 123',
+        postalCode: '1000',
+        city: 'Bruxelles',
+        country: countryCode || 'BE'
+      }
+    };
+    
+    return { 
+      isValid: true, 
+      valid: true,
+      message: "Numéro de TVA valide",
+      ...mockCompanyData
+    };
   } catch (error) {
     console.error("Erreur lors de la vérification du numéro de TVA:", error);
-    return { isValid: false, message: "Erreur lors de la vérification" };
+    return { 
+      isValid: false, 
+      valid: false,
+      message: "Erreur lors de la vérification",
+      error: "Erreur lors de la vérification",
+      companyName: '',
+      address: '',
+      addressParsed: {
+        streetAddress: '',
+        postalCode: '',
+        city: '',
+        country: countryCode || ''
+      }
+    };
   }
 };
 
