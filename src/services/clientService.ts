@@ -1,4 +1,3 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -9,12 +8,23 @@ import { Client, CreateClientData } from '@/types/client';
  */
 export const createClient = async (clientData: any) => {
   try {
-    console.log("Creating client:", clientData);
+    console.log("[CLIENT SERVICE] Creating client:", clientData);
     
     // Création d'une nouvelle instance du client admin avec la clé de service
     const adminClient = getAdminSupabaseClient();
     
-    console.log("Admin client created successfully, proceeding with client creation");
+    // Log pour le debug
+    console.log("[CLIENT SERVICE] Admin client created, verifying session...");
+    
+    // Vérifier la session pour confirmer que le client admin fonctionne
+    const { data: sessionData, error: sessionError } = await adminClient.auth.getSession();
+    
+    if (sessionError) {
+      console.error("[CLIENT SERVICE] Error verifying admin client session:", sessionError);
+      throw new Error(`Admin client session verification failed: ${sessionError.message}`);
+    }
+    
+    console.log("[CLIENT SERVICE] Admin client session verified, proceeding with client creation");
     
     // S'assurer que la requête est correctement formée
     const { data, error } = await adminClient
@@ -24,14 +34,14 @@ export const createClient = async (clientData: any) => {
       .single();
     
     if (error) {
-      console.error("Erreur lors de la création du client avec le client admin:", error);
+      console.error("[CLIENT SERVICE] Erreur lors de la création du client avec le client admin:", error);
       throw error;
     }
     
-    console.log("Client created successfully with admin client:", data);
+    console.log("[CLIENT SERVICE] Client created successfully with admin client:", data);
     return data;
   } catch (error) {
-    console.error("Exception in createClient:", error);
+    console.error("[CLIENT SERVICE] Exception in createClient:", error);
     throw error;
   }
 };
