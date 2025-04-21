@@ -1,243 +1,129 @@
 
-import React from 'react';
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  testClientCreationPermission, 
-  testOfferCreationPermission, 
-  testAdminClientConfiguration,
-  runAllPermissionsTests 
-} from '@/utils/testPermissions';
-import { Shield, User, FileText, CheckCircle2, XCircle, Settings } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { testAdminClientConfiguration, testClientCreationPermission } from "@/utils/testPermissions";
 
 const PermissionsTest = () => {
-  const [isTestingClient, setIsTestingClient] = React.useState(false);
-  const [isTestingOffer, setIsTestingOffer] = React.useState(false);
-  const [isTestingAdmin, setIsTestingAdmin] = React.useState(false);
-  const [isTestingAll, setIsTestingAll] = React.useState(false);
-  const [adminTestResult, setAdminTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
-  const [clientTestResult, setClientTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
-  const [offerTestResult, setOfferTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
-  const [allTestsResult, setAllTestsResult] = React.useState<{ success: boolean; message: string } | null>(null);
-  const [testClientId, setTestClientId] = React.useState<string | null>(null);
-
-  const handleTestAdminConfig = async () => {
-    setIsTestingAdmin(true);
-    setAdminTestResult(null);
+  const [isRunningTest, setIsRunningTest] = useState(false);
+  const [adminClientTest, setAdminClientTest] = useState<{ success: boolean; message: string } | null>(null);
+  const [clientCreationTest, setClientCreationTest] = useState<{ success: boolean; message: string; clientId?: string } | null>(null);
+  
+  const runTests = async () => {
+    setIsRunningTest(true);
+    
     try {
-      const result = await testAdminClientConfiguration();
-      setAdminTestResult(result);
-    } catch (error) {
-      setAdminTestResult({ 
-        success: false, 
-        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
-      });
-    } finally {
-      setIsTestingAdmin(false);
-    }
-  };
-
-  const handleTestClientPermission = async () => {
-    setIsTestingClient(true);
-    setClientTestResult(null);
-    setTestClientId(null);
-    try {
-      const result = await testClientCreationPermission();
-      setClientTestResult({ 
-        success: result.success, 
-        message: result.success 
-          ? "Test de création de client réussi!" 
-          : `Échec du test de création de client: ${result.message || 'Erreur inconnue'}`
-      });
-      if (result.clientId) {
-        setTestClientId(result.clientId);
+      // Test de la configuration du client admin
+      const adminClientResult = await testAdminClientConfiguration();
+      setAdminClientTest(adminClientResult);
+      
+      // Si la configuration admin est correcte, tester la création de client
+      if (adminClientResult.success) {
+        const clientResult = await testClientCreationPermission();
+        setClientCreationTest({
+          success: clientResult.success,
+          message: clientResult.success 
+            ? "Test de création de client réussi!" 
+            : clientResult.message || "Erreur inconnue",
+          clientId: clientResult.clientId
+        });
       }
     } catch (error) {
-      setClientTestResult({ 
-        success: false, 
-        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
-      });
+      console.error("Erreur lors des tests:", error);
     } finally {
-      setIsTestingClient(false);
+      setIsRunningTest(false);
     }
   };
-
-  const handleTestOfferPermission = async () => {
-    setIsTestingOffer(true);
-    setOfferTestResult(null);
-    try {
-      // Use the test client ID if available, otherwise the function will create a test client first
-      const result = await testOfferCreationPermission(testClientId);
-      setOfferTestResult({ 
-        success: result.success, 
-        message: result.success 
-          ? "Test de création d'offre réussi!" 
-          : `Échec du test de création d'offre: ${result.message || 'Erreur inconnue'}`
-      });
-    } catch (error) {
-      setOfferTestResult({ 
-        success: false, 
-        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
-      });
-    } finally {
-      setIsTestingOffer(false);
+  
+  const getStatusBadge = (success: boolean) => {
+    if (success) {
+      return <Badge className="bg-green-500">Réussi</Badge>;
+    } else {
+      return <Badge className="bg-red-500">Échoué</Badge>;
     }
   };
-
-  const handleTestAllPermissions = async () => {
-    setIsTestingAll(true);
-    setAllTestsResult(null);
-    setAdminTestResult(null);
-    setClientTestResult(null);
-    setOfferTestResult(null);
-    setTestClientId(null);
-    try {
-      const results = await runAllPermissionsTests();
-      setAdminTestResult(results.adminClientResult);
-      setClientTestResult(results.clientResult);
-      setOfferTestResult(results.offerResult);
-      setAllTestsResult({ 
-        success: results.adminClientResult.success && results.clientResult.success && results.offerResult.success, 
-        message: "Tous les tests ont été exécutés."
-      });
-    } catch (error) {
-      setAllTestsResult({ 
-        success: false, 
-        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
-      });
-    } finally {
-      setIsTestingAll(false);
+  
+  const getStatusIcon = (success: boolean) => {
+    if (success) {
+      return <CheckCircle className="h-6 w-6 text-green-500" />;
+    } else {
+      return <XCircle className="h-6 w-6 text-red-500" />;
     }
   };
-
-  const renderTestResult = (result: { success: boolean; message: string } | null) => {
-    if (!result) return null;
-    
-    return (
-      <Alert className={`mt-2 ${result.success ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-        {result.success 
-          ? <CheckCircle2 className="h-4 w-4 text-green-600" /> 
-          : <XCircle className="h-4 w-4 text-red-600" />}
-        <AlertTitle>{result.success ? 'Succès' : 'Échec'}</AlertTitle>
-        <AlertDescription>{result.message}</AlertDescription>
-      </Alert>
-    );
-  };
-
+  
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          Test des permissions Supabase
-        </CardTitle>
+        <CardTitle>Test des permissions Supabase</CardTitle>
         <CardDescription>
-          Vérifiez si les permissions RLS sont correctement configurées
+          Cet outil permet de tester la configuration des permissions et des clés d'API Supabase
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Ces tests vérifient si les permissions RLS permettent la création de clients et d'offres
-            pour les utilisateurs non authentifiés (comme lors d'une demande public).
-          </p>
+        {(adminClientTest || clientCreationTest) && (
+          <Alert className={adminClientTest?.success ? "bg-green-50" : "bg-red-50"}>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Résultat des tests</AlertTitle>
+            <AlertDescription>
+              {adminClientTest && !adminClientTest.success ? (
+                "La configuration du client administrateur a échoué. Veuillez vérifier votre clé de service."
+              ) : (
+                clientCreationTest && !clientCreationTest.success ? (
+                  "La création de client a échoué. Vérifiez les politiques RLS de votre base de données."
+                ) : (
+                  "Les tests ont réussi! Votre application devrait fonctionner correctement."
+                )
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-4">
+              {adminClientTest ? getStatusIcon(adminClientTest.success) : <AlertTriangle className="h-6 w-6 text-yellow-500" />}
+              <div>
+                <h3 className="font-medium">Configuration du client admin</h3>
+                <p className="text-sm text-muted-foreground">
+                  {adminClientTest ? adminClientTest.message : "Non testé"}
+                </p>
+              </div>
+            </div>
+            {adminClientTest && getStatusBadge(adminClientTest.success)}
+          </div>
+          
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-4">
+              {clientCreationTest ? getStatusIcon(clientCreationTest.success) : <AlertTriangle className="h-6 w-6 text-yellow-500" />}
+              <div>
+                <h3 className="font-medium">Création de client</h3>
+                <p className="text-sm text-muted-foreground">
+                  {clientCreationTest ? clientCreationTest.message : "Non testé"}
+                </p>
+              </div>
+            </div>
+            {clientCreationTest && getStatusBadge(clientCreationTest.success)}
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4 w-full">
-        <div className="w-full">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start" 
-            onClick={handleTestAdminConfig}
-            disabled={isTestingAdmin}
-          >
-            {isTestingAdmin ? (
-              <>
-                <Settings className="mr-2 h-4 w-4 animate-spin" />
-                Test en cours...
-              </>
-            ) : (
-              <>
-                <Settings className="mr-2 h-4 w-4" />
-                Tester la configuration du client admin
-              </>
-            )}
-          </Button>
-          {renderTestResult(adminTestResult)}
-        </div>
-
-        <div className="w-full">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start" 
-            onClick={handleTestClientPermission}
-            disabled={isTestingClient}
-          >
-            {isTestingClient ? (
-              <>
-                <User className="mr-2 h-4 w-4 animate-spin" />
-                Test en cours...
-              </>
-            ) : (
-              <>
-                <User className="mr-2 h-4 w-4" />
-                Tester la création de client
-              </>
-            )}
-          </Button>
-          {renderTestResult(clientTestResult)}
-        </div>
-
-        <div className="w-full">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start" 
-            onClick={handleTestOfferPermission}
-            disabled={isTestingOffer}
-          >
-            {isTestingOffer ? (
-              <>
-                <FileText className="mr-2 h-4 w-4 animate-spin" />
-                Test en cours...
-              </>
-            ) : (
-              <>
-                <FileText className="mr-2 h-4 w-4" />
-                Tester la création d'offre {testClientId ? "(avec client de test)" : ""}
-              </>
-            )}
-          </Button>
-          {renderTestResult(offerTestResult)}
-        </div>
-
-        <div className="w-full">
-          <Button 
-            className="w-full" 
-            onClick={handleTestAllPermissions}
-            disabled={isTestingAll}
-          >
-            {isTestingAll ? (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4 animate-spin" />
-                Exécution de tous les tests...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Exécuter tous les tests
-              </>
-            )}
-          </Button>
-          {renderTestResult(allTestsResult)}
-        </div>
+      <CardFooter>
+        <Button 
+          onClick={runTests} 
+          disabled={isRunningTest}
+          className="w-full"
+        >
+          {isRunningTest ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Exécution des tests...
+            </>
+          ) : (
+            "Tester les permissions"
+          )}
+        </Button>
       </CardFooter>
     </Card>
   );
