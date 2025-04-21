@@ -60,9 +60,12 @@ const Login = () => {
     } else if (isPartner()) {
       console.log("Redirection vers le tableau de bord partenaire");
       navigate('/partner/dashboard');
+    } else if (user?.client_id) {
+      console.log("L'utilisateur a un client_id mais pas de rôle, redirection vers le tableau de bord client");
+      navigate('/client/dashboard');
     } else {
-      console.log("Aucun rôle spécifique, redirection par défaut");
-      navigate('/client/dashboard'); 
+      console.log("Aucun rôle spécifique reconnu, redirection vers l'accueil");
+      navigate('/'); 
     }
   };
 
@@ -84,7 +87,7 @@ const Login = () => {
         console.log("Login réussi, redirection...");
         setTimeout(() => {
           redirectToDashboard();
-        }, 100);
+        }, 500);
       }
     } catch (error: any) {
       console.error('Exception lors de la connexion:', error);

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,6 @@ export interface UserProfile {
   last_name?: string;
   company?: string;
   role?: string;
-  name?: string;
   ambassador_id?: string;
   client_id?: string;
   partner_id?: string;
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("[AuthContext] Vérification de la session...");
       
-      // Fetch user details from the public.profiles table
+      // Fetch user details from the public.profiles table with only the fields that exist
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select(`
@@ -92,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           last_name,
           company,
           role,
-          name,
           ambassador_id,
           partner_id,
           has_ambassador,
@@ -146,8 +145,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("[AuthContext] Utilisateur identifié comme AMBASSADOR");
       } else if (extendedUserData.role === 'partner') {
         console.log("[AuthContext] Utilisateur identifié comme PARTNER");
-      } else {
+      } else if (extendedUserData.role === 'client') {
         console.log("[AuthContext] Utilisateur identifié comme CLIENT:", client_id);
+      } else {
+        console.log("[AuthContext] Rôle utilisateur non reconnu:", extendedUserData.role);
+        // Check if the user has a profile but no role, if they have a client_id, set role to 'client'
+        if (client_id && !extendedUserData.role) {
+          extendedUserData.role = 'client';
+          console.log("[AuthContext] Assignation automatique du rôle client basé sur client_id");
+          // Update the profile to set the role to 'client'
+          await supabase
+            .from('profiles')
+            .update({ role: 'client' })
+            .eq('id', userAuth.id);
+        }
       }
       
       console.log("[AuthContext] [AuthContext] Données utilisateur étendues:", extendedUserData);
@@ -241,7 +252,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           last_name,
           company,
           role,
-          name,
           ambassador_id,
           partner_id,
           has_ambassador,
@@ -271,7 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, [supabase, user]);
+  }, [user]);
 
   const forgotPassword = async (email: string) => {
     setLoading(true);
@@ -303,10 +313,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAdmin = useCallback(() => user?.role === 'administrator', [user]);
-  const isClient = useCallback(() => user?.role === 'client', [user]);
-  const isPartner = useCallback(() => user?.role === 'partner', [user]);
-  const isAmbassador = useCallback(() => user?.role === 'ambassador', [user]);
+  const isAdmin = useCallback(() => {
+    const hasAdminRole = user?.role === 'administrator';
+    console.log("[AuthContext] isAdmin check:", hasAdminRole, user?.role);
+    return hasAdminRole;
+  }, [user]);
+  
+  const isClient = useCallback(() => {
+    const hasClientRole = user?.role === 'client';
+    console.log("[AuthContext] isClient check:", hasClientRole, user?.role);
+    return hasClientRole;
+  }, [user]);
+  
+  const isPartner = useCallback(() => {
+    const hasPartnerRole = user?.role === 'partner';
+    console.log("[AuthContext] isPartner check:", hasPartnerRole, user?.role);
+    return hasPartnerRole;
+  }, [user]);
+  
+  const isAmbassador = useCallback(() => {
+    const hasAmbassadorRole = user?.role === 'ambassador';
+    console.log("[AuthContext] isAmbassador check:", hasAmbassadorRole, user?.role);
+    return hasAmbassadorRole;
+  }, [user]);
 
   const value = {
     user,

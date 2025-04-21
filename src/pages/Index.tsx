@@ -18,16 +18,36 @@ const Index = () => {
         if (isAdmin()) {
           console.log("Index: redirection vers le tableau de bord admin");
           navigate('/dashboard');
-        } else if (isClient()) {
+          return;
+        } 
+        
+        if (isClient()) {
           console.log("Index: redirection vers le tableau de bord client");
           navigate('/client/dashboard');
-        } else if (isAmbassador()) {
+          return;
+        } 
+        
+        if (isAmbassador()) {
           console.log("Index: redirection vers le tableau de bord ambassadeur");
           navigate('/ambassador/dashboard');
-        } else if (isPartner()) {
+          return;
+        } 
+        
+        if (isPartner()) {
           console.log("Index: redirection vers le tableau de bord partenaire");
           navigate('/partner/dashboard');
+          return;
         }
+
+        // Si l'utilisateur est connecté mais n'a pas de rôle spécifique, 
+        // on vérifie s'il a un client_id pour lui assigner le rôle de client
+        if (user.client_id) {
+          console.log("Index: utilisateur avec client_id mais sans rôle, redirection vers tableau de bord client");
+          navigate('/client/dashboard');
+          return;
+        }
+
+        console.log("Index: utilisateur connecté sans rôle reconnu");
       }
     };
 
