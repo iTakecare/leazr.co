@@ -18,6 +18,8 @@ interface AuthContextProps {
   user: UserProfile | null;
   session: Session | null;
   loading: boolean;
+  isLoading: boolean; // Added for compatibility
+  userRoleChecked: boolean; // Added for compatibility
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: { first_name?: string, last_name?: string }) => Promise<{ error: any, data?: any }>;
   signOut: () => Promise<void>;
@@ -36,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoleChecked, setUserRoleChecked] = useState(false);
 
   useEffect(() => {
     // Récupération de la session et configuration de l'écouteur d'authentification
@@ -56,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
       } finally {
         setLoading(false);
+        setUserRoleChecked(true);
       }
     };
 
@@ -118,6 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: authUser.id,
         email: authUser.email
       });
+    } finally {
+      setUserRoleChecked(true);
     }
   };
 
@@ -228,6 +234,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     session,
     loading,
+    isLoading: loading, // Alias for compatibility
+    userRoleChecked,
     signIn,
     signUp,
     signOut,

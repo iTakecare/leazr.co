@@ -123,9 +123,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       return user.role;
     }
     
-    if (user.partner_id) return "Partenaire";
     if (user.ambassador_id) return "Ambassadeur";
-    if (user.client_id) return "Client";
     
     return "Gestion complète";
   };
