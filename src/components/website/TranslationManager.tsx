@@ -324,14 +324,15 @@ const TranslationManager = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Gestion des Traductions</h2>
         <div className="flex space-x-2">
-          <Input
-            className="w-64"
-            placeholder="Rechercher..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            // Fix for the TypeScript error - Remove the prefix prop with React Element
-            startAdornment={<Search className="h-4 w-4 text-gray-400" />}
-          />
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              className="w-64 pl-9"
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Ajouter une traduction
