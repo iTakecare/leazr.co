@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
@@ -6,6 +7,15 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
   try {
     console.log("Fetching offers with includeConverted:", includeConverted);
     
+    // Get current authenticated user
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return [];
+    }
+    
+    console.log("Current user ID:", authData.user?.id);
+    
     // Construction de la requête de base
     let query = supabase
       .from('offers')
@@ -13,28 +23,44 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     // Appliquer le filtre uniquement si includeConverted est false
     if (!includeConverted) {
-      query.eq('converted_to_contract', false);
+      query = query.eq('converted_to_contract', false);
     }
     
     // Trier par date de création (les plus récentes en premier)
-    query.order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
     
-    // Exécuter la requête sans timeout qui pourrait causer des problèmes
+    console.log("Query built, fetching data...");
+    
+    // Execute the query
     const { data, error } = await query;
     
     if (error) {
-      console.error("Erreur lors de la récupération des offres:", error);
+      console.error("Error fetching offers:", error);
       throw error;
     }
     
-    console.log(`Retrieved ${data?.length || 0} offers from database`);
+    // Comprehensive debug logging
+    if (!data || data.length === 0) {
+      console.log("No offers found in database");
+      
+      // Debug: Check if offers table has any records at all
+      const { count, error: countError } = await supabase
+        .from('offers')
+        .select('*', { count: 'exact', head: true });
+        
+      if (countError) {
+        console.error("Error counting offers:", countError);
+      } else {
+        console.log(`Total offers in database: ${count}`);
+      }
+    } else {
+      console.log(`Retrieved ${data.length} offers from database:`, data);
+    }
     
-    // Retourner les données ou un tableau vide, mais jamais de données de démonstration
     return data || [];
   } catch (error) {
-    console.error("Erreur complète lors de la récupération des offres:", error);
-    toast.error("Erreur lors du chargement des offres.");
-    // Retourner un tableau vide en cas d'erreur, pas de données de démonstration
+    console.error("Complete error when fetching offers:", error);
+    toast.error("Error loading offers.");
     return [];
   }
 };

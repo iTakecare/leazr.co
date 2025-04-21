@@ -27,6 +27,11 @@ export const useFetchOffers = () => {
 
     try {
       console.log("Fetching offers with includeConverted =", includeConverted);
+      
+      // Get current authenticated user for debugging
+      const { data: authData } = await supabase.auth.getUser();
+      console.log("Current user ID during fetch:", authData.user?.id);
+      
       const data = await getOffers(includeConverted);
       
       if (data) {
@@ -40,7 +45,6 @@ export const useFetchOffers = () => {
             const coefficient = offer.coefficient || 3.27;
             
             // Calculate and add financed amount
-            // We need to ensure we're passing a number to calculateFinancedAmount
             const calculatedAmount = calculateFinancedAmount(
               Number(offer.monthly_payment), 
               Number(coefficient)
@@ -79,6 +83,7 @@ export const useFetchOffers = () => {
   };
 
   useEffect(() => {
+    console.log("useFetchOffers useEffect running - fetching offers");
     fetchOffers();
     
     // Listen for real-time updates
