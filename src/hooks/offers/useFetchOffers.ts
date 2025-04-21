@@ -32,6 +32,21 @@ export const useFetchOffers = () => {
       const { data: authData } = await supabase.auth.getUser();
       console.log("Current user ID during fetch:", authData.user?.id);
       
+      // Vérifions aussi l'offre spécifique mentionnée
+      const { data: specificOffer, error: specificError } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('id', '82375436-fb09-4d13-aad5-9a29dbe686f2')
+        .single();
+        
+      if (specificError) {
+        console.log("Error checking specific offer in hook:", specificError);
+      } else if (specificOffer) {
+        console.log("Found specific offer in hook:", specificOffer);
+        console.log("  - converted_to_contract:", specificOffer.converted_to_contract);
+        console.log("  - workflow_status:", specificOffer.workflow_status);
+      }
+      
       const data = await getOffers(includeConverted);
       
       if (data) {

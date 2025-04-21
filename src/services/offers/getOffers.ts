@@ -16,6 +16,19 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     console.log("Current user ID:", authData.user?.id);
     
+    // Vérifions d'abord si l'offre spécifique existe
+    const { data: specificOffer, error: specificError } = await supabase
+      .from('offers')
+      .select('*')
+      .eq('id', '82375436-fb09-4d13-aad5-9a29dbe686f2')
+      .single();
+      
+    if (specificError) {
+      console.log("Error checking specific offer:", specificError);
+    } else if (specificOffer) {
+      console.log("Found specific offer:", specificOffer);
+    }
+    
     // Construction de la requête de base
     let query = supabase
       .from('offers')
