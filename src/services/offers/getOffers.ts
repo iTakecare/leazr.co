@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const mockOffers = [
   {
@@ -45,39 +46,71 @@ const mockOffers = [
     workflow_status: "leaser_approved",
     created_at: "2025-02-15T10:00:00Z",
     type: "admin_offer"
+  },
+  {
+    id: "5",
+    client_name: "Demande Client",
+    amount: 15000,
+    monthly_payment: 450,
+    status: "pending",
+    workflow_status: "draft",
+    created_at: "2025-03-10T16:30:00Z",
+    type: "client_request"
   }
 ];
 
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
+    console.log("Fetching offers with includeConverted:", includeConverted);
+    
+    const query = supabase
+      .from('offers')
+      .select('*, clients(name, email, company)');
+    
+    // Appliquer le filtre uniquement si includeConverted est false
+    if (!includeConverted) {
+      query.eq('converted_to_contract', false);
+    }
+    
+    // Trier par date de création (les plus récentes en premier)
+    query.order('created_at', { ascending: false });
+    
+    // Ajouter un timeout pour éviter que la requête ne prenne trop de temps
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => {
-        console.log("Timeout atteint, utilisation des données mockées");
+        console.error("Timeout lors de la récupération des offres");
         reject(new Error("Timeout lors de la récupération des offres"));
-      }, 5000)
+      }, 10000)
     );
     
-    const fetchPromise = supabase
-      .from('offers')
-      .select('*, clients(name, email, company)')
-      .eq('converted_to_contract', includeConverted ? false : false)
-      .order('created_at', { ascending: false });
-    
+    // Exécuter la requête avec un timeout
     const { data, error } = await Promise.race([
-      fetchPromise,
-      timeoutPromise,
+      query,
+      timeoutPromise
     ]) as any;
     
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur lors de la récupération des offres:", error);
+      throw error;
+    }
     
-    return data || [];
+    console.log(`Retrieved ${data?.length || 0} offers from database`);
+    
+    // Si les données sont disponibles, les retourner
+    if (data && data.length > 0) {
+      // Log pour le débogage
+      const clientRequests = data.filter(offer => offer.type === 'client_request');
+      console.log(`Found ${clientRequests.length} client requests among offers`);
+      
+      return data;
+    } else {
+      console.warn("Aucune offre trouvée, utilisation des données mockées");
+      return mockOffers;
+    }
   } catch (error) {
-    console.error("Error fetching offers:", error);
-    const mockOffersWithType = mockOffers.map(offer => ({
-      ...offer,
-      type: 'admin_offer'
-    }));
-    return mockOffersWithType;
+    console.error("Erreur complète lors de la récupération des offres:", error);
+    toast.error("Erreur lors du chargement des offres. Utilisation des données de démonstration.");
+    return mockOffers;
   }
 };
 

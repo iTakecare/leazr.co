@@ -2123,6 +2123,10 @@ export type Database = {
           variation_attributes: Json
         }[]
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_ambassador: {
         Args: Record<PropertyKey, never>
         Returns: boolean

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
@@ -25,9 +26,12 @@ export const useFetchOffers = () => {
     setLoadingError(null);
 
     try {
+      console.log("Fetching offers with includeConverted =", includeConverted);
       const data = await getOffers(includeConverted);
       
       if (data) {
+        console.log(`Received ${data.length} offers from service`, data);
+        
         // Process each offer to ensure financed_amount is calculated if not present
         const processedOffers = data.map(offer => {
           // If financed_amount is missing or zero but we have monthly_payment
@@ -59,13 +63,15 @@ export const useFetchOffers = () => {
           monthly_payment: Number(offer.monthly_payment)
         })) as Offer[];
         
+        console.log(`After processing, we have ${validOffers.length} valid offers`);
         setOffers(validOffers);
       } else {
+        console.log("No offers received from service, setting empty array");
         setOffers([]);
       }
     } catch (err: any) {
       console.error("Error in fetchOffers:", err);
-      setLoadingError(err);
+      setLoadingError(err.message || "Erreur lors du chargement des offres");
       toast.error("Erreur lors du chargement des offres");
     } finally {
       setLoading(false);
@@ -82,8 +88,8 @@ export const useFetchOffers = () => {
         event: '*', 
         schema: 'public', 
         table: 'offers' 
-      }, () => {
-        console.log('Offer change detected, refreshing...');
+      }, (payload) => {
+        console.log('Offer change detected:', payload);
         fetchOffers();
       })
       .subscribe();
