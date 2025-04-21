@@ -12,7 +12,6 @@ import {
   Plus,
   Loader2,
   RefreshCw,
-  LayoutDashboard,
   Calendar
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -22,6 +21,8 @@ import { toast } from "sonner";
 import { getClientIdForUser } from "@/utils/clientUserAssociation";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { useClientContracts } from "@/hooks/useClientContracts";
+import { getClientById } from "@/services/clientService";
+import { Client } from "@/types/client";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ const ClientDashboard = () => {
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [clientId, setClientId] = useState(null);
+  const [clientData, setClientData] = useState<Client | null>(null);
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -45,6 +47,13 @@ const ClientDashboard = () => {
         if (id) {
           console.log("Found client ID:", id);
           setClientId(id);
+          
+          // Récupérer les données complètes du client
+          const client = await getClientById(id);
+          if (client) {
+            console.log("Retrieved client data:", client);
+            setClientData(client);
+          }
           
           // Sample equipment data with real-looking information
           setEquipment([
@@ -154,10 +163,10 @@ const ClientDashboard = () => {
                 Tableau de bord
               </h1>
               <p className="text-muted-foreground">
-                Bienvenue, {user?.first_name || ''} {user?.last_name || ''}
+                Bienvenue, {clientData?.name || user?.first_name || ''} {user?.last_name || ''}
               </p>
               <p className="text-muted-foreground">
-                {user?.company ? `Espace Client ${user.company}` : ''}
+                {clientData?.company ? `Espace Client ${clientData.company}` : user?.company ? `Espace Client ${user.company}` : ''}
               </p>
               <p className="mt-4 text-muted-foreground/90 max-w-xl">
                 Voici un aperçu de vos contrats et équipements. Utilisez le tableau de bord pour gérer vos ressources iTakecare.
