@@ -1,3 +1,4 @@
+
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -85,6 +86,8 @@ export const createClient = async (clientData: any) => {
  */
 export const getAllClients = async (showAmbassadorClients: boolean = false): Promise<Client[]> => {
   try {
+    console.log(`Fetching clients (showAmbassadorClients: ${showAmbassadorClients})`);
+    
     if (showAmbassadorClients) {
       // When we want to show ambassador clients, use the junction table
       const { data, error } = await supabase
@@ -106,10 +109,10 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
         is_ambassador_client: true
       })) || [];
       
+      console.log(`Retrieved ${ambassadorClients.length} ambassador clients`);
       return ambassadorClients;
     } else {
       // Standard client query for non-ambassador clients
-      // We need to exclude clients that are in the ambassador_clients table
       const { data: standardClients, error: standardError } = await supabase
         .from('clients')
         .select('*')
@@ -119,6 +122,8 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
         console.error("Erreur lors de la récupération des clients:", standardError);
         throw standardError;
       }
+      
+      console.log(`Retrieved ${standardClients?.length || 0} total clients from database`);
 
       // Get all ambassador client IDs
       const { data: ambassadorClientLinks, error: ambassadorError } = await supabase
@@ -132,12 +137,19 @@ export const getAllClients = async (showAmbassadorClients: boolean = false): Pro
 
       // Extract just the client IDs into an array
       const ambassadorClientIds = ambassadorClientLinks?.map(link => link.client_id) || [];
+      console.log(`Found ${ambassadorClientIds.length} ambassador client IDs to filter out`);
 
       // Filter out clients that are in the ambassador_clients table
       const filteredClients = standardClients?.filter(
         client => !ambassadorClientIds.includes(client.id)
       ) || [];
-
+      
+      console.log(`Returning ${filteredClients.length} filtered standard clients`);
+      
+      // Debug log to check for the specific client ID
+      const specificClientExists = filteredClients.some(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
+      console.log(`Client with ID 6b4393f6-88b8-44c9-a527-52dad92a95d3 exists in filtered results: ${specificClientExists}`);
+      
       return filteredClients;
     }
   } catch (error) {
