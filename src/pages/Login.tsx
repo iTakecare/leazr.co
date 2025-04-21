@@ -46,16 +46,23 @@ const Login = () => {
   }, [navigate, location, user, isResetMode]);
 
   const redirectToDashboard = () => {
+    console.log("Redirection vers le tableau de bord, rôle:", user?.role);
+    
     if (isAdmin()) {
+      console.log("Redirection vers le tableau de bord admin");
       navigate('/dashboard');
     } else if (isClient()) {
+      console.log("Redirection vers le tableau de bord client");
       navigate('/client/dashboard');
     } else if (isAmbassador()) {
+      console.log("Redirection vers le tableau de bord ambassadeur");
       navigate('/ambassador/dashboard');
     } else if (isPartner()) {
+      console.log("Redirection vers le tableau de bord partenaire");
       navigate('/partner/dashboard');
     } else {
-      navigate('/client/dashboard'); // Redirection par défaut
+      console.log("Aucun rôle spécifique, redirection par défaut");
+      navigate('/client/dashboard'); 
     }
   };
 
@@ -68,14 +75,20 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
-      if (error) {
-        console.error('Erreur lors de la connexion:', error);
-        toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
+      const response = await signIn(email, password);
+      if (response?.error) {
+        console.error('Erreur lors de la connexion:', response.error);
+        toast.error('Échec de la connexion : ' + (response.error.message || 'Erreur inconnue'));
       } else {
         toast.success('Connexion réussie');
-        redirectToDashboard();
+        console.log("Login réussi, redirection...");
+        setTimeout(() => {
+          redirectToDashboard();
+        }, 100);
       }
+    } catch (error: any) {
+      console.error('Exception lors de la connexion:', error);
+      toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
     } finally {
       setLoading(false);
     }

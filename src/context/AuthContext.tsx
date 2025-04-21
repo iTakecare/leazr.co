@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UserProfile {
   id?: string;
@@ -164,12 +163,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const response = await supabase.auth.signInWithPassword({ email, password });
-      if (response.error) throw response.error;
+      if (response.error) {
+        console.error("[AuthContext] Erreur lors de la connexion:", response.error.message);
+        return { error: response.error };
+      }
       console.log("[AuthContext] Connexion réussie:", response.data);
-      return response;
+      return { data: response.data };
     } catch (error: any) {
-      console.error("[AuthContext] Erreur lors de la connexion:", error.message);
-      throw error;
+      console.error("[AuthContext] Exception lors de la connexion:", error.message);
+      return { error };
     } finally {
       setLoading(false);
     }
