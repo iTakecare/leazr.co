@@ -8,8 +8,6 @@ import SeoSettings from "./SeoSettings";
 import SitemapSettings from "./SitemapSettings";
 import SocialSettings from "./SocialSettings";
 import RedirectionManager from "./RedirectionManager";
-import TranslationManager from "./TranslationManager";
-import { Globe } from "lucide-react";
 
 const WebsiteManager = () => {
   const [activeTab, setActiveTab] = useState("pages");
@@ -22,14 +20,13 @@ const WebsiteManager = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="pages">Pages</TabsTrigger>
           <TabsTrigger value="blog">Blog</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
           <TabsTrigger value="sitemap">Sitemap</TabsTrigger>
           <TabsTrigger value="social">Réseaux Sociaux</TabsTrigger>
           <TabsTrigger value="redirections">Redirections</TabsTrigger>
-          <TabsTrigger value="translations">Traductions</TabsTrigger>
         </TabsList>
         
         <TabsContent value="pages">
@@ -112,20 +109,6 @@ const WebsiteManager = () => {
             </CardHeader>
             <CardContent>
               <RedirectionManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="translations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestion des Traductions</CardTitle>
-              <CardDescription>
-                Gérez les traductions du site en français, anglais, néerlandais et allemand
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TranslationManager />
             </CardContent>
           </Card>
         </TabsContent>

@@ -12,8 +12,6 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { LanguageSelector } from '../layout/LanguageSelector';
-import { useTranslationContext } from '@/context/TranslationContext';
 
 const UnifiedNavigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,7 +20,6 @@ const UnifiedNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
-  const { t } = useTranslationContext();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -160,7 +157,7 @@ const UnifiedNavigation = () => {
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {t('about', 'navigation')}
+                À propos
               </Link>
               
               <Link
@@ -171,7 +168,7 @@ const UnifiedNavigation = () => {
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {t('blog', 'navigation')}
+                Blog
               </Link>
               
               <Link
@@ -182,7 +179,7 @@ const UnifiedNavigation = () => {
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {t('contact', 'navigation')}
+                Contact
               </Link>
             </div>
             
@@ -196,7 +193,7 @@ const UnifiedNavigation = () => {
                     handleHubNavigation();
                   }}
                 >
-                  {t('my_hub', 'navigation')}
+                  Mon Hub
                 </Button>
               ) : (
                 <Link to="/login">
@@ -204,13 +201,13 @@ const UnifiedNavigation = () => {
                     variant="outline"
                     className="w-full rounded-[20px] md:rounded-[50px] font-bold text-sm"
                   >
-                    {t('login', 'navigation')}
+                    Se connecter
                   </Button>
                 </Link>
               )}
               <Link to="/catalogue">
                 <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
-                  {t('catalog', 'navigation')}
+                  Catalogue
                 </Button>
               </Link>
             </div>
@@ -326,7 +323,7 @@ const UnifiedNavigation = () => {
                   location.pathname === "/a-propos" && "font-medium text-[#33638E]"
                 )}
               >
-                {t('about', 'navigation')}
+                À propos
               </Link>
             </li>
             
@@ -338,7 +335,7 @@ const UnifiedNavigation = () => {
                   location.pathname.startsWith("/blog") && "font-medium text-[#33638E]"
                 )}
               >
-                {t('blog', 'navigation')}
+                Blog
               </Link>
             </li>
             
@@ -350,7 +347,7 @@ const UnifiedNavigation = () => {
                   location.pathname === "/contact" && "font-medium text-[#33638E]"
                 )}
               >
-                {t('contact', 'navigation')}
+                Contact
               </Link>
             </li>
           </ul>
@@ -377,7 +374,7 @@ const UnifiedNavigation = () => {
               className="rounded-[50px] font-bold text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E] transition-all"
               onClick={handleHubNavigation}
             >
-              {t('my_hub', 'navigation')}
+              Mon Hub
             </Button>
           ) : (
             <Link to="/login">
@@ -385,18 +382,35 @@ const UnifiedNavigation = () => {
                 variant="outline"
                 className="rounded-[50px] font-bold text-sm border-gray-300 hover:border-[#33638E] hover:text-[#33638E] transition-all"
               >
-                {t('login', 'navigation')}
+                Se connecter
               </Button>
             </Link>
           )}
 
           <Link to="/catalogue">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-sm transition-all duration-300 hover:shadow-md">
-              {t('catalog', 'navigation')}
+              Catalogue
             </Button>
           </Link>
 
-          <LanguageSelector />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center ml-2 p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <Globe className="w-5 h-5 text-gray-700" />
+              <ChevronDown className="w-3 h-3 ml-1 text-gray-700" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                Français
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-100" />
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                English
+              </DropdownMenuItem>
+              <DropdownMenuItem className="py-2 px-3 text-sm rounded-lg hover:bg-[#f8f8f6] cursor-pointer">
+                Español
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

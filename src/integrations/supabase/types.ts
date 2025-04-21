@@ -1780,42 +1780,6 @@ export type Database = {
         }
         Relationships: []
       }
-      translations: {
-        Row: {
-          created_at: string
-          de: string | null
-          en: string | null
-          fr: string
-          id: string
-          key: string
-          nl: string | null
-          section: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          de?: string | null
-          en?: string | null
-          fr: string
-          id?: string
-          key: string
-          nl?: string | null
-          section?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          de?: string | null
-          en?: string | null
-          fr?: string
-          id?: string
-          key?: string
-          nl?: string | null
-          section?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       woocommerce_configs: {
         Row: {
           consumer_key: string
