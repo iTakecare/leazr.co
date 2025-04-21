@@ -12,18 +12,17 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
     const testId = uuidv4();
     const testEmail = `test-${testId.substring(0, 8)}@test.com`;
     
-    // Obtenir une nouvelle instance de client admin
-    const adminClient = getAdminSupabaseClient();
-    
-    // Verify service role key is defined
+    // Vérifier que la clé de service est définie
     if (!SERVICE_ROLE_KEY) {
       return { 
         success: false, 
-        message: "SERVICE_ROLE_KEY n'est pas définie" 
+        message: "SERVICE_ROLE_KEY n'est pas définie ou est vide" 
       };
     }
     
-    console.log("[TEST] Vérification de la configuration du client admin...");
+    console.log("[TEST] Creating fresh admin client for test...");
+    // Obtenir une nouvelle instance de client admin
+    const adminClient = getAdminSupabaseClient();
     
     // Test direct creation using admin client
     const testClientData = {
@@ -40,10 +39,10 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
       status: "active" as const
     };
     
-    console.log("[TEST] En train de créer un client test avec le client administrateur...");
+    console.log("[TEST] Tentative d'insertion avec client admin...");
     
-    // Essai de création d'un client test avec logging détaillé
     try {
+      // Test explicite du client admin sans authentification utilisateur
       const { data, error } = await adminClient
         .from('clients')
         .insert(testClientData)
@@ -52,26 +51,30 @@ export const testClientCreationPermission = async (): Promise<{success: boolean;
       
       if (error) {
         console.error("[TEST] Erreur lors du test de création client:", error);
-        toast.error(`Erreur lors du test: ${error.message}`);
-        return { success: false, message: error.message };
+        console.error("[TEST] Détails de l'erreur:", JSON.stringify(error, null, 2));
+        return { 
+          success: false, 
+          message: `Erreur: ${error.message} (Code: ${error.code})`
+        };
       }
       
       console.log("[TEST] Test de création client réussi:", data);
-      toast.success("Test de création client réussi");
-      
-      // Ne pas supprimer le client de test pour l'utiliser dans le test d'offre
       return { success: true, clientId: testId };
     } catch (insertError) {
       console.error("[TEST] Exception lors de l'insertion du client test:", insertError);
       return { 
         success: false, 
-        message: insertError instanceof Error ? insertError.message : 'Erreur inconnue lors de l\'insertion' 
+        message: insertError instanceof Error 
+          ? `Exception: ${insertError.message}` 
+          : 'Erreur inconnue lors de l\'insertion' 
       };
     }
   } catch (error) {
-    console.error("[TEST] Exception lors du test de création client:", error);
-    toast.error(`Exception: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-    return { success: false, message: error instanceof Error ? error.message : 'Erreur inconnue' };
+    console.error("[TEST] Exception globale lors du test de création client:", error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Erreur inconnue' 
+    };
   }
 };
 
@@ -82,16 +85,34 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
   try {
     console.log("[TEST] Test de la configuration du client admin...");
     
-    // Vérifier que la clé de service est définie
+    // Vérifier que la clé de service est définie et valide
     if (!SERVICE_ROLE_KEY) {
       return { 
         success: false, 
-        message: "La clé de service (SERVICE_ROLE_KEY) n'est pas définie" 
+        message: "La clé de service (SERVICE_ROLE_KEY) est vide ou non définie" 
+      };
+    }
+    
+    if (SERVICE_ROLE_KEY.length < 30) {
+      return {
+        success: false,
+        message: "La clé de service semble invalide (trop courte)"
       };
     }
     
     // Récupération du client admin
     const adminClient = getAdminSupabaseClient();
+    
+    // Test basique d'authentification avec la clé
+    console.log("[TEST] Test de connexion au projet Supabase...");
+    const { data: projectData, error: projectError } = await adminClient.rpc('postgres_version');
+    
+    if (projectError) {
+      return {
+        success: false, 
+        message: `Erreur de connexion au projet: ${projectError.message}`
+      };
+    }
     
     // Test direct de sélection avec le client admin
     console.log("[TEST] Test de sélection avec le client admin...");
@@ -110,37 +131,7 @@ export const testAdminClientConfiguration = async (): Promise<{success: boolean;
         };
       }
       
-      // Vérifier si des clients existent dans la base de données
-      if (!selectData || selectData.length === 0) {
-        console.log("[TEST] Aucun client trouvé dans la base de données");
-        
-        // Tester l'insertion d'un client temporaire pour vérifier les permissions
-        const testId = uuidv4();
-        const { error: insertError } = await adminClient
-          .from('clients')
-          .insert({
-            id: testId,
-            name: "Test Client For Admin",
-            email: `admin-test-${testId.substring(0, 8)}@example.com`,
-            status: "active"
-          });
-        
-        if (insertError) {
-          console.error("[TEST] Échec du test d'insertion avec le client admin:", insertError);
-          return { 
-            success: false, 
-            message: `Le client admin ne peut pas insérer de données: ${insertError.message}` 
-          };
-        }
-        
-        // Supprimer le client temporaire
-        await adminClient
-          .from('clients')
-          .delete()
-          .eq('id', testId);
-      }
-      
-      console.log("[TEST] Test avec le client admin réussi");
+      console.log("[TEST] Test de sélection réussi, données:", selectData);
       
       // Test réussi
       return { 

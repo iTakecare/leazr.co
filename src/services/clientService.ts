@@ -8,15 +8,13 @@ import { Client, CreateClientData } from '@/types/client';
  */
 export const createClient = async (clientData: any) => {
   try {
-    console.log("[CLIENT SERVICE] Creating client:", clientData);
+    console.log("[CLIENT SERVICE] Creating client with admin client:", clientData);
     
-    // Create a fresh admin client instance
+    // Create a completely fresh admin client instance with no auth state
     const adminClient = getAdminSupabaseClient();
     
-    // Log for debugging
-    console.log("[CLIENT SERVICE] Admin client created for client creation");
-    
-    // Insert the client data using the admin client
+    // Force bypass RLS using service role
+    console.log("[CLIENT SERVICE] Inserting client with service role...");
     const { data, error } = await adminClient
       .from('clients')
       .insert(clientData)
@@ -24,7 +22,8 @@ export const createClient = async (clientData: any) => {
       .single();
     
     if (error) {
-      console.error("[CLIENT SERVICE] Error creating client with admin client:", error);
+      console.error("[CLIENT SERVICE] Error creating client:", error);
+      console.error("[CLIENT SERVICE] Error details:", JSON.stringify(error, null, 2));
       throw error;
     }
     
@@ -32,6 +31,9 @@ export const createClient = async (clientData: any) => {
     return data;
   } catch (error) {
     console.error("[CLIENT SERVICE] Exception in createClient:", error);
+    if (error.message && error.message.includes("JWT")) {
+      console.error("[CLIENT SERVICE] Likely an API key or JWT issue");
+    }
     throw error;
   }
 };

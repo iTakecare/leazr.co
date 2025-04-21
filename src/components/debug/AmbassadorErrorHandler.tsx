@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { AlertCircle, RefreshCw, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY } from '@/integrations/supabase/client';
+import { supabase, getAdminSupabaseClient, SERVICE_ROLE_KEY, SUPABASE_URL } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface AmbassadorErrorHandlerProps {
@@ -23,14 +23,22 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       const serviceRoleKeyMasked = SERVICE_ROLE_KEY ? 
         `${SERVICE_ROLE_KEY.substring(0, 10)}...${SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 10)}` : 
         'Not defined';
-        
-      // Test both client instances
-      const regularClient = supabase;
-      const adminClient = getAdminSupabaseClient();
       
-      // Test admin client capabilities
+      // Test regular client session
+      let regularAuthStatus = 'Unknown';
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        regularAuthStatus = sessionData?.session ? 'Active session' : 'No session';
+      } catch (e) {
+        regularAuthStatus = `Error: ${e.message}`;
+      }
+      
+      // Test admin client capabilities - create new instance each time
       let adminTestResult = 'Failed to test';
       try {
+        const adminClient = getAdminSupabaseClient();
+        
+        console.log('Testing admin client...');
         const { data: testData, error: testError } = await adminClient
           .from('clients')
           .select('count(*)')
@@ -45,10 +53,13 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       
       // Set diagnostic info
       setDiagnosticInfo({
+        timestamp: new Date().toISOString(),
+        supabaseUrl: SUPABASE_URL,
+        regularClientSession: regularAuthStatus,
         serviceRoleKeyFormat: serviceRoleKeyMasked,
         adminClientTest: adminTestResult,
-        timestamp: new Date().toISOString(),
-        errorContext: message
+        errorContext: message,
+        userAgent: navigator.userAgent
       });
       
       toast.success("Diagnostics terminés");
