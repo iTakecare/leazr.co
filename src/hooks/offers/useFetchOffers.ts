@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getOffers } from "@/services/offers/getOffers";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
 
@@ -20,16 +20,19 @@ export const useFetchOffers = () => {
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
   const [includeConverted, setIncludeConverted] = useState(false);
+  const [lastFetchAttempt, setLastFetchAttempt] = useState(Date.now());
 
-  const fetchOffers = async () => {
+  const fetchOffers = async (useAdmin: boolean = false) => {
     setLoading(true);
     setLoadingError(null);
+    setLastFetchAttempt(Date.now());
 
     try {
-      console.log("Démarrage de la récupération des offres...");
+      console.log(`Démarrage de la récupération des offres... (useAdmin: ${useAdmin})`);
+      
       const data = await getOffers(includeConverted);
       
-      if (data) {
+      if (data && data.length > 0) {
         console.log(`${data.length} offres récupérées, traitement en cours...`);
         
         // Process each offer to ensure financed_amount is calculated if not present
@@ -66,13 +69,25 @@ export const useFetchOffers = () => {
         console.log(`${validOffers.length} offres traitées et prêtes à afficher`);
         setOffers(validOffers);
       } else {
-        console.log("Aucune offre récupérée");
+        console.log("Aucune offre récupérée ou liste vide");
+        
+        if (!useAdmin) {
+          console.log("Tentative avec le client admin...");
+          return fetchOffers(true);
+        }
+        
         setOffers([]);
       }
     } catch (err: any) {
       console.error("Erreur dans fetchOffers:", err);
-      setLoadingError(err);
-      toast.error("Erreur lors du chargement des offres. Veuillez vérifier les permissions d'accès aux données.");
+      setLoadingError(err.message || "Erreur de connexion");
+      
+      if (!useAdmin) {
+        console.log("Tentative avec le client admin après erreur...");
+        return fetchOffers(true);
+      }
+      
+      toast.error("Erreur lors du chargement des offres. Vérifiez les permissions d'accès aux données.");
     } finally {
       setLoading(false);
     }
@@ -93,10 +108,19 @@ export const useFetchOffers = () => {
         console.log('Actualisation des offres...');
         fetchOffers();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Statut de souscription au canal realtime:', status);
+      });
       
+    // Rafraîchir automatiquement toutes les 30 secondes
+    const refreshInterval = setInterval(() => {
+      console.log("Rafraîchissement automatique des offres...");
+      fetchOffers();
+    }, 30000);
+    
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(refreshInterval);
     };
   }, [includeConverted]);
 
@@ -106,7 +130,8 @@ export const useFetchOffers = () => {
     loadingError,
     includeConverted,
     setIncludeConverted,
-    fetchOffers,
-    setOffers
+    fetchOffers: () => fetchOffers(false),
+    setOffers,
+    lastFetchAttempt
   };
 };

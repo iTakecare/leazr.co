@@ -22,6 +22,7 @@ export const getSupabaseClient = () => {
       global: {
         headers: {
           'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY // Ajout explicite de l'apikey dans les headers
         },
       },
     });
@@ -49,7 +50,7 @@ export const getAdminSupabaseClient = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, // Explicit auth header
-          'apikey': SERVICE_ROLE_KEY // Explicit apikey header
+          'apikey': SERVICE_ROLE_KEY, // Explicit apikey header
         },
       },
     }
