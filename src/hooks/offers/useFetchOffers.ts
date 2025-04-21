@@ -5,7 +5,7 @@ import { getOffers } from "@/services/offers/getOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
 
-// Define and export the Offer interface
+// Définir et exporter l'interface Offer
 export interface Offer {
   id: string;
   client_name: string;
@@ -33,23 +33,22 @@ export const useFetchOffers = () => {
   const [lastFetchAttempt, setLastFetchAttempt] = useState(Date.now());
   const [fetchCount, setFetchCount] = useState(0);
 
-  const fetchOffers = async (useAdmin: boolean = false) => {
+  const fetchOffers = async () => {
     setLoading(true);
     setLoadingError(null);
     setLastFetchAttempt(Date.now());
     setFetchCount(prev => prev + 1);
 
     try {
-      console.log(`Démarrage de la récupération des offres... (useAdmin: ${useAdmin}, tentative: ${fetchCount + 1})`);
+      console.log(`Tentative #${fetchCount + 1} de récupération des offres...`);
       
       const data = await getOffers(includeConverted);
       
       if (data && data.length > 0) {
-        console.log(`${data.length} offres récupérées, traitement en cours...`);
+        console.log(`${data.length} offres récupérées, traitement...`);
         
-        // Traitement des offres pour s'assurer que toutes les propriétés requises sont présentes
+        // Traitement des offres pour calculer financed_amount si manquant
         const processedOffers = data.map(offer => {
-          // S'assurer que financed_amount est calculé si manquant
           if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
             const coefficient = offer.coefficient || 3.27;
             const calculatedAmount = calculateFinancedAmount(
@@ -78,9 +77,9 @@ export const useFetchOffers = () => {
         setOffers([]);
       }
     } catch (err: any) {
-      console.error("Erreur dans fetchOffers:", err);
+      console.error("Erreur lors de la récupération des offres:", err);
       setLoadingError(err.message || "Erreur de connexion à Supabase");
-      toast.error("Erreur lors du chargement des offres. Vérifiez la connexion à Supabase.");
+      toast.error("Erreur de chargement des offres. Vérifiez la connexion à Supabase.");
     } finally {
       setLoading(false);
     }
@@ -97,19 +96,13 @@ export const useFetchOffers = () => {
         schema: 'public', 
         table: 'offers' 
       }, () => {
-        console.log('Modification d\'offre détectée, actualisation des offres...');
+        console.log('Modification d\'offre détectée, actualisation...');
         fetchOffers();
       })
       .subscribe();
       
-    // Rafraîchir automatiquement toutes les 15 secondes
-    const refreshInterval = setInterval(() => {
-      fetchOffers();
-    }, 15000);
-    
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(refreshInterval);
     };
   }, [includeConverted]);
 
@@ -119,7 +112,7 @@ export const useFetchOffers = () => {
     loadingError,
     includeConverted,
     setIncludeConverted,
-    fetchOffers: () => fetchOffers(false),
+    fetchOffers,
     setOffers,
     lastFetchAttempt,
     fetchCount

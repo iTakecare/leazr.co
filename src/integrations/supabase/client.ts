@@ -8,39 +8,29 @@ export const SUPABASE_URL = "https://cifbetjefyfocafanlhv.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw";
 export const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTg3ODM4MiwiZXhwIjoyMDU3NDU0MzgyfQ.39wjC_Ld_qXnExyLgCawiip5hBDfCY6Hkb1rktomIxk";
 
-// Singleton pour le client public
-let supabaseInstance = null;
-
-/**
- * Obtient une instance du client Supabase avec la clé anonyme
- */
-export const getSupabaseClient = () => {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient<Database>(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      }
-    );
-    console.log("Client Supabase initialisé avec la clé publique");
+// Client public global
+const supabaseClient = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
   }
-  return supabaseInstance;
-};
+);
+
+export const supabase = supabaseClient;
 
 /**
  * Obtient une instance fraîche du client Supabase avec la clé service_role
  * IMPORTANT: Cette fonction crée UNE NOUVELLE INSTANCE à chaque appel
  */
 export const getAdminSupabaseClient = () => {
-  console.log("[ADMIN CLIENT] Création d'un client admin avec la clé service_role");
-  
+  // Créer une nouvelle instance avec la clé service_role
   return createClient<Database>(
-    SUPABASE_URL, 
+    SUPABASE_URL,
     SERVICE_ROLE_KEY,
     {
       auth: {
@@ -51,9 +41,6 @@ export const getAdminSupabaseClient = () => {
     }
   );
 };
-
-// Client public par défaut
-export const supabase = getSupabaseClient();
 
 // Exporter l'URL et la clé de stockage comme constantes
 export const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;

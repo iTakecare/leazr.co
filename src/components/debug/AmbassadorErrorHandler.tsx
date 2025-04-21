@@ -24,63 +24,62 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   const runDiagnostics = async () => {
     setIsLoading(true);
     try {
-      // Vérification des clés
       console.log('Vérification des clés API...');
       
       // Masquer les clés pour la sécurité
       const serviceRoleKeyMasked = SERVICE_ROLE_KEY ? 
         `${SERVICE_ROLE_KEY.substring(0, 10)}...${SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 10)}` : 
-        'Not defined';
+        'Non définie';
         
       const publishableKeyMasked = SUPABASE_PUBLISHABLE_KEY ? 
         `${SUPABASE_PUBLISHABLE_KEY.substring(0, 10)}...${SUPABASE_PUBLISHABLE_KEY.substring(SUPABASE_PUBLISHABLE_KEY.length - 10)}` : 
-        'Not defined';
+        'Non définie';
       
-      // Test regular client session
-      let regularAuthStatus = 'Unknown';
-      let regularClientTest = 'Not tested';
+      // Test du client standard
+      let regularAuthStatus = 'Inconnu';
+      let regularClientTest = 'Non testé';
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        regularAuthStatus = sessionData?.session ? 'Active session' : 'No session';
+        regularAuthStatus = sessionData?.session ? 'Session active' : 'Pas de session';
         if (sessionError) {
-          regularAuthStatus = `Session error: ${sessionError.message}`;
+          regularAuthStatus = `Erreur de session: ${sessionError.message}`;
         }
         
-        // Test a simple query with regular client
+        // Test d'une requête simple
         const { data: testData, error: testError } = await supabase
           .from('clients')
           .select('id')
           .limit(1);
           
         regularClientTest = testError 
-          ? `Error: ${testError.message}`
-          : `Success: Found ${testData?.length || 0} clients`;
+          ? `Erreur: ${testError.message}`
+          : `Succès: ${testData?.length || 0} clients trouvés`;
       } catch (e: any) {
-        regularAuthStatus = `Error: ${e.message}`;
+        regularAuthStatus = `Erreur: ${e.message}`;
       }
       
-      // Test admin client capabilities - create new instance each time
-      let adminTestResult = 'Failed to test';
+      // Création et test d'un client admin
+      let adminTestResult = 'Test échoué';
       try {
         const adminClient = getAdminSupabaseClient();
         
-        console.log('Testing admin client...');
+        console.log('Test du client admin...');
         const { data: testData, error: testError } = await adminClient
           .from('clients')
           .select('id')
           .limit(1);
           
         adminTestResult = testError 
-          ? `Error: ${testError.message}`
-          : `Success: Found ${testData?.length || 0} clients`;
+          ? `Erreur: ${testError.message}`
+          : `Succès: ${testData?.length || 0} clients trouvés`;
       } catch (insertError: any) {
         adminTestResult = `Exception: ${insertError instanceof Error 
           ? insertError.message 
-          : 'Unknown error'}`;
+          : 'Erreur inconnue'}`;
       }
       
-      // Test direct offer retrieval
-      let offersTestResult = 'Failed to test';
+      // Test direct récupération des offres
+      let offersTestResult = 'Test échoué';
       try {
         const adminClient = getAdminSupabaseClient();
         const { data: offersData, error: offersError } = await adminClient
@@ -89,13 +88,13 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
           .limit(1);
           
         offersTestResult = offersError 
-          ? `Error: ${offersError.message}`
-          : `Success: Found ${offersData?.length || 0} offers`;
+          ? `Erreur: ${offersError.message}`
+          : `Succès: ${offersData?.length || 0} offres trouvées`;
       } catch (e: any) {
-        offersTestResult = `Exception: ${e instanceof Error ? e.message : 'Unknown error'}`;
+        offersTestResult = `Exception: ${e instanceof Error ? e.message : 'Erreur inconnue'}`;
       }
       
-      // Set diagnostic info
+      // Créer un objet avec les infos de diagnostic
       setDiagnosticInfo({
         timestamp: new Date().toISOString(),
         supabaseUrl: SUPABASE_URL,
@@ -131,10 +130,10 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
     setManualTest(null);
     
     try {
-      // Create a fresh admin client
+      // Création d'un client admin frais
       const adminClient = getAdminSupabaseClient();
       
-      // Test the client with a simple query
+      // Test du client
       const { data, error } = await adminClient
         .from('clients')
         .select('id')
