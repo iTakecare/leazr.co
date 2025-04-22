@@ -1,3 +1,4 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -33,43 +34,19 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
       }
     }
     
-    // Try to delete profile record using SQL execution
-    try {
-      const { error: profileDeleteError } = await supabase.rpc(
-        'execute_sql',
-        { sql: `DELETE FROM public.profiles WHERE id = '${userId}'` }
-      );
-      
-      if (profileDeleteError) {
-        console.error("Erreur lors de la suppression du profil via SQL:", profileDeleteError);
-        toast.error(`Erreur: ${profileDeleteError.message}`);
-        return;
-      } else {
-        console.log("Profil supprimé avec succès via SQL");
-      }
-    } catch (sqlExecError) {
-      console.error("Erreur lors de l'exécution SQL pour supprimer le profil:", sqlExecError);
-      toast.error("Erreur lors de la suppression du profil");
+    // Use the edge function to delete the user
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { user_id: userId }
+    });
+    
+    if (error) {
+      console.error("Erreur lors de l'appel à l'edge function:", error);
+      toast.error(`Erreur: ${error.message}`);
       return;
     }
     
-    // Delete the user using SQL execution
-    try {
-      const { error: userDeleteError } = await supabase.rpc(
-        'execute_sql',
-        { sql: `DELETE FROM auth.users WHERE id = '${userId}'` }
-      );
-      
-      if (userDeleteError) {
-        console.error("Erreur lors de la suppression de l'utilisateur via SQL:", userDeleteError);
-        toast.error(`Erreur: ${userDeleteError.message}`);
-      } else {
-        toast.success("Compte utilisateur supprimé avec succès");
-      }
-    } catch (sqlExecError) {
-      console.error("Erreur lors de l'exécution SQL pour supprimer l'utilisateur:", sqlExecError);
-      toast.error("Erreur lors de la suppression de l'utilisateur");
-    }
+    toast.success("Compte utilisateur supprimé avec succès");
+    
   } catch (error) {
     console.error("Erreur dans deleteSpecificUserAccount:", error);
     toast.error("Erreur lors de la suppression du compte utilisateur");
