@@ -49,7 +49,7 @@ const ClientEquipmentPage = () => {
         }
         
         // Get client ID
-        const id = await getClientIdForUser(user.id, user.email || null);
+        const id = await getClientIdForUser(user.id);
         
         if (id) {
           console.log("Found client ID for equipment:", id);
