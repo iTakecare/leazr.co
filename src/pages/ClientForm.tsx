@@ -52,7 +52,7 @@ const formSchema = z.object({
   city: z.string().optional().or(z.literal("")),
   postal_code: z.string().optional().or(z.literal("")),
   country: z.string().optional().or(z.literal("")),
-  status: z.enum(["active", "inactive", "lead"]).optional(),
+  status: z.enum(["active", "inactive", "lead", "duplicate"]).optional(),
   has_different_shipping_address: z.boolean().optional(),
   shipping_address: z.string().optional().or(z.literal("")),
   shipping_city: z.string().optional().or(z.literal("")),
@@ -640,6 +640,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
                                   <SelectItem value="active">Actif</SelectItem>
                                   <SelectItem value="inactive">Inactif</SelectItem>
                                   <SelectItem value="lead">Prospect</SelectItem>
+                                  <SelectItem value="duplicate">Duplicate</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />

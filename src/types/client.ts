@@ -48,7 +48,7 @@ export interface CreateClientData {
   address?: string;
   notes?: string;
   user_id?: string;
-  status?: 'active' | 'inactive' | 'lead';
+  status?: 'active' | 'inactive' | 'lead' | 'duplicate';
   vat_number?: string;
   city?: string;
   postal_code?: string;

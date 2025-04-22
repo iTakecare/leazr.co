@@ -45,7 +45,7 @@ const clientSchema = z.object({
   country: z.string().optional().or(z.literal("")),
   vat_number: z.string().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
-  status: z.enum(["active", "inactive", "lead"]).optional(),
+  status: z.enum(["active", "inactive", "lead", "duplicate"]).optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
