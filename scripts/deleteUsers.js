@@ -11,4 +11,3 @@ deleteSpecificUsers()
   .catch((error) => {
     console.error("Erreur lors de la suppression:", error);
   });
-
