@@ -40,7 +40,7 @@ export const getAdminSupabaseClient = () => {
   
   if (!adminUrl || !adminKey) {
     console.log("Variables d'environnement admin non définies, utilisation du client standard");
-    return supabase; // Retourner le client standard si les clés admin ne sont pas disponibles
+    return getSupabaseClient(); // Utiliser la fonction pour récupérer le client standard
   }
   
   try {
@@ -58,7 +58,7 @@ export const getAdminSupabaseClient = () => {
   } catch (error) {
     console.error("Erreur lors de la création du client admin Supabase:", error);
     // Fallback au client standard en cas d'erreur
-    return supabase;
+    return getSupabaseClient();
   }
 };
 
