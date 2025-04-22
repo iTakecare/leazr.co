@@ -1,4 +1,3 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -81,124 +80,40 @@ export const createClient = async (clientData: any) => {
 };
 
 /**
- * Récupère tous les clients
- * @returns Liste des clients
+ * Récupère tous les clients sans aucun filtrage
+ * @returns Liste de tous les clients
  */
-export const getAllClients = async (showAmbassadorClients: boolean = false): Promise<Client[]> => {
+export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log(`Fetching clients (showAmbassadorClients: ${showAmbassadorClients})`);
+    console.log("Récupération de TOUS les clients sans filtrage");
     
-    // Utiliser directement le client standard pour tous les cas
-    console.log("Fetching ALL clients using standard client");
-    
-    const { data: allClients, error: clientsError } = await supabase
+    // Utiliser directement le client standard pour récupérer tous les clients
+    const { data: allClients, error } = await supabase
       .from('clients')
       .select('*');
 
-    if (clientsError) {
-      console.error("Erreur lors de la récupération des clients:", clientsError);
-      throw clientsError;
+    if (error) {
+      console.error("Erreur lors de la récupération des clients:", error);
+      throw error;
     }
     
-    console.log(`Retrieved ${allClients?.length || 0} total clients from database`);
+    console.log(`Récupéré ${allClients?.length || 0} clients au total`);
     
-    // Debug: afficher les IDs de tous les clients pour faciliter le débogage
+    // Identifier si le client spécifique est présent
     if (allClients && allClients.length > 0) {
-      console.log("Client IDs in database:", allClients.map(c => c.id));
-      
-      // Vérifier si le client spécifique existe dans les résultats bruts
       const specificClient = allClients.find(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
       if (specificClient) {
-        console.log("Client spécifique trouvé dans les données brutes:", {
-          id: specificClient.id,
-          name: specificClient.name,
-          status: specificClient.status,
-          email: specificClient.email
-        });
+        console.log("Client spécifique trouvé:", specificClient.name);
       } else {
-        console.log("Client spécifique NON trouvé dans les données brutes");
+        console.log("Client spécifique NON trouvé dans les résultats");
       }
     }
     
-    if (!allClients || allClients.length === 0) {
-      console.log("Aucun client trouvé dans la base de données");
-      return [];
-    }
-    
-    // Filtrer en fonction du mode ambassadeur
-    if (showAmbassadorClients) {
-      // Si on veut voir les clients des ambassadeurs, récupérer les liens
-      const { data: ambassadorClientLinks, error: linksError } = await supabase
-        .from('ambassador_clients')
-        .select('client_id');
-      
-      if (linksError) {
-        console.error("Erreur lors de la récupération des liens des clients ambassadeurs:", linksError);
-        return allClients; // Retourner tous les clients en cas d'erreur
-      }
-      
-      // Créer un ensemble des IDs de clients d'ambassadeurs
-      const ambassadorClientIds = new Set(ambassadorClientLinks?.map(link => link.client_id) || []);
-      console.log(`Found ${ambassadorClientIds.size} ambassador client IDs`);
-      
-      // Filtrer pour ne garder QUE les clients d'ambassadeurs
-      const ambassadorClients = allClients.filter(client => ambassadorClientIds.has(client.id));
-      console.log(`Filtered to ${ambassadorClients.length} ambassador clients`);
-      
-      return ambassadorClients.map(client => ({ 
-        ...client, 
-        is_ambassador_client: true
-      }));
-    } else {
-      // Si on veut voir les clients standard, filtrer pour exclure les clients d'ambassadeurs
-      const { data: ambassadorClientLinks, error: linksError } = await supabase
-        .from('ambassador_clients')
-        .select('client_id');
-      
-      if (linksError) {
-        console.error("Erreur lors de la récupération des liens des clients ambassadeurs:", linksError);
-        return allClients; // Retourner tous les clients en cas d'erreur
-      }
-      
-      // Créer un ensemble des IDs de clients d'ambassadeurs
-      const ambassadorClientIds = new Set(ambassadorClientLinks?.map(link => link.client_id) || []);
-      console.log(`Found ${ambassadorClientIds.size} ambassador client IDs to exclude`);
-      
-      // Filtrer pour exclure les clients d'ambassadeurs
-      const standardClients = allClients.filter(client => !ambassadorClientIds.has(client.id));
-      console.log(`Filtered to ${standardClients.length} standard clients`);
-      
-      // Check if the specific client is in the filtered list
-      const specificClient = standardClients.find(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-      if (specificClient) {
-        console.log("Client spécifique présent après filtrage:", specificClient.name);
-      } else {
-        console.log("Client spécifique absent après filtrage");
-      }
-      
-      return standardClients;
-    }
+    // Retourner TOUS les clients sans aucun filtrage
+    return allClients || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
-    console.error("Stack trace:", error.stack);
-    
-    // Dernière tentative avec une approche ultra-simple
-    try {
-      console.log("Tentative de récupération simple des clients...");
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*');
-        
-      if (error) {
-        console.error("Échec de la récupération simple:", error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (finalError) {
-      console.error("Échec complet de la récupération des clients:", finalError);
-      return [];
-    }
+    return [];
   }
 };
 

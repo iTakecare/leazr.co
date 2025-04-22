@@ -17,8 +17,8 @@ export const useClients = () => {
       setIsLoading(true);
       setError(null); // Reset error state before fetching
       
-      console.log(`Fetching clients with ambassador filter: ${showAmbassadorClients}`);
-      const clientsData = await getAllClients(showAmbassadorClients);
+      console.log("Appel à getAllClients sans paramètres");
+      const clientsData = await getAllClients();
       
       if (clientsData && clientsData.length > 0) {
         console.log('Clients récupérés:', clientsData.length);
@@ -52,7 +52,7 @@ export const useClients = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [showAmbassadorClients]);
+  }, []);
 
   useEffect(() => {
     fetchClients();
@@ -60,10 +60,7 @@ export const useClients = () => {
 
   // Make sure filteredClients is always initialized as an array
   const filteredClients = clients ? clients.filter((client) => {
-    // Ignorer les clients avec statut "duplicate" sauf si explicitement demandé
-    if (client.status === 'duplicate' && selectedStatus !== 'duplicate') {
-      return false;
-    }
+    // Ne plus filtrer par statut "duplicate" - afficher tous les clients
     
     const matchesSearch = 
       searchTerm === "" ||
@@ -100,7 +97,7 @@ export const useClients = () => {
     setIsLoading(true);
     try {
       console.log("Refreshing clients list...");
-      const refreshedClients = await getAllClients(showAmbassadorClients);
+      const refreshedClients = await getAllClients();
       
       // Check if the target client is in the refreshed data
       const hasTargetClient = refreshedClients.some(c => c.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
@@ -117,7 +114,7 @@ export const useClients = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [showAmbassadorClients]);
+  }, []);
 
   return {
     clients: filteredClients,
