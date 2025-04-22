@@ -18,7 +18,7 @@ export interface Client {
   notes?: string;
   created_at?: Date | string;
   updated_at?: Date | string;
-  status?: 'active' | 'inactive' | 'lead';
+  status?: 'active' | 'inactive' | 'lead' | 'duplicate';
   vat_number?: string;
   city?: string;
   postal_code?: string;

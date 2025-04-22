@@ -96,7 +96,7 @@ export const useClients = () => {
     }
   }
 
-  const refreshClients = useCallback(async () => {
+  const refreshClients = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
       console.log("Refreshing clients list...");
@@ -111,11 +111,9 @@ export const useClients = () => {
         company: client.company || '',
         updated_at: client.updated_at || new Date()
       })));
-      return true;
     } catch (err) {
       console.error("Erreur lors du rafraîchissement des clients:", err);
       toast.error("Erreur lors du rafraîchissement des clients");
-      return false;
     } finally {
       setIsLoading(false);
     }
