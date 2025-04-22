@@ -1,3 +1,4 @@
+
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 const supabase = getSupabaseClient();
@@ -90,6 +91,10 @@ export const cleanupDuplicateClients = async (): Promise<{ success: boolean; mer
     // Utiliser le client admin pour éviter les problèmes de RLS
     const adminSupabase = getAdminSupabaseClient();
     
+    if (!adminSupabase) {
+      return { success: false, mergedCount: 0, error: "Client admin Supabase non disponible" };
+    }
+    
     // Récupérer tous les clients avec leur email
     const { data: clients, error: clientsError } = await adminSupabase
       .from('clients')
@@ -142,21 +147,25 @@ export const cleanupDuplicateClients = async (): Promise<{ success: boolean; mer
           console.log(`Client principal: ${mainClient.name} (${mainClient.id})`);
           console.log(`Clients en double: ${duplicateClients.map(c => c.id).join(', ')}`);
           
-          // Marquer les clients en double comme "duplicate"
-          const { error: markError } = await adminSupabase.rpc(
-            'mark_clients_as_duplicates',
-            { 
-              client_ids: duplicateClients.map(c => c.id),
-              main_client_id: mainClient.id
+          try {
+            // Marquer les clients en double comme "duplicate"
+            const { error: markError } = await adminSupabase.rpc(
+              'mark_clients_as_duplicates',
+              { 
+                client_ids: duplicateClients.map(c => c.id),
+                main_client_id: mainClient.id
+              }
+            );
+            
+            if (markError) {
+              console.error("Erreur lors du marquage des doublons:", markError);
+              continue;
             }
-          );
-          
-          if (markError) {
-            console.error("Erreur lors du marquage des doublons:", markError);
-            continue;
+            
+            mergedCount += duplicateClients.length;
+          } catch (err) {
+            console.error("Erreur lors du marquage des clients en double:", err);
           }
-          
-          mergedCount += duplicateClients.length;
         }
       }
     }

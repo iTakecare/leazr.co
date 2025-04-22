@@ -7,7 +7,7 @@ import { cleanupDuplicateClients } from "@/utils/clientUserAssociation";
 import { useAuth } from "@/context/AuthContext";
 
 interface ClientCleanupButtonProps {
-  refreshClients?: () => Promise<void>;
+  refreshClients?: () => Promise<boolean | void>;
 }
 
 export default function ClientCleanupButton({ refreshClients }: ClientCleanupButtonProps) {

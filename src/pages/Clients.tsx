@@ -33,6 +33,7 @@ const Clients = () => {
 
   const { 
     clients, 
+    allClients,
     isLoading, 
     error, 
     setSearchTerm: setClientSearchTerm, 
@@ -90,6 +91,7 @@ const Clients = () => {
       case 'active': return 'Clients actifs';
       case 'inactive': return 'Clients inactifs';
       case 'lead': return 'Prospects';
+      case 'duplicate': return 'Clients en double';
       default: return 'Tous les clients';
     }
   };
@@ -168,6 +170,9 @@ const Clients = () => {
                               <DropdownMenuItem onClick={() => setStatusFilter('lead')}>
                                 Prospects
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setStatusFilter('duplicate')}>
+                                Clients en double
+                              </DropdownMenuItem>
                             </DropdownMenuGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -226,6 +231,7 @@ const Clients = () => {
                     showAmbassadorClients={showAmbassadorClients}
                     onToggleAmbassadorClients={setShowAmbassadorClients}
                     refreshClients={refreshClients}
+                    allClients={allClients}
                   />
                 }
               </CardContent>
