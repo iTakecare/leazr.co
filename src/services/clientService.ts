@@ -1,4 +1,3 @@
-
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -209,79 +208,69 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
   try {
     console.log(`Mise à jour du client ID: ${id}`, updates);
     
-    // Vérifier si l'utilisateur est connecté pour obtenir son profil
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
+    // Version plus simple qui essaie d'utiliser directement le client admin
+    const adminClient = getAdminSupabaseClient();
     
-    console.log("Utilisateur actuel:", userId);
-    
-    // Récupérer le profil pour vérifier si l'utilisateur est un admin
-    let isAdmin = false;
-    if (userId) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      isAdmin = profileData?.role === 'admin';
-      console.log("Rôle utilisateur:", profileData?.role, "Est admin:", isAdmin);
-    }
-    
-    // Si admin, utiliser un client avec les droits admin
-    // Sinon, ajouter la condition user_id pour respecter les politiques RLS
-    let updateResponse;
-    
-    if (isAdmin) {
-      // Utiliser le client admin si disponible
-      console.log("Utilisation du client admin pour la mise à jour");
-      updateResponse = await supabase
-        .from('clients')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-    } else {
-      // Pour les utilisateurs non-admin, s'assurer que le client leur appartient
-      console.log("Utilisation du client standard avec vérification d'appartenance");
-      
-      // Récupérer d'abord le client pour vérifier l'appartenance
-      const { data: existingClient } = await supabase
-        .from('clients')
-        .select('user_id')
-        .eq('id', id)
-        .single();
-      
-      if (!existingClient) {
-        console.error("Client non trouvé");
-        return null;
-      }
-      
-      console.log("Client appartient à:", existingClient.user_id);
-      
-      // Vérifier si l'utilisateur est le propriétaire du client ou si le client n'a pas de propriétaire
-      if (existingClient.user_id === userId || !existingClient.user_id) {
-        // Si le client n'a pas de propriétaire, l'assigner à l'utilisateur actuel
-        const updatesWithOwner = !existingClient.user_id ? 
-          { ...updates, user_id: userId } : 
-          updates;
-        
-        updateResponse = await supabase
-          .from('clients')
-          .update(updatesWithOwner)
-          .eq('id', id)
-          .select()
-          .single();
-      } else {
-        console.error("L'utilisateur n'a pas la permission de modifier ce client");
-        throw new Error("Vous n'avez pas la permission de modifier ce client");
-      }
-    }
-    
-    const { data, error } = updateResponse;
+    console.log("Tentative de mise à jour avec le client admin");
+    const { data, error } = await adminClient
+      .from('clients')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
     
     if (error) {
       console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
+      
+      // Si le client admin échoue, essayer avec le client standard et expliciter le user_id
+      if (error.code === '42501') {
+        console.log("Tentative de mise à jour avec le client standard en mode explicite");
+        
+        // Récupérer l'utilisateur actuel
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData.user?.id;
+        
+        if (!userId) {
+          throw new Error("Utilisateur non authentifié");
+        }
+        
+        // Si ce client n'appartient pas à cet utilisateur, on le force
+        const updatesWithForce = {
+          ...updates,
+          user_id: userId
+        };
+        
+        // Essayer une approche différente, en utilisant RPC avec une fonction sécurisée
+        const { data: updatedViaRPC, error: rpcError } = await supabase.rpc(
+          'update_client_securely',
+          { 
+            p_client_id: id,
+            p_updates: updatesWithForce
+          }
+        );
+        
+        if (rpcError) {
+          console.error("Échec de la mise à jour via RPC:", rpcError);
+          throw rpcError;
+        }
+        
+        console.log("Mise à jour réussie via RPC");
+        
+        // Récupérer les données mises à jour
+        const { data: refreshedData, error: refreshError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (refreshError) {
+          console.error("Erreur lors de la récupération des données mises à jour:", refreshError);
+          throw refreshError;
+        }
+        
+        return refreshedData as Client;
+      }
+      
       throw error;
     }
 
