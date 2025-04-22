@@ -18,6 +18,14 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Clés d'environnement manquantes");
+      return new Response(
+        JSON.stringify({ error: "Configuration incomplète du serveur" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
     // Initialize the Supabase client with the service role key for admin privileges
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
@@ -31,6 +39,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    console.log(`Tentative de suppression de l'utilisateur: ${user_id}`);
     
     // First clean up related entities
     // Update related tables to remove user_id references
@@ -49,6 +59,8 @@ serve(async (req) => {
           
         if (updateError) {
           console.log(`Error updating ${table}: ${updateError.message}`);
+        } else {
+          console.log(`Association utilisateur supprimée dans ${table}`);
         }
       } catch (err) {
         console.log(`Exception when updating ${table}: ${err.message}`);
@@ -64,6 +76,8 @@ serve(async (req) => {
         
       if (profileError) {
         console.log(`Error deleting profile: ${profileError.message}`);
+      } else {
+        console.log(`Profil utilisateur supprimé`);
       }
     } catch (err) {
       console.log(`Exception when deleting profile: ${err.message}`);
@@ -73,17 +87,21 @@ serve(async (req) => {
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
     
     if (error) {
+      console.error(`Erreur lors de la suppression de l'utilisateur: ${error.message}`);
       return new Response(
         JSON.stringify({ error: error.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
+    console.log(`Utilisateur ${user_id} supprimé avec succès`);
+    
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
+    console.error(`Exception non gérée: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

@@ -35,21 +35,21 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
     }
     
     // Use the edge function to delete the user
+    console.log(`Appel de l'edge function pour supprimer l'utilisateur ${userId}`);
     const { data, error } = await supabase.functions.invoke('delete-user', {
       body: { user_id: userId }
     });
     
     if (error) {
       console.error("Erreur lors de l'appel à l'edge function:", error);
-      toast.error(`Erreur: ${error.message}`);
-      return;
+      throw new Error(`Erreur: ${error.message}`);
     }
     
-    toast.success("Compte utilisateur supprimé avec succès");
+    console.log("Utilisateur supprimé avec succès");
     
   } catch (error) {
     console.error("Erreur dans deleteSpecificUserAccount:", error);
-    toast.error("Erreur lors de la suppression du compte utilisateur");
+    throw error; // Rethrow the error to be caught by the caller
   }
 };
 
@@ -66,14 +66,23 @@ export const deleteSpecificProblemUser = async (): Promise<void> => {
  * Delete multiple user accounts by ID
  */
 export const deleteMultipleUserAccounts = async (userIds: string[]): Promise<void> => {
+  let successCount = 0;
+  let errorCount = 0;
+  
+  console.log(`Tentative de suppression de ${userIds.length} utilisateurs...`);
+  
   for (const userId of userIds) {
     try {
       await deleteSpecificUserAccount(userId);
-      console.log(`Successfully deleted user ${userId}`);
+      successCount++;
+      console.log(`Utilisateur ${userId} supprimé avec succès (${successCount}/${userIds.length})`);
     } catch (error) {
-      console.error(`Error deleting user ${userId}:`, error);
+      errorCount++;
+      console.error(`Erreur lors de la suppression de l'utilisateur ${userId}: ${error}`);
     }
   }
+  
+  console.log(`Suppression terminée: ${successCount} réussites, ${errorCount} échecs`);
 };
 
 // List of users to delete

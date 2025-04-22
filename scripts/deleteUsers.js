@@ -4,9 +4,10 @@ import { deleteSpecificUsers } from '../src/utils/accountUtils.js';
 
 console.log("Début de la suppression des comptes utilisateurs...");
 
+// Exécuter la fonction de suppression des utilisateurs
 deleteSpecificUsers()
   .then(() => {
-    console.log("Opération terminée.");
+    console.log("Opération terminée avec succès.");
   })
   .catch((error) => {
     console.error("Erreur lors de la suppression:", error);
