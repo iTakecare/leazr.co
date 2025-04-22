@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
-  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, Trash, ChevronLeft, User, CheckCircle, 
+  Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
   AlertCircle, Info, RefreshCw
 } from "lucide-react";
 
@@ -306,15 +306,6 @@ export default function ClientDetail() {
                 <User className="h-5 w-5 text-primary" />
                 Compte utilisateur
               </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleSyncAccountStatus} 
-                disabled={isSyncingAccount}
-                title="Synchroniser le statut du compte"
-              >
-                <RefreshCw className={`h-4 w-4 ${isSyncingAccount ? 'animate-spin' : ''}`} />
-              </Button>
             </div>
             <CardDescription>Accès au portail client</CardDescription>
           </CardHeader>
