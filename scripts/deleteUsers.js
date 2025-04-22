@@ -8,7 +8,9 @@ console.log("Début de la suppression des comptes utilisateurs...");
 deleteSpecificUsers()
   .then(() => {
     console.log("Opération terminée avec succès.");
+    process.exit(0);
   })
   .catch((error) => {
     console.error("Erreur lors de la suppression:", error);
+    process.exit(1);
   });
