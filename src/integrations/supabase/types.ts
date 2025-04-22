@@ -1911,6 +1911,10 @@ export type Database = {
         Args: { sql: string }
         Returns: undefined
       }
+      find_duplicate_client_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       get_all_users_extended: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2107,6 +2111,19 @@ export type Database = {
           slug: string
           title: string
           updated_at: string
+        }[]
+      }
+      get_user_client_associations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          user_email: string
+          user_role: string
+          client_id: string
+          client_name: string
+          client_email: string
+          association_date: string
+          status: string
         }[]
       }
       get_user_id_by_email: {
