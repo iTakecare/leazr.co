@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { syncClientUserAccount } from "@/utils/accountUtils";
 
 interface ClientFormProps {
   isAmbassador?: boolean;
@@ -171,7 +172,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
           form.setValue("address", result.addressParsed.streetAddress || "");
           form.setValue("postal_code", result.addressParsed.postalCode || "");
           form.setValue("city", result.addressParsed.city || "");
-          form.setValue("country", result.addressParsed.country || "");
+          form.setValue("country", result.addressParsed.country || "";
         } else if (result.address) {
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
@@ -280,11 +281,22 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
         result = await updateClient(clientId, clientData);
         if (result) {
           toast.success("Client mis à jour avec succès");
+          
+          // Synchroniser l'association utilisateur-client si l'email a été modifié
+          if (data.email) {
+            await syncClientUserAccount(clientId);
+          }
         }
       } else {
         result = await createClient(clientData);
         
         if (result) {
+          // Pour un nouveau client avec email, vérifier si un utilisateur existe déjà
+          if (data.email) {
+            const syncResult = await syncClientUserAccount(result.id);
+            console.log("Résultat de la synchronisation:", syncResult);
+          }
+          
           if (isAmbassador || checkIsAmbassador()) {
             try {
               console.log("Ambassador flow: Linking client to ambassador");

@@ -1,6 +1,99 @@
-
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cleanupDuplicateClients } from "./clientUserAssociation";
+
+/**
+ * Nettoie et corrige les associations utilisateur-client
+ * @param {string} clientId - ID du client à vérifier
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export const syncClientUserAccount = async (clientId: string) => {
+  try {
+    console.log("Début de la synchronisation du compte client:", clientId);
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (clientError) {
+      console.error("Erreur lors de la récupération du client:", clientError);
+      return { success: false, message: "Client introuvable" };
+    }
+
+    if (!client.email) {
+      return { success: false, message: "Le client n'a pas d'adresse email" };
+    }
+
+    // Vérifier si un utilisateur existe avec cet email
+    const { data: userExists } = await supabase.rpc(
+      'check_user_exists_by_email',
+      { user_email: client.email }
+    );
+
+    if (!userExists) {
+      // Réinitialiser les champs liés au compte utilisateur si aucun utilisateur n'existe
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({
+          user_id: null,
+          has_user_account: false,
+          user_account_created_at: null
+        })
+        .eq('id', clientId);
+
+      if (updateError) {
+        console.error("Erreur lors de la réinitialisation:", updateError);
+        return { success: false, message: "Erreur lors de la réinitialisation" };
+      }
+
+      return { success: true, message: "Association réinitialisée - aucun utilisateur trouvé" };
+    }
+
+    // Récupérer l'ID de l'utilisateur
+    const { data: userId } = await supabase.rpc(
+      'get_user_id_by_email',
+      { user_email: client.email }
+    );
+
+    if (!userId) {
+      return { success: false, message: "Impossible de récupérer l'ID utilisateur" };
+    }
+
+    // Mettre à jour le client avec le bon user_id
+    const { error: updateClientError } = await supabase
+      .from('clients')
+      .update({
+        user_id: userId,
+        has_user_account: true,
+        user_account_created_at: new Date().toISOString()
+      })
+      .eq('id', clientId);
+
+    if (updateClientError) {
+      console.error("Erreur lors de la mise à jour du client:", updateClientError);
+      return { success: false, message: "Erreur lors de la mise à jour du client" };
+    }
+
+    // Mettre à jour également le profil utilisateur avec le client_id
+    const { error: updateProfileError } = await supabase
+      .from('profiles')
+      .update({
+        client_id: clientId
+      })
+      .eq('id', userId);
+
+    if (updateProfileError) {
+      console.error("Erreur lors de la mise à jour du profil:", updateProfileError);
+      // Ne pas échouer si la mise à jour du profil échoue
+    }
+
+    return { success: true, message: "Association mise à jour avec succès" };
+  } catch (error) {
+    console.error("Erreur lors de la synchronisation:", error);
+    return { success: false, message: "Erreur inattendue lors de la synchronisation" };
+  }
+};
 
 /**
  * Utility function to delete a specific user account

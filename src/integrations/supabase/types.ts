@@ -1630,6 +1630,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          client_id: string | null
           company: string | null
           created_at: string | null
           first_name: string | null
@@ -1640,6 +1641,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          client_id?: string | null
           company?: string | null
           created_at?: string | null
           first_name?: string | null
@@ -1650,6 +1652,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          client_id?: string | null
           company?: string | null
           created_at?: string | null
           first_name?: string | null
@@ -1658,7 +1661,15 @@ export type Database = {
           role?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_settings: {
         Row: {

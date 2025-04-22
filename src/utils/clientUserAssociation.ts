@@ -3,293 +3,174 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Vérifie et corrige l'association entre un client et son utilisateur
- * @param clientId - L'ID du client à vérifier/corriger
- * @returns Promise<{ success: boolean, message: string }>
+ * Récupère l'ID client associé à un utilisateur
+ * @param userId - L'ID de l'utilisateur
+ * @returns L'ID du client ou null si aucun client n'est associé
  */
-export const fixIncorrectUserAssociation = async (clientId: string) => {
+export const getClientIdForUser = async (userId: string): Promise<string | null> => {
   try {
-    console.log("Début de la vérification de l'association client-utilisateur:", clientId);
+    if (!userId) {
+      console.error("getClientIdForUser: userId est requis");
+      return null;
+    }
 
-    // 1. Récupérer les informations du client
-    const { data: client, error: clientError } = await supabase
+    console.log(`Récupération de l'ID client pour l'utilisateur ${userId}`);
+
+    // Vérifier d'abord dans le profil utilisateur (la nouvelle approche)
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('client_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.error("Erreur lors de la récupération du profil:", profileError);
+    } 
+    
+    // Si nous avons trouvé un client_id dans le profil et qu'il n'est pas null
+    if (profileData?.client_id) {
+      console.log(`ID client trouvé dans le profil: ${profileData.client_id}`);
+      return profileData.client_id;
+    }
+
+    // Sinon, essayer l'ancienne méthode via la table clients
+    const { data: clientData, error: clientError } = await supabase
       .from('clients')
-      .select('*')
-      .eq('id', clientId)
+      .select('id')
+      .eq('user_id', userId)
       .single();
 
     if (clientError) {
-      console.error("Erreur lors de la récupération du client:", clientError);
-      return { success: false, message: "Client introuvable" };
-    }
-
-    if (!client.email) {
-      return { success: false, message: "Le client n'a pas d'adresse email" };
-    }
-
-    // 2. Récupérer l'utilisateur correspondant par email
-    const { data: { user }, error: userError } = await supabase.auth.admin.getUserByEmail(
-      client.email
-    );
-
-    if (userError) {
-      console.error("Erreur lors de la récupération de l'utilisateur:", userError);
-      return { success: false, message: "Utilisateur introuvable" };
-    }
-
-    if (!user) {
-      // Réinitialiser les champs liés au compte utilisateur
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({
-          user_id: null,
-          has_user_account: false,
-          user_account_created_at: null
-        })
-        .eq('id', clientId);
-
-      if (updateError) {
-        console.error("Erreur lors de la réinitialisation:", updateError);
-        return { success: false, message: "Erreur lors de la réinitialisation" };
+      if (clientError.code === 'PGRST116') {
+        console.log(`Aucun client trouvé pour l'utilisateur ${userId}`);
+      } else {
+        console.error("Erreur lors de la récupération du client:", clientError);
       }
-
-      return { 
-        success: true, 
-        message: "Association réinitialisée - aucun utilisateur trouvé avec cet email" 
-      };
+      return null;
     }
 
-    // 3. Vérifier si l'ID utilisateur actuel est correct
-    if (client.user_id === user.id) {
-      return { 
-        success: true, 
-        message: "L'association client-utilisateur est déjà correcte" 
-      };
+    console.log(`ID client trouvé via la table clients: ${clientData.id}`);
+    
+    // Mise à jour du profil avec le client_id pour les futures requêtes
+    if (clientData?.id) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ client_id: clientData.id })
+        .eq('id', userId);
+        
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour du profil avec client_id:", updateError);
+      } else {
+        console.log(`Profil mis à jour avec client_id: ${clientData.id}`);
+      }
     }
 
-    // 4. Mettre à jour le client avec le bon user_id
-    const { error: updateError } = await supabase
-      .from('clients')
-      .update({
-        user_id: user.id,
-        has_user_account: true,
-        user_account_created_at: new Date().toISOString()
-      })
-      .eq('id', clientId);
-
-    if (updateError) {
-      console.error("Erreur lors de la mise à jour:", updateError);
-      return { success: false, message: "Erreur lors de la mise à jour" };
-    }
-
-    console.log(`Association corrigée pour le client ${clientId} avec l'utilisateur ${user.id}`);
-    return { 
-      success: true, 
-      message: `Association corrigée - ID utilisateur mis à jour: ${user.id}` 
-    };
-
+    return clientData?.id || null;
   } catch (error) {
-    console.error("Erreur lors de la correction de l'association:", error);
-    return { success: false, message: "Erreur inattendue lors de la correction" };
+    console.error("Erreur dans getClientIdForUser:", error);
+    return null;
   }
 };
 
 /**
- * Nettoie et corrige les associations utilisateur-client
- * @returns Promise<{ success: boolean, message: string, mergedCount?: number }>
+ * Lie un utilisateur à un client
+ * @param clientId - L'ID du client
+ * @param userId - L'ID de l'utilisateur
+ * @returns true si la liaison a réussi, false sinon
+ */
+export const linkUserToClient = async (clientId: string, userId: string): Promise<boolean> => {
+  try {
+    if (!clientId || !userId) {
+      console.error("linkUserToClient: clientId et userId sont requis");
+      toast.error("Impossible de lier l'utilisateur: données manquantes");
+      return false;
+    }
+
+    console.log(`Liaison de l'utilisateur ${userId} au client ${clientId}`);
+
+    // Mettre à jour le client avec l'ID utilisateur
+    const { error: clientUpdateError } = await supabase
+      .from('clients')
+      .update({
+        user_id: userId,
+        has_user_account: true,
+        user_account_created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', clientId);
+
+    if (clientUpdateError) {
+      console.error("Erreur lors de la mise à jour du client:", clientUpdateError);
+      toast.error("Erreur lors de la liaison utilisateur-client");
+      return false;
+    }
+
+    // Mettre à jour le profil avec l'ID client
+    const { error: profileUpdateError } = await supabase
+      .from('profiles')
+      .update({
+        client_id: clientId
+      })
+      .eq('id', userId);
+
+    if (profileUpdateError) {
+      console.error("Erreur lors de la mise à jour du profil:", profileUpdateError);
+      // Ne pas retourner false ici car la principale liaison a réussi
+    }
+
+    toast.success("Utilisateur lié au client avec succès");
+    return true;
+  } catch (error) {
+    console.error("Erreur dans linkUserToClient:", error);
+    toast.error("Erreur lors de la liaison utilisateur-client");
+    return false;
+  }
+};
+
+/**
+ * Nettoie les clients en double qui ont le même email
  */
 export const cleanupDuplicateClients = async () => {
   try {
-    console.log("Début du nettoyage des clients en double");
-    
-    // 1. Trouver les emails en double
     const { data: duplicateEmails, error: findError } = await supabase.rpc('find_duplicate_client_emails');
     
     if (findError) {
       console.error("Erreur lors de la recherche des emails en double:", findError);
-      return { 
-        success: false, 
-        message: "Erreur lors de la recherche des emails en double", 
-        error: findError.message 
-      };
+      toast.error("Erreur lors de la recherche des emails en double");
+      return;
     }
-    
+
     if (!duplicateEmails || duplicateEmails.length === 0) {
-      console.log("Aucun email en double trouvé");
-      return { 
-        success: true, 
-        message: "Aucun email en double trouvé", 
-        mergedCount: 0 
-      };
+      toast.info("Aucun email en double trouvé");
+      return;
     }
-    
+
     console.log(`${duplicateEmails.length} emails en double trouvés:`, duplicateEmails);
-    
-    let mergedCount = 0;
-    
-    // 2. Traiter chaque email en double
+
     for (const email of duplicateEmails) {
       const { data: clients } = await supabase
         .from('clients')
         .select('*')
         .eq('email', email)
         .order('created_at', { ascending: true });
-      
+
       if (clients && clients.length > 1) {
-        const primaryClient = clients[0]; // Le plus ancien client devient le principal
+        const primaryClient = clients[0];
         const duplicateIds = clients.slice(1).map(c => c.id);
-        
-        // Marquer les clients en double comme dupliqués et référencer le client principal
-        for (const dupId of duplicateIds) {
-          const { error: updateError } = await supabase
-            .from('clients')
-            .update({
-              status: 'duplicate',
-              duplicate_of: primaryClient.id,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', dupId);
-          
-          if (updateError) {
-            console.error(`Erreur lors du marquage du client ${dupId} comme dupliqué:`, updateError);
-            continue;
-          }
-          
-          mergedCount++;
-        }
-        
-        console.log(`Clients en double traités pour ${email}: ${duplicateIds.join(', ')} -> ${primaryClient.id}`);
+
+        // Marquer les clients en double
+        await supabase.rpc('mark_clients_as_duplicates', {
+          client_ids: duplicateIds,
+          main_client_id: primaryClient.id
+        });
+
+        console.log(`Clients en double traités pour ${email}`);
       }
     }
-    
-    return { 
-      success: true, 
-      message: `Nettoyage terminé. ${mergedCount} clients marqués comme doublons`, 
-      mergedCount 
-    };
+
+    toast.success("Nettoyage des clients en double terminé");
   } catch (error) {
     console.error("Erreur lors du nettoyage des clients en double:", error);
-    return { 
-      success: false, 
-      message: "Erreur inattendue lors du nettoyage", 
-      error: String(error)
-    };
-  }
-};
-
-/**
- * Lie un utilisateur à un client en fonction de l'email
- * @param userId - ID de l'utilisateur 
- * @param userEmail - Email de l'utilisateur
- * @returns Promise<string | null> - ID du client si trouvé et lié
- */
-export const linkUserToClient = async (userId: string, userEmail: string): Promise<string | null> => {
-  try {
-    console.log(`Tentative de liaison de l'utilisateur ${userId} avec email ${userEmail} à un client`);
-    
-    // 1. Vérifier si un client avec cet email existe déjà
-    const { data: existingClients, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('email', userEmail)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true });
-    
-    if (clientError) {
-      console.error("Erreur lors de la recherche de clients:", clientError);
-      return null;
-    }
-    
-    // Aucun client trouvé avec cet email
-    if (!existingClients || existingClients.length === 0) {
-      console.log(`Aucun client trouvé pour l'email ${userEmail}`);
-      return null;
-    }
-    
-    // 2. Prendre le client le plus ancien si plusieurs existent
-    const client = existingClients[0];
-    
-    // Si le client a déjà un user_id qui correspond
-    if (client.user_id === userId) {
-      console.log(`Le client ${client.id} est déjà associé à l'utilisateur ${userId}`);
-      return client.id;
-    }
-    
-    // 3. Si le client a un user_id différent, vérifier si cet utilisateur existe toujours
-    if (client.user_id) {
-      const { data: userExists } = await supabase.rpc(
-        'check_user_exists_by_id',
-        { user_id: client.user_id }
-      );
-      
-      if (userExists) {
-        console.log(`Le client ${client.id} est déjà associé à un autre utilisateur ${client.user_id}`);
-        return null;
-      }
-      
-      console.log(`L'utilisateur ${client.user_id} n'existe plus, mise à jour avec le nouvel utilisateur ${userId}`);
-    }
-    
-    // 4. Mettre à jour le client avec le nouvel utilisateur
-    const { error: updateError } = await supabase
-      .from('clients')
-      .update({
-        user_id: userId,
-        has_user_account: true,
-        user_account_created_at: new Date().toISOString()
-      })
-      .eq('id', client.id);
-    
-    if (updateError) {
-      console.error(`Erreur lors de la mise à jour du client ${client.id}:`, updateError);
-      return null;
-    }
-    
-    console.log(`Client ${client.id} associé avec succès à l'utilisateur ${userId}`);
-    return client.id;
-  } catch (error) {
-    console.error("Erreur lors de la liaison utilisateur-client:", error);
-    return null;
-  }
-};
-
-/**
- * Récupère l'ID du client associé à un utilisateur
- * @param userId - ID de l'utilisateur
- * @returns Promise<string | null> - ID du client si trouvé
- */
-export const getClientIdForUser = async (userId: string): Promise<string | null> => {
-  try {
-    // Vérifier d'abord dans le localStorage pour optimiser les performances
-    const cachedClientId = localStorage.getItem(`client_id_${userId}`);
-    if (cachedClientId) {
-      console.log(`ID client récupéré du cache: ${cachedClientId}`);
-      return cachedClientId;
-    }
-    
-    // Sinon rechercher dans la base de données
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
-    
-    if (error) {
-      console.error("Erreur lors de la récupération du client pour l'utilisateur:", error);
-      return null;
-    }
-    
-    if (client && client.id) {
-      // Mettre en cache pour les prochaines requêtes
-      localStorage.setItem(`client_id_${userId}`, client.id);
-      console.log(`ID client récupéré et mis en cache: ${client.id}`);
-      return client.id;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error("Erreur dans getClientIdForUser:", error);
-    return null;
+    toast.error("Erreur lors du nettoyage des clients en double");
   }
 };
