@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import CollaboratorsList from "@/components/clients/CollaboratorsList";
 import { toast } from "sonner";
 import { getClientById, syncClientUserAccountStatus } from "@/services/clientService";
 import { resetPassword, createUserAccount } from "@/services/accountService";
+import { fixIncorrectUserAssociation } from "@/utils/clientUserAssociation";
 import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -105,11 +105,19 @@ export default function ClientDetail() {
     setIsSyncingAccount(true);
     try {
       const success = await syncClientUserAccountStatus(id);
-      if (success) {
+      
+      if (!success) {
+        const { success: fixSuccess, message } = await fixIncorrectUserAssociation(id);
+        
+        if (fixSuccess) {
+          await fetchClient();
+          toast.success("Association utilisateur corrigée: " + message);
+        } else {
+          toast.error("Échec de la correction: " + message);
+        }
+      } else {
         await fetchClient();
         toast.success("Statut du compte utilisateur synchronisé avec succès");
-      } else {
-        toast.error("Échec de la synchronisation du statut du compte");
       }
     } catch (error) {
       console.error("Error syncing account status:", error);

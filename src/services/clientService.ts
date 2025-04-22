@@ -640,6 +640,7 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
     if (client.user_id) {
       console.log("Le client a un user_id associé:", client.user_id);
       
+      // Appel à la fonction RPC sécurisée pour vérifier l'existence de l'utilisateur
       const { data: userExists, error: userCheckError } = await supabase.rpc(
         'check_user_exists_by_id',
         { user_id: client.user_id }
@@ -651,6 +652,64 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       }
       
       console.log("Utilisateur existe dans auth.users:", userExists);
+      
+      // Si l'utilisateur n'existe pas, mais que le client a un email, essayer de trouver un utilisateur correspondant par email
+      if (!userExists && client.email) {
+        console.log("L'ID utilisateur est incorrect. Tentative de recherche par email:", client.email);
+        
+        const { data: correctUserId, error: getUserIdError } = await supabase.rpc(
+          'get_user_id_by_email',
+          { user_email: client.email }
+        );
+        
+        if (getUserIdError) {
+          console.error("Erreur lors de la recherche utilisateur par email:", getUserIdError);
+        } else if (correctUserId) {
+          console.log("Utilisateur trouvé par email, mise à jour du user_id:", correctUserId);
+          
+          // Mettre à jour le user_id du client avec l'ID correct
+          try {
+            const { error: updateError } = await supabase.rpc(
+              'update_client_securely',
+              { 
+                p_client_id: clientId,
+                p_updates: {
+                  user_id: correctUserId,
+                  has_user_account: true,
+                  user_account_created_at: new Date().toISOString()
+                }
+              }
+            );
+              
+            if (updateError) {
+              console.error(`Erreur lors de la mise à jour de l'ID utilisateur via RPC:`, updateError);
+              throw updateError;
+            }
+            
+            console.log("ID utilisateur mis à jour avec succès");
+            return true;
+          } catch (rpcError) {
+            // Fallback to admin client if RPC fails
+            const adminClient = getAdminSupabaseClient();
+            const { error: adminUpdateError } = await adminClient
+              .from('clients')
+              .update({
+                user_id: correctUserId,
+                has_user_account: true,
+                user_account_created_at: new Date().toISOString()
+              })
+              .eq('id', clientId);
+              
+            if (adminUpdateError) {
+              console.error(`Erreur lors de la mise à jour de l'ID utilisateur via admin:`, adminUpdateError);
+              return false;
+            }
+            
+            console.log("ID utilisateur mis à jour avec succès via client admin");
+            return true;
+          }
+        }
+      }
       
       // Mettre à jour le statut du compte utilisateur en fonction de l'existence de l'utilisateur
       try {
@@ -692,7 +751,7 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       // Si le client n'a pas de user_id mais a un email, vérifier si un utilisateur avec cet email existe
       console.log("Le client n'a pas de user_id. Recherche par email:", client.email);
       
-      // Recherche directe dans auth.users par email (via RPC)
+      // Recherche d'un utilisateur par email via la fonction RPC sécurisée
       const { data: userIdByEmail, error: emailCheckError } = await supabase.rpc(
         'get_user_id_by_email',
         { user_email: client.email }

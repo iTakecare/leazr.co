@@ -98,6 +98,44 @@ export const installDatabaseFunctions = async () => {
         }
       }
       
+      // Create get_user_id_by_email function if it doesn't exist
+      const { data: getUserIdByEmailExists, error: getUserIdByEmailError } = await supabase.rpc(
+        'check_function_exists',
+        { function_name: 'get_user_id_by_email' }
+      );
+      
+      if (getUserIdByEmailError) {
+        console.error("Error checking get_user_id_by_email function existence:", getUserIdByEmailError);
+      } else if (!getUserIdByEmailExists) {
+        console.log("Installing get_user_id_by_email function...");
+        
+        const createGetUserIdByEmailFunction = `
+        CREATE OR REPLACE FUNCTION public.get_user_id_by_email(user_email text)
+        RETURNS uuid
+        LANGUAGE plpgsql
+        SECURITY DEFINER
+        AS $$
+        DECLARE
+          user_id UUID;
+        BEGIN
+          SELECT id INTO user_id FROM auth.users WHERE email = user_email LIMIT 1;
+          RETURN user_id;
+        END;
+        $$;
+        `;
+        
+        const { error: getUserIdByEmailCreationError } = await supabase.rpc(
+          'execute_sql',
+          { sql: createGetUserIdByEmailFunction }
+        );
+        
+        if (getUserIdByEmailCreationError) {
+          console.error("Error creating get_user_id_by_email function:", getUserIdByEmailCreationError);
+        } else {
+          console.log("get_user_id_by_email function created successfully");
+        }
+      }
+      
       console.log("Database functions installed successfully");
     } else {
       console.log("Database functions already installed");

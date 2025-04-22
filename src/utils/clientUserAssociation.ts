@@ -81,99 +81,112 @@ export const linkUserToClient = async (userId: string, userEmail: string | null)
 };
 
 /**
- * Nettoie les clients en double et les fusionne
+ * Vérifie et corrige les associations user_id incorrectes
+ * @param clientId ID du client à vérifier et corriger
  * @returns Résultat de l'opération
  */
-export const cleanupDuplicateClients = async (): Promise<{ success: boolean; mergedCount: number; error?: string }> => {
+export const fixIncorrectUserAssociation = async (clientId: string): Promise<{ success: boolean; message: string }> => {
   try {
-    console.log("Démarrage du nettoyage des doublons...");
+    // Get admin supabase client for auth queries
+    const adminClient = getAdminSupabaseClient();
     
-    // Utiliser le client admin pour éviter les problèmes de RLS
-    const adminSupabase = getAdminSupabaseClient();
-    
-    if (!adminSupabase) {
-      return { success: false, mergedCount: 0, error: "Client admin Supabase non disponible" };
-    }
-    
-    // Récupérer tous les clients avec leur email
-    const { data: clients, error: clientsError } = await adminSupabase
+    // Get the client details
+    const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, email, name, company, status, created_at')
-      .order('created_at', { ascending: true }); // Les plus anciens d'abord
-    
-    if (clientsError) {
-      console.error("Erreur lors de la récupération des clients:", clientsError);
-      return { success: false, mergedCount: 0, error: clientsError.message };
+      .select('id, email, user_id, has_user_account')
+      .eq('id', clientId)
+      .single();
+      
+    if (clientError || !client) {
+      console.error("Erreur lors de la récupération du client:", clientError);
+      return { success: false, message: "Client introuvable" };
     }
     
-    const emailGroups: { [email: string]: typeof clients } = {};
-    let mergedCount = 0;
-    
-    // Regrouper les clients par email
-    clients?.forEach(client => {
-      if (client.email) {
-        const email = client.email.toLowerCase().trim();
-        if (!emailGroups[email]) {
-          emailGroups[email] = [];
-        }
-        emailGroups[email].push(client);
-      }
-    });
-    
-    // Traiter chaque groupe d'emails
-    for (const [email, clientsGroup] of Object.entries(emailGroups)) {
-      if (clientsGroup.length > 1) {
-        console.log(`Email ${email} a ${clientsGroup.length} clients associés`);
-        
-        // Trier par date de création (ascendant) et statut (active > inactive > lead)
-        const sortedClients = [...clientsGroup].sort((a, b) => {
-          // Priorité au statut active
-          if (a.status === 'active' && b.status !== 'active') return -1;
-          if (a.status !== 'active' && b.status === 'active') return 1;
-          
-          // Ensuite, priorité au statut inactive par rapport à lead
-          if (a.status === 'inactive' && b.status === 'lead') return -1;
-          if (a.status === 'lead' && b.status === 'inactive') return 1;
-          
-          // Si même statut, trier par date de création (le plus ancien d'abord)
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        });
-        
-        // Le premier client du groupe trié est le principal
-        const mainClient = sortedClients[0];
-        const duplicateClients = sortedClients.slice(1);
-        
-        if (duplicateClients.length > 0) {
-          console.log(`Client principal: ${mainClient.name} (${mainClient.id})`);
-          console.log(`Clients en double: ${duplicateClients.map(c => c.id).join(', ')}`);
-          
-          try {
-            // Marquer les clients en double comme "duplicate"
-            const { error: markError } = await adminSupabase.rpc(
-              'mark_clients_as_duplicates',
-              { 
-                client_ids: duplicateClients.map(c => c.id),
-                main_client_id: mainClient.id
-              }
-            );
-            
-            if (markError) {
-              console.error("Erreur lors du marquage des doublons:", markError);
-              continue;
-            }
-            
-            mergedCount += duplicateClients.length;
-          } catch (err) {
-            console.error("Erreur lors du marquage des clients en double:", err);
-          }
-        }
-      }
+    // If client has no email, we can't verify or fix association
+    if (!client.email) {
+      return { success: false, message: "Le client n'a pas d'adresse email" };
     }
     
-    console.log(`Nettoyage terminé. ${mergedCount} clients fusionnés.`);
-    return { success: true, mergedCount };
-  } catch (error: any) {
-    console.error("Erreur lors du nettoyage des doublons:", error);
-    return { success: false, mergedCount: 0, error: error.message };
+    // Try to get user ID from email using our secure function
+    const { data: correctUserId, error: userIdError } = await supabase.rpc(
+      'get_user_id_by_email',
+      { user_email: client.email }
+    );
+    
+    if (userIdError) {
+      console.error("Erreur lors de la recherche utilisateur par email:", userIdError);
+      return { success: false, message: "Erreur lors de la vérification de l'utilisateur" };
+    }
+    
+    // No user found with this email
+    if (!correctUserId) {
+      // If client has user_id but no matching auth user with that email exists
+      if (client.user_id && client.has_user_account) {
+        // Reset the user association
+        const { error: resetError } = await adminClient
+          .from('clients')
+          .update({ 
+            user_id: null, 
+            has_user_account: false,
+            user_account_created_at: null
+          })
+          .eq('id', clientId);
+          
+        if (resetError) {
+          console.error("Erreur lors de la réinitialisation de l'association:", resetError);
+          return { success: false, message: "Erreur lors de la réinitialisation" };
+        }
+        
+        return { success: true, message: "Association réinitialisée car aucun utilisateur trouvé" };
+      }
+      
+      return { success: false, message: "Aucun utilisateur trouvé pour cette adresse email" };
+    }
+    
+    // Check if the user ID is different from the stored one
+    if (client.user_id !== correctUserId) {
+      console.log(`Association incorrecte détectée. Actuel: ${client.user_id}, Correct: ${correctUserId}`);
+      
+      // Update the client with the correct user ID
+      const { error: updateError } = await adminClient
+        .from('clients')
+        .update({ 
+          user_id: correctUserId, 
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString()
+        })
+        .eq('id', clientId);
+        
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour de l'association:", updateError);
+        return { success: false, message: "Erreur lors de la correction de l'association" };
+      }
+      
+      return { success: true, message: "Association utilisateur corrigée avec succès" };
+    }
+    
+    // If user ID is correct but has_user_account is false
+    if (client.user_id === correctUserId && !client.has_user_account) {
+      // Update has_user_account flag
+      const { error: updateError } = await adminClient
+        .from('clients')
+        .update({ 
+          has_user_account: true,
+          user_account_created_at: new Date().toISOString() 
+        })
+        .eq('id', clientId);
+        
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour du statut:", updateError);
+        return { success: false, message: "Erreur lors de la mise à jour du statut" };
+      }
+      
+      return { success: true, message: "Statut du compte utilisateur corrigé" };
+    }
+    
+    return { success: true, message: "L'association utilisateur est correcte" };
+  } catch (error) {
+    console.error("Erreur dans fixIncorrectUserAssociation:", error);
+    return { success: false, message: "Erreur lors de la vérification de l'association" };
   }
 };
