@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -242,6 +241,10 @@ const EquipmentList = ({
           <div className="space-y-3">
             {!hideFinancialDetails && (
               <>
+                <div className="flex justify-between items-center">
+                  <div>Prix d'achat total :</div>
+                  <div className="font-medium">{formatCurrency(totalBaseAmount)}</div>
+                </div>
                 <div className="flex justify-between items-center">
                   <div>Coefficient actuel :</div>
                   <div className="font-medium">{globalMarginAdjustment.newCoef.toFixed(2)}</div>
