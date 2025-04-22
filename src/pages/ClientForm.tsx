@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -172,7 +173,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
           form.setValue("address", result.addressParsed.streetAddress || "");
           form.setValue("postal_code", result.addressParsed.postalCode || "");
           form.setValue("city", result.addressParsed.city || "");
-          form.setValue("country", result.addressParsed.country || "";
+          form.setValue("country", result.addressParsed.country || ""); // Fixed the syntax error here by adding the missing closing parenthesis
         } else if (result.address) {
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
