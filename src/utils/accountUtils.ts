@@ -1,4 +1,3 @@
-
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -84,4 +83,36 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
 export const deleteSpecificProblemUser = async (): Promise<void> => {
   const specificUserId = "82cecd7c-b299-4fbf-b6e2-4fd9428a9d66";
   await deleteSpecificUserAccount(specificUserId);
+};
+
+/**
+ * Delete multiple user accounts by ID
+ */
+export const deleteMultipleUserAccounts = async (userIds: string[]): Promise<void> => {
+  for (const userId of userIds) {
+    try {
+      await deleteSpecificUserAccount(userId);
+      console.log(`Successfully deleted user ${userId}`);
+    } catch (error) {
+      console.error(`Error deleting user ${userId}:`, error);
+    }
+  }
+};
+
+// List of users to delete
+const usersToDelete = [
+  'd552a5c0-ffd3-4523-a237-d7bb8f46ec56',
+  '4d5aa31f-4a2c-46ed-b97a-d7fcddd2ebbf',
+  '4c732b14-bb4e-4aac-97aa-8a877ffe0ace',
+  '0a257f6f-559e-404a-b13d-58c6605ec7d9',
+  'dc17e4f8-a191-4411-ab02-407d6d8ab5e9',
+  '9e5d6db5-91cb-4cde-8b25-98053c21864f',
+  'bbd68121-996a-4904-8922-979a2b392c46'
+];
+
+/**
+ * Execute the deletion of specific users
+ */
+export const deleteSpecificUsers = async (): Promise<void> => {
+  await deleteMultipleUserAccounts(usersToDelete);
 };
