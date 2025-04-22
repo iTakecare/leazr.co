@@ -40,6 +40,9 @@ export const installDatabaseFunctions = async () => {
           vat_number = COALESCE(p_updates->>'vat_number', vat_number),
           notes = COALESCE(p_updates->>'notes', notes),
           status = COALESCE(p_updates->>'status', status),
+          has_user_account = COALESCE((p_updates->>'has_user_account')::boolean, has_user_account),
+          user_id = COALESCE(p_updates->>'user_id'::uuid, user_id),
+          user_account_created_at = COALESCE(p_updates->>'user_account_created_at', user_account_created_at),
           updated_at = NOW()
         WHERE id = p_client_id;
         

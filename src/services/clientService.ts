@@ -208,83 +208,147 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
   try {
     console.log(`Mise à jour du client ID: ${id}`, updates);
     
-    // Version plus simple qui essaie d'utiliser directement le client admin
-    const adminClient = getAdminSupabaseClient();
+    // Get the current user to determine their role
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
     
-    console.log("Tentative de mise à jour avec le client admin");
-    const { data, error } = await adminClient
-      .from('clients')
-      .update(updates)
-      .eq('id', id)
-      .select()
+    if (!userId) {
+      throw new Error("Utilisateur non authentifié");
+    }
+    
+    // Get user role from profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
       .single();
-    
-    if (error) {
-      console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
       
-      // Si le client admin échoue, essayer avec le client standard et expliciter le user_id
-      if (error.code === '42501') {
-        console.log("Tentative de mise à jour avec le client standard en mode explicite");
-        
-        // Récupérer l'utilisateur actuel
-        const { data: authData } = await supabase.auth.getUser();
-        const userId = authData.user?.id;
-        
-        if (!userId) {
-          throw new Error("Utilisateur non authentifié");
+    if (profileError) {
+      console.error("Erreur lors de la récupération du profil:", profileError);
+    }
+    
+    const userRole = profileData?.role || 'client';
+    const isAdmin = userRole === 'admin';
+    
+    console.log(`Utilisateur actuel: ${userId}`);
+    console.log(`Rôle utilisateur: ${userRole} Est admin: ${isAdmin}`);
+    
+    let updatedClient: Client | null = null;
+    
+    // Strategy 1: Try using the update_client_securely RPC function
+    try {
+      console.log("Utilisation de la fonction RPC update_client_securely");
+      
+      const { data: updatedViaRPC, error: rpcError } = await supabase.rpc(
+        'update_client_securely',
+        { 
+          p_client_id: id,
+          p_updates: updates
         }
-        
-        // Si ce client n'appartient pas à cet utilisateur, on le force
-        const updatesWithForce = {
-          ...updates,
-          user_id: userId
-        };
-        
-        // Essayer une approche différente, en utilisant RPC avec une fonction sécurisée
-        const { data: updatedViaRPC, error: rpcError } = await supabase.rpc(
-          'update_client_securely',
-          { 
-            p_client_id: id,
-            p_updates: updatesWithForce
-          }
-        );
-        
-        if (rpcError) {
-          console.error("Échec de la mise à jour via RPC:", rpcError);
-          throw rpcError;
-        }
-        
-        console.log("Mise à jour réussie via RPC");
-        
-        // Récupérer les données mises à jour
-        const { data: refreshedData, error: refreshError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (refreshError) {
-          console.error("Erreur lors de la récupération des données mises à jour:", refreshError);
-          throw refreshError;
-        }
-        
-        return refreshedData as Client;
+      );
+      
+      if (rpcError) {
+        console.error("Échec de la mise à jour via RPC:", rpcError);
+        throw rpcError;
       }
       
-      throw error;
+      console.log("Mise à jour réussie via RPC");
+      
+      // Récupérer les données mises à jour
+      const { data: refreshedData, error: refreshError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (refreshError) {
+        console.error("Erreur lors de la récupération des données mises à jour:", refreshError);
+        throw refreshError;
+      }
+      
+      updatedClient = refreshedData as Client;
+    } catch (rpcError) {
+      console.error("Erreur lors de la mise à jour avec RPC:", rpcError);
+      
+      // Strategy 2: Try admin client
+      if (isAdmin) {
+        try {
+          console.log("Tentative de mise à jour avec le client admin");
+          const adminClient = getAdminSupabaseClient();
+          
+          const { data, error } = await adminClient
+            .from('clients')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error(`Erreur lors de la mise à jour du client avec l'ID ${id} (via admin):`, error);
+            throw error;
+          }
+          
+          updatedClient = data as Client;
+        } catch (adminError) {
+          console.error("Échec de la mise à jour via client admin:", adminError);
+          throw adminError;
+        }
+      } else {
+        // Strategy 3: For non-admin users, verify ownership and use standard client
+        try {
+          console.log("Utilisation du client standard avec vérification d'appartenance");
+          
+          // Get the current client to check ownership
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+            
+          if (clientError) {
+            console.error("Erreur lors de la vérification de propriété du client:", clientError);
+            throw clientError;
+          }
+          
+          console.log(`Client appartient à: ${clientData.user_id}`);
+          
+          // Force the user_id to match the current user
+          const updatesWithUserID = {
+            ...updates,
+            user_id: userId
+          };
+          
+          const { data, error } = await supabase
+            .from('clients')
+            .update(updatesWithUserID)
+            .eq('id', id)
+            .eq('user_id', userId) // Ensure user only updates their own clients
+            .select()
+            .single();
+          
+          if (error) {
+            console.error(`Erreur lors de la mise à jour du client avec l'ID ${id} (standard):`, error);
+            throw error;
+          }
+          
+          updatedClient = data as Client;
+        } catch (standardError) {
+          console.error("Échec de la mise à jour via client standard:", standardError);
+          throw standardError;
+        }
+      }
     }
 
-    // Convert date strings to Date objects
-    if (data) {
-      console.log("Client mis à jour avec succès:", data);
+    if (updatedClient) {
+      console.log("Client mis à jour avec succès:", updatedClient);
       return {
-        ...data,
-        created_at: new Date(data.created_at),
-        updated_at: new Date(data.updated_at)
+        ...updatedClient,
+        created_at: new Date(updatedClient.created_at),
+        updated_at: new Date(updatedClient.updated_at)
       } as Client;
     }
     
-    return null;
+    throw new Error("Aucune stratégie de mise à jour n'a fonctionné");
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
     throw error;  // Rethrow for better error handling elsewhere
@@ -561,7 +625,7 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
     // Récupérer les détails actuels du client
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, email, user_id')
+      .select('id, email, user_id, has_user_account, user_account_created_at')
       .eq('id', clientId)
       .single();
       
@@ -589,18 +653,37 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       console.log("Utilisateur existe dans auth.users:", userExists);
       
       // Mettre à jour le statut du compte utilisateur en fonction de l'existence de l'utilisateur
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({
-          has_user_account: userExists,
-          // Si l'utilisateur existe mais que la date n'est pas définie, la définir maintenant
-          user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : null
-        })
-        .eq('id', clientId);
-        
-      if (updateError) {
-        console.error(`Erreur lors de la mise à jour du statut du compte utilisateur:`, updateError);
-        return false;
+      try {
+        const { error: updateError } = await supabase.rpc(
+          'update_client_securely',
+          { 
+            p_client_id: clientId,
+            p_updates: {
+              has_user_account: userExists,
+              user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : client.user_account_created_at
+            }
+          }
+        );
+          
+        if (updateError) {
+          console.error(`Erreur lors de la mise à jour du statut du compte utilisateur via RPC:`, updateError);
+          throw updateError;
+        }
+      } catch (rpcError) {
+        // Fallback to admin client if RPC fails
+        const adminClient = getAdminSupabaseClient();
+        const { error: adminUpdateError } = await adminClient
+          .from('clients')
+          .update({
+            has_user_account: userExists,
+            user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : client.user_account_created_at
+          })
+          .eq('id', clientId);
+          
+        if (adminUpdateError) {
+          console.error(`Erreur lors de la mise à jour du statut du compte utilisateur via admin:`, adminUpdateError);
+          return false;
+        }
       }
       
       console.log("Statut du compte client mis à jour avec succès:", { has_user_account: userExists });
@@ -626,18 +709,39 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
         // Si un utilisateur avec cet email existe, lier le client à cet utilisateur
         console.log("Utilisateur trouvé par email, liaison du client à cet utilisateur:", userIdByEmail);
         
-        const { error: linkError } = await supabase
-          .from('clients')
-          .update({
-            user_id: userIdByEmail,
-            has_user_account: true,
-            user_account_created_at: new Date().toISOString()
-          })
-          .eq('id', clientId);
-          
-        if (linkError) {
-          console.error(`Erreur lors de la liaison du client à l'utilisateur:`, linkError);
-          return false;
+        try {
+          const { error: linkError } = await supabase.rpc(
+            'update_client_securely',
+            { 
+              p_client_id: clientId,
+              p_updates: {
+                user_id: userIdByEmail,
+                has_user_account: true,
+                user_account_created_at: new Date().toISOString()
+              }
+            }
+          );
+            
+          if (linkError) {
+            console.error(`Erreur lors de la liaison du client à l'utilisateur via RPC:`, linkError);
+            throw linkError;
+          }
+        } catch (rpcError) {
+          // Fallback to admin client if RPC fails
+          const adminClient = getAdminSupabaseClient();
+          const { error: adminLinkError } = await adminClient
+            .from('clients')
+            .update({
+              user_id: userIdByEmail,
+              has_user_account: true,
+              user_account_created_at: new Date().toISOString()
+            })
+            .eq('id', clientId);
+            
+          if (adminLinkError) {
+            console.error(`Erreur lors de la liaison du client à l'utilisateur via admin:`, adminLinkError);
+            return false;
+          }
         }
         
         console.log("Client lié à l'utilisateur avec succès");
@@ -649,17 +753,38 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
     
     // Si aucune correspondance n'est trouvée, réinitialiser le statut du compte
     console.log("Réinitialisation du statut du compte utilisateur (aucune correspondance)");
-    const { error: resetError } = await supabase
-      .from('clients')
-      .update({
-        has_user_account: false,
-        user_account_created_at: null
-      })
-      .eq('id', clientId);
-      
-    if (resetError) {
-      console.error(`Erreur lors de la réinitialisation du statut du compte:`, resetError);
-      return false;
+    
+    try {
+      const { error: resetError } = await supabase.rpc(
+        'update_client_securely',
+        { 
+          p_client_id: clientId,
+          p_updates: {
+            has_user_account: false,
+            user_account_created_at: null
+          }
+        }
+      );
+        
+      if (resetError) {
+        console.error(`Erreur lors de la réinitialisation du statut du compte via RPC:`, resetError);
+        throw resetError;
+      }
+    } catch (rpcError) {
+      // Fallback to admin client if RPC fails
+      const adminClient = getAdminSupabaseClient();
+      const { error: adminResetError } = await adminClient
+        .from('clients')
+        .update({
+          has_user_account: false,
+          user_account_created_at: null
+        })
+        .eq('id', clientId);
+        
+      if (adminResetError) {
+        console.error(`Erreur lors de la réinitialisation du statut du compte via admin:`, adminResetError);
+        return false;
+      }
     }
     
     console.log("Statut du compte réinitialisé avec succès");
