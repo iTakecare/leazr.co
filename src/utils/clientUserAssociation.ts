@@ -1,4 +1,3 @@
-
 import { getSupabaseClient, getAdminSupabaseClient } from "@/integrations/supabase/client";
 
 const supabase = getSupabaseClient();
@@ -188,5 +187,118 @@ export const fixIncorrectUserAssociation = async (clientId: string): Promise<{ s
   } catch (error) {
     console.error("Erreur dans fixIncorrectUserAssociation:", error);
     return { success: false, message: "Erreur lors de la vérification de l'association" };
+  }
+};
+
+/**
+ * Nettoie les clients en double en fusionnant ceux qui ont le même email
+ * @returns Un objet avec le statut de l'opération et les détails
+ */
+export const cleanupDuplicateClients = async (): Promise<{ 
+  success: boolean; 
+  mergedCount: number;
+  error?: string;
+}> => {
+  try {
+    console.log("Démarrage du nettoyage des clients en double par email...");
+    const adminClient = getAdminSupabaseClient();
+    
+    // Identifier les emails en double dans la table clients
+    const { data: duplicateEmails, error: findError } = await supabase
+      .rpc('find_duplicate_client_emails');
+    
+    if (findError) {
+      console.error("Erreur lors de la recherche des emails en double:", findError);
+      return { success: false, mergedCount: 0, error: "Erreur lors de la recherche des emails en double" };
+    }
+    
+    if (!duplicateEmails || duplicateEmails.length === 0) {
+      console.log("Aucun email en double trouvé");
+      return { success: true, mergedCount: 0 };
+    }
+    
+    console.log(`${duplicateEmails.length} emails en double trouvés`);
+    
+    let mergedCount = 0;
+    
+    // Pour chaque email en double, fusionner les clients
+    for (const email of duplicateEmails) {
+      if (!email) continue;
+      
+      // Récupérer tous les clients avec cet email
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('*')
+        .ilike('email', email)
+        .order('created_at', { ascending: true });
+      
+      if (clientsError || !clients || clients.length <= 1) {
+        console.error(`Erreur ou client unique pour ${email}:`, clientsError);
+        continue;
+      }
+      
+      // Le premier client (le plus ancien) sera conservé
+      const primaryClient = clients[0];
+      const duplicateClients = clients.slice(1);
+      
+      console.log(`Fusion de ${duplicateClients.length} clients en double pour l'email ${email}`);
+      
+      // Mettre à jour toutes les relations pour pointer vers le client principal
+      for (const duplicate of duplicateClients) {
+        try {
+          // 1. Mettre à jour les collaborateurs pour les associer au client principal
+          const { error: updateCollabError } = await adminClient
+            .from('client_collaborators')
+            .update({ client_id: primaryClient.id })
+            .eq('client_id', duplicate.id);
+          
+          if (updateCollabError) {
+            console.error(`Erreur lors de la mise à jour des collaborateurs pour ${duplicate.id}:`, updateCollabError);
+          }
+          
+          // 2. Mettre à jour les offres pour les associer au client principal
+          const { error: updateOffersError } = await adminClient
+            .from('offers')
+            .update({ client_id: primaryClient.id })
+            .eq('client_id', duplicate.id);
+          
+          if (updateOffersError) {
+            console.error(`Erreur lors de la mise à jour des offres pour ${duplicate.id}:`, updateOffersError);
+          }
+          
+          // 3. Marquer le client dupliqué comme "duplicate" dans le statut
+          const { error: markDuplicateError } = await adminClient
+            .from('clients')
+            .update({ 
+              status: 'duplicate',
+              notes: `${duplicate.notes ? duplicate.notes + '\n\n' : ''}[AUTO] Marqué comme doublon de ${primaryClient.id} le ${new Date().toISOString()}`
+            })
+            .eq('id', duplicate.id);
+          
+          if (markDuplicateError) {
+            console.error(`Erreur lors du marquage du client ${duplicate.id} comme doublon:`, markDuplicateError);
+          } else {
+            mergedCount++;
+          }
+          
+        } catch (err) {
+          console.error(`Erreur lors de la fusion du client ${duplicate.id}:`, err);
+        }
+      }
+    }
+    
+    return { 
+      success: true, 
+      mergedCount,
+      error: mergedCount === 0 ? "Aucun client n'a pu être fusionné" : undefined
+    };
+    
+  } catch (error) {
+    console.error("Erreur lors du nettoyage des clients en double:", error);
+    return { 
+      success: false, 
+      mergedCount: 0,
+      error: "Erreur lors du nettoyage des clients en double"
+    };
   }
 };

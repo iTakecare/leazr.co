@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const installDatabaseFunctions = async () => {
@@ -133,6 +132,44 @@ export const installDatabaseFunctions = async () => {
           console.error("Error creating get_user_id_by_email function:", getUserIdByEmailCreationError);
         } else {
           console.log("get_user_id_by_email function created successfully");
+        }
+      }
+      
+      // Create find_duplicate_client_emails function if it doesn't exist
+      const { data: findDuplicateEmailsExists, error: duplicateEmailsError } = await supabase.rpc(
+        'check_function_exists',
+        { function_name: 'find_duplicate_client_emails' }
+      );
+      
+      if (duplicateEmailsError) {
+        console.error("Error checking find_duplicate_client_emails function existence:", duplicateEmailsError);
+      } else if (!findDuplicateEmailsExists) {
+        console.log("Installing find_duplicate_client_emails function...");
+        
+        const createFindDuplicateEmailsFunction = `
+        CREATE OR REPLACE FUNCTION public.find_duplicate_client_emails()
+        RETURNS SETOF text
+        LANGUAGE sql
+        SECURITY DEFINER
+        AS $$
+          SELECT email
+          FROM public.clients
+          WHERE email IS NOT NULL AND email <> ''
+          GROUP BY email
+          HAVING COUNT(*) > 1
+          ORDER BY email;
+        $$;
+        `;
+        
+        const { error: createFunctionError } = await supabase.rpc(
+          'execute_sql',
+          { sql: createFindDuplicateEmailsFunction }
+        );
+        
+        if (createFunctionError) {
+          console.error("Error creating find_duplicate_client_emails function:", createFunctionError);
+        } else {
+          console.log("find_duplicate_client_emails function created successfully");
         }
       }
       
