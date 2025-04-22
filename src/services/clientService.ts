@@ -287,7 +287,7 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
     return null;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
-    throw error;  // Rethrow pour permettre une meilleure gestion des erreurs ailleurs
+    throw error;  // Rethrow for better error handling elsewhere
   }
 };
 
@@ -570,8 +570,12 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       return false;
     }
     
-    // Si le client a un user_id, vérifier si l'utilisateur existe
+    console.log("Synchronisation du statut du compte pour client:", client);
+    
+    // Si le client a un user_id, vérifier si l'utilisateur existe réellement dans auth.users
     if (client.user_id) {
+      console.log("Le client a un user_id associé:", client.user_id);
+      
       const { data: userExists, error: userCheckError } = await supabase.rpc(
         'check_user_exists_by_id',
         { user_id: client.user_id }
@@ -582,13 +586,15 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
         return false;
       }
       
+      console.log("Utilisateur existe dans auth.users:", userExists);
+      
       // Mettre à jour le statut du compte utilisateur en fonction de l'existence de l'utilisateur
       const { error: updateError } = await supabase
         .from('clients')
         .update({
           has_user_account: userExists,
           // Si l'utilisateur existe mais que la date n'est pas définie, la définir maintenant
-          user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : undefined
+          user_account_created_at: userExists && !client.user_account_created_at ? new Date().toISOString() : null
         })
         .eq('id', clientId);
         
@@ -597,10 +603,14 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
         return false;
       }
       
+      console.log("Statut du compte client mis à jour avec succès:", { has_user_account: userExists });
       return true;
     } else if (client.email) {
       // Si le client n'a pas de user_id mais a un email, vérifier si un utilisateur avec cet email existe
-      const { data: userId, error: emailCheckError } = await supabase.rpc(
+      console.log("Le client n'a pas de user_id. Recherche par email:", client.email);
+      
+      // Recherche directe dans auth.users par email (via RPC)
+      const { data: userIdByEmail, error: emailCheckError } = await supabase.rpc(
         'get_user_id_by_email',
         { user_email: client.email }
       );
@@ -610,12 +620,16 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
         return false;
       }
       
-      if (userId) {
+      console.log("Résultat de la recherche par email:", userIdByEmail);
+      
+      if (userIdByEmail) {
         // Si un utilisateur avec cet email existe, lier le client à cet utilisateur
+        console.log("Utilisateur trouvé par email, liaison du client à cet utilisateur:", userIdByEmail);
+        
         const { error: linkError } = await supabase
           .from('clients')
           .update({
-            user_id: userId,
+            user_id: userIdByEmail,
             has_user_account: true,
             user_account_created_at: new Date().toISOString()
           })
@@ -626,11 +640,15 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
           return false;
         }
         
+        console.log("Client lié à l'utilisateur avec succès");
         return true;
+      } else {
+        console.log("Aucun utilisateur trouvé avec cet email. Réinitialisation du statut.");
       }
     }
     
     // Si aucune correspondance n'est trouvée, réinitialiser le statut du compte
+    console.log("Réinitialisation du statut du compte utilisateur (aucune correspondance)");
     const { error: resetError } = await supabase
       .from('clients')
       .update({
@@ -644,6 +662,7 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
       return false;
     }
     
+    console.log("Statut du compte réinitialisé avec succès");
     return true;
   } catch (error) {
     console.error("Erreur dans syncClientUserAccountStatus:", error);

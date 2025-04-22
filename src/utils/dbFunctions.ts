@@ -58,6 +58,43 @@ export const installDatabaseFunctions = async () => {
         return false;
       }
       
+      // Add the check_user_exists_by_id function if it doesn't exist
+      const { data: userCheckFunctionExists, error: userCheckFunctionError } = await supabase.rpc(
+        'check_function_exists',
+        { function_name: 'check_user_exists_by_id' }
+      );
+      
+      if (userCheckFunctionError) {
+        console.error("Error checking user check function existence:", userCheckFunctionError);
+      } else if (!userCheckFunctionExists) {
+        console.log("Installing check_user_exists_by_id function...");
+        
+        const createUserCheckFunction = `
+        CREATE OR REPLACE FUNCTION public.check_user_exists_by_id(user_id uuid)
+        RETURNS boolean
+        LANGUAGE plpgsql
+        SECURITY DEFINER
+        AS $$
+        BEGIN
+          RETURN EXISTS (
+            SELECT 1 FROM auth.users WHERE id = user_id
+          );
+        END;
+        $$;
+        `;
+        
+        const { error: userCheckCreationError } = await supabase.rpc(
+          'execute_sql',
+          { sql: createUserCheckFunction }
+        );
+        
+        if (userCheckCreationError) {
+          console.error("Error creating check_user_exists_by_id function:", userCheckCreationError);
+        } else {
+          console.log("check_user_exists_by_id function created successfully");
+        }
+      }
+      
       console.log("Database functions installed successfully");
     } else {
       console.log("Database functions already installed");

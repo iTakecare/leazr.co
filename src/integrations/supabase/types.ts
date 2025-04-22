@@ -2161,6 +2161,10 @@ export type Database = {
           updated_at: string
         }
       }
+      update_client_securely: {
+        Args: { p_client_id: string; p_updates: Json }
+        Returns: boolean
+      }
       update_client_user_account: {
         Args: { client_id: string; user_id: string }
         Returns: boolean
