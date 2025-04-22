@@ -17,20 +17,11 @@ export const useClients = () => {
       setIsLoading(true);
       setError(null); // Reset error state before fetching
       
-      console.log("Appel à getAllClients sans paramètres");
+      console.log("Appel à getAllClients pour récupérer tous les clients");
       const clientsData = await getAllClients();
       
       if (clientsData && clientsData.length > 0) {
         console.log('Clients récupérés:', clientsData.length);
-        
-        // Debug: check for the specific client
-        const hasTargetClient = clientsData.some(c => c.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-        console.log('Client spécifique présent dans les données:', hasTargetClient);
-        
-        if (hasTargetClient) {
-          const targetClient = clientsData.find(c => c.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-          console.log('Détails du client spécifique:', targetClient);
-        }
         
         // Ensure clients have updated_at property
         const formattedClients: ClientType[] = clientsData.map(client => ({
@@ -76,32 +67,12 @@ export const useClients = () => {
   }) : [];
 
   console.log('Clients filtrés:', filteredClients.length);
-  
-  // Debug: check if specific client passed filters
-  if (clients.length > 0) {
-    const targetClient = clients.find(c => c.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-    if (targetClient) {
-      const passesFilters = filteredClients.includes(targetClient);
-      console.log('Client spécifique passe les filtres:', passesFilters, {
-        name: targetClient.name,
-        email: targetClient.email,
-        status: targetClient.status,
-        isFiltered: filteredClients.some(c => c.id === targetClient.id),
-        searchTerm,
-        selectedStatus
-      });
-    }
-  }
 
   const refreshClients = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
       console.log("Refreshing clients list...");
       const refreshedClients = await getAllClients();
-      
-      // Check if the target client is in the refreshed data
-      const hasTargetClient = refreshedClients.some(c => c.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-      console.log('Client spécifique présent après refresh:', hasTargetClient);
       
       setClients(refreshedClients.map(client => ({
         ...client,

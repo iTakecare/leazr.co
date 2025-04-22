@@ -1,3 +1,4 @@
+
 import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
 import { Client, CreateClientData } from '@/types/client';
 
@@ -85,32 +86,19 @@ export const createClient = async (clientData: any) => {
  */
 export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log("Récupération de TOUS les clients sans filtrage");
+    console.log("Récupération de tous les clients");
     
-    // Utiliser directement le client standard pour récupérer tous les clients
-    const { data: allClients, error } = await supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*');
-
+    
     if (error) {
       console.error("Erreur lors de la récupération des clients:", error);
       throw error;
     }
     
-    console.log(`Récupéré ${allClients?.length || 0} clients au total`);
-    
-    // Identifier si le client spécifique est présent
-    if (allClients && allClients.length > 0) {
-      const specificClient = allClients.find(client => client.id === '6b4393f6-88b8-44c9-a527-52dad92a95d3');
-      if (specificClient) {
-        console.log("Client spécifique trouvé:", specificClient.name);
-      } else {
-        console.log("Client spécifique NON trouvé dans les résultats");
-      }
-    }
-    
-    // Retourner TOUS les clients sans aucun filtrage
-    return allClients || [];
+    console.log(`Récupéré ${data?.length || 0} clients au total`);
+    return data || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
     return [];
@@ -219,20 +207,87 @@ export const getClientById = async (id: string): Promise<Client | null> => {
  */
 export const updateClient = async (id: string, updates: Partial<Client>): Promise<Client | null> => {
   try {
-    const { data, error } = await supabase
-      .from('clients')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
+    console.log(`Mise à jour du client ID: ${id}`, updates);
+    
+    // Vérifier si l'utilisateur est connecté pour obtenir son profil
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+    
+    console.log("Utilisateur actuel:", userId);
+    
+    // Récupérer le profil pour vérifier si l'utilisateur est un admin
+    let isAdmin = false;
+    if (userId) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      isAdmin = profileData?.role === 'admin';
+      console.log("Rôle utilisateur:", profileData?.role, "Est admin:", isAdmin);
+    }
+    
+    // Si admin, utiliser un client avec les droits admin
+    // Sinon, ajouter la condition user_id pour respecter les politiques RLS
+    let updateResponse;
+    
+    if (isAdmin) {
+      // Utiliser le client admin si disponible
+      console.log("Utilisation du client admin pour la mise à jour");
+      updateResponse = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+    } else {
+      // Pour les utilisateurs non-admin, s'assurer que le client leur appartient
+      console.log("Utilisation du client standard avec vérification d'appartenance");
+      
+      // Récupérer d'abord le client pour vérifier l'appartenance
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      
+      if (!existingClient) {
+        console.error("Client non trouvé");
+        return null;
+      }
+      
+      console.log("Client appartient à:", existingClient.user_id);
+      
+      // Vérifier si l'utilisateur est le propriétaire du client ou si le client n'a pas de propriétaire
+      if (existingClient.user_id === userId || !existingClient.user_id) {
+        // Si le client n'a pas de propriétaire, l'assigner à l'utilisateur actuel
+        const updatesWithOwner = !existingClient.user_id ? 
+          { ...updates, user_id: userId } : 
+          updates;
+        
+        updateResponse = await supabase
+          .from('clients')
+          .update(updatesWithOwner)
+          .eq('id', id)
+          .select()
+          .single();
+      } else {
+        console.error("L'utilisateur n'a pas la permission de modifier ce client");
+        throw new Error("Vous n'avez pas la permission de modifier ce client");
+      }
+    }
+    
+    const { data, error } = updateResponse;
+    
     if (error) {
       console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
-      return null;
+      throw error;
     }
 
     // Convert date strings to Date objects
     if (data) {
+      console.log("Client mis à jour avec succès:", data);
       return {
         ...data,
         created_at: new Date(data.created_at),
@@ -243,7 +298,7 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
     return null;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
-    return null;
+    throw error;  // Rethrow pour permettre une meilleure gestion des erreurs ailleurs
   }
 };
 
