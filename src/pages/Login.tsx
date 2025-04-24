@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -321,10 +320,6 @@ const Login = () => {
                     </span>
                   }
                 </Button>
-                
-                <div className="text-center text-sm">
-                  Vous n'avez pas de compte? <Link to="/signup" className="text-blue-600 hover:underline font-medium">S'inscrire</Link>
-                </div>
               </CardFooter>
             </form>
           </Card>
