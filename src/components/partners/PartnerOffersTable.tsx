@@ -54,18 +54,16 @@ const PartnerOffersTable = () => {
       
       // Process offers to calculate financed_amount if missing
       const processedOffers = (data || []).map(offer => {
-        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
-          const coefficient = offer.coefficient || 3.27;
-          const calculatedAmount = calculateFinancedAmount(
-            Number(offer.monthly_payment), 
-            Number(coefficient)
-          );
+        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment && offer.coefficient) {
           return {
             ...offer,
-            financed_amount: calculatedAmount
+            financed_amount: Number(offer.monthly_payment) * Number(offer.coefficient)
           };
         }
-        return offer;
+        return {
+          ...offer,
+          financed_amount: offer.financed_amount || 0
+        };
       });
       
       setOffers(processedOffers);
