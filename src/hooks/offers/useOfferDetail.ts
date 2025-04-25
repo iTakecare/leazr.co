@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -38,58 +39,98 @@ export interface OfferDetail {
   margin?: number;
   margin_difference?: number;
   total_margin_with_difference?: number;
+  coefficient?: number;
 }
 
-const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
+const parseEquipmentDescription = (description?: string, coefficient?: number, monthly_payment?: number): EquipmentItem[] => {
   if (!description) return [];
   
   try {
-    if (typeof description === 'string' && description.trim().startsWith('[')) {
-      const parsed = JSON.parse(description);
-      if (Array.isArray(parsed)) {
-        return parsed.map(item => ({
-          id: item.id,
-          title: item.title || 'Produit sans nom',
-          purchasePrice: Number(item.purchasePrice) || 0,
-          quantity: Number(item.quantity) || 1,
-          margin: Number(item.margin) || 0,
-          monthlyPayment: Number(item.monthlyPayment) || 0,
-          serialNumber: item.serialNumber || undefined,
-          attributes: item.attributes || {},
-          specifications: item.specifications || {}
-        }));
+    // Essayer de parser comme JSON d'abord (format le plus structuré)
+    if (typeof description === 'string' && (description.trim().startsWith('[') || description.trim().startsWith('{'))) {
+      try {
+        // Essayer de le parser directement comme tableau
+        let parsed;
+        if (description.trim().startsWith('[')) {
+          parsed = JSON.parse(description);
+        } else {
+          // Si c'est un objet, vérifier s'il a une propriété qui pourrait contenir un tableau
+          const objParsed = JSON.parse(description);
+          if (objParsed.items && Array.isArray(objParsed.items)) {
+            parsed = objParsed.items;
+          } else {
+            // Sinon, l'encapsuler dans un tableau
+            parsed = [objParsed];
+          }
+        }
+        
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => ({
+            id: item.id,
+            title: item.title || 'Produit sans nom',
+            purchasePrice: Number(item.purchasePrice) || 0,
+            quantity: Number(item.quantity) || 1,
+            margin: Number(item.margin) || 0,
+            monthlyPayment: Number(item.monthlyPayment) || 0,
+            serialNumber: item.serialNumber || undefined,
+            attributes: item.attributes || {},
+            specifications: item.specifications || {}
+          }));
+        }
+      } catch (e) {
+        console.error("Erreur lors du parsing JSON:", e);
+        // Continuer avec le parsing texte si le JSON échoue
       }
     }
 
+    // Parsing alternatif pour le format texte
     const lines = description.split('\n');
     const equipments: EquipmentItem[] = [];
     let currentEquipment: Partial<EquipmentItem> | null = null;
     let currentOptions: string[] = [];
+    let totalMonthlyPayment = 0;
     
     lines.forEach(line => {
       const trimmedLine = line.trim();
       
       if (!trimmedLine) return;
       
-      if (trimmedLine.toLowerCase().startsWith('options:')) {
+      // Détection des options
+      if (trimmedLine.toLowerCase().startsWith('options:') || trimmedLine.toLowerCase().startsWith('option:')) {
         if (currentEquipment) {
-          const optionsText = trimmedLine.substring(8).trim();
-          currentOptions.push(optionsText);
+          const optionsText = trimmedLine.substring(trimmedLine.indexOf(':') + 1).trim();
+          if (optionsText) currentOptions.push(optionsText);
         }
         return;
       }
       
+      // Détection du prix mensuel (fin d'un équipement)
       if (trimmedLine.includes('€/mois')) {
         if (currentEquipment) {
           const priceText = trimmedLine.split('€/mois')[0].trim();
-          const price = parseFloat(priceText.replace(',', '.'));
+          let price = parseFloat(priceText.replace(/\s+/g, '').replace(',', '.'));
+          
+          // Si on ne peut pas extraire un prix valide mais qu'on a un montant mensuel total,
+          // tenter de calculer le prix unitaire en fonction du nombre d'équipements
+          if (isNaN(price) && monthly_payment && equipments.length === 0) {
+            price = monthly_payment; // S'il n'y a qu'un seul équipement, utiliser le montant total
+          }
+          
           currentEquipment.monthlyPayment = price;
+          totalMonthlyPayment += (price * (currentEquipment.quantity || 1));
           
           if (currentOptions.length > 0) {
             currentEquipment.attributes = {
               ...currentEquipment.attributes,
               options: currentOptions.join('\n')
             };
+          }
+          
+          // Calculer la marge si possible
+          if (coefficient && price > 0) {
+            const purchasePrice = price / coefficient * 0.8; // Estimation simplifiée de la marge
+            currentEquipment.purchasePrice = purchasePrice;
+            currentEquipment.margin = (price * coefficient - purchasePrice) / (price * coefficient) * 100;
           }
           
           equipments.push(currentEquipment as EquipmentItem);
@@ -99,26 +140,73 @@ const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
         return;
       }
       
+      // Détection d'un nouvel équipement
       if (!currentEquipment) {
+        // Vérifier s'il y a une quantité mentionnée
+        let title = trimmedLine;
+        let quantity = 1;
+        
+        // Recherche de motifs comme "(2x)" ou "2x" dans le titre
+        const quantityMatches = trimmedLine.match(/\(?(\d+)x\)?/);
+        if (quantityMatches) {
+          quantity = parseInt(quantityMatches[1], 10);
+          title = title.replace(/\(?(\d+)x\)?/, '').trim();
+        }
+        
         currentEquipment = {
-          title: trimmedLine,
-          quantity: 1,
+          title: title,
+          quantity: quantity,
           monthlyPayment: 0,
           margin: 0,
           attributes: {},
           specifications: {}
         };
+      } else if (trimmedLine.includes(':')) {
+        // Ligne avec caractéristique/spécification
+        const [key, value] = trimmedLine.split(':').map(part => part.trim());
+        if (key && value) {
+          currentEquipment.specifications = {
+            ...currentEquipment.specifications,
+            [key]: value
+          };
+        }
+      } else {
+        // Ligne supplémentaire de description
+        currentOptions.push(trimmedLine);
       }
     });
     
+    // Traiter le dernier équipement s'il n'a pas été fermé par un prix
     if (currentEquipment) {
+      // Si on a un équipement sans prix mais qu'on connaît le montant mensuel total
+      if (monthly_payment && equipments.length === 0) {
+        currentEquipment.monthlyPayment = monthly_payment / (currentEquipment.quantity || 1);
+        
+        // Calculer la marge si possible
+        if (coefficient && currentEquipment.monthlyPayment > 0) {
+          const purchasePrice = currentEquipment.monthlyPayment / coefficient * 0.8;
+          currentEquipment.purchasePrice = purchasePrice;
+          currentEquipment.margin = (currentEquipment.monthlyPayment * coefficient - purchasePrice) / (currentEquipment.monthlyPayment * coefficient) * 100;
+        }
+      }
+      
       if (currentOptions.length > 0) {
         currentEquipment.attributes = {
           ...currentEquipment.attributes,
           options: currentOptions.join('\n')
         };
       }
+      
       equipments.push(currentEquipment as EquipmentItem);
+    }
+    
+    // Répartir équitablement le montant mensuel si nécessaire
+    if (monthly_payment && equipments.length > 0 && Math.abs(totalMonthlyPayment - monthly_payment) > 0.01) {
+      // Calculer le ratio à appliquer
+      const ratio = monthly_payment / totalMonthlyPayment;
+      equipments.forEach(equipment => {
+        equipment.monthlyPayment = parseFloat((equipment.monthlyPayment * ratio).toFixed(2));
+      });
     }
     
     return equipments;
@@ -217,12 +305,20 @@ export const useOfferDetail = (offerId: string) => {
         return;
       }
 
-      if (data.monthly_payment && data.coefficient) {
-        data.financed_amount = Number(data.monthly_payment) * Number(data.coefficient);
+      // Calculer le montant financé s'il n'est pas défini mais que le coefficient et le paiement mensuel sont disponibles
+      if (data.monthly_payment && data.coefficient && (!data.financed_amount || data.financed_amount === 0)) {
+        data.financed_amount = parseFloat((Number(data.monthly_payment) * Number(data.coefficient)).toFixed(2));
       }
 
       if (!data.duration) {
         data.duration = 36;
+      }
+      
+      // Si la marge n'est pas définie mais que le montant financé l'est, essayer de la calculer
+      if (data.amount && data.financed_amount && (!data.margin || data.margin === 0)) {
+        if (data.amount > data.financed_amount) {
+          data.margin = parseFloat(((data.amount - data.financed_amount) / data.amount * 100).toFixed(2));
+        }
       }
       
       setOffer(data as OfferDetail);
@@ -245,7 +341,7 @@ export const useOfferDetail = (offerId: string) => {
     ...offer,
     parsedEquipment: equipmentData.length > 0 
       ? convertDbEquipmentToUiFormat(equipmentData) 
-      : parseEquipmentDescription(offer.equipment_description)
+      : parseEquipmentDescription(offer.equipment_description, offer.coefficient, offer.monthly_payment)
   } : null;
 
   return { 

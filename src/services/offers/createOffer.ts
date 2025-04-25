@@ -1,14 +1,13 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
-    // Log for debugging - critical point
-    console.log("COMMISSION FROM OFFER DATA:", offerData.commission);
+    // Log pour le débogage
+    console.log("DONNÉES D'OFFRE REÇUES:", offerData);
     
-    // Ensure numeric values are properly converted
+    // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
@@ -19,9 +18,21 @@ export const createOffer = async (offerData: OfferData) => {
         undefined
     };
 
-    // Debugging logs
-    console.log("Parsed commission value:", offerDataToSave.commission);
-    console.log("Commission type:", typeof offerDataToSave.commission);
+    // Calculer le montant financé si non défini
+    if (!offerDataToSave.financed_amount && offerDataToSave.monthly_payment && offerDataToSave.coefficient) {
+      offerDataToSave.financed_amount = parseFloat(
+        (Number(offerDataToSave.monthly_payment) * Number(offerDataToSave.coefficient)).toFixed(2)
+      );
+      console.log("Montant financé calculé:", offerDataToSave.financed_amount);
+    }
+
+    // Calculer la marge si elle n'est pas définie mais qu'on a le montant et le montant financé
+    if (!offerDataToSave.margin && offerDataToSave.amount && offerDataToSave.financed_amount) {
+      const marginAmount = offerDataToSave.amount - offerDataToSave.financed_amount;
+      const marginPercentage = (marginAmount / offerDataToSave.amount) * 100;
+      offerDataToSave.margin = parseFloat(marginPercentage.toFixed(2));
+      console.log("Marge calculée:", offerDataToSave.margin);
+    }
 
     // Vérification pour commission invalide (NaN)
     if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
@@ -72,12 +83,31 @@ export const createOffer = async (offerData: OfferData) => {
       }
     }
     
-    // Log the final data being saved
+    // Si le type est client_request, s'assurer que toutes les informations financières sont renseignées
+    if (offerData.type === 'client_request' || offerData.type === 'product_request') {
+      // Structure correcte pour le stockage des équipements dans le champ equipment_description
+      // Si les équipements sont fournis sous forme d'un tableau JSON, les stocker ainsi
+      if (offerData.equipment && Array.isArray(offerData.equipment)) {
+        offerDataToSave.equipment_description = JSON.stringify(offerData.equipment);
+      }
+      
+      console.log("Demande client, données finales:", {
+        amount: offerDataToSave.amount,
+        coefficient: offerDataToSave.coefficient,
+        monthly_payment: offerDataToSave.monthly_payment,
+        financed_amount: offerDataToSave.financed_amount,
+        margin: offerDataToSave.margin
+      });
+    }
+    
+    // Log des données finales
     console.log("Données finales de l'offre avant sauvegarde:", {
       amount: offerDataToSave.amount,
       coefficient: offerDataToSave.coefficient,
       monthly_payment: offerDataToSave.monthly_payment,
+      financed_amount: offerDataToSave.financed_amount,
       commission: offerDataToSave.commission,
+      margin: offerDataToSave.margin,
       type: offerDataToSave.type
     });
     

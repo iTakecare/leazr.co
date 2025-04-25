@@ -47,7 +47,7 @@ serve(async (req) => {
     // Préparer les données du client
     const clientData = {
       id: clientId,
-      name: data.client_name, // Utiliser le nom du client (pas le nom de l'entreprise)
+      name: data.client_name,
       email: data.client_email,
       company: data.client_company,
       phone: data.phone || '',
@@ -74,6 +74,20 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
+    // Calculer le montant financé basé sur la mensualité et le coefficient
+    const coefficient = data.coefficient || 35.5; // Coefficient par défaut si non fourni
+    const monthlyPayment = Number(data.monthly_payment) || 0;
+    const financedAmount = parseFloat((monthlyPayment * coefficient).toFixed(2));
+    
+    // Calculer la marge si le montant total est fourni
+    let marginAmount = 0;
+    let marginPercentage = 0;
+    
+    if (data.amount && data.amount > financedAmount) {
+      marginAmount = data.amount - financedAmount;
+      marginPercentage = (marginAmount / data.amount) * 100;
+    }
+
     // Préparer les données de l'offre
     const offerData = {
       id: requestId,
@@ -81,9 +95,11 @@ serve(async (req) => {
       client_name: data.client_name,
       client_email: data.client_email,
       equipment_description: data.equipment_description,
-      amount: data.amount,
-      monthly_payment: data.monthly_payment,
-      coefficient: 1.0,
+      amount: data.amount || 0,
+      monthly_payment: monthlyPayment,
+      coefficient: coefficient,
+      financed_amount: financedAmount,
+      margin: parseFloat(marginPercentage.toFixed(2)),
       commission: 0,
       type: "client_request",
       workflow_status: "requested",
@@ -313,6 +329,9 @@ serve(async (req) => {
       equipment_description: data.equipment_description,
       amount: data.amount,
       monthly_payment: data.monthly_payment,
+      coefficient: coefficient,
+      financed_amount: financedAmount,
+      margin: parseFloat(marginPercentage.toFixed(2)),
       created_at: new Date().toISOString()
     };
 

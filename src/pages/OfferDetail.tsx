@@ -139,6 +139,10 @@ const OfferDetail = () => {
       ? parseFloat(offer.total_margin_with_difference.toString()) 
       : totalMargin + marginDifference;
 
+    const financed_amount = offer.financed_amount || (offer.coefficient && offer.monthly_payment 
+      ? parseFloat((offer.coefficient * offer.monthly_payment).toFixed(2))
+      : 0);
+
     const totalMonthly = offer.monthly_payment || 0;
 
     return (
@@ -285,7 +289,7 @@ const OfferDetail = () => {
                             <div className="bg-white rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
                               <Banknote className="h-6 w-6 text-blue-600 mb-2" />
                               <h3 className="text-sm font-medium text-gray-500">Montant financé</h3>
-                              <p className="text-lg font-bold text-blue-700">{formatCurrency(offer.financed_amount || 0)}</p>
+                              <p className="text-lg font-bold text-blue-700">{formatCurrency(financed_amount)}</p>
                             </div>
                             <div className="bg-white rounded-md p-4 flex flex-col items-center justify-center border border-blue-100">
                               <Clock className="h-6 w-6 text-indigo-600 mb-2" />
@@ -376,6 +380,11 @@ const OfferDetail = () => {
                       </div>
                     )}
                     
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                      <span className="text-sm text-gray-600">Montant financé</span>
+                      <span className="font-medium text-blue-700">{formatCurrency(financed_amount)}</span>
+                    </div>
+
                     <div className="flex justify-between items-center pb-2 border-b border-gray-100">
                       <span className="text-sm text-gray-600">Montant mensuel</span>
                       <span className="font-medium text-blue-700">{formatCurrency(offer.monthly_payment || 0)}</span>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +47,8 @@ const PartnerOffersTable = () => {
           financed_amount,
           margin,
           status,
-          workflow_status
+          workflow_status,
+          type
         `)
         .eq('user_id', user.id)
         .eq('type', 'partner_offer')
@@ -54,16 +56,27 @@ const PartnerOffersTable = () => {
 
       if (error) throw error;
       
-      // Process offers to calculate financed_amount if missing
+      // Traiter les offres pour s'assurer que toutes les valeurs financières sont correctement calculées
       const processedOffers = (data || []).map(offer => {
-        // Calculate financed amount based on monthly payment and coefficient
-        const financedAmount = offer.coefficient && offer.monthly_payment
-          ? Number(offer.monthly_payment) * Number(offer.coefficient)
-          : offer.financed_amount || 0;
+        // Calculer le montant financé basé sur la mensualité et le coefficient
+        let financedAmount = offer.financed_amount;
+        
+        // Si le montant financé n'est pas défini ou est à 0, mais que nous avons un coefficient et une mensualité
+        if ((!financedAmount || financedAmount === 0) && offer.coefficient && offer.monthly_payment) {
+          financedAmount = parseFloat((Number(offer.monthly_payment) * Number(offer.coefficient)).toFixed(2));
+        }
 
+        // Calculer la marge si elle n'est pas définie mais que nous avons le montant et le montant financé
+        let marginAmount = offer.margin;
+        if ((!marginAmount || marginAmount === 0) && offer.amount && financedAmount) {
+          const margin = (offer.amount - financedAmount) / offer.amount;
+          marginAmount = parseFloat((margin * 100).toFixed(2));
+        }
+        
         return {
           ...offer,
-          financed_amount: financedAmount
+          financed_amount: financedAmount,
+          margin: marginAmount
         };
       });
       
@@ -142,7 +155,7 @@ const PartnerOffersTable = () => {
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Matériel</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
+                <TableHead className="text-right">Montant financé</TableHead>
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Statut</TableHead>
               </TableRow>
@@ -168,7 +181,7 @@ const PartnerOffersTable = () => {
                     {offer.equipment_description?.length > 30 ? '...' : ''}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(offer.amount)}
+                    {formatCurrency(offer.financed_amount)}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(offer.monthly_payment)}
