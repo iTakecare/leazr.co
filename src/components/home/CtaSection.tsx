@@ -1,9 +1,7 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
-
 const CtaSection = () => {
   const navigate = useNavigate();
   return <section className="py-16 bg-transparent text-white">
