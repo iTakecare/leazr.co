@@ -44,7 +44,9 @@ const PartnerOffersTable = () => {
           monthly_payment,
           coefficient,
           financed_amount,
-          status
+          margin,
+          status,
+          workflow_status
         `)
         .eq('user_id', user.id)
         .eq('type', 'partner_offer')
@@ -54,15 +56,14 @@ const PartnerOffersTable = () => {
       
       // Process offers to calculate financed_amount if missing
       const processedOffers = (data || []).map(offer => {
-        if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment && offer.coefficient) {
-          return {
-            ...offer,
-            financed_amount: Number(offer.monthly_payment) * Number(offer.coefficient)
-          };
-        }
+        // Calculate financed amount based on monthly payment and coefficient
+        const financedAmount = offer.coefficient && offer.monthly_payment
+          ? Number(offer.monthly_payment) * Number(offer.coefficient)
+          : offer.financed_amount || 0;
+
         return {
           ...offer,
-          financed_amount: offer.financed_amount || 0
+          financed_amount: financedAmount
         };
       });
       

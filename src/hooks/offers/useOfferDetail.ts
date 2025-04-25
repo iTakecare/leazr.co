@@ -40,6 +40,101 @@ export interface OfferDetail {
   total_margin_with_difference?: number;
 }
 
+const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
+  if (!description) return [];
+  
+  try {
+    if (typeof description === 'string' && description.trim().startsWith('[')) {
+      const parsed = JSON.parse(description);
+      if (Array.isArray(parsed)) {
+        return parsed.map(item => ({
+          id: item.id,
+          title: item.title || 'Produit sans nom',
+          purchasePrice: Number(item.purchasePrice) || 0,
+          quantity: Number(item.quantity) || 1,
+          margin: Number(item.margin) || 0,
+          monthlyPayment: Number(item.monthlyPayment) || 0,
+          serialNumber: item.serialNumber || undefined,
+          attributes: item.attributes || {},
+          specifications: item.specifications || {}
+        }));
+      }
+    }
+
+    const lines = description.split('\n');
+    const equipments: EquipmentItem[] = [];
+    let currentEquipment: Partial<EquipmentItem> | null = null;
+    let currentOptions: string[] = [];
+    
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+      
+      if (!trimmedLine) return;
+      
+      if (trimmedLine.toLowerCase().startsWith('options:')) {
+        if (currentEquipment) {
+          const optionsText = trimmedLine.substring(8).trim();
+          currentOptions.push(optionsText);
+        }
+        return;
+      }
+      
+      if (trimmedLine.includes('€/mois')) {
+        if (currentEquipment) {
+          const priceText = trimmedLine.split('€/mois')[0].trim();
+          const price = parseFloat(priceText.replace(',', '.'));
+          currentEquipment.monthlyPayment = price;
+          
+          if (currentOptions.length > 0) {
+            currentEquipment.attributes = {
+              ...currentEquipment.attributes,
+              options: currentOptions.join('\n')
+            };
+          }
+          
+          equipments.push(currentEquipment as EquipmentItem);
+          currentOptions = [];
+        }
+        currentEquipment = null;
+        return;
+      }
+      
+      if (!currentEquipment) {
+        currentEquipment = {
+          title: trimmedLine,
+          quantity: 1,
+          monthlyPayment: 0,
+          margin: 0,
+          attributes: {},
+          specifications: {}
+        };
+      }
+    });
+    
+    if (currentEquipment) {
+      if (currentOptions.length > 0) {
+        currentEquipment.attributes = {
+          ...currentEquipment.attributes,
+          options: currentOptions.join('\n')
+        };
+      }
+      equipments.push(currentEquipment as EquipmentItem);
+    }
+    
+    return equipments;
+  } catch (e) {
+    console.error("Erreur lors du parsing de la description de l'équipement:", e);
+    return [{
+      title: description || 'Équipement non détaillé',
+      quantity: 1,
+      monthlyPayment: 0,
+      margin: 0,
+      attributes: {},
+      specifications: {}
+    }];
+  }
+};
+
 export const useOfferDetail = (offerId: string) => {
   const [offer, setOffer] = useState<OfferDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,100 +172,6 @@ export const useOfferDetail = (offerId: string) => {
       };
     });
   };
-
-const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
-  if (!description) return [];
-  
-  try {
-    // Si la description est une chaîne JSON valide
-    if (typeof description === 'string') {
-      try {
-        const parsed = JSON.parse(description);
-        if (Array.isArray(parsed)) {
-          return parsed.map(item => ({
-            id: item.id,
-            title: item.title || 'Produit sans nom',
-            purchasePrice: Number(item.purchasePrice) || 0,
-            quantity: Number(item.quantity) || 1,
-            margin: Number(item.margin) || 0,
-            monthlyPayment: Number(item.monthlyPayment) || 0,
-            serialNumber: item.serialNumber || undefined,
-            attributes: item.attributes || {},
-            specifications: item.specifications || {}
-          }));
-        }
-      } catch (parseError) {
-        // Si ce n'est pas du JSON, on traite comme du texte formaté
-        const lines = description.split('\n');
-        const equipments: EquipmentItem[] = [];
-        let currentEquipment: Partial<EquipmentItem> | null = null;
-        
-        lines.forEach(line => {
-          const trimmedLine = line.trim();
-          
-          // Ignorer les lignes vides
-          if (!trimmedLine) return;
-          
-          // Si la ligne commence par "Options:", on l'ajoute aux attributs de l'équipement courant
-          if (trimmedLine.toLowerCase().startsWith('options:')) {
-            if (currentEquipment) {
-              const optionsText = trimmedLine.substring(8).trim();
-              const options = optionsText.split(',').map(opt => opt.trim());
-              currentEquipment.attributes = {
-                ...currentEquipment.attributes,
-                options: options.join(', ')
-              };
-            }
-            return;
-          }
-          
-          // Si la ligne contient un prix mensuel
-          if (trimmedLine.includes('€/mois')) {
-            if (currentEquipment) {
-              const priceText = trimmedLine.split('€/mois')[0].trim();
-              const price = parseFloat(priceText.replace(',', '.'));
-              currentEquipment.monthlyPayment = price;
-              equipments.push(currentEquipment as EquipmentItem);
-            }
-            currentEquipment = null;
-            return;
-          }
-          
-          // Si on n'est pas dans les cas précédents, c'est un nouvel équipement
-          if (!currentEquipment) {
-            currentEquipment = {
-              title: trimmedLine,
-              quantity: 1,
-              monthlyPayment: 0,
-              margin: 0,
-              attributes: {},
-              specifications: {}
-            };
-          }
-        });
-        
-        // Ajouter le dernier équipement s'il existe
-        if (currentEquipment) {
-          equipments.push(currentEquipment as EquipmentItem);
-        }
-        
-        return equipments;
-      }
-    }
-    
-    return [];
-  } catch (e) {
-    console.error("Erreur lors du parsing de la description de l'équipement:", e);
-    return [{
-      title: description || 'Équipement non détaillé',
-      quantity: 1,
-      monthlyPayment: 0,
-      margin: 0,
-      attributes: {},
-      specifications: {}
-    }];
-  }
-};
 
   const fetchEquipmentData = async (offerId: string) => {
     try {
@@ -216,6 +217,10 @@ const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
         return;
       }
 
+      if (data.monthly_payment && data.coefficient) {
+        data.financed_amount = Number(data.monthly_payment) * Number(data.coefficient);
+      }
+
       if (!data.duration) {
         data.duration = 36;
       }
@@ -251,3 +256,5 @@ const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
     equipmentData
   };
 };
+
+export default useOfferDetail;
