@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -48,10 +47,8 @@ export const useOfferDetail = (offerId: string) => {
   const [equipmentData, setEquipmentData] = useState<OfferEquipment[]>([]);
   const [isEquipmentLoading, setIsEquipmentLoading] = useState(false);
 
-  // Convertir les équipements de la base de données en format EquipmentItem pour l'UI
   const convertDbEquipmentToUiFormat = (dbEquipment: OfferEquipment[]): EquipmentItem[] => {
     return dbEquipment.map(item => {
-      // Convertir les attributs en objet Record
       const attributes: Record<string, string> = {};
       if (item.attributes && item.attributes.length > 0) {
         item.attributes.forEach(attr => {
@@ -59,11 +56,9 @@ export const useOfferDetail = (offerId: string) => {
         });
       }
       
-      // Convertir les spécifications en objet Record
       const specifications: Record<string, string | number> = {};
       if (item.specifications && item.specifications.length > 0) {
         item.specifications.forEach(spec => {
-          // Essayer de convertir en nombre si possible
           const numValue = Number(spec.value);
           specifications[spec.key] = !isNaN(numValue) ? numValue : spec.value;
         });
@@ -83,111 +78,66 @@ export const useOfferDetail = (offerId: string) => {
     });
   };
 
-  // Analyse de la description d'équipement JSON (pour rétrocompatibilité)
   const parseEquipmentDescription = (description?: string): EquipmentItem[] => {
     if (!description) return [];
     
     try {
-      // Try to parse JSON
-      let equipmentData;
-      
-      try {
-        equipmentData = JSON.parse(description);
-      } catch (parseError) {
-        console.error("Erreur lors du parsing initial:", parseError);
-        return [{
-          title: description,
-          quantity: 1,
-          monthlyPayment: 0,
-          attributes: {},
-          specifications: {}
-        }];
-      }
-      
-      console.log("Données d'équipement brutes:", equipmentData);
-      
-      // Check if it's an array
-      if (Array.isArray(equipmentData)) {
-        return equipmentData.map(item => {
-          console.log("Traitement de l'élément:", item);
+      if (typeof description === 'string') {
+        try {
+          const parsed = JSON.parse(description);
           
-          // Log attributes and specifications specifically
-          console.log("Attributs:", item.attributes);
-          console.log("Spécifications:", item.specifications);
+          if (Array.isArray(parsed)) {
+            return parsed.map(item => ({
+              id: item.id,
+              title: item.title || 'Produit sans nom',
+              purchasePrice: Number(item.purchasePrice) || 0,
+              quantity: Number(item.quantity) || 1,
+              margin: Number(item.margin) || 0,
+              monthlyPayment: Number(item.monthlyPayment) || 0,
+              serialNumber: item.serialNumber || undefined,
+              attributes: item.attributes || {},
+              specifications: item.specifications || {}
+            }));
+          }
           
-          return {
-            id: item.id || undefined,
-            title: item.title || 'Produit sans nom',
-            purchasePrice: Number(item.purchasePrice) || 0,
-            quantity: Number(item.quantity) || 1,
-            margin: Number(item.margin) || 0,
-            monthlyPayment: Number(item.monthlyPayment) || 0,
-            serialNumber: item.serialNumber || undefined,
-            // Make sure to preserve attributes and specifications exactly as they are
-            attributes: item.attributes || {},
-            specifications: item.specifications || {},
-            // Support for variants (old structure)
-            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
-          };
-        });
-      }
-      
-      // Si ce n'est pas un tableau mais un objet unique
-      if (typeof equipmentData === 'object' && equipmentData !== null) {
-        // Vérifier s'il contient un tableau 'items'
-        if (Array.isArray(equipmentData.items)) {
-          return equipmentData.items.map(item => ({
-            id: item.id || undefined,
-            title: item.title || 'Produit sans nom',
-            purchasePrice: Number(item.purchasePrice) || 0,
-            quantity: Number(item.quantity) || 1,
-            margin: Number(item.margin) || 0,
-            monthlyPayment: Number(item.monthlyPayment) || 0,
-            serialNumber: item.serialNumber || undefined,
-            attributes: item.attributes || {},
-            specifications: item.specifications || {},
-            ...(item.variants && typeof item.variants === 'object' && { specifications: item.variants })
+          if (typeof parsed === 'object' && parsed !== null) {
+            return [{
+              title: parsed.title || 'Produit sans nom',
+              purchasePrice: Number(parsed.purchasePrice) || 0,
+              quantity: Number(parsed.quantity) || 1,
+              margin: Number(parsed.margin) || 0,
+              monthlyPayment: Number(parsed.monthlyPayment) || 0,
+              attributes: parsed.attributes || {},
+              specifications: parsed.specifications || {}
+            }];
+          }
+        } catch (parseError) {
+          const items = description.split(',').map(item => item.trim());
+          return items.map(item => ({
+            title: item,
+            quantity: 1,
+            monthlyPayment: 0,
+            margin: 0,
+            attributes: {},
+            specifications: {}
           }));
         }
-        
-        // S'il a un titre, le traiter comme un seul équipement
-        if (equipmentData.title) {
-          return [{
-            title: equipmentData.title,
-            purchasePrice: Number(equipmentData.purchasePrice) || 0,
-            quantity: Number(equipmentData.quantity) || 1,
-            margin: Number(equipmentData.margin) || 0,
-            monthlyPayment: Number(equipmentData.monthlyPayment) || 0,
-            serialNumber: equipmentData.serialNumber,
-            attributes: equipmentData.attributes || {},
-            specifications: equipmentData.specifications || {},
-            ...(equipmentData.variants && typeof equipmentData.variants === 'object' && { specifications: equipmentData.variants })
-          }];
-        }
       }
       
-      // Si le format n'est pas reconnu, traiter comme un seul élément avec tout le contenu
-      return [{
-        title: 'Description équipement',
-        quantity: 1,
-        monthlyPayment: 0,
-        attributes: {},
-        specifications: {}
-      }];
+      return [];
     } catch (e) {
       console.error("Erreur lors du parsing de la description de l'équipement:", e);
-      // Si ce n'est pas un JSON valide, le traiter comme une chaîne de texte
       return [{
-        title: description,
+        title: description || 'Équipement non détaillé',
         quantity: 1,
         monthlyPayment: 0,
+        margin: 0,
         attributes: {},
         specifications: {}
       }];
     }
   };
 
-  // Récupération des équipements depuis la nouvelle structure de tables
   const fetchEquipmentData = async (offerId: string) => {
     try {
       setIsEquipmentLoading(true);
@@ -195,11 +145,9 @@ export const useOfferDetail = (offerId: string) => {
       setEquipmentData(equipment);
       
       if (equipment.length === 0 && offer?.equipment_description) {
-        // Si aucun équipement n'est trouvé, essayer de migrer depuis le JSON
         const migrationSuccess = await migrateEquipmentFromJson(offerId, offer.equipment_description);
         
         if (migrationSuccess) {
-          // Récupérer à nouveau les équipements après la migration
           const migratedEquipment = await getOfferEquipment(offerId);
           setEquipmentData(migratedEquipment);
         }
@@ -234,15 +182,12 @@ export const useOfferDetail = (offerId: string) => {
         return;
       }
 
-      // If duration is not defined, use 36 months as default
       if (!data.duration) {
         data.duration = 36;
       }
       
-      // Stocker l'offre dans l'état
       setOffer(data as OfferDetail);
       
-      // Récupérer les équipements de la nouvelle structure de tables
       fetchEquipmentData(offerId);
       
     } catch (err) {
@@ -257,7 +202,6 @@ export const useOfferDetail = (offerId: string) => {
     fetchOffer();
   }, [offerId]);
 
-  // Combiner les données d'équipement et l'offre pour l'UI
   const combinedOffer = offer ? {
     ...offer,
     parsedEquipment: equipmentData.length > 0 

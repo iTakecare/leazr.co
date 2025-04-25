@@ -140,23 +140,25 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
           </svg>
           <h4 className="text-lg">Détail de l'équipement</h4>
         </div>
-        <span className="text-blue-600 text-sm font-medium">{equipment.length} articles</span>
+        <span className="text-blue-600 text-sm font-medium">
+          {equipment.length} article{equipment.length > 1 ? 's' : ''}
+        </span>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-2 px-4 font-medium text-gray-600">Désignation</th>
-              <th className="text-center py-2 px-4 font-medium text-gray-600">Quantité</th>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-medium text-gray-600">Désignation</th>
+              <th className="text-center py-3 px-4 font-medium text-gray-600">Quantité</th>
               {!hideFinancialDetails && (
-                <th className="text-right py-2 px-4 font-medium text-gray-600">Prix mensuel</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">Prix mensuel</th>
               )}
-              <th className="text-right py-2 px-4 font-medium text-gray-600">Total mensuel</th>
-              <th className="text-right py-2 px-4 font-medium text-gray-600">Détails</th>
+              <th className="text-right py-3 px-4 font-medium text-gray-600">Total mensuel</th>
+              <th className="text-right py-3 px-4 font-medium text-gray-600">Détails</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {equipment.map((item, index) => {
               const monthlyPayment = item.monthlyPayment || 0;
               const totalItemMonthly = monthlyPayment * item.quantity;
