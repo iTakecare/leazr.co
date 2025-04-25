@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -15,6 +16,10 @@ export const createOffer = async (offerData: OfferData) => {
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
       commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
+        undefined,
+      // Convertir la marge si elle est présente
+      margin: offerData.margin !== undefined && offerData.margin !== null ?
+        (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         undefined
     };
 

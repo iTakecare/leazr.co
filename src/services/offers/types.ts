@@ -1,3 +1,4 @@
+
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -31,6 +32,8 @@ export interface OfferData {
   signer_name?: string;
   signed_at?: string;
   signer_ip?: string;
+  margin?: number | string; // Ajout de cette propriété pour résoudre les erreurs
+  equipment?: any[]; // Ajout de cette propriété pour résoudre les erreurs
 }
 
 export enum OfferStatus {
