@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, UserX2, Database } from "lucide-react";
+import { UserX2, Database } from "lucide-react";
 
 interface ClientsListProps {
   clients: Client[];
@@ -140,16 +140,6 @@ const ClientsList: React.FC<ClientsListProps> = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh} 
-            disabled={isRefreshing || !refreshClients}
-          >
-            <RefreshCcw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
-          
           <Button
             variant="outline"
             size="sm"
