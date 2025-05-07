@@ -138,16 +138,6 @@ const ClientsList: React.FC<ClientsListProps> = ({
           </Label>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleDebugView}
-          >
-            <Database className="h-4 w-4 mr-1" />
-            {debugView ? "Masquer Debug" : "Debug"}
-          </Button>
-        </div>
       </div>
       
       {debugView && (
