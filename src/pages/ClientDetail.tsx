@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
   AlertCircle, Info
 } from "lucide-react";
+import ClientCleanupButton from "@/components/clients/ClientCleanupButton";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -143,6 +143,9 @@ export default function ClientDetail() {
   const hasUserAccount = Boolean(client.has_user_account);
   const hasUserId = Boolean(client.user_id);
 
+  // Vérifier si c'est le client problématique
+  const isProblematicClient = client.id === '8270aeca-563c-4f53-9ade-6342aa7b3bd9';
+
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
@@ -162,6 +165,10 @@ export default function ClientDetail() {
           </Link>
         </div>
       </div>
+
+      {isProblematicClient && (
+        <ClientCleanupButton refreshClients={() => fetchClient()} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
