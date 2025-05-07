@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, RefreshCw
+  AlertCircle, Info
 } from "lucide-react";
 
 export default function ClientDetail() {
@@ -25,7 +26,6 @@ export default function ClientDetail() {
   const [loading, setLoading] = useState(true);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [isSyncingAccount, setIsSyncingAccount] = useState(false);
 
   const fetchClient = async () => {
     if (!id) return;
@@ -96,34 +96,6 @@ export default function ClientDetail() {
       toast.error("Erreur lors de la création du compte");
     } finally {
       setIsCreatingAccount(false);
-    }
-  };
-
-  const handleSyncAccountStatus = async () => {
-    if (!id) return;
-    
-    setIsSyncingAccount(true);
-    try {
-      const success = await syncClientUserAccountStatus(id);
-      
-      if (!success) {
-        const { success: fixSuccess, message } = await fixIncorrectUserAssociation(id);
-        
-        if (fixSuccess) {
-          await fetchClient();
-          toast.success("Association utilisateur corrigée: " + message);
-        } else {
-          toast.error("Échec de la correction: " + message);
-        }
-      } else {
-        await fetchClient();
-        toast.success("Statut du compte utilisateur synchronisé avec succès");
-      }
-    } catch (error) {
-      console.error("Error syncing account status:", error);
-      toast.error("Erreur lors de la synchronisation du statut du compte");
-    } finally {
-      setIsSyncingAccount(false);
     }
   };
 
@@ -348,7 +320,6 @@ export default function ClientDetail() {
                     {hasUserId && (
                       <p className="text-xs mt-2 font-medium">
                         Un ID utilisateur est associé mais le compte est marqué comme inactif.
-                        Utilisez le bouton de synchronisation pour corriger.
                       </p>
                     )}
                   </div>
