@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Client } from '@/types/client';
@@ -140,15 +139,6 @@ const ClientsList: React.FC<ClientsListProps> = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSyncClientAccounts}
-            disabled={isRefreshing}
-          >
-            Synchroniser les comptes
-          </Button>
-          
           <Button
             variant="outline"
             size="sm"
