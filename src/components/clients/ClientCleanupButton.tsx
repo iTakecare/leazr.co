@@ -11,43 +11,6 @@ interface ClientCleanupButtonProps {
 }
 
 export default function ClientCleanupButton({ refreshClients }: ClientCleanupButtonProps) {
-  const [isProcessing, setIsProcessing] = React.useState(false);
-  const { isAdmin } = useAuth();
-  
-  if (!isAdmin()) return null;
-  
-  const handleCleanup = async () => {
-    try {
-      setIsProcessing(true);
-      const result = await cleanupDuplicateClients();
-      
-      if (result.success) {
-        toast.success(`Nettoyage des doublons effectué avec succès. ${result.mergedCount} clients fusionnés.`);
-        if (refreshClients) {
-          await refreshClients();
-        }
-      } else {
-        toast.error(`Erreur lors du nettoyage des doublons: ${result.error}`);
-      }
-      
-      setIsProcessing(false);
-    } catch (error) {
-      console.error("Erreur lors du nettoyage des doublons:", error);
-      toast.error("Erreur lors du nettoyage des doublons");
-      setIsProcessing(false);
-    }
-  };
-  
-  return (
-    <Button 
-      onClick={handleCleanup} 
-      variant="outline" 
-      size="sm" 
-      className="ml-2"
-      disabled={isProcessing}
-    >
-      <Eraser className="h-4 w-4 mr-2" />
-      {isProcessing ? "Nettoyage en cours..." : "Nettoyer les doublons"}
-    </Button>
-  );
+  // Retourner null pour ne pas rendre le bouton
+  return null;
 }

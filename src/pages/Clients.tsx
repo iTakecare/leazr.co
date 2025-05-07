@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useClients } from "@/hooks/useClients";
 import ClientsList from "@/components/crm/ClientsList";
-import ClientCleanupButton from "@/components/clients/ClientCleanupButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -195,7 +194,6 @@ const Clients = () => {
                               <Plus className="h-3.5 w-3.5" />
                               <span>Nouveau client</span>
                             </Button>
-                            <ClientCleanupButton refreshClients={refreshClients} />
                           </div>
                         </div>
                       </div>
