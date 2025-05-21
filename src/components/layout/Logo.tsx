@@ -87,11 +87,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         </div>
       </div>
       
-      {showText && (
-        <div className="overflow-hidden flex flex-col">
-          <h1 className="text-xl font-bold">{siteInfo.siteName}</h1>
-        </div>
-      )}
+      {/* Removed the title text from here */}
     </div>
   );
 };
