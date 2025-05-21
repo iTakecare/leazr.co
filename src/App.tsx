@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/Login";
@@ -13,7 +12,6 @@ import Offers from "./pages/Offers";
 import OfferDetail from "./pages/OfferDetail";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
-import LeazrPage from "./pages/ITakecarePage";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "@/components/ui/sonner";
 import { ShadcnToaster } from "@/components/ui/toaster";
@@ -150,7 +148,6 @@ function App() {
         <Route path="offers/:id" element={<OfferDetail />} />
         <Route path="contracts" element={<Contracts />} />
         <Route path="contracts/:id" element={<ContractDetail />} />
-        <Route path="leazr" element={<LeazrPage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="create-offer" element={<CreateOffer />} />
         

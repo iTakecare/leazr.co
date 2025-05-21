@@ -3,7 +3,6 @@ import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
-import ClientLeazrPage from "@/pages/ClientITakecarePage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -236,7 +235,6 @@ const ClientRoutes = () => {
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
-        <Route path="leazr" element={<ClientLayout><ClientLeazrPage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
         <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
       </Routes>
