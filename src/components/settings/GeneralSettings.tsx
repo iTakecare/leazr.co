@@ -22,12 +22,12 @@ interface SiteSettings {
 
 const getSiteSettings = async (): Promise<SiteSettings> => {
   return {
-    site_name: 'iTakecare',
+    site_name: 'Leazr',
     site_description: 'Hub de gestion',
-    company_name: 'iTakecare SRL',
+    company_name: 'Leazr SRL',
     company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
     company_phone: '+32 71 49 16 85',
-    company_email: 'hello@itakecare.be',
+    company_email: 'contact@leazr.com',
   };
 };
 

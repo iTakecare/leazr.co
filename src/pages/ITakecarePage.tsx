@@ -2,18 +2,18 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import ITakecarePack from "@/components/packs/itakecare-pack";
+import LeazrPack from "@/components/packs/leazr-pack";
 
-const ITakecarePage = () => {
+const LeazrPage = () => {
   return (
     <PageTransition>
       <div className="pt-6">
         <Container>
-          <ITakecarePack />
+          <LeazrPack />
         </Container>
       </div>
     </PageTransition>
   );
 };
 
-export default ITakecarePage;
+export default LeazrPage;

@@ -39,7 +39,7 @@ type SupportHourOption = {
   price: number;
 };
 
-const ITakecarePack = () => {
+const LeazrPack = () => {
   const [selectedPack, setSelectedPack] = useState<string>("silver");
   const [previousPack, setPreviousPack] = useState<string>("silver");
   const [numberOfDevices, setNumberOfDevices] = useState<number>(5);
@@ -326,7 +326,7 @@ const ITakecarePack = () => {
     }
     
     if (isValid) {
-      toast.success("Pack iTakecare configuré avec succès");
+      toast.success("Pack Leazr configuré avec succès");
     }
   });
 
@@ -422,7 +422,7 @@ const ITakecarePack = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col space-y-6 max-w-5xl mx-auto">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Configurez votre Pack iTakecare</h1>
+          <h1 className="text-2xl font-bold">Configurez votre Pack Leazr</h1>
           <Button
             variant="outline"
             onClick={() => setShowComparison(!showComparison)}
@@ -619,4 +619,4 @@ const ITakecarePack = () => {
     </div>
   );
 };
-export default ITakecarePack;
+export default LeazrPack;

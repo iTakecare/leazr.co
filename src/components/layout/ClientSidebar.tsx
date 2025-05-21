@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -100,7 +99,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
     { label: "Support", icon: HelpCircle, href: "/client/support" },
-    { label: "Pack iTakecare", icon: ShieldCheck, href: "/client/itakecare", isNew: true },
+    { label: "Pack Leazr", icon: ShieldCheck, href: "/client/leazr", isNew: true },
     { label: "Paramètres", icon: Settings, href: "/client/settings" },
   ];
 

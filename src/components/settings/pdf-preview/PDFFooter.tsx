@@ -15,10 +15,10 @@ interface PDFFooterProps {
 const PDFFooter: React.FC<PDFFooterProps> = ({
   pageNumber,
   totalPages,
-  companyName = "iTakeCare",
+  companyName = "Leazr",
   companyAddress = "Avenue du Général Michel 1E, 6000 Charleroi, Belgique",
   companySiret = "TVA: BE 0795.642.894",
-  companyContact = "Tel: +32 471 511 121 - Email: hello@itakecare.be",
+  companyContact = "Tel: +32 471 511 121 - Email: contact@leazr.com",
   footerText = "Cette offre est valable 30 jours à compter de sa date d'émission.",
   zoomLevel = 1
 }) => {

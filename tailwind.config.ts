@@ -59,8 +59,8 @@ export default {
 					selected: '#4fd1c5',
 					grid: '#e2e8f0'
 				},
-				// Couleurs spécifiques pour iTakecare
-				itakecare: {
+				// Couleurs spécifiques pour Leazr
+				leazr: {
 					primary: '#48B5C3',
 					secondary: '#33638E',
 					turquoise: '#41A6B2', // Ajout de la couleur turquoise pour le footer

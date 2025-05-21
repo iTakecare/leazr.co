@@ -24,8 +24,8 @@ const PageFooter: React.FC<PageFooterProps> = ({ zoomLevel, template }) => {
         </p>
         <div className="flex justify-center items-center mt-2">
           <p className="text-center" style={{ fontSize: `${8 * zoomLevel}px` }}>
-            {template?.companyName || 'iTakeCare'} - {template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
-            {template?.companySiret || 'TVA: BE 0795.642.894'} - {template?.companyContact || 'Tel: +32 471 511 121 - Email: hello@itakecare.be'}
+            {template?.companyName || 'Leazr'} - {template?.companyAddress || 'Avenue du Général Michel 1E, 6000 Charleroi, Belgique'}<br />
+            {template?.companySiret || 'TVA: BE 0795.642.894'} - {template?.companyContact || 'Tel: +32 471 511 121 - Email: contact@leazr.com'}
           </p>
         </div>
       </div>

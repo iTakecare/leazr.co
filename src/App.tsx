@@ -13,7 +13,7 @@ import Offers from "./pages/Offers";
 import OfferDetail from "./pages/OfferDetail";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
-import ITakecarePage from "./pages/ITakecarePage";
+import LeazrPage from "./pages/ITakecarePage";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "@/components/ui/sonner";
 import { ShadcnToaster } from "@/components/ui/toaster";
@@ -150,7 +150,7 @@ function App() {
         <Route path="offers/:id" element={<OfferDetail />} />
         <Route path="contracts" element={<Contracts />} />
         <Route path="contracts/:id" element={<ContractDetail />} />
-        <Route path="i-take-care" element={<ITakecarePage />} />
+        <Route path="leazr" element={<LeazrPage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="create-offer" element={<CreateOffer />} />
         
