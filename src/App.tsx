@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/Login";
@@ -22,7 +23,6 @@ import Settings from "./pages/Settings";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import { useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
-import WebsiteManagerPage from "./pages/WebsiteManagerPage";
 
 import Signup from "./pages/Signup";
 import PublicCatalog from "./pages/PublicCatalog";
@@ -56,15 +56,8 @@ import AmbassadorClientsPage from "./pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorClientCreatePage from "./pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 import AmbassadorProductDetail from "./pages/AmbassadorPages/AmbassadorProductDetail";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
 import ContactPage from "./pages/ContactPage";
 import HubPage from "./pages/HubPage";
-
-import SolutionsPage from "./pages/SolutionsPage";
-import ServicesPage from "./pages/ServicesPage";
-import DurabilityPage from "./pages/DurabilityPage";
-import AboutPage from "./pages/AboutPage";
 
 const AdminRoute = ({ children }) => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -119,25 +112,6 @@ function App() {
       <Route index element={<Index />} />
       <Route path="/" element={<Index />} />
       
-      <Route path="/solutions" element={<SolutionsPage />} />
-      <Route path="/solutions/location" element={<SolutionsPage />} />
-      <Route path="/solutions/gestion-parc" element={<SolutionsPage />} />
-      <Route path="/solutions/cloud" element={<SolutionsPage />} />
-      <Route path="/solutions/reconditionnement" element={<SolutionsPage />} />
-      
-      <Route path="/services" element={<ServicesPage />} />
-      <Route path="/services/entreprises" element={<ServicesPage />} />
-      <Route path="/services/professionnels" element={<ServicesPage />} />
-      <Route path="/services/formations" element={<ServicesPage />} />
-      <Route path="/services/support" element={<ServicesPage />} />
-      
-      <Route path="/durabilite" element={<DurabilityPage />} />
-      <Route path="/durabilite/engagement" element={<DurabilityPage />} />
-      <Route path="/durabilite/economie-circulaire" element={<DurabilityPage />} />
-      <Route path="/durabilite/impact" element={<DurabilityPage />} />
-      
-      <Route path="/a-propos" element={<AboutPage />} />
-      
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/catalogue" element={<PublicCatalog />} />
@@ -149,9 +123,6 @@ function App() {
       <Route path="/produits/:id" element={<ProductDetailPage />} />
       <Route path="/client/sign-offer/:id" element={<SignOffer />} />
       <Route path="/client/offers/:id" element={<PublicOfferView />} />
-      
-      <Route path="/blog" element={<BlogPage />} />
-      <Route path="/blog/:slug" element={<BlogPostPage />} />
       
       <Route path="/contact" element={<ContactPage />} />
       
@@ -182,7 +153,6 @@ function App() {
         <Route path="i-take-care" element={<ITakecarePage />} />
         <Route path="settings" element={<Settings />} />
         <Route path="create-offer" element={<CreateOffer />} />
-        <Route path="website-manager" element={<WebsiteManagerPage />} />
         
         <Route path="ambassadors" element={<AmbassadorsList />} />
         <Route path="ambassadors/create" element={<AmbassadorCreatePage />} />
