@@ -15,10 +15,10 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   
-  // Utiliser le logo Leazr téléchargé
+  // Use the Leazr logo
   const fixedLogoUrl = "/lovable-uploads/d018d145-840d-4367-8d48-0cf08f7770a8.png";
   
-  // Fetch site info on component mount (uniquement pour le nom du site)
+  // Fetch site info on component mount (only for site name)
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
@@ -51,7 +51,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     fetchSiteSettings();
   }, []);
   
-  // Generate user initials or use IT by default
+  // Generate user initials or use LZ by default
   const getUserInitials = () => {
     if (!user) return "LZ";
     
@@ -66,12 +66,12 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
-        <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
+        <div className="relative flex items-center justify-center w-12 h-12 bg-background rounded-xl shadow-md overflow-hidden">
           {fixedLogoUrl ? (
             <img 
               src={fixedLogoUrl} 
               alt={siteInfo.siteName}
-              className="w-10 h-10 object-contain"
+              className="w-12 h-12 object-contain"
               onError={(e) => {
                 console.error("Error loading fixed logo image");
                 (e.target as HTMLImageElement).style.display = 'none';
@@ -89,8 +89,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
       
       {showText && (
         <div className="overflow-hidden flex flex-col">
-          <h1 className="text-lg font-bold">{siteInfo.siteName}</h1>
-          <span className="text-xs text-muted-foreground -mt-1">Location informatique éco-responsable</span>
+          <h1 className="text-xl font-bold">{siteInfo.siteName}</h1>
         </div>
       )}
     </div>
