@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Users, Package, Settings, 
   Calculator, Menu, ChevronRight, ChevronLeft,
-  X, Receipt, FileText, LogOut, ExternalLink
+  X, Receipt, FileText, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -193,17 +194,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           getUserDisplayName={getUserDisplayName}
           getUserRole={getUserRole}
           handleLogout={handleLogout}
-          additionalButton={
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full flex items-center gap-2 text-primary border-primary/20 hover:bg-primary/10 hover:shadow mb-2"
-              onClick={() => navigate('/')}
-            >
-              <ExternalLink className="h-4 w-4" />
-              Aller sur le site
-            </Button>
-          }
         />
         
         {collapsed && (
@@ -224,3 +214,4 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 };
 
 export default Sidebar;
+
