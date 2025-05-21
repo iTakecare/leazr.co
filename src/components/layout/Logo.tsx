@@ -11,12 +11,12 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   const { user } = useAuth();
   const [siteInfo, setSiteInfo] = useState({
-    siteName: "iTakecare"
+    siteName: "Leazr"
   });
   const [isLoading, setIsLoading] = useState(true);
   
-  // Image fixe à utiliser comme logo depuis le bucket Supabase
-  const fixedLogoUrl = "https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/site-settings/logos/ITC-Icone-t512.png";
+  // Utiliser le logo Leazr téléchargé
+  const fixedLogoUrl = "/lovable-uploads/d018d145-840d-4367-8d48-0cf08f7770a8.png";
   
   // Fetch site info on component mount (uniquement pour le nom du site)
   useEffect(() => {
@@ -38,7 +38,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         if (data) {
           setSiteInfo({
-            siteName: data.site_name || "iTakecare"
+            siteName: data.site_name || "Leazr"
           });
         }
       } catch (error) {
@@ -53,22 +53,19 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   
   // Generate user initials or use IT by default
   const getUserInitials = () => {
-    if (!user) return "IT";
+    if (!user) return "LZ";
     
     if (user.first_name && user.last_name) {
       return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
     } else if (user.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
-    return "IT";
+    return "LZ";
   };
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
-        <div className="absolute inset-0 bg-primary/20 rounded-xl rotate-6"></div>
-        <div className="absolute inset-0 bg-primary/10 rounded-xl -rotate-6"></div>
-        
         <div className="relative flex items-center justify-center w-10 h-10 bg-background rounded-xl shadow-md overflow-hidden">
           {fixedLogoUrl ? (
             <img 
@@ -93,7 +90,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
       {showText && (
         <div className="overflow-hidden flex flex-col">
           <h1 className="text-lg font-bold">{siteInfo.siteName}</h1>
-          <span className="text-xs text-muted-foreground -mt-1">Hub de gestion</span>
+          <span className="text-xs text-muted-foreground -mt-1">Location informatique éco-responsable</span>
         </div>
       )}
     </div>
