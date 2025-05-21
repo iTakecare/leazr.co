@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -339,7 +340,7 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">Plateforme de Gestion</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">Leazr.co</h3>
           <p className="text-white/90">
             Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
           </p>
