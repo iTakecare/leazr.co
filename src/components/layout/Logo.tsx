@@ -66,25 +66,23 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
-        <div className="relative flex items-center justify-center w-12 h-12 bg-background rounded-xl shadow-md overflow-hidden">
-          {fixedLogoUrl ? (
-            <img 
-              src={fixedLogoUrl} 
-              alt={siteInfo.siteName}
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                console.error("Error loading fixed logo image");
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : isLoading ? (
-            <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
-          ) : (
-            <span className="font-bold text-primary text-lg">
-              {getUserInitials()}
-            </span>
-          )}
-        </div>
+        {fixedLogoUrl ? (
+          <img 
+            src={fixedLogoUrl} 
+            alt={siteInfo.siteName}
+            className="w-20 h-20 object-contain" // Augmenté de w-12 h-12 à w-20 h-20
+            onError={(e) => {
+              console.error("Error loading fixed logo image");
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : isLoading ? (
+          <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
+        ) : (
+          <span className="font-bold text-primary text-lg">
+            {getUserInitials()}
+          </span>
+        )}
       </div>
       
       {/* Removed the title text from here */}
