@@ -1,7 +1,6 @@
+
 import React from "react";
 import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
-import HomeFooter from "@/components/home/HomeFooter";
-import CtaSection from "@/components/home/CtaSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -155,8 +154,48 @@ const ContactPage = () => {
           </div>
         </div>
         
-        <CtaSection />
-        <HomeFooter />
+        <div className="mt-20 bg-[#48b5c3] text-white py-16">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-8">Besoin d'aide supplémentaire?</h2>
+            <div className="text-center">
+              <Button
+                variant="outline"
+                className="bg-white text-[#48b5c3] hover:bg-gray-100 border-none"
+              >
+                Voir notre FAQ
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <footer className="bg-gray-800 text-white py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div>
+                <h3 className="text-xl font-bold mb-4">Notre entreprise</h3>
+                <p className="text-gray-300 mb-4">
+                  Solutions informatiques professionnelles pour entreprises et particuliers.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-4">Contact</h3>
+                <p className="text-gray-300">contact@example.com</p>
+                <p className="text-gray-300">+33 1 23 45 67 89</p>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-4">Liens rapides</h3>
+                <ul className="space-y-2 text-gray-300">
+                  <li><a href="/login" className="hover:text-white">Connexion</a></li>
+                  <li><a href="/solutions" className="hover:text-white">Solutions</a></li>
+                  <li><a href="/services" className="hover:text-white">Services</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+              <p>© {new Date().getFullYear()} Tous droits réservés</p>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
