@@ -8,7 +8,6 @@ import {
   Clock,
   Package,
   LogOut,
-  ShieldCheck,
   Menu,
   ChevronLeft,
   ChevronRight,
@@ -99,7 +98,6 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
     { label: "Catalogue", icon: Package, href: "/client/catalog" },
     { label: "Support", icon: HelpCircle, href: "/client/support" },
-    { label: "Pack Leazr", icon: ShieldCheck, href: "/client/leazr", isNew: true },
     { label: "Paramètres", icon: Settings, href: "/client/settings" },
   ];
 

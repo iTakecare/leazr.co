@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Users, Package, Settings, 
-  Calculator, ShieldCheck, Menu, ChevronRight, ChevronLeft,
-  X, Receipt, FileText, LogOut, ExternalLink, Globe
+  Calculator, Menu, ChevronRight, ChevronLeft,
+  X, Receipt, FileText, LogOut, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -43,9 +43,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Offres", icon: Receipt, href: "/offers" },
     { label: "Contrats", icon: FileText, href: "/contracts" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
-    { label: "Pack iTakecare", icon: ShieldCheck, href: "/i-take-care" },
     { label: "Calculateur", icon: Calculator, href: "/create-offer" },
-    { label: "Site Web", icon: Globe, href: "/website-manager" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
