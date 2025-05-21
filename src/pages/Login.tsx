@@ -214,11 +214,8 @@ const Login = () => {
     <PageTransition className="min-h-screen flex overflow-hidden">
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
-          <div className="flex flex-col items-center justify-center mb-2">
-            <Logo className="scale-150 mb-8" />
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-6">
-              Bienvenue sur votre plateforme de gestion
-            </h2>
+          <div className="flex flex-col items-center justify-center mb-6">
+            <Logo className="scale-175 mb-6" />
           </div>
           
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
