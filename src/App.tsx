@@ -22,7 +22,6 @@ import { AnimatePresence } from "framer-motion";
 import Settings from "./pages/Settings";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import { useAuth } from "@/context/AuthContext";
-import Index from "./pages/Index";
 
 import Signup from "./pages/Signup";
 import PublicCatalog from "./pages/PublicCatalog";
@@ -67,7 +66,7 @@ const AdminRoute = ({ children }) => {
   }
   
   if (!user || !isAdmin()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   return children;
@@ -81,7 +80,7 @@ const PartnerRoute = ({ children }) => {
   }
   
   if (!user || !isPartner()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   return children;
@@ -95,7 +94,7 @@ const AmbassadorRoute = ({ children }) => {
   }
   
   if (!user || !isAmbassador()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   return children;
@@ -109,8 +108,9 @@ function App() {
 
   return (
     <Routes>
-      <Route index element={<Index />} />
-      <Route path="/" element={<Index />} />
+      {/* Redirection de la page d'accueil vers login */}
+      <Route index element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -215,21 +216,9 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-2">
-            <Logo className="scale-175 mb-6" showText={false} />
-            <p className="text-xl font-semibold text-black mb-4">
-              iTakecare
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate('/')} 
-              className="mb-8 flex items-center gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Aller sur le site
-            </Button>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">
-              Bienvenue
+            <Logo className="scale-175 mb-6" />
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-6">
+              Bienvenue sur votre plateforme de gestion
             </h2>
           </div>
           
@@ -320,6 +309,12 @@ const Login = () => {
                     </span>
                   }
                 </Button>
+                
+                <div className="w-full text-center">
+                  <Link to="/signup" className="text-sm text-blue-600 hover:underline">
+                    Pas de compte ? Inscrivez-vous
+                  </Link>
+                </div>
               </CardFooter>
             </form>
           </Card>
@@ -348,7 +343,7 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">iTakecare</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">Plateforme de Gestion</h3>
           <p className="text-white/90">
             Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
           </p>
