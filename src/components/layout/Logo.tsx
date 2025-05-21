@@ -70,7 +70,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           <img 
             src={fixedLogoUrl} 
             alt={siteInfo.siteName}
-            className="w-20 h-20 object-contain" // Augmenté de w-12 h-12 à w-20 h-20
+            className="w-28 h-28 object-contain" // Augmenté de w-20 h-20 à w-28 h-28
             onError={(e) => {
               console.error("Error loading fixed logo image");
               (e.target as HTMLImageElement).style.display = 'none';
