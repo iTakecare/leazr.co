@@ -29,8 +29,6 @@ const GeneralSettings = () => {
         } else {
           // Si aucune donnée n'est retournée, initialiser avec des valeurs par défaut
           setSettings({
-            site_name: 'Leazr',
-            site_description: 'Hub de gestion',
             company_name: 'Leazr SRL',
             company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
             company_phone: '+32 71 49 16 85',
@@ -66,12 +64,13 @@ const GeneralSettings = () => {
       // S'assurer que toutes les propriétés requises sont présentes
       const updatedSettings: SiteSettings = {
         id: settings.id,
-        site_name: settings.site_name,
-        site_description: settings.site_description || '',
         company_name: settings.company_name || '',
         company_address: settings.company_address || '',
         company_phone: settings.company_phone || '',
-        company_email: settings.company_email || ''
+        company_email: settings.company_email || '',
+        // Conserver les champs site_name et site_description pour la compatibilité
+        site_name: settings.site_name || 'Leazr',
+        site_description: settings.site_description || 'Hub de gestion'
       };
       
       const success = await updateSiteSettings(updatedSettings);
@@ -97,7 +96,7 @@ const GeneralSettings = () => {
           <Skeleton className="h-4 w-1/2" />
         </CardHeader>
         <CardContent className="space-y-4">
-          {[1, 2, 3, 4, 5].map(i => <div key={i} className="space-y-2">
+          {[1, 2, 3, 4].map(i => <div key={i} className="space-y-2">
               <Skeleton className="h-4 w-1/4" />
               <Skeleton className="h-10 w-full" />
             </div>)}
@@ -109,7 +108,7 @@ const GeneralSettings = () => {
       <CardHeader>
         <CardTitle>Paramètres généraux</CardTitle>
         <CardDescription>
-          Configurez les informations générales de votre application
+          Configurez les informations de votre entreprise
         </CardDescription>
       </CardHeader>
       
@@ -123,18 +122,6 @@ const GeneralSettings = () => {
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="site_name">Nom du site</Label>
-            <Input id="site_name" name="site_name" value={settings?.site_name || ''} onChange={handleInputChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="site_description">Description du site</Label>
-            <Textarea id="site_description" name="site_description" value={settings?.site_description || ''} onChange={handleInputChange} rows={2} />
-          </div>
-          
-          <Separator className="my-4" />
-          
           <div className="space-y-2">
             <Label htmlFor="company_name">Nom de l'entreprise</Label>
             <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />
@@ -160,7 +147,7 @@ const GeneralSettings = () => {
       </CardContent>
       
       <CardFooter className="justify-end">
-        <Button onClick={handleSave} disabled={isSaving || !settings?.site_name}>
+        <Button onClick={handleSave} disabled={isSaving || !settings?.company_name}>
           {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </CardFooter>

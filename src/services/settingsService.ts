@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 
 export interface SiteSettings {
   id?: number;
-  site_name: string;
+  site_name?: string;
   site_description?: string;
-  company_name?: string;
+  company_name: string;
   company_address?: string;
   company_phone?: string;
   company_email?: string;
@@ -53,8 +53,8 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
         const { data, error } = await supabase
           .from('site_settings')
           .insert([{
-            site_name: settings.site_name || 'iTakecare',
-            site_description: settings.site_description,
+            site_name: settings.site_name || 'Leazr',
+            site_description: settings.site_description || 'Hub de gestion',
             company_name: settings.company_name,
             company_address: settings.company_address,
             company_phone: settings.company_phone,
