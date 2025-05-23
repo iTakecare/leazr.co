@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LeaserManager from "@/components/settings/LeaserManager";
 import CommissionManager from "@/components/settings/CommissionManager";
 import EmailSettings from "@/components/settings/EmailSettings";
-import WooCommerceImporter from "@/components/settings/WooCommerceImporter";
 import PDFTemplateManager from "@/components/settings/PDFTemplateManager";
 import PDFTemplateList from "@/components/settings/PDFTemplateList";
 import DataImporter from "@/components/settings/DataImporter";
@@ -45,13 +45,12 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="general">Général</TabsTrigger>
           <TabsTrigger value="leasers">Sociétés de Leasing</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="pdf">Modèles PDF</TabsTrigger>
           <TabsTrigger value="email">Emails</TabsTrigger>
-          <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
           <TabsTrigger value="import">Import Données</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
         </TabsList>
@@ -112,20 +111,6 @@ const Settings = () => {
             </CardHeader>
             <CardContent>
               <EmailSettings />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="woocommerce">
-          <Card>
-            <CardHeader>
-              <CardTitle>Importation WooCommerce</CardTitle>
-              <CardDescription>
-                Importez vos produits depuis WooCommerce
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WooCommerceImporter />
             </CardContent>
           </Card>
         </TabsContent>
