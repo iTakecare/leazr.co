@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -6,6 +7,8 @@ import { toast } from 'sonner';
  */
 export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
+    console.log(`Tentative de vérification/création du bucket: ${bucketName}`);
+    
     // Vérifier si le bucket existe déjà
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
@@ -14,33 +17,44 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
       return false;
     }
     
-    // Vérifier si le bucket existe
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-    
-    if (bucketExists) {
+    // Si le bucket existe, tout va bien
+    if (buckets.some(bucket => bucket.name === bucketName)) {
+      console.log(`Le bucket ${bucketName} existe déjà.`);
       return true;
     }
     
-    // Au lieu de créer le bucket nous-mêmes, utilisons la fonction RPC définie dans la base de données
-    const { data: funcData, error: funcError } = await supabase.rpc('ensure_site_settings_bucket');
+    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
     
-    if (funcError) {
-      console.error("Erreur lors de la création du bucket via RPC:", funcError);
+    // Essayer de créer le bucket directement
+    const { data: createData, error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true
+    });
+    
+    if (createError) {
+      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
       
-      // Tentative alternative d'utilisation de la fonction plus générique
-      const { data: genericData, error: genericError } = await supabase.rpc('create_storage_bucket', { 
-        bucket_name: bucketName 
-      });
-      
-      if (genericError) {
-        console.error("Erreur lors de la création du bucket via create_storage_bucket:", genericError);
+      // Essayer d'utiliser la fonction RPC personnalisée
+      try {
+        const { data: funcData, error: funcError } = await supabase.rpc('create_storage_bucket', { 
+          bucket_name: bucketName 
+        });
+        
+        if (funcError) {
+          console.error("Erreur lors de la création du bucket via RPC:", funcError);
+          console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé.`);
+          return false;
+        }
+        
+        console.log(`Bucket ${bucketName} créé via RPC avec succès.`);
+        return true;
+      } catch (rpcError) {
+        console.error("Exception lors de l'appel RPC:", rpcError);
         return false;
       }
     }
     
-    // Vérifiez à nouveau si le bucket existe après la tentative de création
-    const { data: checkBuckets } = await supabase.storage.listBuckets();
-    return checkBuckets?.some(bucket => bucket.name === bucketName) || false;
+    console.log(`Bucket ${bucketName} créé avec succès.`);
+    return true;
   } catch (error) {
     console.error(`Erreur générale dans ensureBucket pour ${bucketName}:`, error);
     return false;
@@ -56,7 +70,7 @@ export const uploadImage = async (
   folder: string = ""
 ): Promise<string | null> => {
   try {
-    // S'assurer que le bucket existe
+    // S'assurer que le bucket existe avant de télécharger
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
       console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé.`);

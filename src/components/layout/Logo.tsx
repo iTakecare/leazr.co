@@ -16,22 +16,25 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     logoUrl: null as string | null
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   
   // Fetch site info on component mount (for site name and logo)
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
         setIsLoading(true);
+        setLoadError(false);
         
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase
           .from('site_settings')
           .select('site_name, logo_url')
           .limit(1)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching site settings:", error);
+          setLoadError(true);
           return;
         }
         
@@ -43,6 +46,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         }
       } catch (error) {
         console.error("Error in Logo component:", error);
+        setLoadError(true);
       } finally {
         setIsLoading(false);
       }
@@ -66,18 +70,20 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   // URL avec cache-busting pour éviter les problèmes de cache
   const logoUrl = siteInfo.logoUrl ? getCacheBustedUrl(siteInfo.logoUrl) : null;
 
+  const handleImageError = () => {
+    console.error("Error loading logo image");
+    setLoadError(true);
+  };
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="relative flex-shrink-0">
-        {logoUrl ? (
+      <div className="relative flex-shrink-0 w-8 h-8">
+        {logoUrl && !loadError ? (
           <img 
             src={logoUrl} 
             alt={siteInfo.siteName}
-            className="w-28 h-28 object-contain" 
-            onError={(e) => {
-              console.error("Error loading logo image");
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            className="w-full h-full object-contain" 
+            onError={handleImageError}
           />
         ) : isLoading ? (
           <div className="animate-pulse bg-gray-200 w-6 h-6 rounded-md"></div>
@@ -87,6 +93,9 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           </span>
         )}
       </div>
+      {showText && (
+        <span className="font-semibold">{siteInfo.siteName}</span>
+      )}
     </div>
   );
 };

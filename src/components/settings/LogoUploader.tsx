@@ -67,7 +67,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
       }
     } catch (error) {
       console.error("Erreur de téléchargement:", error);
-      setErrorMessage("Erreur lors du téléchargement du logo");
+      setErrorMessage("Erreur lors du téléchargement du logo. Vérifiez les permissions du bucket de stockage.");
       toast.error("Erreur lors du téléchargement du logo");
     } finally {
       setIsUploading(false);
@@ -83,6 +83,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setRetryCount(prev => prev + 1);
     setErrorMessage(null);
     toast.info("Rafraîchissement du logo...");
+    
+    // Tenter de recharger le logo
+    if (logoUrl) {
+      const refreshedUrl = getCacheBustedUrl(logoUrl);
+      setLogoUrl(refreshedUrl);
+    }
   };
   
   const handleRemove = () => {

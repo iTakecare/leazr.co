@@ -14,7 +14,7 @@ import GeneralSettings from "@/components/settings/GeneralSettings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getCacheBustedUrl } from '@/utils/imageUtils';
+import { getCacheBustedUrl } from '@/services/fileUploadService';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
