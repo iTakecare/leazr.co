@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,6 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 interface SiteSettings {
   site_name: string;
   site_description: string;
@@ -19,7 +17,6 @@ interface SiteSettings {
   company_phone: string;
   company_email: string;
 }
-
 const getSiteSettings = async (): Promise<SiteSettings> => {
   return {
     site_name: 'Leazr',
@@ -27,22 +24,19 @@ const getSiteSettings = async (): Promise<SiteSettings> => {
     company_name: 'Leazr SRL',
     company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
     company_phone: '+32 71 49 16 85',
-    company_email: 'contact@leazr.com',
+    company_email: 'contact@leazr.com'
   };
 };
-
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        
         const data = await getSiteSettings();
         setSettings(data);
       } catch (err) {
@@ -52,39 +46,37 @@ const GeneralSettings = () => {
         setIsLoading(false);
       }
     };
-
     loadSettings();
   }, []);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const {
+      name,
+      value
+    } = e.target;
     if (settings) {
       setSettings({
         ...settings,
-        [name]: value,
+        [name]: value
       });
     }
   };
-
   const handleSave = async () => {
     if (!settings) return;
-    
     try {
       setIsSaving(true);
       setError(null);
-      
       const updated = {
         site_name: settings.site_name,
         site_description: settings.site_description,
         company_name: settings.company_name,
         company_address: settings.company_address,
         company_phone: settings.company_phone,
-        company_email: settings.company_email,
+        company_email: settings.company_email
       };
-      
-      const { updateSiteSettings } = await import('@/services/settingsService');
+      const {
+        updateSiteSettings
+      } = await import('@/services/settingsService');
       const success = await updateSiteSettings(updated);
-      
       if (success) {
         toast.success("Paramètres enregistrés avec succès");
       } else {
@@ -99,28 +91,21 @@ const GeneralSettings = () => {
       setIsSaving(false);
     }
   };
-
   if (isLoading) {
-    return (
-      <Card>
+    return <Card>
         <CardHeader>
           <Skeleton className="h-8 w-1/3 mb-2" />
           <Skeleton className="h-4 w-1/2" />
         </CardHeader>
         <CardContent className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="space-y-2">
+          {[1, 2, 3, 4, 5].map(i => <div key={i} className="space-y-2">
               <Skeleton className="h-4 w-1/4" />
               <Skeleton className="h-10 w-full" />
-            </div>
-          ))}
+            </div>)}
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <CardTitle>Paramètres généraux</CardTitle>
         <CardDescription>
@@ -128,84 +113,50 @@ const GeneralSettings = () => {
         </CardDescription>
       </CardHeader>
       
-      {error && (
-        <CardContent>
+      {error && <CardContent>
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        </CardContent>
-      )}
+        </CardContent>}
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <Label htmlFor="site_name">Nom de l'entreprise</Label>
-          <Input
-            id="site_name"
-            name="site_name"
-            value={settings?.site_name || ''}
-            onChange={handleInputChange}
-          />
+          
+          
           
           <Separator className="my-4" />
           
           <div className="space-y-2">
             <Label htmlFor="company_name">Nom de l'entreprise</Label>
-            <Input
-              id="company_name"
-              name="company_name"
-              value={settings?.company_name || ''}
-              onChange={handleInputChange}
-            />
+            <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="company_address">Adresse</Label>
-            <Textarea
-              id="company_address"
-              name="company_address"
-              value={settings?.company_address || ''}
-              onChange={handleInputChange}
-              rows={2}
-            />
+            <Textarea id="company_address" name="company_address" value={settings?.company_address || ''} onChange={handleInputChange} rows={2} />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company_phone">Téléphone</Label>
-              <Input
-                id="company_phone"
-                name="company_phone"
-                value={settings?.company_phone || ''}
-                onChange={handleInputChange}
-              />
+              <Input id="company_phone" name="company_phone" value={settings?.company_phone || ''} onChange={handleInputChange} />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="company_email">Email</Label>
-              <Input
-                id="company_email"
-                name="company_email"
-                type="email"
-                value={settings?.company_email || ''}
-                onChange={handleInputChange}
-              />
+              <Input id="company_email" name="company_email" type="email" value={settings?.company_email || ''} onChange={handleInputChange} />
             </div>
           </div>
         </div>
       </CardContent>
       
       <CardFooter className="justify-end">
-        <Button 
-          onClick={handleSave} 
-          disabled={isSaving || !settings?.site_name}
-        >
+        <Button onClick={handleSave} disabled={isSaving || !settings?.site_name}>
           {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </CardFooter>
-    </Card>
-  );
+    </Card>;
 };
-
 export default GeneralSettings;
