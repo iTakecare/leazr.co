@@ -10,17 +10,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getSiteSettings, updateSiteSettings } from '@/services/settingsService';
-
-interface SiteSettings {
-  id?: number;
-  site_name: string;
-  site_description: string;
-  company_name: string;
-  company_address: string;
-  company_phone: string;
-  company_email: string;
-}
+import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -74,14 +64,14 @@ const GeneralSettings = () => {
       setError(null);
       
       // S'assurer que toutes les propriétés requises sont présentes
-      const updatedSettings = {
+      const updatedSettings: SiteSettings = {
         id: settings.id,
         site_name: settings.site_name,
-        site_description: settings.site_description,
-        company_name: settings.company_name,
-        company_address: settings.company_address,
-        company_phone: settings.company_phone,
-        company_email: settings.company_email
+        site_description: settings.site_description || '',
+        company_name: settings.company_name || '',
+        company_address: settings.company_address || '',
+        company_phone: settings.company_phone || '',
+        company_email: settings.company_email || ''
       };
       
       const success = await updateSiteSettings(updatedSettings);
