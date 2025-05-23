@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,15 +140,13 @@ const GeneralSettings = () => {
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <div className="space-y-2 mb-6">
-            <Label htmlFor="site_name">Nom de l'entreprise</Label>
-            <Input
-              id="site_name"
-              name="site_name"
-              value={settings?.site_name || ''}
-              onChange={handleInputChange}
-            />
-          </div>
+          <Label htmlFor="site_name">Nom de l'entreprise</Label>
+          <Input
+            id="site_name"
+            name="site_name"
+            value={settings?.site_name || ''}
+            onChange={handleInputChange}
+          />
           
           <Separator className="my-4" />
           
