@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +9,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getSiteSettings, updateSiteSettings } from '@/services/settingsService';
-
 interface SiteSettings {
-  id?: number;
   site_name: string;
   site_description: string;
   company_name: string;
@@ -21,13 +17,21 @@ interface SiteSettings {
   company_phone: string;
   company_email: string;
 }
-
+const getSiteSettings = async (): Promise<SiteSettings> => {
+  return {
+    site_name: 'Leazr',
+    site_description: 'Hub de gestion',
+    company_name: 'Leazr SRL',
+    company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
+    company_phone: '+32 71 49 16 85',
+    company_email: 'contact@leazr.com'
+  };
+};
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -44,9 +48,11 @@ const GeneralSettings = () => {
     };
     loadSettings();
   }, []);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const {
+      name,
+      value
+    } = e.target;
     if (settings) {
       setSettings({
         ...settings,
@@ -54,15 +60,12 @@ const GeneralSettings = () => {
       });
     }
   };
-
   const handleSave = async () => {
     if (!settings) return;
     try {
       setIsSaving(true);
       setError(null);
-      // Inclure tous les champs nécessaires dans l'objet updated
       const updated = {
-        id: settings.id,
         site_name: settings.site_name,
         site_description: settings.site_description,
         company_name: settings.company_name,
@@ -70,9 +73,10 @@ const GeneralSettings = () => {
         company_phone: settings.company_phone,
         company_email: settings.company_email
       };
-      
+      const {
+        updateSiteSettings
+      } = await import('@/services/settingsService');
       const success = await updateSiteSettings(updated);
-      
       if (success) {
         toast.success("Paramètres enregistrés avec succès");
       } else {
@@ -87,7 +91,6 @@ const GeneralSettings = () => {
       setIsSaving(false);
     }
   };
-
   if (isLoading) {
     return <Card>
         <CardHeader>
@@ -102,7 +105,6 @@ const GeneralSettings = () => {
         </CardContent>
       </Card>;
   }
-
   return <Card>
       <CardHeader>
         <CardTitle>Paramètres généraux</CardTitle>
@@ -121,26 +123,8 @@ const GeneralSettings = () => {
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="site_name">Nom du site</Label>
-            <Input 
-              id="site_name" 
-              name="site_name" 
-              value={settings?.site_name || ''} 
-              onChange={handleInputChange}
-            />
-          </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="site_description">Description du site</Label>
-            <Textarea 
-              id="site_description" 
-              name="site_description" 
-              value={settings?.site_description || ''} 
-              onChange={handleInputChange}
-              rows={2}
-            />
-          </div>
+          
           
           <Separator className="my-4" />
           
@@ -175,5 +159,4 @@ const GeneralSettings = () => {
       </CardFooter>
     </Card>;
 };
-
 export default GeneralSettings;
