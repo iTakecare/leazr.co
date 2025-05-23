@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoProps {
   className?: string;
@@ -11,14 +12,12 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
   const { user } = useAuth();
   const [siteInfo, setSiteInfo] = useState({
-    siteName: "Leazr"
+    siteName: "Leazr",
+    logoUrl: null as string | null
   });
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use the Leazr logo
-  const fixedLogoUrl = "/lovable-uploads/d018d145-840d-4367-8d48-0cf08f7770a8.png";
-  
-  // Fetch site info on component mount (only for site name)
+  // Fetch site info on component mount (for site name and logo)
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
@@ -27,7 +26,7 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase
           .from('site_settings')
-          .select('site_name')
+          .select('site_name, logo_url')
           .limit(1)
           .single();
         
@@ -38,7 +37,8 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
         
         if (data) {
           setSiteInfo({
-            siteName: data.site_name || "Leazr"
+            siteName: data.site_name || "Leazr",
+            logoUrl: data.logo_url
           });
         }
       } catch (error) {
@@ -63,16 +63,19 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
     return "LZ";
   };
 
+  // URL avec cache-busting pour éviter les problèmes de cache
+  const logoUrl = siteInfo.logoUrl ? getCacheBustedUrl(siteInfo.logoUrl) : null;
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative flex-shrink-0">
-        {fixedLogoUrl ? (
+        {logoUrl ? (
           <img 
-            src={fixedLogoUrl} 
+            src={logoUrl} 
             alt={siteInfo.siteName}
-            className="w-28 h-28 object-contain" // Augmenté de w-20 h-20 à w-28 h-28
+            className="w-28 h-28 object-contain" 
             onError={(e) => {
-              console.error("Error loading fixed logo image");
+              console.error("Error loading logo image");
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
@@ -84,8 +87,6 @@ const Logo: React.FC<LogoProps> = ({ className, showText = true }) => {
           </span>
         )}
       </div>
-      
-      {/* Removed the title text from here */}
     </div>
   );
 };

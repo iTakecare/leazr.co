@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
+import LogoUploader from './LogoUploader';
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -55,6 +56,15 @@ const GeneralSettings = () => {
     }
   };
 
+  const handleLogoUploaded = (logoUrl: string) => {
+    if (settings) {
+      setSettings({
+        ...settings,
+        logo_url: logoUrl
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!settings) return;
     try {
@@ -68,6 +78,7 @@ const GeneralSettings = () => {
         company_address: settings.company_address || '',
         company_phone: settings.company_phone || '',
         company_email: settings.company_email || '',
+        logo_url: settings.logo_url || '',
         // Conserver les champs site_name et site_description pour la compatibilité
         site_name: settings.site_name || 'Leazr',
         site_description: settings.site_description || 'Hub de gestion'
@@ -122,6 +133,16 @@ const GeneralSettings = () => {
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Logo de l'entreprise</Label>
+            <LogoUploader 
+              initialLogoUrl={settings?.logo_url || ''}
+              onLogoUploaded={handleLogoUploaded}
+            />
+          </div>
+          
+          <Separator className="my-4" />
+          
           <div className="space-y-2">
             <Label htmlFor="company_name">Nom de l'entreprise</Label>
             <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />

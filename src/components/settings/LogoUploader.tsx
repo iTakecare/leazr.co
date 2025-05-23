@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { ensureBucketExists, uploadFileDirectly, getCacheBustedUrl } from "@/services/directFileUploadService";
+import { uploadImage, getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -27,36 +27,11 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Fonction pour vérifier si une chaîne est potentiellement du JSON
-  const isPotentiallyJSON = (str: string): boolean => {
-    return (typeof str === 'string') && (str.startsWith('{') || str.startsWith('['));
-  };
-  
-  // Ajouter un paramètre de cache-busting à l'URL
-  const getCacheBustedUrlLocal = (url: string | null): string => {
-    if (!url) return '';
-    
-    // Si c'est un objet JSON, ne pas l'utiliser
-    if (isPotentiallyJSON(url)) {
-      console.error("L'URL du logo semble être un objet JSON invalide:", url);
-      return '';
-    }
-    
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${Date.now()}&r=${retryCount}`;
-  };
-  
   useEffect(() => {
     if (initialLogoUrl) {
-      // Vérifier si c'est un objet JSON (cas d'erreur)
-      if (isPotentiallyJSON(initialLogoUrl)) {
-        console.error("L'URL initiale du logo est un JSON, ne pas l'afficher:", initialLogoUrl);
-        setLogoUrl(null);
-      } else {
-        setLogoUrl(initialLogoUrl);
-      }
+      setLogoUrl(initialLogoUrl);
     }
-  }, [initialLogoUrl, retryCount]);
+  }, [initialLogoUrl]);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,22 +53,9 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      // S'assurer que le bucket existe
-      const bucketExists = await ensureBucketExists(bucketName);
-      
-      if (!bucketExists) {
-        throw new Error(`Impossible de créer ou d'accéder au bucket ${bucketName}`);
-      }
-      
-      // Upload du fichier
-      const url = await uploadFileDirectly(file, bucketName, folderPath);
+      const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
-        // S'assurer que l'URL n'est pas un objet JSON
-        if (isPotentiallyJSON(url)) {
-          throw new Error("L'URL retournée semble être un JSON, pas une URL d'image valide");
-        }
-        
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -138,7 +100,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   };
 
   // URL avec cache-busting pour l'affichage
-  const displayLogoUrl = logoUrl ? getCacheBustedUrlLocal(logoUrl) : '';
+  const displayLogoUrl = logoUrl ? getCacheBustedUrl(logoUrl) : '';
 
   return (
     <div className="space-y-4">
@@ -164,11 +126,8 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
                 src={displayLogoUrl} 
                 alt="Logo du site" 
                 className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                  console.error("Erreur de chargement de l'image du logo:", logoUrl);
+                onError={() => {
                   setErrorMessage("Impossible de charger l'image. Réessayez ou choisissez une autre image.");
-                  // Cacher l'image en erreur
-                  (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
               {uploadSuccess && (

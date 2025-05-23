@@ -10,6 +10,7 @@ export interface SiteSettings {
   company_address?: string;
   company_phone?: string;
   company_email?: string;
+  logo_url?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -58,7 +59,8 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
             company_name: settings.company_name,
             company_address: settings.company_address,
             company_phone: settings.company_phone,
-            company_email: settings.company_email
+            company_email: settings.company_email,
+            logo_url: settings.logo_url
           }])
           .select()
           .single();
