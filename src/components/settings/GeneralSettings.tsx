@@ -139,7 +139,7 @@ const GeneralSettings = () => {
       
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 mb-6">
             <Label htmlFor="site_name">Nom de l'entreprise</Label>
             <Input
               id="site_name"
