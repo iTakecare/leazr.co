@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,17 +146,6 @@ const GeneralSettings = () => {
               name="site_name"
               value={settings?.site_name || ''}
               onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="site_description">Description du site</Label>
-            <Textarea
-              id="site_description"
-              name="site_description"
-              value={settings?.site_description || ''}
-              onChange={handleInputChange}
-              rows={3}
             />
           </div>
           
