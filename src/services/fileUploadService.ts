@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,37 +21,26 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
       return true;
     }
     
-    // Créer le bucket s'il n'existe pas
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true,
-      fileSizeLimit: 10485760 // 10MB
-    });
+    // Au lieu de créer le bucket nous-mêmes, utilisons la fonction RPC définie dans la base de données
+    const { data: funcData, error: funcError } = await supabase.rpc('ensure_site_settings_bucket');
     
-    if (createError) {
-      if (createError.message.includes('already exists')) {
-        return true;
-      }
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-      return false;
-    }
-    
-    // Créer des politiques publiques pour le bucket
-    try {
-      const { data: createRpcData, error: rpcError } = await supabase.rpc('create_storage_policy', { 
-        bucket_name: bucketName,
-        policy_name: `${bucketName}_public_select`,
-        definition: 'TRUE',
-        policy_type: 'SELECT'
+    if (funcError) {
+      console.error("Erreur lors de la création du bucket via RPC:", funcError);
+      
+      // Tentative alternative d'utilisation de la fonction plus générique
+      const { data: genericData, error: genericError } = await supabase.rpc('create_storage_bucket', { 
+        bucket_name: bucketName 
       });
       
-      if (rpcError) {
-        console.error(`Erreur lors de la création des politiques pour ${bucketName}:`, rpcError);
+      if (genericError) {
+        console.error("Erreur lors de la création du bucket via create_storage_bucket:", genericError);
+        return false;
       }
-    } catch (error) {
-      console.error("Erreur lors de la création des politiques:", error);
     }
     
-    return true;
+    // Vérifiez à nouveau si le bucket existe après la tentative de création
+    const { data: checkBuckets } = await supabase.storage.listBuckets();
+    return checkBuckets?.some(bucket => bucket.name === bucketName) || false;
   } catch (error) {
     console.error(`Erreur générale dans ensureBucket pour ${bucketName}:`, error);
     return false;
@@ -71,8 +59,9 @@ export const uploadImage = async (
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
+      console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé.`);
       toast.error(`Erreur: Impossible d'accéder au stockage`);
-      return null;
+      throw new Error("Erreur lors du téléchargement du logo");
     }
 
     // Créer un nom de fichier unique
@@ -94,7 +83,7 @@ export const uploadImage = async (
 
     if (error) {
       console.error("Erreur d'upload:", error);
-      return null;
+      throw new Error("Erreur lors du téléchargement du logo");
     }
 
     // Récupérer l'URL publique
@@ -105,7 +94,7 @@ export const uploadImage = async (
     return urlData.publicUrl;
   } catch (error) {
     console.error("Erreur lors du téléchargement de l'image:", error);
-    return null;
+    throw error;
   }
 };
 

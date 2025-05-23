@@ -64,8 +64,6 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         }
         
         toast.success("Logo téléchargé avec succès");
-      } else {
-        throw new Error("Erreur lors du téléchargement du logo");
       }
     } catch (error) {
       console.error("Erreur de téléchargement:", error);
@@ -87,7 +85,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     toast.info("Rafraîchissement du logo...");
   };
   
-  const handleRemove = async () => {
+  const handleRemove = () => {
     if (!logoUrl) return;
     
     setLogoUrl(null);
