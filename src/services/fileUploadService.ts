@@ -59,7 +59,6 @@ export const uploadImage = async (
       name: file.name,
       type: file.type,
       size: file.size,
-      constructor: file.constructor.name,
       isFile: file instanceof File,
       isBlob: file instanceof Blob
     });
@@ -68,7 +67,6 @@ export const uploadImage = async (
     if (!(file instanceof File)) {
       console.error("ERREUR CRITIQUE: L'objet reçu n'est PAS un File:", {
         typeOf: typeof file,
-        constructor: file?.constructor?.name,
         isArray: Array.isArray(file),
         stringified: JSON.stringify(file).substring(0, 100)
       });
