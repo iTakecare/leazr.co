@@ -54,7 +54,7 @@ serve(async (req) => {
       logStep("Found existing customer", { customerId });
     }
 
-    // Plan pricing
+    // Plan pricing en euros
     const planPricing = {
       starter: { amount: 4900, name: "Plan Starter" }, // 49€
       pro: { amount: 14900, name: "Plan Pro" }, // 149€

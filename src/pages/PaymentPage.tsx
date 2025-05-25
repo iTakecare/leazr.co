@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, CreditCard, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { STRIPE_CONFIG } from '@/config/stripe';
 
 interface PlanType {
   name: string;
@@ -63,6 +64,8 @@ const PaymentPage: React.FC = () => {
         return;
       }
 
+      console.log('Initiating payment with Stripe Live keys');
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan },
         headers: {
@@ -70,14 +73,19 @@ const PaymentPage: React.FC = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Stripe checkout error:', error);
+        throw error;
+      }
 
       if (data.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
+        // Ouvrir Stripe checkout dans un nouvel onglet
         window.open(data.url, '_blank');
       }
     } catch (error) {
       console.error('Erreur lors du paiement:', error);
-      toast.error('Erreur lors du paiement');
+      toast.error('Erreur lors du paiement. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -141,6 +149,16 @@ const PaymentPage: React.FC = () => {
                 )}
               </div>
             )}
+
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2 text-green-800">
+                <CheckCircle className="h-5 w-5" />
+                <span className="font-medium">Paiement sécurisé par Stripe</span>
+              </div>
+              <p className="text-sm text-green-700 mt-1">
+                Vos données de paiement sont protégées par le chiffrement SSL
+              </p>
+            </div>
 
             <Button 
               onClick={handlePayment}
