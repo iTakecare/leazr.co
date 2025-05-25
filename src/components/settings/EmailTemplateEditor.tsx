@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Info } from "lucide-react";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import EmailTemplateControls from "./EmailTemplateControls";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface EmailTemplate {
   id: number;
@@ -33,6 +34,7 @@ const EmailTemplateEditor: React.FC = () => {
   const [currentTemplate, setCurrentTemplate] = useState<EmailTemplate | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const { settings } = useSiteSettings();
 
   // Charger tous les templates disponibles
   const loadTemplates = async () => {
@@ -139,6 +141,19 @@ const EmailTemplateEditor: React.FC = () => {
     <div className="space-y-6">
       <EmailTemplateControls onRefresh={loadTemplates} />
       
+      {settings?.logo_url && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Le logo de votre entreprise sera automatiquement inclus dans tous les emails envoyés. 
+            Vous pouvez utiliser la variable <code>{'{{site_logo}}'}</code> dans vos templates pour positionner le logo où vous le souhaitez.
+            <div className="mt-2 p-2 bg-gray-100 rounded">
+              <img src={settings.logo_url} alt="Logo actuel" className="max-w-[100px] h-auto" />
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="space-y-4">
         <div className="flex flex-col space-y-1.5">
           <Label htmlFor="templateType">Type de modèle</Label>
@@ -185,6 +200,7 @@ const EmailTemplateEditor: React.FC = () => {
             <div className="pt-4">
               <h3 className="text-sm font-medium mb-2">Variables disponibles:</h3>
               <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm">
+                <code className="block mb-1">{'{{site_logo}}'} - Logo de l'entreprise</code>
                 <code className="block mb-1">{'{{client_name}}'} - Nom du client</code>
                 <code className="block mb-1">{'{{equipment_description}}'} - Description de l'équipement</code>
                 <code className="block mb-1">{'{{amount}}'} - Montant total</code>

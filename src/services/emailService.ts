@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getSiteSettings } from "./settingsService";
 
 interface EmailTemplate {
   subject: string;
@@ -42,6 +42,34 @@ export const getEmailTemplate = async (
   } catch (error) {
     console.error("Exception lors de la récupération du modèle d'email:", error);
     return null;
+  }
+};
+
+/**
+ * Injecte le logo du site dans le contenu HTML d'un email
+ */
+const injectSiteLogo = async (htmlContent: string): Promise<string> => {
+  try {
+    const settings = await getSiteSettings();
+    
+    if (settings?.logo_url) {
+      // Remplacer la variable {{site_logo}} par l'URL du logo
+      htmlContent = htmlContent.replace(/{{site_logo}}/g, settings.logo_url);
+      
+      // Si le template n'a pas de placeholder pour le logo mais commence par une div,
+      // ajouter le logo au début
+      if (!htmlContent.includes('{{site_logo}}') && htmlContent.trim().startsWith('<div')) {
+        const logoHtml = `<div style="text-align: center; margin-bottom: 20px;">
+          <img src="${settings.logo_url}" alt="Logo" style="max-width: 200px; height: auto;" />
+        </div>`;
+        htmlContent = htmlContent.replace(/(<div[^>]*>)/, `$1${logoHtml}`);
+      }
+    }
+    
+    return htmlContent;
+  } catch (error) {
+    console.error("Erreur lors de l'injection du logo:", error);
+    return htmlContent;
   }
 };
 
@@ -90,6 +118,9 @@ export const sendEmail = async (
   try {
     console.log(`Tentative d'envoi d'email à ${to} avec sujet "${subject}"`);
     
+    // Injecter le logo du site dans le contenu HTML
+    const htmlWithLogo = await injectSiteLogo(htmlContent);
+    
     // Récupérer les paramètres de configuration
     const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
@@ -115,7 +146,7 @@ export const sendEmail = async (
     console.log("Utilisation de Resend pour l'envoi d'email");
     
     // S'assurer que le contenu HTML est bien formaté
-    const formattedHtml = ensureHtmlFormat(htmlContent);
+    const formattedHtml = ensureHtmlFormat(htmlWithLogo);
     console.log("Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
     
     // Appeler la fonction Supabase pour envoyer l'email via Resend
@@ -204,6 +235,9 @@ export const sendWelcomeEmail = async (
     let subject = `Bienvenue sur votre compte ${typeDisplay} iTakecare`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="{{site_logo}}" alt="Logo iTakecare" style="max-width: 200px; height: auto;" />
+        </div>
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${name},</h2>
         <p>Votre compte ${typeDisplay} a été créé avec succès sur la plateforme iTakecare.</p>
         <p>Vous recevrez un email séparé pour définir votre mot de passe et accéder à votre espace ${typeDisplay}.</p>
@@ -232,6 +266,12 @@ export const sendWelcomeEmail = async (
     if (template) {
       subject = template.subject.replace("{{client_name}}", name);
       htmlContent = template.html_content.replace(/{{client_name}}/g, name);
+      
+      // S'assurer que le template contient le placeholder pour le logo
+      if (!htmlContent.includes('{{site_logo}}')) {
+        // Ajouter le logo au début du contenu si le placeholder n'existe pas
+        htmlContent = htmlContent.replace(/(<div[^>]*style="[^"]*">)/, `$1<div style="text-align: center; margin-bottom: 20px;"><img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" /></div>`);
+      }
     }
     
     console.log(`Tentative d'envoi d'email de bienvenue à: ${email}`);
@@ -385,6 +425,9 @@ export const sendOfferReadyEmail = async (
     let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" />
+        </div>
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
         <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation.</p>
         <p><strong>Détails de l'offre:</strong></p>
@@ -422,6 +465,12 @@ export const sendOfferReadyEmail = async (
         .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
         .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
         .replace(/{{offer_link}}/g, offerLink);
+        
+      // S'assurer que le template contient le placeholder pour le logo
+      if (!htmlContent.includes('{{site_logo}}')) {
+        // Ajouter le logo au début du contenu si le placeholder n'existe pas
+        htmlContent = htmlContent.replace(/(<div[^>]*>)/, `$1<div style="text-align: center; margin-bottom: 20px;"><img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" /></div>`);
+      }
     }
     
     console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
