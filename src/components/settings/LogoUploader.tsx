@@ -36,13 +36,14 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("Fichier sélectionné - détails complets:", {
+    console.log("=== FICHIER SÉLECTIONNÉ ===", {
       name: file.name,
       type: file.type,
       size: file.size,
       lastModified: file.lastModified,
       constructor: file.constructor.name,
-      isFile: file instanceof File
+      isFile: file instanceof File,
+      isBlob: file instanceof Blob
     });
     
     // Reset des états
@@ -53,7 +54,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     const validExtensions = /\.(jpe?g|png|gif|webp|svg)$/i;
     
-    console.log("Validation côté client:", {
+    console.log("=== VALIDATION CLIENT ===", {
       typeValid: validTypes.includes(file.type),
       extensionValid: validExtensions.test(file.name),
       fileType: file.type,
@@ -78,13 +79,14 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("Envoi du fichier File object directement vers uploadImage...");
+      console.log("=== DÉMARRAGE UPLOAD ===");
+      console.log("Passage du File object RAW vers uploadImage (AUCUNE TRANSFORMATION)");
       
-      // Passer le File object DIRECTEMENT sans aucune transformation
+      // CRITICAL : Passer le File object DIRECTEMENT, sans aucune transformation
       const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
-        console.log("Upload réussi, URL:", url);
+        console.log("=== UPLOAD TERMINÉ AVEC SUCCÈS ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -94,11 +96,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         
         toast.success("Logo téléchargé avec succès");
       } else {
+        console.error("=== ÉCHEC UPLOAD ===");
         setErrorMessage("Erreur lors du téléchargement du logo");
         toast.error("Erreur lors du téléchargement du logo");
       }
     } catch (error) {
-      console.error("Erreur de téléchargement:", error);
+      console.error("=== ERREUR EXCEPTION UPLOAD ===", error);
       setErrorMessage("Erreur lors du téléchargement du logo");
       toast.error("Erreur lors du téléchargement du logo");
     } finally {
