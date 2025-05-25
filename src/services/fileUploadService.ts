@@ -55,6 +55,7 @@ export const uploadImage = async (
 ): Promise<string | null> => {
   try {
     console.log(`Début upload du fichier: ${file.name} vers ${bucketName}/${folder}`);
+    console.log(`Type de fichier détecté: ${file.type}, Taille: ${file.size} bytes`);
     
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
@@ -63,25 +64,47 @@ export const uploadImage = async (
       return null;
     }
     
-    // Créer un nom de fichier unique
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    // Validation stricte du type de fichier
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
+      console.error(`Type de fichier non autorisé: ${file.type}, extension: ${fileExtension}`);
+      toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
+      return null;
+    }
+    
+    // Créer un nom de fichier unique avec l'extension correcte
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const fileExt = fileExtension || (file.type.includes('jpeg') ? 'jpg' : file.type.split('/')[1]);
+    const fileName = `logo-${timestamp}-${randomId}.${fileExt}`;
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
     console.log(`Chemin du fichier: ${filePath}`);
+    console.log(`Extension finale: ${fileExt}`);
 
-    // Télécharger le fichier
+    // Déterminer le type MIME correct
+    let mimeType = file.type;
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      mimeType = getMimeType(fileExt);
+    }
+    
+    console.log(`Type MIME utilisé: ${mimeType}`);
+
+    // Upload direct du fichier sans transformation
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type
+        contentType: mimeType
       });
 
     if (error) {
       console.error("Erreur d'upload:", error);
-      toast.error("Erreur lors du téléchargement du fichier");
+      toast.error(`Erreur lors du téléchargement: ${error.message}`);
       return null;
     }
 
@@ -93,7 +116,7 @@ export const uploadImage = async (
       .getPublicUrl(filePath);
 
     console.log("URL publique générée:", urlData.publicUrl);
-    toast.success("Fichier téléchargé avec succès");
+    toast.success("Logo téléchargé avec succès");
     
     return urlData.publicUrl;
   } catch (error) {
@@ -129,6 +152,6 @@ export const getMimeType = (extension: string): string => {
     case 'svg':
       return 'image/svg+xml';
     default:
-      return 'application/octet-stream';
+      return 'image/jpeg'; // Par défaut
   }
 };

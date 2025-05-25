@@ -36,16 +36,24 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("Fichier sélectionné:", file.name, file.type, file.size);
+    console.log("Fichier sélectionné:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
     
     // Reset des états
     setErrorMessage(null);
     setUploadSuccess(false);
     
-    // Valider le type de fichier
-    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    // Validation stricte du fichier
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const validExtensions = /\.(jpe?g|png|gif|webp|svg)$/i;
     
-    if (!validImageTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+    if (!validTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      const errorMsg = `Type de fichier non valide. Fichier: ${file.type}, Extension: ${file.name.split('.').pop()}`;
+      console.error(errorMsg);
       setErrorMessage("Veuillez sélectionner un fichier image valide (JPG, PNG, GIF, WEBP ou SVG)");
       toast.error("Format d'image non pris en charge");
       return;
@@ -61,7 +69,9 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("Début de l'upload...");
+      console.log("Début de l'upload du logo...");
+      
+      // Upload direct du fichier File sans conversion
       const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
@@ -179,7 +189,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
             id="logo-upload"
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml"
             className="hidden"
             onChange={handleFileChange}
             disabled={isUploading}
