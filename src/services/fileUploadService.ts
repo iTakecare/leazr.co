@@ -55,7 +55,19 @@ export const uploadImage = async (
 ): Promise<string | null> => {
   try {
     console.log(`Début upload du fichier: ${file.name} vers ${bucketName}/${folder}`);
-    console.log(`Type de fichier détecté: ${file.type}, Taille: ${file.size} bytes`);
+    console.log(`Fichier reçu:`, {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      constructor: file.constructor.name
+    });
+    
+    // Vérifier que c'est bien un objet File
+    if (!(file instanceof File)) {
+      console.error("L'objet reçu n'est pas un File:", typeof file, file);
+      toast.error("Format de fichier invalide");
+      return null;
+    }
     
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
@@ -69,9 +81,17 @@ export const uploadImage = async (
     const fileExtension = file.name.toLowerCase().split('.').pop();
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     
+    console.log(`Validation: type="${file.type}", extension="${fileExtension}"`);
+    
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
       console.error(`Type de fichier non autorisé: ${file.type}, extension: ${fileExtension}`);
       toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
+      return null;
+    }
+    
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux. Taille maximum: 5MB");
       return null;
     }
     
@@ -83,7 +103,6 @@ export const uploadImage = async (
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
     console.log(`Chemin du fichier: ${filePath}`);
-    console.log(`Extension finale: ${fileExt}`);
 
     // Déterminer le type MIME correct
     let mimeType = file.type;
@@ -92,8 +111,9 @@ export const uploadImage = async (
     }
     
     console.log(`Type MIME utilisé: ${mimeType}`);
+    console.log(`Upload du fichier brut de taille: ${file.size} bytes`);
 
-    // Upload direct du fichier sans transformation
+    // Upload DIRECT du fichier File object - AUCUNE TRANSFORMATION
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {

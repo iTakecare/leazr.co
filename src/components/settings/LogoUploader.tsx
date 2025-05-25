@@ -36,20 +36,29 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("Fichier sélectionné:", {
+    console.log("Fichier sélectionné - détails complets:", {
       name: file.name,
       type: file.type,
       size: file.size,
-      lastModified: file.lastModified
+      lastModified: file.lastModified,
+      constructor: file.constructor.name,
+      isFile: file instanceof File
     });
     
     // Reset des états
     setErrorMessage(null);
     setUploadSuccess(false);
     
-    // Validation stricte du fichier
+    // Validation stricte côté client
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     const validExtensions = /\.(jpe?g|png|gif|webp|svg)$/i;
+    
+    console.log("Validation côté client:", {
+      typeValid: validTypes.includes(file.type),
+      extensionValid: validExtensions.test(file.name),
+      fileType: file.type,
+      fileName: file.name
+    });
     
     if (!validTypes.includes(file.type) && !validExtensions.test(file.name)) {
       const errorMsg = `Type de fichier non valide. Fichier: ${file.type}, Extension: ${file.name.split('.').pop()}`;
@@ -69,9 +78,9 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("Début de l'upload du logo...");
+      console.log("Envoi du fichier File object directement vers uploadImage...");
       
-      // Upload direct du fichier File sans conversion
+      // Passer le File object DIRECTEMENT sans aucune transformation
       const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
