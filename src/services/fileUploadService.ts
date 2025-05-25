@@ -3,66 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * S'assure qu'un bucket existe dans le stockage Supabase
- */
-export const ensureBucket = async (bucketName: string): Promise<boolean> => {
-  try {
-    console.log(`Tentative de vérification/création du bucket: ${bucketName}`);
-    
-    // Vérifier si le bucket existe déjà
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error("Erreur lors de la vérification des buckets:", listError);
-      return false;
-    }
-    
-    // Si le bucket existe, tout va bien
-    if (buckets.some(bucket => bucket.name === bucketName)) {
-      console.log(`Le bucket ${bucketName} existe déjà.`);
-      return true;
-    }
-    
-    console.log(`Le bucket ${bucketName} n'existe pas, tentative de création...`);
-    
-    // Essayer de créer le bucket directement
-    const { data: createData, error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true
-    });
-    
-    if (createError) {
-      console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
-      
-      // Essayer d'utiliser la fonction RPC personnalisée
-      try {
-        const { data: funcData, error: funcError } = await supabase.rpc('create_storage_bucket', { 
-          bucket_name: bucketName 
-        });
-        
-        if (funcError) {
-          console.error("Erreur lors de la création du bucket via RPC:", funcError);
-          console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé.`);
-          return false;
-        }
-        
-        console.log(`Bucket ${bucketName} créé via RPC avec succès.`);
-        return true;
-      } catch (rpcError) {
-        console.error("Exception lors de l'appel RPC:", rpcError);
-        return false;
-      }
-    }
-    
-    console.log(`Bucket ${bucketName} créé avec succès.`);
-    return true;
-  } catch (error) {
-    console.error(`Erreur générale dans ensureBucket pour ${bucketName}:`, error);
-    return false;
-  }
-};
-
-/**
- * Télécharge une image vers Supabase
+ * Télécharge une image vers Supabase Storage
  */
 export const uploadImage = async (
   file: File,
@@ -70,34 +11,62 @@ export const uploadImage = async (
   folder: string = ""
 ): Promise<string | null> => {
   try {
-    // S'assurer que le bucket existe avant de télécharger
-    const bucketExists = await ensureBucket(bucketName);
-    if (!bucketExists) {
-      console.error(`Le bucket ${bucketName} n'existe pas et n'a pas pu être créé.`);
-      toast.error(`Erreur: Impossible d'accéder au stockage`);
-      throw new Error("Erreur lors du téléchargement du logo");
-    }
-
+    console.log(`Début upload du fichier: ${file.name} vers ${bucketName}/${folder}`);
+    
     // Créer un nom de fichier unique
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
-    // Détecter le type MIME
-    const fileType = getMimeType(fileExt || '');
+    console.log(`Chemin du fichier: ${filePath}`);
 
-    // Télécharger le fichier
+    // Télécharger le fichier directement
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
-        contentType: fileType,
-        upsert: true
+        upsert: true,
+        contentType: file.type
       });
 
     if (error) {
       console.error("Erreur d'upload:", error);
-      throw new Error("Erreur lors du téléchargement du logo");
+      
+      // Si le bucket n'existe pas, essayer de le créer
+      if (error.message.includes('does not exist') || error.message.includes('bucket')) {
+        console.log("Tentative de création du bucket...");
+        
+        // Essayer de créer le bucket
+        const { error: bucketError } = await supabase.storage.createBucket(bucketName, {
+          public: true
+        });
+        
+        if (bucketError) {
+          console.error("Erreur création bucket:", bucketError);
+          toast.error("Erreur: Impossible de créer le bucket de stockage");
+          return null;
+        }
+        
+        // Réessayer l'upload après création du bucket
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: file.type
+          });
+          
+        if (retryError) {
+          console.error("Erreur retry upload:", retryError);
+          toast.error("Erreur lors du téléchargement du fichier");
+          return null;
+        }
+        
+        console.log("Upload réussi après création du bucket:", retryData);
+      } else {
+        toast.error("Erreur lors du téléchargement du fichier");
+        return null;
+      }
     }
 
     // Récupérer l'URL publique
@@ -105,11 +74,24 @@ export const uploadImage = async (
       .from(bucketName)
       .getPublicUrl(filePath);
 
+    console.log("URL publique générée:", urlData.publicUrl);
+    toast.success("Fichier téléchargé avec succès");
+    
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Erreur lors du téléchargement de l'image:", error);
-    throw error;
+    console.error("Erreur générale lors du téléchargement:", error);
+    toast.error("Erreur lors du téléchargement du fichier");
+    return null;
   }
+};
+
+/**
+ * Ajoute un paramètre de cache-busting à une URL
+ */
+export const getCacheBustedUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}t=${Date.now()}`;
 };
 
 /**
@@ -131,13 +113,4 @@ export const getMimeType = (extension: string): string => {
     default:
       return 'application/octet-stream';
   }
-};
-
-/**
- * Ajoute un paramètre de cache-busting à une URL
- */
-export const getCacheBustedUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}t=${Date.now()}`;
 };

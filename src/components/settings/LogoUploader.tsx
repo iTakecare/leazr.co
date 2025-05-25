@@ -23,7 +23,6 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -36,6 +35,8 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    console.log("Fichier sélectionné:", file.name, file.type, file.size);
     
     // Reset des états
     setErrorMessage(null);
@@ -50,12 +51,21 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
       return;
     }
     
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage("Le fichier est trop volumineux. Taille maximum: 5MB");
+      toast.error("Fichier trop volumineux");
+      return;
+    }
+    
     setIsUploading(true);
     
     try {
+      console.log("Début de l'upload...");
       const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
+        console.log("Upload réussi, URL:", url);
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -64,10 +74,13 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         }
         
         toast.success("Logo téléchargé avec succès");
+      } else {
+        setErrorMessage("Erreur lors du téléchargement du logo");
+        toast.error("Erreur lors du téléchargement du logo");
       }
     } catch (error) {
       console.error("Erreur de téléchargement:", error);
-      setErrorMessage("Erreur lors du téléchargement du logo. Vérifiez les permissions du bucket de stockage.");
+      setErrorMessage("Erreur lors du téléchargement du logo");
       toast.error("Erreur lors du téléchargement du logo");
     } finally {
       setIsUploading(false);
@@ -80,21 +93,15 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   };
   
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
     setErrorMessage(null);
-    toast.info("Rafraîchissement du logo...");
-    
-    // Tenter de recharger le logo
-    if (logoUrl) {
-      const refreshedUrl = getCacheBustedUrl(logoUrl);
-      setLogoUrl(refreshedUrl);
-    }
+    toast.info("Prêt pour un nouvel upload...");
   };
   
   const handleRemove = () => {
     if (!logoUrl) return;
     
     setLogoUrl(null);
+    setUploadSuccess(false);
     
     if (onLogoUploaded) {
       onLogoUploaded("");
@@ -109,12 +116,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center">
-        <div className="mb-4 p-2 border border-dashed rounded-xl flex items-center justify-center bg-background w-full aspect-square max-w-[240px]">
+        <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-background w-full aspect-square max-w-[240px]">
           {errorMessage ? (
             <div className="flex flex-col items-center justify-center text-center p-4">
               <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-              <p className="text-sm text-destructive">{errorMessage}</p>
-              <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
+              <p className="text-sm text-destructive mb-2">{errorMessage}</p>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Réessayer
               </Button>
@@ -131,7 +138,11 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
                 alt="Logo du site" 
                 className="max-w-full max-h-full object-contain"
                 onError={() => {
-                  setErrorMessage("Impossible de charger l'image. Réessayez ou choisissez une autre image.");
+                  console.error("Erreur de chargement de l'image:", displayLogoUrl);
+                  setErrorMessage("Impossible de charger l'image");
+                }}
+                onLoad={() => {
+                  console.log("Image chargée avec succès:", displayLogoUrl);
                 }}
               />
               {uploadSuccess && (
@@ -141,12 +152,16 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center">
+            <div className="flex flex-col items-center justify-center text-center p-4">
+              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 Aucun logo téléchargé
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Formats acceptés: JPG, PNG, GIF, WEBP, SVG
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Taille maximum: 5MB
               </p>
             </div>
           )}
@@ -155,7 +170,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         <div className="flex gap-2">
           <Label 
             htmlFor="logo-upload" 
-            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border rounded-md bg-background hover:bg-accent"
+            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border rounded-md bg-background hover:bg-accent transition-colors"
           >
             <Upload className="w-4 h-4" />
             {logoUrl ? "Changer le logo" : "Télécharger un logo"}
@@ -180,15 +195,17 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
             </Button>
           )}
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleRetry}
-            disabled={isUploading || !logoUrl}
-            title="Rafraîchir l'affichage"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          {errorMessage && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRetry}
+              disabled={isUploading}
+              title="Réessayer"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
