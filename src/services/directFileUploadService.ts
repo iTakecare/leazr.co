@@ -1,8 +1,9 @@
+
 // This file is now deprecated. All functionality has been moved to fileUploadService.ts.
 // Keeping it for backward compatibility.
 
 import { 
-  ensureBucket as ensureBucketExists, 
+  ensureBucket,
   uploadImage as uploadFile,
   getMimeType as detectMimeTypeFromExtension,
   getCacheBustedUrl
@@ -10,7 +11,7 @@ import {
 
 // Re-export functions for backward compatibility
 export {
-  ensureBucketExists,
+  ensureBucket as ensureBucketExists,
   uploadFile as uploadFileDirectly,
   detectMimeTypeFromExtension,
   getCacheBustedUrl

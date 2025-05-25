@@ -3,6 +3,49 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
+ * S'assure qu'un bucket existe dans Supabase Storage
+ */
+export const ensureBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    console.log(`Vérification de l'existence du bucket: ${bucketName}`);
+    
+    // Vérifier si le bucket existe déjà en essayant de lister son contenu
+    const { data: listData, error: listError } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: 1 });
+
+    if (!listError) {
+      console.log(`Le bucket ${bucketName} existe déjà`);
+      return true;
+    }
+
+    // Si le bucket n'existe pas, essayer de le créer
+    if (listError.message.includes('does not exist')) {
+      console.log(`Tentative de création du bucket: ${bucketName}`);
+      
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+
+      if (createError) {
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        toast.error(`Impossible de créer le bucket de stockage: ${createError.message}`);
+        return false;
+      }
+
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      return true;
+    }
+
+    console.error(`Erreur d'accès au bucket ${bucketName}:`, listError);
+    return false;
+  } catch (error) {
+    console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, error);
+    return false;
+  }
+};
+
+/**
  * Télécharge une image vers Supabase Storage
  */
 export const uploadImage = async (
@@ -13,6 +56,13 @@ export const uploadImage = async (
   try {
     console.log(`Début upload du fichier: ${file.name} vers ${bucketName}/${folder}`);
     
+    // S'assurer que le bucket existe
+    const bucketExists = await ensureBucket(bucketName);
+    if (!bucketExists) {
+      toast.error("Erreur: Impossible d'accéder au stockage");
+      return null;
+    }
+    
     // Créer un nom de fichier unique
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -20,7 +70,7 @@ export const uploadImage = async (
 
     console.log(`Chemin du fichier: ${filePath}`);
 
-    // Télécharger le fichier directement
+    // Télécharger le fichier
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
@@ -31,43 +81,11 @@ export const uploadImage = async (
 
     if (error) {
       console.error("Erreur d'upload:", error);
-      
-      // Si le bucket n'existe pas, essayer de le créer
-      if (error.message.includes('does not exist') || error.message.includes('bucket')) {
-        console.log("Tentative de création du bucket...");
-        
-        // Essayer de créer le bucket
-        const { error: bucketError } = await supabase.storage.createBucket(bucketName, {
-          public: true
-        });
-        
-        if (bucketError) {
-          console.error("Erreur création bucket:", bucketError);
-          toast.error("Erreur: Impossible de créer le bucket de stockage");
-          return null;
-        }
-        
-        // Réessayer l'upload après création du bucket
-        const { data: retryData, error: retryError } = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: file.type
-          });
-          
-        if (retryError) {
-          console.error("Erreur retry upload:", retryError);
-          toast.error("Erreur lors du téléchargement du fichier");
-          return null;
-        }
-        
-        console.log("Upload réussi après création du bucket:", retryData);
-      } else {
-        toast.error("Erreur lors du téléchargement du fichier");
-        return null;
-      }
+      toast.error("Erreur lors du téléchargement du fichier");
+      return null;
     }
+
+    console.log("Upload réussi:", data);
 
     // Récupérer l'URL publique
     const { data: urlData } = supabase.storage
