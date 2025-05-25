@@ -68,7 +68,7 @@ const AmbassadorSidebar = () => {
 
   return (
     <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
-      <div className="flex h-16 items-center justify-start border-b px-6">
+      <div className="flex h-16 items-center justify-start border-b px-6 pl-8">
         <Link to="/ambassador/dashboard" className="flex items-center justify-start">
           <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
         </Link>

@@ -58,7 +58,7 @@ const MobileSidebar = ({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-[280px] md:hidden">
           <div className="flex flex-col h-full">
-            <div className="flex items-center p-4 mb-2 justify-start">
+            <div className="flex items-center p-4 mb-2 justify-start pl-8">
               <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
               <Button 
                 variant="ghost" 
