@@ -122,9 +122,9 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-4 border-b">
-                <Logo />
-                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full">
+              <div className="flex items-center justify-center p-4 border-b">
+                <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
+                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -213,16 +213,16 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
       <div className="flex flex-col h-full">
         <div className={cn(
           "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-between"
+          collapsed ? "justify-center" : "px-6 justify-center"
         )}>
-          <Logo showText={!collapsed} />
+          <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
           
           {!collapsed && (
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10"
+              className="rounded-full hover:bg-primary/10 ml-auto"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>

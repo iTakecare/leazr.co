@@ -58,13 +58,13 @@ const MobileSidebar = ({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-[280px] md:hidden">
           <div className="flex flex-col h-full">
-            <div className="flex items-center p-4 mb-2 justify-between">
-              <Logo showText={true} />
+            <div className="flex items-center p-4 mb-2 justify-center">
+              <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
               <Button 
                 variant="ghost" 
                 size="icon"
                 onClick={() => setMobileOpen(false)} 
-                className="rounded-full hover:bg-primary/10"
+                className="rounded-full hover:bg-primary/10 ml-auto"
               >
                 <X className="h-5 w-5" />
               </Button>

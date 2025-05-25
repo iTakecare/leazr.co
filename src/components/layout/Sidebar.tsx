@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -157,16 +156,16 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       <div className="flex flex-col h-full">
         <div className={cn(
           "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-between"
+          collapsed ? "justify-center" : "px-6 justify-center"
         )}>
-          <Logo showText={!collapsed} />
+          <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
           
           {!collapsed && (
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10"
+              className="rounded-full hover:bg-primary/10 ml-auto"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -214,4 +213,3 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 };
 
 export default Sidebar;
-
