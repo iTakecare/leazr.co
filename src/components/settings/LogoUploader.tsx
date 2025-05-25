@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { directUploadToSupabase, uploadViaArrayBuffer } from "@/services/directFileUploadService";
+import { simpleFileUpload, blobFileUpload } from "@/services/simpleFileUpload";
 import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
@@ -37,11 +37,10 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== NOUVEAU FICHIER SÉLECTIONNÉ ===", {
+    console.log("=== FICHIER SÉLECTIONNÉ POUR SIMPLE UPLOAD ===", {
       name: file.name,
       type: file.type,
-      size: file.size,
-      lastModified: file.lastModified
+      size: file.size
     });
     
     // Reset des états
@@ -50,15 +49,15 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("=== TENTATIVE UPLOAD DIRECT ===");
+      console.log("=== TENTATIVE SIMPLE UPLOAD ===");
       
-      // Première tentative avec la méthode directe
-      let url = await directUploadToSupabase(file, bucketName, folderPath);
+      // Première tentative avec FormData
+      let url = await simpleFileUpload(file, bucketName, folderPath);
       
-      // Si échec, essayer avec ArrayBuffer
+      // Si échec, essayer avec Blob
       if (!url) {
-        console.log("=== TENTATIVE UPLOAD ARRAYBUFFER ===");
-        url = await uploadViaArrayBuffer(file, bucketName, folderPath);
+        console.log("=== TENTATIVE BLOB UPLOAD ===");
+        url = await blobFileUpload(file, bucketName, folderPath);
       }
       
       if (url) {
