@@ -3,11 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, CreditCard, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const PaymentPage: React.FC = () => {
   const location = useLocation();
@@ -17,18 +16,59 @@ const PaymentPage: React.FC = () => {
   const { companyId, plan, modules } = location.state || {};
 
   useEffect(() => {
-    if (!companyId || !plan) {
+    if (!plan) {
       navigate('/signup');
     }
-  }, [companyId, plan, navigate]);
+  }, [plan, navigate]);
+
+  const plans = {
+    starter: {
+      name: 'Starter',
+      price: 49,
+      description: 'Parfait pour débuter',
+      features: ['1 module inclus', '1 utilisateur', 'Support email']
+    },
+    pro: {
+      name: 'Pro',
+      price: 149,
+      description: 'Pour les équipes qui grandissent',
+      features: ['Jusqu\'à 3 modules', '5 utilisateurs', 'Support prioritaire', 'Intégrations avancées'],
+      popular: true
+    },
+    business: {
+      name: 'Business',
+      price: 299,
+      description: 'Pour les grandes organisations',
+      features: ['Tous les modules', '10 utilisateurs', 'Support dédié', 'Personnalisation avancée']
+    }
+  };
+
+  const selectedPlan = plans[plan as keyof typeof plans];
 
   const handlePayment = async () => {
     setLoading(true);
     try {
-      // TODO: Implement Stripe payment integration
-      toast.success('Paiement traité avec succès !');
-      navigate('/dashboard');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Vous devez être connecté pour procéder au paiement');
+        navigate('/login');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.url) {
+        window.open(data.url, '_blank');
+      }
     } catch (error) {
+      console.error('Erreur lors du paiement:', error);
       toast.error('Erreur lors du paiement');
     } finally {
       setLoading(false);
@@ -38,6 +78,15 @@ const PaymentPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(-1)}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour
+        </Button>
+
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -49,82 +98,41 @@ const PaymentPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Récapitulatif de la commande */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-medium mb-3">Récapitulatif de votre abonnement</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Plan {plan}</span>
-                  <span className="font-medium">149€/mois</span>
+            {selectedPlan && (
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">{selectedPlan.name}</h3>
+                  {selectedPlan.popular && (
+                    <Badge className="bg-blue-600">Populaire</Badge>
+                  )}
+                </div>
+                <p className="text-gray-600 mb-4">{selectedPlan.description}</p>
+                <div className="text-3xl font-bold text-blue-600 mb-4">
+                  {selectedPlan.price}€<span className="text-lg text-gray-600">/mois</span>
+                </div>
+                <div className="space-y-2">
+                  {selectedPlan.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm">{feature}</span>
+                    </div>
+                  ))}
                 </div>
                 {modules && modules.length > 0 && (
-                  <div>
+                  <div className="mt-4 pt-4 border-t">
                     <span className="text-gray-600">Modules inclus :</span>
-                    <div className="mt-1">
+                    <div className="mt-2 space-y-1">
                       {modules.map((module: string, index: number) => (
                         <div key={index} className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="capitalize">{module.replace('_', ' ')}</span>
+                          <span className="capitalize text-sm">{module.replace('_', ' ')}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-              <Separator className="my-3" />
-              <div className="flex justify-between font-medium">
-                <span>Total mensuel</span>
-                <span>149€ HT</span>
-              </div>
-            </div>
-
-            {/* Formulaire de paiement */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Informations de paiement</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label htmlFor="cardNumber">Numéro de carte</Label>
-                  <Input
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    className="font-mono"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expiry">Expiration</Label>
-                  <Input
-                    id="expiry"
-                    placeholder="MM/YY"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cvc">CVC</Label>
-                  <Input
-                    id="cvc"
-                    placeholder="123"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Informations de facturation */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Adresse de facturation</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label htmlFor="address">Adresse</Label>
-                  <Input id="address" placeholder="123 Rue de la Paix" />
-                </div>
-                <div>
-                  <Label htmlFor="city">Ville</Label>
-                  <Input id="city" placeholder="Paris" />
-                </div>
-                <div>
-                  <Label htmlFor="postal">Code postal</Label>
-                  <Input id="postal" placeholder="75001" />
-                </div>
-              </div>
-            </div>
+            )}
 
             <Button 
               onClick={handlePayment}
@@ -132,12 +140,13 @@ const PaymentPage: React.FC = () => {
               className="w-full bg-blue-600 hover:bg-blue-700"
               size="lg"
             >
-              {loading ? 'Traitement...' : 'Finaliser l\'abonnement - 149€/mois'}
+              {loading ? 'Redirection vers Stripe...' : `S'abonner pour ${selectedPlan?.price}€/mois`}
             </Button>
 
             <p className="text-xs text-gray-500 text-center">
               En finalisant votre abonnement, vous acceptez nos conditions d'utilisation 
-              et notre politique de confidentialité. Vous pouvez annuler à tout moment.
+              et notre politique de confidentialité. Vous pouvez annuler à tout moment 
+              depuis votre espace client.
             </p>
           </CardContent>
         </Card>

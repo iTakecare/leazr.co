@@ -1,190 +1,243 @@
 
-import React, { useState } from "react";
-import { 
-  TrendingUp, 
-  FileText, 
-  Users,
-  Package, 
-  Percent,
-  RefreshCcw,
-  Bell,
-  Inbox
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { useDashboard } from "@/hooks/useDashboard";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { TimeFilterSelector } from "@/components/dashboard/TimeFilterSelector";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import AdminOffersNotifications from "@/components/offers/AdminOffersNotifications";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { BarChart, Users, FileText, TrendingUp, CheckCircle, RefreshCw } from 'lucide-react';
 
-const Dashboard = () => {
-  const { user } = useAuth();
-  const isMobile = useIsMobile();
-  const {
-    stats,
-    recentActivity,
-    isLoading,
-    error,
-    timeFilter,
-    setTimeFilter,
-    refreshData
-  } = useDashboard();
+const Dashboard: React.FC = () => {
+  const { user, subscription, checkSubscription } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [loading, setLoading] = React.useState(false);
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+  // Check for payment success
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast.success('Paiement réussi ! Votre abonnement est maintenant actif.');
+      checkSubscription();
+    }
+  }, [searchParams, checkSubscription]);
+
+  const handleRefreshSubscription = async () => {
+    setLoading(true);
+    await checkSubscription();
+    setLoading(false);
+    toast.success('Statut d\'abonnement mis à jour');
+  };
+
+  const planNames = {
+    starter: 'Starter',
+    pro: 'Pro',
+    business: 'Business'
+  };
+
+  const stats = [
+    {
+      title: 'Offres créées',
+      value: '12',
+      description: 'Ce mois-ci',
+      icon: FileText,
+      color: 'text-blue-600'
     },
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
+    {
+      title: 'Clients actifs',
+      value: '8',
+      description: 'Total',
+      icon: Users,
+      color: 'text-green-600'
+    },
+    {
+      title: 'Chiffre d\'affaires',
+      value: '45 670€',
+      description: 'Ce mois-ci',
+      icon: TrendingUp,
+      color: 'text-purple-600'
+    },
+    {
+      title: 'Taux de conversion',
+      value: '67%',
+      description: 'Offres signées',
+      icon: BarChart,
+      color: 'text-orange-600'
+    }
+  ];
 
   return (
-    <div className="w-full max-w-full p-2 md:p-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
-      >
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Tableau de bord
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Bienvenue {user?.first_name || ''} - Vue d'ensemble de vos activités
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Bonjour {user?.email?.split('@')[0]}, voici un aperçu de votre activité</p>
         </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <TimeFilterSelector 
-            value={timeFilter} 
-            onChange={setTimeFilter} 
-            className="w-full sm:w-auto"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={refreshData}
-            className="h-10 w-10 flex-shrink-0"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            <span className="sr-only">Rafraîchir</span>
-          </Button>
-        </div>
-      </motion.div>
-
-      {error && (
-        <div className="bg-destructive/15 text-destructive p-4 rounded-md mb-6">
-          {error}
-        </div>
-      )}
-
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 md:mb-8"
-      >
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Offres en attente"
-            value={stats?.pendingOffers || 0}
-            icon={FileText}
-            description="Demandes nécessitant une action"
-            trend="neutral"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Requêtes clients"
-            value={stats?.pendingRequests || 0}
-            icon={Inbox}
-            description="Demandes clients en attente"
-            trend="neutral"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Chiffre d'affaires"
-            value={stats?.formattedRevenue || "€0"}
-            icon={TrendingUp}
-            description={`${timeFilter === 'month' ? 'Ce mois' : timeFilter === 'year' ? 'Cette année' : timeFilter === 'quarter' ? 'Ce trimestre' : 'Total'}`}
-            change="+12.5% par rapport à la période précédente"
-            trend="up"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Clients"
-            value={stats?.clientsCount || 0}
-            icon={Users}
-            description="Nombre total de clients"
-            change="+3 nouveaux ce mois-ci"
-            trend="up"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Offres converties"
-            value={stats?.acceptedOffers || 0}
-            icon={Package}
-            description="Offres acceptées et signées"
-            trend="neutral"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <StatCard
-            title="Marge brute"
-            value={stats?.formattedGrossMargin || "€0"}
-            icon={Percent}
-            description={`${stats?.marginPercentage || 0}% du chiffre d'affaires`}
-            trend="neutral"
-          />
-        </motion.div>
-
-        <motion.div variants={itemVariants} className={isMobile ? "" : "md:col-span-2"}>
-          <StatCard
-            title="Notifications"
-            value="Vous avez des alertes à traiter"
-            icon={Bell}
-            description="Offres et demandes nécessitant votre attention"
-            className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-100 dark:border-purple-900"
-          />
-        </motion.div>
-      </motion.div>
-      
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid gap-6 mb-8">
-        <motion.div variants={itemVariants}>
-          <ActivityFeed activities={recentActivity} isLoading={isLoading} />
-        </motion.div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 md:mt-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="w-full"
-        >
-          <AdminOffersNotifications />
-        </motion.div>
+        
+        {/* Subscription Status */}
+        <Card className={`min-w-[300px] ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Abonnement</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefreshSubscription}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {subscription?.subscribed ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <Badge className="bg-green-100 text-green-800">
+                      Plan {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="secondary">Aucun abonnement</Badge>
+                  </>
+                )}
+              </div>
+              {subscription?.subscription_end && (
+                <p className="text-sm text-gray-600">
+                  Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
+                </p>
+              )}
+              {!subscription?.subscribed && (
+                <Button
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={() => navigate('/signup')}
+                >
+                  Choisir un plan
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Button
+          className="h-20 flex-col gap-2"
+          onClick={() => navigate('/offers')}
+          disabled={!subscription?.subscribed}
+        >
+          <FileText className="h-6 w-6" />
+          Nouvelle offre
+        </Button>
+        <Button
+          variant="outline"
+          className="h-20 flex-col gap-2"
+          onClick={() => navigate('/clients')}
+          disabled={!subscription?.subscribed}
+        >
+          <Users className="h-6 w-6" />
+          Gérer les clients
+        </Button>
+        <Button
+          variant="outline"
+          className="h-20 flex-col gap-2"
+          onClick={() => navigate('/offers')}
+          disabled={!subscription?.subscribed}
+        >
+          <BarChart className="h-6 w-6" />
+          Voir les rapports
+        </Button>
+        <Button
+          variant="outline"
+          className="h-20 flex-col gap-2"
+          onClick={() => navigate('/settings')}
+        >
+          <TrendingUp className="h-6 w-6" />
+          Paramètres
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index} className={!subscription?.subscribed ? 'opacity-50' : ''}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.title}
+              </CardTitle>
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{subscription?.subscribed ? stat.value : '---'}</div>
+              <p className="text-xs text-gray-600">
+                {stat.description}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Activité récente</CardTitle>
+          <CardDescription>
+            Vos dernières actions sur la plateforme
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {subscription?.subscribed ? (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Offre créée pour TechCorp</p>
+                  <p className="text-xs text-gray-600">Il y a 2 heures</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Client ajouté: StartupXYZ</p>
+                  <p className="text-xs text-gray-600">Il y a 1 jour</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Contrat signé par InnovCorp</p>
+                  <p className="text-xs text-gray-600">Il y a 3 jours</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Souscrivez à un abonnement pour voir votre activité</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Debug Panel */}
+      {subscription && (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-sm">Debug - Informations d'abonnement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+              {JSON.stringify(subscription, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
