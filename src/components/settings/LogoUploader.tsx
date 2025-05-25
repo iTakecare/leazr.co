@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { uploadImage, getCacheBustedUrl } from "@/services/fileUploadService";
+import { directUploadToSupabase, uploadViaArrayBuffer } from "@/services/directFileUploadService";
+import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -36,57 +37,32 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== FICHIER SÉLECTIONNÉ ===", {
+    console.log("=== NOUVEAU FICHIER SÉLECTIONNÉ ===", {
       name: file.name,
       type: file.type,
       size: file.size,
-      lastModified: file.lastModified,
-      constructor: file.constructor.name,
-      isFile: file instanceof File,
-      isBlob: file instanceof Blob
+      lastModified: file.lastModified
     });
     
     // Reset des états
     setErrorMessage(null);
     setUploadSuccess(false);
-    
-    // Validation stricte côté client
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    const validExtensions = /\.(jpe?g|png|gif|webp|svg)$/i;
-    
-    console.log("=== VALIDATION CLIENT ===", {
-      typeValid: validTypes.includes(file.type),
-      extensionValid: validExtensions.test(file.name),
-      fileType: file.type,
-      fileName: file.name
-    });
-    
-    if (!validTypes.includes(file.type) && !validExtensions.test(file.name)) {
-      const errorMsg = `Type de fichier non valide. Fichier: ${file.type}, Extension: ${file.name.split('.').pop()}`;
-      console.error(errorMsg);
-      setErrorMessage("Veuillez sélectionner un fichier image valide (JPG, PNG, GIF, WEBP ou SVG)");
-      toast.error("Format d'image non pris en charge");
-      return;
-    }
-    
-    // Vérifier la taille (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Le fichier est trop volumineux. Taille maximum: 5MB");
-      toast.error("Fichier trop volumineux");
-      return;
-    }
-    
     setIsUploading(true);
     
     try {
-      console.log("=== DÉMARRAGE UPLOAD ===");
-      console.log("Passage du File object RAW vers uploadImage (AUCUNE TRANSFORMATION)");
+      console.log("=== TENTATIVE UPLOAD DIRECT ===");
       
-      // CRITICAL : Passer le File object DIRECTEMENT, sans aucune transformation
-      const url = await uploadImage(file, bucketName, folderPath);
+      // Première tentative avec la méthode directe
+      let url = await directUploadToSupabase(file, bucketName, folderPath);
+      
+      // Si échec, essayer avec ArrayBuffer
+      if (!url) {
+        console.log("=== TENTATIVE UPLOAD ARRAYBUFFER ===");
+        url = await uploadViaArrayBuffer(file, bucketName, folderPath);
+      }
       
       if (url) {
-        console.log("=== UPLOAD TERMINÉ AVEC SUCCÈS ===", { url });
+        console.log("=== UPLOAD RÉUSSI ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -94,20 +70,20 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
           onLogoUploaded(url);
         }
         
-        toast.success("Logo téléchargé avec succès");
+        toast.success("Logo uploadé avec succès");
       } else {
-        console.error("=== ÉCHEC UPLOAD ===");
-        setErrorMessage("Erreur lors du téléchargement du logo");
-        toast.error("Erreur lors du téléchargement du logo");
+        console.error("=== ÉCHEC TOTAL UPLOAD ===");
+        setErrorMessage("Impossible d'uploader le logo");
+        toast.error("Échec de l'upload du logo");
       }
     } catch (error) {
-      console.error("=== ERREUR EXCEPTION UPLOAD ===", error);
-      setErrorMessage("Erreur lors du téléchargement du logo");
-      toast.error("Erreur lors du téléchargement du logo");
+      console.error("=== ERREUR EXCEPTION ===", error);
+      setErrorMessage("Erreur lors de l'upload");
+      toast.error("Erreur lors de l'upload");
     } finally {
       setIsUploading(false);
       
-      // Reset de l'input file pour permettre de télécharger à nouveau le même fichier
+      // Reset de l'input file
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -151,7 +127,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
           ) : isUploading ? (
             <div className="flex flex-col items-center justify-center">
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Téléchargement en cours...</p>
+              <p className="text-sm text-muted-foreground">Upload en cours...</p>
             </div>
           ) : logoUrl ? (
             <div className="relative w-full h-full flex items-center justify-center">
