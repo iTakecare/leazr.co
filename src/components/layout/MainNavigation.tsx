@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -34,24 +33,24 @@ const MainNavigation = () => {
   }, []);
 
   const solutionsMenu = [
-    { label: "🏢 Solutions Entreprises", href: "/solutions", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions complètes pour grandes entreprises" },
-    { label: "💼 Solutions Professionnels", href: "/solutions", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres adaptées aux PME et indépendants" },
-    { label: "🤝 CRM Leasing", href: "/solutions", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
-    { label: "🧮 Calculateur Intelligent", href: "/solutions", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
+    { label: "🏢 Solutions Entreprises", href: "/solutions#entreprises", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions complètes pour grandes entreprises" },
+    { label: "💼 Solutions Professionnels", href: "/solutions#professionnels", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres adaptées aux PME et indépendants" },
+    { label: "🤝 CRM Leasing", href: "/solutions#crm", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
+    { label: "🧮 Calculateur Intelligent", href: "/solutions#calculateur", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
   ];
 
   const servicesMenu = [
-    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
-    { label: "🎓 Formation & Accompagnement", href: "/services", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Formation complète à nos solutions" },
+    { label: "🏢 Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "💼 Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "🆘 Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: "🎓 Formation & Accompagnement", href: "/services#formation", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Formation complète à nos solutions" },
   ];
 
   const ressourcesMenu = [
-    { label: "📚 Documentation", href: "/ressources", icon: <FileText className="w-4 h-4 mr-2" />, description: "Guides et documentation complète" },
-    { label: "📝 Blog & Actualités", href: "/ressources", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Conseils d'experts et actualités du secteur" },
-    { label: "❓ FAQ & Support", href: "/ressources", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Réponses aux questions fréquentes" },
-    { label: "🎓 Formations & Webinaires", href: "/ressources", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Sessions de formation en ligne" },
+    { label: "📚 Documentation", href: "/ressources#documentation", icon: <FileText className="w-4 h-4 mr-2" />, description: "Guides et documentation complète" },
+    { label: "📝 Blog & Actualités", href: "/ressources#blog", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Conseils d'experts et actualités du secteur" },
+    { label: "❓ FAQ & Support", href: "/ressources#faq", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Réponses aux questions fréquentes" },
+    { label: "🎓 Formations & Webinaires", href: "/ressources#formations", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Sessions de formation en ligne" },
   ];
 
   const toggleMobileMenu = () => {
