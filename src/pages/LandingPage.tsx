@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '@/components/layout/Logo';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,14 +62,7 @@ const LandingPage: React.FC = () => {
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
-                L
-              </div>
-              <span className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Leazr
-              </span>
-            </div>
+            <Logo variant="full" showText={false} />
             <div className="flex items-center space-x-3">
               <Button 
                 variant="ghost" 
@@ -239,14 +232,7 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                  L
-                </div>
-                <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Leazr
-                </span>
-              </div>
+              <Logo variant="full" showText={false} className="mb-4" />
               <p className="text-slate-600 text-sm">
                 💼 La plateforme de référence pour le leasing informatique.
               </p>

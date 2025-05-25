@@ -58,7 +58,7 @@ const PublicHeader = () => {
   const durabiliteMenu = [
     { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Notre mission pour un numérique responsable" },
     { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="h-4 w-4 text-[#48b5c3]" />, description: "Comment nous contribuons à l'économie circulaire" },
-    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Nos actions pour réduire l'empreinte environnementale" },
+    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="h-4 w-4 text-[#48b5c3]" />, description: "Nos actions pour réduire l'empreinte environnemental" },
   ];
   
   return (
@@ -73,7 +73,7 @@ const PublicHeader = () => {
               to="/" 
               className="text-xl md:text-2xl font-bold text-[#33638E] flex items-center group"
             >
-              <Logo showText={false} className="mr-2 transition-transform duration-300 group-hover:scale-110" />
+              <Logo variant="avatar" showText={false} className="mr-2 transition-transform duration-300 group-hover:scale-110" />
               <span className="bg-gradient-to-r from-[#33638E] to-[#48b5c3] bg-clip-text text-transparent">
                 iTakecare
               </span>
