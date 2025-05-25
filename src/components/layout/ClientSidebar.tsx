@@ -213,7 +213,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
       <div className="flex flex-col h-full">
         <div className={cn(
           "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-start pl-12"
+          collapsed ? "justify-center" : "px-6 justify-start pl-16"
         )}>
           <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
           
