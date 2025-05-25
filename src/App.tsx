@@ -19,6 +19,7 @@ import UpdateProfile from './pages/UpdateProfile';
 import AuthCallback from './pages/AuthCallback';
 import PaymentPage from './pages/PaymentPage';
 import { PrivateRoute } from './components/PrivateRoute';
+import { Layout } from './components/layout/Layout';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,12 +44,14 @@ function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/payment" element={<PaymentPage />} />
 
-            {/* Private Routes */}
+            {/* Private Routes with Layout */}
             <Route
               path="/dashboard"
               element={
                 <PrivateRoute>
-                  <Dashboard />
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
                 </PrivateRoute>
               }
             />
@@ -56,7 +59,9 @@ function App() {
               path="/settings"
               element={
                 <PrivateRoute>
-                  <Settings />
+                  <Layout>
+                    <Settings />
+                  </Layout>
                 </PrivateRoute>
               }
             />
@@ -64,7 +69,9 @@ function App() {
               path="/offers"
               element={
                 <PrivateRoute>
-                  <Offers />
+                  <Layout>
+                    <Offers />
+                  </Layout>
                 </PrivateRoute>
               }
             />
@@ -72,7 +79,9 @@ function App() {
               path="/clients"
               element={
                 <PrivateRoute>
-                  <Clients />
+                  <Layout>
+                    <Clients />
+                  </Layout>
                 </PrivateRoute>
               }
             />
@@ -80,7 +89,9 @@ function App() {
               path="/profile"
               element={
                 <PrivateRoute>
-                  <UpdateProfile />
+                  <Layout>
+                    <UpdateProfile />
+                  </Layout>
                 </PrivateRoute>
               }
             />
