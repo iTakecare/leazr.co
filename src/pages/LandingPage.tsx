@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,48 +14,48 @@ const LandingPage: React.FC = () => {
   const features = [
     {
       icon: <Users className="h-6 w-6 text-blue-600" />,
-      title: "🤝 CRM Intégré",
-      description: "Gérez vos clients et prospects efficacement avec notre système intelligent",
+      title: "🤝 Gestion Clientèle Leasing",
+      description: "CRM spécialisé pour gérer vos clients, prospects et partenaires dans l'activité de leasing informatique",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200"
     },
     {
       icon: <BarChart className="h-6 w-6 text-emerald-600" />,
-      title: "🧮 Calculateur Intelligent",
-      description: "Automatisez vos calculs de leasing avec précision et rapidité",
+      title: "🧮 Calculs de Leasing Avancés",
+      description: "Moteur de calcul intelligent adapté aux spécificités du leasing IT : mensualités, taux, rachats",
       bgColor: "bg-emerald-50",
       borderColor: "border-emerald-200"
     },
     {
       icon: <Shield className="h-6 w-6 text-purple-600" />,
-      title: "📝 Contrats Digitaux",
-      description: "Signature électronique sécurisée et gestion complète des contrats",
+      title: "📝 Contrats de Leasing Digitaux",
+      description: "Génération automatique et signature électronique des contrats de location financière",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
     },
     {
       icon: <Zap className="h-6 w-6 text-orange-600" />,
-      title: "📦 Catalogue Produits",
-      description: "Gestion centralisée et optimisée de tous vos équipements",
+      title: "💻 Catalogue Équipements IT",
+      description: "Base de données complète d'équipements informatiques avec gestion des variantes et tarifs",
       bgColor: "bg-orange-50",
       borderColor: "border-orange-200"
     }
   ];
 
   const stats = [
-    { value: "⚡ 60%", label: "Temps économisé", color: "text-blue-600" },
-    { value: "🏢 500+", label: "Entreprises clientes", color: "text-emerald-600" },
-    { value: "🔒 99.9%", label: "Disponibilité", color: "text-purple-600" },
-    { value: "🎯 24/7", label: "Support client", color: "text-orange-600" }
+    { value: "⚡ 70%", label: "Réduction temps de traitement", color: "text-blue-600" },
+    { value: "🏢 200+", label: "Sociétés de leasing", color: "text-emerald-600" },
+    { value: "📋 50%", label: "Moins d'erreurs de calcul", color: "text-purple-600" },
+    { value: "🚀 24h", label: "De la demande au contrat", color: "text-orange-600" }
   ];
 
   const benefits = [
-    "✨ Interface moderne et intuitive",
-    "🤖 Automatisation complète des processus",
-    "🔐 Sécurité bancaire et données chiffrées",
-    "🚀 Support client réactif et formation incluse",
-    "🔗 Intégrations avec vos outils existants",
-    "🔄 Mises à jour continues et innovations"
+    "📊 Tableaux de bord spécialisés pour l'activité de leasing",
+    "⚙️ Automatisation des processus métier du leasing informatique",
+    "🔢 Calculs financiers conformes aux normes du leasing",
+    "📈 Suivi de la performance commerciale et financière",
+    "🔗 Intégrations avec les systèmes bancaires et comptables",
+    "📋 Conformité réglementaire et reporting automatisé"
   ];
 
   return (
@@ -71,22 +72,22 @@ const LandingPage: React.FC = () => {
           </div>
           
           <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 hover:from-blue-200 hover:to-purple-200 border-blue-200 shadow-sm">
-            ✨ Nouvelle génération de logiciel de leasing
+            ✨ Solution métier dédiée au leasing informatique
           </Badge>
           
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Simplifiez votre
+              Maîtrisez votre
             </span>
             <br />
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              💻 leasing informatique
+              📈 activité de leasing IT
             </span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 mb-10 leading-relaxed max-w-4xl mx-auto">
-            🎯 Leazr est la plateforme tout-en-un qui modernise la gestion de votre activité de leasing. 
-            Du prospect au contrat, automatisez vos processus avec élégance et efficacité.
+            🎯 Leazr est la plateforme métier conçue spécialement pour les professionnels du leasing informatique. 
+            De la prospection au suivi des contrats, optimisez chaque étape de votre activité avec des outils dédiés.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -124,10 +125,10 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              🎨 Tout ce dont vous avez besoin
+              🎨 Votre suite complète pour le leasing IT
             </h2>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Une suite complète d'outils pensés pour les professionnels du leasing informatique
+              Des fonctionnalités métier pensées pour répondre aux défis spécifiques de l'activité de leasing informatique
             </p>
           </div>
           
@@ -156,7 +157,7 @@ const LandingPage: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-4xl font-bold text-slate-900 mb-8">
-                🌟 Pourquoi choisir Leazr ?
+                🌟 Pourquoi Leazr pour votre activité de leasing ?
               </h2>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -171,18 +172,18 @@ const LandingPage: React.FC = () => {
             <div className="bg-gradient-to-br from-white to-blue-50 p-8 rounded-2xl border border-blue-200 shadow-lg">
               <div className="text-center">
                 <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                  ⚡ 60%
+                  ⚡ 70%
                 </div>
                 <div className="text-lg text-slate-600 mb-6">
-                  de temps économisé sur le traitement des offres
+                  de temps économisé sur le traitement des dossiers de leasing
                 </div>
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-100 shadow-sm">
                   <p className="text-slate-700 italic mb-4">
-                    💬 "Leazr a transformé notre façon de travailler. Interface épurée, 
-                    processus fluides, résultats remarquables."
+                    💬 "Leazr a révolutionné notre gestion du leasing informatique. 
+                    Calculs automatisés, suivi client simplifié, performances en hausse."
                   </p>
                   <div className="text-sm text-slate-600">
-                    — Marie Dubois, CEO chez TechLease 🏆
+                    — Pierre Martin, Directeur Commercial chez LeaseTech Pro 🏆
                   </div>
                 </div>
               </div>
@@ -195,18 +196,18 @@ const LandingPage: React.FC = () => {
       <section className="py-20 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 text-white">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">
-            🎯 Prêt à moderniser votre activité ?
+            🎯 Prêt à optimiser votre activité de leasing ?
           </h2>
           <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
-            🤝 Rejoignez les entreprises qui font déjà confiance à Leazr 
-            pour gérer leur activité de leasing informatique avec succès.
+            🤝 Rejoignez les professionnels du leasing informatique qui font déjà confiance à Leazr 
+            pour développer et gérer leur activité avec efficacité et professionnalisme.
           </p>
           <Button 
             size="lg" 
             className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 text-xl shadow-xl hover:shadow-2xl transition-all"
             onClick={() => navigate('/signup')}
           >
-            🚀 Commencer maintenant
+            🚀 Démarrer mon activité leasing
             <ArrowRight className="ml-2 h-6 w-6" />
           </Button>
         </div>
@@ -219,11 +220,11 @@ const LandingPage: React.FC = () => {
             <div>
               <Logo variant="full" logoSize="lg" showText={false} className="mb-4" />
               <p className="text-slate-600 text-sm">
-                💼 La plateforme de référence pour le leasing informatique.
+                💼 La solution métier de référence pour le leasing informatique.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4">📦 Produit</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">📦 Solution</h3>
               <ul className="space-y-2 text-sm text-slate-600">
                 <li><a href="#" className="hover:text-blue-600 transition-colors">⚡ Fonctionnalités</a></li>
                 <li><a href="#" className="hover:text-blue-600 transition-colors">💰 Tarifs</a></li>
