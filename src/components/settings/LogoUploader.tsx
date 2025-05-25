@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { simpleFileUpload, blobFileUpload } from "@/services/simpleFileUpload";
+import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
@@ -37,7 +37,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== FICHIER SÉLECTIONNÉ POUR SIMPLE UPLOAD ===", {
+    console.log("=== FICHIER SÉLECTIONNÉ POUR CLEAN UPLOAD ===", {
       name: file.name,
       type: file.type,
       size: file.size
@@ -49,19 +49,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("=== TENTATIVE SIMPLE UPLOAD ===");
+      console.log("=== TENTATIVE CLEAN UPLOAD ===");
       
-      // Première tentative avec FormData
-      let url = await simpleFileUpload(file, bucketName, folderPath);
-      
-      // Si échec, essayer avec Blob
-      if (!url) {
-        console.log("=== TENTATIVE BLOB UPLOAD ===");
-        url = await blobFileUpload(file, bucketName, folderPath);
-      }
+      const url = await cleanFileUpload(file, bucketName, folderPath);
       
       if (url) {
-        console.log("=== UPLOAD RÉUSSI ===", { url });
+        console.log("=== CLEAN UPLOAD RÉUSSI ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -71,7 +64,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         
         toast.success("Logo uploadé avec succès");
       } else {
-        console.error("=== ÉCHEC TOTAL UPLOAD ===");
+        console.error("=== ÉCHEC CLEAN UPLOAD ===");
         setErrorMessage("Impossible d'uploader le logo");
         toast.error("Échec de l'upload du logo");
       }
