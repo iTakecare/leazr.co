@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,8 @@ import Logo from '@/components/layout/Logo';
 
 const ServicesPage: React.FC = () => {
   const navigate = useNavigate();
+
+  console.log('ServicesPage rendering');
 
   const services = [
     {
@@ -231,6 +232,18 @@ const ServicesPage: React.FC = () => {
               📋 Guide des services
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Test content to verify the page loads */}
+      <section className="py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">
+            ✅ Page Services chargée avec succès !
+          </h2>
+          <p className="text-xl text-slate-600">
+            Cette page fonctionne maintenant correctement.
+          </p>
         </div>
       </section>
 

@@ -37,6 +37,8 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  console.log('App rendering with routes');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
