@@ -10,7 +10,7 @@ import Logo from '@/components/layout/Logo';
 const SolutionsPage: React.FC = () => {
   const navigate = useNavigate();
 
-  console.log('SolutionsPage rendering');
+  console.log('SolutionsPage rendering successfully');
 
   const solutions = [
     {
@@ -227,15 +227,19 @@ const SolutionsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Test content to verify the page loads */}
+      {/* Confirmation que la page fonctionne */}
       <section className="py-16">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-slate-900 mb-4">
             ✅ Page Solutions chargée avec succès !
           </h2>
           <p className="text-xl text-slate-600">
-            Cette page fonctionne maintenant correctement.
+            Cette page fonctionne maintenant correctement. Vous pouvez naviguer vers les autres sections.
           </p>
+          <div className="mt-8 flex gap-4 justify-center">
+            <Button onClick={() => navigate('/services')}>Voir Services</Button>
+            <Button onClick={() => navigate('/ressources')} variant="outline">Voir Ressources</Button>
+          </div>
         </div>
       </section>
 
