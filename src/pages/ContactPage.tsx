@@ -1,202 +1,216 @@
 
-import React from "react";
-import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Phone, Mail, Clock, Send, MessageSquare, Headphones, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
+import LandingHeader from '@/components/layout/LandingHeader';
+import Logo from '@/components/layout/Logo';
 
-type FormData = {
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  subject: string;
-  message: string;
-};
+const ContactPage: React.FC = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
 
-const ContactPage = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success('Message envoyé avec succès ! Nous vous recontacterons sous 24h.');
+    setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
+  };
 
-  const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-    // Ici, vous pourriez ajouter la logique pour envoyer l'email
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
-      <UnifiedNavigation />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <LandingHeader />
       
-      <div className="pt-[100px]">
-        {/* Hero Section avec le même fond que la page d'accueil */}
-        <div className="relative min-h-[30vh] flex items-center">
-          {/* Background image - même que page d'accueil */}
-          <div className="absolute inset-0 z-0">
-            <img
-              className="w-full h-full object-cover"
-              alt="Background"
-              src="/clip-path-group.png"
-              width="1920"
-              height="1080"
-              fetchPriority="high"
-            />
-            {/* Gradient fade to white overlay */}
-            <div className="absolute bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white to-transparent" />
-          </div>
-          
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="font-black text-[#222222] text-4xl sm:text-5xl md:text-6xl leading-tight mb-6">
-                Contactons-nous
-              </h1>
-              <p className="text-[#222222] text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-                Parlons de votre projet. 
-                Envoyez-nous un message et nous vous contacterons sous un jour ouvrable.
-              </p>
-            </div>
-          </div>
+      {/* Hero Section */}
+      <section className="py-20 px-6">
+        <div className="container mx-auto text-center max-w-4xl">
+          <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
+            📞 Nous sommes là pour vous accompagner
+          </Badge>
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Contactez-nous
+            </span>
+          </h1>
+          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+            🤝 Notre équipe d'experts est à votre disposition pour vous accompagner dans votre projet de leasing informatique
+          </p>
         </div>
-        
-        {/* Contenu principal - Formulaire centré avec effet halo */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="max-w-2xl mx-auto relative">
-            {/* Effet de halo flou derrière le formulaire */}
-            <div className="absolute inset-0 bg-[#48b5c3]/20 blur-3xl rounded-full transform -translate-y-10 scale-110 opacity-70 z-0"></div>
-            
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12">
             {/* Formulaire de contact */}
-            <div className="bg-white rounded-3xl shadow-md p-8 md:p-10 border border-gray-100 relative z-10">
-              <h2 className="text-2xl font-bold text-[#222222] mb-8 text-center">Envoyez-nous un message</h2>
-              
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Nom complet</label>
-                    <Input
-                      {...register("name", { required: "Le nom est requis" })}
-                      placeholder="Votre nom"
-                      className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                    />
-                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-6 w-6 text-blue-600" />
+                  Envoyez-nous un message
+                </CardTitle>
+                <CardDescription>
+                  Remplissez le formulaire ci-dessous et nous vous répondrons rapidement
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Nom complet *</label>
+                      <Input
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Votre nom"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Email *</label>
+                      <Input
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="votre@email.com"
+                        required
+                      />
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <Input
-                      {...register("email", { 
-                        required: "L'email est requis",
-                        pattern: {
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: "Adresse email invalide"
-                        }
-                      })}
-                      type="email"
-                      placeholder="votre@email.com"
-                      className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                    />
-                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Entreprise</label>
+                      <Input
+                        name="company"
+                        value={formData.company}
+                        onChange={handleChange}
+                        placeholder="Nom de votre entreprise"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Téléphone</label>
+                      <Input
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+33 1 23 45 67 89"
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
-                  <Input
-                    {...register("phone", {
-                      pattern: {
-                        value: /^(\+\d{1,3}[-.●]?)?\(?\d{3}\)?[-.●]?\d{3}[-.●]?\d{4}$/,
-                        message: "Numéro de téléphone invalide"
-                      }
-                    })}
-                    type="tel"
-                    placeholder="+33 6 12 34 56 78"
-                    className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                  />
-                  {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Entreprise</label>
-                  <Input
-                    {...register("company")}
-                    placeholder="Nom de votre entreprise"
-                    className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Sujet</label>
-                  <Input
-                    {...register("subject", { required: "Le sujet est requis" })}
-                    placeholder="Sujet de votre message"
-                    className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                  />
-                  {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Message</label>
-                  <Textarea
-                    {...register("message", { required: "Le message est requis" })}
-                    rows={5}
-                    placeholder="Comment pouvons-nous vous aider ?"
-                    className="w-full rounded-lg border-gray-300 focus:border-[#48b5c3] focus:ring-[#48b5c3]"
-                  />
-                  {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>}
-                </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full bg-[#48b5c3] hover:bg-[#33638E] rounded-full py-3 px-6"
-                >
-                  Envoyer le message
-                </Button>
-              </form>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Sujet *</label>
+                    <Input
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="Objet de votre demande"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Message *</label>
+                    <Textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="Décrivez-nous votre projet ou votre besoin..."
+                      rows={6}
+                      required
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
+                    <Send className="mr-2 h-5 w-5" />
+                    Envoyer le message
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Informations de contact */}
+            <div className="space-y-8">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                    📍 Notre siège social
+                  </h3>
+                  <p className="text-slate-600 mb-2">123 Avenue des Champs-Élysées</p>
+                  <p className="text-slate-600 mb-2">75008 Paris, France</p>
+                  <p className="text-slate-600">🚇 Métro : Charles de Gaulle - Étoile</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-green-600" />
+                    📞 Téléphone
+                  </h3>
+                  <p className="text-slate-600 mb-2">+33 1 23 45 67 89</p>
+                  <p className="text-sm text-slate-500">Du lundi au vendredi, 9h-18h</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-purple-600" />
+                    ✉️ Email
+                  </h3>
+                  <p className="text-slate-600 mb-2">contact@leazr.fr</p>
+                  <p className="text-slate-600 mb-2">support@leazr.fr</p>
+                  <p className="text-sm text-slate-500">Réponse sous 24h</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Headphones className="h-5 w-5 text-orange-600" />
+                    🆘 Support prioritaire
+                  </h3>
+                  <p className="text-slate-600 mb-2">Pour nos clients abonnés</p>
+                  <p className="text-slate-600 mb-2">+33 1 23 45 67 90</p>
+                  <p className="text-sm text-slate-500">Support dédié 7j/7</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
-        
-        <div className="mt-20 bg-[#48b5c3] text-white py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-8">Besoin d'aide supplémentaire?</h2>
-            <div className="text-center">
-              <Button
-                variant="outline"
-                className="bg-white text-[#48b5c3] hover:bg-gray-100 border-none"
-              >
-                Voir notre FAQ
-              </Button>
-            </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200 py-12">
+        <div className="container mx-auto px-6">
+          <div className="text-center">
+            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
+            <p className="text-slate-600">
+              💼 La solution métier de référence pour le leasing informatique.
+            </p>
           </div>
         </div>
-        
-        <footer className="bg-gray-800 text-white py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-xl font-bold mb-4">Notre entreprise</h3>
-                <p className="text-gray-300 mb-4">
-                  Solutions informatiques professionnelles pour entreprises et particuliers.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-4">Contact</h3>
-                <p className="text-gray-300">contact@example.com</p>
-                <p className="text-gray-300">+33 1 23 45 67 89</p>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-4">Liens rapides</h3>
-                <ul className="space-y-2 text-gray-300">
-                  <li><a href="/login" className="hover:text-white">Connexion</a></li>
-                  <li><a href="/solutions" className="hover:text-white">Solutions</a></li>
-                  <li><a href="/services" className="hover:text-white">Services</a></li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
-              <p>© {new Date().getFullYear()} Tous droits réservés</p>
-            </div>
-          </div>
-        </footer>
-      </div>
+      </footer>
     </div>
   );
 };

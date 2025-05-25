@@ -7,6 +7,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import LandingPage from "@/pages/LandingPage";
 import SignupPage from "@/pages/SignupPage";
+import ContactPage from "@/pages/ContactPage";
+import PricingPage from "@/pages/PricingPage";
+import AboutPage from "@/pages/AboutPage";
+import ServicesPage from "@/pages/ServicesPage";
+import SolutionsPage from "@/pages/SolutionsPage";
+import ResourcesPage from "@/pages/ResourcesPage";
 
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -39,6 +45,12 @@ function App() {
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/tarifs" element={<PricingPage />} />
+            <Route path="/a-propos" element={<AboutPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/solutions" element={<SolutionsPage />} />
+            <Route path="/ressources" element={<ResourcesPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
