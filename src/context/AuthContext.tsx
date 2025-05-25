@@ -8,6 +8,7 @@ interface ExtendedUser extends User {
   first_name?: string;
   last_name?: string;
   role?: string;
+  company?: string;
   partner_id?: string;
   ambassador_id?: string;
   client_id?: string;
@@ -26,6 +27,8 @@ interface AuthContextType {
   checkSubscription: () => Promise<void>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, options?: any) => Promise<{ data?: any; error?: any }>;
   isAdmin: () => boolean;
   isClient: () => boolean;
   isPartner: () => boolean;
@@ -83,6 +86,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = logout; // Alias pour logout
 
+  const signIn = async (email: string, password: string) => {
+    return await supabase.auth.signInWithPassword({ email, password });
+  };
+
+  const signUp = async (email: string, password: string, options?: any) => {
+    return await supabase.auth.signUp({ email, password, options });
+  };
+
   // Fonctions de vérification des rôles
   const isAdmin = () => {
     return user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
@@ -115,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         first_name: profile?.first_name || '',
         last_name: profile?.last_name || '',
         role: profile?.role || '',
+        company: profile?.company || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: profile?.ambassador_id || '',
         client_id: profile?.client_id || '',
@@ -188,6 +200,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkSubscription,
     logout,
     signOut,
+    signIn,
+    signUp,
     isAdmin,
     isClient,
     isPartner,

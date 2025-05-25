@@ -8,6 +8,14 @@ import { CheckCircle, CreditCard, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+interface PlanType {
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  popular?: boolean;
+}
+
 const PaymentPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,7 +29,7 @@ const PaymentPage: React.FC = () => {
     }
   }, [plan, navigate]);
 
-  const plans = {
+  const plans: Record<string, PlanType> = {
     starter: {
       name: 'Starter',
       price: 49,
