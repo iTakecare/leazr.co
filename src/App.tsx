@@ -47,10 +47,13 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/tarifs" element={<PricingPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/a-propos" element={<AboutPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/solutions" element={<SolutionsPage />} />
             <Route path="/ressources" element={<ResourcesPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />

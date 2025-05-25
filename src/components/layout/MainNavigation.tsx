@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,23 +34,24 @@ const MainNavigation = () => {
   }, []);
 
   const solutionsMenu = [
-    { label: "Location d'équipement", href: "/solutions#location", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Matériel informatique haute performance en location flexible" },
-    { label: "Gestion de parc", href: "/solutions#gestion-parc", icon: <Server className="w-4 h-4 mr-2" />, description: "Solutions complètes pour gérer votre infrastructure informatique" },
-    { label: "Services cloud", href: "/solutions#cloud", icon: <Globe className="w-4 h-4 mr-2" />, description: "Infrastructure cloud sécurisée et évolutive" },
-    { label: "Reconditionnement", href: "/solutions#reconditionnement", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Équipements reconditionnés et certifiés écologiques" },
+    { label: "🏢 Solutions Entreprises", href: "/solutions", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions complètes pour grandes entreprises" },
+    { label: "💼 Solutions Professionnels", href: "/solutions", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres adaptées aux PME et indépendants" },
+    { label: "🤝 CRM Leasing", href: "/solutions", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
+    { label: "🧮 Calculateur Intelligent", href: "/solutions", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
   ];
 
   const servicesMenu = [
-    { label: "Pour entreprises", href: "/services#entreprises", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "Pour professionnels", href: "/services#professionnels", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "Hub iTakecare", href: "/hub", icon: <Cpu className="h-4 w-4 text-[#48b5c3]" />, description: "Votre espace personnel de gestion informatique", badge: "Gratuit" },
-    { label: "Support technique", href: "/services#support", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: "🎓 Formation & Accompagnement", href: "/services", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Formation complète à nos solutions" },
   ];
 
-  const durabiliteMenu = [
-    { label: "Notre engagement", href: "/durabilite#engagement", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Notre mission pour un numérique responsable" },
-    { label: "Économie circulaire", href: "/durabilite#economie-circulaire", icon: <Recycle className="w-4 h-4 mr-2" />, description: "Comment nous contribuons à l'économie circulaire" },
-    { label: "Impact environnemental", href: "/durabilite#impact", icon: <Globe className="w-4 h-4 mr-2" />, description: "Nos actions pour réduire l'empreinte environnementale" },
+  const ressourcesMenu = [
+    { label: "📚 Documentation", href: "/ressources", icon: <FileText className="w-4 h-4 mr-2" />, description: "Guides et documentation complète" },
+    { label: "📝 Blog & Actualités", href: "/ressources", icon: <Share2 className="w-4 h-4 mr-2" />, description: "Conseils d'experts et actualités du secteur" },
+    { label: "❓ FAQ & Support", href: "/ressources", icon: <HelpCircle className="w-4 h-4 mr-2" />, description: "Réponses aux questions fréquentes" },
+    { label: "🎓 Formations & Webinaires", href: "/ressources", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Sessions de formation en ligne" },
   ];
 
   const toggleMobileMenu = () => {
@@ -66,7 +68,7 @@ const MainNavigation = () => {
           <Link to="/" className="group">
             <img
               className="w-[120px] md:w-[201px] h-auto md:h-[41px] object-contain transition-transform duration-300 group-hover:scale-105"
-              alt="iTakecare Logo"
+              alt="Leazr Logo"
               src="/lovable-uploads/3a4ae1ec-2b87-4a07-a178-b3bc5d86594b.png"
             />
           </Link>
@@ -112,8 +114,8 @@ const MainNavigation = () => {
           </div>
           
           <div className="border-b border-gray-200 pb-2 mb-2">
-            <div className="font-medium text-[#33638E] mb-2 px-4">Durabilité</div>
-            {durabiliteMenu.map((item, index) => (
+            <div className="font-medium text-[#33638E] mb-2 px-4">Ressources</div>
+            {ressourcesMenu.map((item, index) => (
               <Link
                 key={index}
                 to={item.href}
@@ -168,9 +170,9 @@ const MainNavigation = () => {
                 Se connecter
               </Button>
             </Link>
-            <Link to="/catalogue">
+            <Link to="/signup">
               <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
-                Catalogue
+                Essai gratuit
               </Button>
             </Link>
           </div>
@@ -234,11 +236,11 @@ const MainNavigation = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors">
-                    Durabilité <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                    Ressources <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-white rounded-xl p-2 shadow-lg border border-gray-100">
-                  {durabiliteMenu.map((item, index) => (
+                  {ressourcesMenu.map((item, index) => (
                     <DropdownMenuItem key={index} asChild>
                       <Link 
                         to={item.href}
@@ -318,9 +320,9 @@ const MainNavigation = () => {
             </Button>
           </Link>
 
-          <Link to="/catalogue">
+          <Link to="/signup">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-sm transition-all duration-300 hover:shadow-md">
-              Catalogue
+              Essai gratuit
             </Button>
           </Link>
 
