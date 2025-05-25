@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface LogoProps {
   className?: string;
   showText?: boolean;
-  logoSize?: "sm" | "md" | "lg";
+  logoSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   variant?: "full" | "avatar";
 }
 
@@ -18,7 +18,9 @@ const Logo: React.FC<LogoProps> = ({
   const sizeClasses = {
     sm: "w-8 h-8",
     md: "w-10 h-10", 
-    lg: "w-12 h-12"
+    lg: "w-12 h-12",
+    xl: "w-16 h-16",
+    "2xl": "w-24 h-24"
   };
 
   const logoSrc = variant === "full" 
@@ -27,7 +29,7 @@ const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className={cn("relative flex-shrink-0", variant === "full" ? "w-auto h-8" : sizeClasses[logoSize])}>
+      <div className={cn("relative flex-shrink-0", variant === "full" ? "w-auto h-12 md:h-16" : sizeClasses[logoSize])}>
         <img 
           src={logoSrc}
           alt="Leazr"
@@ -35,7 +37,7 @@ const Logo: React.FC<LogoProps> = ({
         />
       </div>
       {showText && variant !== "full" && (
-        <span className="font-semibold">Leazr</span>
+        <span className="font-semibold text-lg md:text-xl">Leazr</span>
       )}
     </div>
   );

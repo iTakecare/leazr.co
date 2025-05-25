@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/layout/Logo';
+import LandingHeader from '@/components/layout/LandingHeader';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,38 +59,22 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Logo variant="full" showText={false} />
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors" 
-                onClick={() => navigate('/login')}
-              >
-                Connexion
-              </Button>
-              <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all" 
-                onClick={() => navigate('/signup')}
-              >
-                🚀 Commencer
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header avec menu complet */}
+      <LandingHeader />
 
-      {/* Hero Section */}
+      {/* Hero Section avec logo agrandi */}
       <section className="py-20 px-6 bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        <div className="container mx-auto text-center max-w-4xl">
+        <div className="container mx-auto text-center max-w-5xl">
+          {/* Logo central agrandi */}
+          <div className="mb-8 flex justify-center">
+            <Logo variant="full" logoSize="2xl" showText={false} className="transform hover:scale-105 transition-transform duration-300" />
+          </div>
+          
           <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 hover:from-blue-200 hover:to-purple-200 border-blue-200 shadow-sm">
             ✨ Nouvelle génération de logiciel de leasing
           </Badge>
           
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
               Simplifiez votre
             </span>
@@ -99,7 +84,7 @@ const LandingPage: React.FC = () => {
             </span>
           </h1>
           
-          <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-slate-600 mb-10 leading-relaxed max-w-4xl mx-auto">
             🎯 Leazr est la plateforme tout-en-un qui modernise la gestion de votre activité de leasing. 
             Du prospect au contrat, automatisez vos processus avec élégance et efficacité.
           </p>
@@ -107,26 +92,26 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-4 text-xl shadow-lg hover:shadow-xl transition-all"
               onClick={() => navigate('/signup')}
             >
               🎉 Essai gratuit 14 jours
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-6 w-6" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 px-8 py-3 text-lg transition-all"
+              className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 px-10 py-4 text-xl transition-all"
             >
               👀 Voir la démo
             </Button>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-white/20 shadow-sm hover:shadow-md transition-shadow">
-                <div className={`text-2xl font-bold mb-1 ${stat.color}`}>{stat.value}</div>
+              <div key={index} className="text-center p-6 rounded-xl bg-white/50 backdrop-blur-sm border border-white/20 shadow-sm hover:shadow-md transition-shadow">
+                <div className={`text-3xl md:text-4xl font-bold mb-2 ${stat.color}`}>{stat.value}</div>
                 <div className="text-sm text-slate-600">{stat.label}</div>
               </div>
             ))}
@@ -138,10 +123,10 @@ const LandingPage: React.FC = () => {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
               🎨 Tout ce dont vous avez besoin
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Une suite complète d'outils pensés pour les professionnels du leasing informatique
             </p>
           </div>
@@ -170,7 +155,7 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-8">
+              <h2 className="text-4xl font-bold text-slate-900 mb-8">
                 🌟 Pourquoi choisir Leazr ?
               </h2>
               <div className="space-y-4">
@@ -185,7 +170,7 @@ const LandingPage: React.FC = () => {
             
             <div className="bg-gradient-to-br from-white to-blue-50 p-8 rounded-2xl border border-blue-200 shadow-lg">
               <div className="text-center">
-                <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                   ⚡ 60%
                 </div>
                 <div className="text-lg text-slate-600 mb-6">
@@ -209,30 +194,30 @@ const LandingPage: React.FC = () => {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 text-white">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-6">
+          <h2 className="text-4xl font-bold mb-6">
             🎯 Prêt à moderniser votre activité ?
           </h2>
-          <p className="text-lg mb-10 max-w-2xl mx-auto text-slate-300">
+          <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
             🤝 Rejoignez les entreprises qui font déjà confiance à Leazr 
             pour gérer leur activité de leasing informatique avec succès.
           </p>
           <Button 
             size="lg" 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 text-lg shadow-xl hover:shadow-2xl transition-all"
+            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 text-xl shadow-xl hover:shadow-2xl transition-all"
             onClick={() => navigate('/signup')}
           >
             🚀 Commencer maintenant
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <ArrowRight className="ml-2 h-6 w-6" />
           </Button>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer avec logo agrandi */}
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <Logo variant="full" showText={false} className="mb-4" />
+              <Logo variant="full" logoSize="lg" showText={false} className="mb-4" />
               <p className="text-slate-600 text-sm">
                 💼 La plateforme de référence pour le leasing informatique.
               </p>

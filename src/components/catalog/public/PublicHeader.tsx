@@ -67,14 +67,14 @@ const PublicHeader = () => {
       scrolled ? "bg-white/95 backdrop-blur-sm shadow-md" : "bg-white border-b"
     )}>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
             <Link 
               to="/" 
               className="text-xl md:text-2xl font-bold text-[#33638E] flex items-center group"
             >
-              <Logo variant="avatar" showText={false} className="mr-2 transition-transform duration-300 group-hover:scale-110" />
-              <span className="bg-gradient-to-r from-[#33638E] to-[#48b5c3] bg-clip-text text-transparent">
+              <Logo variant="avatar" logoSize="lg" showText={false} className="mr-3 transition-transform duration-300 group-hover:scale-110" />
+              <span className="bg-gradient-to-r from-[#33638E] to-[#48b5c3] bg-clip-text text-transparent text-2xl">
                 iTakecare
               </span>
             </Link>
