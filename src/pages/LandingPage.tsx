@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, CheckCircle, Zap, Shield, Users, BarChart } from 'lucide-react';
+import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
@@ -11,54 +11,52 @@ const LandingPage: React.FC = () => {
 
   const features = [
     {
-      icon: <Users className="h-8 w-8 text-blue-600" />,
+      icon: <Users className="h-6 w-6 text-slate-600" />,
       title: "CRM Intégré",
-      description: "Gérez vos clients et prospects avec un CRM pensé pour le leasing informatique"
+      description: "Gérez vos clients et prospects efficacement"
     },
     {
-      icon: <BarChart className="h-8 w-8 text-green-600" />,
+      icon: <BarChart className="h-6 w-6 text-slate-600" />,
       title: "Calculateur Intelligent",
-      description: "Calculez automatiquement vos offres de leasing avec nos algorithmes optimisés"
+      description: "Automatisez vos calculs de leasing"
     },
     {
-      icon: <Shield className="h-8 w-8 text-purple-600" />,
+      icon: <Shield className="h-6 w-6 text-slate-600" />,
       title: "Contrats Digitaux",
-      description: "Générez et gérez vos contrats de leasing avec signature électronique"
+      description: "Signature électronique intégrée"
     },
     {
-      icon: <Zap className="h-8 w-8 text-orange-600" />,
+      icon: <Zap className="h-6 w-6 text-slate-600" />,
       title: "Catalogue Produits",
-      description: "Catalogue centralisé de vos équipements informatiques avec gestion des variantes"
+      description: "Gestion centralisée de vos équipements"
     }
   ];
 
-  const benefits = [
-    "Réduction de 60% du temps de traitement des offres",
-    "Automatisation complète du processus de leasing",
-    "Interface intuitive et moderne",
-    "Support client réactif et formation incluse",
-    "Sécurité bancaire et données chiffrées",
-    "Intégrations avec vos outils existants"
+  const stats = [
+    { value: "60%", label: "Temps économisé" },
+    { value: "500+", label: "Entreprises clientes" },
+    { value: "99.9%", label: "Disponibilité" },
+    { value: "24/7", label: "Support client" }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                 L
               </div>
-              <span className="text-2xl font-bold text-gray-900">Leazr</span>
+              <span className="text-xl font-semibold text-slate-900">Leazr</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/login')}>
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" className="text-slate-600 hover:text-slate-900" onClick={() => navigate('/login')}>
                 Connexion
               </Button>
-              <Button onClick={() => navigate('/signup')}>
-                Essai gratuit
+              <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => navigate('/signup')}>
+                Commencer
               </Button>
             </div>
           </div>
@@ -66,44 +64,49 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-6 bg-blue-100 text-blue-800 hover:bg-blue-100">
-            🚀 Nouvelle génération de logiciel de leasing
+          <Badge className="mb-6 bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200">
+            Nouvelle génération de logiciel de leasing
           </Badge>
           
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
-            Révolutionnez votre 
-            <span className="text-blue-600"> leasing informatique</span>
+          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            Simplifiez votre
+            <span className="text-slate-600"> leasing informatique</span>
           </h1>
           
-          <p className="text-xl text-gray-600 mb-10 leading-relaxed">
-            Leazr est la plateforme tout-en-un qui simplifie la gestion de votre activité de leasing. 
-            Du prospect au contrat, automatisez vos processus et boostez votre productivité.
+          <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-3xl mx-auto">
+            Leazr est la plateforme tout-en-un qui modernise la gestion de votre activité de leasing. 
+            Du prospect au contrat, automatisez vos processus avec élégance.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button 
               size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 text-lg"
               onClick={() => navigate('/signup')}
             >
-              Commencer l'essai gratuit
+              Essai gratuit 14 jours
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="text-lg px-8 py-3"
-              onClick={() => navigate('/demo')}
+              className="border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-3 text-lg"
             >
               Voir la démo
             </Button>
           </div>
-          
-          <p className="text-sm text-gray-500 mt-4">
-            ✨ 14 jours d'essai gratuit • Aucune carte bancaire requise
-          </p>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
+                <div className="text-sm text-slate-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -111,27 +114,23 @@ const LandingPage: React.FC = () => {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">
               Tout ce dont vous avez besoin
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Une suite complète d'outils conçus spécifiquement pour les professionnels du leasing informatique
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Une suite complète d'outils pensés pour les professionnels du leasing
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <CardHeader className="text-center pb-4">
-                  <div className="mx-auto mb-4 p-3 bg-gray-50 rounded-full w-fit">
+              <Card key={index} className="border-slate-200 hover:border-slate-300 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="mx-auto mb-4 p-3 bg-slate-50 rounded-lg w-fit">
                     {feature.icon}
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-center text-gray-600">
-                    {feature.description}
-                  </CardDescription>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h3>
+                  <p className="text-slate-600 text-sm">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -142,32 +141,40 @@ const LandingPage: React.FC = () => {
       {/* Benefits Section */}
       <section className="py-20 bg-slate-50">
         <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-8">
                 Pourquoi choisir Leazr ?
               </h2>
               <div className="space-y-4">
-                {benefits.map((benefit, index) => (
+                {[
+                  "Interface moderne et intuitive",
+                  "Automatisation complète des processus",
+                  "Sécurité bancaire et données chiffrées",
+                  "Support client réactif et formation incluse",
+                  "Intégrations avec vos outils existants",
+                  "Mises à jour continues et innovations"
+                ].map((benefit, index) => (
                   <div key={index} className="flex items-start space-x-3">
-                    <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700 text-lg">{benefit}</span>
+                    <CheckCircle className="h-5 w-5 text-slate-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-700">{benefit}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-white p-8 rounded-2xl shadow-xl">
+            
+            <div className="bg-white p-8 rounded-xl border border-slate-200">
               <div className="text-center">
-                <div className="text-6xl font-bold text-blue-600 mb-2">60%</div>
-                <div className="text-xl text-gray-600 mb-6">
+                <div className="text-5xl font-bold text-slate-900 mb-2">60%</div>
+                <div className="text-lg text-slate-600 mb-6">
                   de temps économisé sur le traitement des offres
                 </div>
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <p className="text-gray-700 italic">
-                    "Leazr a transformé notre façon de travailler. Nous traitons maintenant 
-                    3 fois plus d'offres avec la même équipe."
+                <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                  <p className="text-slate-700 italic mb-4">
+                    "Leazr a transformé notre façon de travailler. Interface épurée, 
+                    processus fluides, résultats remarquables."
                   </p>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="text-sm text-slate-600">
                     — Marie Dubois, CEO chez TechLease
                   </div>
                 </div>
@@ -178,18 +185,18 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600 text-white">
+      <section className="py-20 bg-slate-900 text-white">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            Prêt à transformer votre activité ?
+          <h2 className="text-3xl font-bold mb-6">
+            Prêt à moderniser votre activité ?
           </h2>
-          <p className="text-xl mb-10 max-w-2xl mx-auto opacity-90">
-            Rejoignez les centaines d'entreprises qui font déjà confiance à Leazr 
+          <p className="text-lg mb-10 max-w-2xl mx-auto text-slate-300">
+            Rejoignez les entreprises qui font déjà confiance à Leazr 
             pour gérer leur activité de leasing informatique.
           </p>
           <Button 
             size="lg" 
-            className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3"
+            className="bg-white text-slate-900 hover:bg-slate-100 px-8 py-3 text-lg"
             onClick={() => navigate('/signup')}
           >
             Commencer maintenant
@@ -199,46 +206,46 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-white border-t border-slate-200 py-12">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                <div className="w-6 h-6 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">
                   L
                 </div>
-                <span className="text-xl font-bold">Leazr</span>
+                <span className="text-lg font-semibold text-slate-900">Leazr</span>
               </div>
-              <p className="text-gray-400">
+              <p className="text-slate-600 text-sm">
                 La plateforme de référence pour le leasing informatique.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Produit</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Fonctionnalités</a></li>
-                <li><a href="#" className="hover:text-white">Tarifs</a></li>
-                <li><a href="#" className="hover:text-white">Sécurité</a></li>
+              <h3 className="font-semibold text-slate-900 mb-4">Produit</h3>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Fonctionnalités</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Tarifs</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Sécurité</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Documentation</a></li>
-                <li><a href="#" className="hover:text-white">Contact</a></li>
-                <li><a href="#" className="hover:text-white">Formation</a></li>
+              <h3 className="font-semibold text-slate-900 mb-4">Support</h3>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Documentation</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Contact</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Formation</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Entreprise</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">À propos</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Carrières</a></li>
+              <h3 className="font-semibold text-slate-900 mb-4">Entreprise</h3>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li><a href="#" className="hover:text-slate-900 transition-colors">À propos</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Blog</a></li>
+                <li><a href="#" className="hover:text-slate-900 transition-colors">Carrières</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+          <div className="border-t border-slate-200 mt-12 pt-8 text-center text-sm text-slate-600">
             <p>&copy; 2024 Leazr. Tous droits réservés.</p>
           </div>
         </div>
