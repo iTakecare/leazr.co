@@ -49,7 +49,7 @@ const ContactPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🤝 Notre équipe d'experts est à votre disposition pour vous accompagner dans votre projet de leasing informatique
+            🤝 Notre équipe d'experts est à votre disposition pour vous accompagner dans votre projet de leasing
           </p>
         </div>
       </section>
@@ -206,7 +206,7 @@ const ContactPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>

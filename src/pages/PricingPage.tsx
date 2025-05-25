@@ -15,7 +15,7 @@ const PricingPage: React.FC = () => {
     {
       name: 'Starter',
       price: 49,
-      description: 'Parfait pour débuter dans le leasing informatique',
+      description: 'Parfait pour débuter dans le leasing',
       popular: false,
       features: [
         '✅ 1 module inclus (CRM ou Calculateur)',
@@ -71,7 +71,7 @@ const PricingPage: React.FC = () => {
     { name: '🤝 CRM Leasing', description: 'Gestion complète des clients et prospects' },
     { name: '🧮 Calculateur', description: 'Moteur de calcul spécialisé leasing' },
     { name: '📝 Contrats Digitaux', description: 'Génération et signature électronique' },
-    { name: '📦 Catalogue IT', description: 'Base de données équipements' },
+    { name: '📦 Catalogue Équipements', description: 'Base de données équipements' },
     { name: '📊 Analytics', description: 'Tableaux de bord et reporting' },
     { name: '🔗 Intégrations', description: 'Connexions bancaires et comptables' }
   ];
@@ -92,7 +92,7 @@ const PricingPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Des formules pensées pour accompagner votre croissance dans l'activité de leasing informatique
+            🎯 Des formules pensées pour accompagner votre croissance dans l'activité de leasing
           </p>
         </div>
       </section>
@@ -163,7 +163,7 @@ const PricingPage: React.FC = () => {
               🎛️ Modules disponibles
             </h2>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Découvrez tous les modules spécialisés pour optimiser votre activité de leasing informatique
+              Découvrez tous les modules spécialisés pour optimiser votre activité de leasing
             </p>
           </div>
           
@@ -248,7 +248,7 @@ const PricingPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>

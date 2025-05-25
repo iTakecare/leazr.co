@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,14 +83,14 @@ const ServicesPage: React.FC = () => {
     },
     {
       name: "Philippe Durand",
-      company: "IT Finance Pro",
+      company: "Financement Pro",
       role: "Responsable Commercial",
       content: "Formation très complète et support réactif. Nous avons gagné 60% de temps sur nos calculs de leasing.",
       rating: 5
     },
     {
       name: "Sophie Laurent",
-      company: "TechLease Partners",
+      company: "LeasePartners",
       role: "Chef de Projet",
       content: "L'intégration avec nos outils existants s'est faite sans accroc grâce à l'équipe technique Leazr.",
       rating: 5
@@ -137,7 +136,7 @@ const ServicesPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Un accompagnement personnalisé pour optimiser votre activité de leasing informatique
+            🎯 Un accompagnement personnalisé pour optimiser votre activité de leasing
           </p>
         </div>
       </section>
@@ -251,7 +250,7 @@ const ServicesPage: React.FC = () => {
             🤝 Prêt à être accompagné ?
           </h2>
           <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
-            💼 Nos experts sont là pour vous aider à optimiser votre activité de leasing informatique
+            💼 Nos experts sont là pour vous aider à optimiser votre activité de leasing
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -280,7 +279,7 @@ const ServicesPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>

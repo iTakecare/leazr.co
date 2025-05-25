@@ -71,8 +71,8 @@ const SolutionsPage: React.FC = () => {
     },
     {
       icon: <Zap className="h-12 w-12 text-orange-600" />,
-      title: "💻 Catalogue Équipements IT",
-      description: "Base de données complète d'équipements informatiques",
+      title: "💼 Catalogue Équipements",
+      description: "Base de données complète d'équipements",
       features: [
         "🗂️ Catalogue complet matériel",
         "💰 Gestion prix et remises",
@@ -82,7 +82,7 @@ const SolutionsPage: React.FC = () => {
         "🔗 Intégration fournisseurs"
       ],
       benefits: [
-        "10 000+ références",
+        "Références complètes",
         "Tarifs temps réel",
         "Gestion obsolescence"
       ],
@@ -107,13 +107,13 @@ const SolutionsPage: React.FC = () => {
       result: "70% de gain de productivité et 0% d'erreurs"
     },
     {
-      title: "🏪 Revendeur IT avec financement",
+      title: "🏪 Revendeur avec financement",
       challenge: "Difficultés à proposer des solutions de financement",
       solution: "Intégration catalogue + calculateur en marque blanche",
       result: "+50% de ventes avec financement intégré"
     },
     {
-      title: "🏭 Groupe industriel",
+      title: "🏭 Groupe multi-entités",
       challenge: "Gestion multi-entités et reporting consolidé",
       solution: "Déploiement multi-sites avec reporting centralisé",
       result: "Vision globale et pilotage optimisé"
@@ -136,7 +136,7 @@ const SolutionsPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Des outils conçus spécifiquement pour optimiser chaque aspect de votre activité de leasing informatique
+            🎯 Des outils conçus spécifiquement pour optimiser chaque aspect de votre activité de leasing
           </p>
         </div>
       </section>
@@ -325,7 +325,7 @@ const SolutionsPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>

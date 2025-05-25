@@ -15,7 +15,7 @@ const AboutPage: React.FC = () => {
     {
       icon: <Lightbulb className="h-8 w-8 text-orange-600" />,
       title: "💡 Innovation",
-      description: "Nous développons des solutions innovantes spécifiquement adaptées aux défis du leasing informatique"
+      description: "Nous développons des solutions innovantes spécifiquement adaptées aux défis du leasing"
     },
     {
       icon: <Heart className="h-8 w-8 text-red-600" />,
@@ -38,7 +38,7 @@ const AboutPage: React.FC = () => {
     {
       name: "Marie Dubois",
       role: "CEO & Fondatrice",
-      description: "15 ans d'expérience dans le leasing informatique",
+      description: "15 ans d'expérience dans le leasing",
       avatar: "MD"
     },
     {
@@ -65,7 +65,7 @@ const AboutPage: React.FC = () => {
     {
       year: "2020",
       title: "🚀 Création de Leazr",
-      description: "Lancement de la première version dédiée au leasing informatique"
+      description: "Lancement de la première version dédiée au leasing"
     },
     {
       year: "2021",
@@ -105,7 +105,7 @@ const AboutPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Nous révolutionnons l'industrie du leasing informatique grâce à des solutions digitales sur mesure
+            🎯 Nous révolutionnons l'industrie du leasing grâce à des solutions digitales sur mesure
           </p>
         </div>
       </section>
@@ -119,7 +119,7 @@ const AboutPage: React.FC = () => {
                 🎯 Notre mission
               </h2>
               <p className="text-lg text-slate-600 mb-6">
-                Simplifier et optimiser l'activité de leasing informatique grâce à des outils digitaux innovants, 
+                Simplifier et optimiser l'activité de leasing grâce à des outils digitaux innovants, 
                 conçus spécifiquement pour répondre aux défis uniques de ce secteur.
               </p>
               <p className="text-lg text-slate-600 mb-8">
@@ -144,7 +144,7 @@ const AboutPage: React.FC = () => {
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl">
               <h3 className="text-2xl font-semibold mb-4">🌟 Notre vision</h3>
               <p className="text-slate-700 mb-4">
-                Devenir la référence européenne des solutions digitales pour le leasing informatique, 
+                Devenir la référence européenne des solutions digitales pour le leasing, 
                 en accompagnant la transformation numérique de tout l'écosystème.
               </p>
               <p className="text-slate-700">
@@ -281,7 +281,7 @@ const AboutPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>

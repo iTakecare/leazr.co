@@ -29,7 +29,7 @@ const ResourcesPage: React.FC = () => {
       title: "📝 Blog & Actualités",
       description: "Conseils d'experts et actualités du secteur leasing",
       items: [
-        { title: "Les tendances du leasing IT 2024", type: "Article", duration: "8 min", popular: true },
+        { title: "Les tendances du leasing 2024", type: "Article", duration: "8 min", popular: true },
         { title: "Optimiser sa rentabilité", type: "Article", duration: "12 min", popular: true },
         { title: "Réglementation IFRS 16", type: "Guide", duration: "20 min", popular: false },
         { title: "Success story client", type: "Étude de cas", duration: "6 min", popular: false }
@@ -64,8 +64,8 @@ const ResourcesPage: React.FC = () => {
 
   const featuredArticles = [
     {
-      title: "🚀 Le guide complet du leasing informatique",
-      excerpt: "Tout ce que vous devez savoir sur le leasing IT : avantages, calculs, aspects juridiques...",
+      title: "🚀 Le guide complet du leasing",
+      excerpt: "Tout ce que vous devez savoir sur le leasing : avantages, calculs, aspects juridiques...",
       readTime: "15 min",
       category: "Guide",
       date: "15 Mars 2024",
@@ -80,7 +80,7 @@ const ResourcesPage: React.FC = () => {
       featured: false
     },
     {
-      title: "🔮 Tendances 2024 du leasing informatique",
+      title: "🔮 Tendances 2024 du leasing",
       excerpt: "Les évolutions du marché et les opportunités à saisir cette année",
       readTime: "12 min",
       category: "Tendances",
@@ -363,7 +363,7 @@ const ResourcesPage: React.FC = () => {
           <div className="text-center">
             <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
             <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing informatique.
+              💼 La solution métier de référence pour le leasing.
             </p>
           </div>
         </div>
