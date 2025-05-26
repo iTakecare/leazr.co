@@ -12,7 +12,6 @@ import {
   Settings,
   Package,
   FileSignature,
-  Building2,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -59,7 +58,6 @@ const Sidebar = ({ className }: SidebarProps) => {
     return [
       { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
       { icon: Users, label: "Clients", href: "/clients" },
-      { icon: Building2, label: "Clients Leazr", href: "/leazr-clients" },
       { icon: FileText, label: "Offres", href: "/offers" },
       { icon: FileSignature, label: "Contrats", href: "/contracts" },
       { icon: Package, label: "Catalogue", href: "/catalog" },
