@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -63,12 +62,12 @@ const Login = () => {
         console.log("Redirection vers dashboard partenaire");
         navigate('/partner/dashboard');
       } else {
-        console.log("Redirection par défaut vers dashboard client");
-        navigate('/client/dashboard');
+        console.log("Redirection par défaut vers la landing page");
+        navigate('/');
       }
     } catch (error) {
       console.error("Erreur lors de la redirection:", error);
-      navigate('/dashboard');
+      navigate('/');
     }
   };
 
@@ -355,10 +354,18 @@ const Login = () => {
                   }
                 </Button>
                 
-                <div className="w-full text-center">
-                  <Link to="/signup" className="text-sm text-blue-600 hover:underline">
+                <div className="w-full text-center space-y-2">
+                  <Link to="/signup" className="text-sm text-blue-600 hover:underline block">
                     Pas de compte ? Inscrivez-vous
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="text-sm text-gray-600 hover:text-blue-600 hover:underline flex items-center justify-center w-full"
+                  >
+                    <Home className="mr-1 h-4 w-4" />
+                    Retour à l'accueil
+                  </button>
                 </div>
               </CardFooter>
             </form>

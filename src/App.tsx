@@ -24,6 +24,7 @@ import AmbassadorDetail from './pages/AmbassadorDetail';
 import PaymentPage from './pages/PaymentPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeazrClients from "@/pages/LeazrClients";
+import HomePage from './pages/HomePage';
 
 const queryClient = new QueryClient();
 
@@ -35,9 +36,10 @@ function App() {
           <Toaster />
           <QueryClientProvider client={queryClient}>
             <Routes>
+              {/* Route par défaut vers la landing page */}
+              <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/" element={<Login />} />
               <Route path="/payment" element={<PaymentPage />} />
               
               {/* Admin routes */}
