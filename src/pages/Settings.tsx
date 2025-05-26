@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Crown } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
@@ -15,6 +14,7 @@ import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
 import ContractSettings from '@/components/settings/ContractSettings';
 import DataImporter from '@/components/settings/DataImporter';
+import LeazrSubscriptionManager from '@/components/settings/LeazrSubscriptionManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -70,7 +70,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -98,6 +98,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="import" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
             Import
+          </TabsTrigger>
+          <TabsTrigger value="leazr-admin" className="flex items-center gap-2">
+            <Crown className="h-4 w-4" />
+            Leazr Admin
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -131,6 +135,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="import" className="mt-6">
           <DataImporter />
+        </TabsContent>
+
+        <TabsContent value="leazr-admin" className="mt-6">
+          <LeazrSubscriptionManager />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
