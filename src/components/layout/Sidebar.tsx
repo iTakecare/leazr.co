@@ -1,9 +1,9 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
+import LeazrAdminSidebar from "./LeazrAdminSidebar";
 import { useLocation } from "react-router-dom";
 import {
   BarChart3,
@@ -23,6 +23,14 @@ const Sidebar = ({ className }: SidebarProps) => {
   const location = useLocation();
 
   if (!user) return null;
+
+  // Check if we're on a Leazr admin page
+  const isLeazrAdminPage = location.pathname.startsWith('/leazr-');
+  
+  // If we're on a Leazr admin page, use the dedicated Leazr sidebar
+  if (isLeazrAdminPage) {
+    return <LeazrAdminSidebar className={className} />;
+  }
 
   const getMenuItems = () => {
     if (isClient()) {
