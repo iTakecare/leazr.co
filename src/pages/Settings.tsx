@@ -7,12 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
 import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
+import ContractSettings from '@/components/settings/ContractSettings';
+import DataImporter from '@/components/settings/DataImporter';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -68,7 +70,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -88,6 +90,14 @@ const Settings: React.FC = () => {
           <TabsTrigger value="commissions" className="flex items-center gap-2">
             <BadgePercent className="h-4 w-4" />
             Commissions
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="flex items-center gap-2">
+            <FileSignature className="h-4 w-4" />
+            Contrats
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Import
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -113,6 +123,14 @@ const Settings: React.FC = () => {
 
         <TabsContent value="commissions" className="mt-6">
           <CommissionManager />
+        </TabsContent>
+
+        <TabsContent value="contracts" className="mt-6">
+          <ContractSettings />
+        </TabsContent>
+
+        <TabsContent value="import" className="mt-6">
+          <DataImporter />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
