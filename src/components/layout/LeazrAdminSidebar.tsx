@@ -6,7 +6,6 @@ import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import { useLocation } from "react-router-dom";
 import {
-  BarChart3,
   Users,
   Settings,
 } from "lucide-react";
@@ -22,7 +21,6 @@ const LeazrAdminSidebar = ({ className }: LeazrAdminSidebarProps) => {
   if (!user) return null;
 
   const menuItems = [
-    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Clients Leazr", href: "/leazr-clients" },
     { icon: Settings, label: "Paramètres", href: "/settings" },
   ];
