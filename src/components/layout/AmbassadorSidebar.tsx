@@ -13,6 +13,7 @@ import {
   Package,
   LogOut,
   FileText,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,7 +34,7 @@ const AmbassadorSidebar = () => {
     }
   };
 
-  const routes = [
+  const mainRoutes = [
     {
       title: "Tableau de bord",
       icon: BarChart,
@@ -41,7 +42,7 @@ const AmbassadorSidebar = () => {
       active: pathname === "/ambassador/dashboard",
     },
     {
-      title: "Clients",
+      title: "Mes Clients",
       icon: Users,
       href: `/ambassador/clients`,
       active: pathname === "/ambassador/clients" || pathname.startsWith("/ambassador/clients/"),
@@ -66,6 +67,15 @@ const AmbassadorSidebar = () => {
     },
   ];
 
+  const leazrRoutes = [
+    {
+      title: "Clients Leazr.co",
+      icon: Building2,
+      href: `/leazr-clients`,
+      active: pathname === "/leazr-clients" || pathname.startsWith("/leazr-clients/"),
+    },
+  ];
+
   return (
     <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
       <div className="flex h-16 items-center justify-start border-b px-6 pl-20">
@@ -74,21 +84,50 @@ const AmbassadorSidebar = () => {
         </Link>
       </div>
       <ScrollArea className="flex-1 px-4 py-4">
-        <nav className="grid gap-2">
-          {routes.map((route, i) => (
-            <Button
-              key={i}
-              variant={route.active ? "default" : "ghost"}
-              className={cn(
-                "justify-start gap-2",
-                route.active && "bg-primary text-primary-foreground"
-              )}
-              onClick={() => navigate(route.href)}
-            >
-              <route.icon className="h-4 w-4" />
-              {route.title}
-            </Button>
-          ))}
+        <nav className="grid gap-4">
+          {/* Section principale */}
+          <div className="grid gap-2">
+            {mainRoutes.map((route, i) => (
+              <Button
+                key={i}
+                variant={route.active ? "default" : "ghost"}
+                className={cn(
+                  "justify-start gap-2",
+                  route.active && "bg-primary text-primary-foreground"
+                )}
+                onClick={() => navigate(route.href)}
+              >
+                <route.icon className="h-4 w-4" />
+                {route.title}
+              </Button>
+            ))}
+          </div>
+
+          {/* Séparateur */}
+          <div className="border-t border-gray-200 my-2"></div>
+
+          {/* Section Clients Leazr.co */}
+          <div className="grid gap-2">
+            <div className="px-2 py-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Plateforme Leazr
+              </span>
+            </div>
+            {leazrRoutes.map((route, i) => (
+              <Button
+                key={i}
+                variant={route.active ? "default" : "ghost"}
+                className={cn(
+                  "justify-start gap-2",
+                  route.active && "bg-primary text-primary-foreground"
+                )}
+                onClick={() => navigate(route.href)}
+              >
+                <route.icon className="h-4 w-4" />
+                {route.title}
+              </Button>
+            ))}
+          </div>
         </nav>
       </ScrollArea>
       <div className="flex flex-col gap-2 border-t p-4">
