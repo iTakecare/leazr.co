@@ -19,19 +19,9 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRo
     requiredRole 
   });
 
-  // Si on est encore en train de charger, afficher le loader
-  if (isLoading) {
+  // Afficher le loader tant que l'authentification n'est pas vérifiée
+  if (isLoading || !userRoleChecked) {
     console.log("PrivateRoute - Chargement en cours");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // Si les rôles ne sont pas encore vérifiés, afficher le loader
-  if (!userRoleChecked) {
-    console.log("PrivateRoute - Vérification des rôles en cours");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>

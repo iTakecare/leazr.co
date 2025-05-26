@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -83,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signOut = logout; // Alias pour logout
+  const signOut = logout;
 
   const signIn = async (email: string, password: string) => {
     return await supabase.auth.signInWithPassword({ email, password });
@@ -110,86 +111,176 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user?.role === 'ambassador' || !!user?.ambassador_id;
   };
 
-  // Fonction pour enrichir les données utilisateur
+  // Fonction pour enrichir les données utilisateur avec gestion d'erreur robuste
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
+    console.log("AuthContext - Début enrichissement des données pour:", baseUser.id);
+    
     try {
-      // Récupérer le profil utilisateur
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', baseUser.id)
         .single();
 
+      if (error) {
+        console.log("AuthContext - Pas de profil trouvé ou erreur:", error.message);
+        // Retourner l'utilisateur de base même sans profil
+        return {
+          ...baseUser,
+          first_name: '',
+          last_name: '',
+          role: 'admin', // Rôle par défaut
+          company: '',
+          partner_id: '',
+          ambassador_id: '',
+          client_id: '',
+        };
+      }
+
+      console.log("AuthContext - Profil trouvé:", profile);
+      
       return {
         ...baseUser,
         first_name: profile?.first_name || '',
         last_name: profile?.last_name || '',
-        role: profile?.role || '',
+        role: profile?.role || 'admin',
         company: profile?.company || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: profile?.ambassador_id || '',
         client_id: profile?.client_id || '',
       };
     } catch (error) {
-      console.error('Error enriching user data:', error);
-      return baseUser as ExtendedUser;
+      console.error('AuthContext - Erreur lors de l\'enrichissement:', error);
+      // En cas d'erreur, retourner l'utilisateur de base avec des valeurs par défaut
+      return {
+        ...baseUser,
+        first_name: '',
+        last_name: '',
+        role: 'admin',
+        company: '',
+        partner_id: '',
+        ambassador_id: '',
+        client_id: '',
+      };
     }
   };
 
   useEffect(() => {
     console.log("AuthContext - Initialisation de l'authentification");
     
+    let isMounted = true;
+    
     // Configuration de l'écoute des changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("AuthContext - Événement d'authentification:", { event, hasSession: !!session });
         
-        setSession(session);
+        if (!isMounted) return;
         
         if (session?.user) {
-          console.log("AuthContext - Enrichissement des données utilisateur");
-          const enrichedUser = await enrichUserData(session.user);
-          setUser(enrichedUser);
-          setUserRoleChecked(true);
-          setIsLoading(false);
+          console.log("AuthContext - Session utilisateur trouvée, enrichissement en cours");
           
-          // Vérifier l'abonnement après connexion
-          setTimeout(() => {
-            checkSubscription();
-          }, 0);
+          try {
+            const enrichedUser = await enrichUserData(session.user);
+            
+            if (isMounted) {
+              setSession(session);
+              setUser(enrichedUser);
+              setUserRoleChecked(true);
+              setIsLoading(false);
+              
+              console.log("AuthContext - États mis à jour avec succès:", {
+                userId: enrichedUser.id,
+                role: enrichedUser.role,
+                isLoading: false,
+                userRoleChecked: true
+              });
+              
+              // Vérifier l'abonnement après mise à jour des états
+              setTimeout(() => {
+                if (isMounted) {
+                  checkSubscription();
+                }
+              }, 100);
+            }
+          } catch (error) {
+            console.error("AuthContext - Erreur lors de l'enrichissement:", error);
+            
+            if (isMounted) {
+              // Même en cas d'erreur, définir les états pour éviter le blocage
+              setSession(session);
+              setUser(session.user as ExtendedUser);
+              setUserRoleChecked(true);
+              setIsLoading(false);
+            }
+          }
         } else {
-          console.log("AuthContext - Aucun utilisateur, réinitialisation des états");
-          setUser(null);
-          setUserRoleChecked(true);
-          setSubscription(null);
-          setIsLoading(false);
+          console.log("AuthContext - Pas de session, réinitialisation des états");
+          
+          if (isMounted) {
+            setUser(null);
+            setSession(null);
+            setUserRoleChecked(true);
+            setSubscription(null);
+            setIsLoading(false);
+          }
         }
       }
     );
 
     // Vérification de la session existante
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log("AuthContext - Vérification session existante:", { hasSession: !!session });
-      
-      setSession(session);
-      
-      if (session?.user) {
-        const enrichedUser = await enrichUserData(session.user);
-        setUser(enrichedUser);
-        setUserRoleChecked(true);
+    const initializeAuth = async () => {
+      try {
+        console.log("AuthContext - Vérification session existante");
         
-        setTimeout(() => {
-          checkSubscription();
-        }, 0);
-      } else {
-        setUserRoleChecked(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("AuthContext - Erreur lors de la récupération de la session:", error);
+          if (isMounted) {
+            setIsLoading(false);
+            setUserRoleChecked(true);
+          }
+          return;
+        }
+        
+        console.log("AuthContext - Session récupérée:", { hasSession: !!session });
+        
+        if (session?.user && isMounted) {
+          const enrichedUser = await enrichUserData(session.user);
+          
+          if (isMounted) {
+            setSession(session);
+            setUser(enrichedUser);
+            setUserRoleChecked(true);
+            
+            setTimeout(() => {
+              if (isMounted) {
+                checkSubscription();
+              }
+            }, 100);
+          }
+        } else if (isMounted) {
+          setUserRoleChecked(true);
+        }
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("AuthContext - Erreur lors de l'initialisation:", error);
+        if (isMounted) {
+          setIsLoading(false);
+          setUserRoleChecked(true);
+        }
       }
-      
-      setIsLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     return () => {
       console.log("AuthContext - Nettoyage de l'abonnement");
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

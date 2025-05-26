@@ -20,6 +20,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked, isLoading } = useAuth();
@@ -42,43 +43,54 @@ const Login = () => {
 
   // Redirection automatique pour les utilisateurs connectés
   useEffect(() => {
-    // Ne rediriger que si l'utilisateur est connecté, les rôles sont vérifiés et on n'est pas en mode reset
-    if (session && user && userRoleChecked && !isResetMode && !isLoading) {
-      console.log("L'utilisateur est déjà connecté, redirection en cours", { 
-        isAdmin: isAdmin(), 
-        isClient: isClient(), 
-        isPartner: isPartner(), 
-        isAmbassador: isAmbassador(),
-        userRole: user?.role 
+    // Conditions strictes pour éviter les redirections multiples
+    if (
+      !isLoading && 
+      userRoleChecked && 
+      session && 
+      user && 
+      !isResetMode && 
+      !hasRedirected
+    ) {
+      console.log("Login - Conditions remplies pour redirection:", { 
+        isLoading,
+        userRoleChecked,
+        hasSession: !!session,
+        hasUser: !!user,
+        userRole: user?.role,
+        isResetMode,
+        hasRedirected
       });
+      
+      setHasRedirected(true);
       
       try {
         if (isAdmin()) {
-          console.log("Redirection vers dashboard admin");
+          console.log("Login - Redirection vers dashboard admin");
           navigate('/dashboard', { replace: true });
         } else if (isClient()) {
-          console.log("Redirection vers dashboard client");
+          console.log("Login - Redirection vers dashboard client");
           navigate('/client/dashboard', { replace: true });
         } else if (isAmbassador()) {
-          console.log("Redirection vers dashboard ambassadeur");
+          console.log("Login - Redirection vers dashboard ambassadeur");
           navigate('/ambassador/dashboard', { replace: true });
         } else if (isPartner()) {
-          console.log("Redirection vers dashboard partenaire");
+          console.log("Login - Redirection vers dashboard partenaire");
           navigate('/partner/dashboard', { replace: true });
         } else {
-          console.log("Redirection par défaut vers la landing page");
+          console.log("Login - Redirection par défaut vers la landing page");
           navigate('/', { replace: true });
         }
       } catch (error) {
-        console.error("Erreur lors de la redirection:", error);
+        console.error("Login - Erreur lors de la redirection:", error);
         navigate('/', { replace: true });
       }
     }
-  }, [session, user, userRoleChecked, isResetMode, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [session, user, userRoleChecked, isResetMode, isLoading, hasRedirected, navigate, isAdmin, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Début de la tentative de connexion...");
+    console.log("Login - Début de la tentative de connexion...");
     
     if (!email || !password) {
       toast.error('Veuillez remplir tous les champs');
@@ -88,14 +100,14 @@ const Login = () => {
     setLoading(true);
     
     try {
-      console.log("Tentative de connexion avec:", email);
+      console.log("Login - Tentative de connexion avec:", email);
       
       const { error } = await signIn(email, password);
       
-      console.log("Résultat de la connexion:", { error });
+      console.log("Login - Résultat de la connexion:", { error });
 
       if (error) {
-        console.error('Erreur lors de la connexion:', error);
+        console.error('Login - Erreur lors de la connexion:', error);
         
         // Messages d'erreur plus spécifiques
         let errorMessage = 'Erreur de connexion';
@@ -114,13 +126,13 @@ const Login = () => {
         return;
       }
 
-      console.log("Connexion réussie");
+      console.log("Login - Connexion réussie, attente de la redirection automatique");
       toast.success('Connexion réussie');
       
-      // Ne pas rediriger manuellement ici, laisser useEffect gérer la redirection
+      // Ne pas définir setLoading(false) ici, laisser la redirection gérer l'état
       
     } catch (error: any) {
-      console.error('Exception lors de la connexion:', error);
+      console.error('Login - Exception lors de la connexion:', error);
       toast.error('Erreur inattendue lors de la connexion');
       setLoading(false);
     }
