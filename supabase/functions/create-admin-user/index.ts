@@ -76,7 +76,76 @@ serve(async (req) => {
       );
     }
     
-    // Create the user first with admin supabase client
+    // First, ensure we have a company to associate the user with
+    let companyId: string | null = null;
+    
+    try {
+      console.log('Looking for iTakecare company...');
+      // Try to find existing iTakecare company
+      const { data: existingCompany } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .ilike('name', 'itakecare')
+        .single();
+      
+      if (existingCompany) {
+        companyId = existingCompany.id;
+        console.log('Found existing iTakecare company:', companyId);
+      }
+    } catch (error) {
+      console.log('iTakecare company not found, will create one');
+    }
+    
+    // If no company found, create one using service role directly
+    if (!companyId) {
+      try {
+        console.log('Creating iTakecare company...');
+        
+        // Temporarily disable RLS for this operation by using admin client
+        const { data: newCompany, error: companyError } = await supabaseAdmin
+          .from('companies')
+          .insert({
+            name: 'iTakecare',
+            plan: 'business',
+            is_active: true,
+            subscription_ends_at: '2030-12-31T00:00:00.000Z'
+          })
+          .select('id')
+          .single();
+        
+        if (companyError) {
+          console.error('Error creating company:', companyError);
+          // Try a simpler approach - create minimal company
+          const { data: minimalCompany, error: minimalError } = await supabaseAdmin
+            .from('companies')
+            .insert({
+              name: 'Default Admin Company',
+              plan: 'business'
+            })
+            .select('id')
+            .single();
+          
+          if (minimalError) {
+            console.error('Error creating minimal company:', minimalError);
+            throw new Error('Failed to create company');
+          }
+          
+          companyId = minimalCompany.id;
+          console.log('Created minimal company:', companyId);
+        } else {
+          companyId = newCompany.id;
+          console.log('Created iTakecare company:', companyId);
+        }
+      } catch (error) {
+        console.error('Failed to create any company:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create company for admin user' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+    }
+    
+    // Now create the user with admin supabase client
     console.log('Creating user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -99,117 +168,38 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Try to find or create iTakecare company using direct SQL approach
-    let companyId: string | null = null;
-    
-    try {
-      // First disable RLS temporarily for companies table
-      console.log('Attempting to find or create iTakecare company...');
+    // Create profile with the company_id
+    if (userData.user && companyId) {
+      console.log('Creating profile with company_id:', companyId);
       
-      // Use the execute_sql function to bypass RLS
-      const { data: companyResult, error: companyError } = await supabaseAdmin.rpc('execute_sql', {
-        sql: `
-          INSERT INTO public.companies (name, plan, is_active, subscription_ends_at)
-          VALUES ('iTakecare', 'business', true, '2030-12-31T00:00:00.000Z')
-          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
-          RETURNING id;
-        `
-      });
-      
-      if (!companyError) {
-        console.log('iTakecare company handled successfully');
-        
-        // Get the company ID
-        const { data: getCompanyResult } = await supabaseAdmin
-          .from('companies')
-          .select('id')
-          .ilike('name', 'itakecare')
-          .limit(1)
-          .single();
-        
-        if (getCompanyResult) {
-          companyId = getCompanyResult.id;
-          console.log('Found iTakecare company ID:', companyId);
-        }
-      }
-    } catch (sqlError) {
-      console.error('SQL execution failed:', sqlError);
-    }
-    
-    // If we still don't have a company, try creating a simple one
-    if (!companyId) {
-      try {
-        const { data: simpleCompany } = await supabaseAdmin
-          .from('companies')
-          .insert({
-            name: 'Default Admin Company',
-            plan: 'business',
-            is_active: true
-          })
-          .select('id')
-          .single();
-        
-        if (simpleCompany) {
-          companyId = simpleCompany.id;
-          console.log('Created default company:', companyId);
-        }
-      } catch (defaultError) {
-        console.warn('Could not create default company:', defaultError);
-      }
-    }
-    
-    // Create profile - if we have a company_id, use it, otherwise handle gracefully
-    if (userData.user) {
-      console.log('Creating profile...');
-      
-      const profileData: any = {
+      const profileData = {
         id: userData.user.id,
         first_name: first_name || 'Admin',
         last_name: last_name || 'Leazr',
-        role: role || 'admin'
+        role: role || 'admin',
+        company_id: companyId
       };
       
-      // Only add company_id if we have one
-      if (companyId) {
-        profileData.company_id = companyId;
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData);
+      
+      if (profileError) {
+        console.error('Profile creation failed:', profileError);
+        // Don't delete the user, just report the issue
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            user: userData,
+            company_id: companyId,
+            warning: 'Utilisateur créé mais le profil n\'a pas pu être associé',
+            message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
       }
       
-      try {
-        // Try to use the execute_sql function for profile creation too
-        const profileSql = companyId 
-          ? `INSERT INTO public.profiles (id, first_name, last_name, role, company_id) VALUES ('${userData.user.id}', '${profileData.first_name}', '${profileData.last_name}', '${profileData.role}', '${companyId}');`
-          : `INSERT INTO public.profiles (id, first_name, last_name, role) VALUES ('${userData.user.id}', '${profileData.first_name}', '${profileData.last_name}', '${profileData.role}');`;
-        
-        const { error: profileSqlError } = await supabaseAdmin.rpc('execute_sql', {
-          sql: profileSql
-        });
-        
-        if (profileSqlError) {
-          console.error('Profile creation via SQL failed:', profileSqlError);
-          
-          // Fallback to regular insert
-          const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .insert(profileData);
-          
-          if (profileError) {
-            console.error('Profile creation failed:', profileError);
-            return new Response(
-              JSON.stringify({ 
-                success: true, 
-                user: userData,
-                warning: 'Utilisateur créé mais le profil n\'a pas pu être associé',
-                message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-            );
-          }
-        }
-        
-        console.log('Profile created successfully');
-      } catch (profileCreationError) {
-        console.error('Profile creation error:', profileCreationError);
-      }
+      console.log('Profile created successfully');
     }
     
     return new Response(
