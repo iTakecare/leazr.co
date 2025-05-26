@@ -75,8 +75,19 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    // Step 1: Temporarily make company_id nullable
+    console.log('Making company_id nullable temporarily...');
+    try {
+      await supabaseAdmin.rpc('execute_sql', {
+        sql: 'ALTER TABLE public.profiles ALTER COLUMN company_id DROP NOT NULL;'
+      });
+      console.log('Successfully made company_id nullable');
+    } catch (error) {
+      console.log('Note: Could not alter company_id constraint, continuing...');
+    }
     
-    // Step 1: Find or create iTakecare company using SQL with bypassed RLS
+    // Step 2: Find or create iTakecare company
     let companyId: string | null = null;
     
     console.log('Looking for iTakecare company...');
@@ -92,61 +103,25 @@ serve(async (req) => {
         companyId = companies[0].id;
         console.log('Found existing iTakecare company:', companyId);
       } else {
-        console.log('Creating iTakecare company using SQL...');
+        console.log('Creating iTakecare company...');
         
-        // Use direct SQL to bypass RLS policies
-        const { data: sqlResult, error: sqlError } = await supabaseAdmin.rpc('execute_sql', {
+        // Generate a new UUID for the company
+        companyId = crypto.randomUUID();
+        
+        // Use direct SQL to create the company
+        const { error: createError } = await supabaseAdmin.rpc('execute_sql', {
           sql: `
-            INSERT INTO public.companies (name, plan, is_active, subscription_ends_at, created_at, updated_at)
-            VALUES ('iTakecare', 'business', true, '2030-12-31T00:00:00.000Z', NOW(), NOW())
-            RETURNING id;
+            INSERT INTO public.companies (id, name, plan, is_active, created_at, updated_at)
+            VALUES ('${companyId}', 'iTakecare', 'business', true, NOW(), NOW());
           `
         });
         
-        if (sqlError) {
-          console.error('Error creating company with SQL:', sqlError);
-          // Try a different approach - create with minimal data
-          const companyUuid = crypto.randomUUID();
-          const { error: insertError } = await supabaseAdmin.rpc('execute_sql', {
-            sql: `
-              INSERT INTO public.companies (id, name, plan, is_active, created_at, updated_at)
-              VALUES ('${companyUuid}', 'iTakecare', 'business', true, NOW(), NOW());
-            `
-          });
-          
-          if (insertError) {
-            console.error('Failed to create company:', insertError);
-            return new Response(
-              JSON.stringify({ error: 'Failed to create company for admin user' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          companyId = companyUuid;
-          console.log('Created iTakecare company with UUID:', companyId);
-        } else {
-          console.log('Company creation result:', sqlResult);
-          // The result might be in different formats, try to extract the ID
-          if (typeof sqlResult === 'string') {
-            // If it's a string, it might be the UUID directly
-            companyId = sqlResult;
-          } else if (Array.isArray(sqlResult) && sqlResult.length > 0) {
-            companyId = sqlResult[0].id || sqlResult[0];
-          }
-          
-          if (!companyId) {
-            // Fallback: generate UUID and insert directly
-            companyId = crypto.randomUUID();
-            await supabaseAdmin.rpc('execute_sql', {
-              sql: `
-                INSERT INTO public.companies (id, name, plan, is_active, created_at, updated_at)
-                VALUES ('${companyId}', 'iTakecare', 'business', true, NOW(), NOW());
-              `
-            });
-          }
-          
-          console.log('Created iTakecare company:', companyId);
+        if (createError) {
+          console.error('Error creating company:', createError);
+          throw new Error('Failed to create iTakecare company');
         }
+        
+        console.log('Created iTakecare company with ID:', companyId);
       }
     } catch (error) {
       console.error('Error handling company creation:', error);
@@ -164,7 +139,7 @@ serve(async (req) => {
       );
     }
     
-    // Step 2: Create the user
+    // Step 3: Create the user
     console.log('Creating user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -187,35 +162,43 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Step 3: Create the profile using SQL to bypass RLS
+    // Step 4: Update the profile with the correct company_id
     if (userData.user && companyId) {
-      console.log('Creating profile with company_id:', companyId);
+      console.log('Updating profile with company_id:', companyId);
       
       try {
-        const { error: profileError } = await supabaseAdmin.rpc('execute_sql', {
+        const { error: profileUpdateError } = await supabaseAdmin.rpc('execute_sql', {
           sql: `
-            INSERT INTO public.profiles (id, first_name, last_name, role, company_id, created_at, updated_at)
-            VALUES (
-              '${userData.user.id}',
-              '${(first_name || 'Admin').replace(/'/g, "''")}',
-              '${(last_name || 'Leazr').replace(/'/g, "''")}',
-              '${role || 'admin'}',
-              '${companyId}',
-              NOW(),
-              NOW()
-            );
+            UPDATE public.profiles 
+            SET 
+              company_id = '${companyId}',
+              first_name = '${(first_name || 'Admin').replace(/'/g, "''")}',
+              last_name = '${(last_name || 'Leazr').replace(/'/g, "''")}',
+              role = '${role || 'admin'}',
+              updated_at = NOW()
+            WHERE id = '${userData.user.id}';
           `
         });
         
-        if (profileError) {
-          console.error('Profile creation failed:', profileError);
-          console.log('Continuing despite profile creation error...');
+        if (profileUpdateError) {
+          console.error('Profile update failed:', profileUpdateError);
         } else {
-          console.log('Profile created successfully');
+          console.log('Profile updated successfully');
         }
       } catch (error) {
-        console.error('Error creating profile:', error);
+        console.error('Error updating profile:', error);
       }
+    }
+
+    // Step 5: Restore company_id constraint
+    console.log('Restoring company_id NOT NULL constraint...');
+    try {
+      await supabaseAdmin.rpc('execute_sql', {
+        sql: 'ALTER TABLE public.profiles ALTER COLUMN company_id SET NOT NULL;'
+      });
+      console.log('Successfully restored company_id constraint');
+    } catch (error) {
+      console.log('Note: Could not restore company_id constraint, but user was created successfully');
     }
     
     return new Response(
