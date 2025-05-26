@@ -20,9 +20,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked } = useAuth();
 
   useEffect(() => {
     const checkForResetToken = () => {
@@ -39,35 +40,44 @@ const Login = () => {
 
     const hasResetToken = checkForResetToken();
     
-    if (!hasResetToken && session && user && !isResetMode) {
-      console.log("L'utilisateur est déjà connecté, redirection vers le tableau de bord approprié");
+    // Ne rediriger que si on a un utilisateur, que les rôles sont vérifiés, 
+    // qu'on n'est pas en mode reset et qu'on n'a pas déjà tenté de rediriger
+    if (!hasResetToken && session && user && userRoleChecked && !isResetMode && !redirectAttempted) {
+      console.log("L'utilisateur est déjà connecté, tentative de redirection");
+      setRedirectAttempted(true);
       redirectToDashboard();
     }
-  }, [session, navigate, location, user, isResetMode]);
+  }, [session, user, userRoleChecked, isResetMode, redirectAttempted]);
 
   const redirectToDashboard = () => {
-    console.log("Redirection en cours...", { isAdmin: isAdmin(), isClient: isClient(), isPartner: isPartner(), isAmbassador: isAmbassador() });
+    console.log("Redirection en cours...", { 
+      isAdmin: isAdmin(), 
+      isClient: isClient(), 
+      isPartner: isPartner(), 
+      isAmbassador: isAmbassador(),
+      userRole: user?.role 
+    });
     
     try {
       if (isAdmin()) {
         console.log("Redirection vers dashboard admin");
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       } else if (isClient()) {
         console.log("Redirection vers dashboard client");
-        navigate('/client/dashboard');
+        navigate('/client/dashboard', { replace: true });
       } else if (isAmbassador()) {
         console.log("Redirection vers dashboard ambassadeur");
-        navigate('/ambassador/dashboard');
+        navigate('/ambassador/dashboard', { replace: true });
       } else if (isPartner()) {
         console.log("Redirection vers dashboard partenaire");
-        navigate('/partner/dashboard');
+        navigate('/partner/dashboard', { replace: true });
       } else {
         console.log("Redirection par défaut vers la landing page");
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (error) {
       console.error("Erreur lors de la redirection:", error);
-      navigate('/');
+      navigate('/', { replace: true });
     }
   };
 
@@ -112,11 +122,8 @@ const Login = () => {
       console.log("Connexion réussie");
       toast.success('Connexion réussie');
       
-      // Attendre un peu pour que l'état d'authentification se mette à jour
-      setTimeout(() => {
-        console.log("Redirection après connexion réussie");
-        redirectToDashboard();
-      }, 100);
+      // Ne pas rediriger immédiatement, laisser useEffect gérer la redirection
+      // quand l'état d'authentification sera mis à jour
       
     } catch (error: any) {
       console.error('Exception lors de la connexion:', error);
