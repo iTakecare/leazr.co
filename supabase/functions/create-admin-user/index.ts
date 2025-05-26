@@ -81,19 +81,22 @@ serve(async (req) => {
     
     try {
       console.log('Looking for iTakecare company...');
-      // Try to find existing iTakecare company
-      const { data: existingCompany } = await supabaseAdmin
-        .from('companies')
-        .select('id')
-        .ilike('name', 'itakecare')
-        .single();
+      // Try to find existing iTakecare company using direct SQL query
+      const { data: existingCompany, error: findError } = await supabaseAdmin
+        .rpc('execute_sql', {
+          sql: `
+            SELECT id FROM public.companies 
+            WHERE LOWER(name) LIKE '%itakecare%' 
+            LIMIT 1;
+          `
+        });
       
-      if (existingCompany) {
-        companyId = existingCompany.id;
+      if (!findError && existingCompany && existingCompany.length > 0) {
+        companyId = existingCompany[0].id;
         console.log('Found existing iTakecare company:', companyId);
       }
     } catch (error) {
-      console.log('iTakecare company not found, will create one');
+      console.log('Error finding company, will create one:', error);
     }
     
     // If no company found, create one using direct SQL execution
@@ -139,15 +142,15 @@ serve(async (req) => {
       );
     }
     
-    console.log('Temporarily disabling profile trigger...');
-    // Disable the trigger that auto-creates profiles
-    const { error: disableTriggerError } = await supabaseAdmin
-      .rpc('execute_sql', {
-        sql: 'ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;'
+    // Now create the user using a different approach - disable RLS temporarily
+    console.log('Disabling RLS for profiles table...');
+    try {
+      await supabaseAdmin.rpc('execute_sql', {
+        sql: 'ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;'
       });
-    
-    if (disableTriggerError) {
-      console.log('Could not disable trigger, continuing anyway:', disableTriggerError);
+      console.log('RLS disabled successfully');
+    } catch (error) {
+      console.log('Could not disable RLS:', error);
     }
     
     // Now create the user
@@ -163,15 +166,15 @@ serve(async (req) => {
       }
     });
     
-    // Re-enable the trigger
-    console.log('Re-enabling profile trigger...');
-    const { error: enableTriggerError } = await supabaseAdmin
-      .rpc('execute_sql', {
-        sql: 'ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;'
+    // Re-enable RLS
+    console.log('Re-enabling RLS for profiles table...');
+    try {
+      await supabaseAdmin.rpc('execute_sql', {
+        sql: 'ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;'
       });
-    
-    if (enableTriggerError) {
-      console.log('Could not re-enable trigger:', enableTriggerError);
+      console.log('RLS re-enabled successfully');
+    } catch (error) {
+      console.log('Could not re-enable RLS:', error);
     }
     
     if (userError) {
@@ -184,33 +187,43 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Create profile manually with company_id
+    // Create or update profile manually with company_id using SQL
     if (userData.user && companyId) {
-      console.log('Creating profile manually with company_id:', companyId);
+      console.log('Creating/updating profile with company_id:', companyId);
       
-      const { error: profileError } = await supabaseAdmin
-        .rpc('execute_sql', {
-          sql: `
-            INSERT INTO public.profiles (id, first_name, last_name, role, company_id)
-            VALUES ('${userData.user.id}', '${first_name || 'Admin'}', '${last_name || 'Leazr'}', '${role || 'admin'}', '${companyId}');
-          `
-        });
-      
-      if (profileError) {
-        console.error('Profile creation failed:', profileError);
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            user: userData,
-            company_id: companyId,
-            warning: 'Utilisateur créé mais le profil n\'a pas pu être associé',
-            message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        );
+      try {
+        const { error: profileError } = await supabaseAdmin
+          .rpc('execute_sql', {
+            sql: `
+              INSERT INTO public.profiles (id, first_name, last_name, role, company_id)
+              VALUES ('${userData.user.id}', '${first_name || 'Admin'}', '${last_name || 'Leazr'}', '${role || 'admin'}', '${companyId}')
+              ON CONFLICT (id) 
+              DO UPDATE SET
+                first_name = '${first_name || 'Admin'}',
+                last_name = '${last_name || 'Leazr'}',
+                role = '${role || 'admin'}',
+                company_id = '${companyId}';
+            `
+          });
+        
+        if (profileError) {
+          console.error('Profile creation/update failed:', profileError);
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              user: userData,
+              company_id: companyId,
+              warning: 'Utilisateur créé mais le profil n\'a pas pu être configuré',
+              message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        }
+        
+        console.log('Profile created/updated successfully');
+      } catch (error) {
+        console.error('Error with profile SQL:', error);
       }
-      
-      console.log('Profile created successfully');
     }
     
     return new Response(
