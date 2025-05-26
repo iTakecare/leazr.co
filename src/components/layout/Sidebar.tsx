@@ -163,7 +163,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       <MobileSidebar
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        menuItems={[...mainSidebarItems, ...leazrSidebarItems]}
+        menuItems={mainSidebarItems}
         isActive={isActive}
         onLinkClick={onLinkClick}
         avatarUrl={avatarUrl}
@@ -206,31 +206,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           <ul className="space-y-1">
             {/* Section principale */}
             {mainSidebarItems.map((item) => (
-              <SidebarMenuItem 
-                key={item.href}
-                item={item}
-                isActive={isActive}
-                collapsed={collapsed}
-                onLinkClick={onLinkClick}
-              />
-            ))}
-            
-            {/* Séparateur */}
-            <li className="my-4">
-              <div className="border-t border-gray-200"></div>
-            </li>
-            
-            {/* Section label pour Plateforme Leazr */}
-            {!collapsed && (
-              <li className="px-3 py-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Plateforme Leazr
-                </span>
-              </li>
-            )}
-            
-            {/* Section Clients Leazr.co */}
-            {leazrSidebarItems.map((item) => (
               <SidebarMenuItem 
                 key={item.href}
                 item={item}
