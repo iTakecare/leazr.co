@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
-import Logo from '@/components/layout/Logo';
+import LandingHeader from '@/components/layout/LandingHeader';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,37 +50,12 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Logo variant="full" logoSize="lg" showText={false} />
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/login')}
-                className="text-slate-600 hover:text-blue-600"
-              >
-                Se connecter
-              </Button>
-              <Button 
-                onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                Essai gratuit
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header avec navigation */}
+      <LandingHeader />
 
       {/* Hero Section */}
       <section className="py-20 px-6">
         <div className="container mx-auto text-center max-w-5xl">
-          <div className="mb-8 flex justify-center">
-            <Logo variant="full" logoSize="2xl" showText={false} className="transform hover:scale-105 transition-transform duration-300" />
-          </div>
-          
           <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 hover:from-blue-200 hover:to-purple-200 border-blue-200 shadow-sm">
             ✨ Solution métier dédiée au leasing
           </Badge>
@@ -188,7 +163,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <Logo variant="full" logoSize="lg" showText={false} className="mb-4" />
+              <div className="text-xl font-bold text-blue-600 mb-4">Leazr</div>
               <p className="text-slate-600 text-sm">
                 💼 La solution métier de référence pour le leasing.
               </p>
