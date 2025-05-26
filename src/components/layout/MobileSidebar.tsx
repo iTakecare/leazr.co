@@ -84,14 +84,7 @@ const MobileSidebar = ({
               </ul>
             </nav>
             
-            <SidebarUserSection
-              collapsed={false}
-              avatarUrl={avatarUrl}
-              getUserInitials={getUserInitials}
-              getUserDisplayName={getUserDisplayName}
-              getUserRole={getUserRole}
-              handleLogout={handleLogout}
-            />
+            <SidebarUserSection />
           </div>
         </SheetContent>
       </Sheet>

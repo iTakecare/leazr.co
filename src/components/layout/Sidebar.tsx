@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
+import { useLocation } from "react-router-dom";
 import {
   BarChart3,
   Users,
@@ -20,6 +21,7 @@ interface SidebarProps {
 
 const Sidebar = ({ className }: SidebarProps) => {
   const { user, isAdmin, isPartner, isAmbassador, isClient } = useAuth();
+  const location = useLocation();
 
   if (!user) return null;
 
@@ -67,6 +69,10 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const menuItems = getMenuItems();
 
+  const isActive = (href: string) => {
+    return location.pathname === href;
+  };
+
   return (
     <div className={cn("flex flex-col h-full bg-white border-r border-gray-200", className)}>
       <div className="p-6 border-b border-gray-200">
@@ -75,12 +81,12 @@ const Sidebar = ({ className }: SidebarProps) => {
       
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {menuItems.map((item) => (
+          {menuItems.map((menuItem) => (
             <SidebarMenuItem
-              key={item.href}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
+              key={menuItem.href}
+              item={menuItem}
+              isActive={isActive}
+              collapsed={false}
             />
           ))}
         </ul>
