@@ -1,245 +1,93 @@
-import React, { useEffect, useState } from "react";
+
+import React from "react";
 import { cn } from "@/lib/utils";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard, Briefcase, Users, Package, Settings, 
-  Calculator, Menu, ChevronRight, ChevronLeft,
-  X, Receipt, FileText, LogOut, FileSignature, BadgePercent, HeartHandshake, Building2
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import Logo from "./Logo";
-import { supabase } from "@/integrations/supabase/client";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
-import MobileSidebar from "./MobileSidebar";
+import {
+  BarChart3,
+  Users,
+  FileText,
+  Settings,
+  Package,
+  FileSignature,
+  Building2,
+} from "lucide-react";
 
 interface SidebarProps {
   className?: string;
-  onLinkClick?: () => void;
 }
 
-interface MenuItem {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-  badge?: string;
-}
+const Sidebar = ({ className }: SidebarProps) => {
+  const { user, isAdmin, isPartner, isAmbassador, isClient } = useAuth();
 
-const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, signOut } = useAuth();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [pendingOffersCount, setPendingOffersCount] = useState(0);
-  
-  const mainSidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "CRM", icon: Briefcase, href: "/clients" },
-    { label: "Offres", icon: FileText, href: "/offers", badge: pendingOffersCount > 0 ? pendingOffersCount.toString() : undefined },
-    { label: "Contrats", icon: FileSignature, href: "/contracts" },
-    { label: "Catalogue", icon: Package, href: "/catalog" },
-    { label: "Paramètres", icon: Settings, href: "/settings" },
-  ];
+  if (!user) return null;
 
-  const leazrSidebarItems: MenuItem[] = [
-    { label: "Clients Leazr.co", icon: Building2, href: "/leazr-clients" },
-  ];
-
-  useEffect(() => {
-    const fetchAvatar = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Erreur lors de la récupération de l'avatar:", error);
-          return;
-        }
-        
-        if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'avatar:", err);
-      }
-    };
-    
-    fetchAvatar();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchPendingOffers = async () => {
-      try {
-        const { count, error } = await supabase
-          .from('offers')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        
-        if (!error && count !== null) {
-          setPendingOffersCount(count);
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement des offres en attente:", err);
-      }
-    };
-    
-    fetchPendingOffers();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      toast.error("Erreur lors de la déconnexion");
+  const getMenuItems = () => {
+    if (isClient()) {
+      return [
+        { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
+        { icon: Package, label: "Mon Équipement", href: "/client-equipment" },
+        { icon: FileText, label: "Mes Demandes", href: "/client-requests" },
+        { icon: FileSignature, label: "Mes Contrats", href: "/client-contracts" },
+        { icon: Settings, label: "Paramètres", href: "/client-settings" },
+      ];
     }
+
+    if (isPartner()) {
+      return [
+        { icon: BarChart3, label: "Dashboard", href: "/partner-dashboard" },
+        { icon: Users, label: "Mes Clients", href: "/clients" },
+        { icon: FileText, label: "Mes Offres", href: "/offers" },
+        { icon: Settings, label: "Paramètres", href: "/settings" },
+      ];
+    }
+
+    if (isAmbassador()) {
+      return [
+        { icon: BarChart3, label: "Dashboard", href: "/ambassador-dashboard" },
+        { icon: Users, label: "Mes Clients", href: "/ambassador-clients" },
+        { icon: FileText, label: "Mes Offres", href: "/ambassador-offers" },
+        { icon: Package, label: "Catalogue", href: "/ambassador-catalog" },
+        { icon: Settings, label: "Paramètres", href: "/settings" },
+      ];
+    }
+
+    // Admin menu
+    return [
+      { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
+      { icon: Users, label: "Clients", href: "/clients" },
+      { icon: Building2, label: "Clients Leazr", href: "/leazr-clients" },
+      { icon: FileText, label: "Offres", href: "/offers" },
+      { icon: FileSignature, label: "Contrats", href: "/contracts" },
+      { icon: Package, label: "Catalogue", href: "/catalog" },
+      { icon: Settings, label: "Paramètres", href: "/settings" },
+    ];
   };
 
-  const isActive = (href: string) => {
-    if (href === "/" && location.pathname === "/") {
-      return true;
-    }
-    // Traitement spécial pour le CRM - actif si on est sur /clients, /partners, ou /ambassadors
-    if (href === "/clients") {
-      return location.pathname.startsWith("/clients") || 
-             location.pathname.startsWith("/partners") || 
-             location.pathname.startsWith("/ambassadors");
-    }
-    return location.pathname.startsWith(href) && href !== "/";
-  };
-
-  const getUserInitials = () => {
-    if (!user) return "IT";
-    
-    if (user.first_name && user.last_name) {
-      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
-    } else if (user.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return "IT";
-  };
-
-  const getUserDisplayName = () => {
-    if (!user) return "Admin Portal";
-    
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    } else if (user.email) {
-      return user.email;
-    }
-    return "Admin Portal";
-  };
-  
-  const getUserRole = () => {
-    if (!user) return "Gestion complète";
-    
-    if (user.role) {
-      return user.role;
-    }
-    
-    if (user.partner_id) return "Partenaire";
-    if (user.ambassador_id) return "Ambassadeur";
-    if (user.client_id) return "Client";
-    
-    return "Gestion complète";
-  };
-
-  if (isMobile) {
-    return (
-      <MobileSidebar
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-        menuItems={mainSidebarItems}
-        isActive={isActive}
-        onLinkClick={onLinkClick}
-        avatarUrl={avatarUrl}
-        getUserInitials={getUserInitials}
-        getUserDisplayName={getUserDisplayName}
-        getUserRole={getUserRole}
-        handleLogout={handleLogout}
-      />
-    );
-  }
+  const menuItems = getMenuItems();
 
   return (
-    <aside
-      className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
-        className
-      )}
-    >
-      <div className="flex flex-col h-full">
-        <div className={cn(
-          "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-start pl-20"
-        )}>
-          <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
-          
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10 ml-auto"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
-        </div>
-        
-        <nav className="flex-1 px-2 py-4">
-          <ul className="space-y-1">
-            {/* Section principale */}
-            {mainSidebarItems.map((item) => (
-              <SidebarMenuItem 
-                key={item.href}
-                item={item}
-                isActive={isActive}
-                collapsed={collapsed}
-                onLinkClick={onLinkClick}
-              />
-            ))}
-          </ul>
-        </nav>
-        
-        <SidebarUserSection
-          collapsed={collapsed}
-          avatarUrl={avatarUrl}
-          getUserInitials={getUserInitials}
-          getUserDisplayName={getUserDisplayName}
-          getUserRole={getUserRole}
-          handleLogout={handleLogout}
-        />
-        
-        {collapsed && (
-          <div className="p-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(false)} 
-              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
+    <div className={cn("flex flex-col h-full bg-white border-r border-gray-200", className)}>
+      <div className="p-6 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-900">iTakecare</h1>
       </div>
-    </aside>
+      
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+            />
+          ))}
+        </ul>
+      </nav>
+
+      <SidebarUserSection />
+    </div>
   );
 };
 

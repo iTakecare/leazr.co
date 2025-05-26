@@ -1,85 +1,48 @@
 
 import React from "react";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
+import NavbarUserProfile from "./NavbarUserProfile";
 
-interface SidebarUserSectionProps {
-  collapsed: boolean;
-  avatarUrl: string | null;
-  getUserInitials: () => string;
-  getUserDisplayName: () => string;
-  getUserRole: () => string;
-  handleLogout: () => void;
-  additionalButton?: React.ReactNode;
-}
+const SidebarUserSection = () => {
+  const { user, logout } = useAuth();
 
-const SidebarUserSection = ({
-  collapsed,
-  avatarUrl,
-  getUserInitials,
-  getUserDisplayName,
-  getUserRole,
-  handleLogout,
-  additionalButton
-}: SidebarUserSectionProps) => {
+  if (!user) return null;
+
+  const getUserInitials = () => {
+    if (user.first_name && user.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    }
+    return user.email?.[0]?.toUpperCase() || 'U';
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
+
   return (
-    <div className={cn(
-      "p-4 transition-all duration-300 mt-auto mx-2 mb-4 border-t border-t-primary/10 pt-4",
-      collapsed ? "px-2" : ""
-    )}>
-      {!collapsed ? (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-              <AvatarFallback className="bg-primary/20 text-primary">{getUserInitials()}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{getUserDisplayName()}</p>
-              <p className="text-xs text-muted-foreground">{getUserRole()}</p>
-            </div>
-          </div>
-          
-          {additionalButton}
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-          >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
-      ) : (
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleLogout}
-                className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Déconnexion</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Déconnexion</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+    <div className="p-4 border-t border-gray-200">
+      <div className="flex items-center justify-between mb-3">
+        <NavbarUserProfile 
+          user={user}
+          avatarUrl={null}
+          getUserInitials={getUserInitials}
+        />
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleLogout}
+        className="w-full flex items-center gap-2"
+      >
+        <LogOut className="h-4 w-4" />
+        Se déconnecter
+      </Button>
     </div>
   );
 };
