@@ -1,5 +1,4 @@
 
-
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,6 +19,7 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import { useAuth } from "./context/AuthContext";
 
 // Create a simple PrivateRoute component inline since the original doesn't export properly
@@ -54,6 +54,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
 
                   {/* Protected routes with Layout */}
                   <Route 
@@ -89,4 +90,3 @@ function App() {
 }
 
 export default App;
-
