@@ -18,16 +18,9 @@ import CatalogManagement from './pages/CatalogManagement';
 import Contracts from './pages/Contracts';
 import OfferDetail from './pages/OfferDetail';
 import CreateOffer from './pages/CreateOffer';
-import EditOffer from './pages/EditOffer';
 import ClientDetail from './pages/ClientDetail';
-import CreateClient from './pages/CreateClient';
-import EditClient from './pages/EditClient';
 import PartnerDetail from './pages/PartnerDetail';
-import CreatePartner from './pages/CreatePartner';
-import EditPartner from './pages/EditPartner';
 import AmbassadorDetail from './pages/AmbassadorDetail';
-import CreateAmbassador from './pages/CreateAmbassador';
-import EditAmbassador from './pages/EditAmbassador';
 import PaymentPage from './pages/PaymentPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeazrClients from "@/pages/LeazrClients";
@@ -83,13 +76,6 @@ function App() {
                   </Layout>
                 </PrivateRoute>
               } />
-              <Route path="/offers/edit/:id" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <EditOffer />
-                  </Layout>
-                </PrivateRoute>
-              } />
               <Route path="/clients" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
@@ -101,20 +87,6 @@ function App() {
                 <PrivateRoute requiredRole="admin">
                   <Layout>
                     <ClientDetail />
-                  </Layout>
-                </PrivateRoute>
-              } />
-              <Route path="/clients/create" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <CreateClient />
-                  </Layout>
-                </PrivateRoute>
-              } />
-              <Route path="/clients/edit/:id" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <EditClient />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -132,20 +104,6 @@ function App() {
                   </Layout>
                 </PrivateRoute>
               } />
-               <Route path="/partners/create" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <CreatePartner />
-                  </Layout>
-                </PrivateRoute>
-              } />
-              <Route path="/partners/edit/:id" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <EditPartner />
-                  </Layout>
-                </PrivateRoute>
-              } />
               <Route path="/ambassadors" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
@@ -157,20 +115,6 @@ function App() {
                 <PrivateRoute requiredRole="admin">
                   <Layout>
                     <AmbassadorDetail />
-                  </Layout>
-                </PrivateRoute>
-              } />
-              <Route path="/ambassadors/create" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <CreateAmbassador />
-                  </Layout>
-                </PrivateRoute>
-              } />
-              <Route path="/ambassadors/edit/:id" element={
-                <PrivateRoute requiredRole="admin">
-                  <Layout>
-                    <EditAmbassador />
                   </Layout>
                 </PrivateRoute>
               } />
