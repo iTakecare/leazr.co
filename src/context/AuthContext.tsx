@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -138,31 +137,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    console.log("AuthContext - Initialisation de l'authentification");
+    
+    // Configuration de l'écoute des changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("AuthContext - Événement d'authentification:", { event, hasSession: !!session });
+        
         setSession(session);
         
         if (session?.user) {
+          console.log("AuthContext - Enrichissement des données utilisateur");
           const enrichedUser = await enrichUserData(session.user);
           setUser(enrichedUser);
           setUserRoleChecked(true);
+          setIsLoading(false);
           
-          // Check subscription when user logs in
+          // Vérifier l'abonnement après connexion
           setTimeout(() => {
             checkSubscription();
           }, 0);
         } else {
+          console.log("AuthContext - Aucun utilisateur, réinitialisation des états");
           setUser(null);
           setUserRoleChecked(true);
           setSubscription(null);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    // Check for existing session
+    // Vérification de la session existante
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log("AuthContext - Vérification session existante:", { hasSession: !!session });
+      
       setSession(session);
       
       if (session?.user) {
@@ -180,7 +188,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("AuthContext - Nettoyage de l'abonnement");
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Auto-refresh subscription every 10 seconds when user is logged in
