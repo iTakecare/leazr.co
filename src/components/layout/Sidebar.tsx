@@ -40,16 +40,19 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
   
-  const sidebarItems: MenuItem[] = [
+  const mainSidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
     { label: "Offres", icon: FileText, href: "/offers", badge: pendingOffersCount > 0 ? pendingOffersCount.toString() : undefined },
     { label: "Contrats", icon: FileSignature, href: "/contracts" },
     { label: "Clients", icon: Users, href: "/clients" },
-    { label: "Clients Leazr.co", icon: Building2, href: "/leazr-clients" },
     { label: "Partenaires", icon: BadgePercent, href: "/partners" },
     { label: "Ambassadeurs", icon: HeartHandshake, href: "/ambassadors" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
+  ];
+
+  const leazrSidebarItems: MenuItem[] = [
+    { label: "Clients Leazr.co", icon: Building2, href: "/leazr-clients" },
   ];
 
   useEffect(() => {
@@ -157,7 +160,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       <MobileSidebar
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        menuItems={sidebarItems}
+        menuItems={[...mainSidebarItems, ...leazrSidebarItems]}
         isActive={isActive}
         onLinkClick={onLinkClick}
         avatarUrl={avatarUrl}
@@ -198,7 +201,33 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         
         <nav className="flex-1 px-2 py-4">
           <ul className="space-y-1">
-            {sidebarItems.map((item) => (
+            {/* Section principale */}
+            {mainSidebarItems.map((item) => (
+              <SidebarMenuItem 
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                collapsed={collapsed}
+                onLinkClick={onLinkClick}
+              />
+            ))}
+            
+            {/* Séparateur */}
+            <li className="my-4">
+              <div className="border-t border-gray-200"></div>
+            </li>
+            
+            {/* Section label pour Plateforme Leazr */}
+            {!collapsed && (
+              <li className="px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Plateforme Leazr
+                </span>
+              </li>
+            )}
+            
+            {/* Section Clients Leazr.co */}
+            {leazrSidebarItems.map((item) => (
               <SidebarMenuItem 
                 key={item.href}
                 item={item}
