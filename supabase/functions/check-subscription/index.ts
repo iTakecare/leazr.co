@@ -1,124 +1,188 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  console.log('[CHECK-SUBSCRIPTION] Function started')
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
 
   try {
-    logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    logStep("Authorization header found");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
-      await supabaseClient.from("companies").upsert({
-        id: user.id,
-        name: user.email.split('@')[0],
-        plan: 'starter',
-        is_active: false,
-        stripe_customer_id: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+    // Verify Stripe key exists
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
+    if (!stripeKey) {
+      console.log('[CHECK-SUBSCRIPTION] ERROR: STRIPE_SECRET_KEY not found')
+      return new Response(
+        JSON.stringify({ error: 'Stripe configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+    console.log('[CHECK-SUBSCRIPTION] Stripe key verified')
 
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    // Check authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.log('[CHECK-SUBSCRIPTION] ERROR: No authorization header')
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    console.log('[CHECK-SUBSCRIPTION] Authorization header found')
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-    const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionTier = 'starter';
-    let subscriptionEnd = null;
-
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
-      
-      const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const amount = price.unit_amount || 0;
-      
-      if (amount <= 4900) {
-        subscriptionTier = "starter";
-      } else if (amount <= 14900) {
-        subscriptionTier = "pro";
-      } else {
-        subscriptionTier = "business";
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
       }
-      logStep("Determined subscription tier", { priceId, amount, subscriptionTier });
-    } else {
-      logStep("No active subscription found");
+    )
+
+    // Get user from JWT
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    
+    if (userError || !user) {
+      console.log('[CHECK-SUBSCRIPTION] ERROR in check-subscription -', { message: userError?.message || 'No user found' })
+      return new Response(
+        JSON.stringify({ error: 'Authentication error: ' + (userError?.message || 'No user found') }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    await supabaseClient.from("companies").upsert({
-      id: user.id,
-      name: user.email.split('@')[0],
-      plan: subscriptionTier,
-      is_active: hasActiveSub,
-      stripe_customer_id: customerId,
-      subscription_ends_at: subscriptionEnd,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
+    console.log('[CHECK-SUBSCRIPTION] User authenticated -', { userId: user.id, email: user.email })
 
-    logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
+    // First, check if user has a company subscription (like iTakecare)
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.company_id) {
+      console.log('[CHECK-SUBSCRIPTION] Checking company subscription for company_id:', profile.company_id)
+      
+      const { data: company } = await supabaseClient
+        .from('companies')
+        .select('plan, is_active, subscription_ends_at')
+        .eq('id', profile.company_id)
+        .single()
+
+      if (company && company.is_active) {
+        console.log('[CHECK-SUBSCRIPTION] Company subscription found -', company)
+        
+        const subscriptionData = {
+          subscribed: true,
+          subscription_tier: company.plan,
+          subscription_end: company.subscription_ends_at,
+          source: 'company'
+        }
+        
+        return new Response(
+          JSON.stringify(subscriptionData),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // If no company subscription, check Stripe
+    console.log('[CHECK-SUBSCRIPTION] No company subscription found, checking Stripe...')
+
+    // Get customer from Stripe
+    const stripe = await import('https://esm.sh/stripe@14.21.0')
+    const stripeClient = new stripe.Stripe(stripeKey, {
+      apiVersion: '2023-10-16',
+    })
+
+    const customers = await stripeClient.customers.list({
+      email: user.email,
+      limit: 1,
+    })
+
+    if (customers.data.length === 0) {
+      console.log('[CHECK-SUBSCRIPTION] No customer found, updating unsubscribed state')
+      
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const customer = customers.data[0]
+    console.log('[CHECK-SUBSCRIPTION] Customer found -', { customerId: customer.id })
+
+    // Get active subscriptions
+    const subscriptions = await stripeClient.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1,
+    })
+
+    if (subscriptions.data.length === 0) {
+      console.log('[CHECK-SUBSCRIPTION] No active subscriptions found')
+      
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const subscription = subscriptions.data[0]
+    console.log('[CHECK-SUBSCRIPTION] Active subscription found -', { subscriptionId: subscription.id })
+
+    // Get subscription tier from price
+    let subscriptionTier = 'starter'
+    if (subscription.items.data.length > 0) {
+      const priceId = subscription.items.data[0].price.id
+      console.log('[CHECK-SUBSCRIPTION] Price ID -', priceId)
+      
+      // Map price IDs to tiers (you'll need to update these with your actual Stripe price IDs)
+      const priceToTier: Record<string, string> = {
+        'price_starter': 'starter',
+        'price_pro': 'pro', 
+        'price_business': 'business',
+      }
+      
+      subscriptionTier = priceToTier[priceId] || 'starter'
+    }
+
+    const subscriptionData = {
+      subscribed: true,
       subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+      subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      source: 'stripe'
+    }
+
+    console.log('[CHECK-SUBSCRIPTION] Returning subscription data -', subscriptionData)
+    
+    return new Response(
+      JSON.stringify(subscriptionData),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.log('[CHECK-SUBSCRIPTION] ERROR in check-subscription -', { message: error.message })
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})
