@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,9 +23,9 @@ import { useEffect } from "react";
 
 // Create a simple PrivateRoute component inline since the original doesn't export properly
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   
-  if (loading) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
   
@@ -55,7 +54,7 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                  <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                  <Route path="/" element={<PrivateRoute><Layout><div /></Layout></PrivateRoute>}>
                     <Route index element={<Navigate to="/dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="clients" element={<Clients />} />
