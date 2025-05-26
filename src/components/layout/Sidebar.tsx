@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Users, Package, Settings, 
   Calculator, Menu, ChevronRight, ChevronLeft,
-  X, Receipt, FileText, LogOut
+  X, Receipt, FileText, LogOut, FileSignature, BadgePercent, HeartHandshake, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +26,7 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   href: string;
+  badge?: string;
 }
 
 const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
@@ -38,13 +38,15 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const { user, signOut } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
-  const menuItems: MenuItem[] = [
+  const sidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "CRM", icon: Briefcase, href: "/clients" },
-    { label: "Offres", icon: Receipt, href: "/offers" },
-    { label: "Contrats", icon: FileText, href: "/contracts" },
+    { label: "Offres", icon: FileText, href: "/offers", badge: pendingOffersCount > 0 ? pendingOffersCount.toString() : undefined },
+    { label: "Contrats", icon: FileSignature, href: "/contracts" },
+    { label: "Clients", icon: Users, href: "/clients" },
+    { label: "Clients Leazr.co", icon: Building2, href: "/leazr-clients" },
+    { label: "Partenaires", icon: BadgePercent, href: "/partners" },
+    { label: "Ambassadeurs", icon: HeartHandshake, href: "/ambassadors" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
-    { label: "Calculateur", icon: Calculator, href: "/create-offer" },
     { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
@@ -175,7 +177,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         
         <nav className="flex-1 px-2 py-4">
           <ul className="space-y-1">
-            {menuItems.map((item) => (
+            {sidebarItems.map((item) => (
               <SidebarMenuItem 
                 key={item.href}
                 item={item}
