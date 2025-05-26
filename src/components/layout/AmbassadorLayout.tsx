@@ -7,7 +7,7 @@ import Navbar from "./Navbar";
 import { toast } from "sonner";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, isLoading, userRoleChecked, isAmbassador } = useAuth();
+  const { user, isLoading, isAmbassador } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -16,7 +16,7 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   };
 
   useEffect(() => {
-    if (!isLoading && userRoleChecked && user) {
+    if (!isLoading && user) {
       console.log("[AmbassadorLayout] Vérification de l'accès:", {
         user: !!user,
         role: user.role,
@@ -47,14 +47,13 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
       // Simplement enregistrer un avertissement mais ne pas bloquer l'accès
       if (!user.ambassador_id) {
         console.log("[AmbassadorLayout] ID d'ambassadeur manquant mais permettant l'accès");
-        // Nous ne bloquons pas l'accès, permettant ainsi la navigation dans l'espace ambassadeur
       }
-    } else if (!isLoading && userRoleChecked && !user) {
+    } else if (!isLoading && !user) {
       // Si non authentifié, rediriger vers la page de connexion
       console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
       navigate("/login", { replace: true });
     }
-  }, [user, isLoading, userRoleChecked, navigate, isAmbassador]);
+  }, [user, isLoading, navigate, isAmbassador]);
 
   if (isLoading) {
     return (

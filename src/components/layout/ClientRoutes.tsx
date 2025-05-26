@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -27,7 +28,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientCheck = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isClient, userRoleChecked, isAdmin } = useAuth();
+  const { user, isLoading, isClient, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingClient, setCheckingClient] = React.useState(true);
@@ -149,7 +150,7 @@ const ClientCheck = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ClientRoutes = () => {
-  const { user, isLoading, isClient, isPartner, isAmbassador, userRoleChecked, isAdmin } = useAuth();
+  const { user, isLoading, isClient, isPartner, isAmbassador, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -162,7 +163,7 @@ const ClientRoutes = () => {
       return;
     }
     
-    if (!isLoading && userRoleChecked && user) {
+    if (!isLoading && user) {
       console.log("[ClientRoutes] Vérification d'accès:", {
         isClient: isClient(),
         isAmbassador: isAmbassador(),
@@ -202,7 +203,7 @@ const ClientRoutes = () => {
         return;
       }
     }
-  }, [isLoading, user, isClient, isPartner, isAmbassador, isAdmin, navigate, location, userRoleChecked]);
+  }, [isLoading, user, isClient, isPartner, isAmbassador, isAdmin, navigate, location]);
 
   if (location.hash && location.hash.includes('type=recovery')) {
     return null;
