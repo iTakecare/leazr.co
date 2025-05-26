@@ -76,6 +76,50 @@ serve(async (req) => {
       );
     }
     
+    // First, ensure iTakecare company exists
+    console.log('Checking for iTakecare company...');
+    let { data: company, error: companyFetchError } = await supabaseAdmin
+      .from('companies')
+      .select('*')
+      .eq('name', 'iTakecare')
+      .single();
+    
+    if (companyFetchError && companyFetchError.code !== 'PGRST116') {
+      console.error('Error fetching company:', companyFetchError);
+      return new Response(
+        JSON.stringify({ error: `Erreur lors de la vérification de l'entreprise: ${companyFetchError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Create iTakecare company if it doesn't exist
+    if (!company) {
+      console.log('Creating iTakecare company...');
+      const { data: newCompany, error: companyCreateError } = await supabaseAdmin
+        .from('companies')
+        .insert({
+          name: 'iTakecare',
+          plan: 'business',
+          is_active: true,
+          subscription_ends_at: '2030-12-31T00:00:00.000Z'
+        })
+        .select()
+        .single();
+      
+      if (companyCreateError) {
+        console.error('Error creating company:', companyCreateError);
+        return new Response(
+          JSON.stringify({ error: `Erreur lors de la création de l'entreprise: ${companyCreateError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      company = newCompany;
+      console.log('iTakecare company created successfully:', company.id);
+    } else {
+      console.log('iTakecare company already exists:', company.id);
+    }
+    
     // Create the user with admin supabase client
     console.log('Creating user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
@@ -99,9 +143,9 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Try to create a profile record
-    if (userData.user) {
-      console.log('Creating profile...');
+    // Create a profile record with the company_id
+    if (userData.user && company) {
+      console.log('Creating profile with company_id:', company.id);
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -109,12 +153,23 @@ serve(async (req) => {
           first_name: first_name || 'Admin',
           last_name: last_name || 'Leazr',
           role: role || 'admin',
-          email: email
+          company_id: company.id
         });
       
       if (profileError) {
-        console.error('Profile creation error (non-critical):', profileError);
-        // Don't fail the entire operation for profile creation issues
+        console.error('Profile creation error:', profileError);
+        // Try to clean up the user if profile creation fails
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
+          console.log('User cleaned up due to profile creation failure');
+        } catch (cleanupError) {
+          console.error('Error cleaning up user:', cleanupError);
+        }
+        
+        return new Response(
+          JSON.stringify({ error: `Erreur lors de la création du profil: ${profileError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       } else {
         console.log('Profile created successfully');
       }
@@ -124,6 +179,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         user: userData,
+        company: company,
         message: 'Utilisateur administrateur créé avec succès'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
