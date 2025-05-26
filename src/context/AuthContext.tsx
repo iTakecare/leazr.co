@@ -18,7 +18,6 @@ interface AuthContextType {
   user: ExtendedUser | null;
   session: Session | null;
   isLoading: boolean;
-  userRoleChecked: boolean;
   subscription: {
     subscribed: boolean;
     subscription_tier?: string;
@@ -53,12 +52,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userRoleChecked, setUserRoleChecked] = useState(false);
   const [subscription, setSubscription] = useState<{
     subscribed: boolean;
     subscription_tier?: string;
     subscription_end?: string;
   } | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const checkSubscription = async () => {
     if (!session) return;
@@ -111,10 +110,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user?.role === 'ambassador' || !!user?.ambassador_id;
   };
 
-  // Fonction pour enrichir les données utilisateur avec gestion d'erreur robuste
+  // Fonction pour enrichir les données utilisateur
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
-    console.log("AuthContext - Début enrichissement des données pour:", baseUser.id);
-    
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -123,13 +120,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.log("AuthContext - Pas de profil trouvé ou erreur:", error.message);
-        // Retourner l'utilisateur de base même sans profil
+        console.log("Pas de profil trouvé, utilisation des valeurs par défaut");
         return {
           ...baseUser,
           first_name: '',
           last_name: '',
-          role: 'admin', // Rôle par défaut
+          role: 'admin',
           company: '',
           partner_id: '',
           ambassador_id: '',
@@ -137,8 +133,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
       }
 
-      console.log("AuthContext - Profil trouvé:", profile);
-      
       return {
         ...baseUser,
         first_name: profile?.first_name || '',
@@ -150,8 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         client_id: profile?.client_id || '',
       };
     } catch (error) {
-      console.error('AuthContext - Erreur lors de l\'enrichissement:', error);
-      // En cas d'erreur, retourner l'utilisateur de base avec des valeurs par défaut
+      console.error('Erreur enrichissement:', error);
       return {
         ...baseUser,
         first_name: '',
@@ -165,127 +158,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Initialisation unique
   useEffect(() => {
-    console.log("AuthContext - Initialisation de l'authentification");
+    if (initialized) return;
+
+    console.log("AuthContext - Initialisation unique");
     
     let isMounted = true;
     
-    // Configuration de l'écoute des changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("AuthContext - Événement d'authentification:", { event, hasSession: !!session });
-        
-        if (!isMounted) return;
-        
-        if (session?.user) {
-          console.log("AuthContext - Session utilisateur trouvée, enrichissement en cours");
-          
-          try {
-            const enrichedUser = await enrichUserData(session.user);
-            
-            if (isMounted) {
-              setSession(session);
-              setUser(enrichedUser);
-              setUserRoleChecked(true);
-              setIsLoading(false);
-              
-              console.log("AuthContext - États mis à jour avec succès:", {
-                userId: enrichedUser.id,
-                role: enrichedUser.role,
-                isLoading: false,
-                userRoleChecked: true
-              });
-              
-              // Vérifier l'abonnement après mise à jour des états
-              setTimeout(() => {
-                if (isMounted) {
-                  checkSubscription();
-                }
-              }, 100);
-            }
-          } catch (error) {
-            console.error("AuthContext - Erreur lors de l'enrichissement:", error);
-            
-            if (isMounted) {
-              // Même en cas d'erreur, définir les états pour éviter le blocage
-              setSession(session);
-              setUser(session.user as ExtendedUser);
-              setUserRoleChecked(true);
-              setIsLoading(false);
-            }
-          }
-        } else {
-          console.log("AuthContext - Pas de session, réinitialisation des états");
-          
-          if (isMounted) {
-            setUser(null);
-            setSession(null);
-            setUserRoleChecked(true);
-            setSubscription(null);
-            setIsLoading(false);
-          }
-        }
-      }
-    );
-
-    // Vérification de la session existante
-    const initializeAuth = async () => {
+    const initAuth = async () => {
       try {
-        console.log("AuthContext - Vérification session existante");
+        // 1. Vérifier la session existante
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("AuthContext - Erreur lors de la récupération de la session:", error);
-          if (isMounted) {
-            setIsLoading(false);
-            setUserRoleChecked(true);
-          }
-          return;
+        if (currentSession?.user && isMounted) {
+          const enrichedUser = await enrichUserData(currentSession.user);
+          setSession(currentSession);
+          setUser(enrichedUser);
         }
         
-        console.log("AuthContext - Session récupérée:", { hasSession: !!session });
+        if (isMounted) {
+          setIsLoading(false);
+          setInitialized(true);
+        }
         
-        if (session?.user && isMounted) {
-          const enrichedUser = await enrichUserData(session.user);
-          
-          if (isMounted) {
-            setSession(session);
-            setUser(enrichedUser);
-            setUserRoleChecked(true);
+        // 2. Écouter les changements d'auth
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log("Auth event:", event);
             
-            setTimeout(() => {
-              if (isMounted) {
-                checkSubscription();
-              }
-            }, 100);
+            if (!isMounted) return;
+            
+            if (newSession?.user) {
+              const enrichedUser = await enrichUserData(newSession.user);
+              setSession(newSession);
+              setUser(enrichedUser);
+            } else {
+              setSession(null);
+              setUser(null);
+              setSubscription(null);
+            }
+            
+            setIsLoading(false);
           }
-        } else if (isMounted) {
-          setUserRoleChecked(true);
-        }
+        );
+
+        return () => {
+          subscription.unsubscribe();
+        };
         
-        if (isMounted) {
-          setIsLoading(false);
-        }
       } catch (error) {
-        console.error("AuthContext - Erreur lors de l'initialisation:", error);
+        console.error("Erreur initialisation auth:", error);
         if (isMounted) {
           setIsLoading(false);
-          setUserRoleChecked(true);
+          setInitialized(true);
         }
       }
     };
 
-    initializeAuth();
+    initAuth();
 
     return () => {
-      console.log("AuthContext - Nettoyage de l'abonnement");
       isMounted = false;
-      subscription.unsubscribe();
     };
-  }, []);
+  }, [initialized]);
 
-  // Auto-refresh subscription every 10 seconds when user is logged in
+  // Auto-refresh subscription
   useEffect(() => {
     if (!session) return;
 
@@ -297,7 +235,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     session,
     isLoading,
-    userRoleChecked,
     subscription,
     checkSubscription,
     logout,

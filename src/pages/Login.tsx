@@ -1,96 +1,46 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
-import Container from '@/components/layout/Container';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
 import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const { signIn, session, user, isAdmin, isClient, isPartner, isAmbassador, userRoleChecked, isLoading } = useAuth();
+  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
+  // Redirection automatique simple
   useEffect(() => {
-    const checkForResetToken = () => {
-      const hash = location.hash || window.location.hash;
-      console.log("Vérification du token de réinitialisation dans le hash:", hash);
+    if (!isLoading && user) {
+      console.log("Utilisateur connecté, redirection...");
       
-      if (hash && hash.includes('type=recovery')) {
-        console.log("Token de réinitialisation trouvé. Activation du mode de réinitialisation");
-        setIsResetMode(true);
-        return true;
-      }
-      return false;
-    };
-
-    checkForResetToken();
-  }, [location.hash]);
-
-  // Redirection automatique pour les utilisateurs connectés
-  useEffect(() => {
-    // Conditions strictes pour éviter les redirections multiples
-    if (
-      !isLoading && 
-      userRoleChecked && 
-      session && 
-      user && 
-      !isResetMode && 
-      !hasRedirected
-    ) {
-      console.log("Login - Conditions remplies pour redirection:", { 
-        isLoading,
-        userRoleChecked,
-        hasSession: !!session,
-        hasUser: !!user,
-        userRole: user?.role,
-        isResetMode,
-        hasRedirected
-      });
-      
-      setHasRedirected(true);
-      
-      try {
-        if (isAdmin()) {
-          console.log("Login - Redirection vers dashboard admin");
-          navigate('/dashboard', { replace: true });
-        } else if (isClient()) {
-          console.log("Login - Redirection vers dashboard client");
-          navigate('/client/dashboard', { replace: true });
-        } else if (isAmbassador()) {
-          console.log("Login - Redirection vers dashboard ambassadeur");
-          navigate('/ambassador/dashboard', { replace: true });
-        } else if (isPartner()) {
-          console.log("Login - Redirection vers dashboard partenaire");
-          navigate('/partner/dashboard', { replace: true });
-        } else {
-          console.log("Login - Redirection par défaut vers la landing page");
-          navigate('/', { replace: true });
-        }
-      } catch (error) {
-        console.error("Login - Erreur lors de la redirection:", error);
+      if (isAdmin()) {
+        navigate('/dashboard', { replace: true });
+      } else if (isClient()) {
+        navigate('/client/dashboard', { replace: true });
+      } else if (isAmbassador()) {
+        navigate('/ambassador/dashboard', { replace: true });
+      } else if (isPartner()) {
+        navigate('/partner/dashboard', { replace: true });
+      } else {
         navigate('/', { replace: true });
       }
     }
-  }, [session, user, userRoleChecked, isResetMode, isLoading, hasRedirected, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login - Début de la tentative de connexion...");
     
     if (!email || !password) {
       toast.error('Veuillez remplir tous les champs');
@@ -100,16 +50,9 @@ const Login = () => {
     setLoading(true);
     
     try {
-      console.log("Login - Tentative de connexion avec:", email);
-      
       const { error } = await signIn(email, password);
-      
-      console.log("Login - Résultat de la connexion:", { error });
 
       if (error) {
-        console.error('Login - Erreur lors de la connexion:', error);
-        
-        // Messages d'erreur plus spécifiques
         let errorMessage = 'Erreur de connexion';
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou mot de passe incorrect';
@@ -126,62 +69,12 @@ const Login = () => {
         return;
       }
 
-      console.log("Login - Connexion réussie, attente de la redirection automatique");
       toast.success('Connexion réussie');
-      
-      // Ne pas définir setLoading(false) ici, laisser la redirection gérer l'état
+      // La redirection se fera automatiquement via useEffect
       
     } catch (error: any) {
-      console.error('Login - Exception lors de la connexion:', error);
+      console.error('Exception lors de la connexion:', error);
       toast.error('Erreur inattendue lors de la connexion');
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast.error('Veuillez remplir tous les champs');
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      console.log("Tentative de mise à jour du mot de passe avec le token");
-      
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (error) {
-        console.error('Erreur lors de la mise à jour du mot de passe:', error);
-        toast.error('Échec de la mise à jour du mot de passe : ' + error.message);
-      } else {
-        toast.success('Votre mot de passe a été mis à jour avec succès');
-        
-        window.location.hash = '';
-        
-        setIsResetMode(false);
-        setNewPassword('');
-        setConfirmPassword('');
-        
-        navigate('/login', { replace: true });
-      }
-    } catch (error: any) {
-      console.error('Exception lors de la mise à jour du mot de passe:', error);
-      toast.error('Erreur lors de la mise à jour du mot de passe : ' + error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -189,83 +82,6 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
-  if (isResetMode) {
-    return (
-      <PageTransition className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-        <div className="w-full max-w-md">
-          <Card className="glass-morphism shadow-xl border-0 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 pointer-events-none" />
-            <CardHeader className="space-y-1 relative z-10">
-              <div className="flex items-center justify-center mb-2">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Lock className="text-primary w-6 h-6" />
-                </div>
-              </div>
-              <CardTitle className="text-2xl font-bold text-center">Réinitialisation du mot de passe</CardTitle>
-              <CardDescription className="text-center">Créez un nouveau mot de passe sécurisé pour votre compte</CardDescription>
-            </CardHeader>
-            <form onSubmit={handlePasswordReset}>
-              <CardContent className="space-y-4 relative z-10">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                  <div className="relative">
-                    <Input 
-                      id="new-password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="Entrez votre nouveau mot de passe" 
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="pr-10"
-                      autoFocus
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                  <div className="relative">
-                    <Input 
-                      id="confirm-password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="Confirmez votre nouveau mot de passe" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pr-10"
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="relative z-10">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 
-                    'Mise à jour...' : 
-                    <span className="flex items-center justify-center">
-                      Mettre à jour le mot de passe
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  }
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      </PageTransition>
-    );
-  }
 
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">

@@ -9,19 +9,10 @@ interface PrivateRouteProps {
 }
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRole }) => {
-  const { user, isLoading, userRoleChecked } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  console.log("PrivateRoute - État actuel:", { 
-    isLoading, 
-    userRoleChecked, 
-    hasUser: !!user, 
-    userRole: user?.role,
-    requiredRole 
-  });
-
-  // Afficher le loader tant que l'authentification n'est pas vérifiée
-  if (isLoading || !userRoleChecked) {
-    console.log("PrivateRoute - Chargement en cours");
+  // Afficher le loader pendant le chargement
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -31,22 +22,17 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRo
 
   // Si pas d'utilisateur connecté, rediriger vers login
   if (!user) {
-    console.log("PrivateRoute - Pas d'utilisateur, redirection vers /login");
     return <Navigate to="/login" replace />;
   }
 
   // Si un rôle spécifique est requis, vérifier
   if (requiredRole) {
-    const userRole = user.role || 'admin'; // Par défaut admin si pas de rôle
-    
-    console.log("PrivateRoute - Vérification du rôle:", { userRole, requiredRole });
+    const userRole = user.role || 'admin';
     
     if (userRole !== requiredRole) {
-      console.log("PrivateRoute - Rôle non autorisé, redirection vers /");
       return <Navigate to="/" replace />;
     }
   }
 
-  console.log("PrivateRoute - Accès autorisé");
   return <>{children}</>;
 };
