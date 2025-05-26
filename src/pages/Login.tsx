@@ -47,37 +47,81 @@ const Login = () => {
   }, [session, navigate, location, user, isResetMode]);
 
   const redirectToDashboard = () => {
-    if (isAdmin()) {
+    console.log("Redirection en cours...", { isAdmin: isAdmin(), isClient: isClient(), isPartner: isPartner(), isAmbassador: isAmbassador() });
+    
+    try {
+      if (isAdmin()) {
+        console.log("Redirection vers dashboard admin");
+        navigate('/dashboard');
+      } else if (isClient()) {
+        console.log("Redirection vers dashboard client");
+        navigate('/client/dashboard');
+      } else if (isAmbassador()) {
+        console.log("Redirection vers dashboard ambassadeur");
+        navigate('/ambassador/dashboard');
+      } else if (isPartner()) {
+        console.log("Redirection vers dashboard partenaire");
+        navigate('/partner/dashboard');
+      } else {
+        console.log("Redirection par défaut vers dashboard client");
+        navigate('/client/dashboard');
+      }
+    } catch (error) {
+      console.error("Erreur lors de la redirection:", error);
       navigate('/dashboard');
-    } else if (isClient()) {
-      navigate('/client/dashboard');
-    } else if (isAmbassador()) {
-      navigate('/ambassador/dashboard');
-    } else if (isPartner()) {
-      navigate('/partner/dashboard');
-    } else {
-      navigate('/client/dashboard'); // Redirection par défaut
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Début de la tentative de connexion...");
+    
     if (!email || !password) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
     setLoading(true);
+    
     try {
-      const { error } = await signIn(email, password);
+      console.log("Tentative de connexion avec:", email);
+      
+      const { data, error } = await signIn(email, password);
+      
+      console.log("Résultat de la connexion:", { data, error });
+
       if (error) {
         console.error('Erreur lors de la connexion:', error);
-        toast.error('Échec de la connexion : ' + (error.message || 'Erreur inconnue'));
-      } else {
-        toast.success('Connexion réussie');
-        redirectToDashboard();
+        
+        // Messages d'erreur plus spécifiques
+        let errorMessage = 'Erreur de connexion';
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Email ou mot de passe incorrect';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Trop de tentatives de connexion. Veuillez patienter quelques minutes.';
+        } else {
+          errorMessage = error.message;
+        }
+        
+        toast.error(errorMessage);
+        setLoading(false);
+        return;
       }
-    } finally {
+
+      console.log("Connexion réussie, données utilisateur:", data);
+      toast.success('Connexion réussie');
+      
+      // Attendre un peu pour que l'état d'authentification se mette à jour
+      setTimeout(() => {
+        console.log("Redirection après connexion réussie");
+        redirectToDashboard();
+      }, 100);
+      
+    } catch (error: any) {
+      console.error('Exception lors de la connexion:', error);
+      toast.error('Erreur inattendue lors de la connexion');
       setLoading(false);
     }
   };
@@ -238,6 +282,7 @@ const Login = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       autoFocus
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -266,6 +311,7 @@ const Login = () => {
                         }
                       }}
                       className="text-sm text-blue-600 hover:underline"
+                      disabled={loading}
                     >
                       Mot de passe oublié?
                     </button>
@@ -280,11 +326,13 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10 pr-10"
+                      disabled={loading}
                     />
                     <button 
                       type="button" 
                       className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                       onClick={togglePasswordVisibility}
+                      disabled={loading}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
