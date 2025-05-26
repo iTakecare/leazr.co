@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ interface MenuItem {
   href: string;
   badge?: string;
   isNew?: boolean;
+  moduleSlug?: string; // Nouveau champ pour identifier le module
 }
 
 const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
@@ -52,6 +54,19 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Tous les éléments de menu possibles avec leurs modules associés
+  const allSidebarItems: MenuItem[] = [
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" }, // Toujours visible
+    { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts" },
+    { label: "Équipements", icon: Laptop, href: "/client/equipment", moduleSlug: "fleet_generator" },
+    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm" },
+    { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog" },
+    { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support" },
+    { label: "Paramètres", icon: Settings, href: "/client/settings" }, // Toujours visible
+  ];
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -80,6 +95,68 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     fetchAvatar();
   }, [user]);
 
+  useEffect(() => {
+    const fetchEnabledModules = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        console.log("Récupération des modules activés pour l'utilisateur:", user.id);
+        
+        // Récupérer d'abord le profil de l'utilisateur pour obtenir company_id
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Erreur lors de la récupération du profil:", profileError);
+          setLoading(false);
+          return;
+        }
+        
+        if (!profile?.company_id) {
+          console.warn("Aucune entreprise associée à cet utilisateur");
+          setLoading(false);
+          return;
+        }
+        
+        // Récupérer les modules activés pour l'entreprise
+        const { data: companyModules, error: modulesError } = await supabase
+          .from('company_modules')
+          .select('module_slug, enabled')
+          .eq('company_id', profile.company_id)
+          .eq('enabled', true);
+        
+        if (modulesError) {
+          console.error("Erreur lors de la récupération des modules:", modulesError);
+        } else {
+          const modulesSlugs = companyModules?.map(cm => cm.module_slug) || [];
+          console.log("Modules activés:", modulesSlugs);
+          setEnabledModules(modulesSlugs);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement des modules:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchEnabledModules();
+  }, [user]);
+
+  // Filtrer les éléments de menu en fonction des modules activés
+  const sidebarItems = allSidebarItems.filter(item => {
+    // Toujours afficher les éléments sans moduleSlug (dashboard, paramètres)
+    if (!item.moduleSlug) return true;
+    
+    // Afficher seulement si le module est activé
+    return enabledModules.includes(item.moduleSlug);
+  });
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -91,19 +168,24 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     }
   };
 
-  const sidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
-    { label: "Contrats", icon: FileText, href: "/client/contracts" },
-    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
-    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true },
-    { label: "Catalogue", icon: Package, href: "/client/catalog" },
-    { label: "Support", icon: HelpCircle, href: "/client/support" },
-    { label: "Paramètres", icon: Settings, href: "/client/settings" },
-  ];
-
   const isActive = (path: string) => {
     return location.pathname.startsWith(path);
   };
+
+  // Afficher un loader pendant le chargement des modules
+  if (loading) {
+    return (
+      <aside className={cn(
+        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
+        collapsed ? "w-[80px]" : "w-[280px]",
+        className
+      )}>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </aside>
+    );
+  }
 
   if (isMobile) {
     return (
