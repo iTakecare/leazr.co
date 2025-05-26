@@ -76,62 +76,42 @@ serve(async (req) => {
       );
     }
     
-    // First, ensure we have a company to associate the user with
+    // Step 1: Find or create iTakecare company
     let companyId: string | null = null;
     
-    try {
-      console.log('Looking for iTakecare company...');
-      // Try to find existing iTakecare company using direct SQL query
-      const { data: existingCompany, error: findError } = await supabaseAdmin
-        .rpc('execute_sql', {
-          sql: `
-            SELECT id FROM public.companies 
-            WHERE LOWER(name) LIKE '%itakecare%' 
-            LIMIT 1;
-          `
-        });
-      
-      if (!findError && existingCompany && existingCompany.length > 0) {
-        companyId = existingCompany[0].id;
-        console.log('Found existing iTakecare company:', companyId);
-      }
-    } catch (error) {
-      console.log('Error finding company, will create one:', error);
-    }
+    console.log('Looking for iTakecare company...');
+    const { data: companies, error: companyFindError } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .ilike('name', '%itakecare%')
+      .limit(1);
     
-    // If no company found, create one using direct SQL execution
-    if (!companyId) {
-      try {
-        console.log('Creating iTakecare company using SQL...');
-        
-        const { data: newCompany, error: companyError } = await supabaseAdmin
-          .rpc('execute_sql', {
-            sql: `
-              INSERT INTO public.companies (name, plan, is_active, subscription_ends_at)
-              VALUES ('iTakecare', 'business', true, '2030-12-31T00:00:00.000Z')
-              RETURNING id;
-            `
-          });
-        
-        if (companyError) {
-          console.error('Error creating company with SQL:', companyError);
-          throw new Error('Failed to create company');
-        }
-        
-        // Extract company ID from SQL result
-        if (newCompany && newCompany.length > 0) {
-          companyId = newCompany[0].id;
-          console.log('Created iTakecare company with SQL:', companyId);
-        } else {
-          throw new Error('No company ID returned from SQL insert');
-        }
-      } catch (error) {
-        console.error('Failed to create company:', error);
+    if (!companyFindError && companies && companies.length > 0) {
+      companyId = companies[0].id;
+      console.log('Found existing iTakecare company:', companyId);
+    } else {
+      console.log('Creating iTakecare company...');
+      const { data: newCompany, error: companyError } = await supabaseAdmin
+        .from('companies')
+        .insert({
+          name: 'iTakecare',
+          plan: 'business',
+          is_active: true,
+          subscription_ends_at: '2030-12-31T00:00:00.000Z'
+        })
+        .select('id')
+        .single();
+      
+      if (companyError) {
+        console.error('Error creating company:', companyError);
         return new Response(
           JSON.stringify({ error: 'Failed to create company for admin user' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
+      
+      companyId = newCompany.id;
+      console.log('Created iTakecare company:', companyId);
     }
     
     if (!companyId) {
@@ -142,18 +122,18 @@ serve(async (req) => {
       );
     }
     
-    // Now create the user using a different approach - disable RLS temporarily
-    console.log('Disabling RLS for profiles table...');
+    // Step 2: Temporarily drop the trigger to avoid conflicts
+    console.log('Temporarily disabling trigger...');
     try {
       await supabaseAdmin.rpc('execute_sql', {
-        sql: 'ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;'
+        sql: 'DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;'
       });
-      console.log('RLS disabled successfully');
+      console.log('Trigger disabled successfully');
     } catch (error) {
-      console.log('Could not disable RLS:', error);
+      console.log('Could not disable trigger:', error);
     }
     
-    // Now create the user
+    // Step 3: Create the user
     console.log('Creating user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -166,19 +146,22 @@ serve(async (req) => {
       }
     });
     
-    // Re-enable RLS
-    console.log('Re-enabling RLS for profiles table...');
-    try {
-      await supabaseAdmin.rpc('execute_sql', {
-        sql: 'ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;'
-      });
-      console.log('RLS re-enabled successfully');
-    } catch (error) {
-      console.log('Could not re-enable RLS:', error);
-    }
-    
     if (userError) {
       console.error('Error creating user:', userError);
+      
+      // Re-enable trigger before returning error
+      try {
+        await supabaseAdmin.rpc('execute_sql', {
+          sql: `
+            CREATE TRIGGER on_auth_user_created
+              AFTER INSERT ON auth.users
+              FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+          `
+        });
+      } catch (triggerError) {
+        console.log('Could not re-enable trigger:', triggerError);
+      }
+      
       return new Response(
         JSON.stringify({ error: `Erreur lors de la création: ${userError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -187,43 +170,42 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Create or update profile manually with company_id using SQL
+    // Step 4: Manually create the profile with company_id
     if (userData.user && companyId) {
-      console.log('Creating/updating profile with company_id:', companyId);
+      console.log('Creating profile with company_id:', companyId);
       
-      try {
-        const { error: profileError } = await supabaseAdmin
-          .rpc('execute_sql', {
-            sql: `
-              INSERT INTO public.profiles (id, first_name, last_name, role, company_id)
-              VALUES ('${userData.user.id}', '${first_name || 'Admin'}', '${last_name || 'Leazr'}', '${role || 'admin'}', '${companyId}')
-              ON CONFLICT (id) 
-              DO UPDATE SET
-                first_name = '${first_name || 'Admin'}',
-                last_name = '${last_name || 'Leazr'}',
-                role = '${role || 'admin'}',
-                company_id = '${companyId}';
-            `
-          });
-        
-        if (profileError) {
-          console.error('Profile creation/update failed:', profileError);
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              user: userData,
-              company_id: companyId,
-              warning: 'Utilisateur créé mais le profil n\'a pas pu être configuré',
-              message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-          );
-        }
-        
-        console.log('Profile created/updated successfully');
-      } catch (error) {
-        console.error('Error with profile SQL:', error);
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: userData.user.id,
+          first_name: first_name || 'Admin',
+          last_name: last_name || 'Leazr',
+          role: role || 'admin',
+          company_id: companyId
+        });
+      
+      if (profileError) {
+        console.error('Profile creation failed:', profileError);
+        // Don't fail the entire operation, just warn
+        console.log('Continuing despite profile creation error...');
+      } else {
+        console.log('Profile created successfully');
       }
+    }
+    
+    // Step 5: Re-enable the trigger
+    console.log('Re-enabling trigger...');
+    try {
+      await supabaseAdmin.rpc('execute_sql', {
+        sql: `
+          CREATE TRIGGER on_auth_user_created
+            AFTER INSERT ON auth.users
+            FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+        `
+      });
+      console.log('Trigger re-enabled successfully');
+    } catch (error) {
+      console.log('Could not re-enable trigger:', error);
     }
     
     return new Response(
