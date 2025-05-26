@@ -1,4 +1,5 @@
 
+
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -54,17 +55,27 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                  <Route path="/" element={<PrivateRoute><Layout><div /></Layout></PrivateRoute>}>
-                    <Route index element={<Navigate to="/dashboard" replace />} />
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="clients" element={<Clients />} />
-                    <Route path="leazr-clients" element={<LeazrClients />} />
-                    <Route path="clients/:clientId" element={<Clients />} />
-                    <Route path="offers" element={<Offers />} />
-                    <Route path="contracts" element={<Contracts />} />
-                    <Route path="catalog" element={<CatalogManagement />} />
-                    <Route path="settings" element={<Settings />} />
-                  </Route>
+                  {/* Protected routes with Layout */}
+                  <Route 
+                    path="/*" 
+                    element={
+                      <PrivateRoute>
+                        <Layout>
+                          <Routes>
+                            <Route index element={<Navigate to="/dashboard" replace />} />
+                            <Route path="dashboard" element={<Dashboard />} />
+                            <Route path="clients" element={<Clients />} />
+                            <Route path="leazr-clients" element={<LeazrClients />} />
+                            <Route path="clients/:clientId" element={<Clients />} />
+                            <Route path="offers" element={<Offers />} />
+                            <Route path="contracts" element={<Contracts />} />
+                            <Route path="catalog" element={<CatalogManagement />} />
+                            <Route path="settings" element={<Settings />} />
+                          </Routes>
+                        </Layout>
+                      </PrivateRoute>
+                    } 
+                  />
                 </Routes>
                 <Toaster />
                 <ShadcnToaster />
@@ -78,3 +89,4 @@ function App() {
 }
 
 export default App;
+
