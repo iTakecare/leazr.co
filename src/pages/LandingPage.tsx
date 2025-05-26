@@ -81,7 +81,7 @@ const LandingPage: React.FC = () => {
             </span>
             <br />
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              📈 activité de leasing
+              activité de leasing
             </span>
           </h1>
           
@@ -93,7 +93,7 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-4 text-xl shadow-lg hover:shadow-xl transition-all"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-4 text-xl shadow-lg hover:shadow-xl transition-all" 
               onClick={() => navigate('/signup')}
             >
               🎉 Essai gratuit 14 jours
