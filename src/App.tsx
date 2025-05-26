@@ -1,3 +1,4 @@
+
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,7 +20,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import { useAuth } from "./context/AuthContext";
-import { useEffect } from "react";
 
 // Create a simple PrivateRoute component inline since the original doesn't export properly
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
