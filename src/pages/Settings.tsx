@@ -7,10 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, PenLine } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
+import LeaserManager from '@/components/settings/LeaserManager';
+import CommissionManager from '@/components/settings/CommissionManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -66,7 +68,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -78,6 +80,14 @@ const Settings: React.FC = () => {
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Templates PDF
+          </TabsTrigger>
+          <TabsTrigger value="leasers" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Leasers
+          </TabsTrigger>
+          <TabsTrigger value="commissions" className="flex items-center gap-2">
+            <BadgePercent className="h-4 w-4" />
+            Commissions
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -95,6 +105,14 @@ const Settings: React.FC = () => {
 
         <TabsContent value="templates" className="mt-6">
           <PDFTemplateManager />
+        </TabsContent>
+
+        <TabsContent value="leasers" className="mt-6">
+          <LeaserManager />
+        </TabsContent>
+
+        <TabsContent value="commissions" className="mt-6">
+          <CommissionManager />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
