@@ -12,8 +12,12 @@ export const assignITakecareSubscription = async () => {
       .ilike('name', '%itakecare%')
       .single();
 
+    let companyId;
+
     if (existingCompany) {
       console.log('iTakecare company found, updating subscription...');
+      companyId = existingCompany.id;
+      
       // Update existing company
       const { error } = await supabase
         .from('companies')
@@ -30,7 +34,7 @@ export const assignITakecareSubscription = async () => {
     } else {
       console.log('iTakecare company not found, creating new one...');
       // Create new iTakecare company
-      const { error } = await supabase
+      const { data: newCompany, error } = await supabase
         .from('companies')
         .insert({
           name: 'iTakecare',
@@ -38,13 +42,30 @@ export const assignITakecareSubscription = async () => {
           is_active: true,
           subscription_ends_at: new Date(2030, 11, 31).toISOString(), // 31 Dec 2030
           created_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      companyId = newCompany.id;
       console.log('iTakecare company created with Business subscription');
     }
 
-    // Also ensure the check-subscription function returns the correct subscription status
+    // Now ensure the hello@itakecare.be user is associated with this company
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        company_id: companyId,
+        role: 'admin'
+      })
+      .eq('id', (await supabase.auth.getUser()).data.user?.id);
+
+    if (profileError) {
+      console.error('Error updating user profile:', profileError);
+    } else {
+      console.log('User profile updated with iTakecare company association');
+    }
+
     console.log('iTakecare Business subscription assigned successfully until 2030');
     return { success: true };
   } catch (error) {

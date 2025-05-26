@@ -229,23 +229,6 @@ const Settings: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Debug Panel (Subscription Details) */}
-            {subscription && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Détails techniques</CardTitle>
-                  <CardDescription>
-                    Informations détaillées sur votre abonnement
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto">
-                    {JSON.stringify(subscription, null, 2)}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </TabsContent>
       </Tabs>
