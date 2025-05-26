@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Users, Package, Settings, 
-  Calculator, Menu, ChevronRight, ChevronLeft,
+  Calculator, Menu, ChevronRight, ChevronLeft, ChevronDown,
   X, Receipt, FileText, LogOut, FileSignature, BadgePercent, HeartHandshake, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import MobileSidebar from "./MobileSidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SidebarProps {
   className?: string;
@@ -36,6 +36,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [crmOpen, setCrmOpen] = useState(false);
   const { user, signOut } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
@@ -120,6 +121,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       return true;
     }
     return location.pathname.startsWith(href) && href !== "/";
+  };
+
+  const isCrmActive = () => {
+    return crmSidebarItems.some(item => isActive(item.href));
   };
 
   const getUserInitials = () => {
@@ -220,25 +225,42 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               <div className="border-t border-gray-200"></div>
             </li>
             
-            {/* Section label pour CRM */}
-            {!collapsed && (
-              <li className="px-3 py-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  CRM
-                </span>
-              </li>
-            )}
-            
-            {/* Section CRM */}
-            {crmSidebarItems.map((item) => (
-              <SidebarMenuItem 
-                key={item.href}
-                item={item}
-                isActive={isActive}
-                collapsed={collapsed}
-                onLinkClick={onLinkClick}
-              />
-            ))}
+            {/* Menu CRM déroulant */}
+            <li>
+              <Collapsible open={crmOpen} onOpenChange={setCrmOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start gap-2 p-2 h-10 font-normal",
+                      isCrmActive() && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                      collapsed && "justify-center px-2"
+                    )}
+                  >
+                    <Briefcase className="h-5 w-5" />
+                    {!collapsed && (
+                      <>
+                        <span className="flex-1 text-left">CRM</span>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform", crmOpen && "rotate-180")} />
+                      </>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                {!collapsed && (
+                  <CollapsibleContent className="space-y-1 ml-4">
+                    {crmSidebarItems.map((item) => (
+                      <SidebarMenuItem 
+                        key={item.href}
+                        item={item}
+                        isActive={isActive}
+                        collapsed={false}
+                        onLinkClick={onLinkClick}
+                      />
+                    ))}
+                  </CollapsibleContent>
+                )}
+              </Collapsible>
+            </li>
             
             {/* Séparateur */}
             <li className="my-4">
