@@ -1,49 +1,29 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Building2, 
-  Users, 
   Calendar, 
-  CreditCard,
-  MoreHorizontal,
+  CreditCard, 
   Eye,
-  Edit,
-  Trash2
+  Users,
+  AlertCircle
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface LeazrClient {
   id: string;
   name: string;
-  logo_url?: string;
-  plan: string;
-  is_active: boolean;
-  created_at: string;
-  trial_ends_at?: string;
-  subscription_ends_at?: string;
-  users_count?: number;
-  modules_enabled?: string[];
+  plan: 'starter' | 'pro' | 'business';
+  status: 'active' | 'trial' | 'expired' | 'cancelled';
+  usersCount: number;
+  subscriptionEnd?: Date;
+  createdAt: Date;
+  lastActivity?: Date;
 }
 
 interface LeazrClientsListProps {
@@ -52,203 +32,211 @@ interface LeazrClientsListProps {
   onClientSelect: (clientId: string) => void;
 }
 
+// Données de démonstration
+const mockClients: LeazrClient[] = [
+  {
+    id: '1',
+    name: 'Entreprise Alpha',
+    plan: 'business',
+    status: 'active',
+    usersCount: 25,
+    subscriptionEnd: new Date('2024-12-31'),
+    createdAt: new Date('2024-01-15'),
+    lastActivity: new Date('2024-11-20')
+  },
+  {
+    id: '2',
+    name: 'Beta Solutions',
+    plan: 'pro',
+    status: 'active',
+    usersCount: 12,
+    subscriptionEnd: new Date('2024-11-30'),
+    createdAt: new Date('2024-03-10'),
+    lastActivity: new Date('2024-11-25')
+  },
+  {
+    id: '3',
+    name: 'Gamma Tech',
+    plan: 'starter',
+    status: 'trial',
+    usersCount: 5,
+    subscriptionEnd: new Date('2024-12-05'),
+    createdAt: new Date('2024-11-15'),
+    lastActivity: new Date('2024-11-24')
+  }
+];
+
 const LeazrClientsList: React.FC<LeazrClientsListProps> = ({
   searchTerm,
   statusFilter,
   onClientSelect
 }) => {
   const [clients, setClients] = useState<LeazrClient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchClients();
+    // Simulation du chargement des données
+    setTimeout(() => {
+      setClients(mockClients);
+      setIsLoading(false);
+    }, 1000);
   }, []);
 
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('companies')
-        .select(`
-          id,
-          name,
-          logo_url,
-          plan,
-          is_active,
-          created_at,
-          trial_ends_at,
-          subscription_ends_at,
-          modules_enabled
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Erreur lors du chargement des clients:', error);
-        toast.error('Erreur lors du chargement des clients');
-        return;
-      }
-
-      setClients(data || []);
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur lors du chargement des clients');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusBadge = (client: LeazrClient) => {
-    if (!client.is_active) {
-      return <Badge variant="destructive">Inactif</Badge>;
-    }
-    
-    if (client.trial_ends_at && new Date(client.trial_ends_at) > new Date()) {
-      return <Badge variant="outline">Essai</Badge>;
-    }
-    
-    if (client.subscription_ends_at && new Date(client.subscription_ends_at) < new Date()) {
-      return <Badge variant="destructive">Expiré</Badge>;
-    }
-    
-    return <Badge variant="default">Actif</Badge>;
-  };
-
-  const getPlanBadge = (plan: string) => {
-    const planColors = {
-      starter: "bg-blue-100 text-blue-800",
-      pro: "bg-purple-100 text-purple-800",
-      business: "bg-green-100 text-green-800"
-    };
-    
-    return (
-      <Badge className={planColors[plan as keyof typeof planColors] || "bg-gray-100 text-gray-800"}>
-        {plan.charAt(0).toUpperCase() + plan.slice(1)}
-      </Badge>
-    );
-  };
-
   const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === "" || 
+      client.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    let matchesStatus = true;
-    if (statusFilter === 'active') {
-      matchesStatus = client.is_active && (!client.subscription_ends_at || new Date(client.subscription_ends_at) > new Date());
-    } else if (statusFilter === 'trial') {
-      matchesStatus = client.trial_ends_at && new Date(client.trial_ends_at) > new Date();
-    } else if (statusFilter === 'expired') {
-      matchesStatus = client.subscription_ends_at && new Date(client.subscription_ends_at) < new Date();
-    } else if (statusFilter === 'cancelled') {
-      matchesStatus = !client.is_active;
-    }
+    const matchesStatus = statusFilter === "all" || client.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  if (loading) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actif</Badge>;
+      case 'trial':
+        return <Badge variant="outline" className="border-blue-200 text-blue-700">Essai</Badge>;
+      case 'expired':
+        return <Badge variant="outline" className="border-red-200 text-red-700">Expiré</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary">Annulé</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getPlanBadge = (plan: string) => {
+    switch (plan) {
+      case 'starter':
+        return <Badge variant="outline">Starter</Badge>;
+      case 'pro':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Pro</Badge>;
+      case 'business':
+        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Business</Badge>;
+      default:
+        return <Badge variant="outline">{plan}</Badge>;
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return format(date, "dd MMM yyyy", { locale: fr });
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement des clients...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {filteredClients.length} client(s) trouvé(s)
-        </p>
+      {/* Statistiques rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="flex items-center p-4">
+            <Building2 className="h-8 w-8 text-blue-600 mr-3" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+              <p className="text-2xl font-bold">{clients.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="flex items-center p-4">
+            <Users className="h-8 w-8 text-green-600 mr-3" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Clients Actifs</p>
+              <p className="text-2xl font-bold">{clients.filter(c => c.status === 'active').length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="flex items-center p-4">
+            <Calendar className="h-8 w-8 text-orange-600 mr-3" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">En Essai</p>
+              <p className="text-2xl font-bold">{clients.filter(c => c.status === 'trial').length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="flex items-center p-4">
+            <AlertCircle className="h-8 w-8 text-red-600 mr-3" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Expirés</p>
+              <p className="text-2xl font-bold">{clients.filter(c => c.status === 'expired').length}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Entreprise</TableHead>
-            <TableHead>Plan</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Modules</TableHead>
-            <TableHead>Créé le</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredClients.map((client) => (
-            <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={client.logo_url} alt={client.name} />
-                    <AvatarFallback>
-                      <Building2 className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{client.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      ID: {client.id.slice(0, 8)}...
-                    </div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {getPlanBadge(client.plan)}
-              </TableCell>
-              <TableCell>
-                {getStatusBadge(client)}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-1">
-                  <Badge variant="outline" className="text-xs">
-                    {client.modules_enabled?.length || 0} modules
-                  </Badge>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {formatDistanceToNow(new Date(client.created_at), { 
-                    addSuffix: true, 
-                    locale: fr 
-                  })}
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onClientSelect(client.id)}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Voir détails
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Modifier
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      {filteredClients.length === 0 && (
-        <div className="text-center py-8">
-          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-2 text-sm font-semibold">Aucun client trouvé</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Aucun client ne correspond à vos critères de recherche.
-          </p>
-        </div>
-      )}
+      {/* Table des clients */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Liste des Clients ({filteredClients.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredClients.length === 0 ? (
+            <div className="text-center py-8">
+              <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">Aucun client trouvé</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Entreprise</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Utilisateurs</TableHead>
+                  <TableHead>Fin d'abonnement</TableHead>
+                  <TableHead>Dernière activité</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell>{getPlanBadge(client.plan)}</TableCell>
+                    <TableCell>{getStatusBadge(client.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {client.usersCount}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {client.subscriptionEnd ? formatDate(client.subscriptionEnd) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {client.lastActivity ? formatDate(client.lastActivity) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onClientSelect(client.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
