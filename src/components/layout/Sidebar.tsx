@@ -44,11 +44,14 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
     { label: "Offres", icon: FileText, href: "/offers", badge: pendingOffersCount > 0 ? pendingOffersCount.toString() : undefined },
     { label: "Contrats", icon: FileSignature, href: "/contracts" },
+    { label: "Catalogue", icon: Package, href: "/catalog" },
+    { label: "Paramètres", icon: Settings, href: "/settings" },
+  ];
+
+  const crmSidebarItems: MenuItem[] = [
     { label: "Clients", icon: Users, href: "/clients" },
     { label: "Partenaires", icon: BadgePercent, href: "/partners" },
     { label: "Ambassadeurs", icon: HeartHandshake, href: "/ambassadors" },
-    { label: "Catalogue", icon: Package, href: "/catalog" },
-    { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
   const leazrSidebarItems: MenuItem[] = [
@@ -160,7 +163,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       <MobileSidebar
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        menuItems={[...mainSidebarItems, ...leazrSidebarItems]}
+        menuItems={[...mainSidebarItems, ...crmSidebarItems, ...leazrSidebarItems]}
         isActive={isActive}
         onLinkClick={onLinkClick}
         avatarUrl={avatarUrl}
@@ -203,6 +206,31 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           <ul className="space-y-1">
             {/* Section principale */}
             {mainSidebarItems.map((item) => (
+              <SidebarMenuItem 
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                collapsed={collapsed}
+                onLinkClick={onLinkClick}
+              />
+            ))}
+            
+            {/* Séparateur */}
+            <li className="my-4">
+              <div className="border-t border-gray-200"></div>
+            </li>
+            
+            {/* Section label pour CRM */}
+            {!collapsed && (
+              <li className="px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  CRM
+                </span>
+              </li>
+            )}
+            
+            {/* Section CRM */}
+            {crmSidebarItems.map((item) => (
               <SidebarMenuItem 
                 key={item.href}
                 item={item}
