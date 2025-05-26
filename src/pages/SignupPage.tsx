@@ -298,7 +298,7 @@ const SignupPage: React.FC = () => {
                       }`}
                       onClick={() => handlePlanChange(key)}
                     >
-                      {plan.popular && (
+                      {'popular' in plan && plan.popular && (
                         <Badge className="mb-3 bg-blue-600">Populaire</Badge>
                       )}
                       <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
