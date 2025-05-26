@@ -76,51 +76,7 @@ serve(async (req) => {
       );
     }
     
-    // First, ensure iTakecare company exists
-    console.log('Checking for iTakecare company...');
-    let { data: company, error: companyFetchError } = await supabaseAdmin
-      .from('companies')
-      .select('*')
-      .eq('name', 'iTakecare')
-      .single();
-    
-    if (companyFetchError && companyFetchError.code !== 'PGRST116') {
-      console.error('Error fetching company:', companyFetchError);
-      return new Response(
-        JSON.stringify({ error: `Erreur lors de la vérification de l'entreprise: ${companyFetchError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
-    // Create iTakecare company if it doesn't exist
-    if (!company) {
-      console.log('Creating iTakecare company...');
-      const { data: newCompany, error: companyCreateError } = await supabaseAdmin
-        .from('companies')
-        .insert({
-          name: 'iTakecare',
-          plan: 'business',
-          is_active: true,
-          subscription_ends_at: '2030-12-31T00:00:00.000Z'
-        })
-        .select()
-        .single();
-      
-      if (companyCreateError) {
-        console.error('Error creating company:', companyCreateError);
-        return new Response(
-          JSON.stringify({ error: `Erreur lors de la création de l'entreprise: ${companyCreateError.message}` }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      company = newCompany;
-      console.log('iTakecare company created successfully:', company.id);
-    } else {
-      console.log('iTakecare company already exists:', company.id);
-    }
-    
-    // Create the user with admin supabase client
+    // Create the user first with admin supabase client
     console.log('Creating user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -143,33 +99,118 @@ serve(async (req) => {
     
     console.log('User created successfully:', userData.user?.id);
     
-    // Create a profile record with the company_id
-    if (userData.user && company) {
-      console.log('Creating profile with company_id:', company.id);
+    // Now handle company creation and profile creation with proper error handling
+    let companyId: string | null = null;
+    
+    try {
+      // Check if iTakecare company exists
+      console.log('Checking for iTakecare company...');
+      const { data: existingCompany, error: companyFetchError } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .ilike('name', 'itakecare')
+        .limit(1)
+        .maybeSingle();
+      
+      if (existingCompany) {
+        companyId = existingCompany.id;
+        console.log('iTakecare company found:', companyId);
+      } else {
+        // Try to create iTakecare company using a database function approach
+        console.log('Creating iTakecare company...');
+        
+        // Insert company directly with service role
+        const { data: newCompany, error: companyCreateError } = await supabaseAdmin
+          .from('companies')
+          .insert({
+            name: 'iTakecare',
+            plan: 'business',
+            is_active: true,
+            subscription_ends_at: '2030-12-31T00:00:00.000Z'
+          })
+          .select('id')
+          .single();
+        
+        if (companyCreateError) {
+          console.error('Company creation failed:', companyCreateError);
+          // If company creation fails, we'll create the profile without company_id
+          console.log('Proceeding without company association');
+        } else {
+          companyId = newCompany.id;
+          console.log('iTakecare company created successfully:', companyId);
+        }
+      }
+    } catch (companyError) {
+      console.error('Company handling error:', companyError);
+      console.log('Proceeding without company association');
+    }
+    
+    // Create profile with or without company_id
+    if (userData.user) {
+      console.log('Creating profile...');
+      const profileData: any = {
+        id: userData.user.id,
+        first_name: first_name || 'Admin',
+        last_name: last_name || 'Leazr',
+        role: role || 'admin'
+      };
+      
+      // Only add company_id if we have one
+      if (companyId) {
+        profileData.company_id = companyId;
+      }
+      
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert({
-          id: userData.user.id,
-          first_name: first_name || 'Admin',
-          last_name: last_name || 'Leazr',
-          role: role || 'admin',
-          company_id: company.id
-        });
+        .insert(profileData);
       
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        // Try to clean up the user if profile creation fails
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
-          console.log('User cleaned up due to profile creation failure');
-        } catch (cleanupError) {
-          console.error('Error cleaning up user:', cleanupError);
+        
+        // If profile creation fails and we don't have a company, try creating a default company first
+        if (!companyId) {
+          console.log('Attempting to create default company for profile...');
+          try {
+            const { data: defaultCompany } = await supabaseAdmin
+              .from('companies')
+              .insert({
+                name: 'Default Company',
+                plan: 'starter',
+                is_active: true
+              })
+              .select('id')
+              .single();
+            
+            if (defaultCompany) {
+              profileData.company_id = defaultCompany.id;
+              const { error: retryProfileError } = await supabaseAdmin
+                .from('profiles')
+                .insert(profileData);
+              
+              if (retryProfileError) {
+                console.error('Retry profile creation failed:', retryProfileError);
+              } else {
+                console.log('Profile created successfully with default company');
+              }
+            }
+          } catch (defaultCompanyError) {
+            console.error('Default company creation failed:', defaultCompanyError);
+          }
         }
         
-        return new Response(
-          JSON.stringify({ error: `Erreur lors de la création du profil: ${profileError.message}` }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
+        if (profileError) {
+          // Don't delete the user if profile creation fails, just warn
+          console.warn('Profile creation failed but user was created successfully');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              user: userData,
+              warning: 'Utilisateur créé mais le profil n\'a pas pu être associé',
+              message: 'Utilisateur administrateur créé avec succès (profil à configurer manuellement)'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        }
       } else {
         console.log('Profile created successfully');
       }
@@ -179,7 +220,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         user: userData,
-        company: company,
+        company_id: companyId,
         message: 'Utilisateur administrateur créé avec succès'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
