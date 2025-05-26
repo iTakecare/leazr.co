@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -37,6 +38,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [pendingOffersCount, setPendingOffersCount] = useState(0);
   
   const sidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
@@ -76,6 +78,25 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     
     fetchAvatar();
   }, [user]);
+
+  useEffect(() => {
+    const fetchPendingOffers = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('offers')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        
+        if (!error && count !== null) {
+          setPendingOffersCount(count);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement des offres en attente:", err);
+      }
+    };
+    
+    fetchPendingOffers();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -136,7 +157,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
       <MobileSidebar
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        menuItems={menuItems}
+        menuItems={sidebarItems}
         isActive={isActive}
         onLinkClick={onLinkClick}
         avatarUrl={avatarUrl}

@@ -1,35 +1,38 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from "@/components/ui/theme-provider"
+import { ThemeProvider } from "@/components/providers/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import SignupPage from './pages/SignupPage';
 import Settings from './pages/Settings';
 import Offers from './pages/Offers';
-import PrivateRoute from './components/PrivateRoute';
-import Layout from './components/layout/Layout';
+import { PrivateRoute } from './components/PrivateRoute';
+import { Layout } from './components/layout/Layout';
 import Clients from './pages/Clients';
 import PartnersListPage from './pages/PartnersList';
 import AmbassadorsListPage from './pages/AmbassadorsList';
-import Catalog from './pages/Catalog';
+import CatalogManagement from './pages/CatalogManagement';
 import Contracts from './pages/Contracts';
-import OfferDetails from './pages/OfferDetails';
+import OfferDetail from './pages/OfferDetail';
 import CreateOffer from './pages/CreateOffer';
 import EditOffer from './pages/EditOffer';
-import ClientDetails from './pages/ClientDetails';
+import ClientDetail from './pages/ClientDetail';
 import CreateClient from './pages/CreateClient';
 import EditClient from './pages/EditClient';
-import PartnerDetails from './pages/PartnerDetails';
+import PartnerDetail from './pages/PartnerDetail';
 import CreatePartner from './pages/CreatePartner';
 import EditPartner from './pages/EditPartner';
-import AmbassadorDetails from './pages/AmbassadorDetails';
+import AmbassadorDetail from './pages/AmbassadorDetail';
 import CreateAmbassador from './pages/CreateAmbassador';
 import EditAmbassador from './pages/EditAmbassador';
 import PaymentPage from './pages/PaymentPage';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeazrClients from "@/pages/LeazrClients";
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
@@ -37,7 +40,7 @@ function App() {
       <AuthProvider>
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           <Toaster />
-          <QueryClient>
+          <QueryClientProvider client={queryClient}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignupPage />} />
@@ -69,7 +72,7 @@ function App() {
               <Route path="/offers/:id" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
-                    <OfferDetails />
+                    <OfferDetail />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -97,7 +100,7 @@ function App() {
               <Route path="/clients/:id" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
-                    <ClientDetails />
+                    <ClientDetail />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -125,7 +128,7 @@ function App() {
               <Route path="/partners/:id" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
-                    <PartnerDetails />
+                    <PartnerDetail />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -153,7 +156,7 @@ function App() {
               <Route path="/ambassadors/:id" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
-                    <AmbassadorDetails />
+                    <AmbassadorDetail />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -174,7 +177,7 @@ function App() {
               <Route path="/catalog" element={
                 <PrivateRoute requiredRole="admin">
                   <Layout>
-                    <Catalog />
+                    <CatalogManagement />
                   </Layout>
                 </PrivateRoute>
               } />
@@ -229,7 +232,7 @@ function App() {
                 </PrivateRoute>
               } />
             </Routes>
-          </QueryClient>
+          </QueryClientProvider>
         </ThemeProvider>
       </AuthProvider>
     </Router>

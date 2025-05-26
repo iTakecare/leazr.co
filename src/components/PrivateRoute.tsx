@@ -5,9 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
+  requiredRole?: string;
 }
 
-export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
+export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRole }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -19,6 +20,11 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Add role checking logic here if needed
+  if (requiredRole && user.role !== requiredRole && requiredRole !== 'admin') {
     return <Navigate to="/login" replace />;
   }
 
