@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -298,7 +297,7 @@ const SignupPage: React.FC = () => {
                       }`}
                       onClick={() => handlePlanChange(key)}
                     >
-                      {'popular' in plan && plan.popular && (
+                      {plan.popular && (
                         <Badge className="mb-3 bg-blue-600">Populaire</Badge>
                       )}
                       <h3 className="text-xl font-bold mb-2">{plan.name}</h3>

@@ -11,7 +11,17 @@ export interface Module {
   price?: number;
 }
 
-export const PLANS = {
+export interface Plan {
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  popular?: boolean;
+  modules_limit: number;
+  users_limit: number;
+}
+
+export const PLANS: Record<string, Plan> = {
   starter: {
     name: 'Starter',
     price: 49,
