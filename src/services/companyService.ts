@@ -1,44 +1,17 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-export interface Company {
-  id: string;
-  name: string;
-  logo_url?: string;
-  plan: 'starter' | 'pro' | 'business' | 'custom';
-  modules_enabled: string[];
-  stripe_customer_id?: string;
-  stripe_subscription_id?: string;
-  is_active: boolean;
-  trial_ends_at?: string;
-  subscription_ends_at?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface Module {
   id: string;
-  name: string;
   slug: string;
-  description?: string;
-  price_starter: number;
-  price_pro: number;
-  price_business: number;
-  is_core: boolean;
-}
-
-export interface PlanConfig {
   name: string;
-  price: number;
-  description: string;
-  features: string[];
-  modules_limit: number;
-  users_limit: number;
-  popular?: boolean;
+  description?: string;
+  is_core: boolean;
+  price?: number;
 }
 
-export const PLANS: Record<string, PlanConfig> = {
+export const PLANS = {
   starter: {
     name: 'Starter',
     price: 49,
@@ -52,43 +25,69 @@ export const PLANS: Record<string, PlanConfig> = {
     price: 149,
     description: 'Pour les équipes qui grandissent',
     features: ['Jusqu\'à 3 modules', '5 utilisateurs', 'Support prioritaire', 'Intégrations avancées'],
+    popular: true,
     modules_limit: 3,
-    users_limit: 5,
-    popular: true
+    users_limit: 5
   },
   business: {
     name: 'Business',
     price: 299,
     description: 'Pour les grandes organisations',
     features: ['Tous les modules', '10 utilisateurs', 'Support dédié', 'Personnalisation avancée'],
-    modules_limit: -1,
+    modules_limit: -1, // illimité
     users_limit: 10
   }
 };
 
-/**
- * Récupère tous les modules disponibles
- */
 export const getAvailableModules = async (): Promise<Module[]> => {
+  console.log('Récupération des modules disponibles...');
+  
+  // Modules par défaut si la base de données n'est pas accessible
+  const defaultModules: Module[] = [
+    { id: '1', slug: 'calculator', name: 'Calculateur Leasing', is_core: true },
+    { id: '2', slug: 'catalog', name: 'Catalogue Produits', is_core: true },
+    { id: '3', slug: 'crm', name: 'CRM Client', is_core: true },
+    { id: '4', slug: 'ai_assistant', name: 'Assistant IA', is_core: false },
+    { id: '5', slug: 'fleet_generator', name: 'Générateur de Parc', is_core: false },
+    { id: '6', slug: 'contracts', name: 'Contrats', is_core: false },
+    { id: '7', slug: 'support', name: 'SAV & Support', is_core: false }
+  ];
+
   try {
     const { data, error } = await supabase
       .from('modules')
       .select('*')
-      .order('is_core', { ascending: false })
       .order('name');
-
-    if (error) throw error;
-    return data || [];
+    
+    if (error) {
+      console.warn('Erreur lors de la récupération des modules:', error);
+      return defaultModules;
+    }
+    
+    return data || defaultModules;
   } catch (error) {
-    console.error('Erreur lors de la récupération des modules:', error);
-    return [];
+    console.warn('Erreur de connexion pour récupérer les modules:', error);
+    return defaultModules;
   }
 };
 
-/**
- * Crée une nouvelle entreprise avec son administrateur
- */
-export const createCompanyWithAdmin = async (companyData: {
+export const calculatePrice = (plan: string, selectedModules: Module[]): number => {
+  const basePlan = PLANS[plan as keyof typeof PLANS];
+  if (!basePlan) return 0;
+  
+  let totalPrice = basePlan.price;
+  
+  // Ajouter le prix des modules additionnels non-core
+  selectedModules.forEach(module => {
+    if (!module.is_core && module.price) {
+      totalPrice += module.price;
+    }
+  });
+  
+  return totalPrice;
+};
+
+interface CreateCompanyParams {
   companyName: string;
   adminEmail: string;
   adminPassword: string;
@@ -96,131 +95,102 @@ export const createCompanyWithAdmin = async (companyData: {
   adminLastName: string;
   plan: string;
   selectedModules: string[];
-}): Promise<{ success: boolean; companyId?: string; error?: string }> => {
-  try {
-    console.log('Création de l\'entreprise:', companyData);
+}
 
-    // Appeler la fonction de création d'entreprise
-    const { data, error } = await supabase.rpc('create_company_with_admin', {
-      company_name: companyData.companyName,
-      admin_email: companyData.adminEmail,
-      admin_password: companyData.adminPassword,
-      admin_first_name: companyData.adminFirstName,
-      admin_last_name: companyData.adminLastName,
-      plan_type: companyData.plan
+export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
+  console.log('Création de l\'entreprise:', params);
+  
+  try {
+    // Étape 1: Créer l'utilisateur admin avec les métadonnées
+    console.log('Étape 1: Création de l\'utilisateur admin...');
+    
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: params.adminEmail,
+      password: params.adminPassword,
+      options: {
+        data: {
+          first_name: params.adminFirstName,
+          last_name: params.adminLastName,
+          role: 'admin'
+        }
+      }
     });
 
-    if (error) {
-      console.error('Erreur lors de la création de l\'entreprise:', error);
-      return { success: false, error: error.message };
+    if (authError) {
+      console.error('Erreur lors de la création de l\'utilisateur:', authError);
+      throw new Error(`Erreur d'authentification: ${authError.message}`);
     }
 
-    const companyId = data;
-
-    // Activer les modules sélectionnés
-    if (companyData.selectedModules.length > 0) {
-      await activateModulesForCompany(companyId, companyData.selectedModules);
+    if (!authData.user) {
+      console.error('Aucun utilisateur créé');
+      throw new Error('Erreur lors de la création de l\'utilisateur');
     }
 
-    toast.success('Entreprise créée avec succès !');
-    return { success: true, companyId };
+    console.log('Utilisateur créé avec succès:', authData.user.id);
+
+    // Étape 2: Créer l'entreprise
+    console.log('Étape 2: Création de l\'entreprise...');
+    
+    const { data: companyData, error: companyError } = await supabase
+      .from('companies')
+      .insert([{
+        name: params.companyName,
+        admin_user_id: authData.user.id,
+        subscription_plan: params.plan,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (companyError) {
+      console.error('Erreur lors de la création de l\'entreprise:', companyError);
+      
+      // Nettoyer l'utilisateur créé en cas d'erreur
+      try {
+        await supabase.auth.admin.deleteUser(authData.user.id);
+      } catch (cleanupError) {
+        console.error('Erreur lors du nettoyage:', cleanupError);
+      }
+      
+      throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
+    }
+
+    console.log('Entreprise créée avec succès:', companyData.id);
+
+    // Étape 3: Associer les modules sélectionnés
+    console.log('Étape 3: Association des modules...');
+    
+    if (params.selectedModules.length > 0) {
+      const moduleAssociations = params.selectedModules.map(moduleSlug => ({
+        company_id: companyData.id,
+        module_slug: moduleSlug,
+        is_active: true,
+        created_at: new Date().toISOString()
+      }));
+
+      const { error: modulesError } = await supabase
+        .from('company_modules')
+        .insert(moduleAssociations);
+
+      if (modulesError) {
+        console.warn('Erreur lors de l\'association des modules:', modulesError);
+        // Ne pas faire échouer la création pour les modules
+      } else {
+        console.log('Modules associés avec succès');
+      }
+    }
+
+    return {
+      success: true,
+      companyId: companyData.id,
+      userId: authData.user.id
+    };
 
   } catch (error) {
     console.error('Erreur lors de la création de l\'entreprise:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-    return { success: false, error: errorMessage };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue'
+    };
   }
-};
-
-/**
- * Active des modules pour une entreprise
- */
-export const activateModulesForCompany = async (
-  companyId: string, 
-  modulesSlugs: string[]
-): Promise<boolean> => {
-  try {
-    // Récupérer les IDs des modules à partir de leurs slugs
-    const { data: modules, error: modulesError } = await supabase
-      .from('modules')
-      .select('id, slug')
-      .in('slug', modulesSlugs);
-
-    if (modulesError) throw modulesError;
-
-    // Créer les associations company_modules
-    const moduleAssociations = modules?.map(module => ({
-      company_id: companyId,
-      module_id: module.id,
-      enabled: true
-    })) || [];
-
-    const { error } = await supabase
-      .from('company_modules')
-      .insert(moduleAssociations);
-
-    if (error) throw error;
-
-    // Mettre à jour la liste des modules activés dans la table companies
-    const { error: updateError } = await supabase
-      .from('companies')
-      .update({ modules_enabled: modulesSlugs })
-      .eq('id', companyId);
-
-    if (updateError) throw updateError;
-
-    return true;
-  } catch (error) {
-    console.error('Erreur lors de l\'activation des modules:', error);
-    return false;
-  }
-};
-
-/**
- * Récupère les informations de l'entreprise de l'utilisateur connecté
- */
-export const getCurrentUserCompany = async (): Promise<Company | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('Erreur lors de la récupération de l\'entreprise:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Erreur lors de la récupération de l\'entreprise:', error);
-    return null;
-  }
-};
-
-/**
- * Calcule le prix total en fonction du plan et des modules sélectionnés
- */
-export const calculatePrice = (
-  plan: string, 
-  selectedModules: Module[]
-): number => {
-  const planConfig = PLANS[plan];
-  if (!planConfig) return 0;
-
-  let basePrice = planConfig.price;
-
-  // Pour le plan Business, tous les modules sont inclus
-  if (plan === 'business') {
-    return basePrice;
-  }
-
-  // Pour les autres plans, calculer le prix des modules additionnels
-  const additionalModules = selectedModules.filter(module => !module.is_core);
-  const additionalPrice = additionalModules.reduce((total, module) => {
-    const modulePrice = plan === 'pro' ? module.price_pro : module.price_starter;
-    return total + modulePrice;
-  }, 0);
-
-  return basePrice + additionalPrice;
 };

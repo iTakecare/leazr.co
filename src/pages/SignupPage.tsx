@@ -102,6 +102,8 @@ const SignupPage: React.FC = () => {
     if (!validateStep2()) return;
     
     setLoading(true);
+    console.log('Début de la création du compte...');
+    
     try {
       const result = await createCompanyWithAdmin({
         companyName: formData.companyName,
@@ -113,9 +115,13 @@ const SignupPage: React.FC = () => {
         selectedModules: formData.selectedModules
       });
 
+      console.log('Résultat de la création:', result);
+
       if (result.success) {
         toast.success('Votre compte a été créé avec succès !');
-        // Rediriger vers la page de paiement ou directement vers le dashboard
+        console.log('Redirection vers la page de paiement...');
+        
+        // Rediriger vers la page de paiement
         navigate('/payment', { 
           state: { 
             companyId: result.companyId,
@@ -124,10 +130,12 @@ const SignupPage: React.FC = () => {
           } 
         });
       } else {
+        console.error('Échec de la création:', result.error);
         toast.error(result.error || 'Erreur lors de la création du compte');
       }
     } catch (error) {
-      toast.error('Erreur lors de la création du compte');
+      console.error('Erreur dans handleSubmit:', error);
+      toast.error('Erreur lors de la création du compte. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
