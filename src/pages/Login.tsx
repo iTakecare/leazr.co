@@ -86,9 +86,9 @@ const Login = () => {
     try {
       console.log("Tentative de connexion avec:", email);
       
-      const { data, error } = await signIn(email, password);
+      const { error } = await signIn(email, password);
       
-      console.log("Résultat de la connexion:", { data, error });
+      console.log("Résultat de la connexion:", { error });
 
       if (error) {
         console.error('Erreur lors de la connexion:', error);
@@ -110,7 +110,7 @@ const Login = () => {
         return;
       }
 
-      console.log("Connexion réussie, données utilisateur:", data);
+      console.log("Connexion réussie");
       toast.success('Connexion réussie');
       
       // Attendre un peu pour que l'état d'authentification se mette à jour
