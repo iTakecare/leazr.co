@@ -79,7 +79,7 @@ function App() {
             <Router>
               <div className="min-h-screen bg-background font-sans antialiased">
                 <Routes>
-                  {/* Public routes */}
+                  {/* Public routes - NO authentication required */}
                   <Route path="/home" element={<HomePage />} />
                   <Route path="/solutions" element={<SolutionsPage />} />
                   <Route path="/services" element={<ServicesPage />} />
@@ -94,7 +94,7 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
 
-                  {/* Protected routes with Layout */}
+                  {/* Protected routes with Layout - authentication required */}
                   <Route 
                     path="/*" 
                     element={
