@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
 import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 
@@ -195,15 +194,6 @@ const Login = () => {
                     <Home className="mr-1 h-4 w-4" />
                     Retour à l'accueil
                   </button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate('/create-leazr-admin')}
-                    className="w-full text-sm text-gray-600 hover:text-blue-600 flex items-center justify-center"
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Créer l'administrateur Leazr
-                  </Button>
                 </div>
               </CardFooter>
             </form>
