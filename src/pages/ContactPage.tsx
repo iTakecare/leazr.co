@@ -1,216 +1,126 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Mail, Clock, Send, MessageSquare, Headphones, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
-import LandingHeader from '@/components/layout/LandingHeader';
-import Logo from '@/components/layout/Logo';
+import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 
-const ContactPage: React.FC = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    phone: '',
-    subject: '',
-    message: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Message envoyé avec succès ! Nous vous recontacterons sous 24h.');
-    setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
+const ContactPage = () => {
+  const contactInfo = [
+    {
+      icon: <Phone className="h-6 w-6 text-blue-600" />,
+      title: 'Téléphone',
+      content: '+32 2 123 45 67'
+    },
+    {
+      icon: <Mail className="h-6 w-6 text-blue-600" />,
+      title: 'Email',
+      content: 'contact@leazr.be'
+    },
+    {
+      icon: <MapPin className="h-6 w-6 text-blue-600" />,
+      title: 'Adresse',
+      content: 'Avenue Louise 123, 1050 Bruxelles'
+    },
+    {
+      icon: <Clock className="h-6 w-6 text-blue-600" />,
+      title: 'Horaires',
+      content: 'Lun-Ven: 9h-18h'
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <LandingHeader />
-      
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-            📞 Nous sommes là pour vous accompagner
-          </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Contactez-nous
-            </span>
-          </h1>
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🤝 Notre équipe d'experts est à votre disposition pour vous accompagner dans votre projet de leasing
-          </p>
+      <section className="bg-gradient-to-r from-blue-600 to-green-600 text-white py-20">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl font-bold mb-6">Contactez-nous</h1>
+            <p className="text-xl mb-8">
+              Notre équipe est là pour répondre à toutes vos questions sur Leazr
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Formulaire de contact */}
-            <Card className="shadow-lg">
+            {/* Contact Form */}
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-6 w-6 text-blue-600" />
-                  Envoyez-nous un message
-                </CardTitle>
-                <CardDescription>
-                  Remplissez le formulaire ci-dessous et nous vous répondrons rapidement
-                </CardDescription>
+                <CardTitle className="text-2xl">Envoyez-nous un message</CardTitle>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Nom complet *</label>
-                      <Input
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Votre nom"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Email *</label>
-                      <Input
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="votre@email.com"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Entreprise</label>
-                      <Input
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        placeholder="Nom de votre entreprise"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Téléphone</label>
-                      <Input
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+33 1 23 45 67 89"
-                      />
-                    </div>
-                  </div>
-
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Sujet *</label>
-                    <Input
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="Objet de votre demande"
-                      required
-                    />
+                    <label className="block text-sm font-medium mb-2">Prénom</label>
+                    <Input placeholder="Votre prénom" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium mb-2">Message *</label>
-                    <Textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Décrivez-nous votre projet ou votre besoin..."
-                      rows={6}
-                      required
-                    />
+                    <label className="block text-sm font-medium mb-2">Nom</label>
+                    <Input placeholder="Votre nom" />
                   </div>
-
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    <Send className="mr-2 h-5 w-5" />
-                    Envoyer le message
-                  </Button>
-                </form>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <Input type="email" placeholder="votre@email.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Entreprise</label>
+                  <Input placeholder="Nom de votre entreprise" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Sujet</label>
+                  <Input placeholder="Objet de votre message" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Message</label>
+                  <Textarea placeholder="Votre message..." rows={6} />
+                </div>
+                <Button className="w-full">Envoyer le message</Button>
               </CardContent>
             </Card>
 
-            {/* Informations de contact */}
-            <div className="space-y-8">
+            {/* Contact Info */}
+            <div className="space-y-6">
               <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-blue-600" />
-                    📍 Notre siège social
-                  </h3>
-                  <p className="text-slate-600 mb-2">123 Avenue des Champs-Élysées</p>
-                  <p className="text-slate-600 mb-2">75008 Paris, France</p>
-                  <p className="text-slate-600">🚇 Métro : Charles de Gaulle - Étoile</p>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Informations de contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {contactInfo.map((info, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      {info.icon}
+                      <div>
+                        <h3 className="font-medium">{info.title}</h3>
+                        <p className="text-gray-600">{info.content}</p>
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-green-600" />
-                    📞 Téléphone
-                  </h3>
-                  <p className="text-slate-600 mb-2">+33 1 23 45 67 89</p>
-                  <p className="text-sm text-slate-500">Du lundi au vendredi, 9h-18h</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-purple-600" />
-                    ✉️ Email
-                  </h3>
-                  <p className="text-slate-600 mb-2">contact@leazr.fr</p>
-                  <p className="text-slate-600 mb-2">support@leazr.fr</p>
-                  <p className="text-sm text-slate-500">Réponse sous 24h</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Headphones className="h-5 w-5 text-orange-600" />
-                    🆘 Support prioritaire
-                  </h3>
-                  <p className="text-slate-600 mb-2">Pour nos clients abonnés</p>
-                  <p className="text-slate-600 mb-2">+33 1 23 45 67 90</p>
-                  <p className="text-sm text-slate-500">Support dédié 7j/7</p>
+                <CardHeader>
+                  <CardTitle className="text-xl">Besoin d'aide rapidement ?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4">
+                    Consultez notre centre d'aide ou démarrez un chat en direct avec notre équipe support.
+                  </p>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full">Centre d'aide</Button>
+                    <Button className="w-full">Chat en direct</Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
-            <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
