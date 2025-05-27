@@ -33,19 +33,19 @@ const CartPage = () => {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
-                <Card key={item.id}>
+                <Card key={item.product.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
                       <div className="flex-1">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <p className="text-gray-600">{item.price}€/mois</p>
+                        <h3 className="font-semibold">{item.product.name}</h3>
+                        <p className="text-gray-600">{item.product.monthly_price || item.product.price || 0}€/mois</p>
                       </div>
                       
                       <div className="flex items-center space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
+                          onClick={() => updateQuantity(item.product.id, Math.max(0, item.quantity - 1))}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -53,20 +53,20 @@ const CartPage = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                       
                       <div className="text-right">
-                        <p className="font-semibold">{(item.price * item.quantity).toFixed(2)}€/mois</p>
+                        <p className="font-semibold">{((item.product.monthly_price || item.product.price || 0) * item.quantity).toFixed(2)}€/mois</p>
                       </div>
                       
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item.product.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -18,6 +18,7 @@ interface CartContextType {
   clearCart: () => void;
   cartCount: number;
   cartTotal: number;
+  getTotalPrice: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -217,6 +218,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return total + subtotal;
   }, 0);
+
+  // Add getTotalPrice method that returns the same as cartTotal
+  const getTotalPrice = () => {
+    return cartTotal;
+  };
   
   const value = {
     items,
@@ -225,7 +231,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateQuantity,
     clearCart,
     cartCount,
-    cartTotal
+    cartTotal,
+    getTotalPrice
   };
   
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
