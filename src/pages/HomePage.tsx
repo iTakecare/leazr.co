@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,7 @@ const HomePage: React.FC = () => {
     {
       icon: <ShoppingCart className="h-6 w-6 text-indigo-600" />,
       title: "🛒 E-commerce",
-      description: "Plateforme de vente en ligne dédiée aux équipements de leasing avec paiement sécurisé",
+      description: "Catalogue produits avec options et affichage clair des mensualités pour vos clients finaux",
       bgColor: "bg-indigo-50",
       borderColor: "border-indigo-200"
     }
