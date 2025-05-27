@@ -27,14 +27,6 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import HomePage from "./pages/HomePage";
-import SolutionsPage from "./pages/SolutionsPage";
-import ServicesPage from "./pages/ServicesPage";
-import AboutPage from "./pages/AboutPage";
-import BlogPage from "./pages/BlogPage";
-import ContactPage from "./pages/ContactPage";
-import ResourcesPage from "./pages/ResourcesPage";
-import CartPage from "./pages/CartPage";
-import CatalogPage from "./pages/CatalogPage";
 import { useAuth } from "./context/AuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 
@@ -79,16 +71,7 @@ function App() {
             <Router>
               <div className="min-h-screen bg-background font-sans antialiased">
                 <Routes>
-                  {/* Public routes */}
                   <Route path="/home" element={<HomePage />} />
-                  <Route path="/solutions" element={<SolutionsPage />} />
-                  <Route path="/services" element={<ServicesPage />} />
-                  <Route path="/a-propos" element={<AboutPage />} />
-                  <Route path="/blog" element={<BlogPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/ressources" element={<ResourcesPage />} />
-                  <Route path="/panier" element={<CartPage />} />
-                  <Route path="/catalogue" element={<CatalogPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
