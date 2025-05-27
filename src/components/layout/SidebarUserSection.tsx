@@ -3,10 +3,13 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import NavbarUserProfile from "./NavbarUserProfile";
 
 const SidebarUserSection = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return null;
 
@@ -19,9 +22,14 @@ const SidebarUserSection = () => {
 
   const handleLogout = async () => {
     try {
+      console.log("Début de la déconnexion...");
       await logout();
+      console.log("Déconnexion réussie, redirection vers /login");
+      toast.success("Déconnexion réussie");
+      navigate("/login");
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 

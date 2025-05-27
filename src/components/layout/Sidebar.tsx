@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -25,12 +26,11 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   if (!user) return null;
 
-  // Check if we're on a Leazr SaaS admin page (pour ecommerce@itakecare.be)
-  const isLeazrSaaSPage = location.pathname.startsWith('/leazr-saas');
+  // Vérifier si l'utilisateur est l'admin SaaS Leazr
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
   
-  // If we're on a Leazr SaaS page and user is the SaaS admin, use the SaaS sidebar
-  if (isLeazrSaaSPage && isLeazrSaaSAdmin) {
+  // Si l'utilisateur est l'admin SaaS, utiliser toujours la sidebar SaaS
+  if (isLeazrSaaSAdmin) {
     return <LeazrSaaSSidebar className={className} />;
   }
 

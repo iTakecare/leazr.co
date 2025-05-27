@@ -13,6 +13,11 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import LeazrClients from "./pages/LeazrClients";
 import LeazrSaaSDashboard from "./pages/LeazrSaaSDashboard";
+import LeazrSaaSClients from "./pages/LeazrSaaSClients";
+import LeazrSaaSSubscriptions from "./pages/LeazrSaaSSubscriptions";
+import LeazrSaaSSupport from "./pages/LeazrSaaSSupport";
+import LeazrSaaSPlans from "./pages/LeazrSaaSPlans";
+import LeazrSaaSSettings from "./pages/LeazrSaaSSettings";
 import Offers from "./pages/Offers";
 import Contracts from "./pages/Contracts";
 import CatalogManagement from "./pages/CatalogManagement";
@@ -32,6 +37,19 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   return user ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// Composant pour gérer la redirection de l'admin SaaS
+const DashboardRedirect = () => {
+  const { user } = useAuth();
+  
+  // Si l'utilisateur est l'admin SaaS, rediriger vers le dashboard SaaS
+  if (user?.email === "ecommerce@itakecare.be") {
+    return <Navigate to="/leazr-saas-dashboard" replace />;
+  }
+  
+  // Sinon, afficher le dashboard normal
+  return <Dashboard />;
 };
 
 const queryClient = new QueryClient({
@@ -65,10 +83,15 @@ function App() {
                         <Layout>
                           <Routes>
                             <Route index element={<Navigate to="/dashboard" replace />} />
-                            <Route path="dashboard" element={<Dashboard />} />
+                            <Route path="dashboard" element={<DashboardRedirect />} />
                             <Route path="clients" element={<Clients />} />
                             <Route path="leazr-clients" element={<LeazrClients />} />
                             <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
+                            <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
+                            <Route path="leazr-saas-subscriptions" element={<LeazrSaaSSubscriptions />} />
+                            <Route path="leazr-saas-support" element={<LeazrSaaSSupport />} />
+                            <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
+                            <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
                             <Route path="clients/:clientId" element={<Clients />} />
                             <Route path="offers" element={<Offers />} />
                             <Route path="contracts" element={<Contracts />} />
