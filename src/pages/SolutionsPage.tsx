@@ -1,5 +1,6 @@
 
 import React from 'react';
+import MainNavigation from '@/components/layout/MainNavigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Calculator, Shield, Database, ArrowRight } from 'lucide-react';
@@ -38,8 +39,10 @@ const SolutionsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <MainNavigation />
+      
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
+      <section className="pt-32 pb-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6">Nos Solutions Leasing</h1>
