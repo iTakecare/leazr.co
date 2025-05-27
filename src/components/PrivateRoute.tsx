@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 interface PrivateRouteProps {
@@ -10,6 +10,7 @@ interface PrivateRouteProps {
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRole }) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   // Afficher le loader pendant le chargement
   if (isLoading) {
@@ -20,9 +21,10 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRo
     );
   }
 
-  // Si pas d'utilisateur connecté, rediriger vers login
+  // Si pas d'utilisateur connecté, rediriger vers login avec l'URL de retour
   if (!user) {
-    return <Navigate to="/login" replace />;
+    console.log("Utilisateur non connecté, redirection vers login depuis:", location.pathname);
+    return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
   // Si un rôle spécifique est requis, vérifier
@@ -30,6 +32,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRo
     const userRole = user.role || 'admin';
     
     if (userRole !== requiredRole) {
+      console.log(`Utilisateur avec rôle ${userRole} tente d'accéder à une route nécessitant ${requiredRole}`);
       return <Navigate to="/" replace />;
     }
   }

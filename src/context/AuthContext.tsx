@@ -48,6 +48,9 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Variable globale pour éviter les initialisations multiples
+let authInitialized = false;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -57,7 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     subscription_tier?: string;
     subscription_end?: string;
   } | null>(null);
-  const [initialized, setInitialized] = useState(false);
 
   const checkSubscription = async () => {
     if (!session) return;
@@ -158,50 +160,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialisation unique
+  // Initialisation unique avec protection contre les doubles initialisations
   useEffect(() => {
-    if (initialized) return;
+    if (authInitialized) {
+      console.log("AuthContext déjà initialisé, ignorant la nouvelle initialisation");
+      return;
+    }
 
+    authInitialized = true;
     console.log("AuthContext - Initialisation unique");
     
     let isMounted = true;
     
     const initAuth = async () => {
       try {
-        // 1. Vérifier la session existante
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // 1. Écouter les changements d'auth AVANT de vérifier la session
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log("Auth event:", event, "Session:", !!newSession);
+            
+            if (!isMounted) return;
+            
+            if (event === 'SIGNED_OUT' || !newSession) {
+              setSession(null);
+              setUser(null);
+              setSubscription(null);
+              setIsLoading(false);
+              return;
+            }
+            
+            if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+              setSession(newSession);
+              // Utiliser setTimeout pour éviter les blocages
+              setTimeout(async () => {
+                if (isMounted) {
+                  try {
+                    const enrichedUser = await enrichUserData(newSession.user);
+                    setUser(enrichedUser);
+                  } catch (error) {
+                    console.error('Erreur lors de l\'enrichissement utilisateur:', error);
+                    setUser(newSession.user as ExtendedUser);
+                  }
+                  setIsLoading(false);
+                }
+              }, 0);
+            } else {
+              setIsLoading(false);
+            }
+          }
+        );
+        
+        // 2. Vérifier la session existante APRÈS avoir configuré l'écoute
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Erreur lors de la récupération de la session:", error);
+          setIsLoading(false);
+          return;
+        }
         
         if (currentSession?.user && isMounted) {
-          const enrichedUser = await enrichUserData(currentSession.user);
           setSession(currentSession);
-          setUser(enrichedUser);
+          try {
+            const enrichedUser = await enrichUserData(currentSession.user);
+            setUser(enrichedUser);
+          } catch (error) {
+            console.error('Erreur lors de l\'enrichissement utilisateur initial:', error);
+            setUser(currentSession.user as ExtendedUser);
+          }
         }
         
         if (isMounted) {
           setIsLoading(false);
-          setInitialized(true);
         }
-        
-        // 2. Écouter les changements d'auth
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            console.log("Auth event:", event);
-            
-            if (!isMounted) return;
-            
-            if (newSession?.user) {
-              const enrichedUser = await enrichUserData(newSession.user);
-              setSession(newSession);
-              setUser(enrichedUser);
-            } else {
-              setSession(null);
-              setUser(null);
-              setSubscription(null);
-            }
-            
-            setIsLoading(false);
-          }
-        );
 
         return () => {
           subscription.unsubscribe();
@@ -211,7 +242,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error("Erreur initialisation auth:", error);
         if (isMounted) {
           setIsLoading(false);
-          setInitialized(true);
         }
       }
     };
@@ -221,7 +251,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [initialized]);
+  }, []);
 
   // Auto-refresh subscription
   useEffect(() => {
