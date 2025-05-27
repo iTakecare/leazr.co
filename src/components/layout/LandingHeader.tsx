@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -127,12 +128,12 @@ const LandingHeader = () => {
       "sticky top-0 z-50 transition-all duration-500",
       scrolled 
         ? "bg-white/95 backdrop-blur-sm shadow-lg h-20" 
-        : "bg-transparent h-24"
+        : "bg-transparent h-32"
     )}>
       <div className="container mx-auto px-6">
         <div className={cn(
           "flex items-center justify-between transition-all duration-500",
-          scrolled ? "h-20" : "h-24"
+          scrolled ? "h-20" : "h-32"
         )}>
           {/* Logo avec transition de taille */}
           <div className="flex items-center">
@@ -142,7 +143,7 @@ const LandingHeader = () => {
                 showText={false} 
                 className={cn(
                   "mr-4 transition-all duration-500 group-hover:scale-105",
-                  scrolled ? "scale-75" : "scale-100"
+                  scrolled ? "scale-75" : "scale-125"
                 )} 
               />
             </Link>
@@ -155,7 +156,7 @@ const LandingHeader = () => {
                     "text-sm font-medium transition-colors",
                     scrolled 
                       ? "text-slate-700 hover:text-blue-600" 
-                      : "text-white hover:text-blue-200"
+                      : "text-slate-800 hover:text-blue-600"
                   )}>
                     💡 Solutions
                   </NavigationMenuTrigger>
@@ -185,7 +186,7 @@ const LandingHeader = () => {
                     "text-sm font-medium transition-colors",
                     scrolled 
                       ? "text-slate-700 hover:text-blue-600" 
-                      : "text-white hover:text-blue-200"
+                      : "text-slate-800 hover:text-blue-600"
                   )}>
                     🛠️ Services
                   </NavigationMenuTrigger>
@@ -215,7 +216,7 @@ const LandingHeader = () => {
                     "text-sm font-medium transition-colors",
                     scrolled 
                       ? "text-slate-700 hover:text-blue-600" 
-                      : "text-white hover:text-blue-200"
+                      : "text-slate-800 hover:text-blue-600"
                   )}>
                     📚 Ressources
                   </NavigationMenuTrigger>
@@ -242,7 +243,7 @@ const LandingHeader = () => {
                       "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       scrolled 
                         ? "text-slate-700 hover:text-blue-600" 
-                        : "text-white hover:text-blue-200"
+                        : "text-slate-800 hover:text-blue-600"
                     )}
                   >
                     💰 Tarifs
@@ -256,7 +257,7 @@ const LandingHeader = () => {
                       "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       scrolled 
                         ? "text-slate-700 hover:text-blue-600" 
-                        : "text-white hover:text-blue-200"
+                        : "text-slate-800 hover:text-blue-600"
                     )}
                   >
                     📞 Contact
@@ -278,15 +279,15 @@ const LandingHeader = () => {
               )}>
                 <Globe className={cn(
                   "h-4 w-4 transition-colors",
-                  scrolled ? "text-slate-600" : "text-white"
+                  scrolled ? "text-slate-600" : "text-slate-700"
                 )} />
                 <span className={cn(
                   "ml-1 text-xs font-medium transition-colors",
-                  scrolled ? "text-slate-600" : "text-white"
+                  scrolled ? "text-slate-600" : "text-slate-700"
                 )}>FR</span>
                 <ChevronDown className={cn(
                   "ml-1 h-3 w-3 transition-colors",
-                  scrolled ? "text-slate-600" : "text-white"
+                  scrolled ? "text-slate-600" : "text-slate-700"
                 )} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-36">
@@ -305,7 +306,7 @@ const LandingHeader = () => {
                   "transition-colors",
                   scrolled 
                     ? "text-slate-700 hover:text-blue-600 hover:bg-blue-50" 
-                    : "text-white hover:text-blue-200 hover:bg-white/10"
+                    : "text-slate-800 hover:text-blue-600 hover:bg-white/10"
                 )}
                 onClick={() => navigate('/login')}
               >
@@ -332,8 +333,8 @@ const LandingHeader = () => {
               aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             >
               {mobileMenuOpen ? 
-                <X className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-white")} /> : 
-                <Menu className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-white")} />
+                <X className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-slate-800")} /> : 
+                <Menu className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-slate-800")} />
               }
             </button>
           </div>
@@ -343,13 +344,13 @@ const LandingHeader = () => {
         {mobileMenuOpen && (
           <div className={cn(
             "lg:hidden py-6 border-t animate-fade-in",
-            scrolled ? "border-slate-200 bg-white/95" : "border-white/20 bg-white/10 backdrop-blur-sm"
+            scrolled ? "border-slate-200 bg-white/95" : "border-slate-300 bg-white/10 backdrop-blur-sm"
           )}>
             <nav className="flex flex-col space-y-4">
               <div className="space-y-3">
                 <div className={cn(
                   "px-4 py-2 text-sm font-medium",
-                  scrolled ? "text-blue-600" : "text-white"
+                  scrolled ? "text-blue-600" : "text-slate-800"
                 )}>💡 Solutions</div>
                 {solutionsMenu.map((item, index) => (
                   <Link 
@@ -359,7 +360,7 @@ const LandingHeader = () => {
                       "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
                       scrolled 
                         ? "text-slate-700 hover:bg-slate-100" 
-                        : "text-white hover:bg-white/10"
+                        : "text-slate-800 hover:bg-white/10"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -372,7 +373,7 @@ const LandingHeader = () => {
               <div className="space-y-3">
                 <div className={cn(
                   "px-4 py-2 text-sm font-medium",
-                  scrolled ? "text-blue-600" : "text-white"
+                  scrolled ? "text-blue-600" : "text-slate-800"
                 )}>🛠️ Services</div>
                 {servicesMenu.map((item, index) => (
                   <Link 
@@ -382,7 +383,7 @@ const LandingHeader = () => {
                       "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
                       scrolled 
                         ? "text-slate-700 hover:bg-slate-100" 
-                        : "text-white hover:bg-white/10"
+                        : "text-slate-800 hover:bg-white/10"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -395,7 +396,7 @@ const LandingHeader = () => {
               <div className="space-y-3">
                 <div className={cn(
                   "px-4 py-2 text-sm font-medium",
-                  scrolled ? "text-blue-600" : "text-white"
+                  scrolled ? "text-blue-600" : "text-slate-800"
                 )}>📚 Ressources</div>
                 {ressourcesMenu.map((item, index) => (
                   <Link 
@@ -405,7 +406,7 @@ const LandingHeader = () => {
                       "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
                       scrolled 
                         ? "text-slate-700 hover:bg-slate-100" 
-                        : "text-white hover:bg-white/10"
+                        : "text-slate-800 hover:bg-white/10"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -422,7 +423,7 @@ const LandingHeader = () => {
                     "block px-4 py-2 text-sm rounded-md transition-colors",
                     scrolled 
                       ? "text-slate-700 hover:bg-slate-100" 
-                      : "text-white hover:bg-white/10"
+                      : "text-slate-800 hover:bg-white/10"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -434,7 +435,7 @@ const LandingHeader = () => {
                     "block px-4 py-2 text-sm rounded-md transition-colors",
                     scrolled 
                       ? "text-slate-700 hover:bg-slate-100" 
-                      : "text-white hover:bg-white/10"
+                      : "text-slate-800 hover:bg-white/10"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
