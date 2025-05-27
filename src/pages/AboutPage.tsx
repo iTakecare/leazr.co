@@ -1,6 +1,5 @@
 
 import React from 'react';
-import MainNavigation from '@/components/layout/MainNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Target, Award, ArrowRight } from 'lucide-react';
@@ -26,10 +25,8 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
-      
       {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-r from-slate-900 to-blue-900 text-white">
+      <section className="bg-gradient-to-r from-slate-900 to-blue-900 text-white py-20">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6">À Propos de Leazr</h1>
