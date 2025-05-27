@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap, ShoppingCart } from 'lucide-react';
 import LandingHeader from '@/components/layout/LandingHeader';
 
 const HomePage: React.FC = () => {
@@ -38,6 +37,13 @@ const HomePage: React.FC = () => {
       description: "Base de données complète d'équipements avec gestion des variantes et tarifs",
       bgColor: "bg-orange-50",
       borderColor: "border-orange-200"
+    },
+    {
+      icon: <ShoppingCart className="h-6 w-6 text-indigo-600" />,
+      title: "🛒 E-commerce Intégré",
+      description: "Plateforme de vente en ligne dédiée aux équipements de leasing avec paiement sécurisé",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200"
     }
   ];
 
@@ -118,7 +124,7 @@ const HomePage: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-5 gap-8">
             {features.map((feature, index) => (
               <Card 
                 key={index} 
