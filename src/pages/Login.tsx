@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -16,27 +17,39 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique simple
+  // Redirection automatique avec protection contre les boucles
   useEffect(() => {
-    if (!isLoading && user) {
-      console.log("Utilisateur connecté, redirection...");
+    if (!isLoading && user && !hasRedirected) {
+      console.log("Utilisateur connecté, redirection...", user.email);
+      setHasRedirected(true);
       
-      if (isAdmin()) {
-        navigate('/dashboard', { replace: true });
-      } else if (isClient()) {
-        navigate('/client/dashboard', { replace: true });
-      } else if (isAmbassador()) {
-        navigate('/ambassador/dashboard', { replace: true });
-      } else if (isPartner()) {
-        navigate('/partner/dashboard', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      // Petit délai pour éviter les conflits d'état
+      setTimeout(() => {
+        if (isAdmin()) {
+          navigate('/dashboard', { replace: true });
+        } else if (isClient()) {
+          navigate('/client/dashboard', { replace: true });
+        } else if (isAmbassador()) {
+          navigate('/ambassador/dashboard', { replace: true });
+        } else if (isPartner()) {
+          navigate('/partner/dashboard', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
+      }, 100);
     }
-  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, isLoading, hasRedirected, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+
+  // Réinitialiser hasRedirected si l'utilisateur se déconnecte
+  useEffect(() => {
+    if (!user && hasRedirected) {
+      setHasRedirected(false);
+    }
+  }, [user, hasRedirected]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,9 +62,11 @@ const Login = () => {
     setLoading(true);
     
     try {
+      console.log("Tentative de connexion pour:", email);
       const { error } = await signIn(email, password);
 
       if (error) {
+        console.error("Erreur de connexion:", error);
         let errorMessage = 'Erreur de connexion';
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou mot de passe incorrect';
@@ -68,6 +83,7 @@ const Login = () => {
         return;
       }
 
+      console.log("Connexion réussie");
       toast.success('Connexion réussie');
       // La redirection se fera automatiquement via useEffect
       
@@ -81,6 +97,18 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Si l'utilisateur est déjà connecté et qu'on a déjà redirigé, afficher un loader
+  if (user && hasRedirected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Redirection en cours...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
