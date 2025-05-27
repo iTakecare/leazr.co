@@ -28,17 +28,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import HomePage from "./pages/HomePage";
 import { useAuth } from "./context/AuthContext";
-
-// Create a simple PrivateRoute component inline since the original doesn't export properly
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
-};
+import { PrivateRoute } from "./components/PrivateRoute";
 
 // Composant pour gérer la redirection de l'admin SaaS
 const DashboardRedirect = () => {
@@ -52,6 +42,16 @@ const DashboardRedirect = () => {
   // Sinon, afficher le dashboard normal
   return <Dashboard />;
 };
+
+// Composant de chargement pour les routes
+const RouteLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">Chargement...</p>
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,23 +83,25 @@ function App() {
                     element={
                       <PrivateRoute>
                         <Layout>
-                          <Routes>
-                            <Route index element={<Navigate to="/dashboard" replace />} />
-                            <Route path="dashboard" element={<DashboardRedirect />} />
-                            <Route path="clients" element={<Clients />} />
-                            <Route path="leazr-clients" element={<LeazrClients />} />
-                            <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
-                            <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
-                            <Route path="leazr-saas-subscriptions" element={<LeazrSaaSSubscriptions />} />
-                            <Route path="leazr-saas-support" element={<LeazrSaaSSupport />} />
-                            <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
-                            <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
-                            <Route path="clients/:clientId" element={<Clients />} />
-                            <Route path="offers" element={<Offers />} />
-                            <Route path="contracts" element={<Contracts />} />
-                            <Route path="catalog" element={<CatalogManagement />} />
-                            <Route path="settings" element={<Settings />} />
-                          </Routes>
+                          <Suspense fallback={<RouteLoader />}>
+                            <Routes>
+                              <Route index element={<Navigate to="/dashboard" replace />} />
+                              <Route path="dashboard" element={<DashboardRedirect />} />
+                              <Route path="clients" element={<Clients />} />
+                              <Route path="leazr-clients" element={<LeazrClients />} />
+                              <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
+                              <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
+                              <Route path="leazr-saas-subscriptions" element={<LeazrSaaSSubscriptions />} />
+                              <Route path="leazr-saas-support" element={<LeazrSaaSSupport />} />
+                              <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
+                              <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
+                              <Route path="clients/:clientId" element={<Clients />} />
+                              <Route path="offers" element={<Offers />} />
+                              <Route path="contracts" element={<Contracts />} />
+                              <Route path="catalog" element={<CatalogManagement />} />
+                              <Route path="settings" element={<Settings />} />
+                            </Routes>
+                          </Suspense>
                         </Layout>
                       </PrivateRoute>
                     } 
