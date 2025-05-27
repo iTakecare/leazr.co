@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import LeazrAdminSidebar from "./LeazrAdminSidebar";
+import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
 import { useLocation } from "react-router-dom";
 import {
   BarChart3,
@@ -23,6 +24,15 @@ const Sidebar = ({ className }: SidebarProps) => {
   const location = useLocation();
 
   if (!user) return null;
+
+  // Check if we're on a Leazr SaaS admin page (pour ecommerce@itakecare.be)
+  const isLeazrSaaSPage = location.pathname.startsWith('/leazr-saas');
+  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  
+  // If we're on a Leazr SaaS page and user is the SaaS admin, use the SaaS sidebar
+  if (isLeazrSaaSPage && isLeazrSaaSAdmin) {
+    return <LeazrSaaSSidebar className={className} />;
+  }
 
   // Check if we're on a Leazr admin page
   const isLeazrAdminPage = location.pathname.startsWith('/leazr-');

@@ -12,6 +12,7 @@ import './utils/initializeITakecare'; // This will execute the initialization
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import LeazrClients from "./pages/LeazrClients";
+import LeazrSaaSDashboard from "./pages/LeazrSaaSDashboard";
 import Offers from "./pages/Offers";
 import Contracts from "./pages/Contracts";
 import CatalogManagement from "./pages/CatalogManagement";
@@ -67,6 +68,7 @@ function App() {
                             <Route path="dashboard" element={<Dashboard />} />
                             <Route path="clients" element={<Clients />} />
                             <Route path="leazr-clients" element={<LeazrClients />} />
+                            <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
                             <Route path="clients/:clientId" element={<Clients />} />
                             <Route path="offers" element={<Offers />} />
                             <Route path="contracts" element={<Contracts />} />
