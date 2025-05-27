@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -125,22 +124,39 @@ const LandingHeader = () => {
 
   return (
     <header className={cn(
-      "sticky top-0 z-50 transition-all duration-300",
-      scrolled ? "bg-white/95 backdrop-blur-sm shadow-lg" : "bg-white border-b border-slate-200"
+      "sticky top-0 z-50 transition-all duration-500",
+      scrolled 
+        ? "bg-white/95 backdrop-blur-sm shadow-lg h-20" 
+        : "bg-transparent h-24"
     )}>
       <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo agrandi */}
+        <div className={cn(
+          "flex items-center justify-between transition-all duration-500",
+          scrolled ? "h-20" : "h-24"
+        )}>
+          {/* Logo avec transition de taille */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center group">
-              <Logo variant="full" showText={false} className="mr-4 transition-transform duration-300 group-hover:scale-105" />
+              <Logo 
+                variant="full" 
+                showText={false} 
+                className={cn(
+                  "mr-4 transition-all duration-500 group-hover:scale-105",
+                  scrolled ? "scale-75" : "scale-100"
+                )} 
+              />
             </Link>
             
             {/* Navigation principale pour desktop */}
             <NavigationMenu className="hidden lg:flex ml-8">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
+                  <NavigationMenuTrigger className={cn(
+                    "text-sm font-medium transition-colors",
+                    scrolled 
+                      ? "text-slate-700 hover:text-blue-600" 
+                      : "text-white hover:text-blue-200"
+                  )}>
                     💡 Solutions
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -165,7 +181,12 @@ const LandingHeader = () => {
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
+                  <NavigationMenuTrigger className={cn(
+                    "text-sm font-medium transition-colors",
+                    scrolled 
+                      ? "text-slate-700 hover:text-blue-600" 
+                      : "text-white hover:text-blue-200"
+                  )}>
                     🛠️ Services
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -190,7 +211,12 @@ const LandingHeader = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
+                  <NavigationMenuTrigger className={cn(
+                    "text-sm font-medium transition-colors",
+                    scrolled 
+                      ? "text-slate-700 hover:text-blue-600" 
+                      : "text-white hover:text-blue-200"
+                  )}>
                     📚 Ressources
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -212,7 +238,12 @@ const LandingHeader = () => {
                 <NavigationMenuItem>
                   <Link
                     to="/tarifs" 
-                    className="flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors"
+                    className={cn(
+                      "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      scrolled 
+                        ? "text-slate-700 hover:text-blue-600" 
+                        : "text-white hover:text-blue-200"
+                    )}
                   >
                     💰 Tarifs
                   </Link>
@@ -221,7 +252,12 @@ const LandingHeader = () => {
                 <NavigationMenuItem>
                   <Link
                     to="/contact" 
-                    className="flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors"
+                    className={cn(
+                      "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      scrolled 
+                        ? "text-slate-700 hover:text-blue-600" 
+                        : "text-white hover:text-blue-200"
+                    )}
                   >
                     📞 Contact
                   </Link>
@@ -234,10 +270,24 @@ const LandingHeader = () => {
           <div className="flex items-center space-x-4">
             {/* Sélecteur de langue */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="hidden sm:flex items-center p-2 rounded-full hover:bg-slate-100 transition-colors">
-                <Globe className="h-4 w-4 text-slate-600" />
-                <span className="ml-1 text-xs font-medium text-slate-600">FR</span>
-                <ChevronDown className="ml-1 h-3 w-3 text-slate-600" />
+              <DropdownMenuTrigger className={cn(
+                "hidden sm:flex items-center p-2 rounded-full transition-colors",
+                scrolled 
+                  ? "hover:bg-slate-100" 
+                  : "hover:bg-white/10"
+              )}>
+                <Globe className={cn(
+                  "h-4 w-4 transition-colors",
+                  scrolled ? "text-slate-600" : "text-white"
+                )} />
+                <span className={cn(
+                  "ml-1 text-xs font-medium transition-colors",
+                  scrolled ? "text-slate-600" : "text-white"
+                )}>FR</span>
+                <ChevronDown className={cn(
+                  "ml-1 h-3 w-3 transition-colors",
+                  scrolled ? "text-slate-600" : "text-white"
+                )} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-36">
                 <DropdownMenuItem className="cursor-pointer">🇫🇷 Français</DropdownMenuItem>
@@ -251,7 +301,12 @@ const LandingHeader = () => {
             <div className="hidden md:flex items-center space-x-3">
               <Button 
                 variant="ghost" 
-                className="text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors" 
+                className={cn(
+                  "transition-colors",
+                  scrolled 
+                    ? "text-slate-700 hover:text-blue-600 hover:bg-blue-50" 
+                    : "text-white hover:text-blue-200 hover:bg-white/10"
+                )}
                 onClick={() => navigate('/login')}
               >
                 🔐 Connexion
@@ -267,26 +322,45 @@ const LandingHeader = () => {
             
             {/* Menu mobile */}
             <button 
-              className="lg:hidden p-2 rounded-full hover:bg-slate-100 transition-colors"
+              className={cn(
+                "lg:hidden p-2 rounded-full transition-colors",
+                scrolled 
+                  ? "hover:bg-slate-100" 
+                  : "hover:bg-white/10"
+              )}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? 
+                <X className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-white")} /> : 
+                <Menu className={cn("h-5 w-5", scrolled ? "text-slate-700" : "text-white")} />
+              }
             </button>
           </div>
         </div>
         
         {/* Menu mobile */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-6 border-t animate-fade-in">
+          <div className={cn(
+            "lg:hidden py-6 border-t animate-fade-in",
+            scrolled ? "border-slate-200 bg-white/95" : "border-white/20 bg-white/10 backdrop-blur-sm"
+          )}>
             <nav className="flex flex-col space-y-4">
               <div className="space-y-3">
-                <div className="px-4 py-2 text-sm font-medium text-blue-600">💡 Solutions</div>
+                <div className={cn(
+                  "px-4 py-2 text-sm font-medium",
+                  scrolled ? "text-blue-600" : "text-white"
+                )}>💡 Solutions</div>
                 {solutionsMenu.map((item, index) => (
                   <Link 
                     key={index}
                     to={item.href} 
-                    className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
+                      scrolled 
+                        ? "text-slate-700 hover:bg-slate-100" 
+                        : "text-white hover:bg-white/10"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.icon}
@@ -296,12 +370,20 @@ const LandingHeader = () => {
               </div>
               
               <div className="space-y-3">
-                <div className="px-4 py-2 text-sm font-medium text-blue-600">🛠️ Services</div>
+                <div className={cn(
+                  "px-4 py-2 text-sm font-medium",
+                  scrolled ? "text-blue-600" : "text-white"
+                )}>🛠️ Services</div>
                 {servicesMenu.map((item, index) => (
                   <Link 
                     key={index}
                     to={item.href} 
-                    className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
+                      scrolled 
+                        ? "text-slate-700 hover:bg-slate-100" 
+                        : "text-white hover:bg-white/10"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.icon}
@@ -311,12 +393,20 @@ const LandingHeader = () => {
               </div>
 
               <div className="space-y-3">
-                <div className="px-4 py-2 text-sm font-medium text-blue-600">📚 Ressources</div>
+                <div className={cn(
+                  "px-4 py-2 text-sm font-medium",
+                  scrolled ? "text-blue-600" : "text-white"
+                )}>📚 Ressources</div>
                 {ressourcesMenu.map((item, index) => (
                   <Link 
                     key={index}
                     to={item.href} 
-                    className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
+                      scrolled 
+                        ? "text-slate-700 hover:bg-slate-100" 
+                        : "text-white hover:bg-white/10"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.icon}
@@ -328,14 +418,24 @@ const LandingHeader = () => {
               <div className="border-t pt-4 space-y-3">
                 <Link 
                   to="/tarifs" 
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                  className={cn(
+                    "block px-4 py-2 text-sm rounded-md transition-colors",
+                    scrolled 
+                      ? "text-slate-700 hover:bg-slate-100" 
+                      : "text-white hover:bg-white/10"
+                  )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   💰 Tarifs
                 </Link>
                 <Link 
                   to="/contact" 
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                  className={cn(
+                    "block px-4 py-2 text-sm rounded-md transition-colors",
+                    scrolled 
+                      ? "text-slate-700 hover:bg-slate-100" 
+                      : "text-white hover:bg-white/10"
+                  )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   📞 Contact
