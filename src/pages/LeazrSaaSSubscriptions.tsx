@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import SaaSSubscriptionsList from "@/components/saas/SaaSSubscriptionsList";
 
 const LeazrSaaSSubscriptions = () => {
   const { user } = useAuth();
@@ -27,26 +27,7 @@ const LeazrSaaSSubscriptions = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-1">Abonnements SaaS</h1>
-            <p className="text-muted-foreground">
-              Gestion des abonnements et paiements de la plateforme SaaS Leazr
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestion des Abonnements</CardTitle>
-              <CardDescription>
-                Interface de gestion des abonnements et facturation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Cette fonctionnalité sera développée prochainement pour gérer les abonnements SaaS.
-              </p>
-            </CardContent>
-          </Card>
+          <SaaSSubscriptionsList />
         </motion.div>
       </Container>
     </PageTransition>

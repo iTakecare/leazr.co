@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import SaaSSupportManager from "@/components/saas/SaaSSupportManager";
 
 const LeazrSaaSSupport = () => {
   const { user } = useAuth();
@@ -27,26 +27,7 @@ const LeazrSaaSSupport = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-1">Support SaaS</h1>
-            <p className="text-muted-foreground">
-              Gestion du support client pour la plateforme SaaS Leazr
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Support Client</CardTitle>
-              <CardDescription>
-                Interface de gestion des tickets de support
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Cette fonctionnalité sera développée prochainement pour gérer le support client.
-              </p>
-            </CardContent>
-          </Card>
+          <SaaSSupportManager />
         </motion.div>
       </Container>
     </PageTransition>
