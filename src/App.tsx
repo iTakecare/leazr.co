@@ -26,6 +26,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
+import HomePage from "./pages/HomePage";
 import { useAuth } from "./context/AuthContext";
 
 // Create a simple PrivateRoute component inline since the original doesn't export properly
@@ -70,6 +71,7 @@ function App() {
             <Router>
               <div className="min-h-screen bg-background font-sans antialiased">
                 <Routes>
+                  <Route path="/home" element={<HomePage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
