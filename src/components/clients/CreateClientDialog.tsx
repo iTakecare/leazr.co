@@ -52,6 +52,19 @@ const CreateClientDialog = ({ onClientCreated }: CreateClientDialogProps) => {
     setLoading(true);
     
     try {
+      // Récupérer le company_id depuis le profil de l'utilisateur
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast.error("Impossible de déterminer l'entreprise associée");
+        setLoading(false);
+        return;
+      }
+
       // Vérifier si un client avec cet email existe déjà
       const { data: existingClient } = await supabase
         .from('clients')
@@ -70,7 +83,7 @@ const CreateClientDialog = ({ onClientCreated }: CreateClientDialogProps) => {
         .from('clients')
         .insert([{
           ...formData,
-          company_id: user?.company_id || '00000000-0000-0000-0000-000000000000' // Fallback temporaire
+          company_id: profile.company_id
         }])
         .select()
         .single();
