@@ -50,6 +50,10 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
     }
   };
 
+  const handleViewClient = () => {
+    navigate(`/clients/${client.id}`);
+  };
+
   return (
     <TableRow>
       <TableCell className="font-medium">{client.name}</TableCell>
@@ -66,7 +70,7 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onView(client.id)}>
+            <DropdownMenuItem onClick={handleViewClient}>
               <Eye className="mr-2 h-4 w-4" />
               Voir
             </DropdownMenuItem>

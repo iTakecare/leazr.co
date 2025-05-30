@@ -11,6 +11,7 @@ import { Layout } from "./components/layout/Layout";
 import './utils/initializeITakecare'; // This will execute the initialization
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
 import LeazrClients from "./pages/LeazrClients";
 import LeazrSaaSDashboard from "./pages/LeazrSaaSDashboard";
 import LeazrSaaSClients from "./pages/LeazrSaaSClients";
@@ -88,6 +89,7 @@ function App() {
                               <Route index element={<Navigate to="/dashboard" replace />} />
                               <Route path="dashboard" element={<DashboardRedirect />} />
                               <Route path="clients" element={<Clients />} />
+                              <Route path="clients/:id" element={<ClientDetail />} />
                               <Route path="leazr-clients" element={<LeazrClients />} />
                               <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
                               <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
@@ -95,7 +97,6 @@ function App() {
                               <Route path="leazr-saas-support" element={<LeazrSaaSSupport />} />
                               <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
                               <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
-                              <Route path="clients/:clientId" element={<Clients />} />
                               <Route path="offers" element={<Offers />} />
                               <Route path="contracts" element={<Contracts />} />
                               <Route path="catalog" element={<CatalogManagement />} />
