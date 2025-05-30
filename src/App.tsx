@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import './utils/initializeITakecare'; // This will execute the initialization
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
+import ClientEditPage from "./pages/ClientEditPage";
 import LeazrClients from "./pages/LeazrClients";
 import LeazrSaaSDashboard from "./pages/LeazrSaaSDashboard";
 import LeazrSaaSClients from "./pages/LeazrSaaSClients";
@@ -90,6 +90,7 @@ function App() {
                               <Route path="dashboard" element={<DashboardRedirect />} />
                               <Route path="clients" element={<Clients />} />
                               <Route path="clients/:id" element={<ClientDetail />} />
+                              <Route path="clients/edit/:id" element={<ClientEditPage />} />
                               <Route path="leazr-clients" element={<LeazrClients />} />
                               <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
                               <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
