@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus } from "lucide-react";
+import { Users, HeartHandshake, BadgePercent, Filter, UserSearch } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useClients } from "@/hooks/useClients";
 import ClientsList from "@/components/crm/ClientsList";
+import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,10 +80,6 @@ const Clients = () => {
     } else if (value === "ambassadors") {
       navigate("/ambassadors");
     }
-  };
-
-  const handleAddClient = () => {
-    navigate("/clients/create");
   };
 
   const getStatusFilterLabel = () => {
@@ -185,15 +183,7 @@ const Clients = () => {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              onClick={handleAddClient} 
-                              variant="default" 
-                              size="sm" 
-                              className="gap-1"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span>Nouveau client</span>
-                            </Button>
+                            <CreateClientDialog onClientCreated={refreshClients} />
                           </div>
                         </div>
                       </div>
