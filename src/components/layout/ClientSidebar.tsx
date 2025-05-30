@@ -14,8 +14,7 @@ import {
   ChevronRight,
   X,
   Settings,
-  HelpCircle,
-  ShoppingCart
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -64,7 +63,6 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts" },
     { label: "Équipements", icon: Laptop, href: "/client/equipment", moduleSlug: "fleet_generator" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm" },
-    { label: "Nouvelle demande", icon: ShoppingCart, href: "/client/equipment-request", moduleSlug: "catalog" },
     { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog" },
     { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support" },
     { label: "Paramètres", icon: Settings, href: "/client/settings" }, // Toujours visible

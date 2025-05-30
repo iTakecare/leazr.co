@@ -27,7 +27,6 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import HomePage from "./pages/HomePage";
-import ClientRoutes from "./components/layout/ClientRoutes";
 import { useAuth } from "./context/AuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 
@@ -77,16 +76,6 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
-
-                  {/* Client routes */}
-                  <Route 
-                    path="/client/*" 
-                    element={
-                      <PrivateRoute>
-                        <ClientRoutes />
-                      </PrivateRoute>
-                    } 
-                  />
 
                   {/* Protected routes with Layout */}
                   <Route 
