@@ -4,6 +4,7 @@ import { Route, Routes, Navigate, useNavigate, useLocation } from "react-router-
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
+import ClientEquipmentRequestPage from "@/pages/ClientEquipmentRequestPage";
 import { useAuth } from "@/context/AuthContext";
 import ClientSidebar from "./ClientSidebar";
 import ClientsLoading from "@/components/clients/ClientsLoading";
@@ -234,6 +235,7 @@ const ClientRoutes = () => {
         <Route path="contracts" element={<ClientLayout><ClientContractsPage /></ClientLayout>} />
         <Route path="equipment" element={<ClientLayout><ClientEquipmentPage /></ClientLayout>} />
         <Route path="requests" element={<ClientLayout><ClientRequestsPage /></ClientLayout>} />
+        <Route path="equipment-request" element={<ClientLayout><ClientEquipmentRequestPage /></ClientLayout>} />
         <Route path="catalog" element={<ClientLayout><PublicCatalog /></ClientLayout>} />
         <Route path="support" element={<ClientLayout><ClientSupportPage /></ClientLayout>} />
         <Route path="settings" element={<ClientLayout><ClientSettingsPage /></ClientLayout>} />
