@@ -112,7 +112,7 @@ function App() {
                         <Layout>
                           <Suspense fallback={<RouteLoader />}>
                             <Routes>
-                              <Route index element={<Navigate to="/dashboard" replace />} />
+                              <Route index element={<RoleBasedDashboard />} />
                               <Route path="dashboard" element={<RoleBasedDashboard />} />
                               <Route path="clients" element={<Clients />} />
                               <Route path="clients/:id" element={<ClientDetail />} />
