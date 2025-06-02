@@ -23,6 +23,9 @@ const ClientRoutes = () => {
           <Route path="catalog" element={<PublicCatalog />} />
           <Route path="support" element={<ClientSupportPage />} />
           <Route path="settings" element={<ClientSettingsPage />} />
+          {/* Redirection par défaut vers le dashboard */}
+          <Route path="" element={<ClientDashboard />} />
+          <Route path="*" element={<ClientDashboard />} />
         </Routes>
       </main>
     </div>
