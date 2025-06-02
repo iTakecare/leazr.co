@@ -43,7 +43,7 @@ interface MenuItem {
   href: string;
   badge?: string;
   isNew?: boolean;
-  moduleSlug?: string; // Nouveau champ pour identifier le module
+  moduleSlug?: string;
 }
 
 const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
@@ -59,13 +59,13 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   // Tous les éléments de menu possibles avec leurs modules associés
   const allSidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" }, // Toujours visible
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
     { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts" },
     { label: "Équipements", icon: Laptop, href: "/client/equipment", moduleSlug: "fleet_generator" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm" },
     { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog" },
     { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support" },
-    { label: "Paramètres", icon: Settings, href: "/client/settings" }, // Toujours visible
+    { label: "Paramètres", icon: Settings, href: "/client/settings" },
   ];
 
   useEffect(() => {
@@ -205,7 +205,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b">
-                <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
+                <Logo showText={true} logoSize="md" />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
                   <X className="h-5 w-5" />
                 </Button>
@@ -295,9 +295,9 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
       <div className="flex flex-col h-full">
         <div className={cn(
           "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-start pl-20"
+          collapsed ? "justify-center" : "px-6 justify-start"
         )}>
-          <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
+          <Logo showText={!collapsed} logoSize="md" />
           
           {!collapsed && (
             <Button 
