@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import HomePage from "./pages/HomePage";
 import { useAuth } from "./context/AuthContext";
@@ -90,6 +91,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
                   <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
 
                   {/* Routes client */}
