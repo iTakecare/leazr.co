@@ -1,328 +1,156 @@
 
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { 
-  Settings, 
-  User, 
-  Bell, 
-  Shield,
-  Save,
-  Loader2 
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+import { Settings, User, Shield, Bell, CreditCard } from "lucide-react";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [firstName, setFirstName] = useState(user?.first_name || "");
-  const [lastName, setLastName] = useState(user?.last_name || "");
-  const [phone, setPhone] = useState("");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [securityAlerts, setSecurityAlerts] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+  const settingSections = [
+    {
+      title: "Informations Personnelles",
+      description: "Gérez vos informations de profil",
+      icon: User,
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="firstName">Prénom</Label>
+              <Input id="firstName" defaultValue={user?.first_name || ""} />
+            </div>
+            <div>
+              <Label htmlFor="lastName">Nom</Label>
+              <Input id="lastName" defaultValue={user?.last_name || ""} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" defaultValue={user?.email || ""} type="email" />
+          </div>
+          <div>
+            <Label htmlFor="phone">Téléphone</Label>
+            <Input id="phone" placeholder="+33 1 23 45 67 89" />
+          </div>
+          <Button>Enregistrer les modifications</Button>
+        </div>
+      )
     },
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-  };
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user?.id) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          throw error;
-        }
-        
-        if (data) {
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-          setPhone(data.phone || "");
-          setAvatarUrl(data.avatar_url);
-          setEmailNotifications(data.email_notifications !== false);
-          setSecurityAlerts(data.security_alerts !== false);
-          setTwoFactorAuth(!!data.two_factor_auth);
-        }
-      } catch (error) {
-        console.error("Error loading user profile:", error);
-        toast.error("Impossible de charger votre profil");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUserProfile();
-  }, [user]);
-
-  const handleSaveProfile = async () => {
-    if (!user?.id) return;
-    
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          phone,
-          email_notifications: emailNotifications,
-          security_alerts: securityAlerts,
-          two_factor_auth: twoFactorAuth,
-          updated_at: new Date()
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast.success("Paramètres mis à jour avec succès");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Erreur lors de la mise à jour de votre profil");
-    } finally {
-      setLoading(false);
+    {
+      title: "Sécurité",
+      description: "Modifiez votre mot de passe et gérez la sécurité",
+      icon: Shield,
+      content: (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+            <Input id="currentPassword" type="password" />
+          </div>
+          <div>
+            <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+            <Input id="newPassword" type="password" />
+          </div>
+          <div>
+            <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+            <Input id="confirmPassword" type="password" />
+          </div>
+          <Button>Changer le mot de passe</Button>
+        </div>
+      )
+    },
+    {
+      title: "Notifications",
+      description: "Gérez vos préférences de notification",
+      icon: Bell,
+      content: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Notifications par email</h4>
+              <p className="text-sm text-muted-foreground">Recevez des mises à jour importantes par email</p>
+            </div>
+            <Button variant="outline">Activé</Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Rappels de paiement</h4>
+              <p className="text-sm text-muted-foreground">Soyez averti avant l'échéance de vos paiements</p>
+            </div>
+            <Button variant="outline">Activé</Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Nouvelles offres</h4>
+              <p className="text-sm text-muted-foreground">Recevez des informations sur nos nouvelles offres</p>
+            </div>
+            <Button variant="outline">Désactivé</Button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Facturation",
+      description: "Gérez vos informations de facturation",
+      icon: CreditCard,
+      content: (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="company">Société</Label>
+            <Input id="company" placeholder="Nom de votre société" />
+          </div>
+          <div>
+            <Label htmlFor="address">Adresse</Label>
+            <Input id="address" placeholder="Adresse de facturation" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="city">Ville</Label>
+              <Input id="city" placeholder="Ville" />
+            </div>
+            <div>
+              <Label htmlFor="postalCode">Code postal</Label>
+              <Input id="postalCode" placeholder="Code postal" />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="vatNumber">Numéro TVA</Label>
+            <Input id="vatNumber" placeholder="BE0123456789" />
+          </div>
+          <Button>Mettre à jour</Button>
+        </div>
+      )
     }
-  };
+  ];
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="w-full p-4 md:p-6"
-    >
-      <div className="mb-6 bg-muted/30 p-4 rounded-lg">
-        <h1 className="text-3xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">Gérez votre compte et vos préférences</p>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
+        <p className="text-muted-foreground">
+          Gérez vos préférences de compte et vos informations personnelles
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <motion.div variants={itemVariants}>
-            <Card className="sticky top-6">
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center mb-6">
-                  <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                    <AvatarFallback className="text-xl bg-primary/20 text-primary">
-                      {firstName && lastName 
-                        ? `${firstName[0]}${lastName[0]}`.toUpperCase()
-                        : user?.email?.substring(0, 2).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h2 className="text-lg font-medium">{firstName} {lastName}</h2>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-
-                <nav className="space-y-1">
-                  <a href="#profile" className="flex items-center p-2 rounded-md hover:bg-muted">
-                    <User className="mr-2 h-4 w-4 text-primary" />
-                    <span>Profil</span>
-                  </a>
-                  <a href="#notifications" className="flex items-center p-2 rounded-md hover:bg-muted">
-                    <Bell className="mr-2 h-4 w-4 text-primary" />
-                    <span>Notifications</span>
-                  </a>
-                  <a href="#security" className="flex items-center p-2 rounded-md hover:bg-muted">
-                    <Shield className="mr-2 h-4 w-4 text-primary" />
-                    <span>Sécurité</span>
-                  </a>
-                </nav>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        <div className="md:col-span-2 space-y-6">
-          <motion.div variants={itemVariants}>
-            <Card id="profile">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="mr-2 h-5 w-5 text-primary" />
-                  Informations personnelles
-                </CardTitle>
-                <CardDescription>
-                  Mettez à jour vos informations personnelles
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
-                    <Input 
-                      id="firstName" 
-                      value={firstName} 
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Prénom"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
-                    <Input 
-                      id="lastName" 
-                      value={lastName} 
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Nom"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    value={user?.email || ""} 
-                    disabled
-                    placeholder="Email"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    L'email ne peut pas être modifié
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input 
-                    id="phone" 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Téléphone"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <Card id="notifications">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Bell className="mr-2 h-5 w-5 text-primary" />
-                  Notifications
-                </CardTitle>
-                <CardDescription>
-                  Configurez vos préférences de notification
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Notifications par email</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Recevoir des emails pour les mises à jour importantes
-                    </p>
-                  </div>
-                  <Switch
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Alertes de sécurité</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Recevoir des notifications pour les activités suspectes
-                    </p>
-                  </div>
-                  <Switch
-                    checked={securityAlerts}
-                    onCheckedChange={setSecurityAlerts}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <Card id="security">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Shield className="mr-2 h-5 w-5 text-primary" />
-                  Sécurité
-                </CardTitle>
-                <CardDescription>
-                  Gérez vos paramètres de sécurité
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Authentification à deux facteurs</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Ajouter une couche de sécurité supplémentaire à votre compte
-                    </p>
-                  </div>
-                  <Switch
-                    checked={twoFactorAuth}
-                    onCheckedChange={setTwoFactorAuth}
-                    disabled={true}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  L'authentification à deux facteurs sera bientôt disponible
-                </p>
-                <Separator className="my-2" />
-                <div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-2"
-                    onClick={() => toast.info("Cette fonction sera bientôt disponible")}
-                  >
-                    Changer le mot de passe
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <div className="flex justify-end mt-6">
-              <Button 
-                className="flex items-center gap-2 px-8 py-6"
-                onClick={handleSaveProfile}
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Enregistrer les modifications
-              </Button>
-            </div>
-          </motion.div>
-        </div>
+      <div className="space-y-6">
+        {settingSections.map((section) => (
+          <Card key={section.title}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <section.icon className="h-5 w-5" />
+                {section.title}
+              </CardTitle>
+              <CardDescription>{section.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {section.content}
+            </CardContent>
+          </Card>
+        ))}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

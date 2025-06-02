@@ -95,26 +95,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return await supabase.auth.signUp({ email, password, options });
   };
 
-  // Fonctions de vérification des rôles
+  // Fonctions de vérification des rôles avec logging amélioré
   const isAdmin = () => {
-    return user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
+    const result = user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
+    console.log("isAdmin check:", {
+      userRole: user?.role,
+      partnerId: user?.partner_id,
+      ambassadorId: user?.ambassador_id,
+      clientId: user?.client_id,
+      result
+    });
+    return result;
   };
 
   const isClient = () => {
-    return user?.role === 'client' || !!user?.client_id;
+    const result = user?.role === 'client' || !!user?.client_id;
+    console.log("isClient check:", {
+      userRole: user?.role,
+      clientId: user?.client_id,
+      result
+    });
+    return result;
   };
 
   const isPartner = () => {
-    return user?.role === 'partner' || !!user?.partner_id;
+    const result = user?.role === 'partner' || !!user?.partner_id;
+    console.log("isPartner check:", {
+      userRole: user?.role,
+      partnerId: user?.partner_id,
+      result
+    });
+    return result;
   };
 
   const isAmbassador = () => {
-    return user?.role === 'ambassador' || !!user?.ambassador_id;
+    const result = user?.role === 'ambassador' || !!user?.ambassador_id;
+    console.log("isAmbassador check:", {
+      userRole: user?.role,
+      ambassadorId: user?.ambassador_id,
+      result
+    });
+    return result;
   };
 
-  // Fonction pour enrichir les données utilisateur
+  // Fonction pour enrichir les données utilisateur avec logging amélioré
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
+      console.log("Enriching user data for:", baseUser.email);
+      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -122,8 +150,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.log("Pas de profil trouvé, utilisation des valeurs par défaut");
-        return {
+        console.log("No profile found, using default values:", error);
+        const defaultUser = {
           ...baseUser,
           first_name: '',
           last_name: '',
@@ -133,9 +161,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ambassador_id: '',
           client_id: '',
         };
+        console.log("Default user created:", defaultUser);
+        return defaultUser;
       }
 
-      return {
+      const enrichedUser = {
         ...baseUser,
         first_name: profile?.first_name || '',
         last_name: profile?.last_name || '',
@@ -145,8 +175,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ambassador_id: profile?.ambassador_id || '',
         client_id: profile?.client_id || '',
       };
+      
+      console.log("User data enriched:", {
+        email: enrichedUser.email,
+        role: enrichedUser.role,
+        client_id: enrichedUser.client_id,
+        partner_id: enrichedUser.partner_id,
+        ambassador_id: enrichedUser.ambassador_id
+      });
+      
+      return enrichedUser;
     } catch (error) {
-      console.error('Erreur enrichissement:', error);
+      console.error('Error enriching user data:', error);
       return {
         ...baseUser,
         first_name: '',

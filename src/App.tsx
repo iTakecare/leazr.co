@@ -1,3 +1,4 @@
+
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { CartProvider } from "./context/CartContext";
 import { Toaster } from "@/components/ui/sonner";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Layout } from "./components/layout/Layout";
+import ClientRoutes from "./components/layout/ClientRoutes";
 import './utils/initializeITakecare'; // This will execute the initialization
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -31,16 +33,28 @@ import HomePage from "./pages/HomePage";
 import { useAuth } from "./context/AuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 
-// Composant pour gérer la redirection de l'admin SaaS
-const DashboardRedirect = () => {
-  const { user } = useAuth();
+// Composant pour gérer la redirection basée sur le rôle
+const RoleBasedDashboard = () => {
+  const { user, isAdmin, isClient } = useAuth();
+  
+  console.log("RoleBasedDashboard - User role check:", {
+    email: user?.email,
+    isAdmin: isAdmin(),
+    isClient: isClient(),
+    role: user?.role
+  });
   
   // Si l'utilisateur est l'admin SaaS, rediriger vers le dashboard SaaS
   if (user?.email === "ecommerce@itakecare.be") {
     return <Navigate to="/leazr-saas-dashboard" replace />;
   }
   
-  // Sinon, afficher le dashboard normal
+  // Si c'est un client, rediriger vers le dashboard client
+  if (isClient()) {
+    return <Navigate to="/client/dashboard" replace />;
+  }
+  
+  // Sinon, afficher le dashboard admin
   return <Dashboard />;
 };
 
@@ -78,7 +92,17 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
 
-                  {/* Protected routes with Layout */}
+                  {/* Routes client */}
+                  <Route 
+                    path="/client/*" 
+                    element={
+                      <PrivateRoute>
+                        <ClientRoutes />
+                      </PrivateRoute>
+                    } 
+                  />
+
+                  {/* Protected routes with Layout (Admin) */}
                   <Route 
                     path="/*" 
                     element={
@@ -87,7 +111,7 @@ function App() {
                           <Suspense fallback={<RouteLoader />}>
                             <Routes>
                               <Route index element={<Navigate to="/dashboard" replace />} />
-                              <Route path="dashboard" element={<DashboardRedirect />} />
+                              <Route path="dashboard" element={<RoleBasedDashboard />} />
                               <Route path="clients" element={<Clients />} />
                               <Route path="clients/:id" element={<ClientDetail />} />
                               <Route path="clients/edit/:id" element={<ClientEditPage />} />
