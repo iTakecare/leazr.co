@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Lock } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import Logo from '@/components/layout/Logo';
@@ -19,21 +18,39 @@ const UpdatePassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
 
   useEffect(() => {
     // Vérifier si nous avons les paramètres nécessaires pour la réinitialisation
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
     
-    if (accessToken && refreshToken) {
+    console.log("UpdatePassword - URL params:", {
+      accessToken: !!accessToken,
+      refreshToken: !!refreshToken,
+      type
+    });
+    
+    if (accessToken && refreshToken && type === 'recovery') {
       // Définir la session avec les tokens reçus
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
+      }).then(({ error }) => {
+        if (error) {
+          console.error("Erreur lors de la définition de la session:", error);
+          toast.error("Lien de réinitialisation invalide ou expiré");
+          navigate('/login');
+        } else {
+          console.log("Session définie avec succès pour la réinitialisation");
+        }
       });
+    } else if (!accessToken || !refreshToken) {
+      console.log("Tokens manquants, redirection vers login");
+      toast.error("Lien de réinitialisation invalide");
+      navigate('/login');
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +73,8 @@ const UpdatePassword = () => {
     setLoading(true);
     
     try {
+      console.log("Tentative de mise à jour du mot de passe");
+      
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -66,7 +85,11 @@ const UpdatePassword = () => {
         return;
       }
 
+      console.log("Mot de passe mis à jour avec succès");
       toast.success('Mot de passe mis à jour avec succès');
+      
+      // Déconnecter l'utilisateur pour qu'il se reconnecte avec le nouveau mot de passe
+      await supabase.auth.signOut();
       
       // Rediriger vers la page de connexion
       setTimeout(() => {
