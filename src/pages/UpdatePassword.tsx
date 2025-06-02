@@ -16,44 +16,65 @@ const UpdatePassword = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Vérifier si nous avons les paramètres nécessaires pour la réinitialisation
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    
-    console.log("UpdatePassword - URL params:", {
-      accessToken: !!accessToken,
-      refreshToken: !!refreshToken,
-      type
-    });
-    
-    if (accessToken && refreshToken && type === 'recovery') {
-      // Définir la session avec les tokens reçus
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      }).then(({ error }) => {
-        if (error) {
-          console.error("Erreur lors de la définition de la session:", error);
-          toast.error("Lien de réinitialisation invalide ou expiré");
-          navigate('/login');
-        } else {
-          console.log("Session définie avec succès pour la réinitialisation");
-        }
+    const handlePasswordReset = async () => {
+      // Vérifier si nous avons les paramètres nécessaires pour la réinitialisation
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
+      
+      console.log("UpdatePassword - URL params:", {
+        accessToken: !!accessToken,
+        refreshToken: !!refreshToken,
+        type,
+        currentUrl: window.location.href
       });
-    } else if (!accessToken || !refreshToken) {
-      console.log("Tokens manquants, redirection vers login");
-      toast.error("Lien de réinitialisation invalide");
-      navigate('/login');
-    }
+      
+      if (accessToken && refreshToken && type === 'recovery') {
+        try {
+          // Définir la session avec les tokens reçus
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error("Erreur lors de la définition de la session:", error);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            navigate('/login');
+            return;
+          }
+          
+          console.log("Session définie avec succès pour la réinitialisation");
+          setSessionReady(true);
+        } catch (err) {
+          console.error("Erreur lors de la configuration de la session:", err);
+          toast.error("Erreur lors de la configuration de la session");
+          navigate('/login');
+        }
+      } else {
+        console.log("Paramètres manquants ou invalides, redirection vers login");
+        if (!accessToken || !refreshToken) {
+          toast.error("Lien de réinitialisation invalide");
+        }
+        navigate('/login');
+      }
+    };
+
+    handlePasswordReset();
   }, [searchParams, navigate]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!sessionReady) {
+      toast.error('Session non prête pour la mise à jour du mot de passe');
+      return;
+    }
     
     if (!password || !confirmPassword) {
       toast.error('Veuillez remplir tous les champs');
@@ -91,9 +112,9 @@ const UpdatePassword = () => {
       // Déconnecter l'utilisateur pour qu'il se reconnecte avec le nouveau mot de passe
       await supabase.auth.signOut();
       
-      // Rediriger vers la page de connexion
+      // Rediriger vers la page de connexion après un délai
       setTimeout(() => {
-        navigate('/login');
+        navigate('/login', { replace: true });
       }, 2000);
       
     } catch (error: any) {
@@ -103,6 +124,18 @@ const UpdatePassword = () => {
       setLoading(false);
     }
   };
+
+  // Afficher un loader pendant la configuration de la session
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-blue-50 px-6 py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Configuration de la session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-blue-50 px-6 py-12">

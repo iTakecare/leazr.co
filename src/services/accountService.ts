@@ -127,8 +127,11 @@ export const createUserAccount = async (
  */
 export const resetPassword = async (email: string): Promise<boolean> => {
   try {
+    // Utiliser l'URL complète pour la redirection vers la page de mise à jour du mot de passe
+    const redirectUrl = `${window.location.origin}/update-password`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: redirectUrl,
     });
     
     if (error) {

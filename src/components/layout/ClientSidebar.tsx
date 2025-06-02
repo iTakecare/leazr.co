@@ -168,7 +168,16 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   };
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return location.pathname === path;
+  };
+
+  const handleNavigation = (href: string) => {
+    console.log("Navigation vers:", href, "depuis:", location.pathname);
+    navigate(href);
+    onLinkClick?.();
+    if (isMobile) {
+      setMobileOpen(false);
+    }
   };
 
   // Afficher un loader pendant le chargement des modules
@@ -317,11 +326,10 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                 <li key={item.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        onClick={onLinkClick}
+                      <button
+                        onClick={() => handleNavigation(item.href)}
                         className={cn(
-                          "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                           collapsed ? "justify-center px-2" : "px-3",
                           isActive(item.href)
                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
@@ -338,7 +346,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                         />
                         {!collapsed && (
                           <>
-                            <span className="flex-1">{item.label}</span>
+                            <span className="flex-1 text-left">{item.label}</span>
                             {item.badge && (
                               <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
                                 {item.badge}
@@ -356,7 +364,7 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
                             {item.badge}
                           </Badge>
                         )}
-                      </Link>
+                      </button>
                     </TooltipTrigger>
                     {collapsed && (
                       <TooltipContent side="right" className="font-medium">
