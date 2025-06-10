@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +16,9 @@ import {
   Calculator,
   Building2,
   UserCheck,
-  Crown
+  Crown,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -46,6 +49,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [crmExpanded, setCrmExpanded] = useState(true);
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -74,21 +78,24 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     fetchAvatar();
   }, [user]);
 
-  const sidebarItems = [
+  const mainSidebarItems = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "Clients", icon: Users, href: "/clients" },
     { label: "Offres", icon: FileText, href: "/offers" },
     { label: "Calculateur", icon: Calculator, href: "/create-offer", badge: "Nouveau", isNew: true },
     { label: "Contrats", icon: FileText, href: "/contracts" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
+    { label: "Paramètres", icon: Settings, href: "/settings" },
+  ];
+
+  const crmItems = [
+    { label: "Clients", icon: Users, href: "/clients" },
     { label: "Partenaires Leazr", icon: Building2, href: "/leazr-clients" },
     { label: "Ambassadeurs", icon: UserCheck, href: "/ambassadors" },
-    { label: "Paramètres", icon: Settings, href: "/settings" },
   ];
 
   // Ajouter les éléments SaaS pour l'admin SaaS
   if (user?.email === "ecommerce@itakecare.be") {
-    sidebarItems.splice(-1, 0, { label: "Leazr SaaS", icon: Crown, href: "/leazr-saas-dashboard" });
+    mainSidebarItems.splice(-1, 0, { label: "Leazr SaaS", icon: Crown, href: "/leazr-saas-dashboard" });
   }
 
   const handleLogout = async () => {
@@ -104,6 +111,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isCrmActive = () => {
+    return crmItems.some(item => isActive(item.href));
   };
 
   const handleNavigation = (href: string) => {
@@ -141,7 +152,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               
               <nav className="flex-1 px-2 py-4">
                 <ul className="space-y-1">
-                  {sidebarItems.map((item) => (
+                  {mainSidebarItems.map((item) => (
                     <li key={item.href}>
                       <Link
                         to={item.href}
@@ -172,6 +183,48 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                       </Link>
                     </li>
                   ))}
+                  
+                  {/* CRM Section */}
+                  <li>
+                    <button
+                      onClick={() => setCrmExpanded(!crmExpanded)}
+                      className={cn(
+                        "w-full flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
+                        isCrmActive()
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                      )}
+                    >
+                      <Users className="mr-3 h-5 w-5" />
+                      <span className="flex-1">CRM</span>
+                      {crmExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                    
+                    {crmExpanded && (
+                      <ul className="ml-6 mt-1 space-y-1">
+                        {crmItems.map((item) => (
+                          <li key={item.href}>
+                            <Link
+                              to={item.href}
+                              onClick={() => {
+                                onLinkClick?.();
+                                setMobileOpen(false);
+                              }}
+                              className={cn(
+                                "flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-300",
+                                isActive(item.href)
+                                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                  : "hover:bg-primary/10 hover:text-primary"
+                              )}
+                            >
+                              <item.icon className="mr-2 h-4 w-4" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
                 </ul>
               </nav>
               
@@ -242,7 +295,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         <nav className="flex-1 px-2 py-4">
           <TooltipProvider delayDuration={200}>
             <ul className="space-y-1">
-              {sidebarItems.map((item) => (
+              {mainSidebarItems.map((item) => (
                 <li key={item.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -294,6 +347,63 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                   </Tooltip>
                 </li>
               ))}
+              
+              {/* CRM Section */}
+              <li>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => !collapsed && setCrmExpanded(!crmExpanded)}
+                      className={cn(
+                        "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                        collapsed ? "justify-center px-2" : "px-3",
+                        isCrmActive()
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                      )}
+                    >
+                      <Users 
+                        className={cn(
+                          "h-5 w-5 flex-shrink-0", 
+                          collapsed ? "relative" : "mr-3"
+                        )} 
+                      />
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-left">CRM</span>
+                          {crmExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right" className="font-medium">
+                      <p>CRM</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+                
+                {!collapsed && crmExpanded && (
+                  <ul className="ml-6 mt-1 space-y-1">
+                    {crmItems.map((item) => (
+                      <li key={item.href}>
+                        <button
+                          onClick={() => handleNavigation(item.href)}
+                          className={cn(
+                            "w-full flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-300",
+                            isActive(item.href)
+                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                              : "hover:bg-primary/10 hover:text-primary"
+                          )}
+                        >
+                          <item.icon className="mr-2 h-4 w-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
             </ul>
           </TooltipProvider>
         </nav>
