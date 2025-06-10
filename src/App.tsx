@@ -22,6 +22,7 @@ import LeazrSaaSSupport from "./pages/LeazrSaaSSupport";
 import LeazrSaaSPlans from "./pages/LeazrSaaSPlans";
 import LeazrSaaSSettings from "./pages/LeazrSaaSSettings";
 import Offers from "./pages/Offers";
+import CreateOffer from "./pages/CreateOffer";
 import Contracts from "./pages/Contracts";
 import CatalogManagement from "./pages/CatalogManagement";
 import Settings from "./pages/Settings";
@@ -125,6 +126,7 @@ function App() {
                               <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
                               <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
                               <Route path="offers" element={<Offers />} />
+                              <Route path="create-offer" element={<CreateOffer />} />
                               <Route path="contracts" element={<Contracts />} />
                               <Route path="catalog" element={<CatalogManagement />} />
                               <Route path="settings" element={<Settings />} />
