@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -14,8 +13,6 @@ import {
   ChevronRight,
   X,
   Calculator,
-  Building2,
-  UserCheck,
   Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,16 +74,11 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   const mainSidebarItems = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
+    { label: "CRM", icon: Users, href: "/clients" },
     { label: "Offres", icon: FileText, href: "/offers" },
     { label: "Calculateur", icon: Calculator, href: "/create-offer", badge: "Nouveau", isNew: true },
     { label: "Contrats", icon: FileText, href: "/contracts" },
     { label: "Catalogue", icon: Package, href: "/catalog" },
-  ];
-
-  const crmItems = [
-    { label: "Clients", icon: Users, href: "/clients" },
-    { label: "Partenaires Leazr", icon: Building2, href: "/leazr-clients" },
-    { label: "Ambassadeurs", icon: UserCheck, href: "/ambassadors" },
   ];
 
   const bottomItems = [
@@ -176,29 +168,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                             New
                           </Badge>
                         )}
-                      </Link>
-                    </li>
-                  ))}
-                  
-                  {/* CRM Items */}
-                  {crmItems.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        onClick={() => {
-                          onLinkClick?.();
-                          setMobileOpen(false);
-                        }}
-                        className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                        <span className="flex-1">{item.label}</span>
                       </Link>
                     </li>
                   ))}
@@ -349,43 +318,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 </li>
               ))}
               
-              {/* CRM Items */}
-              {crmItems.map((item) => (
-                <li key={item.href}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => handleNavigation(item.href)}
-                        className={cn(
-                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                          collapsed ? "justify-center px-2" : "px-3",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon 
-                          className={cn(
-                            "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "relative" : "mr-3",
-                            isActive(item.href) && "stroke-[2.5px]"
-                          )} 
-                        />
-                        {!collapsed && (
-                          <span className="flex-1 text-left">{item.label}</span>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              ))}
-
               {/* Bottom Items */}
               {bottomItems.map((item) => (
                 <li key={item.href}>
