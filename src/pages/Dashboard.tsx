@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,20 +67,20 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-6xl mx-auto px-6">
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex justify-between items-start gap-6">
+        <div className="flex justify-between items-start gap-8 pt-8">
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600">Bonjour {user?.email?.split('@')[0]}, voici un aperçu de votre activité</p>
           </div>
           
           {/* Subscription Status - Made more compact */}
-          <Card className={`w-72 ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+          <Card className={`w-64 mt-4 ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Abonnement</CardTitle>
+                <CardTitle className="text-sm">Abonnement</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
