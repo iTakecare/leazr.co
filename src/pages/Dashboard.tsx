@@ -224,20 +224,6 @@ const Dashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Debug Panel */}
-      {subscription && (
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-sm">Debug - Informations d'abonnement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-              {JSON.stringify(subscription, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
