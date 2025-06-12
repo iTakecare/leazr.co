@@ -76,16 +76,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log("🔥 LOGOUT - Début de la déconnexion");
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error signing out:', error);
+    } else {
+      console.log("🔥 LOGOUT - Déconnexion réussie");
     }
   };
 
   const signOut = logout;
 
   const signIn = async (email: string, password: string) => {
-    return await supabase.auth.signInWithPassword({ email, password });
+    console.log("🔑 SIGNIN - Tentative de connexion pour:", email);
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    console.log("🔑 SIGNIN - Résultat:", { 
+      hasUser: !!result.data.user, 
+      hasSession: !!result.data.session, 
+      error: result.error?.message 
+    });
+    return result;
   };
 
   const signUp = async (email: string, password: string, options?: any) => {
@@ -95,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fonctions de vérification des rôles avec logging amélioré
   const isAdmin = () => {
     const result = user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
-    console.log("isAdmin check:", {
+    console.log("🔍 isAdmin check:", {
       userRole: user?.role,
       partnerId: user?.partner_id,
       ambassadorId: user?.ambassador_id,
@@ -107,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isClient = () => {
     const result = user?.role === 'client' || !!user?.client_id;
-    console.log("isClient check:", {
+    console.log("🔍 isClient check:", {
       userRole: user?.role,
       clientId: user?.client_id,
       result
@@ -117,7 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isPartner = () => {
     const result = user?.role === 'partner' || !!user?.partner_id;
-    console.log("isPartner check:", {
+    console.log("🔍 isPartner check:", {
       userRole: user?.role,
       partnerId: user?.partner_id,
       result
@@ -127,7 +137,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAmbassador = () => {
     const result = user?.role === 'ambassador' || !!user?.ambassador_id;
-    console.log("isAmbassador check:", {
+    console.log("🔍 isAmbassador check:", {
       userRole: user?.role,
       ambassadorId: user?.ambassador_id,
       result
@@ -138,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fonction pour enrichir les données utilisateur avec logging amélioré
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
-      console.log("Enriching user data for:", baseUser.email);
+      console.log("📝 ENRICH - Enrichissement des données pour:", baseUser.email);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -147,7 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.log("No profile found, using default values:", error);
+        console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
         const defaultUser = {
           ...baseUser,
           first_name: '',
@@ -158,7 +168,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ambassador_id: '',
           client_id: '',
         };
-        console.log("Default user created:", defaultUser);
+        console.log("📝 ENRICH - Utilisateur par défaut créé:", {
+          email: defaultUser.email,
+          role: defaultUser.role
+        });
         return defaultUser;
       }
 
@@ -173,7 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         client_id: profile?.client_id || '',
       };
       
-      console.log("User data enriched:", {
+      console.log("📝 ENRICH - Données enrichies:", {
         email: enrichedUser.email,
         role: enrichedUser.role,
         client_id: enrichedUser.client_id,
@@ -183,7 +196,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return enrichedUser;
     } catch (error) {
-      console.error('Error enriching user data:', error);
+      console.error('📝 ENRICH - Erreur lors de l\'enrichissement:', error);
       return {
         ...baseUser,
         first_name: '',
@@ -197,23 +210,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialisation simplifiée
+  // Initialisation
   useEffect(() => {
-    console.log("AuthContext - Initialisation");
+    console.log("🚀 AUTH CONTEXT - Initialisation");
     
     let isMounted = true;
     
     const initAuth = async () => {
       try {
+        console.log("🚀 AUTH CONTEXT - Configuration de l'écoute des changements d'auth");
+        
         // 1. Configuration de l'écoute des changements d'auth
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            console.log("Auth event:", event, "Session:", !!newSession);
+            console.log("🔄 AUTH EVENT:", event, "Session présente:", !!newSession);
             
-            if (!isMounted) return;
+            if (!isMounted) {
+              console.log("🔄 AUTH EVENT - Composant démonté, ignoré");
+              return;
+            }
             
             if (event === 'SIGNED_OUT' || !newSession) {
-              console.log("User signed out or no session");
+              console.log("🔄 AUTH EVENT - Déconnexion ou pas de session");
               setSession(null);
               setUser(null);
               setSubscription(null);
@@ -222,17 +240,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
             
             if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-              console.log("Setting new session and user");
+              console.log("🔄 AUTH EVENT - Session valide détectée, event:", event);
               setSession(newSession);
               
               try {
+                console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
                 const enrichedUser = await enrichUserData(newSession.user);
                 if (isMounted) {
+                  console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
                   setUser(enrichedUser);
                   setIsLoading(false);
                 }
               } catch (error) {
-                console.error('Erreur lors de l\'enrichissement utilisateur:', error);
+                console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
                 if (isMounted) {
                   setUser(newSession.user as ExtendedUser);
                   setIsLoading(false);
@@ -242,31 +262,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         );
         
+        console.log("🚀 AUTH CONTEXT - Vérification de la session existante");
         // 2. Vérification de la session existante
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Erreur lors de la récupération de la session:", error);
+          console.error("🚀 AUTH CONTEXT - Erreur lors de la récupération de la session:", error);
           if (isMounted) {
             setIsLoading(false);
           }
           return;
         }
         
-        console.log("Current session:", !!currentSession);
+        console.log("🚀 AUTH CONTEXT - Session existante:", !!currentSession);
         
         if (currentSession?.user && isMounted) {
+          console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
           setSession(currentSession);
           try {
             const enrichedUser = await enrichUserData(currentSession.user);
             setUser(enrichedUser);
           } catch (error) {
-            console.error('Erreur lors de l\'enrichissement utilisateur initial:', error);
+            console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
             setUser(currentSession.user as ExtendedUser);
           }
         }
         
         if (isMounted) {
+          console.log("🚀 AUTH CONTEXT - Initialisation terminée, isLoading = false");
           setIsLoading(false);
         }
 
@@ -275,7 +298,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         
       } catch (error) {
-        console.error("Erreur initialisation auth:", error);
+        console.error("🚀 AUTH CONTEXT - Erreur initialisation:", error);
         if (isMounted) {
           setIsLoading(false);
         }
@@ -285,6 +308,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
 
     return () => {
+      console.log("🚀 AUTH CONTEXT - Nettoyage");
       isMounted = false;
     };
   }, []);
@@ -312,6 +336,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isPartner,
     isAmbassador,
   };
+
+  console.log("🎯 AUTH CONTEXT RENDER - État actuel:", {
+    hasUser: !!user,
+    hasSession: !!session,
+    isLoading,
+    userEmail: user?.email,
+    userRole: user?.role
+  });
 
   return (
     <AuthContext.Provider value={value}>

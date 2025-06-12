@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -19,26 +20,33 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique simplifiée
+  // Redirection automatique
   useEffect(() => {
+    console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
+      isLoading,
+      hasUser: !!user,
+      userEmail: user?.email,
+      userRole: user?.role
+    });
+
     if (!isLoading && user) {
-      console.log("Utilisateur connecté, redirection...", user.email, "Role:", user.role);
+      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection...", user.email, "Role:", user.role);
       
       // Redirection basée sur le rôle
       if (user.email === "ecommerce@itakecare.be") {
-        console.log("Redirection vers SaaS dashboard");
+        console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
         navigate('/admin/leazr-saas-dashboard', { replace: true });
       } else if (isClient()) {
-        console.log("Redirection vers client dashboard");
+        console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
         navigate('/client/dashboard', { replace: true });
       } else if (isAmbassador()) {
-        console.log("Redirection vers ambassador dashboard");
+        console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
         navigate('/ambassador/dashboard', { replace: true });
       } else if (isPartner()) {
-        console.log("Redirection vers partner dashboard");
+        console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
         navigate('/partner/dashboard', { replace: true });
       } else {
-        console.log("Redirection vers admin dashboard");
+        console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
         navigate('/admin/dashboard', { replace: true });
       }
     }
@@ -47,19 +55,22 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("🔐 LOGIN FORM - Soumission du formulaire");
+    
     if (!email || !password) {
+      console.log("🔐 LOGIN FORM - Champs manquants");
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
     setLoading(true);
+    console.log("🔐 LOGIN FORM - Début de la connexion pour:", email);
     
     try {
-      console.log("Tentative de connexion pour:", email);
       const { error } = await signIn(email, password);
 
       if (error) {
-        console.error("Erreur de connexion:", error);
+        console.error("🔐 LOGIN FORM - Erreur de connexion:", error);
         let errorMessage = 'Erreur de connexion';
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou mot de passe incorrect';
@@ -76,12 +87,12 @@ const Login = () => {
         return;
       }
 
-      console.log("Connexion réussie");
+      console.log("🔐 LOGIN FORM - Connexion réussie, en attente de redirection automatique");
       toast.success('Connexion réussie');
-      // La redirection se fera automatiquement via useEffect
+      // Ne pas appeler setLoading(false) ici, laisser la redirection se faire
       
     } catch (error: any) {
-      console.error('Exception lors de la connexion:', error);
+      console.error('🔐 LOGIN FORM - Exception lors de la connexion:', error);
       toast.error('Erreur inattendue lors de la connexion');
       setLoading(false);
     }
@@ -93,6 +104,7 @@ const Login = () => {
 
   // Afficher un loader si l'utilisateur est déjà connecté
   if (user && !isLoading) {
+    console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -102,6 +114,12 @@ const Login = () => {
       </div>
     );
   }
+
+  console.log("🔀 LOGIN RENDER - Rendu du formulaire de connexion", {
+    isLoading,
+    hasUser: !!user,
+    loading
+  });
 
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
