@@ -39,7 +39,21 @@ const App = () => (
                 </Layout>
               </PrivateRoute>
             } />
+            <Route path="/admin/dashboard" element={
+              <PrivateRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </PrivateRoute>
+            } />
             <Route path="/catalog" element={
+              <PrivateRoute requiredRole="admin">
+                <Layout>
+                  <CatalogManagement />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/catalog" element={
               <PrivateRoute requiredRole="admin">
                 <Layout>
                   <CatalogManagement />
@@ -53,7 +67,21 @@ const App = () => (
                 </Layout>
               </PrivateRoute>
             } />
+            <Route path="/admin/catalog/edit/:id" element={
+              <PrivateRoute requiredRole="admin">
+                <Layout>
+                  <ProductEditPage />
+                </Layout>
+              </PrivateRoute>
+            } />
             <Route path="/partners/edit/:id" element={
+              <PrivateRoute>
+                <Layout>
+                  <PartnerEditPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/partners/edit/:id" element={
               <PrivateRoute>
                 <Layout>
                   <PartnerEditPage />
