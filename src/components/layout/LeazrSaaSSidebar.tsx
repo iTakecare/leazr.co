@@ -49,7 +49,7 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-gray-900">Leazr SaaS</h1>
-            <p className="text-xs text-gray-500">Administration plateforme</p>
+            <p className="text-xs text-gray-500">Gestion des clients SaaS</p>
           </div>
         </div>
       </div>
