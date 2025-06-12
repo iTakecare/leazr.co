@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     size="sm"
                     className="w-full mt-2 h-8 text-xs"
-                    onClick={() => navigate('/signup')}
+                    onClick={() => navigate('/admin/settings')}
                   >
                     Choisir un plan
                   </Button>
@@ -132,7 +132,6 @@ const Dashboard: React.FC = () => {
           <Button
             className="h-20 flex-col gap-2"
             onClick={() => navigate('/admin/offers')}
-            disabled={!subscription?.subscribed}
           >
             <FileText className="h-6 w-6" />
             Nouvelle offre
@@ -141,7 +140,6 @@ const Dashboard: React.FC = () => {
             variant="outline"
             className="h-20 flex-col gap-2"
             onClick={() => navigate('/admin/clients')}
-            disabled={!subscription?.subscribed}
           >
             <Users className="h-6 w-6" />
             Gérer les clients
@@ -150,7 +148,6 @@ const Dashboard: React.FC = () => {
             variant="outline"
             className="h-20 flex-col gap-2"
             onClick={() => navigate('/admin/offers')}
-            disabled={!subscription?.subscribed}
           >
             <BarChart className="h-6 w-6" />
             Voir les rapports
@@ -168,7 +165,7 @@ const Dashboard: React.FC = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
-            <Card key={index} className={!subscription?.subscribed ? 'opacity-50' : ''}>
+            <Card key={index}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   {stat.title}
@@ -176,7 +173,7 @@ const Dashboard: React.FC = () => {
                 <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{subscription?.subscribed ? stat.value : '---'}</div>
+                <div className="text-2xl font-bold">{stat.value}</div>
                 <p className="text-xs text-gray-600">
                   {stat.description}
                 </p>
@@ -194,35 +191,29 @@ const Dashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {subscription?.subscribed ? (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Offre créée pour TechCorp</p>
-                    <p className="text-xs text-gray-600">Il y a 2 heures</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Client ajouté: StartupXYZ</p>
-                    <p className="text-xs text-gray-600">Il y a 1 jour</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Contrat signé par InnovCorp</p>
-                    <p className="text-xs text-gray-600">Il y a 3 jours</p>
-                  </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Offre créée pour TechCorp</p>
+                  <p className="text-xs text-gray-600">Il y a 2 heures</p>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>Souscrivez à un abonnement pour voir votre activité</p>
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Client ajouté: StartupXYZ</p>
+                  <p className="text-xs text-gray-600">Il y a 1 jour</p>
+                </div>
               </div>
-            )}
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Contrat signé par InnovCorp</p>
+                  <p className="text-xs text-gray-600">Il y a 3 jours</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
