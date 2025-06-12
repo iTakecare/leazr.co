@@ -1,4 +1,5 @@
 
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,11 @@ import CatalogManagement from "./pages/CatalogManagement";
 import ProductEditPage from "./pages/ProductEditPage";
 import PartnerEditPage from "./pages/PartnerEditPage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
+import Clients from "./pages/Clients";
+import CreateOffer from "./pages/CreateOffer";
+import Offers from "./pages/Offers";
+import Contracts from "./pages/Contracts";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +49,41 @@ const App = () => (
               <PrivateRoute>
                 <Layout>
                   <Dashboard />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/clients" element={
+              <PrivateRoute>
+                <Layout>
+                  <Clients />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/offers" element={
+              <PrivateRoute>
+                <Layout>
+                  <Offers />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/create-offer" element={
+              <PrivateRoute>
+                <Layout>
+                  <CreateOffer />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/contracts" element={
+              <PrivateRoute>
+                <Layout>
+                  <Contracts />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <PrivateRoute>
+                <Layout>
+                  <Settings />
                 </Layout>
               </PrivateRoute>
             } />
@@ -103,3 +144,4 @@ const App = () => (
 );
 
 export default App;
+
