@@ -145,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return result;
   };
 
-  // Fonction pour enrichir les données utilisateur avec logging amélioré
+  // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
       console.log("📝 ENRICH - Enrichissement des données pour:", baseUser.email);
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return enrichedUser;
     } catch (error) {
       console.error('📝 ENRICH - Erreur lors de l\'enrichissement:', error);
-      return {
+      const fallbackUser = {
         ...baseUser,
         first_name: '',
         last_name: '',
@@ -207,6 +207,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ambassador_id: '',
         client_id: '',
       };
+      console.log("📝 ENRICH - Utilisateur de fallback créé:", {
+        email: fallbackUser.email,
+        role: fallbackUser.role
+      });
+      return fallbackUser;
     }
   };
 
@@ -220,7 +225,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log("🚀 AUTH CONTEXT - Configuration de l'écoute des changements d'auth");
         
-        // 1. Configuration de l'écoute des changements d'auth
+        // Configuration de l'écoute des changements d'auth
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log("🔄 AUTH EVENT:", event, "Session présente:", !!newSession);
@@ -249,12 +254,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 if (isMounted) {
                   console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
                   setUser(enrichedUser);
+                  console.log("🔄 AUTH EVENT - setIsLoading(false) appelé");
                   setIsLoading(false);
                 }
               } catch (error) {
                 console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
                 if (isMounted) {
+                  console.log("🔄 AUTH EVENT - Erreur: utilisation de l'utilisateur de base");
                   setUser(newSession.user as ExtendedUser);
+                  console.log("🔄 AUTH EVENT - setIsLoading(false) appelé après erreur");
                   setIsLoading(false);
                 }
               }
@@ -263,12 +271,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         );
         
         console.log("🚀 AUTH CONTEXT - Vérification de la session existante");
-        // 2. Vérification de la session existante
+        // Vérification de la session existante
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("🚀 AUTH CONTEXT - Erreur lors de la récupération de la session:", error);
           if (isMounted) {
+            console.log("🚀 AUTH CONTEXT - Erreur: setIsLoading(false)");
             setIsLoading(false);
           }
           return;
@@ -281,15 +290,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setSession(currentSession);
           try {
             const enrichedUser = await enrichUserData(currentSession.user);
-            setUser(enrichedUser);
+            if (isMounted) {
+              setUser(enrichedUser);
+              console.log("🚀 AUTH CONTEXT - Session existante: setIsLoading(false)");
+              setIsLoading(false);
+            }
           } catch (error) {
             console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
-            setUser(currentSession.user as ExtendedUser);
+            if (isMounted) {
+              setUser(currentSession.user as ExtendedUser);
+              console.log("🚀 AUTH CONTEXT - Erreur session existante: setIsLoading(false)");
+              setIsLoading(false);
+            }
           }
-        }
-        
-        if (isMounted) {
-          console.log("🚀 AUTH CONTEXT - Initialisation terminée, isLoading = false");
+        } else if (isMounted) {
+          console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
           setIsLoading(false);
         }
 
@@ -300,6 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error("🚀 AUTH CONTEXT - Erreur initialisation:", error);
         if (isMounted) {
+          console.log("🚀 AUTH CONTEXT - Erreur fatale: setIsLoading(false)");
           setIsLoading(false);
         }
       }
