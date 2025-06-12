@@ -55,15 +55,29 @@ export default {
 				},
 				// Couleurs spécifiques pour l'éditeur de PDF
 				pdf: {
-					field: '#e6fffa',
-					selected: '#4fd1c5',
+					field: '#dbeafe',
+					selected: '#3b82f6',
 					grid: '#e2e8f0'
 				},
-				// Couleurs spécifiques pour Leazr
+				// Couleurs spécifiques pour Leazr - mises à jour en bleu
 				leazr: {
-					primary: '#48B5C3',
-					secondary: '#33638E',
-					turquoise: '#41A6B2', // Ajout de la couleur turquoise pour le footer
+					primary: '#3b82f6',
+					secondary: '#1e40af',
+					turquoise: '#0ea5e9',
+				},
+				// Nouvelles couleurs de dégradé bleu
+				blue: {
+					50: '#eff6ff',
+					100: '#dbeafe',
+					200: '#bfdbfe',
+					300: '#93c5fd',
+					400: '#60a5fa',
+					500: '#3b82f6',
+					600: '#2563eb',
+					700: '#1d4ed8',
+					800: '#1e40af',
+					900: '#1e3a8a',
+					950: '#172554'
 				}
 			},
 			fontFamily: {
@@ -124,15 +138,17 @@ export default {
 				'marquee': 'marquee 30s linear infinite'
 			},
 			boxShadow: {
-				'soft': '0 4px 15px rgba(0, 0, 0, 0.05)',
-				'button': '0 2px 5px rgba(0, 0, 0, 0.1)',
-				'card': '0 5px 20px rgba(0, 0, 0, 0.08)',
+				'soft': '0 4px 15px rgba(59, 130, 246, 0.08)',
+				'button': '0 2px 5px rgba(59, 130, 246, 0.15)',
+				'card': '0 5px 20px rgba(59, 130, 246, 0.1)',
 				'glow': '0 0 15px rgba(59, 130, 246, 0.5)'
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'gradient-subtle': 'linear-gradient(to right, var(--tw-gradient-stops))',
 				'gradient-card': 'linear-gradient(to bottom right, var(--tw-gradient-stops))',
+				'gradient-blue': 'linear-gradient(135deg, hsl(210 85% 55%) 0%, hsl(220 85% 60%) 50%, hsl(230 85% 65%) 100%)',
+				'gradient-blue-subtle': 'linear-gradient(135deg, hsl(210 40% 96%) 0%, hsl(210 60% 94%) 50%, hsl(210 80% 92%) 100%)'
 			}
 		}
 	},
