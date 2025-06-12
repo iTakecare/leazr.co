@@ -1,162 +1,63 @@
-import { Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "./components/providers/theme-provider";
-import { AuthProvider } from "./context/AuthContext";
-import { CartProvider } from "./context/CartContext";
-import { Toaster } from "@/components/ui/sonner";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
-import Layout from "./components/layout/Layout";
-import ClientRoutes from "./components/layout/ClientRoutes";
-import './utils/initializeITakecare'; // This will execute the initialization
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
-import ClientEditPage from "./pages/ClientEditPage";
-import LeazrClients from "./pages/LeazrClients";
-import LeazrSaaSDashboard from "./pages/LeazrSaaSDashboard";
-import LeazrSaaSClients from "./pages/LeazrSaaSClients";
-import LeazrSaaSSubscriptions from "./pages/LeazrSaaSSubscriptions";
-import LeazrSaaSSupport from "./pages/LeazrSaaSSupport";
-import LeazrSaaSPlans from "./pages/LeazrSaaSPlans";
-import LeazrSaaSSettings from "./pages/LeazrSaaSSettings";
-import Offers from "./pages/Offers";
-import CreateOffer from "./pages/CreateOffer";
-import Contracts from "./pages/Contracts";
-import CatalogManagement from "./pages/CatalogManagement";
-import Settings from "./pages/Settings";
+import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import UpdatePassword from "./pages/UpdatePassword";
-import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
-import HomePage from "./pages/HomePage";
-import LandingPage from "./pages/LandingPage";
-import { useAuth } from "./context/AuthContext";
-import { PrivateRoute } from "./components/PrivateRoute";
+import CatalogManagement from "./pages/CatalogManagement";
+import ProductEditPage from "./pages/ProductEditPage";
+import PartnerEditPage from "./pages/PartnerEditPage";
+import AmbassadorCatalog from "./pages/AmbassadorCatalog";
 
-// Composant pour gérer la redirection basée sur le rôle
-const RoleBasedDashboard = () => {
-  const { user, isAdmin, isClient } = useAuth();
-  
-  console.log("RoleBasedDashboard - User role check:", {
-    email: user?.email,
-    isAdmin: isAdmin(),
-    isClient: isClient(),
-    role: user?.role
-  });
-  
-  // Si l'utilisateur est l'admin SaaS, rediriger vers le dashboard SaaS
-  if (user?.email === "ecommerce@itakecare.be") {
-    return <Navigate to="/admin/leazr-saas-dashboard" replace />;
-  }
-  
-  // Si c'est un client, rediriger vers le dashboard client
-  if (isClient()) {
-    return <Navigate to="/client/dashboard" replace />;
-  }
-  
-  // Sinon, afficher le dashboard admin
-  return <Dashboard />;
-};
+const queryClient = new QueryClient();
 
-// Composant de chargement pour les routes
-const RouteLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Chargement...</p>
-    </div>
-  </div>
-);
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-    },
-  },
-});
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
         <AuthProvider>
-          <CartProvider>
-            <Router>
-              <div className="min-h-screen bg-background font-sans antialiased">
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/update-password" element={<UpdatePassword />} />
-                  <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
-
-                  {/* Routes client */}
-                  <Route 
-                    path="/client/*" 
-                    element={
-                      <PrivateRoute>
-                        <ClientRoutes />
-                      </PrivateRoute>
-                    } 
-                  />
-
-                  {/* Protected routes with Layout (Admin) */}
-                  <Route 
-                    path="/admin/*" 
-                    element={
-                      <PrivateRoute>
-                        <Layout>
-                          <Suspense fallback={<RouteLoader />}>
-                            <Routes>
-                              <Route index element={<RoleBasedDashboard />} />
-                              <Route path="dashboard" element={<RoleBasedDashboard />} />
-                              <Route path="clients" element={<Clients />} />
-                              <Route path="clients/:id" element={<ClientDetail />} />
-                              <Route path="clients/edit/:id" element={<ClientEditPage />} />
-                              <Route path="leazr-clients" element={<LeazrClients />} />
-                              <Route path="leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
-                              <Route path="leazr-saas-clients" element={<LeazrSaaSClients />} />
-                              <Route path="leazr-saas-subscriptions" element={<LeazrSaaSSubscriptions />} />
-                              <Route path="leazr-saas-support" element={<LeazrSaaSSupport />} />
-                              <Route path="leazr-saas-plans" element={<LeazrSaaSPlans />} />
-                              <Route path="leazr-saas-settings" element={<LeazrSaaSSettings />} />
-                              <Route path="offers" element={<Offers />} />
-                              <Route path="create-offer" element={<CreateOffer />} />
-                              <Route path="contracts" element={<Contracts />} />
-                              <Route path="catalog" element={<CatalogManagement />} />
-                              <Route path="settings" element={<Settings />} />
-                            </Routes>
-                          </Suspense>
-                        </Layout>
-                      </PrivateRoute>
-                    } 
-                  />
-
-                  {/* Fallback route pour les utilisateurs connectés */}
-                  <Route 
-                    path="/dashboard" 
-                    element={
-                      <PrivateRoute>
-                        <Navigate to="/admin/dashboard" replace />
-                      </PrivateRoute>
-                    } 
-                  />
-                </Routes>
-                <Toaster />
-                <ShadcnToaster />
-              </div>
-            </Router>
-          </CartProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/catalog" element={
+              <ProtectedRoute requiredRole="admin">
+                <CatalogManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/catalog/edit/:id" element={
+              <ProtectedRoute requiredRole="admin">
+                <ProductEditPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/partners/edit/:id" element={
+              <ProtectedRoute>
+                <PartnerEditPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/ambassador/catalog" element={
+              <ProtectedRoute>
+                <AmbassadorCatalog />
+              </ProtectedRoute>
+            } />
+          </Routes>
         </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
-}
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
