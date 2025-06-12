@@ -149,12 +149,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
       console.log("📝 ENRICH - Enrichissement des données pour:", baseUser.email);
+      console.log("📝 ENRICH - Début de la requête vers profiles");
       
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', baseUser.id)
         .single();
+
+      console.log("📝 ENRICH - Réponse de la requête profiles:", { 
+        hasData: !!profile, 
+        hasError: !!error,
+        errorMessage: error?.message 
+      });
 
       if (error) {
         console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
@@ -248,24 +255,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log("🔄 AUTH EVENT - Session valide détectée, event:", event);
               setSession(newSession);
               
-              try {
-                console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
-                const enrichedUser = await enrichUserData(newSession.user);
-                if (isMounted) {
-                  console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
-                  setUser(enrichedUser);
-                  console.log("🔄 AUTH EVENT - setIsLoading(false) appelé");
-                  setIsLoading(false);
+              console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
+              
+              // Utiliser un timeout pour éviter les blocages
+              setTimeout(async () => {
+                try {
+                  console.log("🔄 AUTH EVENT - Début enrichissement avec timeout");
+                  const enrichedUser = await enrichUserData(newSession.user);
+                  if (isMounted) {
+                    console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
+                    setUser(enrichedUser);
+                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé");
+                    setIsLoading(false);
+                  }
+                } catch (error) {
+                  console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
+                  if (isMounted) {
+                    console.log("🔄 AUTH EVENT - Erreur: utilisation de l'utilisateur de base");
+                    setUser(newSession.user as ExtendedUser);
+                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé après erreur");
+                    setIsLoading(false);
+                  }
                 }
-              } catch (error) {
-                console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
-                if (isMounted) {
-                  console.log("🔄 AUTH EVENT - Erreur: utilisation de l'utilisateur de base");
-                  setUser(newSession.user as ExtendedUser);
-                  console.log("🔄 AUTH EVENT - setIsLoading(false) appelé après erreur");
-                  setIsLoading(false);
-                }
-              }
+              }, 100);
             }
           }
         );
@@ -288,21 +300,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (currentSession?.user && isMounted) {
           console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
           setSession(currentSession);
-          try {
-            const enrichedUser = await enrichUserData(currentSession.user);
-            if (isMounted) {
-              setUser(enrichedUser);
-              console.log("🚀 AUTH CONTEXT - Session existante: setIsLoading(false)");
-              setIsLoading(false);
+          
+          // Utiliser un timeout pour éviter les blocages
+          setTimeout(async () => {
+            try {
+              console.log("🚀 AUTH CONTEXT - Début enrichissement session existante avec timeout");
+              const enrichedUser = await enrichUserData(currentSession.user);
+              if (isMounted) {
+                setUser(enrichedUser);
+                console.log("🚀 AUTH CONTEXT - Session existante: setIsLoading(false)");
+                setIsLoading(false);
+              }
+            } catch (error) {
+              console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
+              if (isMounted) {
+                setUser(currentSession.user as ExtendedUser);
+                console.log("🚀 AUTH CONTEXT - Erreur session existante: setIsLoading(false)");
+                setIsLoading(false);
+              }
             }
-          } catch (error) {
-            console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
-            if (isMounted) {
-              setUser(currentSession.user as ExtendedUser);
-              console.log("🚀 AUTH CONTEXT - Erreur session existante: setIsLoading(false)");
-              setIsLoading(false);
-            }
-          }
+          }, 100);
         } else if (isMounted) {
           console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
           setIsLoading(false);
