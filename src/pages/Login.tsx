@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -17,41 +16,33 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique avec protection contre les boucles
+  // Redirection automatique simplifiée
   useEffect(() => {
-    if (!isLoading && user && !hasRedirected) {
+    if (!isLoading && user) {
       console.log("Utilisateur connecté, redirection...", user.email, "Role:", user.role);
-      setHasRedirected(true);
       
-      // Petit délai pour éviter les conflits d'état
-      setTimeout(() => {
-        // Vérifier le rôle et l'email pour déterminer la redirection
-        if (user.email === "ecommerce@itakecare.be") {
-          navigate('/admin/leazr-saas-dashboard', { replace: true });
-        } else if (isClient()) {
-          navigate('/client/dashboard', { replace: true });
-        } else if (isAmbassador()) {
-          navigate('/ambassador/dashboard', { replace: true });
-        } else if (isPartner()) {
-          navigate('/partner/dashboard', { replace: true });
-        } else {
-          // Pour tous les autres administrateurs (y compris les administrateurs clients)
-          navigate('/admin/dashboard', { replace: true });
-        }
-      }, 100);
+      // Redirection basée sur le rôle
+      if (user.email === "ecommerce@itakecare.be") {
+        console.log("Redirection vers SaaS dashboard");
+        navigate('/admin/leazr-saas-dashboard', { replace: true });
+      } else if (isClient()) {
+        console.log("Redirection vers client dashboard");
+        navigate('/client/dashboard', { replace: true });
+      } else if (isAmbassador()) {
+        console.log("Redirection vers ambassador dashboard");
+        navigate('/ambassador/dashboard', { replace: true });
+      } else if (isPartner()) {
+        console.log("Redirection vers partner dashboard");
+        navigate('/partner/dashboard', { replace: true });
+      } else {
+        console.log("Redirection vers admin dashboard");
+        navigate('/admin/dashboard', { replace: true });
+      }
     }
-  }, [user, isLoading, hasRedirected, navigate, isAdmin, isClient, isPartner, isAmbassador]);
-
-  // Réinitialiser hasRedirected si l'utilisateur se déconnecte
-  useEffect(() => {
-    if (!user && hasRedirected) {
-      setHasRedirected(false);
-    }
-  }, [user, hasRedirected]);
+  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,8 +91,8 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  // Si l'utilisateur est déjà connecté et qu'on a déjà redirigé, afficher un loader
-  if (user && hasRedirected) {
+  // Afficher un loader si l'utilisateur est déjà connecté
+  if (user && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

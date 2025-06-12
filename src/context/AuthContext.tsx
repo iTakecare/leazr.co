@@ -48,9 +48,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Variable globale pour éviter les initialisations multiples
-let authInitialized = false;
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -200,21 +197,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialisation unique avec protection contre les doubles initialisations
+  // Initialisation simplifiée
   useEffect(() => {
-    if (authInitialized) {
-      console.log("AuthContext déjà initialisé, ignorant la nouvelle initialisation");
-      return;
-    }
-
-    authInitialized = true;
-    console.log("AuthContext - Initialisation unique");
+    console.log("AuthContext - Initialisation");
     
     let isMounted = true;
     
     const initAuth = async () => {
       try {
-        // 1. Écouter les changements d'auth AVANT de vérifier la session
+        // 1. Configuration de l'écoute des changements d'auth
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log("Auth event:", event, "Session:", !!newSession);
@@ -222,6 +213,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (!isMounted) return;
             
             if (event === 'SIGNED_OUT' || !newSession) {
+              console.log("User signed out or no session");
               setSession(null);
               setUser(null);
               setSubscription(null);
@@ -230,34 +222,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
             
             if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+              console.log("Setting new session and user");
               setSession(newSession);
-              // Utiliser setTimeout pour éviter les blocages
-              setTimeout(async () => {
+              
+              try {
+                const enrichedUser = await enrichUserData(newSession.user);
                 if (isMounted) {
-                  try {
-                    const enrichedUser = await enrichUserData(newSession.user);
-                    setUser(enrichedUser);
-                  } catch (error) {
-                    console.error('Erreur lors de l\'enrichissement utilisateur:', error);
-                    setUser(newSession.user as ExtendedUser);
-                  }
+                  setUser(enrichedUser);
                   setIsLoading(false);
                 }
-              }, 0);
-            } else {
-              setIsLoading(false);
+              } catch (error) {
+                console.error('Erreur lors de l\'enrichissement utilisateur:', error);
+                if (isMounted) {
+                  setUser(newSession.user as ExtendedUser);
+                  setIsLoading(false);
+                }
+              }
             }
           }
         );
         
-        // 2. Vérifier la session existante APRÈS avoir configuré l'écoute
+        // 2. Vérification de la session existante
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("Erreur lors de la récupération de la session:", error);
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
           return;
         }
+        
+        console.log("Current session:", !!currentSession);
         
         if (currentSession?.user && isMounted) {
           setSession(currentSession);
