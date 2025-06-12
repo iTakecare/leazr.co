@@ -13,8 +13,8 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Vérifier si on est sur une page SaaS Leazr
-  const isLeazrSaaSPage = location.pathname.startsWith('/leazr-saas-');
+  // Vérifier si on est sur une page SaaS Leazr (sous /admin/leazr-saas-*)
+  const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
 
   // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS

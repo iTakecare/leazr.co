@@ -73,21 +73,21 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   }, [user]);
 
   const mainSidebarItems = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "CRM", icon: Users, href: "/clients" },
-    { label: "Offres", icon: FileText, href: "/offers" },
-    { label: "Calculateur", icon: Calculator, href: "/create-offer", badge: "Nouveau", isNew: true },
-    { label: "Contrats", icon: FileText, href: "/contracts" },
-    { label: "Catalogue", icon: Package, href: "/catalog" },
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/admin/dashboard" },
+    { label: "CRM", icon: Users, href: "/admin/clients" },
+    { label: "Offres", icon: FileText, href: "/admin/offers" },
+    { label: "Calculateur", icon: Calculator, href: "/admin/create-offer", badge: "Nouveau", isNew: true },
+    { label: "Contrats", icon: FileText, href: "/admin/contracts" },
+    { label: "Catalogue", icon: Package, href: "/admin/catalog" },
   ];
 
   const bottomItems = [
-    { label: "Paramètres", icon: Settings, href: "/settings" },
+    { label: "Paramètres", icon: Settings, href: "/admin/settings" },
   ];
 
   // Ajouter les éléments SaaS pour l'admin SaaS
   if (user?.email === "ecommerce@itakecare.be") {
-    bottomItems.unshift({ label: "Leazr SaaS", icon: Crown, href: "/leazr-saas-dashboard" });
+    bottomItems.unshift({ label: "Leazr SaaS", icon: Crown, href: "/admin/leazr-saas-dashboard" });
   }
 
   const handleLogout = async () => {

@@ -28,12 +28,12 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
   if (!user || !isLeazrSaaSAdmin) return null;
 
   const menuItems = [
-    { icon: BarChart3, label: "Dashboard SaaS", href: "/leazr-saas-dashboard" },
-    { icon: Users, label: "Clients SaaS", href: "/leazr-saas-clients" },
-    { icon: CreditCard, label: "Abonnements", href: "/leazr-saas-subscriptions" },
-    { icon: Package, label: "Plans & Tarifs", href: "/leazr-saas-plans" },
-    { icon: LifeBuoy, label: "Support", href: "/leazr-saas-support" },
-    { icon: Settings, label: "Configuration", href: "/leazr-saas-settings" },
+    { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard" },
+    { icon: Users, label: "Clients SaaS", href: "/admin/leazr-saas-clients" },
+    { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions" },
+    { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans" },
+    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
+    { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings" },
   ];
 
   const isActive = (href: string) => {
