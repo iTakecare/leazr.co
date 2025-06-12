@@ -68,163 +68,165 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-start gap-6">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Bonjour {user?.email?.split('@')[0]}, voici un aperçu de votre activité</p>
-        </div>
-        
-        {/* Subscription Status - Made more compact */}
-        <Card className={`w-72 ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Abonnement</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefreshSubscription}
-                disabled={loading}
-                className="h-6 w-6 p-0"
-              >
-                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {subscription?.subscribed ? (
-                  <>
-                    <CheckCircle className="h-3 w-3 text-green-600" />
-                    <Badge className="bg-green-100 text-green-800 text-xs px-2 py-0.5">
-                      Plan {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
-                    </Badge>
-                  </>
-                ) : (
-                  <>
-                    <Badge variant="secondary" className="text-xs px-2 py-0.5">Aucun abonnement</Badge>
-                  </>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex justify-between items-start gap-6">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Bonjour {user?.email?.split('@')[0]}, voici un aperçu de votre activité</p>
+          </div>
+          
+          {/* Subscription Status - Made more compact */}
+          <Card className={`w-72 ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Abonnement</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefreshSubscription}
+                  disabled={loading}
+                  className="h-6 w-6 p-0"
+                >
+                  <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {subscription?.subscribed ? (
+                    <>
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <Badge className="bg-green-100 text-green-800 text-xs px-2 py-0.5">
+                        Plan {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <Badge variant="secondary" className="text-xs px-2 py-0.5">Aucun abonnement</Badge>
+                    </>
+                  )}
+                </div>
+                {subscription?.subscription_end && (
+                  <p className="text-xs text-gray-600">
+                    Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
+                  </p>
+                )}
+                {!subscription?.subscribed && (
+                  <Button
+                    size="sm"
+                    className="w-full mt-2 h-8 text-xs"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Choisir un plan
+                  </Button>
                 )}
               </div>
-              {subscription?.subscription_end && (
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Button
+            className="h-20 flex-col gap-2"
+            onClick={() => navigate('/admin/offers')}
+            disabled={!subscription?.subscribed}
+          >
+            <FileText className="h-6 w-6" />
+            Nouvelle offre
+          </Button>
+          <Button
+            variant="outline"
+            className="h-20 flex-col gap-2"
+            onClick={() => navigate('/admin/clients')}
+            disabled={!subscription?.subscribed}
+          >
+            <Users className="h-6 w-6" />
+            Gérer les clients
+          </Button>
+          <Button
+            variant="outline"
+            className="h-20 flex-col gap-2"
+            onClick={() => navigate('/admin/offers')}
+            disabled={!subscription?.subscribed}
+          >
+            <BarChart className="h-6 w-6" />
+            Voir les rapports
+          </Button>
+          <Button
+            variant="outline"
+            className="h-20 flex-col gap-2"
+            onClick={() => navigate('/admin/settings')}
+          >
+            <TrendingUp className="h-6 w-6" />
+            Paramètres
+          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((stat, index) => (
+            <Card key={index} className={!subscription?.subscribed ? 'opacity-50' : ''}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.title}
+                </CardTitle>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{subscription?.subscribed ? stat.value : '---'}</div>
                 <p className="text-xs text-gray-600">
-                  Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
+                  {stat.description}
                 </p>
-              )}
-              {!subscription?.subscribed && (
-                <Button
-                  size="sm"
-                  className="w-full mt-2 h-8 text-xs"
-                  onClick={() => navigate('/signup')}
-                >
-                  Choisir un plan
-                </Button>
-              )}
-            </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Activité récente</CardTitle>
+            <CardDescription>
+              Vos dernières actions sur la plateforme
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {subscription?.subscribed ? (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Offre créée pour TechCorp</p>
+                    <p className="text-xs text-gray-600">Il y a 2 heures</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Client ajouté: StartupXYZ</p>
+                    <p className="text-xs text-gray-600">Il y a 1 jour</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Contrat signé par InnovCorp</p>
+                    <p className="text-xs text-gray-600">Il y a 3 jours</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Souscrivez à un abonnement pour voir votre activité</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Button
-          className="h-20 flex-col gap-2"
-          onClick={() => navigate('/admin/offers')}
-          disabled={!subscription?.subscribed}
-        >
-          <FileText className="h-6 w-6" />
-          Nouvelle offre
-        </Button>
-        <Button
-          variant="outline"
-          className="h-20 flex-col gap-2"
-          onClick={() => navigate('/admin/clients')}
-          disabled={!subscription?.subscribed}
-        >
-          <Users className="h-6 w-6" />
-          Gérer les clients
-        </Button>
-        <Button
-          variant="outline"
-          className="h-20 flex-col gap-2"
-          onClick={() => navigate('/admin/offers')}
-          disabled={!subscription?.subscribed}
-        >
-          <BarChart className="h-6 w-6" />
-          Voir les rapports
-        </Button>
-        <Button
-          variant="outline"
-          className="h-20 flex-col gap-2"
-          onClick={() => navigate('/admin/settings')}
-        >
-          <TrendingUp className="h-6 w-6" />
-          Paramètres
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className={!subscription?.subscribed ? 'opacity-50' : ''}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{subscription?.subscribed ? stat.value : '---'}</div>
-              <p className="text-xs text-gray-600">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Activité récente</CardTitle>
-          <CardDescription>
-            Vos dernières actions sur la plateforme
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {subscription?.subscribed ? (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Offre créée pour TechCorp</p>
-                  <p className="text-xs text-gray-600">Il y a 2 heures</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Client ajouté: StartupXYZ</p>
-                  <p className="text-xs text-gray-600">Il y a 1 jour</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Contrat signé par InnovCorp</p>
-                  <p className="text-xs text-gray-600">Il y a 3 jours</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>Souscrivez à un abonnement pour voir votre activité</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
