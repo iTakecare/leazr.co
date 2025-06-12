@@ -20,7 +20,7 @@ const FormActionButtons: React.FC<FormActionButtonsProps> = ({
         <Button 
           variant="default" 
           onClick={handleSubmit} 
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
+          className="flex-1"
         >
           <Edit className="h-4 w-4 mr-2" /> Mettre à jour
         </Button>
@@ -37,9 +37,9 @@ const FormActionButtons: React.FC<FormActionButtonsProps> = ({
   
   return (
     <Button 
-      variant="default" 
+      variant="success" 
       onClick={handleSubmit}
-      className="w-full bg-green-600 hover:bg-green-700"
+      className="w-full"
     >
       <Plus className="h-4 w-4 mr-2" /> Ajouter à la liste
     </Button>
