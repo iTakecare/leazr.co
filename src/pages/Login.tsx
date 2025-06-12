@@ -24,13 +24,14 @@ const Login = () => {
   // Redirection automatique avec protection contre les boucles
   useEffect(() => {
     if (!isLoading && user && !hasRedirected) {
-      console.log("Utilisateur connecté, redirection...", user.email);
+      console.log("Utilisateur connecté, redirection...", user.email, "Role:", user.role);
       setHasRedirected(true);
       
       // Petit délai pour éviter les conflits d'état
       setTimeout(() => {
-        if (isAdmin()) {
-          navigate('/dashboard', { replace: true });
+        // Vérifier le rôle et l'email pour déterminer la redirection
+        if (user.email === "ecommerce@itakecare.be") {
+          navigate('/admin/leazr-saas-dashboard', { replace: true });
         } else if (isClient()) {
           navigate('/client/dashboard', { replace: true });
         } else if (isAmbassador()) {
@@ -38,7 +39,8 @@ const Login = () => {
         } else if (isPartner()) {
           navigate('/partner/dashboard', { replace: true });
         } else {
-          navigate('/', { replace: true });
+          // Pour tous les autres administrateurs (y compris les administrateurs clients)
+          navigate('/admin/dashboard', { replace: true });
         }
       }, 100);
     }

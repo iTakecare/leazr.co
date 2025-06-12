@@ -48,7 +48,7 @@ const RoleBasedDashboard = () => {
   
   // Si l'utilisateur est l'admin SaaS, rediriger vers le dashboard SaaS
   if (user?.email === "ecommerce@itakecare.be") {
-    return <Navigate to="/leazr-saas-dashboard" replace />;
+    return <Navigate to="/admin/leazr-saas-dashboard" replace />;
   }
   
   // Si c'est un client, rediriger vers le dashboard client
@@ -134,6 +134,16 @@ function App() {
                             </Routes>
                           </Suspense>
                         </Layout>
+                      </PrivateRoute>
+                    } 
+                  />
+
+                  {/* Fallback route pour les utilisateurs connectés */}
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <PrivateRoute>
+                        <Navigate to="/admin/dashboard" replace />
                       </PrivateRoute>
                     } 
                   />
