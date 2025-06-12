@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Button
           className="h-20 flex-col gap-2"
-          onClick={() => navigate('/offers')}
+          onClick={() => navigate('/admin/offers')}
           disabled={!subscription?.subscribed}
         >
           <FileText className="h-6 w-6" />
@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
         <Button
           variant="outline"
           className="h-20 flex-col gap-2"
-          onClick={() => navigate('/clients')}
+          onClick={() => navigate('/admin/clients')}
           disabled={!subscription?.subscribed}
         >
           <Users className="h-6 w-6" />
@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
         <Button
           variant="outline"
           className="h-20 flex-col gap-2"
-          onClick={() => navigate('/offers')}
+          onClick={() => navigate('/admin/offers')}
           disabled={!subscription?.subscribed}
         >
           <BarChart className="h-6 w-6" />
@@ -157,7 +157,7 @@ const Dashboard: React.FC = () => {
         <Button
           variant="outline"
           className="h-20 flex-col gap-2"
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/admin/settings')}
         >
           <TrendingUp className="h-6 w-6" />
           Paramètres
