@@ -70,52 +70,53 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="flex justify-between items-start gap-6">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Bonjour {user?.email?.split('@')[0]}, voici un aperçu de votre activité</p>
         </div>
         
-        {/* Subscription Status */}
-        <Card className={`min-w-[300px] ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
-          <CardHeader className="pb-3">
+        {/* Subscription Status - Made more compact */}
+        <Card className={`w-72 ${subscription?.subscribed ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Abonnement</CardTitle>
+              <CardTitle className="text-base">Abonnement</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefreshSubscription}
                 disabled={loading}
+                className="h-6 w-6 p-0"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {subscription?.subscribed ? (
                   <>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <Badge className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 text-green-600" />
+                    <Badge className="bg-green-100 text-green-800 text-xs px-2 py-0.5">
                       Plan {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
                     </Badge>
                   </>
                 ) : (
                   <>
-                    <Badge variant="secondary">Aucun abonnement</Badge>
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5">Aucun abonnement</Badge>
                   </>
                 )}
               </div>
               {subscription?.subscription_end && (
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600">
                   Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
                 </p>
               )}
               {!subscription?.subscribed && (
                 <Button
                   size="sm"
-                  className="w-full mt-2"
+                  className="w-full mt-2 h-8 text-xs"
                   onClick={() => navigate('/signup')}
                 >
                   Choisir un plan
