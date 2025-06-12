@@ -31,6 +31,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import UpdatePassword from "./pages/UpdatePassword";
 import CreateLeazrAdmin from "./pages/CreateLeazrAdmin";
 import HomePage from "./pages/HomePage";
+import LandingPage from "./pages/LandingPage";
 import { useAuth } from "./context/AuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 
@@ -87,6 +88,7 @@ function App() {
             <Router>
               <div className="min-h-screen bg-background font-sans antialiased">
                 <Routes>
+                  <Route path="/" element={<LandingPage />} />
                   <Route path="/home" element={<HomePage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
@@ -106,7 +108,7 @@ function App() {
 
                   {/* Protected routes with Layout (Admin) */}
                   <Route 
-                    path="/*" 
+                    path="/admin/*" 
                     element={
                       <PrivateRoute>
                         <Layout>
