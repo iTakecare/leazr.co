@@ -76,7 +76,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/admin/dashboard" },
     { label: "CRM", icon: Users, href: "/admin/clients" },
     { label: "Offres", icon: FileText, href: "/admin/offers" },
-    { label: "Calculateur", icon: Calculator, href: "/admin/create-offer", badge: "Nouveau", isNew: true },
+    { label: "Calculateur", icon: Calculator, href: "/admin/create-offer" },
     { label: "Contrats", icon: FileText, href: "/admin/contracts" },
     { label: "Catalogue", icon: Package, href: "/admin/catalog" },
   ];
@@ -158,16 +158,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                       >
                         <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
                         <span className="flex-1">{item.label}</span>
-                        {item.badge && (
-                          <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                            {item.badge}
-                          </Badge>
-                        )}
-                        {item.isNew && !item.badge && (
-                          <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                            New
-                          </Badge>
-                        )}
                       </Link>
                     </li>
                   ))}
@@ -288,24 +278,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                           )} 
                         />
                         {!collapsed && (
-                          <>
-                            <span className="flex-1 text-left">{item.label}</span>
-                            {item.badge && (
-                              <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                                {item.badge}
-                              </Badge>
-                            )}
-                            {item.isNew && !item.badge && (
-                              <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                                New
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                        {collapsed && item.badge && (
-                          <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
-                            {item.badge}
-                          </Badge>
+                          <span className="flex-1 text-left">{item.label}</span>
                         )}
                       </button>
                     </TooltipTrigger>
