@@ -95,9 +95,34 @@ export const createAmbassador = async (
 ): Promise<Ambassador> => {
   try {
     console.log("Creating new ambassador:", ambassadorData);
+    
+    // Récupérer le company_id de l'utilisateur connecté
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    // Récupérer le profil pour obtenir le company_id
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile?.company_id) {
+      console.error("Error fetching user profile:", profileError);
+      throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+    }
+
+    // Ajouter le company_id aux données de l'ambassadeur
+    const ambassadorDataWithCompany = {
+      ...ambassadorData,
+      company_id: profile.company_id
+    };
+
     const { data, error } = await supabase
       .from("ambassadors")
-      .insert([ambassadorData])
+      .insert([ambassadorDataWithCompany])
       .select()
       .single();
 
