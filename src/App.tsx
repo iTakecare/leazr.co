@@ -14,6 +14,7 @@ import CatalogManagement from "./pages/CatalogManagement";
 import ProductEditPage from "./pages/ProductEditPage";
 import PartnerEditPage from "./pages/PartnerEditPage";
 import AmbassadorCatalog from "./pages/AmbassadorCatalog";
+import AmbassadorCreatePage from "./pages/AmbassadorCreatePage";
 import Clients from "./pages/Clients";
 import CreateOffer from "./pages/CreateOffer";
 import Offers from "./pages/Offers";
@@ -133,6 +134,13 @@ const App = () => (
               <PrivateRoute>
                 <Layout>
                   <AmbassadorCatalog />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/ambassadors/create" element={
+              <PrivateRoute>
+                <Layout>
+                  <AmbassadorCreatePage />
                 </Layout>
               </PrivateRoute>
             } />

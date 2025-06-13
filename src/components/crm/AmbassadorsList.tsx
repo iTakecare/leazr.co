@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HeartHandshake, MoreHorizontal, Mail, Phone, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { HeartHandshake, MoreHorizontal, Mail, Phone, AlertCircle, Loader2, RefreshCw, Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getAmbassadors, Ambassador, deleteAmbassador } from "@/services/ambassadorService";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +27,7 @@ interface AmbassadorsListProps {
 
 const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', statusFilter = 'all' }) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [ambassadors, setAmbassadors] = useState<Ambassador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -338,7 +339,11 @@ const AmbassadorsList: React.FC<AmbassadorsListProps> = ({ searchTerm = '', stat
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between mb-4">
+        <Button onClick={() => navigate('/ambassadors/create')} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Nouvel ambassadeur
+        </Button>
         <Button variant="outline" size="sm" onClick={refreshAmbassadors}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Actualiser la liste
