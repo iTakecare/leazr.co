@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { PrivateRoute } from "@/components/PrivateRoute";
 import MultiTenantRouter from "@/components/layout/MultiTenantRouter";
 
 const queryClient = new QueryClient();
@@ -18,9 +17,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <PrivateRoute>
-            <MultiTenantRouter />
-          </PrivateRoute>
+          <MultiTenantRouter />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
