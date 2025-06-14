@@ -14,6 +14,10 @@ import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
 import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
 import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
+import AmbassadorDetail from "@/pages/AmbassadorDetail";
+import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
+import AmbassadorsList from "@/pages/AmbassadorsList";
+import PartnerDetail from "@/pages/PartnerDetail";
 import Clients from "@/pages/Clients";
 import CreateOffer from "@/pages/CreateOffer";
 import Offers from "@/pages/Offers";
@@ -87,6 +91,10 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/partners/edit/:id" element={<PartnerEditPage />} />
         <Route path="/ambassador/catalog" element={<AmbassadorCatalog />} />
         <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
+        <Route path="/ambassadors" element={<AmbassadorsList />} />
+        <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
+        <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
+        <Route path="/partners/:id" element={<PartnerDetail />} />
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
