@@ -8,7 +8,7 @@ import ClientRequestsPage from "@/pages/ClientRequestsPage";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
-import PublicCatalog from "@/pages/PublicCatalog";
+import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 
 const ClientRoutes = () => {
   return (
@@ -20,7 +20,7 @@ const ClientRoutes = () => {
           <Route path="contracts" element={<ClientContractsPage />} />
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
-          <Route path="catalog" element={<PublicCatalog />} />
+          <Route path="catalog" element={<PublicCatalogMultiTenant />} />
           <Route path="support" element={<ClientSupportPage />} />
           <Route path="settings" element={<ClientSettingsPage />} />
           {/* Redirection par défaut vers le dashboard */}

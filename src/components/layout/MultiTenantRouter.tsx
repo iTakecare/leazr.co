@@ -18,6 +18,7 @@ import AmbassadorDetail from "@/pages/AmbassadorDetail";
 import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
 import AmbassadorsList from "@/pages/AmbassadorsList";
 import PartnerDetail from "@/pages/PartnerDetail";
+import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 import Clients from "@/pages/Clients";
 import CreateOffer from "@/pages/CreateOffer";
 import Offers from "@/pages/Offers";
@@ -83,7 +84,7 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
         <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/catalog" element={<CatalogManagement />} />
+        <Route path="/catalog" element={<PublicCatalogMultiTenant />} />
         <Route path="/admin/catalog" element={<CatalogManagement />} />
         <Route path="/catalog/edit/:id" element={<ProductEditPage />} />
         <Route path="/admin/catalog/edit/:id" element={<ProductEditPage />} />

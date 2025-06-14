@@ -4,6 +4,7 @@ import AmbassadorSidebar from "./AmbassadorSidebar";
 import AmbassadorDashboard from "@/pages/AmbassadorDashboard";
 import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
+import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 
 const AmbassadorRoutes = () => {
   return (
@@ -12,7 +13,7 @@ const AmbassadorRoutes = () => {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="dashboard" element={<AmbassadorDashboard />} />
-          <Route path="catalog" element={<AmbassadorCatalog />} />
+          <Route path="catalog" element={<PublicCatalogMultiTenant />} />
           <Route path="create-offer" element={<AmbassadorCreateOffer />} />
           {/* Redirection par défaut vers le dashboard */}
           <Route path="" element={<AmbassadorDashboard />} />

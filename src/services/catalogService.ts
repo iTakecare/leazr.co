@@ -14,7 +14,7 @@ export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnl
       showAdminOnly = !!includeAdminOnly.includeAdminOnly;
     }
 
-    // Récupérer tous les produits
+    // Récupérer tous les produits avec filtrage automatique par company_id via RLS
     let query = supabase
       .from("products")
       .select("*")
