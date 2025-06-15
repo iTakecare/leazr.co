@@ -5,21 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search } from "lucide-react";
+import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search, Filter, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CompanyCustomizationService from "@/services/companyCustomizationService";
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  brand?: string;
-  price: number;
-  monthly_price?: number;
-  image_url?: string;
-  admin_only?: boolean;
-}
+import CatalogHeader from "@/components/catalog/public/CatalogHeader";
+import ProductGridCard from "@/components/catalog/public/ProductGridCard";
+import { Product } from "@/types/catalog";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -109,54 +100,56 @@ const PublicCatalogAnonymous = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with company branding */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            {company?.logo_url && (
-              <img 
-                src={company.logo_url} 
-                alt={company.name}
-                className="h-10 w-auto"
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Hero Header */}
+        <CatalogHeader />
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Rechercher un produit, une marque..."
+                className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            )}
-            <div>
-              <h1 className="text-2xl font-bold">{company?.name || "Catalogue"}</h1>
-              <p className="text-muted-foreground">Découvrez nos équipements disponibles</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filtrer
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <SlidersHorizontal className="h-4 w-4" />
+                Trier par
+              </Button>
             </div>
           </div>
-        </div>
-      </header>
 
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Search bar */}
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Rechercher un produit..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Category filters */}
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <Button
-              key={category.name}
-              variant={selectedCategory === category.name ? "default" : "outline"}
-              onClick={() => setSelectedCategory(category.name)}
-              className="gap-2"
-            >
-              <category.icon className="h-4 w-4" />
-              {category.name}
-              <Badge variant="secondary" className="ml-1">
-                {category.count}
-              </Badge>
-            </Button>
-          ))}
+          {/* Category filters */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Button
+                key={category.name}
+                variant={selectedCategory === category.name ? "default" : "outline"}
+                onClick={() => setSelectedCategory(category.name)}
+                className="gap-2 rounded-full"
+                size="sm"
+              >
+                <category.icon className="h-4 w-4" />
+                {category.name === "Tout" ? "Tous les produits" : category.name}
+                {category.count > 0 && (
+                  <Badge variant="secondary" className="ml-1 rounded-full text-xs">
+                    {category.count}
+                  </Badge>
+                )}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Products grid */}
@@ -199,52 +192,16 @@ const PublicCatalogAnonymous = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {filteredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="p-4">
-                  <div className="relative">
-                    <img 
-                      src={product.image_url || "/placeholder.svg"} 
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-md bg-muted"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.svg";
-                      }}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <CardTitle className="text-lg mb-1">{product.name}</CardTitle>
-                  <CardDescription className="text-sm mb-2">
-                    {product.description || `${product.brand} - ${product.category}`}
-                  </CardDescription>
-                  
-                  <div className="flex items-center gap-1 mb-3">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">4.5</span>
-                    <span className="text-sm text-muted-foreground">(12 avis)</span>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Prix d'achat</span>
-                      <span className="font-semibold">{product.price}€</span>
-                    </div>
-                    {product.monthly_price && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Financement</span>
-                        <span className="font-semibold text-primary">{product.monthly_price}€/mois</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <Button className="w-full gap-2">
-                    <ShoppingCart className="h-4 w-4" />
-                    Demander un devis
-                  </Button>
-                </CardContent>
-              </Card>
+              <ProductGridCard
+                key={product.id}
+                product={product}
+                onClick={() => {
+                  // Navigate to product detail or open modal
+                  console.log("Product clicked:", product);
+                }}
+              />
             ))}
           </div>
         )}
