@@ -29,42 +29,42 @@ const Sidebar = () => {
   const navigationItems = [
     { 
       label: "Dashboard", 
-      path: "/dashboard", 
+      href: "/dashboard", 
       icon: Home 
     },
     { 
       label: "Clients", 
-      path: "/admin/clients", 
+      href: "/admin/clients", 
       icon: Users 
     },
     { 
       label: "Offres", 
-      path: "/admin/offers", 
+      href: "/admin/offers", 
       icon: FileText 
     },
     { 
       label: "Contrats", 
-      path: "/admin/contracts", 
+      href: "/admin/contracts", 
       icon: CreditCard 
     },
     { 
       label: "Catalogue", 
-      path: "/admin/catalog", 
+      href: "/admin/catalog", 
       icon: Package 
     },
     { 
       label: "Ambassadeurs", 
-      path: "/ambassadors", 
+      href: "/ambassadors", 
       icon: UserPlus 
     },
     { 
       label: "Partenaires", 
-      path: "/admin/partners", 
+      href: "/admin/partners", 
       icon: Building2 
     },
     {
       label: "CRM",
-      path: "/crm",
+      href: "/crm",
       icon: MessageSquare
     }
   ];
@@ -72,17 +72,17 @@ const Sidebar = () => {
   const adminItems = [
     {
       label: "Paramètres",
-      path: "/admin/settings",
+      href: "/admin/settings",
       icon: Settings
     },
     {
       label: "Analyse Multi-Tenant",
-      path: "/admin/multi-tenant-analysis",
+      href: "/admin/multi-tenant-analysis",
       icon: Database
     },
     {
       label: "Paramètres Entreprise",
-      path: "/company/settings",
+      href: "/company/settings",
       icon: Building2
     }
   ];
@@ -99,11 +99,10 @@ const Sidebar = () => {
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navigationItems.map((item) => (
           <SidebarMenuItem
-            key={item.path}
-            label={item.label}
-            path={item.path}
-            icon={item.icon}
+            key={item.href}
+            item={item}
             isActive={isActive}
+            collapsed={false}
           />
         ))}
         
@@ -115,11 +114,10 @@ const Sidebar = () => {
           </div>
           {adminItems.map((item) => (
             <SidebarMenuItem
-              key={item.path}
-              label={item.label}
-              path={item.path}
-              icon={item.icon}
+              key={item.href}
+              item={item}
               isActive={isActive}
+              collapsed={false}
             />
           ))}
         </div>
