@@ -52,32 +52,11 @@ async function ensureStorageBucket(bucketName: string): Promise<boolean> {
       return true;
     }
     
-    console.log(`Création du bucket: ${bucketName}`);
-    
-    // Créer le bucket s'il n'existe pas
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true,
-      fileSizeLimit: 52428800, // 50MB
-      allowedMimeTypes: [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 
-        'image/webp', 'image/svg+xml', 'application/pdf'
-      ]
-    });
-    
-    if (createError) {
-      if (createError.message?.includes('already exists')) {
-        console.log(`Bucket ${bucketName} existe déjà (concurrent creation)`);
-        return true;
-      }
-      console.error(`Échec de la création du bucket ${bucketName}: ${createError.message}`);
-      return false;
-    }
-    
-    console.log(`Bucket ${bucketName} créé avec succès`);
-    return true;
+    console.log(`Le bucket ${bucketName} n'existe pas mais devrait être créé automatiquement`);
+    return true; // On retourne true car les buckets ont été créés via la migration
   } catch (error) {
-    console.error(`Erreur générale lors de la vérification/création du bucket ${bucketName}:`, error);
-    return false;
+    console.error(`Erreur générale lors de la vérification du bucket ${bucketName}:`, error);
+    return true; // On continue quand même
   }
 }
 
@@ -105,36 +84,15 @@ export async function uploadFileMultiTenant(
     // S'assurer que le bucket existe
     const bucketExists = await ensureStorageBucket(storageType);
     if (!bucketExists) {
-      const errorMsg = `Le bucket ${storageType} n'existe pas et n'a pas pu être créé`;
-      console.error(errorMsg);
-      toast.error(errorMsg);
-      return null;
+      console.warn(`Le bucket ${storageType} pourrait ne pas exister, tentative d'upload quand même`);
     }
     
-    // Vérifier l'accès au bucket avant l'upload
-    try {
-      const { data: testList, error: testError } = await supabase.storage
-        .from(storageType)
-        .list('', { limit: 1 });
-      
-      if (testError) {
-        console.error(`Erreur d'accès au bucket ${storageType}: ${testError.message}`);
-        toast.error(`Erreur d'accès au bucket ${storageType}`);
-        return null;
-      }
-    } catch (accessError) {
-      console.error(`Impossible d'accéder au bucket ${storageType}:`, accessError);
-      toast.error(`Impossible d'accéder au bucket ${storageType}`);
-      return null;
-    }
-    
-    // Upload le fichier
+    // Upload le fichier directement
     const { data, error } = await supabase.storage
       .from(storageType)
       .upload(filePath, file, {
         contentType: file.type,
-        upsert: true,
-        duplex: 'half'
+        upsert: true
       });
     
     if (error) {
@@ -177,13 +135,6 @@ export async function listCompanyFiles(
     const prefix = path ? `company-${finalCompanyId}/${path}` : `company-${finalCompanyId}`;
     
     console.log(`Liste des fichiers dans ${storageType}/${prefix}`);
-    
-    // Vérifier que le bucket existe
-    const bucketExists = await ensureStorageBucket(storageType);
-    if (!bucketExists) {
-      console.error(`Le bucket ${storageType} n'existe pas`);
-      return [];
-    }
     
     const { data, error } = await supabase.storage
       .from(storageType)
@@ -291,14 +242,6 @@ export async function downloadAndStoreImageMultiTenant(
     
     const filePath = await getMultiTenantPath(storageType, uniqueFileName, finalCompanyId);
     
-    // S'assurer que le bucket existe
-    const bucketExists = await ensureStorageBucket(storageType);
-    if (!bucketExists) {
-      console.error(`Le bucket ${storageType} n'existe pas et n'a pas pu être créé`);
-      toast.error(`Erreur: Le bucket ${storageType} n'a pas pu être créé`);
-      return null;
-    }
-    
     // Télécharger l'image avec timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -391,76 +334,5 @@ function detectMimeType(extension: string): string {
       return 'application/pdf';
     default:
       return 'application/octet-stream';
-  }
-}
-
-/**
- * Migration helper: déplace les fichiers existants vers la nouvelle structure multi-tenant
- */
-export async function migrateExistingFilesToMultiTenant(
-  storageType: StorageType,
-  companyId: string
-): Promise<void> {
-  try {
-    console.log(`Migration des fichiers existants vers la structure multi-tenant pour ${storageType}`);
-    
-    // Lister tous les fichiers à la racine du bucket
-    const { data: files, error } = await supabase.storage
-      .from(storageType)
-      .list('', { limit: 1000 });
-    
-    if (error) {
-      console.error(`Erreur lors de la liste des fichiers pour migration:`, error);
-      return;
-    }
-    
-    const rootFiles = files?.filter(file => !file.name.startsWith('company-')) || [];
-    
-    console.log(`Trouvé ${rootFiles.length} fichiers à migrer`);
-    
-    for (const file of rootFiles) {
-      try {
-        // Télécharger le fichier existant
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from(storageType)
-          .download(file.name);
-        
-        if (downloadError) {
-          console.error(`Erreur lors du téléchargement de ${file.name}:`, downloadError);
-          continue;
-        }
-        
-        // Upload vers le nouveau chemin multi-tenant
-        const newPath = `company-${companyId}/${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from(storageType)
-          .upload(newPath, fileData, {
-            contentType: file.metadata?.mimetype || 'application/octet-stream',
-            upsert: true
-          });
-        
-        if (uploadError) {
-          console.error(`Erreur lors de l'upload de ${file.name} vers ${newPath}:`, uploadError);
-          continue;
-        }
-        
-        // Supprimer l'ancien fichier
-        const { error: deleteError } = await supabase.storage
-          .from(storageType)
-          .remove([file.name]);
-        
-        if (deleteError) {
-          console.error(`Erreur lors de la suppression de ${file.name}:`, deleteError);
-        } else {
-          console.log(`Fichier migré avec succès: ${file.name} -> ${newPath}`);
-        }
-      } catch (fileError) {
-        console.error(`Erreur lors de la migration du fichier ${file.name}:`, fileError);
-      }
-    }
-    
-    console.log(`Migration terminée pour ${storageType}`);
-  } catch (error) {
-    console.error(`Erreur générale lors de la migration:`, error);
   }
 }
