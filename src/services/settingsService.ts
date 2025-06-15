@@ -54,7 +54,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       .from('profiles')
       .select('company_id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!profile?.company_id) {
       throw new Error("Compagnie non trouvée");
