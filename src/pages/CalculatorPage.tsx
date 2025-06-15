@@ -1,10 +1,19 @@
 
-import React from "react";
+import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Calculator as CalcIcon } from "lucide-react";
+import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { defaultLeasers } from "@/data/leasers";
+import EquipmentForm from "@/components/offer/EquipmentForm";
+import EquipmentList from "@/components/offer/EquipmentList";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CalculatorPage = () => {
+  const [selectedLeaser, setSelectedLeaser] = useState(defaultLeasers[0]);
+  const calculator = useEquipmentCalculator(selectedLeaser);
+
   return (
     <PageTransition>
       <Container>
@@ -17,12 +26,47 @@ const CalculatorPage = () => {
               </h1>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <p className="text-gray-600">
-                Cette page contiendra le calculateur de mensualités. 
-                Fonctionnalité à implémenter.
-              </p>
-            </div>
+            <Tabs defaultValue="calculator" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="calculator">Calculateur</TabsTrigger>
+                <TabsTrigger value="equipment-list">Liste des équipements</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="calculator" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ajouter un équipement</CardTitle>
+                    <CardDescription>
+                      Calculez les mensualités de leasing pour vos équipements
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <EquipmentForm 
+                      calculator={calculator}
+                      selectedLeaser={selectedLeaser}
+                      setSelectedLeaser={setSelectedLeaser}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="equipment-list" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Liste des équipements calculés</CardTitle>
+                    <CardDescription>
+                      Gérez vos équipements et leurs mensualités
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <EquipmentList 
+                      calculator={calculator}
+                      selectedLeaser={selectedLeaser}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </Container>
