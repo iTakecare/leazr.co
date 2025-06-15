@@ -4,12 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { BarChart3, Package, FileText, Clock, Settings, Eye } from "lucide-react";
+import { useClientData } from "@/hooks/useClientData";
+import { BarChart3, Package, FileText, Clock, Settings, Eye, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
+  const { clientData, recentActivity, loading, error } = useClientData();
   const navigate = useNavigate();
 
   const quickActions = [
@@ -60,6 +64,53 @@ const ClientDashboard = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy 'à' HH:mm", { locale: fr });
+    } catch {
+      return "Date inconnue";
+    }
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'offer': return Clock;
+      case 'contract': return FileText;
+      default: return Package;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="h-5 w-5" />
+              <p>{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className="p-6 space-y-6"
@@ -72,7 +123,7 @@ const ClientDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard Client</h1>
             <p className="text-muted-foreground">
-              Bonjour {user?.first_name || user?.email?.split('@')[0]}, voici un aperçu de votre activité
+              Bonjour {clientData?.name || user?.first_name || user?.email?.split('@')[0]}, voici un aperçu de votre activité
             </p>
           </div>
           <Button
@@ -126,20 +177,35 @@ const ClientDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="font-medium">Nouvelle demande soumise</p>
-                  <p className="text-sm text-muted-foreground">Équipement informatique</p>
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => {
+                  const IconComponent = getActivityIcon(activity.type);
+                  return (
+                    <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <IconComponent className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{activity.title}</p>
+                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground">{formatDate(activity.date)}</span>
+                        {activity.status && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {activity.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Aucune activité récente</p>
                 </div>
-                <span className="text-sm text-muted-foreground">Il y a 2 jours</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="font-medium">Contrat signé</p>
-                  <p className="text-sm text-muted-foreground">MacBook Pro M3</p>
-                </div>
-                <span className="text-sm text-muted-foreground">Il y a 1 semaine</span>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -152,18 +218,31 @@ const ClientDashboard = () => {
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p>{user?.email}</p>
+                <p>{clientData?.email || user?.email}</p>
               </div>
-              {user?.first_name && (
+              {clientData?.name && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Nom</p>
-                  <p>{user.first_name} {user?.last_name}</p>
+                  <p>{clientData.name}</p>
+                </div>
+              )}
+              {clientData?.company && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Société</p>
+                  <p>{clientData.company}</p>
+                </div>
+              )}
+              {clientData?.phone && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Téléphone</p>
+                  <p>{clientData.phone}</p>
                 </div>
               )}
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Statut</p>
                 <Badge variant="outline" className="text-green-600 border-green-200">
-                  Client Actif
+                  {clientData?.status === 'active' ? 'Client Actif' : 
+                   clientData?.status === 'lead' ? 'Prospect' : 'Inactif'}
                 </Badge>
               </div>
             </div>

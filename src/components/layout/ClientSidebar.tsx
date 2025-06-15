@@ -126,16 +126,28 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         // Récupérer les modules activés pour l'entreprise
         const { data: companyModules, error: modulesError } = await supabase
           .from('company_modules')
-          .select('module_slug, enabled')
+          .select(`
+            enabled,
+            modules (
+              slug
+            )
+          `)
           .eq('company_id', profile.company_id)
           .eq('enabled', true);
         
         if (modulesError) {
           console.error("Erreur lors de la récupération des modules:", modulesError);
+          // En cas d'erreur, afficher tous les modules pour les clients
+          setEnabledModules(['contracts', 'catalog', 'crm', 'support']);
         } else {
-          const modulesSlugs = companyModules?.map(cm => cm.module_slug) || [];
+          const modulesSlugs = companyModules?.map(cm => cm.modules?.slug).filter(Boolean) || [];
           console.log("Modules activés:", modulesSlugs);
-          setEnabledModules(modulesSlugs);
+          // Si aucun module configuré, afficher tous les modules essentiels
+          if (modulesSlugs.length === 0) {
+            setEnabledModules(['contracts', 'catalog', 'crm', 'support']);
+          } else {
+            setEnabledModules(modulesSlugs);
+          }
         }
       } catch (err) {
         console.error("Erreur lors du chargement des modules:", err);
