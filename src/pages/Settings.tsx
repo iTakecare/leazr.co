@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Users } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Users, Shield } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
@@ -140,17 +140,26 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Gestion des utilisateurs</h2>
+          <Tabs defaultValue="user-list" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="user-list" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Utilisateurs
+              </TabsTrigger>
+              <TabsTrigger value="profiles" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Profils
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="user-list" className="mt-6">
               <MultiTenantUserManager />
-            </div>
-            
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Profils de permissions</h2>
+            </TabsContent>
+
+            <TabsContent value="profiles" className="mt-6">
               <PermissionProfilesManager />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
