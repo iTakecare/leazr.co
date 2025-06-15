@@ -17,15 +17,17 @@ interface SidebarMenuItemProps {
   };
   isActive: (href: string) => boolean;
   collapsed: boolean;
+  onLinkClick?: () => void;
 }
 
-const SidebarMenuItem = ({ item, isActive, collapsed }: SidebarMenuItemProps) => {
+const SidebarMenuItem = ({ item, isActive, collapsed, onLinkClick }: SidebarMenuItemProps) => {
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
             to={item.href}
+            onClick={onLinkClick}
             className={cn(
               "flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
               collapsed ? "justify-center px-2" : "px-3",
