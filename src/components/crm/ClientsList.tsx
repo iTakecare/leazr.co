@@ -57,20 +57,20 @@ const ClientsList: React.FC<ClientsListProps> = ({
       if (clientData.user_id) {
         console.log(`Le client ${clientData.name} a un compte utilisateur (${clientData.user_id}), suppression du compte...`);
         
-        const { error: userDeleteError } = await supabase.functions.invoke('delete-user', {
-          body: { user_id: clientData.user_id }
-        });
-        
-        if (userDeleteError) {
-          console.error("Erreur lors de la suppression du compte utilisateur:", userDeleteError);
-          // Ne pas bloquer la suppression du client si l'utilisateur n'existe plus
-          if (userDeleteError.message && userDeleteError.message.includes('User not found')) {
-            console.log("L'utilisateur n'existe plus, on continue la suppression du client");
+        try {
+          const { error: userDeleteError } = await supabase.functions.invoke('delete-user', {
+            body: { user_id: clientData.user_id }
+          });
+          
+          if (userDeleteError) {
+            console.error("Erreur lors de la suppression du compte utilisateur:", userDeleteError);
+            console.log("Continuing with client deletion despite user deletion error");
           } else {
-            throw new Error(`Erreur lors de la suppression du compte: ${userDeleteError.message}`);
+            console.log("Compte utilisateur supprimé avec succès");
           }
-        } else {
-          console.log("Compte utilisateur supprimé avec succès");
+        } catch (functionError) {
+          console.error("Erreur lors de l'appel de la fonction delete-user:", functionError);
+          console.log("Continuing with client deletion despite function error");
         }
       }
       
