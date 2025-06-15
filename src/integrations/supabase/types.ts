@@ -2619,10 +2619,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      is_admin_optimized: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       is_ambassador: {
         Args: Record<PropertyKey, never>
         Returns: boolean
