@@ -21,9 +21,10 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, UserPlus, Trash2, Edit, RefreshCw, Building2 } from "lucide-react";
+import { User, UserPlus, Trash2, Edit, RefreshCw, Building2, Shield } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Badge } from "@/components/ui/badge";
+import UserPermissionsManager from "./UserPermissionsManager";
 
 type CompanyUser = {
   user_id: string;
@@ -53,6 +54,7 @@ const MultiTenantUserManager = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<CompanyUser | null>(null);
   
   const [newEmail, setNewEmail] = useState("");
@@ -223,6 +225,11 @@ const MultiTenantUserManager = () => {
     setSelectedUser(user);
     setShowDeleteDialog(true);
   };
+
+  const openPermissionsDialog = (user: CompanyUser) => {
+    setSelectedUser(user);
+    setShowPermissionsDialog(true);
+  };
   
   const formatDate = (dateString: string) => {
     if (!dateString) return "Jamais";
@@ -331,6 +338,9 @@ const MultiTenantUserManager = () => {
                   <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => openPermissionsDialog(user)} title="Gérer les permissions">
+                        <Shield className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -561,6 +571,17 @@ const MultiTenantUserManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Permissions Manager */}
+      {selectedUser && (
+        <UserPermissionsManager
+          userId={selectedUser.user_id}
+          userName={`${selectedUser.first_name} ${selectedUser.last_name}`}
+          userEmail={selectedUser.email}
+          isOpen={showPermissionsDialog}
+          onClose={() => setShowPermissionsDialog(false)}
+        />
+      )}
     </div>
   );
 };

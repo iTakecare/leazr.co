@@ -1616,6 +1616,36 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          module: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_attribute_values: {
         Row: {
           attribute_id: string
@@ -2047,6 +2077,61 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted: boolean
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       woocommerce_configs: {
         Row: {
           consumer_key: string
@@ -2465,6 +2550,17 @@ export type Database = {
         Args: { user_email: string }
         Returns: string
       }
+      get_user_permissions: {
+        Args: { p_user_id: string }
+        Returns: {
+          permission_name: string
+          permission_description: string
+          module: string
+          action: string
+          granted: boolean
+          expires_at: string
+        }[]
+      }
       get_user_profile_with_associations: {
         Args: { user_id: string }
         Returns: Json
@@ -2538,6 +2634,10 @@ export type Database = {
       update_product_attributes: {
         Args: { p_product_id: string; p_variation_attributes: Json }
         Returns: undefined
+      }
+      user_has_permission: {
+        Args: { p_user_id: string; p_permission_name: string }
+        Returns: boolean
       }
     }
     Enums: {
