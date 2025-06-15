@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, ExternalLink } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 interface CatalogHeaderProps {
   onAddNewProduct: () => void;
@@ -10,9 +11,16 @@ interface CatalogHeaderProps {
 
 const CatalogHeader: React.FC<CatalogHeaderProps> = ({ onAddNewProduct }) => {
   const isMobile = useIsMobile();
+  const { companyId } = useMultiTenant();
   
   const handleViewPublicCatalog = () => {
-    window.open("/catalog", "_blank");
+    if (companyId) {
+      // Ouvrir le catalogue public de l'entreprise actuelle
+      window.open(`/public/${companyId}/catalog`, "_blank");
+    } else {
+      // Fallback vers le catalogue multi-tenant authentifié
+      window.open("/catalog", "_blank");
+    }
   };
   
   return (
