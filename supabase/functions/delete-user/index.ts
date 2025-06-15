@@ -86,18 +86,22 @@ serve(async (req) => {
     // Delete the user with admin supabase client (primary method)
     console.log("Attempting to delete user via admin.deleteUser method");
     
-    // Delete the user with admin supabase client (primary method)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
     
     if (error) {
       console.error(`Erreur lors de la suppression de l'utilisateur: ${error.message}`);
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      // Si l'utilisateur n'existe pas, considérer cela comme un succès
+      if (error.message && (error.message.includes('User not found') || error.message.includes('not found'))) {
+        console.log(`L'utilisateur ${user_id} n'existe plus, suppression considérée comme réussie`);
+      } else {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    } else {
+      console.log(`Utilisateur ${user_id} supprimé avec succès`);
     }
-    
-    console.log(`Utilisateur ${user_id} supprimé avec succès`);
     
     return new Response(
       JSON.stringify({ success: true }),
