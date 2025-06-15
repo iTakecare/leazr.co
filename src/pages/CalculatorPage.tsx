@@ -25,54 +25,61 @@ const CalculatorPage = () => {
               </h1>
             </div>
             
-            {/* Calculateur */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ajouter un équipement</CardTitle>
-                <CardDescription>
-                  Calculez les mensualités de leasing pour vos équipements
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EquipmentForm 
-                  equipment={calculator.equipment}
-                  setEquipment={calculator.setEquipment}
-                  selectedLeaser={selectedLeaser}
-                  addToList={calculator.addToList}
-                  editingId={calculator.editingId}
-                  cancelEditing={calculator.cancelEditing}
-                  onOpenCatalog={() => {}}
-                  coefficient={calculator.coefficient}
-                  monthlyPayment={calculator.monthlyPayment}
-                  targetMonthlyPayment={calculator.targetMonthlyPayment}
-                  setTargetMonthlyPayment={calculator.setTargetMonthlyPayment}
-                  calculatedMargin={calculator.calculatedMargin}
-                  applyCalculatedMargin={calculator.applyCalculatedMargin}
-                />
-              </CardContent>
-            </Card>
+            {/* Layout côte à côte */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Calculateur - Colonne gauche */}
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ajouter un équipement</CardTitle>
+                    <CardDescription>
+                      Calculez les mensualités de leasing pour vos équipements
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <EquipmentForm 
+                      equipment={calculator.equipment}
+                      setEquipment={calculator.setEquipment}
+                      selectedLeaser={selectedLeaser}
+                      addToList={calculator.addToList}
+                      editingId={calculator.editingId}
+                      cancelEditing={calculator.cancelEditing}
+                      onOpenCatalog={() => {}}
+                      coefficient={calculator.coefficient}
+                      monthlyPayment={calculator.monthlyPayment}
+                      targetMonthlyPayment={calculator.targetMonthlyPayment}
+                      setTargetMonthlyPayment={calculator.setTargetMonthlyPayment}
+                      calculatedMargin={calculator.calculatedMargin}
+                      applyCalculatedMargin={calculator.applyCalculatedMargin}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Liste des équipements */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Liste des équipements calculés</CardTitle>
-                <CardDescription>
-                  Gérez vos équipements et leurs mensualités
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EquipmentList 
-                  equipmentList={calculator.equipmentList}
-                  startEditing={calculator.startEditing}
-                  removeFromList={calculator.removeFromList}
-                  updateQuantity={calculator.updateQuantity}
-                  editingId={calculator.editingId}
-                  totalMonthlyPayment={calculator.totalMonthlyPayment}
-                  globalMarginAdjustment={calculator.globalMarginAdjustment}
-                  toggleAdaptMonthlyPayment={calculator.toggleAdaptMonthlyPayment}
-                />
-              </CardContent>
-            </Card>
+              {/* Liste des équipements - Colonne droite */}
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Liste des équipements calculés</CardTitle>
+                    <CardDescription>
+                      Gérez vos équipements et leurs mensualités
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <EquipmentList 
+                      equipmentList={calculator.equipmentList}
+                      startEditing={calculator.startEditing}
+                      removeFromList={calculator.removeFromList}
+                      updateQuantity={calculator.updateQuantity}
+                      editingId={calculator.editingId}
+                      totalMonthlyPayment={calculator.totalMonthlyPayment}
+                      globalMarginAdjustment={calculator.globalMarginAdjustment}
+                      toggleAdaptMonthlyPayment={calculator.toggleAdaptMonthlyPayment}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </Container>
