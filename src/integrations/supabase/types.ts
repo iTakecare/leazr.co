@@ -2129,6 +2129,10 @@ export type Database = {
           clients_count: number
         }[]
       }
+      can_manage_users: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_bucket_exists: {
         Args: { bucket_name: string }
         Returns: boolean
@@ -2151,6 +2155,17 @@ export type Database = {
       }
       create_client_as_ambassador: {
         Args: { client_data: Json; ambassador_id: string }
+        Returns: string
+      }
+      create_company_user: {
+        Args: {
+          p_email: string
+          p_password: string
+          p_first_name: string
+          p_last_name: string
+          p_role: string
+          p_company_id: string
+        }
         Returns: string
       }
       create_company_with_admin: {
@@ -2286,6 +2301,19 @@ export type Database = {
           entity_name: string
           created_at: string
           user_name: string
+        }[]
+      }
+      get_company_users: {
+        Args: { p_company_id: string; role_filter?: string }
+        Returns: {
+          user_id: string
+          email: string
+          first_name: string
+          last_name: string
+          role: string
+          created_at: string
+          last_sign_in_at: string
+          has_user_account: boolean
         }[]
       }
       get_current_user_role: {
@@ -2491,6 +2519,16 @@ export type Database = {
       }
       update_client_user_account: {
         Args: { client_id: string; user_id: string }
+        Returns: boolean
+      }
+      update_company_user: {
+        Args: {
+          p_user_id: string
+          p_first_name: string
+          p_last_name: string
+          p_role: string
+          p_company_id?: string
+        }
         Returns: boolean
       }
       update_offer_margins: {
