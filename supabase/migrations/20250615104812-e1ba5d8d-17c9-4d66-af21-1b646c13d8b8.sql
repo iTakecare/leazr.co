@@ -1,0 +1,46 @@
+-- Nettoyer TOUTES les politiques existantes sur TOUTES les tables
+DROP POLICY IF EXISTS "profile_access" ON public.profiles;
+DROP POLICY IF EXISTS "offer_access" ON public.offers;
+DROP POLICY IF EXISTS "client_access" ON public.clients;
+DROP POLICY IF EXISTS "product_access" ON public.products;
+
+-- Tables de configuration
+DROP POLICY IF EXISTS "Public read blog_posts" ON public.blog_posts;
+DROP POLICY IF EXISTS "Admin manage blog_posts" ON public.blog_posts;
+DROP POLICY IF EXISTS "Public read brands" ON public.brands;
+DROP POLICY IF EXISTS "Admin manage brands" ON public.brands;
+DROP POLICY IF EXISTS "Public read categories" ON public.categories;
+DROP POLICY IF EXISTS "Admin manage categories" ON public.categories;
+DROP POLICY IF EXISTS "Public read commission_levels" ON public.commission_levels;
+DROP POLICY IF EXISTS "Admin manage commission_levels" ON public.commission_levels;
+DROP POLICY IF EXISTS "Public read commission_rates" ON public.commission_rates;
+DROP POLICY IF EXISTS "Admin manage commission_rates" ON public.commission_rates;
+DROP POLICY IF EXISTS "Public read content_cms" ON public.content_cms;
+DROP POLICY IF EXISTS "Admin manage content_cms" ON public.content_cms;
+DROP POLICY IF EXISTS "Public read hero_cms" ON public.hero_cms;
+DROP POLICY IF EXISTS "Admin manage hero_cms" ON public.hero_cms;
+DROP POLICY IF EXISTS "Public read pages_cms" ON public.pages_cms;
+DROP POLICY IF EXISTS "Admin manage pages_cms" ON public.pages_cms;
+DROP POLICY IF EXISTS "Public read menus_cms" ON public.menus_cms;
+DROP POLICY IF EXISTS "Admin manage menus_cms" ON public.menus_cms;
+DROP POLICY IF EXISTS "Public read meta_cms" ON public.meta_cms;
+DROP POLICY IF EXISTS "Admin manage meta_cms" ON public.meta_cms;
+DROP POLICY IF EXISTS "Public read steps_cms" ON public.steps_cms;
+DROP POLICY IF EXISTS "Admin manage steps_cms" ON public.steps_cms;
+DROP POLICY IF EXISTS "Public read site_settings" ON public.site_settings;
+DROP POLICY IF EXISTS "Admin manage site_settings" ON public.site_settings;
+DROP POLICY IF EXISTS "Admin only smtp_settings" ON public.smtp_settings;
+DROP POLICY IF EXISTS "Public read email_templates" ON public.email_templates;
+DROP POLICY IF EXISTS "Admin manage email_templates" ON public.email_templates;
+DROP POLICY IF EXISTS "Public read pdf_templates" ON public.pdf_templates;
+DROP POLICY IF EXISTS "Admin manage pdf_templates" ON public.pdf_templates;
+DROP POLICY IF EXISTS "Public read pdf_models" ON public.pdf_models;
+DROP POLICY IF EXISTS "Admin manage pdf_models" ON public.pdf_models;
+DROP POLICY IF EXISTS "Public read modules" ON public.modules;
+DROP POLICY IF EXISTS "Admin manage modules" ON public.modules;
+DROP POLICY IF EXISTS "Admin only permissions" ON public.permissions;
+DROP POLICY IF EXISTS "Admin only permission_profiles" ON public.permission_profiles;
+DROP POLICY IF EXISTS "Public read product_attributes" ON public.product_attributes;
+DROP POLICY IF EXISTS "Admin manage product_attributes" ON public.product_attributes;
+DROP POLICY IF EXISTS "Public read product_attribute_values" ON public.product_attribute_values;
+DROP POLICY IF EXISTS "Admin manage product_attribute_values" ON public.product_attribute_values;
