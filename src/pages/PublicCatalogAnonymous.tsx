@@ -51,7 +51,10 @@ const PublicCatalogAnonymous = () => {
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          variant_combination_prices:product_variant_prices(*)
+        `)
         .eq("company_id", companyId)
         .or('admin_only.is.null,admin_only.eq.false')
         .order("created_at", { ascending: false });
