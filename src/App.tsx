@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import MultiTenantRouter from "@/components/layout/MultiTenantRouter";
 
@@ -18,9 +19,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <CompanyBrandingProvider>
-            <MultiTenantRouter />
-          </CompanyBrandingProvider>
+          <CartProvider>
+            <CompanyBrandingProvider>
+              <MultiTenantRouter />
+            </CompanyBrandingProvider>
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

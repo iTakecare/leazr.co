@@ -198,8 +198,8 @@ const PublicCatalogAnonymous = () => {
                 key={product.id}
                 product={product}
                 onClick={() => {
-                  // Navigate to product detail or open modal
-                  console.log("Product clicked:", product);
+                  // Navigate to product detail in public context
+                  window.location.href = `/public/${companyId}/products/${product.id}`;
                 }}
               />
             ))}
