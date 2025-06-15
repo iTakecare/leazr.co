@@ -25,7 +25,7 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
       .select('*')
       .order('id', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error("Erreur lors de la récupération des paramètres:", error);
@@ -44,16 +44,16 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
  */
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
   try {
-    // Récupérer l'utilisateur courant et sa compagnie depuis profiles
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // Récupérer l'utilisateur courant depuis le profil
+    const { data: currentUser } = await supabase.auth.getUser();
+    if (!currentUser.user) {
       throw new Error("Utilisateur non authentifié");
     }
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('company_id')
-      .eq('id', user.id)
+      .eq('id', currentUser.user.id)
       .maybeSingle();
 
     if (!profile?.company_id) {
