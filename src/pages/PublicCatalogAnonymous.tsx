@@ -108,12 +108,18 @@ const PublicCatalogAnonymous = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {company?.logo_url && (
+              {company?.logo_url ? (
                 <img 
                   src={company.logo_url} 
                   alt={company.name}
                   className="h-10 w-auto"
                 />
+              ) : (
+                <div className="h-10 w-10 bg-primary/10 rounded-md flex items-center justify-center">
+                  <span className="text-primary font-bold text-sm">
+                    {company?.name?.charAt(0) || "C"}
+                  </span>
+                </div>
               )}
               <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
             </div>
