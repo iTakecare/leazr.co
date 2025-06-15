@@ -5,6 +5,7 @@ import ClientList from '@/components/clients/ClientList';
 import ClientsLoading from '@/components/clients/ClientsLoading';
 import ClientsError from '@/components/clients/ClientsError';
 import { deleteClient, syncClientUserAccountStatus } from '@/services/clientService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -38,14 +39,46 @@ const ClientsList: React.FC<ClientsListProps> = ({
 
   const handleDeleteClient = async (id: string) => {
     try {
+      console.log(`Tentative de suppression du client: ${id}`);
+      
+      // Récupérer d'abord les informations du client pour vérifier s'il a un compte utilisateur
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('user_id, name, email')
+        .eq('id', id)
+        .single();
+        
+      if (clientError) {
+        console.error("Erreur lors de la récupération du client:", clientError);
+        throw new Error("Impossible de récupérer les informations du client");
+      }
+      
+      // Si le client a un compte utilisateur, le supprimer d'abord
+      if (clientData.user_id) {
+        console.log(`Le client ${clientData.name} a un compte utilisateur (${clientData.user_id}), suppression du compte...`);
+        
+        const { error: userDeleteError } = await supabase.functions.invoke('delete-user', {
+          body: { user_id: clientData.user_id }
+        });
+        
+        if (userDeleteError) {
+          console.error("Erreur lors de la suppression du compte utilisateur:", userDeleteError);
+          throw new Error(`Erreur lors de la suppression du compte: ${userDeleteError.message}`);
+        }
+        
+        console.log("Compte utilisateur supprimé avec succès");
+      }
+      
+      // Maintenant supprimer le client
       await deleteClient(id);
       toast.success("Client supprimé avec succès");
+      
       if (refreshClients) {
         await refreshClients();
       }
     } catch (err) {
       console.error("Erreur lors de la suppression du client:", err);
-      toast.error("Erreur lors de la suppression du client");
+      toast.error(`Erreur lors de la suppression du client: ${err.message || 'Erreur inconnue'}`);
     }
   };
 
