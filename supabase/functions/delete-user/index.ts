@@ -48,19 +48,34 @@ serve(async (req) => {
     
     for (const table of tables) {
       try {
-        const { error: updateError } = await supabaseAdmin
+        // Vérifier d'abord si des enregistrements existent
+        const { data: existingRecords, error: selectError } = await supabaseAdmin
           .from(table)
-          .update({
-            user_id: null,
-            has_user_account: false,
-            user_account_created_at: null
-          })
+          .select('id')
           .eq('user_id', user_id);
           
-        if (updateError) {
-          console.log(`Error updating ${table}: ${updateError.message}`);
+        if (selectError) {
+          console.log(`Error checking ${table}: ${selectError.message}`);
+          continue;
+        }
+        
+        if (existingRecords && existingRecords.length > 0) {
+          const { error: updateError } = await supabaseAdmin
+            .from(table)
+            .update({
+              user_id: null,
+              has_user_account: false,
+              user_account_created_at: null
+            })
+            .eq('user_id', user_id);
+            
+          if (updateError) {
+            console.log(`Error updating ${table}: ${updateError.message}`);
+          } else {
+            console.log(`Association utilisateur supprimée dans ${table} (${existingRecords.length} enregistrements)`);
+          }
         } else {
-          console.log(`Association utilisateur supprimée dans ${table}`);
+          console.log(`Aucun enregistrement trouvé dans ${table} pour l'utilisateur ${user_id}`);
         }
       } catch (err) {
         console.log(`Exception when updating ${table}: ${err.message}`);
