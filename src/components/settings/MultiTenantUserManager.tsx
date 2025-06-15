@@ -165,7 +165,7 @@ const MultiTenantUserManager = () => {
         p_first_name: newFirstName,
         p_last_name: newLastName,
         p_role: newRole,
-        p_company_id: newCompanyId || undefined
+        p_company_id: newCompanyId === "keep_current" ? undefined : newCompanyId || undefined
       });
       
       if (error) throw error;
@@ -510,7 +510,7 @@ const MultiTenantUserManager = () => {
                   <SelectValue placeholder="Laisser dans l'entreprise actuelle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Garder l'entreprise actuelle</SelectItem>
+                  <SelectItem value="keep_current">Garder l'entreprise actuelle</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name} ({company.plan})
