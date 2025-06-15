@@ -151,7 +151,7 @@ const ProductEditPage = () => {
     mutationFn: () => deleteProduct(id || ""),
     onSuccess: () => {
       toast.success("Produit supprimé avec succès");
-      navigate("/catalog");
+      navigate("/admin/catalog");
     },
     onError: (error: any) => {
       toast.error(`Erreur lors de la suppression: ${error.message}`);
@@ -286,7 +286,7 @@ const ProductEditPage = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate("/catalog")}
+            onClick={() => navigate("/admin/catalog")}
             className="mr-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
