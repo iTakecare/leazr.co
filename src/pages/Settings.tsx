@@ -72,7 +72,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -104,10 +104,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
-          </TabsTrigger>
-          <TabsTrigger value="profiles" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Profils
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -144,11 +140,17 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">
-          <MultiTenantUserManager />
-        </TabsContent>
-
-        <TabsContent value="profiles" className="mt-6">
-          <PermissionProfilesManager />
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Gestion des utilisateurs</h2>
+              <MultiTenantUserManager />
+            </div>
+            
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Profils de permissions</h2>
+              <PermissionProfilesManager />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
