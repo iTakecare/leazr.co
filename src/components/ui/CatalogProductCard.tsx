@@ -161,12 +161,6 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
                       {formatCurrency(monthlyPrice)}
                       <span className="text-gray-500 font-normal text-xs"> /mois</span>
                     </span>
-                    {price > 0 && shouldShowPurchasePrice && (
-                      <span className="text-xs text-gray-500">
-                        Prix: {hasVariants ? "À partir de " : ""}
-                        {formatCurrency(price)}
-                      </span>
-                    )}
                   </div>
                 ) : price > 0 && shouldShowPurchasePrice ? (
                   <div className="text-sm font-semibold">
