@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { uploadFileMultiTenant } from "@/services/multiTenantStorageService";
+import { cleanFileUpload } from "@/services/cleanFileUploadService";
 import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
@@ -37,7 +36,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== FICHIER SÉLECTIONNÉ POUR UPLOAD MULTI-TENANT ===", {
+    console.log("=== FICHIER SÉLECTIONNÉ POUR UPLOAD LOGO ===", {
       name: file.name,
       type: file.type,
       size: file.size
@@ -49,22 +48,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("=== TENTATIVE UPLOAD MULTI-TENANT ===");
+      console.log("=== TENTATIVE UPLOAD LOGO ===");
       
-      // Utiliser le service multi-tenant avec un nom de fichier unique
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 15);
-      const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
-      const fileName = `logo-${timestamp}-${randomId}.${extension}`;
-      
-      const url = await uploadFileMultiTenant(
-        file,
-        bucketName as any, // Cast pour correspondre au type StorageType
-        fileName
-      );
+      const url = await cleanFileUpload(file, bucketName, folderPath);
       
       if (url) {
-        console.log("=== UPLOAD MULTI-TENANT RÉUSSI ===", { url });
+        console.log("=== UPLOAD LOGO RÉUSSI ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -74,7 +63,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         
         toast.success("Logo uploadé avec succès");
       } else {
-        console.error("=== ÉCHEC UPLOAD MULTI-TENANT ===");
+        console.error("=== ÉCHEC UPLOAD LOGO ===");
         setErrorMessage("Impossible d'uploader le logo");
         toast.error("Échec de l'upload du logo");
       }
