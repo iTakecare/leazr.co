@@ -79,7 +79,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
             logo_url: settings.logo_url
           }])
           .select()
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Erreur lors de la création des paramètres:", error);
