@@ -2627,6 +2627,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_company_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_same_company: {
+        Args: { target_company_id: string }
+        Returns: boolean
+      }
       mark_clients_as_duplicates: {
         Args: { client_ids: string[]; main_client_id: string }
         Returns: boolean
