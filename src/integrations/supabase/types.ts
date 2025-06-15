@@ -1890,6 +1890,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          phone: string | null
           role: string
           updated_at: string | null
         }
@@ -1902,6 +1903,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          phone?: string | null
           role: string
           updated_at?: string | null
         }
@@ -1914,6 +1916,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          phone?: string | null
           role?: string
           updated_at?: string | null
         }
