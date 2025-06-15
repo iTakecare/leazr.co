@@ -3,7 +3,7 @@ import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client
 import { toast } from "sonner";
 import { Partner } from "./partnerService";
 import { Ambassador } from "./ambassadorService";
-import { sendWelcomeEmail } from "./emailService";
+import { sendWelcomeEmail, sendInvitationEmail } from "./emailService";
 import { Client } from "@/types/client";
 
 interface CreateAccountParams {
@@ -31,7 +31,7 @@ export const createUserAccount = async (
   }
 
   try {
-    console.log(`Creating account for ${userType} with email ${entity.email}`);
+    console.log(`Creating account invitation for ${userType} with email ${entity.email}`);
     
     // Vérifier si l'utilisateur existe déjà en utilisant auth.users
     const { data: userExists, error: checkError } = await supabase.rpc(
@@ -51,8 +51,11 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Générer un mot de passe aléatoire
-    const tempPassword = Math.random().toString(36).slice(-12);
+    // Au lieu de créer directement un compte, on va utiliser le système de génération de lien auth
+    // pour permettre au client de créer son propre mot de passe
+    
+    // D'abord, créer un utilisateur temporaire avec un mot de passe aléatoire
+    const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
     
     // Important: Set proper role in user_metadata 
     const metadata: Record<string, any> = { 
@@ -69,12 +72,13 @@ export const createUserAccount = async (
       metadata.client_id = entity.id;
     }
     
-    // Create the user account
+    // Create the user account with temporary password
     const { data, error: createError } = await supabase.auth.signUp({
       email: entity.email,
       password: tempPassword,
       options: {
-        data: metadata
+        data: metadata,
+        emailRedirectTo: `${window.location.origin}/login`
       }
     });
     
@@ -110,10 +114,53 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Send welcome email
-    await sendWelcomeEmail(entity.email, entity.name, userType);
-    
-    toast.success(`Compte ${userType} créé et email de bienvenue envoyé`);
+    // Générer un lien de création de mot de passe au lieu d'envoyer un email de bienvenue
+    try {
+      const { data: authLink, error: linkError } = await supabase.functions.invoke('generate-auth-link', {
+        body: {
+          email: entity.email,
+          type: 'invite',
+          redirectTo: `${window.location.origin}/login`
+        }
+      });
+      
+      if (linkError) {
+        console.error("Erreur lors de la génération du lien d'invitation:", linkError);
+        // En cas d'erreur, envoyer un email de réinitialisation
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+          redirectTo: `${window.location.origin}/update-password`,
+        });
+        
+        if (resetError) {
+          console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
+          toast.error("Erreur lors de l'envoi de l'invitation");
+          return false;
+        }
+        
+        toast.success(`Compte ${userType} créé et email d'invitation envoyé`);
+      } else {
+        console.log("Lien d'invitation généré:", authLink);
+        
+        // Envoyer l'email d'invitation avec le lien personnalisé
+        await sendInvitationEmail(entity.email, entity.name, userType, authLink?.properties?.action_link);
+        
+        toast.success(`Compte ${userType} créé et invitation envoyée`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du lien:", error);
+      // Fallback: envoyer un email de réinitialisation
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
+      
+      if (resetError) {
+        console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
+        toast.error("Erreur lors de l'envoi de l'invitation");
+        return false;
+      }
+      
+      toast.success(`Compte ${userType} créé et email d'invitation envoyé`);
+    }
     return true;
   } catch (error) {
     console.error(`Erreur dans createUserAccount:`, error);

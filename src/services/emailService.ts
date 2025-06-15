@@ -298,6 +298,84 @@ export const sendWelcomeEmail = async (
 };
 
 /**
+ * Envoie un email d'invitation pour créer un mot de passe
+ */
+export const sendInvitationEmail = async (
+  email: string,
+  name: string,
+  userType: "partner" | "ambassador" | "client",
+  inviteLink?: string
+): Promise<boolean> => {
+  try {
+    console.log(`Préparation de l'email d'invitation pour ${email} (${userType})`);
+    
+    const typeDisplay = 
+      userType === "partner" ? "partenaire" : 
+      userType === "ambassador" ? "ambassadeur" : 
+      "client";
+    
+    const subject = `Invitation à créer votre compte ${typeDisplay} iTakecare`;
+    
+    // Utiliser le lien d'invitation fourni ou un lien de réinitialisation par défaut
+    const actionLink = inviteLink || `${window.location.origin}/update-password`;
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="{{site_logo}}" alt="Logo iTakecare" style="max-width: 200px; height: auto;" />
+        </div>
+        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${name},</h2>
+        <p>Un compte ${typeDisplay} a été créé pour vous sur la plateforme iTakecare.</p>
+        <p>Pour activer votre compte et définir votre mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${actionLink}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            Créer mon mot de passe
+          </a>
+        </p>
+        <p>Une fois votre mot de passe créé, vous pourrez accéder à votre espace ${typeDisplay} et :</p>
+        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+          ${userType === "partner" ? `
+            <li>Créer et gérer des offres de leasing</li>
+            <li>Suivre vos commissions</li>
+            <li>Gérer vos clients</li>
+          ` : userType === "ambassador" ? `
+            <li>Suivre vos recommandations</li>
+            <li>Consulter vos commissions</li>
+            <li>Gérer votre profil</li>
+          ` : `
+            <li>Consulter vos contrats</li>
+            <li>Suivre vos équipements</li>
+            <li>Effectuer des demandes</li>
+          `}
+        </ul>
+        <p><strong>Important :</strong> Ce lien est valide pendant 24 heures. Si vous rencontrez un problème, contactez-nous.</p>
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+      </div>
+    `;
+    
+    console.log(`Tentative d'envoi d'email d'invitation à: ${email}`);
+    
+    const success = await sendEmail(
+      email,
+      subject,
+      htmlContent
+    );
+    
+    if (success) {
+      console.log(`Email d'invitation envoyé avec succès à: ${email}`);
+    } else {
+      console.error(`Échec de l'envoi de l'email d'invitation à: ${email}`);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error("Error sending invitation email:", error);
+    return false;
+  }
+};
+
+/**
  * Demande des documents complémentaires au client
  */
 export const sendDocumentsRequestEmail = async (
