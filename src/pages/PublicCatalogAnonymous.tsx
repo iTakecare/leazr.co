@@ -103,6 +103,33 @@ const PublicCatalogAnonymous = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header with logo and cart */}
+      <header className="bg-white border-b shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {company?.logo_url && (
+                <img 
+                  src={company.logo_url} 
+                  alt={company.name}
+                  className="h-10 w-auto"
+                />
+              )}
+              <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = `/public/${companyId}/panier`}
+              className="relative flex items-center gap-2"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              Panier
+            </Button>
+          </div>
+        </div>
+      </header>
+
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}
         <CatalogHeader />
