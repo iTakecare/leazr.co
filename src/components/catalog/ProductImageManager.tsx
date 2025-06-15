@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { uploadImage } from "@/utils/imageUtils";
+import { uploadFileMultiTenant } from "@/services/multiTenantStorageService";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -29,6 +30,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
+  const { companyId, loading: multiTenantLoading } = useMultiTenant();
   
   const getUniqueImageUrl = (url: string, index: number): string => {
     const separator = url.includes('?') ? '&' : '?';
@@ -36,7 +38,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   };
   
   useEffect(() => {
-    if (loadingRef.current) return;
+    if (loadingRef.current || !companyId) return;
     
     const loadImages = async () => {
       loadingRef.current = true;
@@ -44,17 +46,19 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       setErrorMessage(null);
       
       try {
-        console.log(`Loading images for product ${productId} from product-images bucket`);
+        console.log(`Loading images for product ${productId} from company-${companyId} folder`);
         
+        // Chercher dans le dossier de l'entreprise
+        const companyFolder = `company-${companyId}`;
         const { data: files, error } = await supabase.storage
           .from("product-images")
-          .list(productId, {
+          .list(companyFolder, {
             sortBy: { column: 'name', order: 'asc' }
           });
         
         if (error) {
           if (error.message.includes('does not exist') || error.message.includes('not found')) {
-            console.log(`No folder found for product ${productId}, this is normal for new products`);
+            console.log(`No company folder found for ${companyFolder}, this is normal for new products`);
             setImages([]);
             
             if (onChange) {
@@ -71,7 +75,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         }
         
         if (!files || files.length === 0) {
-          console.log(`No images found for product ${productId}`);
+          console.log(`No images found for company ${companyId}`);
           setImages([]);
           setIsLoadingImages(false);
           loadingRef.current = false;
@@ -83,19 +87,23 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           return;
         }
         
-        const imageFiles = files
-          .filter(file => 
-            !file.name.startsWith('.') && 
-            file.name !== '.emptyFolderPlaceholder'
-          )
+        // Filtrer les fichiers du produit spécifique
+        const productFiles = files.filter(file => 
+          !file.name.startsWith('.') && 
+          file.name !== '.emptyFolderPlaceholder' &&
+          file.name.includes(productId)
+        );
+        
+        const imageFiles = productFiles
           .map(file => {
             try {
+              const filePath = `${companyFolder}/${file.name}`;
               const { data } = supabase.storage
                 .from("product-images")
-                .getPublicUrl(`${productId}/${file.name}`);
+                .getPublicUrl(filePath);
               
               if (!data || !data.publicUrl) {
-                console.error(`Failed to get public URL for ${file.name}`);
+                console.error(`Failed to get public URL for ${filePath}`);
                 return null;
               }
               
@@ -137,7 +145,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     return () => {
       loadingRef.current = false;
     };
-  }, [productId, onChange, retryCount, currentMainImage]);
+  }, [productId, onChange, retryCount, currentMainImage, companyId]);
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -146,7 +154,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !companyId) return;
     
     setIsUploading(true);
     let uploadedCount = 0;
@@ -160,7 +168,18 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           continue;
         }
         
-        const imageUrl = await uploadImage(file, "product-images", productId);
+        // Créer un nom de fichier unique avec l'ID du produit
+        const timestamp = Date.now();
+        const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `product-${productId}-${timestamp}-${i}.${extension}`;
+        
+        const imageUrl = await uploadFileMultiTenant(
+          file,
+          "product-images",
+          fileName,
+          companyId
+        );
+        
         if (imageUrl) {
           uploadedCount++;
         }
@@ -183,8 +202,10 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   };
   
   const handleDelete = async (imageName: string) => {
+    if (!companyId) return;
+    
     try {
-      const filePath = `${productId}/${imageName}`;
+      const filePath = `company-${companyId}/${imageName}`;
       console.log(`Deleting file ${filePath} from bucket product-images`);
       
       const { error } = await supabase.storage
@@ -218,6 +239,26 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       }
     }
   };
+  
+  if (multiTenantLoading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <span>Chargement des informations multi-tenant...</span>
+      </div>
+    );
+  }
+
+  if (!companyId) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="text-red-500 h-5 w-5" />
+          <p className="text-red-700">Impossible de déterminer l'entreprise. Multi-tenant requis.</p>
+        </div>
+      </div>
+    );
+  }
   
   if (errorMessage) {
     return (
@@ -270,6 +311,10 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 
   return (
     <div className="space-y-4">
+      <div className="text-xs text-muted-foreground mb-2">
+        Entreprise: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{companyId}</span>
+      </div>
+      
       <div className="flex items-center gap-4">
         <Label htmlFor="image-upload" className="cursor-pointer">
           <div className="flex items-center gap-2 px-4 py-2 border rounded bg-background hover:bg-accent">
@@ -284,7 +329,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           multiple
           className="hidden"
           onChange={handleFileChange}
-          disabled={isUploading}
+          disabled={isUploading || !companyId}
         />
         {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
         <Button 

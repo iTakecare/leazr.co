@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, CheckCircle, Database, Building } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, Database, Building, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProductImagesMigrationTool from "./ProductImagesMigrationTool";
 
 interface BucketInfo {
   id: string;
@@ -138,7 +139,7 @@ const MultiTenantStorageAnalyzer: React.FC = () => {
     
     // Pour chaque bucket avec des problèmes, on pourrait implémenter des corrections
     // Par exemple, déplacer les fichiers vers la structure company-{id}/
-    
+
     toast.success('Analyse terminée. Vérifiez les recommandations ci-dessous.');
   };
 
@@ -176,150 +177,166 @@ const MultiTenantStorageAnalyzer: React.FC = () => {
         </div>
       </div>
 
-      {/* Liste des Buckets */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Buckets de Stockage ({buckets.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Chargement des buckets...</span>
-            </div>
-          ) : buckets.length === 0 ? (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Aucun bucket trouvé. Cela peut indiquer un problème de permissions ou de configuration.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {buckets.map((bucket) => (
-                <Card key={bucket.id} className="border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold">{bucket.id}</h3>
-                      <Badge variant={bucket.public ? "default" : "secondary"}>
-                        {bucket.public ? "Public" : "Privé"}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <div>Nom: {bucket.name}</div>
-                      {bucket.file_size_limit && (
-                        <div>Limite: {(bucket.file_size_limit / 1024 / 1024).toFixed(1)} MB</div>
-                      )}
-                      <div>Créé: {new Date(bucket.created_at).toLocaleDateString()}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Analyse Multi-Tenant */}
-      {analysis.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Analyse de Conformité Multi-Tenant
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analysis.map((bucketAnalysis) => (
-                <Card key={bucketAnalysis.bucketName} className="border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {getComplianceIcon(bucketAnalysis)}
-                        <h4 className="font-semibold">{bucketAnalysis.bucketName}</h4>
-                      </div>
-                      <div className={`text-sm font-medium ${getComplianceColor(bucketAnalysis)}`}>
-                        {bucketAnalysis.issues.length === 0 ? 'Conforme' : `${bucketAnalysis.issues.length} problème(s)`}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{bucketAnalysis.totalFiles}</div>
-                        <div className="text-xs text-muted-foreground">Total fichiers</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{bucketAnalysis.multiTenantFiles}</div>
-                        <div className="text-xs text-muted-foreground">Multi-tenant</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{bucketAnalysis.nonMultiTenantFiles}</div>
-                        <div className="text-xs text-muted-foreground">Non conforme</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-600">{bucketAnalysis.companies.length}</div>
-                        <div className="text-xs text-muted-foreground">Entreprises</div>
-                      </div>
-                    </div>
-
-                    {bucketAnalysis.companies.length > 0 && (
-                      <div className="mb-3">
-                        <div className="text-sm font-medium mb-2">Entreprises détectées:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {bucketAnalysis.companies.map((companyId) => (
-                            <Badge key={companyId} variant="outline" className="text-xs">
-                              {companyId}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {bucketAnalysis.issues.length > 0 && (
-                      <div>
-                        <div className="text-sm font-medium mb-2 text-yellow-600">Problèmes détectés:</div>
-                        <div className="space-y-1">
-                          {bucketAnalysis.issues.slice(0, 5).map((issue, index) => (
-                            <div key={index} className="text-xs text-muted-foreground bg-yellow-50 p-2 rounded">
-                              {issue}
-                            </div>
-                          ))}
-                          {bucketAnalysis.issues.length > 5 && (
-                            <div className="text-xs text-muted-foreground">
-                              ... et {bucketAnalysis.issues.length - 5} autres problèmes
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {analysis.some(a => a.issues.length > 0) && (
-              <div className="mt-6">
+      <Tabs defaultValue="analysis" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="analysis">Analyse</TabsTrigger>
+          <TabsTrigger value="migration">
+            <Wrench className="h-4 w-4 mr-2" />
+            Migration Images
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="analysis" className="space-y-6">
+          {/* Liste des Buckets */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Buckets de Stockage ({buckets.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2">Chargement des buckets...</span>
+                </div>
+              ) : buckets.length === 0 ? (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Recommandations:</strong>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Organisez tous les fichiers avec la structure: company-{'{company_id}'}/nom-fichier</li>
-                      <li>Migrez les fichiers existants vers cette structure</li>
-                      <li>Mettez à jour les services d'upload pour utiliser le service multi-tenant</li>
-                      <li>Vérifiez que les politiques RLS respectent la séparation par entreprise</li>
-                    </ul>
+                    Aucun bucket trouvé. Cela peut indiquer un problème de permissions ou de configuration.
                   </AlertDescription>
                 </Alert>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {buckets.map((bucket) => (
+                    <Card key={bucket.id} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold">{bucket.id}</h3>
+                          <Badge variant={bucket.public ? "default" : "secondary"}>
+                            {bucket.public ? "Public" : "Privé"}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>Nom: {bucket.name}</div>
+                          {bucket.file_size_limit && (
+                            <div>Limite: {(bucket.file_size_limit / 1024 / 1024).toFixed(1)} MB</div>
+                          )}
+                          <div>Créé: {new Date(bucket.created_at).toLocaleDateString()}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Analyse Multi-Tenant */}
+          {analysis.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Analyse de Conformité Multi-Tenant
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {analysis.map((bucketAnalysis) => (
+                    <Card key={bucketAnalysis.bucketName} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {getComplianceIcon(bucketAnalysis)}
+                            <h4 className="font-semibold">{bucketAnalysis.bucketName}</h4>
+                          </div>
+                          <div className={`text-sm font-medium ${getComplianceColor(bucketAnalysis)}`}>
+                            {bucketAnalysis.issues.length === 0 ? 'Conforme' : `${bucketAnalysis.issues.length} problème(s)`}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">{bucketAnalysis.totalFiles}</div>
+                            <div className="text-xs text-muted-foreground">Total fichiers</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{bucketAnalysis.multiTenantFiles}</div>
+                            <div className="text-xs text-muted-foreground">Multi-tenant</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">{bucketAnalysis.nonMultiTenantFiles}</div>
+                            <div className="text-xs text-muted-foreground">Non conforme</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-purple-600">{bucketAnalysis.companies.length}</div>
+                            <div className="text-xs text-muted-foreground">Entreprises</div>
+                          </div>
+                        </div>
+
+                        {bucketAnalysis.companies.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-sm font-medium mb-2">Entreprises détectées:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {bucketAnalysis.companies.map((companyId) => (
+                                <Badge key={companyId} variant="outline" className="text-xs">
+                                  {companyId}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {bucketAnalysis.issues.length > 0 && (
+                          <div>
+                            <div className="text-sm font-medium mb-2 text-yellow-600">Problèmes détectés:</div>
+                            <div className="space-y-1">
+                              {bucketAnalysis.issues.slice(0, 5).map((issue, index) => (
+                                <div key={index} className="text-xs text-muted-foreground bg-yellow-50 p-2 rounded">
+                                  {issue}
+                                </div>
+                              ))}
+                              {bucketAnalysis.issues.length > 5 && (
+                                <div className="text-xs text-muted-foreground">
+                                  ... et {bucketAnalysis.issues.length - 5} autres problèmes
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {analysis.some(a => a.issues.length > 0) && (
+                  <div className="mt-6">
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Recommandations:</strong>
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>Organisez tous les fichiers avec la structure: company-{'{company_id}'}/nom-fichier</li>
+                          <li>Migrez les fichiers existants vers cette structure</li>
+                          <li>Mettez à jour les services d'upload pour utiliser le service multi-tenant</li>
+                          <li>Vérifiez que les politiques RLS respectent la séparation par entreprise</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="migration">
+          <ProductImagesMigrationTool />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
