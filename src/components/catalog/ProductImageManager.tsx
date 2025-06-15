@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { uploadFileMultiTenant, listCompanyFiles, deleteFileMultiTenant } from "@/services/multiTenantStorageService";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { uploadImage } from "@/utils/imageUtils";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -30,64 +29,115 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const loadingRef = useRef(false);
-  const { companyId, loading: multiTenantLoading } = useMultiTenant();
   
   const getUniqueImageUrl = (url: string, index: number): string => {
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}t=${Date.now()}&rc=${retryCount}&idx=${index}`;
   };
   
-  const loadImages = useCallback(async () => {
-    if (loadingRef.current || !companyId) return;
-    
-    loadingRef.current = true;
-    setIsLoadingImages(true);
-    setErrorMessage(null);
-    
-    try {
-      console.log(`Chargement des images pour le produit ${productId} de l'entreprise ${companyId}`);
-      
-      // Utiliser le service multi-tenant pour lister les fichiers
-      const files = await listCompanyFiles("product-images", companyId);
-      
-      // Filtrer les fichiers du produit spécifique
-      const productFiles = files.filter(file => 
-        file.name.includes(productId) && 
-        (file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))
-      );
-      
-      const imageFiles = productFiles.map((file, index) => {
-        const isMain = currentMainImage && file.url === currentMainImage;
-        return {
-          name: file.name,
-          url: getUniqueImageUrl(file.url, index),
-          originalUrl: file.url,
-          isMain: isMain
-        };
-      });
-      
-      console.log(`Chargé ${imageFiles.length} images pour le produit ${productId}`);
-      setImages(imageFiles);
-      
-      if (onChange) {
-        onChange(imageFiles);
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des images:", error);
-      const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue';
-      setErrorMessage(`Erreur lors du chargement des images: ${errorMsg}`);
-      setImages([]);
-    } finally {
-      setIsLoadingImages(false);
-      loadingRef.current = false;
-    }
-  }, [productId, onChange, retryCount, currentMainImage, companyId]);
-  
   useEffect(() => {
-    if (!multiTenantLoading && companyId) {
-      loadImages();
-    }
-  }, [loadImages, multiTenantLoading, companyId]);
+    if (loadingRef.current) return;
+    
+    const loadImages = async () => {
+      loadingRef.current = true;
+      setIsLoadingImages(true);
+      setErrorMessage(null);
+      
+      try {
+        console.log(`Loading images for product ${productId} from product-images bucket`);
+        
+        const { data: files, error } = await supabase.storage
+          .from("product-images")
+          .list(productId, {
+            sortBy: { column: 'name', order: 'asc' }
+          });
+        
+        if (error) {
+          if (error.message.includes('does not exist') || error.message.includes('not found')) {
+            console.log(`No folder found for product ${productId}, this is normal for new products`);
+            setImages([]);
+            
+            if (onChange) {
+              onChange([]);
+            }
+          } else {
+            console.error(`Error loading images: ${error.message}`);
+            setErrorMessage(`Erreur lors du chargement des images: ${error.message}`);
+          }
+          
+          setIsLoadingImages(false);
+          loadingRef.current = false;
+          return;
+        }
+        
+        if (!files || files.length === 0) {
+          console.log(`No images found for product ${productId}`);
+          setImages([]);
+          setIsLoadingImages(false);
+          loadingRef.current = false;
+          
+          if (onChange) {
+            onChange([]);
+          }
+          
+          return;
+        }
+        
+        const imageFiles = files
+          .filter(file => 
+            !file.name.startsWith('.') && 
+            file.name !== '.emptyFolderPlaceholder'
+          )
+          .map(file => {
+            try {
+              const { data } = supabase.storage
+                .from("product-images")
+                .getPublicUrl(`${productId}/${file.name}`);
+              
+              if (!data || !data.publicUrl) {
+                console.error(`Failed to get public URL for ${file.name}`);
+                return null;
+              }
+              
+              const timestamp = Date.now();
+              const isMain = currentMainImage && data.publicUrl === currentMainImage;
+              
+              return {
+                name: file.name,
+                url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
+                originalUrl: data.publicUrl,
+                isMain: isMain
+              };
+            } catch (e) {
+              console.error(`Error generating URL for ${file.name}:`, e);
+              return null;
+            }
+          })
+          .filter(Boolean);
+        
+        console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
+        console.log("Images mises à jour:", imageFiles);
+        setImages(imageFiles);
+        
+        if (onChange) {
+          onChange(imageFiles);
+        }
+      } catch (error) {
+        console.error("Error loading images:", error);
+        setErrorMessage(`Erreur lors du chargement des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        setImages([]);
+      } finally {
+        setIsLoadingImages(false);
+        loadingRef.current = false;
+      }
+    };
+    
+    loadImages();
+    
+    return () => {
+      loadingRef.current = false;
+    };
+  }, [productId, onChange, retryCount, currentMainImage]);
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -96,7 +146,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !companyId) return;
+    if (!files || files.length === 0) return;
     
     setIsUploading(true);
     let uploadedCount = 0;
@@ -105,49 +155,23 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validation plus stricte des fichiers images
-        const isValidImage = file.type.startsWith('image/') || 
-                           file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
-        
-        if (!isValidImage) {
+        if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
           toast.error(`Le fichier ${file.name} n'est pas une image valide`);
           continue;
         }
         
-        // Vérifier la taille du fichier (max 50MB)
-        if (file.size > 50 * 1024 * 1024) {
-          toast.error(`Le fichier ${file.name} est trop volumineux (max 50MB)`);
-          continue;
-        }
-        
-        // Créer un nom de fichier unique avec l'ID du produit
-        const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const fileName = `product-${productId}-${timestamp}-${i}-${randomSuffix}.${extension}`;
-        
-        console.log(`Upload du fichier: ${fileName}`);
-        
-        const imageUrl = await uploadFileMultiTenant(
-          file,
-          "product-images",
-          fileName,
-          companyId
-        );
-        
+        const imageUrl = await uploadImage(file, "product-images", productId);
         if (imageUrl) {
           uploadedCount++;
-          console.log(`Fichier uploadé avec succès: ${imageUrl}`);
         }
       }
       
       if (uploadedCount > 0) {
         toast.success(`${uploadedCount} image(s) téléchargée(s) avec succès`);
-        // Recharger les images après l'upload
-        await loadImages();
+        setRetryCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error("Erreur lors de l'upload des images:", error);
+      console.error("Error uploading images:", error);
       toast.error("Erreur lors de l'upload des images");
     } finally {
       setIsUploading(false);
@@ -159,19 +183,24 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   };
   
   const handleDelete = async (imageName: string) => {
-    if (!companyId) return;
-    
     try {
-      console.log(`Suppression de l'image: ${imageName}`);
+      const filePath = `${productId}/${imageName}`;
+      console.log(`Deleting file ${filePath} from bucket product-images`);
       
-      const success = await deleteFileMultiTenant("product-images", imageName, companyId);
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
       
-      if (success) {
-        // Recharger les images après la suppression
-        await loadImages();
+      if (error) {
+        console.error('Error deleting file:', error);
+        toast.error(`Erreur lors de la suppression: ${error.message}`);
+        return;
       }
+      
+      toast.success("Image supprimée avec succès");
+      setRetryCount(prev => prev + 1);
     } catch (error) {
-      console.error("Erreur lors de la suppression de l'image:", error);
+      console.error("Error deleting image:", error);
       toast.error("Erreur lors de la suppression de l'image");
     }
   };
@@ -181,33 +210,14 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     if (onSetMainImage) {
       try {
         onSetMainImage(originalUrl);
-        console.log(`Image principale définie: ${originalUrl}`);
+        // We don't show success toast here because it will be shown by the parent component
+        // after the operation is actually complete
       } catch (error) {
-        console.error("Erreur lors de la définition de l'image principale:", error);
+        console.error("Error setting main image:", error);
         toast.error("Erreur lors de la définition de l'image principale");
       }
     }
   };
-  
-  if (multiTenantLoading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        <span>Chargement des informations multi-tenant...</span>
-      </div>
-    );
-  }
-
-  if (!companyId) {
-    return (
-      <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="text-red-500 h-5 w-5" />
-          <p className="text-red-700">Impossible de déterminer l'entreprise. Multi-tenant requis.</p>
-        </div>
-      </div>
-    );
-  }
   
   if (errorMessage) {
     return (
@@ -260,10 +270,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="text-xs text-muted-foreground mb-2">
-        Entreprise: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{companyId}</span>
-      </div>
-      
       <div className="flex items-center gap-4">
         <Label htmlFor="image-upload" className="cursor-pointer">
           <div className="flex items-center gap-2 px-4 py-2 border rounded bg-background hover:bg-accent">
@@ -278,14 +284,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
           multiple
           className="hidden"
           onChange={handleFileChange}
-          disabled={isUploading || !companyId}
+          disabled={isUploading}
         />
-        {isUploading && (
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Upload en cours...</span>
-          </div>
-        )}
+        {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
         <Button 
           variant="ghost" 
           size="sm" 
@@ -314,9 +315,6 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       ) : images.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">Aucune image n'a été téléchargée pour ce produit.</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Utilisez le bouton "Télécharger des images" ci-dessus pour ajouter des images.
-          </p>
         </Card>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -330,7 +328,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                     className="object-contain max-h-full max-w-full"
                     loading="lazy"
                     onError={(e) => {
-                      console.error(`Erreur de chargement de l'image: ${image.url}`);
+                      console.error(`Failed to load image: ${image.url}`);
                       (e.target as HTMLImageElement).src = "/placeholder.svg";
                     }}
                   />

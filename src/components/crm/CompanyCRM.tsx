@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { 
   Users, 
+  FileText, 
+  HandHeart, 
   Building, 
   Search,
   Plus,
@@ -29,6 +30,8 @@ import { useCompanyCRM } from "@/hooks/useCompanyDashboard";
 const CompanyCRM = () => {
   const { 
     clients, 
+    offers, 
+    contracts, 
     ambassadors, 
     partners, 
     stats, 
@@ -66,6 +69,13 @@ const CompanyCRM = () => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', { 
+      style: 'currency', 
+      currency: 'EUR' 
+    }).format(amount);
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -76,8 +86,8 @@ const CompanyCRM = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {[...Array(5)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-4 bg-muted rounded mb-2"></div>
@@ -116,7 +126,7 @@ const CompanyCRM = () => {
       </div>
 
       {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -125,6 +135,30 @@ const CompanyCRM = () => {
                 <p className="text-2xl font-bold">{stats.totalClients}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Offres</p>
+                <p className="text-2xl font-bold">{stats.totalOffers}</p>
+              </div>
+              <FileText className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Contrats</p>
+                <p className="text-2xl font-bold">{stats.totalContracts}</p>
+              </div>
+              <HandHeart className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -168,10 +202,18 @@ const CompanyCRM = () => {
 
       {/* Onglets CRM */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="clients" className="gap-2">
             <Users className="h-4 w-4" />
             Clients
+          </TabsTrigger>
+          <TabsTrigger value="offers" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Offres
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="gap-2">
+            <HandHeart className="h-4 w-4" />
+            Contrats
           </TabsTrigger>
           <TabsTrigger value="ambassadors" className="gap-2">
             <Users className="h-4 w-4" />
@@ -228,6 +270,108 @@ const CompanyCRM = () => {
                             </Button>
                             <Button variant="outline" size="sm">
                               <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="offers" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Offres de l'entreprise</CardTitle>
+              <CardDescription>
+                Suivez l'évolution de vos offres commerciales
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Montant</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Créé le</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {offers
+                    .filter(offer => 
+                      !searchTerm || 
+                      offer.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((offer) => (
+                      <TableRow key={offer.id}>
+                        <TableCell className="font-medium">{offer.client_name}</TableCell>
+                        <TableCell>{formatCurrency(offer.amount || 0)}</TableCell>
+                        <TableCell>{getStatusBadge(offer.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{offer.type || 'Standard'}</Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(offer.created_at)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contracts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contrats de l'entreprise</CardTitle>
+              <CardDescription>
+                Gérez vos contrats signés et en cours
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Paiement mensuel</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Créé le</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts
+                    .filter(contract => 
+                      !searchTerm || 
+                      contract.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((contract) => (
+                      <TableRow key={contract.id}>
+                        <TableCell className="font-medium">{contract.client_name}</TableCell>
+                        <TableCell>{formatCurrency(contract.monthly_payment || 0)}</TableCell>
+                        <TableCell>{getStatusBadge(contract.status)}</TableCell>
+                        <TableCell>{formatDate(contract.created_at)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>

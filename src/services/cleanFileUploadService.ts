@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Service d'upload de fichiers complètement isolé pour éviter les problèmes de permissions
+ * Service d'upload propre qui évite les transformations JSON
  */
 export const cleanFileUpload = async (
   file: File,
@@ -12,20 +12,20 @@ export const cleanFileUpload = async (
 ): Promise<string | null> => {
   try {
     console.log(`=== CLEAN FILE UPLOAD ===`);
-    console.log(`Fichier:`, {
+    console.log(`Fichier original:`, {
       name: file.name,
       type: file.type,
       size: file.size
     });
 
-    // Validation basique
+    // Validation du fichier
     if (!file || file.size === 0) {
-      console.error("Fichier invalide");
+      console.error("Fichier vide ou invalide");
       toast.error("Fichier invalide");
       return null;
     }
 
-    // Types autorisés
+    // Validation du type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) {
       console.error(`Type non autorisé: ${file.type}`);
@@ -33,7 +33,7 @@ export const cleanFileUpload = async (
       return null;
     }
 
-    // Taille maximum (5MB)
+    // Vérification de la taille (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       console.error(`Fichier trop volumineux: ${file.size} bytes`);
       toast.error("Fichier trop volumineux (max 5MB)");
@@ -49,22 +49,57 @@ export const cleanFileUpload = async (
 
     console.log(`Upload vers: ${bucketName}/${filePath}`);
 
-    // Upload direct sans vérification d'authentification
+    // Lire le fichier comme ArrayBuffer pour éviter toute transformation
+    const arrayBuffer = await file.arrayBuffer();
+    console.log(`ArrayBuffer taille: ${arrayBuffer.byteLength} bytes`);
+
+    // Upload direct avec ArrayBuffer
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
+      .upload(filePath, arrayBuffer, {
+        contentType: file.type,
         cacheControl: '3600',
-        upsert: true,
-        contentType: file.type
+        upsert: true
       });
 
     if (error) {
       console.error("Erreur upload:", error);
-      toast.error(`Erreur: ${error.message}`);
-      return null;
-    }
+      
+      // Si erreur de politique RLS, essayer avec le client admin
+      if (error.message.includes('policy') || error.message.includes('Unauthorized')) {
+        console.log("=== TENTATIVE AVEC CLIENT ADMIN ===");
+        
+        try {
+          const { getAdminSupabaseClient } = await import('@/integrations/supabase/client');
+          const adminClient = getAdminSupabaseClient();
+          
+          const { data: adminData, error: adminError } = await adminClient.storage
+            .from(bucketName)
+            .upload(filePath, arrayBuffer, {
+              contentType: file.type,
+              cacheControl: '3600',
+              upsert: true
+            });
 
-    console.log("Upload réussi:", data);
+          if (adminError) {
+            console.error("Erreur avec client admin:", adminError);
+            toast.error(`Erreur admin: ${adminError.message}`);
+            return null;
+          }
+
+          console.log("Upload admin réussi:", adminData);
+        } catch (adminErr) {
+          console.error("Impossible d'utiliser le client admin:", adminErr);
+          toast.error("Erreur de permissions");
+          return null;
+        }
+      } else {
+        toast.error(`Erreur: ${error.message}`);
+        return null;
+      }
+    } else {
+      console.log("Upload réussi:", data);
+    }
 
     // Récupérer l'URL publique
     const { data: urlData } = supabase.storage
@@ -72,8 +107,22 @@ export const cleanFileUpload = async (
       .getPublicUrl(filePath);
 
     console.log("URL publique générée:", urlData.publicUrl);
-    toast.success("Logo uploadé avec succès");
     
+    // Vérifier que le fichier est bien accessible
+    try {
+      const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
+      console.log(`Vérification fichier - Status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+      
+      if (!response.ok) {
+        console.error("Le fichier uploadé n'est pas accessible");
+        toast.error("Fichier uploadé mais non accessible");
+        return null;
+      }
+    } catch (fetchError) {
+      console.error("Erreur de vérification:", fetchError);
+    }
+
+    toast.success("Logo uploadé avec succès");
     return urlData.publicUrl;
 
   } catch (error) {

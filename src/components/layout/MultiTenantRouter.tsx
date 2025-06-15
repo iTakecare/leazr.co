@@ -9,7 +9,6 @@ import PartnerRoutes from "./PartnerRoutes";
 // Pages admin existantes
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
-import CalculatorPage from "@/pages/CalculatorPage";
 
 // Pages publiques (sans authentification)
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
@@ -39,7 +38,6 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
-import MultiTenantAnalysis from "@/pages/admin/MultiTenantAnalysis";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
@@ -102,7 +100,6 @@ const RoleBasedRoutes = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/calculator" element={<CalculatorPage />} />
         <Route path="/admin/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/clients/edit/:id" element={<ClientEditPage />} />
@@ -110,7 +107,6 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
         <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/admin/multi-tenant-analysis" element={<MultiTenantAnalysis />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
         <Route path="/catalog" element={<PublicCatalogMultiTenant />} />

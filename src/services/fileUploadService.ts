@@ -9,26 +9,39 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
     console.log(`Vérification de l'existence du bucket: ${bucketName}`);
     
-    // Vérifier si le bucket existe en listant les buckets
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error(`Erreur lors de la liste des buckets: ${listError.message}`);
-      return false;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.id === bucketName);
-    
-    if (bucketExists) {
+    // Vérifier si le bucket existe déjà en essayant de lister son contenu
+    const { data: listData, error: listError } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: 1 });
+
+    if (!listError) {
       console.log(`Le bucket ${bucketName} existe déjà`);
       return true;
     }
-    
-    console.log(`Le bucket ${bucketName} n'existe pas mais devrait être disponible`);
-    return true; // On continue car les buckets sont créés via migration
+
+    // Si le bucket n'existe pas, essayer de le créer
+    if (listError.message.includes('does not exist')) {
+      console.log(`Tentative de création du bucket: ${bucketName}`);
+      
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true
+      });
+
+      if (createError) {
+        console.error(`Erreur lors de la création du bucket ${bucketName}:`, createError);
+        toast.error(`Impossible de créer le bucket de stockage: ${createError.message}`);
+        return false;
+      }
+
+      console.log(`Bucket ${bucketName} créé avec succès`);
+      return true;
+    }
+
+    console.error(`Erreur d'accès au bucket ${bucketName}:`, listError);
+    return false;
   } catch (error) {
     console.error(`Erreur lors de la vérification du bucket ${bucketName}:`, error);
-    return true; // On continue quand même
+    return false;
   }
 };
 
@@ -64,95 +77,125 @@ export const uploadImage = async (
     // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
-      console.warn("Le bucket pourrait ne pas exister, tentative d'upload quand même");
+      toast.error("Erreur: Impossible d'accéder au stockage");
+      return null;
     }
     
     // Validation des types de fichiers
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     const fileExtension = file.name.toLowerCase().split('.').pop();
-    const isValidType = allowedTypes.includes(file.type) || 
-                       ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf'].includes(fileExtension || '');
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     
-    if (!isValidType) {
-      console.error("Type de fichier non autorisé:", file.type, fileExtension);
-      toast.error("Type de fichier non autorisé. Utilisez JPG, PNG, GIF, WEBP, SVG ou PDF.");
+    console.log(`Validation fichier:`, {
+      fileType: file.type,
+      extension: fileExtension,
+      typeValid: allowedTypes.includes(file.type),
+      extensionValid: allowedExtensions.includes(fileExtension || '')
+    });
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
+      console.error(`Type de fichier non autorisé: ${file.type}, extension: ${fileExtension}`);
+      toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
       return null;
     }
     
-    // Générer un nom de fichier unique
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux. Taille maximum: 5MB");
+      return null;
+    }
+    
+    // Créer un nom de fichier unique avec l'extension correcte
     const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '-');
-    const extension = fileExtension || 'bin';
-    const uniqueFileName = `${fileNameWithoutExt}-${timestamp}-${randomString}.${extension}`;
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const fileExt = fileExtension || (file.type.includes('jpeg') ? 'jpg' : file.type.split('/')[1]);
+    const fileName = `logo-${timestamp}-${randomId}.${fileExt}`;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+    console.log(`Informations d'upload:`, {
+      fileName,
+      filePath,
+      fileSize: file.size,
+      contentType: file.type
+    });
+
+    // UPLOAD CRITIQUE : Passer le File object RAW directement
+    console.log(`=== UPLOAD VERS SUPABASE ===`);
+    console.log(`Tentative d'upload du fichier File brut (${file.size} bytes) vers ${bucketName}/${filePath}`);
     
-    // Construire le chemin complet
-    const filePath = folder ? `${folder}/${uniqueFileName}` : uniqueFileName;
-    
-    console.log(`Upload vers ${bucketName}/${filePath}`);
-    
-    // Upload vers Supabase
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
-        contentType: file.type || `image/${extension}`,
-        upsert: true
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || getMimeType(fileExt)
       });
-    
+
     if (error) {
-      console.error("Erreur lors de l'upload:", error);
-      toast.error(`Erreur lors de l'upload: ${error.message}`);
+      console.error("=== ERREUR UPLOAD SUPABASE ===", {
+        message: error.message,
+        statusCode: error.statusCode,
+        error: error
+      });
+      toast.error(`Erreur lors du téléchargement: ${error.message}`);
       return null;
     }
-    
-    // Obtenir l'URL publique
-    const { data: publicUrlData } = supabase.storage
+
+    console.log("=== UPLOAD RÉUSSI ===", {
+      data,
+      path: data?.path,
+      fullPath: data?.fullPath
+    });
+
+    // Récupérer l'URL publique
+    const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
+
+    console.log("=== URL PUBLIQUE GÉNÉRÉE ===", {
+      publicUrl: urlData.publicUrl
+    });
     
-    if (!publicUrlData?.publicUrl) {
-      console.error("Impossible d'obtenir l'URL publique");
-      toast.error("Impossible d'obtenir l'URL publique du fichier");
-      return null;
-    }
+    toast.success("Logo téléchargé avec succès");
+    return urlData.publicUrl;
     
-    console.log(`Fichier uploadé avec succès: ${publicUrlData.publicUrl}`);
-    toast.success("Fichier uploadé avec succès");
-    return publicUrlData.publicUrl;
   } catch (error) {
-    console.error("Erreur générale dans uploadImage:", error);
-    toast.error("Erreur lors de l'upload du fichier");
+    console.error("=== ERREUR GÉNÉRALE UPLOAD ===", {
+      error,
+      message: error instanceof Error ? error.message : 'Erreur inconnue',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    toast.error("Erreur lors du téléchargement du fichier");
     return null;
   }
 };
 
-// Function to get a cache-busted URL for images
-export function getCacheBustedUrl(url: string | null | undefined): string {
-  if (!url) return "/placeholder.svg";
-  
-  try {
-    // Vérifier si l'URL est un object JSON (cas d'erreur connu)
-    if (url.startsWith('{') || url.startsWith('[')) {
-      console.error("Invalid image URL (JSON detected):", url);
-      return "/placeholder.svg";
-    }
-    
-    // Nettoyer l'URL en supprimant les paramètres existants
-    const urlParts = url.split('?');
-    const baseUrl = urlParts[0];
-    
-    // Si l'URL semble être un lien relatif ou incomplet, essayer de le corriger
-    let fixedUrl = baseUrl;
-    if (baseUrl.startsWith('//')) {
-      fixedUrl = 'https:' + baseUrl;
-    } else if (!baseUrl.startsWith('http') && !baseUrl.startsWith('/')) {
-      fixedUrl = '/' + baseUrl;
-    }
-    
-    // Ajouter un timestamp comme paramètre de cache-busting
-    return `${fixedUrl}?t=${Date.now()}`;
-  } catch (error) {
-    console.error("Erreur lors de la génération de l'URL avec cache-busting:", error);
-    return url || "/placeholder.svg";
+/**
+ * Ajoute un paramètre de cache-busting à une URL
+ */
+export const getCacheBustedUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}t=${Date.now()}`;
+};
+
+/**
+ * Détecte le type MIME à partir d'une extension de fichier
+ */
+export const getMimeType = (extension: string): string => {
+  switch (extension.toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'image/jpeg';
   }
-}
+};

@@ -1,25 +1,39 @@
 
 import React from "react";
-import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import AppSidebar from "./AppSidebar";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import Sidebar from "./Sidebar";
+import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
 
 interface LayoutProps {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  // Vérifier si on est sur une page SaaS Leazr (sous /admin/leazr-saas-*)
+  const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
+  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+
+  // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS
+  const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
+
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset>
-          <main className="flex-1 p-6">
-            {children || <Outlet />}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen bg-background flex w-full">
+      {shouldUseLeazrSaaSSidebar ? (
+        <LeazrSaaSSidebar />
+      ) : (
+        <Sidebar />
+      )}
+      
+      <main className="flex-1 overflow-auto">
+        <div className="h-full">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

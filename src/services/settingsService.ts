@@ -16,99 +16,86 @@ export interface SiteSettings {
 }
 
 /**
- * Récupère les paramètres du site - Version simplifiée sans authentification
+ * Récupère les paramètres du site
  */
 export const getSiteSettings = async (): Promise<SiteSettings | null> => {
   try {
-    console.log("=== RÉCUPÉRATION PARAMÈTRES SANS AUTH ===");
-    
-    // Requête directe sans vérification d'auth
     const { data, error } = await supabase
       .from('site_settings')
-      .select('id, site_name, site_description, company_name, company_address, company_phone, company_email, logo_url, created_at, updated_at')
+      .select('*')
       .order('id', { ascending: true })
       .limit(1)
-      .maybeSingle();
+      .single();
     
     if (error) {
-      console.error("Erreur récupération:", error);
+      console.error("Erreur lors de la récupération des paramètres:", error);
       return null;
     }
     
-    console.log("Paramètres récupérés:", data);
     return data as SiteSettings;
   } catch (error) {
-    console.error("Exception récupération:", error);
+    console.error("Exception lors de la récupération des paramètres:", error);
     return null;
   }
 };
 
 /**
- * Met à jour les paramètres - Version ultra-simplifiée
+ * Met à jour les paramètres du site
  */
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
   try {
-    console.log("=== DÉBUT MISE À JOUR ISOLÉE ===", settings);
-    
-    // Vérifier s'il y a déjà des paramètres
-    const { data: existing } = await supabase
-      .from('site_settings')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
-    
-    if (existing && existing.id) {
-      console.log("Mise à jour des paramètres existants ID:", existing.id);
-      
-      // Mise à jour simple sans références externes
-      const { error } = await supabase
-        .from('site_settings')
-        .update({
-          site_name: settings.site_name || 'Leazr',
-          site_description: settings.site_description || 'Hub de gestion',
-          company_name: settings.company_name || '',
-          company_address: settings.company_address || '',
-          company_phone: settings.company_phone || '',
-          company_email: settings.company_email || '',
-          logo_url: settings.logo_url || ''
-        })
-        .eq('id', existing.id);
-      
-      if (error) {
-        console.error("Erreur mise à jour:", error);
-        toast.error(`Erreur: ${error.message}`);
-        return false;
-      }
-    } else {
-      console.log("Création de nouveaux paramètres");
-      
-      // Création simple sans références externes
-      const { error } = await supabase
-        .from('site_settings')
-        .insert([{
-          site_name: settings.site_name || 'Leazr',
-          site_description: settings.site_description || 'Hub de gestion',
-          company_name: settings.company_name || '',
-          company_address: settings.company_address || '',
-          company_phone: settings.company_phone || '',
-          company_email: settings.company_email || '',
-          logo_url: settings.logo_url || ''
-        }]);
-      
-      if (error) {
-        console.error("Erreur création:", error);
-        toast.error(`Erreur: ${error.message}`);
-        return false;
+    // Récupérer l'ID actuel si on n'en a pas
+    if (!settings.id) {
+      const current = await getSiteSettings();
+      if (current && current.id) {
+        settings.id = current.id;
+      } else {
+        // Si pas de paramètres existants, en créer
+        const { data, error } = await supabase
+          .from('site_settings')
+          .insert([{
+            site_name: settings.site_name || 'Leazr',
+            site_description: settings.site_description || 'Hub de gestion',
+            company_name: settings.company_name,
+            company_address: settings.company_address,
+            company_phone: settings.company_phone,
+            company_email: settings.company_email,
+            logo_url: settings.logo_url
+          }])
+          .select()
+          .single();
+        
+        if (error) {
+          console.error("Erreur lors de la création des paramètres:", error);
+          toast.error("Erreur lors de la création des paramètres");
+          return false;
+        }
+        
+        toast.success("Paramètres créés avec succès");
+        return true;
       }
     }
-
-    console.log("=== SUCCÈS MISE À JOUR ===");
-    toast.success("Paramètres sauvegardés avec succès");
-    return true;
     
+    // Mise à jour des paramètres existants
+    const { error } = await supabase
+      .from('site_settings')
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', settings.id);
+    
+    if (error) {
+      console.error("Erreur lors de la mise à jour des paramètres:", error);
+      toast.error("Erreur lors de la mise à jour des paramètres");
+      return false;
+    }
+    
+    toast.success("Paramètres mis à jour avec succès");
+    return true;
   } catch (error) {
-    console.error("=== EXCEPTION MISE À JOUR ===", error);
-    toast.error("Erreur lors de la sauvegarde");
+    console.error("Exception lors de la mise à jour des paramètres:", error);
+    toast.error("Erreur lors de la mise à jour des paramètres");
     return false;
   }
 };
