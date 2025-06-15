@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -129,9 +128,9 @@ const CalculatorPage = () => {
           onClientSelect={() => {}}
         />
         
-        <div className="py-12 px-4">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center gap-3 mb-8">
+        <div className="py-6 px-4">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <div className="flex items-center gap-3 mb-6">
               <CalcIcon className="h-8 w-8 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900">
                 Calculateur de Mensualités
@@ -139,17 +138,17 @@ const CalculatorPage = () => {
             </div>
             
             {/* Layout côte à côte */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Calculateur - Colonne gauche */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Ajouter un équipement</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Ajouter un équipement</CardTitle>
+                    <CardDescription className="text-sm">
                       Calculez les mensualités de leasing pour vos équipements
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <EquipmentForm 
                       equipment={calculator.equipment}
                       setEquipment={calculator.setEquipment}
@@ -167,7 +166,32 @@ const CalculatorPage = () => {
                     />
                   </CardContent>
                 </Card>
+              </div>
 
+              {/* Liste des équipements - Colonne droite */}
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Liste des équipements calculés</CardTitle>
+                    <CardDescription className="text-sm">
+                      Gérez vos équipements et leurs mensualités
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <EquipmentList 
+                      equipmentList={calculator.equipmentList}
+                      startEditing={calculator.startEditing}
+                      removeFromList={calculator.removeFromList}
+                      updateQuantity={calculator.updateQuantity}
+                      editingId={calculator.editingId}
+                      totalMonthlyPayment={calculator.totalMonthlyPayment}
+                      globalMarginAdjustment={calculator.globalMarginAdjustment}
+                      toggleAdaptMonthlyPayment={calculator.toggleAdaptMonthlyPayment}
+                    />
+                  </CardContent>
+                </Card>
+                
+                {/* Section client déplacée ici */}
                 <ClientInfo
                   clientId={client?.id || null}
                   clientName={client?.name || ""}
@@ -182,30 +206,6 @@ const CalculatorPage = () => {
                   equipmentList={calculator.equipmentList}
                   hideFinancialDetails={!isAdmin()}
                 />
-              </div>
-
-              {/* Liste des équipements - Colonne droite */}
-              <div>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Liste des équipements calculés</CardTitle>
-                    <CardDescription>
-                      Gérez vos équipements et leurs mensualités
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <EquipmentList 
-                      equipmentList={calculator.equipmentList}
-                      startEditing={calculator.startEditing}
-                      removeFromList={calculator.removeFromList}
-                      updateQuantity={calculator.updateQuantity}
-                      editingId={calculator.editingId}
-                      totalMonthlyPayment={calculator.totalMonthlyPayment}
-                      globalMarginAdjustment={calculator.globalMarginAdjustment}
-                      toggleAdaptMonthlyPayment={calculator.toggleAdaptMonthlyPayment}
-                    />
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </div>
