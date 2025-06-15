@@ -9,7 +9,6 @@ import {
   Package, 
   Calculator,
   CreditCard,
-  Building2,
   LogOut
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -94,27 +93,34 @@ const AppSidebar = () => {
   };
 
   return (
-    <Sidebar className="border-r">
-      <SidebarHeader className="p-4">
-        <Link to="/dashboard" className="flex items-center space-x-2">
-          <Logo logoSize="md" showText={true} />
+    <Sidebar className="border-r border-gray-100 bg-white">
+      <SidebarHeader className="px-6 py-8 border-b border-gray-100">
+        <Link to="/dashboard" className="flex items-center space-x-3">
+          <Logo logoSize="lg" showText={true} />
         </Link>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="px-4 py-6">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-2">
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton 
                     asChild
                     isActive={isActive(item.href)}
-                    className="w-full justify-start"
+                    className={`
+                      h-12 px-4 rounded-xl transition-all duration-200 
+                      hover:bg-blue-50 hover:text-blue-700
+                      data-[state=active]:bg-blue-600 
+                      data-[state=active]:text-white 
+                      data-[state=active]:shadow-lg
+                      data-[state=active]:shadow-blue-600/20
+                    `}
                   >
-                    <Link to={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                    <Link to={item.href} className="flex items-center gap-3 w-full">
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -124,26 +130,26 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+      <SidebarFooter className="px-6 py-6 border-t border-gray-100">
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gray-50">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
             {getUserInitials()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-semibold text-gray-900 truncate">
               {user?.first_name && user?.last_name 
                 ? `${user.first_name} ${user.last_name}` 
                 : user?.email
               }
             </p>
-            <p className="text-xs text-gray-500">Admin</p>
+            <p className="text-xs text-gray-500">Administrateur</p>
           </div>
         </div>
         <SidebarMenuButton 
           onClick={handleLogout}
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="w-full h-10 justify-start text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 mr-3" />
           <span>Déconnexion</span>
         </SidebarMenuButton>
       </SidebarFooter>
