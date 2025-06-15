@@ -40,26 +40,12 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
 };
 
 /**
- * Met à jour les paramètres du site
+ * Met à jour les paramètres du site - Version simplifiée sans accès aux tables d'authentification
  */
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
   try {
-    // Récupérer l'utilisateur courant depuis le profil
-    const { data: currentUser } = await supabase.auth.getUser();
-    if (!currentUser.user) {
-      throw new Error("Utilisateur non authentifié");
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', currentUser.user.id)
-      .maybeSingle();
-
-    if (!profile?.company_id) {
-      throw new Error("Compagnie non trouvée");
-    }
-
+    console.log("Début de la mise à jour des paramètres:", settings);
+    
     // Récupérer l'ID actuel si on n'en a pas
     if (!settings.id) {
       const current = await getSiteSettings();
@@ -67,6 +53,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
         settings.id = current.id;
       } else {
         // Si pas de paramètres existants, en créer
+        console.log("Création de nouveaux paramètres");
         const { data, error } = await supabase
           .from('site_settings')
           .insert([{
@@ -87,28 +74,24 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
           return false;
         }
         
-        // Mettre à jour aussi la table companies avec le logo
-        if (settings.logo_url || settings.company_name) {
-          const updateData: any = {};
-          if (settings.logo_url) updateData.logo_url = settings.logo_url;
-          if (settings.company_name) updateData.name = settings.company_name;
-          
-          await supabase
-            .from('companies')
-            .update(updateData)
-            .eq('id', profile.company_id);
-        }
-        
+        console.log("Paramètres créés avec succès:", data);
         toast.success("Paramètres créés avec succès");
         return true;
       }
     }
     
     // Mise à jour des paramètres existants
+    console.log("Mise à jour des paramètres existants avec ID:", settings.id);
     const { error } = await supabase
       .from('site_settings')
       .update({
-        ...settings,
+        site_name: settings.site_name,
+        site_description: settings.site_description,
+        company_name: settings.company_name,
+        company_address: settings.company_address,
+        company_phone: settings.company_phone,
+        company_email: settings.company_email,
+        logo_url: settings.logo_url,
         updated_at: new Date().toISOString()
       })
       .eq('id', settings.id);
@@ -119,22 +102,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       return false;
     }
 
-    // Mettre à jour aussi la table companies avec le logo et le nom
-    if (settings.logo_url || settings.company_name) {
-      const updateData: any = {};
-      if (settings.logo_url) updateData.logo_url = settings.logo_url;
-      if (settings.company_name) updateData.name = settings.company_name;
-      
-      const { error: companyError } = await supabase
-        .from('companies')
-        .update(updateData)
-        .eq('id', profile.company_id);
-      
-      if (companyError) {
-        console.error("Erreur lors de la mise à jour de la compagnie:", companyError);
-      }
-    }
-    
+    console.log("Paramètres mis à jour avec succès");
     toast.success("Paramètres mis à jour avec succès");
     return true;
   } catch (error) {
