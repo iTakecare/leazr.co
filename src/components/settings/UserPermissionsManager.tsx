@@ -9,11 +9,12 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Settings, User, Shield } from "lucide-react";
+import { Settings, User, Shield, UserCheck } from "lucide-react";
 
 type Permission = {
   permission_name: string;
@@ -26,6 +27,13 @@ type Permission = {
 
 type PermissionGroup = {
   [module: string]: Permission[];
+};
+
+type PermissionProfile = {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
 };
 
 type UserPermissionsManagerProps = {
@@ -44,6 +52,8 @@ const UserPermissionsManager = ({
   onClose 
 }: UserPermissionsManagerProps) => {
   const [permissions, setPermissions] = useState<PermissionGroup>({});
+  const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [allPermissions, setAllPermissions] = useState<any[]>([]);
@@ -52,6 +62,7 @@ const UserPermissionsManager = ({
     if (isOpen && userId) {
       fetchUserPermissions();
       fetchAllPermissions();
+      fetchProfiles();
     }
   }, [isOpen, userId]);
 
@@ -92,6 +103,20 @@ const UserPermissionsManager = ({
       console.error("Error fetching all permissions:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('permission_profiles')
+        .select('id, name, description, permissions')
+        .order('name');
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error("Error fetching profiles:", error);
     }
   };
 
@@ -158,6 +183,29 @@ const UserPermissionsManager = ({
     }
   };
 
+  const handleApplyProfile = async (profileId: string) => {
+    if (!profileId) return;
+    
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.rpc('apply_permission_profile', {
+        p_user_id: userId,
+        p_profile_id: profileId
+      });
+
+      if (error) throw error;
+
+      toast.success("Profil appliqué avec succès");
+      setSelectedProfile("");
+      fetchUserPermissions();
+    } catch (error) {
+      console.error("Error applying profile:", error);
+      toast.error("Erreur lors de l'application du profil");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getModuleIcon = (module: string) => {
     switch (module) {
       case 'settings': return <Settings className="h-4 w-4" />;
@@ -219,6 +267,34 @@ const UserPermissionsManager = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Quick Profile Application */}
+          <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+            <UserCheck className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1">
+              <Label htmlFor="profile-select">Appliquer un profil prédéfini :</Label>
+              <Select value={selectedProfile} onValueChange={setSelectedProfile}>
+                <SelectTrigger className="w-full mt-2">
+                  <SelectValue placeholder="Choisir un profil de permissions..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.name} - {profile.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              onClick={() => handleApplyProfile(selectedProfile)}
+              disabled={!selectedProfile || saving}
+              size="sm"
+            >
+              Appliquer
+            </Button>
+          </div>
+
+          <Separator />
           {Object.entries(permissions).map(([module, modulePermissions]) => (
             <div key={module} className="space-y-3">
               <div className="flex items-center space-x-2">

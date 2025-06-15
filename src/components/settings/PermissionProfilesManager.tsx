@@ -22,9 +22,9 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Shield, Plus, Edit, Trash2, Users, Settings } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 
 type PermissionProfile = {
   id: string;
@@ -33,6 +33,7 @@ type PermissionProfile = {
   is_system: boolean;
   permissions: string[];
   created_at: string;
+  updated_at: string;
 };
 
 type Permission = {
@@ -43,20 +44,22 @@ type Permission = {
   action: string;
 };
 
+type PermissionGroup = {
+  [module: string]: Permission[];
+};
+
 const PermissionProfilesManager = () => {
   const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [permissions, setPermissions] = useState<PermissionGroup>({});
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<PermissionProfile | null>(null);
   
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    selectedPermissions: [] as string[]
-  });
+  const [profileName, setProfileName] = useState("");
+  const [profileDescription, setProfileDescription] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProfiles();
@@ -86,17 +89,26 @@ const PermissionProfilesManager = () => {
         .order('module, action');
 
       if (error) throw error;
-      setPermissions(data || []);
+
+      // Grouper les permissions par module
+      const grouped = (data || []).reduce((acc: PermissionGroup, perm: Permission) => {
+        if (!acc[perm.module]) {
+          acc[perm.module] = [];
+        }
+        acc[perm.module].push(perm);
+        return acc;
+      }, {});
+
+      setPermissions(grouped);
     } catch (error) {
       console.error("Error fetching permissions:", error);
-      toast.error("Erreur lors de la récupération des permissions");
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreateProfile = async () => {
-    if (!formData.name.trim()) {
+    if (!profileName.trim()) {
       toast.error("Le nom du profil est requis");
       return;
     }
@@ -105,14 +117,14 @@ const PermissionProfilesManager = () => {
       const { error } = await supabase
         .from('permission_profiles')
         .insert({
-          name: formData.name,
-          description: formData.description,
-          permissions: formData.selectedPermissions
+          name: profileName,
+          description: profileDescription,
+          permissions: selectedPermissions
         });
 
       if (error) throw error;
-      
-      toast.success("Profil de permissions créé avec succès");
+
+      toast.success("Profil créé avec succès");
       setShowCreateDialog(false);
       resetForm();
       fetchProfiles();
@@ -123,20 +135,20 @@ const PermissionProfilesManager = () => {
   };
 
   const handleEditProfile = async () => {
-    if (!selectedProfile || !formData.name.trim()) return;
+    if (!selectedProfile || !profileName.trim()) return;
 
     try {
       const { error } = await supabase
         .from('permission_profiles')
         .update({
-          name: formData.name,
-          description: formData.description,
-          permissions: formData.selectedPermissions
+          name: profileName,
+          description: profileDescription,
+          permissions: selectedPermissions
         })
         .eq('id', selectedProfile.id);
 
       if (error) throw error;
-      
+
       toast.success("Profil mis à jour avec succès");
       setShowEditDialog(false);
       resetForm();
@@ -157,10 +169,9 @@ const PermissionProfilesManager = () => {
         .eq('id', selectedProfile.id);
 
       if (error) throw error;
-      
+
       toast.success("Profil supprimé avec succès");
       setShowDeleteDialog(false);
-      setSelectedProfile(null);
       fetchProfiles();
     } catch (error) {
       console.error("Error deleting profile:", error);
@@ -168,27 +179,11 @@ const PermissionProfilesManager = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      selectedPermissions: []
-    });
-    setSelectedProfile(null);
-  };
-
-  const openCreateDialog = () => {
-    resetForm();
-    setShowCreateDialog(true);
-  };
-
   const openEditDialog = (profile: PermissionProfile) => {
     setSelectedProfile(profile);
-    setFormData({
-      name: profile.name,
-      description: profile.description || "",
-      selectedPermissions: profile.permissions || []
-    });
+    setProfileName(profile.name);
+    setProfileDescription(profile.description || "");
+    setSelectedPermissions(profile.permissions || []);
     setShowEditDialog(true);
   };
 
@@ -197,23 +192,19 @@ const PermissionProfilesManager = () => {
     setShowDeleteDialog(true);
   };
 
-  const handlePermissionToggle = (permissionId: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedPermissions: checked
-        ? [...prev.selectedPermissions, permissionId]
-        : prev.selectedPermissions.filter(id => id !== permissionId)
-    }));
+  const resetForm = () => {
+    setProfileName("");
+    setProfileDescription("");
+    setSelectedPermissions([]);
+    setSelectedProfile(null);
   };
 
-  const getPermissionsByModule = () => {
-    return permissions.reduce((acc, permission) => {
-      if (!acc[permission.module]) {
-        acc[permission.module] = [];
-      }
-      acc[permission.module].push(permission);
-      return acc;
-    }, {} as Record<string, Permission[]>);
+  const handlePermissionToggle = (permissionId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPermissions(prev => [...prev, permissionId]);
+    } else {
+      setSelectedPermissions(prev => prev.filter(id => id !== permissionId));
+    }
   };
 
   const getModuleLabel = (module: string) => {
@@ -244,79 +235,82 @@ const PermissionProfilesManager = () => {
   };
 
   if (loading) {
-    return <div className="py-8 text-center">Chargement des profils de permissions...</div>;
+    return <div className="py-8 text-center">Chargement des profils...</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-medium flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Profils de permissions</span>
-          </h3>
+          <h3 className="text-lg font-medium">Profils de permissions</h3>
           <p className="text-sm text-muted-foreground">
-            Gérer les profils types avec des ensembles de permissions prédéfinies
+            Gérez les profils de permissions prédéfinis pour faciliter l'attribution des droits.
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
+        <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nouveau profil
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {profiles.map((profile) => (
-          <Card key={profile.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base flex items-center space-x-2">
-                    <Shield className="h-4 w-4" />
-                    <span>{profile.name}</span>
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {profile.description || "Aucune description"}
-                  </CardDescription>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Permissions</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {profiles.map((profile) => (
+            <TableRow key={profile.id}>
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{profile.name}</span>
                 </div>
-                {profile.is_system && (
-                  <Badge variant="secondary" className="text-xs">
-                    Système
-                  </Badge>
+              </TableCell>
+              <TableCell className="max-w-xs truncate">
+                {profile.description}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">
+                  {profile.permissions?.length || 0} permissions
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {profile.is_system ? (
+                  <Badge variant="secondary">Système</Badge>
+                ) : (
+                  <Badge variant="outline">Personnalisé</Badge>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  {profile.permissions?.length || 0} permission(s)
-                </div>
-                <div className="flex space-x-2">
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-2">
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="sm" 
                     onClick={() => openEditDialog(profile)}
                     disabled={profile.is_system}
                   >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Modifier
+                    <Edit className="h-4 w-4" />
                   </Button>
-                  {!profile.is_system && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openDeleteDialog(profile)}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1 text-destructive" />
-                      Supprimer
-                    </Button>
-                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => openDeleteDialog(profile)}
+                    disabled={profile.is_system}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {/* Create Profile Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -324,55 +318,56 @@ const PermissionProfilesManager = () => {
           <DialogHeader>
             <DialogTitle>Créer un profil de permissions</DialogTitle>
             <DialogDescription>
-              Définissez un nouveau profil avec des permissions spécifiques
+              Définissez un nouveau profil avec les permissions appropriées.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom du profil</Label>
-              <Input 
-                id="name" 
-                value={formData.name} 
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ex: Gestionnaire commercial"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description" 
-                value={formData.description} 
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Description du profil et de ses responsabilités"
-              />
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom du profil</Label>
+                <Input
+                  id="name"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Ex: Gestionnaire commercial"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={profileDescription}
+                  onChange={(e) => setProfileDescription(e.target.value)}
+                  placeholder="Description du profil..."
+                  rows={2}
+                />
+              </div>
             </div>
 
+            <Separator />
+
             <div className="space-y-4">
-              <Label>Permissions</Label>
-              {Object.entries(getPermissionsByModule()).map(([module, modulePermissions]) => (
-                <div key={module} className="space-y-3">
-                  <h4 className="font-medium flex items-center space-x-2">
+              <h4 className="font-medium">Permissions</h4>
+              {Object.entries(permissions).map(([module, modulePermissions]) => (
+                <div key={module} className="space-y-2">
+                  <div className="flex items-center space-x-2">
                     <Settings className="h-4 w-4" />
-                    <span>{getModuleLabel(module)}</span>
-                  </h4>
-                  <div className="grid gap-2 pl-6">
+                    <h5 className="font-medium">{getModuleLabel(module)}</h5>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 ml-6">
                     {modulePermissions.map((permission) => (
                       <div key={permission.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={permission.id}
-                          checked={formData.selectedPermissions.includes(permission.id)}
+                        <Switch
+                          checked={selectedPermissions.includes(permission.id)}
                           onCheckedChange={(checked) => 
-                            handlePermissionToggle(permission.id, checked as boolean)
+                            handlePermissionToggle(permission.id, checked)
                           }
                         />
-                        <Label htmlFor={permission.id} className="flex items-center space-x-2 cursor-pointer">
-                          <Badge className={getActionColor(permission.action)}>
-                            {permission.action}
-                          </Badge>
-                          <span>{permission.description}</span>
-                        </Label>
+                        <Badge className={getActionColor(permission.action)}>
+                          {permission.action}
+                        </Badge>
+                        <span className="text-sm">{permission.description}</span>
                       </div>
                     ))}
                   </div>
@@ -380,7 +375,7 @@ const PermissionProfilesManager = () => {
               ))}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Annuler
@@ -398,55 +393,56 @@ const PermissionProfilesManager = () => {
           <DialogHeader>
             <DialogTitle>Modifier le profil de permissions</DialogTitle>
             <DialogDescription>
-              Modifiez les permissions du profil {selectedProfile?.name}
+              Modifiez les permissions du profil sélectionné.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="editName">Nom du profil</Label>
-              <Input 
-                id="editName" 
-                value={formData.name} 
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ex: Gestionnaire commercial"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="editDescription">Description</Label>
-              <Textarea 
-                id="editDescription" 
-                value={formData.description} 
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Description du profil et de ses responsabilités"
-              />
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editName">Nom du profil</Label>
+                <Input
+                  id="editName"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Ex: Gestionnaire commercial"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  value={profileDescription}
+                  onChange={(e) => setProfileDescription(e.target.value)}
+                  placeholder="Description du profil..."
+                  rows={2}
+                />
+              </div>
             </div>
 
+            <Separator />
+
             <div className="space-y-4">
-              <Label>Permissions</Label>
-              {Object.entries(getPermissionsByModule()).map(([module, modulePermissions]) => (
-                <div key={module} className="space-y-3">
-                  <h4 className="font-medium flex items-center space-x-2">
+              <h4 className="font-medium">Permissions</h4>
+              {Object.entries(permissions).map(([module, modulePermissions]) => (
+                <div key={module} className="space-y-2">
+                  <div className="flex items-center space-x-2">
                     <Settings className="h-4 w-4" />
-                    <span>{getModuleLabel(module)}</span>
-                  </h4>
-                  <div className="grid gap-2 pl-6">
+                    <h5 className="font-medium">{getModuleLabel(module)}</h5>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 ml-6">
                     {modulePermissions.map((permission) => (
                       <div key={permission.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`edit-${permission.id}`}
-                          checked={formData.selectedPermissions.includes(permission.id)}
+                        <Switch
+                          checked={selectedPermissions.includes(permission.id)}
                           onCheckedChange={(checked) => 
-                            handlePermissionToggle(permission.id, checked as boolean)
+                            handlePermissionToggle(permission.id, checked)
                           }
                         />
-                        <Label htmlFor={`edit-${permission.id}`} className="flex items-center space-x-2 cursor-pointer">
-                          <Badge className={getActionColor(permission.action)}>
-                            {permission.action}
-                          </Badge>
-                          <span>{permission.description}</span>
-                        </Label>
+                        <Badge className={getActionColor(permission.action)}>
+                          {permission.action}
+                        </Badge>
+                        <span className="text-sm">{permission.description}</span>
                       </div>
                     ))}
                   </div>
@@ -454,7 +450,7 @@ const PermissionProfilesManager = () => {
               ))}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Annuler
@@ -475,14 +471,17 @@ const PermissionProfilesManager = () => {
               Êtes-vous sûr de vouloir supprimer ce profil de permissions ? Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedProfile && (
             <div className="py-4">
               <p>Vous allez supprimer le profil :</p>
               <p className="font-medium mt-2">{selectedProfile.name}</p>
+              {selectedProfile.description && (
+                <p className="text-sm text-muted-foreground">{selectedProfile.description}</p>
+              )}
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Annuler
