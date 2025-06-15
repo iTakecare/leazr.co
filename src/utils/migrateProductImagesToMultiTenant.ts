@@ -24,7 +24,21 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
     console.log("=== DÉBUT MIGRATION MULTI-TENANT ===");
     console.log("Entreprise cible:", targetCompanyId);
 
-    // 1. Lister tous les fichiers dans le bucket product-images
+    // 1. Vérifier que le bucket existe et est accessible
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      result.errors.push(`Erreur lors de la vérification des buckets: ${bucketsError.message}`);
+      return result;
+    }
+    
+    const productImagesBucket = buckets?.find(bucket => bucket.id === 'product-images');
+    if (!productImagesBucket) {
+      result.errors.push('Le bucket product-images n\'existe pas');
+      return result;
+    }
+
+    // 2. Lister tous les fichiers dans le bucket product-images
     const { data: files, error: listError } = await supabase.storage
       .from('product-images')
       .list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
@@ -40,18 +54,25 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
       return result;
     }
 
-    console.log(`Trouvé ${files.length} fichiers à migrer`);
+    console.log(`Trouvé ${files.length} fichiers à examiner`);
 
-    // 2. Filtrer les fichiers qui ne sont pas déjà dans une structure multi-tenant
+    // 3. Filtrer les fichiers qui ne sont pas déjà dans une structure multi-tenant
     const filesToMigrate = files.filter(file => 
       !file.name.startsWith('company-') && 
       !file.name.startsWith('.') && 
-      file.name !== '.emptyFolderPlaceholder'
+      file.name !== '.emptyFolderPlaceholder' &&
+      file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) // Seulement les images
     );
 
-    console.log(`${filesToMigrate.length} fichiers à migrer vers la structure multi-tenant`);
+    console.log(`${filesToMigrate.length} fichiers d'images à migrer vers la structure multi-tenant`);
 
-    // 3. Migrer chaque fichier
+    if (filesToMigrate.length === 0) {
+      console.log("Aucun fichier à migrer - la structure multi-tenant est déjà en place");
+      result.success = true;
+      return result;
+    }
+
+    // 4. Migrer chaque fichier
     for (const file of filesToMigrate) {
       try {
         console.log(`Migration du fichier: ${file.name}`);
@@ -69,12 +90,24 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
         // Nouveau chemin avec structure multi-tenant
         const newPath = `company-${targetCompanyId}/${file.name}`;
 
+        // Vérifier si le fichier de destination existe déjà
+        const { data: existingFile, error: existingError } = await supabase.storage
+          .from('product-images')
+          .download(newPath);
+
+        if (existingFile && !existingError) {
+          console.log(`Le fichier ${newPath} existe déjà, on passe au suivant`);
+          result.migratedFiles++;
+          continue;
+        }
+
         // Uploader vers le nouveau chemin
         const { error: uploadError } = await supabase.storage
           .from('product-images')
           .upload(newPath, fileData, {
             cacheControl: '3600',
-            upsert: true
+            upsert: true,
+            contentType: file.metadata?.mimetype || 'image/jpeg'
           });
 
         if (uploadError) {
@@ -82,7 +115,17 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
           continue;
         }
 
-        // Supprimer l'ancien fichier
+        // Vérifier que l'upload a bien fonctionné
+        const { data: verifyData, error: verifyError } = await supabase.storage
+          .from('product-images')
+          .download(newPath);
+
+        if (verifyError || !verifyData) {
+          result.errors.push(`Erreur vérification upload ${newPath}: ${verifyError?.message || 'Fichier introuvable'}`);
+          continue;
+        }
+
+        // Supprimer l'ancien fichier seulement si l'upload a réussi
         const { error: deleteError } = await supabase.storage
           .from('product-images')
           .remove([file.name]);
@@ -95,7 +138,7 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
         console.log(`✅ Fichier migré: ${file.name} -> ${newPath}`);
         result.migratedFiles++;
 
-        // 4. Mettre à jour les références dans la base de données
+        // 5. Mettre à jour les références dans la base de données
         const oldUrl = supabase.storage.from('product-images').getPublicUrl(file.name).data.publicUrl;
         const newUrl = supabase.storage.from('product-images').getPublicUrl(newPath).data.publicUrl;
 
@@ -156,6 +199,23 @@ export const migrateProductImagesToMultiTenant = async (targetCompanyId: string)
  */
 export const getITakecareCompanyId = async (): Promise<string | null> => {
   try {
+    // D'abord essayer de récupérer l'entreprise de l'utilisateur connecté
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profileError && userProfile?.company_id) {
+        console.log(`Utilisation de l'entreprise de l'utilisateur: ${userProfile.company_id}`);
+        return userProfile.company_id;
+      }
+    }
+
+    // Sinon, chercher iTakecare par nom
     const { data: companies, error } = await supabase
       .from('companies')
       .select('id, name')
@@ -168,21 +228,23 @@ export const getITakecareCompanyId = async (): Promise<string | null> => {
     }
 
     if (companies && companies.length > 0) {
+      console.log(`Entreprise iTakecare trouvée: ${companies[0].name} (${companies[0].id})`);
       return companies[0].id;
     }
 
-    // Si pas trouvé par nom, essayer de trouver la première entreprise
+    // Si pas trouvé par nom, essayer de trouver la première entreprise active
     const { data: firstCompany, error: firstError } = await supabase
       .from('companies')
       .select('id, name')
+      .eq('is_active', true)
       .limit(1);
 
     if (firstError || !firstCompany || firstCompany.length === 0) {
-      console.error("Aucune entreprise trouvée");
+      console.error("Aucune entreprise active trouvée");
       return null;
     }
 
-    console.log(`Utilisation de l'entreprise: ${firstCompany[0].name} (${firstCompany[0].id})`);
+    console.log(`Utilisation de la première entreprise active: ${firstCompany[0].name} (${firstCompany[0].id})`);
     return firstCompany[0].id;
 
   } catch (error) {
