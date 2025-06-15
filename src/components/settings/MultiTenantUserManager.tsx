@@ -21,7 +21,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, UserPlus, Trash2, Edit, RefreshCw, Building2, Shield } from "lucide-react";
+import { User, UserPlus, Trash2, Edit, RefreshCw, Building2, Shield, UserCheck } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Badge } from "@/components/ui/badge";
 import UserPermissionsManager from "./UserPermissionsManager";
@@ -44,10 +44,18 @@ type Company = {
   is_active: boolean;
 };
 
+type PermissionProfile = {
+  id: string;
+  name: string;
+  description: string;
+  is_system: boolean;
+};
+
 const MultiTenantUserManager = () => {
   const { companyId, loading: companyLoading } = useMultiTenant();
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [permissionProfiles, setPermissionProfiles] = useState<PermissionProfile[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -55,7 +63,9 @@ const MultiTenantUserManager = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [showApplyProfileDialog, setShowApplyProfileDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<CompanyUser | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -68,6 +78,7 @@ const MultiTenantUserManager = () => {
     if (!companyLoading && companyId) {
       checkPermissions();
       fetchCompanies();
+      fetchPermissionProfiles();
       setSelectedCompany(companyId);
     }
   }, [companyLoading, companyId]);
@@ -101,6 +112,21 @@ const MultiTenantUserManager = () => {
     } catch (error) {
       console.error("Error fetching companies:", error);
       toast.error("Erreur lors de la récupération des entreprises");
+    }
+  };
+
+  const fetchPermissionProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('permission_profiles')
+        .select('id, name, description, is_system')
+        .order('name');
+      
+      if (error) throw error;
+      setPermissionProfiles(data || []);
+    } catch (error) {
+      console.error("Error fetching permission profiles:", error);
+      toast.error("Erreur lors de la récupération des profils de permissions");
     }
   };
   
@@ -230,6 +256,36 @@ const MultiTenantUserManager = () => {
     setSelectedUser(user);
     setShowPermissionsDialog(true);
   };
+
+  const openApplyProfileDialog = (user: CompanyUser) => {
+    setSelectedUser(user);
+    setSelectedProfileId("");
+    setShowApplyProfileDialog(true);
+  };
+
+  const handleApplyProfile = async () => {
+    if (!selectedUser || !selectedProfileId) {
+      toast.error("Veuillez sélectionner un profil");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('apply_permission_profile', {
+        p_user_id: selectedUser.user_id,
+        p_profile_id: selectedProfileId
+      });
+
+      if (error) throw error;
+
+      toast.success("Profil de permissions appliqué avec succès");
+      setShowApplyProfileDialog(false);
+      setSelectedUser(null);
+      setSelectedProfileId("");
+    } catch (error) {
+      console.error("Error applying permission profile:", error);
+      toast.error("Erreur lors de l'application du profil");
+    }
+  };
   
   const formatDate = (dateString: string) => {
     if (!dateString) return "Jamais";
@@ -338,6 +394,9 @@ const MultiTenantUserManager = () => {
                   <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => openApplyProfileDialog(user)} title="Appliquer un profil">
+                        <UserCheck className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => openPermissionsDialog(user)} title="Gérer les permissions">
                         <Shield className="h-4 w-4" />
                       </Button>
@@ -567,6 +626,60 @@ const MultiTenantUserManager = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser}>
               Supprimer définitivement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Profile Dialog */}
+      <Dialog open={showApplyProfileDialog} onOpenChange={setShowApplyProfileDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Appliquer un profil de permissions</DialogTitle>
+            <DialogDescription>
+              Sélectionnez un profil à appliquer à l'utilisateur {selectedUser?.first_name} {selectedUser?.last_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile">Profil de permissions</Label>
+              <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un profil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {permissionProfiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{profile.name}</span>
+                        {profile.is_system && (
+                          <Badge variant="secondary" className="text-xs">
+                            Système
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedProfileId && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm">
+                  {permissionProfiles.find(p => p.id === selectedProfileId)?.description || "Aucune description"}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApplyProfileDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleApplyProfile}>
+              Appliquer le profil
             </Button>
           </DialogFooter>
         </DialogContent>

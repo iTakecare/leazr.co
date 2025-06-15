@@ -1616,6 +1616,36 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_profiles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          permissions: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           action: string
@@ -2205,6 +2235,10 @@ export type Database = {
           translation: string
           updated_at: string
         }
+      }
+      apply_permission_profile: {
+        Args: { p_user_id: string; p_profile_id: string }
+        Returns: boolean
       }
       calculate_total_revenue: {
         Args: { time_filter: string }

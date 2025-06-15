@@ -16,6 +16,7 @@ import CommissionManager from '@/components/settings/CommissionManager';
 import ContractSettings from '@/components/settings/ContractSettings';
 import DataImporter from '@/components/settings/DataImporter';
 import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager';
+import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -71,7 +72,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -103,6 +104,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
+          </TabsTrigger>
+          <TabsTrigger value="profiles" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Profils
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -140,6 +145,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="users" className="mt-6">
           <MultiTenantUserManager />
+        </TabsContent>
+
+        <TabsContent value="profiles" className="mt-6">
+          <PermissionProfilesManager />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
