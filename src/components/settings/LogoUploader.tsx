@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { cleanFileUpload } from "@/services/cleanFileUploadService";
-import { getCacheBustedUrl } from "@/services/fileUploadService";
+import { simpleLogoUpload } from "@/services/simpleLogoUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -36,7 +35,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== FICHIER SÉLECTIONNÉ POUR UPLOAD LOGO ===", {
+    console.log("=== FICHIER SÉLECTIONNÉ POUR UPLOAD SIMPLE ===", {
       name: file.name,
       type: file.type,
       size: file.size
@@ -48,12 +47,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("=== TENTATIVE UPLOAD LOGO ===");
+      console.log("=== TENTATIVE UPLOAD SIMPLE ===");
       
-      const url = await cleanFileUpload(file, bucketName, folderPath);
+      const url = await simpleLogoUpload(file);
       
       if (url) {
-        console.log("=== UPLOAD LOGO RÉUSSI ===", { url });
+        console.log("=== UPLOAD SIMPLE RÉUSSI ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -63,7 +62,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         
         toast.success("Logo uploadé avec succès");
       } else {
-        console.error("=== ÉCHEC UPLOAD LOGO ===");
+        console.error("=== ÉCHEC UPLOAD SIMPLE ===");
         setErrorMessage("Impossible d'uploader le logo");
         toast.error("Échec de l'upload du logo");
       }
@@ -100,7 +99,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   };
 
   // URL avec cache-busting pour l'affichage
-  const displayLogoUrl = logoUrl ? getCacheBustedUrl(logoUrl) : '';
+  const displayLogoUrl = logoUrl ? `${logoUrl}?v=${Date.now()}` : '';
 
   return (
     <div className="space-y-4">
