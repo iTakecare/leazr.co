@@ -103,7 +103,7 @@ const Sidebar = () => {
             label={item.label}
             path={item.path}
             icon={item.icon}
-            isActive={isActive(item.path)}
+            isActive={isActive}
           />
         ))}
         
@@ -119,7 +119,7 @@ const Sidebar = () => {
               label={item.label}
               path={item.path}
               icon={item.icon}
-              isActive={isActive(item.path)}
+              isActive={isActive}
             />
           ))}
         </div>
