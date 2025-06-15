@@ -9,6 +9,66 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_pending_requests: {
+        Row: {
+          amount: number | null
+          client_company: string | null
+          client_contact_email: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string | null
+          coefficient: number | null
+          commission: number | null
+          converted_to_contract: boolean | null
+          created_at: string | null
+          equipment_description: string | null
+          id: string | null
+          monthly_payment: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          workflow_status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          client_company?: string | null
+          client_contact_email?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          coefficient?: number | null
+          commission?: number | null
+          converted_to_contract?: boolean | null
+          created_at?: string | null
+          equipment_description?: string | null
+          id?: string | null
+          monthly_payment?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          client_company?: string | null
+          client_contact_email?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          coefficient?: number | null
+          commission?: number | null
+          converted_to_contract?: boolean | null
+          created_at?: string | null
+          equipment_description?: string | null
+          id?: string | null
+          monthly_payment?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workflow_status?: string | null
+        }
+        Relationships: []
+      }
       ambassador_clients: {
         Row: {
           ambassador_id: string
@@ -680,13 +740,6 @@ export type Database = {
             foreignKeyName: "contracts_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
-            referencedRelation: "admin_pending_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contracts_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["id"]
           },
@@ -987,13 +1040,6 @@ export type Database = {
             foreignKeyName: "offer_equipment_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
-            referencedRelation: "admin_pending_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "offer_equipment_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["id"]
           },
@@ -1099,13 +1145,6 @@ export type Database = {
             foreignKeyName: "offer_info_requests_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
-            referencedRelation: "admin_pending_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "offer_info_requests_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["id"]
           },
@@ -1137,13 +1176,6 @@ export type Database = {
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "offer_notes_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "admin_pending_requests"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "offer_notes_offer_id_fkey"
             columns: ["offer_id"]
@@ -2197,36 +2229,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_pending_requests: {
-        Row: {
-          amount: number | null
-          client_company: string | null
-          client_contact_email: string | null
-          client_email: string | null
-          client_id: string | null
-          client_name: string | null
-          coefficient: number | null
-          commission: number | null
-          converted_to_contract: boolean | null
-          created_at: string | null
-          equipment_description: string | null
-          id: string | null
-          monthly_payment: number | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-          workflow_status: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offers_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       add_brand: {
@@ -2625,6 +2628,10 @@ export type Database = {
         Returns: boolean
       }
       organize_product_variants: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_admin_pending_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
