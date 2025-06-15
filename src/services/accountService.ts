@@ -195,41 +195,33 @@ export const deleteUserAccount = async (userId: string): Promise<boolean> => {
       }
     }
     
-    // Delete profile record using direct SQL (more reliable)
-    try {
-      const { error: profileDeleteError } = await supabase.rpc(
-        'execute_sql',
-        { sql: `DELETE FROM public.profiles WHERE id = '${userId}'` }
-      );
-      
-      if (profileDeleteError) {
-        console.error("Error deleting profile via SQL:", profileDeleteError);
-        toast.error(`Error: ${profileDeleteError.message}`);
-        return false;
-      }
-    } catch (sqlExecError) {
-      console.error("Error executing SQL to delete profile:", sqlExecError);
-      toast.error("Error deleting profile");
-      return false;
+    // Delete profile record
+    const { error: profileDeleteError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileDeleteError) {
+      console.error("Error deleting profile:", profileDeleteError);
+      // Continue with the process even if profile deletion fails
     }
     
-    // Delete user using direct SQL (more reliable than API)
+    // Use Supabase edge function to delete user from auth.users
     try {
-      const { error: userDeleteError } = await supabase.rpc(
-        'execute_sql',
-        { sql: `DELETE FROM auth.users WHERE id = '${userId}'` }
-      );
+      const { error: userDeleteError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId }
+      });
       
       if (userDeleteError) {
-        console.error("Error deleting user via SQL:", userDeleteError);
+        console.error("Error deleting user via edge function:", userDeleteError);
         toast.error(`Error: ${userDeleteError.message}`);
         return false;
       }
       
       toast.success("User account deleted successfully");
       return true;
-    } catch (sqlExecError) {
-      console.error("Error executing SQL to delete user:", sqlExecError);
+    } catch (edgeFunctionError) {
+      console.error("Error calling delete user edge function:", edgeFunctionError);
       toast.error("Error deleting user");
       return false;
     }
