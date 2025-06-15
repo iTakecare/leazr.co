@@ -17,7 +17,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 const Sidebar = () => {
