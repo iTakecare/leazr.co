@@ -2264,6 +2264,30 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_company_dashboard_metrics: {
+        Args: { p_company_id: string; time_filter?: string }
+        Returns: {
+          total_revenue: number
+          total_clients: number
+          total_offers: number
+          total_contracts: number
+          pending_offers: number
+          active_contracts: number
+          monthly_growth_revenue: number
+          monthly_growth_clients: number
+        }[]
+      }
+      get_company_recent_activity: {
+        Args: { p_company_id: string; p_limit?: number }
+        Returns: {
+          activity_type: string
+          activity_description: string
+          entity_id: string
+          entity_name: string
+          created_at: string
+          user_name: string
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
