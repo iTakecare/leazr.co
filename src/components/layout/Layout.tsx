@@ -4,7 +4,11 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "./AppSidebar";
 
-const Layout = () => {
+interface LayoutProps {
+  children?: React.ReactNode;
+}
+
+const Layout = ({ children }: LayoutProps) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -14,7 +18,7 @@ const Layout = () => {
             <SidebarTrigger className="-ml-1" />
           </header>
           <main className="flex-1">
-            <Outlet />
+            {children || <Outlet />}
           </main>
         </SidebarInset>
       </div>
