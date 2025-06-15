@@ -42,9 +42,19 @@ const CalculatorPage = () => {
                   </CardHeader>
                   <CardContent>
                     <EquipmentForm 
-                      calculator={calculator}
+                      equipment={calculator.equipment}
+                      setEquipment={calculator.setEquipment}
                       selectedLeaser={selectedLeaser}
-                      setSelectedLeaser={setSelectedLeaser}
+                      addToList={calculator.addToList}
+                      editingId={calculator.editingId}
+                      cancelEditing={calculator.cancelEditing}
+                      onOpenCatalog={() => {}}
+                      coefficient={calculator.coefficient}
+                      monthlyPayment={calculator.monthlyPayment}
+                      targetMonthlyPayment={calculator.targetMonthlyPayment}
+                      setTargetMonthlyPayment={calculator.setTargetMonthlyPayment}
+                      calculatedMargin={calculator.calculatedMargin}
+                      applyCalculatedMargin={calculator.applyCalculatedMargin}
                     />
                   </CardContent>
                 </Card>
@@ -60,8 +70,14 @@ const CalculatorPage = () => {
                   </CardHeader>
                   <CardContent>
                     <EquipmentList 
-                      calculator={calculator}
-                      selectedLeaser={selectedLeaser}
+                      equipmentList={calculator.equipmentList}
+                      startEditing={calculator.startEditing}
+                      removeFromList={calculator.removeFromList}
+                      updateQuantity={calculator.updateQuantity}
+                      editingId={calculator.editingId}
+                      totalMonthlyPayment={calculator.totalMonthlyPayment}
+                      globalMarginAdjustment={calculator.globalMarginAdjustment}
+                      toggleAdaptMonthlyPayment={calculator.toggleAdaptMonthlyPayment}
                     />
                   </CardContent>
                 </Card>
