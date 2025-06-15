@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -128,27 +129,27 @@ const CalculatorPage = () => {
           onClientSelect={() => {}}
         />
         
-        <div className="py-6 px-4">
-          <div className="max-w-7xl mx-auto space-y-4">
-            <div className="flex items-center gap-3 mb-6">
-              <CalcIcon className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">
+        <div className="py-3 px-3">
+          <div className="max-w-7xl mx-auto space-y-3">
+            <div className="flex items-center gap-3 mb-4">
+              <CalcIcon className="h-6 w-6 text-blue-600" />
+              <h1 className="text-xl font-bold text-gray-900">
                 Calculateur de Mensualités
               </h1>
             </div>
             
             {/* Layout côte à côte */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Calculateur - Colonne gauche */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Ajouter un équipement</CardTitle>
-                    <CardDescription className="text-sm">
+                  <CardHeader className="pb-2 pt-3 px-3">
+                    <CardTitle className="text-base">Ajouter un équipement</CardTitle>
+                    <CardDescription className="text-xs">
                       Calculez les mensualités de leasing pour vos équipements
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 px-3 pb-3">
                     <EquipmentForm 
                       equipment={calculator.equipment}
                       setEquipment={calculator.setEquipment}
@@ -169,15 +170,15 @@ const CalculatorPage = () => {
               </div>
 
               {/* Liste des équipements - Colonne droite */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Liste des équipements calculés</CardTitle>
-                    <CardDescription className="text-sm">
+                  <CardHeader className="pb-2 pt-3 px-3">
+                    <CardTitle className="text-base">Liste des équipements calculés</CardTitle>
+                    <CardDescription className="text-xs">
                       Gérez vos équipements et leurs mensualités
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 px-3 pb-3">
                     <EquipmentList 
                       equipmentList={calculator.equipmentList}
                       startEditing={calculator.startEditing}
