@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Upload, RefreshCw, AlertCircle, Check } from "lucide-react";
-import { simpleLogoUpload } from "@/services/simpleLogoUploadService";
+import { uploadImage } from "@/services/fileUploadService";
 
 interface LogoUploaderProps {
   initialLogoUrl?: string;
@@ -35,7 +36,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log("=== FICHIER SÉLECTIONNÉ POUR UPLOAD SIMPLE ===", {
+    console.log("=== FICHIER SÉLECTIONNÉ ===", {
       name: file.name,
       type: file.type,
       size: file.size
@@ -47,12 +48,12 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
     setIsUploading(true);
     
     try {
-      console.log("=== TENTATIVE UPLOAD SIMPLE ===");
+      console.log("=== TENTATIVE UPLOAD VERS BUCKET CONFIGURÉ ===");
       
-      const url = await simpleLogoUpload(file);
+      const url = await uploadImage(file, bucketName, folderPath);
       
       if (url) {
-        console.log("=== UPLOAD SIMPLE RÉUSSI ===", { url });
+        console.log("=== UPLOAD RÉUSSI ===", { url });
         setLogoUrl(url);
         setUploadSuccess(true);
         
@@ -62,7 +63,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
         
         toast.success("Logo uploadé avec succès");
       } else {
-        console.error("=== ÉCHEC UPLOAD SIMPLE ===");
+        console.error("=== ÉCHEC UPLOAD ===");
         setErrorMessage("Impossible d'uploader le logo");
         toast.error("Échec de l'upload du logo");
       }
