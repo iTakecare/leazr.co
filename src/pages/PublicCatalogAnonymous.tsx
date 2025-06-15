@@ -9,7 +9,7 @@ import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Sear
 import { supabase } from "@/integrations/supabase/client";
 import CompanyCustomizationService from "@/services/companyCustomizationService";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
-import ProductGridCard from "@/components/catalog/public/ProductGridCard";
+import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
 
 const PublicCatalogAnonymous = () => {
@@ -194,7 +194,7 @@ const PublicCatalogAnonymous = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {filteredProducts.map((product) => (
-              <ProductGridCard
+              <CatalogProductCard
                 key={product.id}
                 product={product}
                 onClick={() => {
