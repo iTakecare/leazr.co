@@ -53,7 +53,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
         throw new Error("Impossible de récupérer les informations du client");
       }
       
-      // Si le client a un compte utilisateur, le supprimer d'abord
+      // Si le client a un compte utilisateur, essayer de le supprimer
       if (clientData.user_id) {
         console.log(`Le client ${clientData.name} a un compte utilisateur (${clientData.user_id}), suppression du compte...`);
         
@@ -63,10 +63,15 @@ const ClientsList: React.FC<ClientsListProps> = ({
         
         if (userDeleteError) {
           console.error("Erreur lors de la suppression du compte utilisateur:", userDeleteError);
-          throw new Error(`Erreur lors de la suppression du compte: ${userDeleteError.message}`);
+          // Ne pas bloquer la suppression du client si l'utilisateur n'existe plus
+          if (userDeleteError.message && userDeleteError.message.includes('User not found')) {
+            console.log("L'utilisateur n'existe plus, on continue la suppression du client");
+          } else {
+            throw new Error(`Erreur lors de la suppression du compte: ${userDeleteError.message}`);
+          }
+        } else {
+          console.log("Compte utilisateur supprimé avec succès");
         }
-        
-        console.log("Compte utilisateur supprimé avec succès");
       }
       
       // Maintenant supprimer le client
