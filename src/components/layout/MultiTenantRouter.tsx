@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +39,7 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
+import MultiTenantAnalysis from "@/pages/admin/MultiTenantAnalysis";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
@@ -107,6 +109,7 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
         <Route path="/admin/settings" element={<Settings />} />
+        <Route path="/admin/multi-tenant-analysis" element={<MultiTenantAnalysis />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
         <Route path="/catalog" element={<PublicCatalogMultiTenant />} />
