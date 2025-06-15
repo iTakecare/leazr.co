@@ -29,6 +29,7 @@ import Offers from "@/pages/Offers";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
+import CRMPage from "@/pages/CRMPage";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
@@ -94,6 +95,7 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/contracts" element={<Contracts />} />
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
+        <Route path="/crm" element={<CRMPage />} />
         <Route path="/catalog" element={<PublicCatalogMultiTenant />} />
         <Route path="/admin/catalog" element={<CatalogManagement />} />
         <Route path="/catalog/edit/:id" element={<ProductEditPage />} />
