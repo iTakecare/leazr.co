@@ -61,20 +61,20 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
       
       if (combinationPrices.length > 0) {
         const minCombinationPrice = Math.min(...combinationPrices);
-        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
+        if (minCombinationPrice > 0) {
           minPrice = minCombinationPrice;
         }
       }
     }
     
-    else if (product.variants && product.variants.length > 0) {
+    if (product.variants && product.variants.length > 0 && minPrice === 0) {
       const variantPrices = product.variants
         .map(variant => variant.monthly_price || 0)
         .filter(price => price > 0);
       
       if (variantPrices.length > 0) {
         const minVariantPrice = Math.min(...variantPrices);
-        if (minVariantPrice > 0 && (minPrice === 0 || minVariantPrice < minPrice)) {
+        if (minVariantPrice > 0) {
           minPrice = minVariantPrice;
         }
       }
