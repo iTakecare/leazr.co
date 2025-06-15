@@ -9,6 +9,10 @@ import PartnerRoutes from "./PartnerRoutes";
 // Pages admin existantes
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+
+// Pages publiques (sans authentification)
+import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
+import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
 import CatalogManagement from "@/pages/CatalogManagement";
 import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
@@ -44,6 +48,10 @@ const MultiTenantRouter = () => {
     <Routes>
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
+      
+      {/* Routes publiques pour les entreprises (sans authentification) */}
+      <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
+      <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
       
       {/* Routage intelligent basé sur le rôle */}
       <Route path="/*" element={<RoleBasedRoutes />} />
