@@ -44,6 +44,22 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
  */
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
   try {
+    // Récupérer l'utilisateur courant et sa compagnie
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.company_id) {
+      throw new Error("Compagnie non trouvée");
+    }
+
     // Récupérer l'ID actuel si on n'en a pas
     if (!settings.id) {
       const current = await getSiteSettings();
@@ -71,6 +87,18 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
           return false;
         }
         
+        // Mettre à jour aussi la table companies avec le logo
+        if (settings.logo_url || settings.company_name) {
+          const updateData: any = {};
+          if (settings.logo_url) updateData.logo_url = settings.logo_url;
+          if (settings.company_name) updateData.name = settings.company_name;
+          
+          await supabase
+            .from('companies')
+            .update(updateData)
+            .eq('id', profile.company_id);
+        }
+        
         toast.success("Paramètres créés avec succès");
         return true;
       }
@@ -89,6 +117,22 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       console.error("Erreur lors de la mise à jour des paramètres:", error);
       toast.error("Erreur lors de la mise à jour des paramètres");
       return false;
+    }
+
+    // Mettre à jour aussi la table companies avec le logo et le nom
+    if (settings.logo_url || settings.company_name) {
+      const updateData: any = {};
+      if (settings.logo_url) updateData.logo_url = settings.logo_url;
+      if (settings.company_name) updateData.name = settings.company_name;
+      
+      const { error: companyError } = await supabase
+        .from('companies')
+        .update(updateData)
+        .eq('id', profile.company_id);
+      
+      if (companyError) {
+        console.error("Erreur lors de la mise à jour de la compagnie:", companyError);
+      }
     }
     
     toast.success("Paramètres mis à jour avec succès");
