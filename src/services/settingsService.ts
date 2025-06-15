@@ -44,7 +44,7 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
  */
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
   try {
-    // Récupérer l'utilisateur courant et sa compagnie
+    // Récupérer l'utilisateur courant et sa compagnie depuis profiles
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error("Utilisateur non authentifié");
