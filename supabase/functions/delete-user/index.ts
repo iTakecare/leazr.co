@@ -83,22 +83,8 @@ serve(async (req) => {
       console.log(`Exception when deleting profile: ${err.message}`);
     }
     
-    try {
-      console.log("Attempting direct SQL deletion as fallback");
-      // Try using RPC to delete the user (this is a fallback method)
-      const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc(
-        'execute_sql',
-        { sql: `DELETE FROM auth.users WHERE id = '${user_id}'` }
-      );
-      
-      if (rpcError) {
-        console.log(`Error in RPC method: ${rpcError.message}`);
-      } else {
-        console.log("User possibly deleted via SQL RPC method");
-      }
-    } catch (sqlErr) {
-      console.log(`SQL fallback method failed: ${sqlErr.message}`);
-    }
+    // Delete the user with admin supabase client (primary method)
+    console.log("Attempting to delete user via admin.deleteUser method");
     
     // Delete the user with admin supabase client (primary method)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
