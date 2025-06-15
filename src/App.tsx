@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import MultiTenantRouter from "@/components/layout/MultiTenantRouter";
 
 const queryClient = new QueryClient();
@@ -17,7 +18,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <MultiTenantRouter />
+          <CompanyBrandingProvider>
+            <MultiTenantRouter />
+          </CompanyBrandingProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

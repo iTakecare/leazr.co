@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import CompanyCustomizationService from "@/services/companyCustomizationService";
 
 interface Product {
   id: string;
@@ -25,7 +26,7 @@ const PublicCatalogAnonymous = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
-  // Fetch company info
+  // Fetch company info with branding
   const { data: company } = useQuery({
     queryKey: ["company", companyId],
     queryFn: async () => {
@@ -36,6 +37,17 @@ const PublicCatalogAnonymous = () => {
         .eq("id", companyId)
         .single();
       if (error) throw error;
+      
+      // Appliquer le branding personnalisé
+      if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
+        CompanyCustomizationService.applyCompanyBranding({
+          primary_color: data.primary_color || "#3b82f6",
+          secondary_color: data.secondary_color || "#64748b",
+          accent_color: data.accent_color || "#8b5cf6",
+          logo_url: data.logo_url || ""
+        });
+      }
+      
       return data;
     },
     enabled: !!companyId,
