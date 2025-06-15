@@ -56,6 +56,7 @@ const PermissionProfilesManager = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<PermissionProfile | null>(null);
+  const [canManageProfiles, setCanManageProfiles] = useState(false);
   
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
@@ -64,7 +65,26 @@ const PermissionProfilesManager = () => {
   useEffect(() => {
     fetchProfiles();
     fetchPermissions();
+    checkUserPermissions();
   }, []);
+
+  const checkUserPermissions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Vérifier si l'utilisateur a la permission users.manage
+      const hasPermission = await supabase.rpc('user_has_permission', {
+        p_user_id: user.id,
+        p_permission_name: 'users.manage'
+      });
+
+      setCanManageProfiles(hasPermission.data || false);
+    } catch (error) {
+      console.error("Error checking permissions:", error);
+      setCanManageProfiles(false);
+    }
+  };
 
   const fetchProfiles = async () => {
     try {
@@ -238,6 +258,20 @@ const PermissionProfilesManager = () => {
     return <div className="py-8 text-center">Chargement des profils...</div>;
   }
 
+  if (!canManageProfiles) {
+    return (
+      <div className="py-8 text-center">
+        <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-medium mb-2">Accès restreint</h3>
+        <p className="text-sm text-muted-foreground">
+          Vous n'avez pas les permissions nécessaires pour gérer les profils de permissions.
+          <br />
+          Seuls les utilisateurs avec le profil "Administrateur complet" peuvent accéder à cette section.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -247,7 +281,10 @@ const PermissionProfilesManager = () => {
             Gérez les profils de permissions prédéfinis pour faciliter l'attribution des droits.
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
+        <Button 
+          onClick={() => setShowCreateDialog(true)}
+          disabled={!canManageProfiles}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nouveau profil
         </Button>
@@ -293,7 +330,7 @@ const PermissionProfilesManager = () => {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => openEditDialog(profile)}
-                    disabled={profile.is_system}
+                    disabled={profile.is_system || !canManageProfiles}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -301,7 +338,7 @@ const PermissionProfilesManager = () => {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => openDeleteDialog(profile)}
-                    disabled={profile.is_system}
+                    disabled={profile.is_system || !canManageProfiles}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
