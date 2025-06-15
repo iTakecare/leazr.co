@@ -13,7 +13,7 @@ export interface WithCompanyId {
 export type CreateDataWithCompany<T> = T & WithCompanyId;
 
 /**
- * Récupère le company_id de l'utilisateur connecté
+ * Récupère le company_id de l'utilisateur connecté en utilisant la fonction sécurisée
  */
 export const getCurrentUserCompanyId = async (): Promise<string> => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -22,18 +22,15 @@ export const getCurrentUserCompanyId = async (): Promise<string> => {
     throw new Error("Utilisateur non authentifié");
   }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("company_id")
-    .eq("id", user.id)
-    .single();
+  const { data: companyId, error } = await supabase
+    .rpc('get_user_company_id');
 
-  if (error || !profile?.company_id) {
+  if (error || !companyId) {
     console.error("Error fetching user company_id:", error);
     throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
   }
 
-  return profile.company_id;
+  return companyId;
 };
 
 /**
