@@ -48,9 +48,28 @@ export const updateOfferStatus = async (
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
     
-    console.log("📝 Inserting workflow log first...");
+    console.log("📝 Updating offer status first...");
     
-    // IMPORTANT: Insert the workflow log FIRST before updating the offer
+    // Update the offer's workflow_status FIRST
+    const { error: updateError } = await supabase
+      .from('offers')
+      .update({ 
+        workflow_status: newStatus,
+        previous_status: safePreviousStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', offerId);
+      
+    if (updateError) {
+      console.error("❌ Error updating offer status:", updateError);
+      throw new Error("Erreur lors de la mise à jour du statut");
+    }
+    
+    console.log("✅ Offer status updated successfully");
+    
+    console.log("📝 Inserting workflow log...");
+    
+    // Insert the workflow log AFTER successful status update
     const { data: logData, error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
@@ -64,34 +83,13 @@ export const updateOfferStatus = async (
 
     if (logError) {
       console.error("❌ Error inserting workflow log:", logError);
-      toast.error("Erreur lors de l'enregistrement du changement de statut");
-      return false;
+      console.error("❌ Full error details:", JSON.stringify(logError, null, 2));
+      // Don't rollback the offer status update if log insertion fails
+      // The status change is still valid even without the log
+      toast.warning("Statut mis à jour mais l'historique n'a pas pu être enregistré");
+    } else {
+      console.log("✅ Workflow log inserted successfully:", logData);
     }
-
-    console.log("✅ Workflow log inserted successfully:", logData);
-    
-    // Now update the offer's workflow_status
-    console.log("📝 Updating offer status...");
-    const { error: updateError } = await supabase
-      .from('offers')
-      .update({ 
-        workflow_status: newStatus,
-        previous_status: safePreviousStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', offerId);
-      
-    if (updateError) {
-      console.error("❌ Error updating offer status:", updateError);
-      // Try to rollback the log entry
-      await supabase
-        .from('offer_workflow_logs')
-        .delete()
-        .eq('id', logData[0].id);
-      throw new Error("Erreur lors de la mise à jour du statut");
-    }
-    
-    console.log("✅ Offer status updated successfully");
 
     // Si le statut est financed, créer automatiquement un contrat
     if (newStatus === 'financed') {
@@ -147,7 +145,7 @@ export const getWorkflowHistory = async (offerId: string) => {
   console.log(`📚 Fetching workflow history for offer: ${offerId}`);
   
   try {
-    // Récupérer les logs avec les informations utilisateur en une seule requête
+    // Récupérer les logs avec les informations utilisateur via profiles
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
       .select(`
@@ -164,6 +162,7 @@ export const getWorkflowHistory = async (offerId: string) => {
     
     if (logsError) {
       console.error("❌ Error fetching workflow logs:", logsError);
+      console.error("❌ Full error details:", JSON.stringify(logsError, null, 2));
       throw logsError;
     }
     
