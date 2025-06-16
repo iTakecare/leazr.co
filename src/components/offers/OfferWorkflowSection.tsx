@@ -56,6 +56,8 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       setCompletedStatuses(statusesData || []);
       
       console.log("✅ Data fetch completed successfully");
+      console.log("📊 Final logs state:", historyData);
+      console.log("📋 Final statuses state:", statusesData);
     } catch (error) {
       console.error("❌ Error fetching workflow data:", error);
       toast.error("Erreur lors du chargement des données de workflow");
@@ -97,7 +99,11 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
         
         // Force refresh of data after status change
         console.log("🔄 OfferWorkflowSection - Refreshing data after status change");
-        await fetchData(true);
+        
+        // Wait a bit to ensure the database has been updated
+        setTimeout(async () => {
+          await fetchData(true);
+        }, 500);
         
         // Appeler la fonction de callback si fournie
         if (onStatusChange) {
@@ -205,8 +211,9 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
             </TabsContent>
             
             <TabsContent value="history">
-              <OfferWorkflowHistory logs={logs} />
-              {logs.length === 0 && (
+              {logs.length > 0 ? (
+                <OfferWorkflowHistory logs={logs} />
+              ) : (
                 <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg bg-gray-50">
                   <p className="text-sm text-muted-foreground mb-3">
                     Aucun changement de statut effectué pour le moment.

@@ -35,15 +35,16 @@ export const updateOfferStatus = async (
       throw new Error("Le nouveau statut est requis");
     }
 
-    // Get the user for logging the change
+    // Get the user for logging the change - simplified approach
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !user) {
+    if (userError) {
       console.error("❌ Error getting user:", userError);
-      throw new Error("Utilisateur non authentifié");
+      // Continue without user ID rather than failing
     }
 
-    console.log("✅ User authenticated:", user.id);
+    const userId = user?.id || null;
+    console.log("✅ User ID for logging:", userId);
 
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
@@ -67,28 +68,31 @@ export const updateOfferStatus = async (
     
     console.log("✅ Offer status updated successfully");
     
-    console.log("📝 Inserting workflow log...");
-    
-    // Insert the workflow log AFTER successful status update
-    const { data: logData, error: logError } = await supabase
-      .from('offer_workflow_logs')
-      .insert({
-        offer_id: offerId,
-        user_id: user.id,
-        previous_status: safePreviousStatus,
-        new_status: newStatus,
-        reason: reason || null
-      })
-      .select('*');
+    // Insert the workflow log AFTER successful status update - simplified without user join
+    if (userId) {
+      console.log("📝 Inserting workflow log...");
+      
+      const { data: logData, error: logError } = await supabase
+        .from('offer_workflow_logs')
+        .insert({
+          offer_id: offerId,
+          user_id: userId,
+          previous_status: safePreviousStatus,
+          new_status: newStatus,
+          reason: reason || null
+        })
+        .select('*');
 
-    if (logError) {
-      console.error("❌ Error inserting workflow log:", logError);
-      console.error("❌ Full error details:", JSON.stringify(logError, null, 2));
-      // Don't rollback the offer status update if log insertion fails
-      // The status change is still valid even without the log
-      toast.warning("Statut mis à jour mais l'historique n'a pas pu être enregistré");
+      if (logError) {
+        console.error("❌ Error inserting workflow log:", logError);
+        console.error("❌ Full error details:", JSON.stringify(logError, null, 2));
+        // Don't rollback the offer status update if log insertion fails
+        toast.warning("Statut mis à jour mais l'historique n'a pas pu être enregistré");
+      } else {
+        console.log("✅ Workflow log inserted successfully:", logData);
+      }
     } else {
-      console.log("✅ Workflow log inserted successfully:", logData);
+      console.log("⚠️ No user ID available, skipping workflow log");
     }
 
     // Si le statut est financed, créer automatiquement un contrat
@@ -148,7 +152,7 @@ export const getWorkflowHistory = async (offerId: string) => {
     // Récupérer SEULEMENT les logs de workflow, sans aucune jointure
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select('id, offer_id, user_id, previous_status, new_status, reason, created_at')
+      .select('*')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
@@ -167,14 +171,8 @@ export const getWorkflowHistory = async (offerId: string) => {
     
     // Retourner les logs avec des noms d'utilisateur simplifiés
     const enhancedLogs = logs.map(log => ({
-      id: log.id,
-      offer_id: log.offer_id,
-      user_id: log.user_id,
-      previous_status: log.previous_status,
-      new_status: log.new_status,
-      reason: log.reason,
-      created_at: log.created_at,
-      user_name: `Utilisateur (${log.user_id.substring(0, 8)})`,
+      ...log,
+      user_name: `Utilisateur (${log.user_id?.substring(0, 8) || 'unknown'})`,
       profiles: null
     }));
     
@@ -205,7 +203,11 @@ export const getCompletedStatuses = async (offerId: string): Promise<string[]> =
     
     // Extraire les statuts uniques dans l'ordre chronologique
     const uniqueStatuses = new Set<string>();
-    data?.forEach(log => uniqueStatuses.add(log.new_status));
+    data?.forEach(log => {
+      if (log.new_status) {
+        uniqueStatuses.add(log.new_status);
+      }
+    });
     
     const statusArray = Array.from(uniqueStatuses);
     console.log("✅ Completed statuses:", statusArray);
