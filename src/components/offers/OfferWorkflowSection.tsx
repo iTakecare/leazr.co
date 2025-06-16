@@ -44,19 +44,23 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     }
     
     try {
-      const [historyData, statusesData] = await Promise.all([
-        getWorkflowHistory(offerId),
-        getCompletedStatuses(offerId)
-      ]);
-      
+      console.log("📞 Calling getWorkflowHistory...");
+      const historyData = await getWorkflowHistory(offerId);
       console.log("📊 OfferWorkflowSection - History data received:", historyData);
+      
+      console.log("📞 Calling getCompletedStatuses...");
+      const statusesData = await getCompletedStatuses(offerId);
       console.log("📋 OfferWorkflowSection - Completed statuses received:", statusesData);
       
-      setLogs(historyData);
-      setCompletedStatuses(statusesData);
+      setLogs(historyData || []);
+      setCompletedStatuses(statusesData || []);
+      
+      console.log("✅ Data fetch completed successfully");
     } catch (error) {
       console.error("❌ Error fetching workflow data:", error);
       toast.error("Erreur lors du chargement des données de workflow");
+      setLogs([]);
+      setCompletedStatuses([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
