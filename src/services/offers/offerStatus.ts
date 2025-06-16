@@ -25,48 +25,32 @@ export const updateOfferStatus = async (
   previousStatus: string | null,
   reason?: string
 ): Promise<boolean> => {
-  try {
-    console.log(`Updating offer ${offerId} from ${previousStatus || 'draft'} to ${newStatus} with reason: ${reason || 'Aucune'}`);
+  console.log(`🔄 Starting status update for offer ${offerId}`);
+  console.log(`📋 Status change: ${previousStatus || 'draft'} → ${newStatus}`);
+  console.log(`💬 Reason: ${reason || 'Aucune'}`);
 
+  try {
     // Vérifier que les statuts sont valides
     if (!newStatus) {
       throw new Error("Le nouveau statut est requis");
     }
 
     // Get the user for logging the change
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (userError || !user) {
+      console.error("❌ Error getting user:", userError);
       throw new Error("Utilisateur non authentifié");
     }
 
-    console.log("Authenticated user:", user.id);
+    console.log("✅ User authenticated:", user.id);
 
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
     
-    // First, update the offer's workflow_status
-    const { error: updateError } = await supabase
-      .from('offers')
-      .update({ workflow_status: newStatus })
-      .eq('id', offerId);
-      
-    if (updateError) {
-      console.error("Erreur lors de la mise à jour du statut:", updateError);
-      throw new Error("Erreur lors de la mise à jour du statut");
-    }
+    console.log("📝 Inserting workflow log first...");
     
-    console.log("Offer status updated successfully");
-
-    // Then, log the status change with more detailed logging
-    console.log("Inserting workflow log:", {
-      offer_id: offerId,
-      user_id: user.id,
-      previous_status: safePreviousStatus,
-      new_status: newStatus,
-      reason: reason || null
-    });
-
+    // IMPORTANT: Insert the workflow log FIRST before updating the offer
     const { data: logData, error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
@@ -76,18 +60,43 @@ export const updateOfferStatus = async (
         new_status: newStatus,
         reason: reason || null
       })
-      .select();
+      .select('*');
 
     if (logError) {
-      console.error("Erreur lors de l'enregistrement du log:", logError);
-      // Don't throw here, the status update was successful
-    } else {
-      console.log("Log created successfully:", logData);
+      console.error("❌ Error inserting workflow log:", logError);
+      toast.error("Erreur lors de l'enregistrement du changement de statut");
+      return false;
     }
+
+    console.log("✅ Workflow log inserted successfully:", logData);
+    
+    // Now update the offer's workflow_status
+    console.log("📝 Updating offer status...");
+    const { error: updateError } = await supabase
+      .from('offers')
+      .update({ 
+        workflow_status: newStatus,
+        previous_status: safePreviousStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', offerId);
+      
+    if (updateError) {
+      console.error("❌ Error updating offer status:", updateError);
+      // Try to rollback the log entry
+      await supabase
+        .from('offer_workflow_logs')
+        .delete()
+        .eq('id', logData[0].id);
+      throw new Error("Erreur lors de la mise à jour du statut");
+    }
+    
+    console.log("✅ Offer status updated successfully");
 
     // Si le statut est financed, créer automatiquement un contrat
     if (newStatus === 'financed') {
       try {
+        console.log("💰 Status is 'financed', creating contract...");
         // Récupérer les infos nécessaires pour créer le contrat
         const { data: offerData, error: offerDataError } = await supabase
           .from('offers')
@@ -106,7 +115,7 @@ export const updateOfferStatus = async (
         const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
         
         if (contractId) {
-          console.log("Contrat créé avec l'ID:", contractId);
+          console.log("✅ Contract created with ID:", contractId);
           
           // Marquer l'offre comme convertie en contrat
           const { error: conversionError } = await supabase
@@ -115,65 +124,59 @@ export const updateOfferStatus = async (
             .eq('id', offerId);
             
           if (conversionError) {
-            console.error("Erreur lors de la mise à jour du statut de conversion:", conversionError);
+            console.error("❌ Error updating conversion status:", conversionError);
           } else {
             toast.success("L'offre a été convertie en contrat");
           }
         }
       } catch (contractError) {
-        console.error("Erreur lors de la création du contrat:", contractError);
+        console.error("❌ Error creating contract:", contractError);
         toast.error("L'offre a été marquée comme financée mais nous n'avons pas pu créer le contrat");
       }
     }
     
+    console.log("🎉 Status update completed successfully");
     return true;
   } catch (error) {
-    console.error("Error updating offer status:", error);
+    console.error("❌ Error in updateOfferStatus:", error);
     return false;
   }
 };
 
 export const getWorkflowHistory = async (offerId: string) => {
+  console.log(`📚 Fetching workflow history for offer: ${offerId}`);
+  
   try {
-    console.log("Fetching workflow history for offer:", offerId);
-    
-    // Récupérer d'abord tous les logs pour cette offre
+    // Récupérer les logs avec les informations utilisateur en une seule requête
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select('*')
+      .select(`
+        *,
+        profiles!offer_workflow_logs_user_id_fkey (
+          id,
+          first_name,
+          last_name,
+          role
+        )
+      `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
     if (logsError) {
-      console.error("Error fetching workflow logs:", logsError);
+      console.error("❌ Error fetching workflow logs:", logsError);
       throw logsError;
     }
     
-    console.log("Raw logs retrieved:", logs);
+    console.log(`📊 Retrieved ${logs?.length || 0} workflow logs:`, logs);
     
     if (!logs || logs.length === 0) {
-      console.log("No workflow logs found for offer:", offerId);
+      console.log("⚠️ No workflow logs found for this offer");
       return [];
     }
     
-    // Récupérer les informations des utilisateurs pour tous les logs
-    const userIds = [...new Set(logs.map(log => log.user_id))];
-    console.log("Unique user IDs:", userIds);
-    
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, role')
-      .in('id', userIds);
-    
-    if (profilesError) {
-      console.error("Error fetching user profiles:", profilesError);
-    }
-    
-    console.log("User profiles retrieved:", profiles);
-    
     // Enrichir les logs avec les informations des utilisateurs
     const enhancedLogs = logs.map(log => {
-      const userProfile = profiles?.find(profile => profile.id === log.user_id);
+      const userProfile = log.profiles;
       
       if (userProfile && userProfile.first_name && userProfile.last_name) {
         return {
@@ -191,15 +194,17 @@ export const getWorkflowHistory = async (offerId: string) => {
       };
     });
     
-    console.log("Enhanced logs:", enhancedLogs);
+    console.log("✅ Enhanced logs prepared:", enhancedLogs);
     return enhancedLogs;
   } catch (error) {
-    console.error("Error in getWorkflowHistory:", error);
+    console.error("❌ Error in getWorkflowHistory:", error);
     return [];
   }
 };
 
 export const getCompletedStatuses = async (offerId: string): Promise<string[]> => {
+  console.log(`📋 Fetching completed statuses for offer: ${offerId}`);
+  
   try {
     const { data, error } = await supabase
       .from('offer_workflow_logs')
@@ -208,7 +213,7 @@ export const getCompletedStatuses = async (offerId: string): Promise<string[]> =
       .order('created_at', { ascending: true });
     
     if (error) {
-      console.error("Error fetching completed statuses:", error);
+      console.error("❌ Error fetching completed statuses:", error);
       throw error;
     }
     
@@ -216,9 +221,11 @@ export const getCompletedStatuses = async (offerId: string): Promise<string[]> =
     const uniqueStatuses = new Set<string>();
     data?.forEach(log => uniqueStatuses.add(log.new_status));
     
-    return Array.from(uniqueStatuses);
+    const statusArray = Array.from(uniqueStatuses);
+    console.log("✅ Completed statuses:", statusArray);
+    return statusArray;
   } catch (error) {
-    console.error("Error in getCompletedStatuses:", error);
+    console.error("❌ Error in getCompletedStatuses:", error);
     return [];
   }
 };
