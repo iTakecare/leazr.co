@@ -18,6 +18,10 @@ export const createOffer = async (offerData: OfferData) => {
       console.error("Erreur lors de la récupération du company_id:", error);
       throw new Error("Impossible de récupérer l'ID de l'entreprise");
     }
+
+    if (!companyId) {
+      throw new Error("Company ID is required but not found");
+    }
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
@@ -130,14 +134,21 @@ export const createOffer = async (offerData: OfferData) => {
       company_id: offerDataToSave.company_id
     });
     
+    // Insertion sécurisée avec gestion d'erreur spécifique
     const { data, error } = await supabase
       .from('offers')
-      .insert(offerDataToSave)
+      .insert([offerDataToSave])
       .select()
       .single();
     
     if (error) {
       console.error("Erreur lors de l'insertion de l'offre:", error);
+      
+      // Gestion spécifique de l'erreur DELETE
+      if (error.message?.includes('DELETE requires a WHERE clause')) {
+        throw new Error("Erreur de configuration de la base de données. Contactez l'administrateur.");
+      }
+      
       return { data: null, error };
     }
     
@@ -145,6 +156,15 @@ export const createOffer = async (offerData: OfferData) => {
     return { data, error: null };
   } catch (error) {
     console.error("Error in createOffer:", error);
+    
+    // Gestion spécifique de l'erreur DELETE
+    if (error instanceof Error && error.message?.includes('DELETE requires a WHERE clause')) {
+      return { 
+        data: null, 
+        error: { message: "Erreur de configuration de la base de données. Contactez l'administrateur." }
+      };
+    }
+    
     return { data: null, error };
   }
 };
