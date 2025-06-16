@@ -18,12 +18,13 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAllClients } from "@/services/clientService";
-import { createOffer } from "@/services/offers";
+import { createOffer } from "@/services/offers/createOffer";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
+
 const CreateOffer = () => {
   const navigate = useNavigate();
   const {
@@ -125,21 +126,27 @@ const CreateOffer = () => {
     }
     try {
       setIsSubmitting(true);
+      
       const totalMonthlyPayment = equipmentList.reduce((sum, item) => sum + (item.monthlyPayment || 0) * item.quantity, 0);
       const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + item.purchasePrice * item.quantity, 0);
-      const equipmentDescription = JSON.stringify(equipmentList.map(eq => ({
-        id: eq.id,
-        title: eq.title,
-        purchasePrice: eq.purchasePrice,
-        quantity: eq.quantity,
-        margin: eq.margin,
-        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-        attributes: eq.attributes || {},
-        specifications: eq.specifications || {}
-      })));
+      
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
+          id: eq.id,
+          title: eq.title,
+          purchasePrice: eq.purchasePrice,
+          quantity: eq.quantity,
+          margin: eq.margin,
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+          attributes: eq.attributes || {},
+          specifications: eq.specifications || {}
+        }))
+      );
+
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
+
       let commissionAmount = 0;
       if (isInternalOffer) {
         commissionAmount = 0;
@@ -166,13 +173,17 @@ const CreateOffer = () => {
           commissionAmount = Math.round(financedAmount * 0.03);
         }
       }
+
       console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+
       const marginAmount = globalMarginAdjustment.amount || 0;
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
       const totalMarginWithDifference = marginAmount + marginDifference;
+
       console.log("Marge totale:", marginAmount);
       console.log("Différence de marge:", marginDifference);
       console.log("Total marge avec différence:", totalMarginWithDifference);
+
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -190,19 +201,20 @@ const CreateOffer = () => {
         total_margin_with_difference: String(totalMarginWithDifference),
         margin: String(marginAmount)
       };
+
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
       console.log("Total margin with difference value being saved:", totalMarginWithDifference);
       console.log("Margin generated value being saved:", marginAmount);
-      const {
-        data,
-        error
-      } = await createOffer(offerData);
+
+      const { data, error } = await createOffer(offerData);
+
       if (error) {
         console.error("Erreur lors de la sauvegarde:", error);
         toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
         return;
       }
+
       toast.success("Offre créée avec succès!");
       navigate("/offers");
     } catch (error) {
@@ -277,24 +289,67 @@ const CreateOffer = () => {
                             Cette offre sera marquée comme interne et n'aura pas de commission associée.
                           </p>
                         </div>
-                        <Switch id="is_internal_offer" checked={isInternalOffer} onCheckedChange={setIsInternalOffer} className="data-[state=checked]:bg-blue-600" />
+                        <Switch
+                          id="is_internal_offer"
+                          checked={isInternalOffer}
+                          onCheckedChange={setIsInternalOffer}
+                          className="data-[state=checked]:bg-blue-600"
+                        />
                       </div>
                     </div>
                     
                     <div className="mt-6">
-                      <EquipmentForm equipment={equipment} setEquipment={setEquipment} selectedLeaser={selectedLeaser} addToList={addToList} editingId={editingId} cancelEditing={cancelEditing} onOpenCatalog={handleOpenCatalog} coefficient={coefficient} monthlyPayment={monthlyPayment} targetMonthlyPayment={targetMonthlyPayment} setTargetMonthlyPayment={setTargetMonthlyPayment} calculatedMargin={calculatedMargin} applyCalculatedMargin={applyCalculatedMargin} hideFinancialDetails={hideFinancialDetails} />
+                      <EquipmentForm
+                        equipment={equipment}
+                        setEquipment={setEquipment}
+                        selectedLeaser={selectedLeaser}
+                        addToList={addToList}
+                        editingId={editingId}
+                        cancelEditing={cancelEditing}
+                        onOpenCatalog={handleOpenCatalog}
+                        coefficient={coefficient}
+                        monthlyPayment={monthlyPayment}
+                        targetMonthlyPayment={targetMonthlyPayment}
+                        setTargetMonthlyPayment={setTargetMonthlyPayment}
+                        calculatedMargin={calculatedMargin}
+                        applyCalculatedMargin={applyCalculatedMargin}
+                        hideFinancialDetails={hideFinancialDetails}
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-8">
-                    <EquipmentList equipmentList={equipmentList} editingId={editingId} startEditing={startEditing} removeFromList={removeFromList} updateQuantity={updateQuantity} totalMonthlyPayment={totalMonthlyPayment} globalMarginAdjustment={{
-                  amount: globalMarginAdjustment.amount,
-                  newCoef: globalMarginAdjustment.newCoef,
-                  active: globalMarginAdjustment.adaptMonthlyPayment,
-                  marginDifference: globalMarginAdjustment.marginDifference
-                }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} hideFinancialDetails={hideFinancialDetails} />
+                    <EquipmentList
+                      equipmentList={equipmentList}
+                      editingId={editingId}
+                      startEditing={startEditing}
+                      removeFromList={removeFromList}
+                      updateQuantity={updateQuantity}
+                      totalMonthlyPayment={totalMonthlyPayment}
+                      globalMarginAdjustment={{
+                        amount: globalMarginAdjustment.amount,
+                        newCoef: globalMarginAdjustment.newCoef,
+                        active: globalMarginAdjustment.adaptMonthlyPayment,
+                        marginDifference: globalMarginAdjustment.marginDifference
+                      }}
+                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                      hideFinancialDetails={hideFinancialDetails}
+                    />
 
-                    <ClientInfo clientId={clientInfoProps.clientId} clientName={clientInfoProps.clientName} clientEmail={clientInfoProps.clientEmail} clientCompany={clientInfoProps.clientCompany} remarks={clientInfoProps.remarks} setRemarks={clientInfoProps.setRemarks} onOpenClientSelector={clientInfoProps.onOpenClientSelector} handleSaveOffer={clientInfoProps.handleSaveOffer} isSubmitting={clientInfoProps.isSubmitting} selectedLeaser={clientInfoProps.selectedLeaser} equipmentList={clientInfoProps.equipmentList} hideFinancialDetails={hideFinancialDetails} />
+                    <ClientInfo
+                      clientId={clientInfoProps.clientId}
+                      clientName={clientInfoProps.clientName}
+                      clientEmail={clientInfoProps.clientEmail}
+                      clientCompany={clientInfoProps.clientCompany}
+                      remarks={clientInfoProps.remarks}
+                      setRemarks={clientInfoProps.setRemarks}
+                      onOpenClientSelector={clientInfoProps.onOpenClientSelector}
+                      handleSaveOffer={clientInfoProps.handleSaveOffer}
+                      isSubmitting={clientInfoProps.isSubmitting}
+                      selectedLeaser={clientInfoProps.selectedLeaser}
+                      equipmentList={clientInfoProps.equipmentList}
+                      hideFinancialDetails={hideFinancialDetails}
+                    />
                   </div>
                 </div>
               </>}
