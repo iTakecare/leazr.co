@@ -58,8 +58,16 @@ export const updateOfferStatus = async (
     
     console.log("Offer status updated successfully");
 
-    // Then, log the status change
-    const { error: logError } = await supabase
+    // Then, log the status change with more detailed logging
+    console.log("Inserting workflow log:", {
+      offer_id: offerId,
+      user_id: user.id,
+      previous_status: safePreviousStatus,
+      new_status: newStatus,
+      reason: reason || null
+    });
+
+    const { data: logData, error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
@@ -67,13 +75,14 @@ export const updateOfferStatus = async (
         previous_status: safePreviousStatus,
         new_status: newStatus,
         reason: reason || null
-      });
+      })
+      .select();
 
     if (logError) {
       console.error("Erreur lors de l'enregistrement du log:", logError);
       // Don't throw here, the status update was successful
     } else {
-      console.log("Log created successfully");
+      console.log("Log created successfully:", logData);
     }
 
     // Si le statut est financed, créer automatiquement un contrat
@@ -128,18 +137,10 @@ export const getWorkflowHistory = async (offerId: string) => {
   try {
     console.log("Fetching workflow history for offer:", offerId);
     
-    // Récupérer les logs avec les informations utilisateur via une jointure
+    // Récupérer d'abord tous les logs pour cette offre
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          first_name,
-          last_name,
-          role
-        )
-      `)
+      .select('*')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
@@ -148,27 +149,45 @@ export const getWorkflowHistory = async (offerId: string) => {
       throw logsError;
     }
     
-    console.log("Retrieved logs with profiles:", logs);
+    console.log("Raw logs retrieved:", logs);
     
-    // Si nous n'avons pas de logs du tout
     if (!logs || logs.length === 0) {
       console.log("No workflow logs found for offer:", offerId);
       return [];
     }
     
-    // Les données sont déjà enrichies avec les profils grâce à la jointure
+    // Récupérer les informations des utilisateurs pour tous les logs
+    const userIds = [...new Set(logs.map(log => log.user_id))];
+    console.log("Unique user IDs:", userIds);
+    
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, role')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error("Error fetching user profiles:", profilesError);
+    }
+    
+    console.log("User profiles retrieved:", profiles);
+    
+    // Enrichir les logs avec les informations des utilisateurs
     const enhancedLogs = logs.map(log => {
-      if (log.profiles && log.profiles.first_name && log.profiles.last_name) {
+      const userProfile = profiles?.find(profile => profile.id === log.user_id);
+      
+      if (userProfile && userProfile.first_name && userProfile.last_name) {
         return {
           ...log,
-          user_name: `${log.profiles.first_name} ${log.profiles.last_name}`
+          user_name: `${userProfile.first_name} ${userProfile.last_name}`,
+          profiles: userProfile
         };
       }
       
       // Fallback si pas de profil trouvé
       return {
         ...log,
-        user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
+        user_name: `Utilisateur (${log.user_id.substring(0, 6)})`,
+        profiles: null
       };
     });
     

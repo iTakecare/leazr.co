@@ -42,8 +42,8 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
         getCompletedStatuses(offerId)
       ]);
       
-      console.log("OfferWorkflowSection - History data:", historyData);
-      console.log("OfferWorkflowSection - Completed statuses:", statusesData);
+      console.log("OfferWorkflowSection - History data received:", historyData);
+      console.log("OfferWorkflowSection - Completed statuses received:", statusesData);
       
       setLogs(historyData);
       setCompletedStatuses(statusesData);
@@ -57,6 +57,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
 
   useEffect(() => {
     if (offerId) {
+      console.log("OfferWorkflowSection - useEffect triggered with offerId:", offerId);
       fetchData();
     }
   }, [offerId]);
@@ -80,7 +81,10 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       
       if (success) {
         toast.success(`Statut mis à jour avec succès: ${getStatusLabel(selectedStatus)}`);
-        await fetchData(); // Refresh data
+        
+        // Force refresh of data after status change
+        console.log("OfferWorkflowSection - Refreshing data after status change");
+        await fetchData();
         
         // Appeler la fonction de callback si fournie
         if (onStatusChange) {
@@ -130,7 +134,14 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
           <Tabs defaultValue="workflow" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="workflow">Processus</TabsTrigger>
-              <TabsTrigger value="history">Historique</TabsTrigger>
+              <TabsTrigger value="history">
+                Historique
+                {logs.length > 0 && (
+                  <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+                    {logs.length}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="workflow" className="py-4">
@@ -166,6 +177,21 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
             
             <TabsContent value="history">
               <OfferWorkflowHistory logs={logs} />
+              {logs.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Aucun changement de statut effectué pour le moment.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchData}
+                    className="mt-2"
+                  >
+                    Actualiser l'historique
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
