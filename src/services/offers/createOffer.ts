@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -134,7 +133,7 @@ export const createOffer = async (offerData: OfferData) => {
       company_id: offerDataToSave.company_id
     });
     
-    // Insertion sécurisée avec gestion d'erreur spécifique
+    // Insertion de l'offre
     const { data, error } = await supabase
       .from('offers')
       .insert([offerDataToSave])
@@ -143,12 +142,6 @@ export const createOffer = async (offerData: OfferData) => {
     
     if (error) {
       console.error("Erreur lors de l'insertion de l'offre:", error);
-      
-      // Gestion spécifique de l'erreur DELETE
-      if (error.message?.includes('DELETE requires a WHERE clause')) {
-        throw new Error("Erreur de configuration de la base de données. Contactez l'administrateur.");
-      }
-      
       return { data: null, error };
     }
     
@@ -156,15 +149,6 @@ export const createOffer = async (offerData: OfferData) => {
     return { data, error: null };
   } catch (error) {
     console.error("Error in createOffer:", error);
-    
-    // Gestion spécifique de l'erreur DELETE
-    if (error instanceof Error && error.message?.includes('DELETE requires a WHERE clause')) {
-      return { 
-        data: null, 
-        error: { message: "Erreur de configuration de la base de données. Contactez l'administrateur." }
-      };
-    }
-    
     return { data: null, error };
   }
 };
