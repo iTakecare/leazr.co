@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -145,18 +144,10 @@ export const getWorkflowHistory = async (offerId: string) => {
   console.log(`📚 Fetching workflow history for offer: ${offerId}`);
   
   try {
-    // Récupérer les logs avec les informations utilisateur via profiles
+    // Récupérer d'abord les logs de workflow
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select(`
-        *,
-        profiles!offer_workflow_logs_user_id_fkey (
-          id,
-          first_name,
-          last_name,
-          role
-        )
-      `)
+      .select('*')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
@@ -173,9 +164,21 @@ export const getWorkflowHistory = async (offerId: string) => {
       return [];
     }
     
+    // Récupérer séparément les informations des utilisateurs
+    const userIds = logs.map(log => log.user_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, role')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error("❌ Error fetching user profiles:", profilesError);
+      // Continue même si on ne peut pas récupérer les profils
+    }
+    
     // Enrichir les logs avec les informations des utilisateurs
     const enhancedLogs = logs.map(log => {
-      const userProfile = log.profiles;
+      const userProfile = profiles?.find(p => p.id === log.user_id);
       
       if (userProfile && userProfile.first_name && userProfile.last_name) {
         return {
