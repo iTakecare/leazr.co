@@ -34,12 +34,16 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const fetchData = async () => {
+    console.log("OfferWorkflowSection - Fetching data for offer:", offerId);
     setLoading(true);
     try {
       const [historyData, statusesData] = await Promise.all([
         getWorkflowHistory(offerId),
         getCompletedStatuses(offerId)
       ]);
+      
+      console.log("OfferWorkflowSection - History data:", historyData);
+      console.log("OfferWorkflowSection - Completed statuses:", statusesData);
       
       setLogs(historyData);
       setCompletedStatuses(statusesData);
@@ -52,13 +56,16 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   };
 
   useEffect(() => {
-    fetchData();
+    if (offerId) {
+      fetchData();
+    }
   }, [offerId]);
 
   const handleStatusClick = (newStatus: string) => {
     if (!isAdmin) return;
     if (newStatus === currentStatus) return;
     
+    console.log("OfferWorkflowSection - Status click:", newStatus);
     setSelectedStatus(newStatus);
     setDialogOpen(true);
   };
@@ -66,13 +73,14 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const handleStatusChange = async (reason: string) => {
     if (!selectedStatus) return;
     
+    console.log("OfferWorkflowSection - Confirming status change:", selectedStatus, "with reason:", reason);
     setIsUpdating(true);
     try {
       const success = await updateOfferStatus(offerId, selectedStatus, currentStatus, reason);
       
       if (success) {
         toast.success(`Statut mis à jour avec succès: ${getStatusLabel(selectedStatus)}`);
-        fetchData();
+        await fetchData(); // Refresh data
         
         // Appeler la fonction de callback si fournie
         if (onStatusChange) {

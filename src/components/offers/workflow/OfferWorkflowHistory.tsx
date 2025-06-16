@@ -16,13 +16,10 @@ interface WorkflowLog {
   new_status: string;
   reason: string | null;
   created_at: string;
-  user_email?: string; // Pour les données utilisateur directes
-  user_name?: string;  // Pour les données utilisateur directes
+  user_name?: string;
   profiles?: {
     first_name: string;
     last_name: string;
-    email?: string;
-    avatar_url?: string | null;
     role?: string;
     id: string;
   };
@@ -33,6 +30,8 @@ interface OfferWorkflowHistoryProps {
 }
 
 const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => {
+  console.log("OfferWorkflowHistory - Received logs:", logs);
+  
   if (!logs || logs.length === 0) {
     return (
       <Card>
@@ -53,14 +52,8 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
     return status ? status.label : statusId;
   };
 
-  // Obtenir les initiales à partir du nom ou de l'email
+  // Obtenir les initiales à partir du nom
   const getInitials = (log: WorkflowLog) => {
-    // Privilégier les données du profil
-    if (log.profiles?.first_name && log.profiles?.last_name) {
-      return log.profiles.first_name.charAt(0) + log.profiles.last_name.charAt(0);
-    }
-    
-    // Fallback au nom d'utilisateur direct
     if (log.user_name) {
       const parts = log.user_name.split(' ');
       if (parts.length >= 2) {
@@ -69,39 +62,32 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
       return log.user_name.substring(0, 2).toUpperCase();
     }
     
-    // Fallback ultime à l'ID utilisateur
+    if (log.profiles?.first_name && log.profiles?.last_name) {
+      return log.profiles.first_name.charAt(0) + log.profiles.last_name.charAt(0);
+    }
+    
     return log.user_id.substring(0, 2).toUpperCase();
   };
 
   // Obtenir le nom à afficher
   const getDisplayName = (log: WorkflowLog) => {
-    // Privilégier les données du profil
-    if (log.profiles?.first_name && log.profiles?.last_name) {
-      return `${log.profiles.first_name} ${log.profiles.last_name}`;
-    }
-    
-    // Fallback au nom d'utilisateur direct
     if (log.user_name) {
       return log.user_name;
     }
     
-    // Fallback ultime à l'ID utilisateur
+    if (log.profiles?.first_name && log.profiles?.last_name) {
+      return `${log.profiles.first_name} ${log.profiles.last_name}`;
+    }
+    
     return `Utilisateur (${log.user_id.substring(0, 6)})`;
-  };
-
-  // Obtenir l'email de l'utilisateur pour l'affichage
-  const getUserEmail = (log: WorkflowLog) => {
-    return log.profiles?.email || log.user_email || '';
   };
 
   // Obtenir le rôle de l'utilisateur
   const getUserRole = (log: WorkflowLog) => {
-    // Vérifier d'abord le rôle dans le profil
     if (log.profiles?.role) {
       return log.profiles.role === 'admin' ? 'Admin' : log.profiles.role;
     }
     
-    // Fallback à un rôle générique
     return "Administrateur";
   };
 
@@ -116,7 +102,6 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
             <div key={log.id} className="space-y-2">
               <div className="flex items-start gap-4">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={log.profiles?.avatar_url || ""} alt="Avatar" />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {getInitials(log)}
                   </AvatarFallback>
@@ -134,13 +119,6 @@ const OfferWorkflowHistory: React.FC<OfferWorkflowHistoryProps> = ({ logs }) => 
                       {format(new Date(log.created_at), "dd/MM/yyyy à HH:mm")}
                     </span>
                   </div>
-                  
-                  {getUserEmail(log) && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {getUserEmail(log)}
-                    </div>
-                  )}
                   
                   <div className="flex items-center gap-2 text-sm mt-2">
                     <span className="text-muted-foreground">{getStatusLabel(log.previous_status)}</span>

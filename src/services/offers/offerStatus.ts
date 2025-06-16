@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -41,11 +42,24 @@ export const updateOfferStatus = async (
 
     console.log("Authenticated user:", user.id);
 
-    // First, log the status change
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
     
-    const { data: logData, error: logError } = await supabase
+    // First, update the offer's workflow_status
+    const { error: updateError } = await supabase
+      .from('offers')
+      .update({ workflow_status: newStatus })
+      .eq('id', offerId);
+      
+    if (updateError) {
+      console.error("Erreur lors de la mise à jour du statut:", updateError);
+      throw new Error("Erreur lors de la mise à jour du statut");
+    }
+    
+    console.log("Offer status updated successfully");
+
+    // Then, log the status change
+    const { error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
@@ -53,29 +67,14 @@ export const updateOfferStatus = async (
         previous_status: safePreviousStatus,
         new_status: newStatus,
         reason: reason || null
-      })
-      .select();
+      });
 
     if (logError) {
       console.error("Erreur lors de l'enregistrement du log:", logError);
-      throw new Error("Erreur lors de l'enregistrement du log");
+      // Don't throw here, the status update was successful
+    } else {
+      console.log("Log created successfully");
     }
-    
-    console.log("Log created successfully:", logData);
-
-    // Then, update the offer's workflow_status
-    const { data: updateData, error: updateError } = await supabase
-      .from('offers')
-      .update({ workflow_status: newStatus })
-      .eq('id', offerId)
-      .select();
-      
-    if (updateError) {
-      console.error("Erreur lors de la mise à jour du statut:", updateError);
-      throw new Error("Erreur lors de la mise à jour du statut");
-    }
-    
-    console.log("Offer status updated successfully:", updateData);
 
     // Si le statut est financed, créer automatiquement un contrat
     if (newStatus === 'financed') {
@@ -129,10 +128,18 @@ export const getWorkflowHistory = async (offerId: string) => {
   try {
     console.log("Fetching workflow history for offer:", offerId);
     
-    // 1. Récupérer les logs de base sans jointure
+    // Récupérer les logs avec les informations utilisateur via une jointure
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          first_name,
+          last_name,
+          role
+        )
+      `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
@@ -141,51 +148,31 @@ export const getWorkflowHistory = async (offerId: string) => {
       throw logsError;
     }
     
+    console.log("Retrieved logs with profiles:", logs);
+    
     // Si nous n'avons pas de logs du tout
     if (!logs || logs.length === 0) {
+      console.log("No workflow logs found for offer:", offerId);
       return [];
     }
     
-    // 2. Extraire tous les user_ids uniques des logs
-    const userIds = [...new Set(logs.map(log => log.user_id))];
-    
-    // 3. Récupérer les informations de profil pour tous ces utilisateurs en une seule requête
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, role')
-      .in('id', userIds);
-      
-    if (profilesError) {
-      console.error("Error fetching profiles:", profilesError);
-      // Continue with the logs we have, without profile information
-    }
-    
-    console.log("Retrieved profiles data:", profilesData);
-    
-    // 4. Créer un dictionnaire pour un accès facile aux données de profil
-    const profilesDict = (profilesData || []).reduce((acc, profile) => {
-      acc[profile.id] = profile;
-      return acc;
-    }, {} as Record<string, any>);
-    
-    // 5. Enrichir les logs avec les données de profil
+    // Les données sont déjà enrichies avec les profils grâce à la jointure
     const enhancedLogs = logs.map(log => {
-      // Si nous avons les données de profil pour cet utilisateur
-      if (profilesDict[log.user_id]) {
+      if (log.profiles && log.profiles.first_name && log.profiles.last_name) {
         return {
           ...log,
-          profiles: profilesDict[log.user_id]
+          user_name: `${log.profiles.first_name} ${log.profiles.last_name}`
         };
       }
       
-      // Sinon, utiliser un fallback
+      // Fallback si pas de profil trouvé
       return {
         ...log,
         user_name: `Utilisateur (${log.user_id.substring(0, 6)})`
       };
     });
     
-    console.log("Enhanced logs with user data:", enhancedLogs);
+    console.log("Enhanced logs:", enhancedLogs);
     return enhancedLogs;
   } catch (error) {
     console.error("Error in getWorkflowHistory:", error);
