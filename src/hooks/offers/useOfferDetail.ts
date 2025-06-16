@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -230,6 +229,9 @@ export const useOfferDetail = (offerId: string) => {
   const [equipmentData, setEquipmentData] = useState<OfferEquipment[]>([]);
   const [isEquipmentLoading, setIsEquipmentLoading] = useState(false);
 
+  // Logs de débogage
+  console.log("useOfferDetail - Hook called with offerId:", offerId);
+
   const convertDbEquipmentToUiFormat = (dbEquipment: OfferEquipment[]): EquipmentItem[] => {
     return dbEquipment.map(item => {
       const attributes: Record<string, string> = {};
@@ -283,7 +285,10 @@ export const useOfferDetail = (offerId: string) => {
   };
 
   const fetchOffer = async () => {
+    console.log("useOfferDetail - fetchOffer called with offerId:", offerId);
+    
     if (!offerId) {
+      console.log("useOfferDetail - No offerId provided");
       setError("ID d'offre invalide");
       setLoading(false);
       return;
@@ -293,6 +298,7 @@ export const useOfferDetail = (offerId: string) => {
       setLoading(true);
       setError(null);
 
+      console.log("useOfferDetail - Fetching offer from database...");
       const { data, error } = await supabase
         .from('offers')
         .select('*')
@@ -300,10 +306,12 @@ export const useOfferDetail = (offerId: string) => {
         .single();
 
       if (error) {
-        console.error('Error fetching offer:', error);
+        console.error('useOfferDetail - Error fetching offer:', error);
         setError("Erreur lors de la récupération des détails de l'offre");
         return;
       }
+
+      console.log("useOfferDetail - Offer data received:", data);
 
       // Calculer le montant financé s'il n'est pas défini mais que le coefficient et le paiement mensuel sont disponibles
       if (data.monthly_payment && data.coefficient && (!data.financed_amount || data.financed_amount === 0)) {
@@ -326,7 +334,7 @@ export const useOfferDetail = (offerId: string) => {
       fetchEquipmentData(offerId);
       
     } catch (err) {
-      console.error('Error in useOfferDetail:', err);
+      console.error('useOfferDetail - Error in fetchOffer:', err);
       setError("Une erreur s'est produite lors du chargement des détails de l'offre");
     } finally {
       setLoading(false);
@@ -334,6 +342,7 @@ export const useOfferDetail = (offerId: string) => {
   };
 
   useEffect(() => {
+    console.log("useOfferDetail - useEffect triggered, offerId:", offerId);
     fetchOffer();
   }, [offerId]);
 

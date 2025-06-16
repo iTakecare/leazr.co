@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -41,12 +42,29 @@ const OfferDetail = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
+  // Logs de débogage
+  console.log("OfferDetail - ID from params:", id);
+  console.log("OfferDetail - Component mounted");
+  
   const { 
     offer, 
     loading, 
     error, 
     fetchOffer 
   } = useOfferDetail(id || "");
+
+  // Logs supplémentaires pour le débogage
+  console.log("OfferDetail - offer:", offer);
+  console.log("OfferDetail - loading:", loading);
+  console.log("OfferDetail - error:", error);
+
+  useEffect(() => {
+    console.log("OfferDetail - useEffect triggered, id:", id);
+    if (!id) {
+      console.log("OfferDetail - No ID, redirecting to offers");
+      navigate("/offers");
+    }
+  }, [id, navigate]);
 
   const handleGoBack = () => {
     navigate("/offers");
@@ -118,6 +136,7 @@ const OfferDetail = () => {
     }
 
     if (error || !offer) {
+      console.log("OfferDetail - Error or no offer found:", { error, offer });
       return (
         <div className="text-center py-12 px-6 bg-red-50 rounded-lg border border-red-100">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
