@@ -2,15 +2,27 @@
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
     // Log pour le débogage
     console.log("DONNÉES D'OFFRE REÇUES:", offerData);
     
+    // Récupérer le company_id de l'utilisateur connecté
+    let companyId;
+    try {
+      companyId = await getCurrentUserCompanyId();
+      console.log("Company ID récupéré:", companyId);
+    } catch (error) {
+      console.error("Erreur lors de la récupération du company_id:", error);
+      throw new Error("Impossible de récupérer l'ID de l'entreprise");
+    }
+    
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
+      company_id: companyId, // Ajouter explicitement le company_id
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
@@ -101,7 +113,8 @@ export const createOffer = async (offerData: OfferData) => {
         coefficient: offerDataToSave.coefficient,
         monthly_payment: offerDataToSave.monthly_payment,
         financed_amount: offerDataToSave.financed_amount,
-        margin: offerDataToSave.margin
+        margin: offerDataToSave.margin,
+        company_id: offerDataToSave.company_id
       });
     }
     
@@ -113,7 +126,8 @@ export const createOffer = async (offerData: OfferData) => {
       financed_amount: offerDataToSave.financed_amount,
       commission: offerDataToSave.commission,
       margin: offerDataToSave.margin,
-      type: offerDataToSave.type
+      type: offerDataToSave.type,
+      company_id: offerDataToSave.company_id
     });
     
     const { data, error } = await supabase
