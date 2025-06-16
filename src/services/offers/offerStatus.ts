@@ -145,17 +145,17 @@ export const getWorkflowHistory = async (offerId: string) => {
   console.log(`📚 Fetching workflow history for offer: ${offerId}`);
   
   try {
-    // Récupérer uniquement les logs de workflow sans jointures complexes
+    // Récupérer SEULEMENT les logs de workflow, sans aucune jointure
     const { data: logs, error: logsError } = await supabase
       .from('offer_workflow_logs')
-      .select('*')
+      .select('id, offer_id, user_id, previous_status, new_status, reason, created_at')
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
     
     if (logsError) {
       console.error("❌ Error fetching workflow logs:", logsError);
       console.error("❌ Full error details:", JSON.stringify(logsError, null, 2));
-      throw logsError;
+      return [];
     }
     
     console.log(`📊 Retrieved ${logs?.length || 0} workflow logs:`, logs);
@@ -165,14 +165,18 @@ export const getWorkflowHistory = async (offerId: string) => {
       return [];
     }
     
-    // Préparer les logs avec des noms d'utilisateur simplifiés
-    const enhancedLogs = logs.map(log => {
-      return {
-        ...log,
-        user_name: `Utilisateur (${log.user_id.substring(0, 8)})`,
-        profiles: null
-      };
-    });
+    // Retourner les logs avec des noms d'utilisateur simplifiés
+    const enhancedLogs = logs.map(log => ({
+      id: log.id,
+      offer_id: log.offer_id,
+      user_id: log.user_id,
+      previous_status: log.previous_status,
+      new_status: log.new_status,
+      reason: log.reason,
+      created_at: log.created_at,
+      user_name: `Utilisateur (${log.user_id.substring(0, 8)})`,
+      profiles: null
+    }));
     
     console.log("✅ Enhanced logs prepared:", enhancedLogs);
     return enhancedLogs;
@@ -186,6 +190,7 @@ export const getCompletedStatuses = async (offerId: string): Promise<string[]> =
   console.log(`📋 Fetching completed statuses for offer: ${offerId}`);
   
   try {
+    // Récupérer SEULEMENT les statuts depuis offer_workflow_logs
     const { data, error } = await supabase
       .from('offer_workflow_logs')
       .select('new_status')
@@ -194,7 +199,8 @@ export const getCompletedStatuses = async (offerId: string): Promise<string[]> =
     
     if (error) {
       console.error("❌ Error fetching completed statuses:", error);
-      throw error;
+      console.error("❌ Full error details:", JSON.stringify(error, null, 2));
+      return [];
     }
     
     // Extraire les statuts uniques dans l'ordre chronologique
