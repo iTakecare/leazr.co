@@ -40,6 +40,7 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
+import PartnersListPage from "@/pages/PartnersList";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
@@ -103,8 +104,11 @@ const RoleBasedRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/clients" element={<Clients />} />
+        <Route path="/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/clients/edit/:id" element={<ClientEditPage />} />
+        <Route path="/partners" element={<PartnersListPage />} />
+        <Route path="/ambassadors" element={<AmbassadorsList />} />
         <Route path="/admin/offers" element={<Offers />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
@@ -122,7 +126,6 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/partners/edit/:id" element={<PartnerEditPage />} />
         <Route path="/ambassador/catalog" element={<AmbassadorCatalog />} />
         <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
-        <Route path="/ambassadors" element={<AmbassadorsList />} />
         <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
         <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
         <Route path="/partners/:id" element={<PartnerDetail />} />
