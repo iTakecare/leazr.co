@@ -62,11 +62,11 @@ const MainNavigation = () => {
       "fixed top-0 left-0 right-0 z-50 flex justify-center px-4 py-6 transition-all duration-300",
       scrolled ? "bg-white/95 backdrop-blur-sm shadow-md" : "bg-white"
     )}>
-      <div className="relative w-full max-w-[1320px] mx-auto h-auto md:h-[82px] bg-[#f8f8f6] rounded-[20px] md:rounded-[50px] border-2 border-solid border-[#e1e1e1] flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-3 md:py-0 transition-all duration-300 hover:border-[#48B5C3]/30">
+      <div className="relative w-full max-w-[1320px] mx-auto h-auto md:h-[120px] bg-[#f8f8f6] rounded-[20px] md:rounded-[50px] border-2 border-solid border-[#e1e1e1] flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-3 md:py-0 transition-all duration-300 hover:border-[#48B5C3]/30">
         <div className="flex items-center justify-between w-full md:w-auto">
           <Link to="/" className="group">
             <img
-              className="w-[160px] md:w-[240px] h-auto md:h-[50px] object-contain transition-transform duration-300 group-hover:scale-105"
+              className="w-[220px] md:w-[350px] h-auto md:h-[80px] object-contain transition-transform duration-300 group-hover:scale-105"
               alt="Leazr Logo"
               src="/lovable-uploads/3a4ae1ec-2b87-4a07-a178-b3bc5d86594b.png"
             />
