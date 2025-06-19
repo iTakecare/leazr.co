@@ -177,6 +177,17 @@ const MainNavigation = () => {
             Contact
           </Link>
           
+          <Link
+            to="/tarifs"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname === "/tarifs" && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            💰 Tarifs
+          </Link>
+          
           <div className="flex flex-col space-y-2 pt-4">
             <Link to="/login">
               <Button
@@ -307,6 +318,18 @@ const MainNavigation = () => {
                 )}
               >
                 Contact
+              </Link>
+            </li>
+            
+            <li>
+              <Link
+                to="/tarifs"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname === "/tarifs" && "font-medium text-[#33638E]"
+                )}
+              >
+                💰 Tarifs
               </Link>
             </li>
           </ul>

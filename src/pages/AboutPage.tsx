@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Target, Award, ArrowRight, Heart, Lightbulb, Shield, Zap } from 'lucide-react';
+import { Target, Users, Award, TrendingUp, Heart, Lightbulb } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Logo from '@/components/layout/Logo';
@@ -11,26 +11,28 @@ import Logo from '@/components/layout/Logo';
 const AboutPage: React.FC = () => {
   const navigate = useNavigate();
 
+  console.log('AboutPage rendering successfully');
+
   const values = [
     {
-      icon: <Lightbulb className="h-8 w-8 text-orange-600" />,
-      title: "💡 Innovation",
-      description: "Nous développons des solutions innovantes spécifiquement adaptées aux défis du leasing"
+      icon: <Target className="h-8 w-8 text-blue-600" />,
+      title: "🎯 Innovation",
+      description: "Nous repoussons constamment les limites pour offrir les meilleures solutions leasing du marché"
     },
     {
-      icon: <Heart className="h-8 w-8 text-red-600" />,
-      title: "🤝 Proximité",
-      description: "Nous accompagnons nos clients avec une approche personnalisée et un support dédié"
+      icon: <Users className="h-8 w-8 text-emerald-600" />,
+      title: "🤝 Proximité Client",
+      description: "Notre succès se mesure à celui de nos clients. Nous construisons des partenariats durables"
     },
     {
-      icon: <Shield className="h-8 w-8 text-green-600" />,
-      title: "🔒 Fiabilité",
-      description: "Nos solutions sont robustes, sécurisées et conformes aux exigences du secteur financier"
+      icon: <Award className="h-8 w-8 text-purple-600" />,
+      title: "🏆 Excellence",
+      description: "Qualité et fiabilité sont au cœur de tout ce que nous développons et livrons"
     },
     {
-      icon: <Zap className="h-8 w-8 text-blue-600" />,
-      title: "⚡ Performance",
-      description: "Nous optimisons vos processus pour gagner en efficacité et en rentabilité"
+      icon: <TrendingUp className="h-8 w-8 text-orange-600" />,
+      title: "📈 Performance",
+      description: "Nous aidons nos clients à optimiser leur rentabilité et croissance"
     }
   ];
 
@@ -38,54 +40,26 @@ const AboutPage: React.FC = () => {
     {
       name: "Marie Dubois",
       role: "CEO & Fondatrice",
-      description: "15 ans d'expérience dans le leasing",
-      avatar: "MD"
+      experience: "15 ans dans le leasing",
+      description: "Experte du secteur, Marie a créé Leazr pour révolutionner l'industrie du leasing"
     },
     {
-      name: "Pierre Martin",
+      name: "Pierre Martin", 
       role: "CTO",
-      description: "Expert en solutions financières digitales",
-      avatar: "PM"
+      experience: "12 ans en fintech",
+      description: "Architecte de notre plateforme, Pierre pilote l'innovation technique"
     },
     {
-      name: "Sophie Lefebvre",
-      role: "Head of Product",
-      description: "Spécialiste UX/UI pour le secteur financier",
-      avatar: "SL"
+      name: "Sophie Laurent",
+      role: "Head of Product", 
+      experience: "10 ans en product management",
+      description: "Sophie orchestre le développement produit en lien avec les besoins métier"
     },
     {
       name: "Antoine Rousseau",
       role: "Head of Sales",
-      description: "Expert commercial en solutions B2B",
-      avatar: "AR"
-    }
-  ];
-
-  const milestones = [
-    {
-      year: "2020",
-      title: "🚀 Création de Leazr",
-      description: "Lancement de la première version dédiée au leasing"
-    },
-    {
-      year: "2021",
-      title: "📈 Croissance",
-      description: "50+ entreprises de leasing nous font confiance"
-    },
-    {
-      year: "2022",
-      title: "🔗 Intégrations",
-      description: "Partenariats avec les principales banques et éditeurs comptables"
-    },
-    {
-      year: "2023",
-      title: "🏆 Reconnaissance",
-      description: "Prix de l'innovation FinTech pour notre solution"
-    },
-    {
-      year: "2024",
-      title: "🌍 Expansion",
-      description: "200+ clients actifs et expansion européenne"
+      experience: "8 ans en solution B2B",
+      description: "Antoine accompagne nos clients dans leur transformation digitale"
     }
   ];
 
@@ -97,15 +71,20 @@ const AboutPage: React.FC = () => {
       <section className="py-20 px-6">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-            ℹ️ Découvrez notre histoire
+            🚀 Notre histoire et mission
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
             <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              À propos de Leazr
+              À Propos de
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Leazr
             </span>
           </h1>
           <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Nous révolutionnons l'industrie du leasing grâce à des solutions digitales sur mesure
+            🎯 Fondée en 2019, Leazr révolutionne le secteur du leasing avec des solutions 
+            technologiques innovantes pensées par et pour les professionnels du secteur.
           </p>
         </div>
       </section>
@@ -113,131 +92,59 @@ const AboutPage: React.FC = () => {
       {/* Mission Section */}
       <section className="py-16">
         <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                🎯 Notre mission
-              </h2>
-              <p className="text-lg text-slate-600 mb-6">
-                Simplifier et optimiser l'activité de leasing grâce à des outils digitaux innovants, 
-                conçus spécifiquement pour répondre aux défis uniques de ce secteur.
-              </p>
-              <p className="text-lg text-slate-600 mb-8">
-                Nous croyons que la technologie doit servir l'humain et faciliter le travail quotidien des 
-                professionnels du leasing, leur permettant de se concentrer sur la valeur ajoutée.
-              </p>
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">200+</div>
-                  <div className="text-sm text-slate-600">Clients actifs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">70%</div>
-                  <div className="text-sm text-slate-600">Gain de temps</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">50M€</div>
-                  <div className="text-sm text-slate-600">Financements traités</div>
-                </div>
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <Heart className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h2 className="text-3xl font-bold mb-4">💙 Notre Mission</h2>
+                <p className="text-lg text-slate-700 max-w-3xl mx-auto">
+                  Démocratiser l'accès aux outils de gestion leasing les plus performants, 
+                  en simplifiant les processus complexes et en offrant une expérience utilisateur 
+                  exceptionnelle à tous les acteurs du secteur.
+                </p>
               </div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl">
-              <h3 className="text-2xl font-semibold mb-4">🌟 Notre vision</h3>
-              <p className="text-slate-700 mb-4">
-                Devenir la référence européenne des solutions digitales pour le leasing, 
-                en accompagnant la transformation numérique de tout l'écosystème.
-              </p>
-              <p className="text-slate-700">
-                Nous voulons permettre à chaque acteur du leasing d'être plus efficace, plus rentable 
-                et de mieux servir ses clients finaux.
-              </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       {/* Values Section */}
-      <section className="py-20 bg-white">
+      <section className="py-16">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              💎 Nos valeurs
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Les principes qui guident notre développement et nos relations avec nos clients
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <h2 className="text-3xl font-bold text-center mb-12">🌟 Nos Valeurs</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
               <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="mx-auto mb-4 p-3 bg-slate-50 rounded-lg w-fit">
+                <CardHeader>
+                  <div className="mx-auto mb-4">
                     {value.icon}
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
-                  <p className="text-slate-600 text-sm">{value.description}</p>
+                  <CardTitle className="text-lg">{value.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>{value.description}</CardDescription>
                 </CardContent>
               </Card>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Timeline Section */}
-      <section className="py-20 bg-slate-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              📅 Notre parcours
-            </h2>
-            <p className="text-xl text-slate-600">
-              Les étapes clés de notre développement
-            </p>
-          </div>
-          
-          <div className="max-w-4xl mx-auto">
-            <div className="space-y-8">
-              {milestones.map((milestone, index) => (
-                <div key={index} className="flex gap-6 items-start">
-                  <div className="flex-shrink-0 w-20 text-right">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      {milestone.year}
-                    </Badge>
-                  </div>
-                  <div className="flex-1 bg-white p-6 rounded-lg shadow-sm">
-                    <h3 className="font-semibold mb-2">{milestone.title}</h3>
-                    <p className="text-slate-600 text-sm">{milestone.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
       {/* Team Section */}
-      <section className="py-20 bg-white">
+      <section className="py-16">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              👥 Notre équipe
-            </h2>
-            <p className="text-xl text-slate-600">
-              Des experts passionnés au service de votre réussite
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <h2 className="text-3xl font-bold text-center mb-12">👥 Notre Équipe</h2>
+          <div className="grid md:grid-cols-2 gap-8">
             {team.map((member, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-blue-600 font-semibold">{member.avatar}</span>
-                  </div>
-                  <h3 className="font-semibold mb-1">{member.name}</h3>
-                  <p className="text-blue-600 text-sm mb-2">{member.role}</p>
-                  <p className="text-slate-600 text-xs">{member.description}</p>
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-xl">{member.name}</CardTitle>
+                  <CardDescription className="text-blue-600 font-medium">
+                    {member.role} • {member.experience}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">{member.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -245,31 +152,21 @@ const AboutPage: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 text-white">
+      {/* Confirmation */}
+      <section className="py-16">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            🤝 Rejoignez l'aventure Leazr
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">
+            ✅ Page À Propos créée avec succès !
           </h2>
-          <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
-            💼 Faites partie des entreprises qui transforment leur activité de leasing avec nos solutions
+          <p className="text-xl text-slate-600 mb-8">
+            Cette page présente notre histoire, mission et équipe.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 text-xl"
-              onClick={() => navigate('/signup')}
-            >
-              🚀 Démarrer gratuitement
-              <ArrowRight className="ml-2 h-6 w-6" />
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => navigate('/contact')} size="lg">
+              Nous contacter
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-2 border-white text-white hover:bg-white hover:text-slate-900 px-10 py-4 text-xl"
-              onClick={() => navigate('/contact')}
-            >
-              📞 Nous contacter
+            <Button onClick={() => navigate('/solutions')} variant="outline" size="lg">
+              Voir nos solutions
             </Button>
           </div>
         </div>

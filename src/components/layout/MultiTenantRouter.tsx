@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -22,12 +21,13 @@ import PublicRequestPage from "@/pages/PublicRequestPage";
 import LandingPage from "@/pages/LandingPage";
 import HomePage from "@/pages/HomePage";
 
-// Pages nouvelles à créer pour la navigation
+// Pages nouvelles créées pour la navigation
 import SolutionsPage from "@/pages/SolutionsPage";
 import ServicesPage from "@/pages/ServicesPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
+import PricingPage from "@/pages/PricingPage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -79,6 +79,7 @@ const MultiTenantRouter = () => {
       <Route path="/ressources" element={<ResourcesPage />} />
       <Route path="/a-propos" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/tarifs" element={<PricingPage />} />
       
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
