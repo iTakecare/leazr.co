@@ -50,9 +50,9 @@ const MainNavigation = () => {
   ];
 
   const servicesMenu = [
-    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
-    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
-    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
+    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Services dédiés aux grandes entreprises" },
+    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Accompagnement personnalisé pour PME" },
+    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique complète" },
     { label: "🎓 Formation & Accompagnement", href: "/services", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Formation complète à nos solutions" },
   ];
 
