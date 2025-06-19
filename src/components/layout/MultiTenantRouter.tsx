@@ -28,6 +28,8 @@ import ResourcesPage from "@/pages/ResourcesPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
 import PricingPage from "@/pages/PricingPage";
+import CalculatorPage from "@/pages/CalculatorPage";
+import CRMFeaturePage from "@/pages/CRMFeaturePage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -80,6 +82,8 @@ const MultiTenantRouter = () => {
       <Route path="/a-propos" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/tarifs" element={<PricingPage />} />
+      <Route path="/calculator" element={<CalculatorPage />} />
+      <Route path="/crm-feature" element={<CRMFeaturePage />} />
       
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />

@@ -45,8 +45,8 @@ const MainNavigation = () => {
   const solutionsMenu = [
     { label: "🏢 Solutions Entreprises", href: "/solutions", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions complètes pour grandes entreprises" },
     { label: "💼 Solutions Professionnels", href: "/solutions", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres adaptées aux PME et indépendants" },
-    { label: "🤝 CRM Leasing", href: "/solutions", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
-    { label: "🧮 Calculateur Intelligent", href: "/solutions", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
+    { label: "🤝 CRM Intégré", href: "/crm-feature", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
+    { label: "🧮 Calculateur Intelligent", href: "/calculator", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
   ];
 
   const servicesMenu = [
