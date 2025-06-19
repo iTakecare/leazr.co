@@ -20,14 +20,15 @@ const PricingPage: React.FC = () => {
       name: "Starter",
       icon: <Zap className="h-8 w-8 text-blue-600" />,
       description: "Parfait pour débuter avec le leasing",
-      monthlyPrice: 29,
-      annualPrice: 290,
+      monthlyPrice: 49,
+      annualPrice: 490,
       features: [
         "Jusqu'à 50 contrats/mois",
         "Calculateur leasing de base",
         "2 utilisateurs inclus",
         "Support email",
-        "Templates de contrats standards"
+        "Templates de contrats standards",
+        "Tableau de bord simple"
       ],
       limitations: [
         "Pas d'intégrations externes",
@@ -39,18 +40,24 @@ const PricingPage: React.FC = () => {
     {
       name: "Professional",
       icon: <Star className="h-8 w-8 text-emerald-600" />,
-      description: "La solution complète pour professionnels",
-      monthlyPrice: 79,
-      annualPrice: 790,
+      description: "La solution complète Leazr pour professionnels",
+      monthlyPrice: 100,
+      annualPrice: 1000,
       features: [
         "Contrats illimités",
-        "Calculateur avancé + simulateurs",
+        "Calculateur leasing avancé + simulateurs",
         "Utilisateurs illimités",
         "CRM intégré complet",
-        "Support prioritaire (chat + tel)",
+        "Gestion multi-clients",
+        "Catalogue produits personnalisable",
+        "Génération automatique de devis",
+        "Signatures électroniques",
+        "Workflow de validation",
+        "Reporting avancé et analytics",
         "Intégrations bancaires",
-        "Reporting avancé",
-        "Templates personnalisables"
+        "Support prioritaire (chat + téléphone)",
+        "Formation incluse",
+        "API complète"
       ],
       limitations: [],
       popular: true,
@@ -60,17 +67,21 @@ const PricingPage: React.FC = () => {
       name: "Enterprise",
       icon: <Crown className="h-8 w-8 text-purple-600" />,
       description: "Solution sur mesure pour grandes entreprises",
-      monthlyPrice: null,
-      annualPrice: null,
+      monthlyPrice: 250,
+      annualPrice: 2500,
       features: [
         "Tout du plan Professional",
+        "Multi-tenant / Marque blanche",
         "Déploiement sur mesure",
         "Intégrations ERP/CRM existants",
-        "API dédiée",
+        "API dédiée et webhooks",
         "Formation équipe complète",
         "Support dédié 24/7",
         "SLA garantis",
-        "Hébergement privé disponible"
+        "Hébergement privé disponible",
+        "Conformité RGPD avancée",
+        "Audit de sécurité",
+        "Développements spécifiques"
       ],
       limitations: [],
       popular: false,
@@ -276,10 +287,10 @@ const PricingPage: React.FC = () => {
       <section className="py-16">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-slate-900 mb-4">
-            ✅ Page Tarifs créée avec succès !
+            ✅ Tarifs mis à jour avec succès !
           </h2>
           <p className="text-xl text-slate-600 mb-8">
-            Cette page présente nos plans et tarifs de manière claire et transparente.
+            Plan Professional à 100€/mois avec toutes les fonctionnalités Leazr.
           </p>
           <div className="flex gap-4 justify-center">
             <Button onClick={() => navigate('/signup')} size="lg">
