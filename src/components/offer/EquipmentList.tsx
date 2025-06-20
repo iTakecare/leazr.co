@@ -7,7 +7,7 @@ import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import { Switch } from "@/components/ui/switch";
 import SimpleCommissionDisplay from "@/components/ambassador/SimpleCommissionDisplay";
-import { useCommissionCalculator } from "@/utils/commission";
+import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
