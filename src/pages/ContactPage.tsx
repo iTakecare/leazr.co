@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, MapPin, Phone, Mail, Headphones, Send } from 'lucide-react';
+import { MessageSquare, MapPin, Phone, Mail, Send } from 'lucide-react';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
 
@@ -111,7 +111,7 @@ const ContactPage = () => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        placeholder="+33 1 23 45 67 89"
+                        placeholder="+32 71 49 16 85"
                       />
                     </div>
                   </div>
@@ -153,11 +153,10 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-blue-600" />
-                    📍 Siège social iTakecare
+                    📍 Leazr.co (par iTakecare SRL)
                   </h3>
-                  <p className="text-slate-600 mb-2">27 Avenue de l'Opéra</p>
-                  <p className="text-slate-600 mb-2">75001 Paris, France</p>
-                  <p className="text-slate-600">🚇 Métro : Opéra, Châtelet-Les Halles</p>
+                  <p className="text-slate-600 mb-2">Avenue Général Michel 1E</p>
+                  <p className="text-slate-600 mb-2">6000 Charleroi, Belgique</p>
                 </CardContent>
               </Card>
 
@@ -167,7 +166,7 @@ const ContactPage = () => {
                     <Phone className="h-5 w-5 text-green-600" />
                     📞 Téléphone
                   </h3>
-                  <p className="text-slate-600 mb-2">+33 1 85 09 26 04</p>
+                  <p className="text-slate-600 mb-2">+32 71 49 16 85</p>
                   <p className="text-sm text-slate-500">Du lundi au vendredi, 9h-18h</p>
                 </CardContent>
               </Card>
@@ -178,21 +177,8 @@ const ContactPage = () => {
                     <Mail className="h-5 w-5 text-purple-600" />
                     ✉️ Email
                   </h3>
-                  <p className="text-slate-600 mb-2">contact@itakecare.fr</p>
-                  <p className="text-slate-600 mb-2">support@itakecare.fr</p>
+                  <p className="text-slate-600 mb-2">hello@leazr.co</p>
                   <p className="text-sm text-slate-500">Réponse sous 24h</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Headphones className="h-5 w-5 text-orange-600" />
-                    🆘 Support prioritaire
-                  </h3>
-                  <p className="text-slate-600 mb-2">Pour nos clients abonnés</p>
-                  <p className="text-slate-600 mb-2">+33 1 85 09 26 04</p>
-                  <p className="text-sm text-slate-500">Support dédié 7j/7</p>
                 </CardContent>
               </Card>
             </div>
