@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +7,9 @@ import { Building, Briefcase, Headphones, Book, ArrowRight, Users, Star, Clock, 
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
-import Logo from '@/components/layout/Logo';
 
 const ServicesPage: React.FC = () => {
   const navigate = useNavigate();
-
-  console.log('ServicesPage rendering successfully');
 
   const services = [
     {
@@ -236,23 +234,7 @@ const ServicesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Confirmation que la page fonctionne */}
-      <section className="py-16">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-slate-900 mb-4">
-            ✅ Page Services chargée avec succès !
-          </h2>
-          <p className="text-xl text-slate-600">
-            Cette page fonctionne maintenant correctement. Vous pouvez naviguer vers les autres sections.
-          </p>
-          <div className="mt-8 flex gap-4 justify-center">
-            <Button onClick={() => navigate('/solutions')}>Voir Solutions</Button>
-            <Button onClick={() => navigate('/ressources')} variant="outline">Voir Ressources</Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Grid Enhanced */}
+      {/* Services Grid */}
       <section className="py-16">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
@@ -331,7 +313,7 @@ const ServicesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Process Section Enhanced */}
+      {/* Process Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
@@ -427,12 +409,12 @@ const ServicesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Enhanced Testimonials Section */}
+      {/* Testimonials Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              💬 Témoignages Clients Détaillés
+              💬 Témoignages Clients
             </h2>
             <p className="text-xl text-slate-600">
               L'expérience de nos clients avec nos services
@@ -551,7 +533,6 @@ const ServicesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

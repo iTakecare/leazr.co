@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +7,9 @@ import { Book, Share2, HelpCircle, Monitor, ArrowRight, Download, Clock, Eye, Ca
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
 import Footer from '@/components/layout/Footer';
-import Logo from '@/components/layout/Logo';
 
 const ResourcesPage: React.FC = () => {
   const navigate = useNavigate();
-
-  console.log('ResourcesPage rendering successfully');
 
   const resourceCategories = [
     {
@@ -285,23 +283,294 @@ const ResourcesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Confirmation que la page fonctionne */}
+      {/* Resource Categories */}
       <section className="py-16">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-slate-900 mb-4">
-            ✅ Page Ressources chargée avec succès !
-          </h2>
-          <p className="text-xl text-slate-600">
-            Cette page fonctionne maintenant correctement. Vous pouvez naviguer vers les autres sections.
-          </p>
-          <div className="mt-8 flex gap-4 justify-center">
-            <Button onClick={() => navigate('/solutions')}>Voir Solutions</Button>
-            <Button onClick={() => navigate('/services')} variant="outline">Voir Services</Button>
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              📋 Catégories de Ressources
+            </h2>
+            <p className="text-xl text-slate-600">
+              Tout ce dont vous avez besoin pour réussir avec Leazr
+            </p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8">
+            {resourceCategories.map((category, index) => (
+              <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <CardHeader>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border">
+                      {category.icon}
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-xl mb-2">{category.title}</CardTitle>
+                      <CardDescription className="text-base">{category.description}</CardDescription>
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        {category.totalResources}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {category.items.slice(0, 4).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm">{item.title}</h4>
+                            {item.popular && (
+                              <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                Populaire
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              {item.type}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {item.duration}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Download className="h-3 w-3" />
+                              {item.downloads}
+                            </span>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="ghost" className="ml-2">
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <Button className="w-full" size="lg">
+                      {category.cta}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Featured Articles */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              ⭐ Articles en Vedette
+            </h2>
+            <p className="text-xl text-slate-600">
+              Les contenus les plus consultés par notre communauté
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {featuredArticles.map((article, index) => (
+              <Card key={index} className={`hover:shadow-lg transition-shadow ${article.featured ? 'border-2 border-blue-200' : ''}`}>
+                {article.featured && (
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-t-lg">
+                    <Badge className="bg-white text-blue-600 mb-2">
+                      <Award className="h-3 w-3 mr-1" />
+                      Article vedette
+                    </Badge>
+                  </div>
+                )}
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <Badge variant="outline" className="text-xs">
+                      {article.category}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <Star className="h-3 w-3 text-yellow-400" />
+                      {article.rating}
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold mb-2">{article.title}</h3>
+                  <p className="text-slate-600 text-sm mb-4">{article.excerpt}</p>
+                  
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+                    <span>{article.author}</span>
+                    <span>{article.date}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {article.readTime}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Download className="h-3 w-3" />
+                        {article.downloads}
+                      </span>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      Lire l'article
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Upcoming Webinars */}
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              🎓 Webinaires à Venir
+            </h2>
+            <p className="text-xl text-slate-600">
+              Participez à nos sessions de formation en direct
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {upcomingWebinars.map((webinar, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <Badge className="bg-blue-600 text-white">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {webinar.date}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {webinar.level}
+                    </Badge>
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold mb-2">{webinar.title}</h3>
+                  <p className="text-slate-600 text-sm mb-4">{webinar.description}</p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      <span>{webinar.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-emerald-600" />
+                      <span>{webinar.attendees} inscrits</span>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="font-medium text-sm">{webinar.speaker}</div>
+                        <div className="text-xs text-slate-500">{webinar.speakerTitle}</div>
+                      </div>
+                    </div>
+                    <Button className="w-full" size="lg">
+                      <Video className="h-4 w-4 mr-2" />
+                      S'inscrire gratuitement
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Downloads Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              📥 Téléchargements Populaires
+            </h2>
+            <p className="text-xl text-slate-600">
+              Outils et guides prêts à utiliser
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {downloadables.map((download, index) => (
+              <Card key={index} className={`hover:shadow-lg transition-shadow ${download.featured ? 'border-2 border-emerald-200' : ''}`}>
+                <CardContent className="p-6">
+                  {download.featured && (
+                    <Badge className="bg-emerald-600 text-white mb-3">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      Populaire
+                    </Badge>
+                  )}
+                  
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-1">{download.title}</h3>
+                      <p className="text-sm text-slate-600">{download.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+                    <span className="flex items-center gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {download.type}
+                      </Badge>
+                      {download.size}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Download className="h-3 w-3" />
+                      {download.downloads}
+                    </span>
+                  </div>
+                  
+                  <Button className="w-full" size="sm" variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 text-white">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            🚀 Prêt à développer votre expertise ?
+          </h2>
+          <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
+            📚 Accédez à toutes nos ressources premium et rejoignez une communauté 
+            de 2500+ professionnels du leasing qui partagent leurs bonnes pratiques.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 text-xl"
+              onClick={() => navigate('/signup')}
+            >
+              🎓 Accéder aux ressources premium
+              <ArrowRight className="ml-2 h-6 w-6" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-2 border-white text-white hover:bg-white hover:text-slate-900 px-10 py-4 text-xl"
+            >
+              💬 Rejoindre la communauté
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
