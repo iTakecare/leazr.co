@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -54,6 +53,9 @@ import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
 
+// Page de mise à jour du mot de passe
+import UpdatePassword from "@/pages/UpdatePassword";
+
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
@@ -76,6 +78,9 @@ const MultiTenantRouter = () => {
       
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
+      
+      {/* Route de mise à jour du mot de passe accessible à tous */}
+      <Route path="/update-password" element={<UpdatePassword />} />
       
       {/* Pages publiques des sous-menus */}
       <Route path="/solutions" element={<SolutionsPage />} />
