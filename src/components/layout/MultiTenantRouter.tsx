@@ -1,9 +1,10 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Layout from "./Layout";
 import ClientRoutes from "./ClientRoutes";
-import AmbassadorRoutes from "./AmbassadorRoutes";
+import AmbassadorLayout from "./AmbassadorLayout";
 import PartnerRoutes from "./PartnerRoutes";
 
 // Pages admin existantes
@@ -122,7 +123,15 @@ const RoleBasedRoutes = () => {
   }
 
   if (isAmbassador()) {
-    return <AmbassadorRoutes />;
+    return (
+      <AmbassadorLayout>
+        <Routes>
+          <Route path="/dashboard" element={<Navigate to="/ambassador/dashboard" replace />} />
+          <Route path="/ambassador/*" element={<AmbassadorRoutes />} />
+          <Route path="*" element={<Navigate to="/ambassador/dashboard" replace />} />
+        </Routes>
+      </AmbassadorLayout>
+    );
   }
 
   if (isPartner()) {

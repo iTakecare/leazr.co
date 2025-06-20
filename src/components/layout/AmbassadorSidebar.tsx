@@ -35,8 +35,8 @@ const AmbassadorSidebar = () => {
     {
       title: "Tableau de bord",
       icon: BarChart,
-      href: `/dashboard`,
-      active: pathname === "/dashboard",
+      href: `/ambassador/dashboard`,
+      active: pathname === "/ambassador/dashboard",
     },
     {
       title: "Mes Clients",
@@ -59,16 +59,16 @@ const AmbassadorSidebar = () => {
     {
       title: "Catalogue",
       icon: Package,
-      href: `/catalog`,
-      active: pathname === "/catalog" || pathname.startsWith("/catalog/"),
+      href: `/ambassador/catalog`,
+      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
     },
   ];
 
   return (
     <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
       <div className="flex h-16 items-center justify-center border-b px-6">
-        <Link to="/dashboard" className="flex items-center justify-center">
-          <Logo showText={false} logoSize="md" className="scale-150" />
+        <Link to="/ambassador/dashboard" className="flex items-center justify-center">
+          <Logo showText={false} logoSize="sm" />
         </Link>
       </div>
       <ScrollArea className="flex-1 px-4 py-4">
