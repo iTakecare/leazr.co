@@ -33,7 +33,7 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center justify-center gap-2", className)}>
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
         <img 
           src={settings.logo_url}
