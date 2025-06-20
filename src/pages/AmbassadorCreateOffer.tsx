@@ -101,6 +101,20 @@ const AmbassadorCreateOffer = () => {
   const hideFinancialDetails = true;
   const isPageLoading = loading || loadingLeasers;
 
+  // Determine the correct ambassador ID and commission level ID
+  const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+  const currentCommissionLevelId = ambassador?.commission_level_id;
+
+  console.log("Ambassador render debug:", {
+    ambassadorId,
+    userAmbassadorId: user?.ambassador_id,
+    currentAmbassadorId,
+    ambassador,
+    commissionLevelId: currentCommissionLevelId,
+    totalMonthlyPayment,
+    equipmentListLength: equipmentList.length
+  });
+
   return (
     <PageTransition>
       <Container>
@@ -180,8 +194,8 @@ const AmbassadorCreateOffer = () => {
                     }}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                     hideFinancialDetails={hideFinancialDetails}
-                    ambassadorId={ambassadorId || user?.ambassador_id}
-                    commissionLevelId={ambassador?.commission_level_id}
+                    ambassadorId={currentAmbassadorId}
+                    commissionLevelId={currentCommissionLevelId}
                   />
                   
                   <ClientInfo
