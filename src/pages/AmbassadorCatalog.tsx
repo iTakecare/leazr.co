@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
 import AmbassadorProductGrid from "@/components/ambassador/AmbassadorProductGrid";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 
 const AmbassadorCatalog = () => {
   const isMobile = useIsMobile();
@@ -41,10 +41,6 @@ const AmbassadorCatalog = () => {
   
   return (
     <Container>
-      <div className="container max-w-none px-0 py-6">
-        <CatalogHeader />
-      </div>
-      
       <motion.div 
         className="py-6 md:py-8 flex flex-col h-full"
         initial="hidden"
