@@ -68,7 +68,7 @@ const AmbassadorSidebar = () => {
     <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
       <div className="flex h-16 items-center justify-center border-b px-6">
         <Link to="/ambassador/dashboard" className="flex items-center justify-center">
-          <CompanyLogo showText={false} logoSize="sm" />
+          <CompanyLogo showText={false} logoSize="xl" />
         </Link>
       </div>
       <ScrollArea className="flex-1 px-4 py-4">
