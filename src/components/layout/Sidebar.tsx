@@ -29,7 +29,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import Logo from "./Logo";
+import CompanyLogo from "./CompanyLogo";
 
 interface SidebarProps {
   className?: string;
@@ -132,7 +132,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b">
-                <Logo showText={true} logoSize="md" />
+                <CompanyLogo showText={true} logoSize="md" />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
                   <X className="h-5 w-5" />
                 </Button>
@@ -237,7 +237,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           "flex items-center p-4 mb-2 transition-all duration-300",
           collapsed ? "justify-center" : "px-6 justify-start"
         )}>
-          <Logo showText={!collapsed} logoSize="md" />
+          <CompanyLogo showText={!collapsed} logoSize="md" />
           
           {!collapsed && (
             <Button 
