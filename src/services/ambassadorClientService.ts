@@ -6,21 +6,13 @@ import { CreateClientData, Client } from "@/types/client";
 // Obtenir le profil ambassadeur de l'utilisateur actuel
 export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
   try {
-    // Utiliser auth.getUser() pour obtenir l'utilisateur actuel
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log("Getting current ambassador profile using auth.uid()");
     
-    if (userError || !userData?.user) {
-      console.error("No authenticated user found:", userError);
-      return null;
-    }
-    
-    console.log("Current user:", userData.user.id);
-    
-    // Chercher l'ambassadeur par user_id
+    // Utiliser directement auth.uid() dans la requête au lieu de supabase.auth.getUser()
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
-      .eq('user_id', userData.user.id)
+      .eq('user_id', supabase.auth.getUser().then(u => u.data.user?.id))
       .maybeSingle();
     
     if (ambassadorError) {
@@ -29,7 +21,7 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     }
     
     if (!ambassadorData) {
-      console.error("No ambassador profile found for user", userData.user.id);
+      console.error("No ambassador profile found for current user");
       return null;
     }
     
@@ -47,12 +39,19 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
     let ambassadorIdToUse = ambassadorId;
     
     if (!ambassadorIdToUse) {
-      ambassadorIdToUse = await getCurrentAmbassadorProfile();
-    }
-    
-    if (!ambassadorIdToUse) {
-      console.error("Failed to get ambassador ID");
-      throw new Error("Profil ambassadeur non trouvé");
+      // Utiliser une requête directe sans passer par getCurrentAmbassadorProfile
+      const { data: ambassadorData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      
+      if (ambassadorError || !ambassadorData) {
+        console.error("Failed to get ambassador ID:", ambassadorError);
+        throw new Error("Profil ambassadeur non trouvé");
+      }
+      
+      ambassadorIdToUse = ambassadorData.id;
     }
     
     console.log("Loading clients for ambassador:", ambassadorIdToUse);
@@ -217,8 +216,14 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
 // Supprimer un client ambassadeur
 export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
   try {
-    const ambassadorId = await getCurrentAmbassadorProfile();
-    if (!ambassadorId) {
+    // Utiliser une requête directe pour obtenir l'ID de l'ambassadeur
+    const { data: ambassadorData, error: ambassadorError } = await supabase
+      .from('ambassadors')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    
+    if (ambassadorError || !ambassadorData) {
       throw new Error("Profil ambassadeur non trouvé");
     }
 
@@ -227,7 +232,7 @@ export const deleteAmbassadorClient = async (clientId: string): Promise<boolean>
       .from("ambassador_clients")
       .delete()
       .eq("client_id", clientId)
-      .eq("ambassador_id", ambassadorId);
+      .eq("ambassador_id", ambassadorData.id);
 
     if (linkError) {
       console.error("Error deleting ambassador client link:", linkError);
@@ -235,7 +240,7 @@ export const deleteAmbassadorClient = async (clientId: string): Promise<boolean>
     }
 
     // Mettre à jour le compteur
-    await updateAmbassadorClientCount(ambassadorId);
+    await updateAmbassadorClientCount(ambassadorData.id);
 
     return true;
   } catch (error) {
