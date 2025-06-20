@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateClientData, Client } from "@/types/client";
@@ -6,13 +5,12 @@ import { CreateClientData, Client } from "@/types/client";
 // Obtenir le profil ambassadeur de l'utilisateur actuel
 export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
   try {
-    console.log("Getting current ambassador profile using auth.uid()");
+    console.log("Getting current ambassador profile using RLS");
     
-    // Utiliser directement auth.uid() dans la requête au lieu de supabase.auth.getUser()
+    // Utiliser directement la requête avec RLS - les politiques se chargeront de filtrer par auth.uid()
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
-      .eq('user_id', supabase.auth.getUser().then(u => u.data.user?.id))
       .maybeSingle();
     
     if (ambassadorError) {
@@ -36,35 +34,17 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
 // Obtenir les clients d'un ambassadeur
 export const getAmbassadorClients = async (ambassadorId?: string): Promise<Client[]> => {
   try {
-    let ambassadorIdToUse = ambassadorId;
+    console.log("Loading ambassador clients using RLS...");
     
-    if (!ambassadorIdToUse) {
-      // Utiliser une requête directe sans passer par getCurrentAmbassadorProfile
-      const { data: ambassadorData, error: ambassadorError } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
-      
-      if (ambassadorError || !ambassadorData) {
-        console.error("Failed to get ambassador ID:", ambassadorError);
-        throw new Error("Profil ambassadeur non trouvé");
-      }
-      
-      ambassadorIdToUse = ambassadorData.id;
-    }
-    
-    console.log("Loading clients for ambassador:", ambassadorIdToUse);
-    
-    // Join ambassador_clients with clients to get the full client data
+    // Utiliser directement RLS - pas besoin de spécifier l'ambassador_id
+    // Les politiques RLS filtreront automatiquement par l'utilisateur connecté
     const { data, error } = await supabase
       .from('ambassador_clients')
       .select(`
         id,
         client_id,
         clients (*)
-      `)
-      .eq('ambassador_id', ambassadorIdToUse);
+      `);
     
     if (error) {
       console.error("Error loading ambassador clients:", error);
@@ -216,31 +196,22 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
 // Supprimer un client ambassadeur
 export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
   try {
-    // Utiliser une requête directe pour obtenir l'ID de l'ambassadeur
-    const { data: ambassadorData, error: ambassadorError } = await supabase
-      .from('ambassadors')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
-    
-    if (ambassadorError || !ambassadorData) {
-      throw new Error("Profil ambassadeur non trouvé");
-    }
-
-    // Supprimer la relation dans ambassador_clients
+    // Utiliser RLS pour supprimer - les politiques vérifieront automatiquement les permissions
     const { error: linkError } = await supabase
       .from("ambassador_clients")
       .delete()
-      .eq("client_id", clientId)
-      .eq("ambassador_id", ambassadorData.id);
+      .eq("client_id", clientId);
 
     if (linkError) {
       console.error("Error deleting ambassador client link:", linkError);
       throw linkError;
     }
 
-    // Mettre à jour le compteur
-    await updateAmbassadorClientCount(ambassadorData.id);
+    // Obtenir l'ID ambassadeur pour mettre à jour le compteur
+    const ambassadorId = await getCurrentAmbassadorProfile();
+    if (ambassadorId) {
+      await updateAmbassadorClientCount(ambassadorId);
+    }
 
     return true;
   } catch (error) {
