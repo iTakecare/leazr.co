@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, ArrowRight, Star, Zap, Shield, Headphones } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
 import Logo from '@/components/layout/Logo';
 
 const PricingPage: React.FC = () => {
@@ -248,17 +249,8 @@ const PricingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
-            <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Footer avec le nouveau composant */}
+      <Footer />
     </div>
   );
 };
