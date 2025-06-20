@@ -1,5 +1,5 @@
-import { getAdminSupabaseClient, supabase } from '@/integrations/supabase/client';
-import { Client, CreateClientData } from '@/types/client';
+import { supabase } from "@/integrations/supabase/client";
+import type { Client } from "@/types/client";
 
 /**
  * Crée un nouveau client
@@ -85,19 +85,47 @@ export const createClient = async (clientData: any) => {
  */
 export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log("Récupération de tous les clients");
+    console.log("Appel à getAllClients pour récupérer tous les clients");
     
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*');
+    // Récupérer l'utilisateur actuel
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (error) {
-      console.error("Erreur lors de la récupération des clients:", error);
-      throw error;
+    if (!user) {
+      console.log("Utilisateur non connecté");
+      return [];
     }
+
+    // Vérifier si l'utilisateur est admin
+    const isAdmin = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'super_admin';
     
-    console.log(`Récupéré ${data?.length || 0} clients au total`);
-    return data || [];
+    let query;
+    
+    if (isAdmin) {
+      // Pour les admins, utiliser la fonction sécurisée qui contourne RLS
+      console.log("Utilisateur admin détecté, récupération de tous les clients");
+      const { data, error } = await supabase.rpc('get_all_clients_for_admin');
+      
+      if (error) {
+        console.error("Erreur lors de la récupération des clients pour admin:", error);
+        return [];
+      }
+      
+      return data || [];
+    } else {
+      // Pour les autres utilisateurs, utiliser la requête normale
+      console.log("Utilisateur non-admin, récupération des clients selon les permissions");
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors de la récupération des clients:", error);
+        return [];
+      }
+
+      return data || [];
+    }
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
     return [];
