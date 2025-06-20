@@ -6,6 +6,7 @@ import { CreateClientData, Client } from "@/types/client";
 // Obtenir le profil ambassadeur de l'utilisateur actuel
 export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
   try {
+    // Utiliser auth.getUser() pour obtenir l'utilisateur actuel
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData?.user) {
@@ -15,6 +16,7 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     
     console.log("Current user:", userData.user.id);
     
+    // Chercher l'ambassadeur par user_id
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')

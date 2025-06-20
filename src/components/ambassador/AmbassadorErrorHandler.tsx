@@ -20,40 +20,48 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
     setIsLoading(true);
     try {
       // Vérifier que l'utilisateur est bien authentifié
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error("Auth error:", authError);
+        setDiagnosticInfo({
+          isAuthenticated: false,
+          authError: authError.message,
+          userId: null,
+          userEmail: null,
+          hasAmbassadorProfile: false,
+          ambassadorId: null,
+          rlsAccess: false
+        });
+        toast.error("Erreur d'authentification détectée");
+        return;
+      }
+      
+      if (!authData?.user) {
+        setDiagnosticInfo({
+          isAuthenticated: false,
+          userId: null,
+          userEmail: null,
+          hasAmbassadorProfile: false,
+          ambassadorId: null,
+          rlsAccess: false
+        });
+        toast.error("Vous n'êtes pas connecté. Veuillez vous reconnecter.");
+        return;
+      }
       
       // Vérifier si l'utilisateur a un profil d'ambassadeur
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
         .select('id, name, email')
-        .eq('user_id', authData.user?.id)
+        .eq('user_id', authData.user.id)
         .maybeSingle();
       
-      // Vérifier si l'ambassadeur existe avec l'email de l'utilisateur si pas trouvé par user_id
-      let alternativeAmbassadorData = null;
-      if (!ambassadorData && authData.user?.email) {
-        const { data: altData } = await supabase
-          .from('ambassadors')
-          .select('id, name, email')
-          .eq('email', authData.user.email)
-          .maybeSingle();
-        
-        alternativeAmbassadorData = altData;
-      }
-      
-      // Vérifier les politiques RLS
+      // Vérifier les politiques RLS en testant l'accès aux ambassador_clients
       const { data: rlsTestData, error: rlsError } = await supabase
         .from('ambassador_clients')
         .select('*')
         .limit(1);
-      
-      // Récupérer les journaux d'erreurs récents
-      const { data: errorLogs, error: logsError } = await supabase
-        .from('error_logs')
-        .select('*')
-        .eq('user_id', authData.user?.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
       
       setDiagnosticInfo({
         isAuthenticated: !!authData.user,
@@ -61,21 +69,15 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         userEmail: authData.user?.email,
         hasAmbassadorProfile: !!ambassadorData,
         ambassadorId: ambassadorData?.id,
-        alternativeAmbassadorFound: !!alternativeAmbassadorData,
-        alternativeAmbassadorId: alternativeAmbassadorData?.id,
+        ambassadorName: ambassadorData?.name,
+        ambassadorEmail: ambassadorData?.email,
         rlsAccess: !rlsError,
         rlsError: rlsError ? rlsError.message : null,
-        errorLogs
+        testDataCount: rlsTestData?.length || 0
       });
       
-      if (!authData.user) {
-        toast.error("Vous n'êtes pas connecté. Veuillez vous reconnecter.");
-      } else if (!ambassadorData && !alternativeAmbassadorData) {
+      if (!ambassadorData) {
         toast.error("Nous n'avons pas trouvé votre profil ambassadeur. Veuillez contacter l'administrateur.");
-      } else if (ambassadorData && !ambassadorData.id) {
-        toast.error("Votre profil ambassadeur est incomplet. Veuillez contacter l'administrateur.");
-      } else if (alternativeAmbassadorData) {
-        toast.warning("Nous avons trouvé un profil ambassadeur avec votre email, mais il n'est pas lié à votre compte utilisateur.");
       } else if (rlsError) {
         toast.error("Problème d'accès à la base de données. Vos permissions sont peut-être insuffisantes.");
       } else {
@@ -83,6 +85,11 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       }
     } catch (error) {
       console.error("Erreur lors du diagnostic:", error);
+      setDiagnosticInfo({
+        isAuthenticated: false,
+        error: error.message,
+        rlsAccess: false
+      });
       toast.error("Erreur lors du diagnostic");
     } finally {
       setIsLoading(false);
@@ -134,17 +141,29 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
           <p>Email: {diagnosticInfo.userEmail || "Non disponible"}</p>
           <p>Profil ambassadeur: {diagnosticInfo.hasAmbassadorProfile ? "Trouvé" : "Non trouvé"}</p>
           <p>ID Ambassadeur: {diagnosticInfo.ambassadorId || "Non disponible"}</p>
-          {diagnosticInfo.alternativeAmbassadorFound && (
-            <div className="p-2 bg-yellow-100 rounded text-yellow-800">
-              <p>Ambassadeur alternatif trouvé par email: ID {diagnosticInfo.alternativeAmbassadorId}</p>
-              <p className="text-xs mt-1">Ce profil ambassadeur correspond à votre email mais n'est pas lié à votre compte utilisateur.</p>
-            </div>
+          {diagnosticInfo.ambassadorName && (
+            <p>Nom Ambassadeur: {diagnosticInfo.ambassadorName}</p>
+          )}
+          {diagnosticInfo.ambassadorEmail && (
+            <p>Email Ambassadeur: {diagnosticInfo.ambassadorEmail}</p>
           )}
           <p>Accès base de données: {diagnosticInfo.rlsAccess ? "OK" : "Problème"}</p>
           
           {diagnosticInfo.rlsError && (
             <div className="p-2 bg-destructive/10 rounded text-destructive">
               <p>Erreur: {diagnosticInfo.rlsError}</p>
+            </div>
+          )}
+          
+          {diagnosticInfo.authError && (
+            <div className="p-2 bg-destructive/10 rounded text-destructive">
+              <p>Erreur d'authentification: {diagnosticInfo.authError}</p>
+            </div>
+          )}
+          
+          {diagnosticInfo.error && (
+            <div className="p-2 bg-destructive/10 rounded text-destructive">
+              <p>Erreur générale: {diagnosticInfo.error}</p>
             </div>
           )}
         </div>
