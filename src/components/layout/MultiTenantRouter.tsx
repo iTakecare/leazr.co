@@ -137,6 +137,7 @@ const RoleBasedRoutes = () => {
         <Route path="/offers" element={<Offers />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
         <Route path="/admin/offers/:id" element={<OfferDetail />} />
+        <Route path="/create-offer" element={<CreateOffer />} />
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
         <Route path="/admin/settings" element={<Settings />} />
