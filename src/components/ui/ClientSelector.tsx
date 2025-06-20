@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -51,7 +50,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         if (ambassadorMode && user?.ambassador_id) {
           // Si en mode ambassadeur, charger les clients de l'ambassadeur
           console.log("Loading ambassador clients with ambassador_id:", user.ambassador_id);
-          fetchedClients = await getAmbassadorClients(user.ambassador_id);
+          fetchedClients = await getAmbassadorClients();
           console.log("Loaded ambassador clients:", fetchedClients);
         } else {
           // Sinon, charger tous les clients
