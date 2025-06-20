@@ -82,6 +82,7 @@ const MainNavigation = () => {
         </div>
 
         <div className={`${mobileMenuOpen ? 'flex' : 'hidden'} md:hidden flex-col w-full mt-4 space-y-2 pb-4`}>
+          {/* Solutions mobile menu */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Solutions</div>
             {solutionsMenu.map((item, index) => (
@@ -97,6 +98,7 @@ const MainNavigation = () => {
             ))}
           </div>
           
+          {/* Services mobile menu */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Services</div>
             {servicesMenu.map((item, index) => (
@@ -112,6 +114,7 @@ const MainNavigation = () => {
             ))}
           </div>
           
+          {/* Ressources mobile menu */}
           <div className="border-b border-gray-200 pb-2 mb-2">
             <div className="font-medium text-[#33638E] mb-2 px-4">Ressources</div>
             {ressourcesMenu.map((item, index) => (
@@ -126,6 +129,18 @@ const MainNavigation = () => {
               </Link>
             ))}
           </div>
+          
+          {/* Autres liens mobile */}
+          <Link
+            to="/tarifs"
+            className={cn(
+              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
+              location.pathname === "/tarifs" && "bg-[#33638E]/10 text-[#33638E]"
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            💰 Tarifs
+          </Link>
           
           <Link
             to="/a-propos"
@@ -160,6 +175,7 @@ const MainNavigation = () => {
             Contact
           </Link>
           
+          {/* Boutons d'action mobile */}
           <div className="flex flex-col space-y-2 pt-4">
             <Link to="/login">
               <Button
@@ -255,6 +271,18 @@ const MainNavigation = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </li>
+            
+            <li>
+              <Link
+                to="/tarifs"
+                className={cn(
+                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
+                  location.pathname === "/tarifs" && "font-medium text-[#33638E]"
+                )}
+              >
+                💰 Tarifs
+              </Link>
             </li>
             
             <li>

@@ -30,6 +30,7 @@ import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
 import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
 import CRMFeaturePage from "@/pages/CRMFeaturePage";
 import CalculatorPage from "@/pages/CalculatorPage";
+import PricingPage from "@/pages/PricingPage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -87,6 +88,7 @@ const MultiTenantRouter = () => {
       <Route path="/a-propos" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/blog" element={<ResourcesPage />} />
+      <Route path="/tarifs" element={<PricingPage />} />
       
       {/* Routes publiques pour les entreprises (sans authentification) */}
       <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
