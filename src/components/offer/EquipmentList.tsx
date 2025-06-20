@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,15 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
       updateQuantity(id, newQuantity);
     }
   };
+
+  // Debug logging pour diagnostiquer les props
+  console.log("EquipmentList debug:", {
+    totalMonthlyPayment,
+    equipmentListLength: equipmentList.length,
+    ambassadorId,
+    commissionLevelId,
+    hideFinancialDetails
+  });
 
   return (
     <div className="space-y-6">
@@ -196,8 +206,8 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </Card>
       )}
 
-      {/* Commission d'ambassadeur - nouvelle approche simplifiée */}
-      {ambassadorId && totalMonthlyPayment > 0 && equipmentList.length > 0 && (
+      {/* Commission d'ambassadeur - Affichage conditionnel amélioré */}
+      {totalMonthlyPayment > 0 && equipmentList.length > 0 && (
         <SimpleCommissionDisplay
           totalMonthlyPayment={totalMonthlyPayment}
           ambassadorId={ambassadorId}

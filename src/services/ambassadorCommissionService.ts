@@ -1,166 +1,149 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { getAmbassadorCommissionLevel, getCommissionRates } from "./commissionService";
 
-export interface AmbassadorCommission {
-  id: string;
+export interface AmbassadorCommissionData {
   amount: number;
-  clientName: string;
-  date: string;
-  status: string;
-  description?: string;
+  rate: number;
+  levelName: string;
+  financedAmount: number;
 }
 
-export const getAmbassadorCommissions = async (ambassadorId: string): Promise<AmbassadorCommission[]> => {
+/**
+ * Calcule la commission d'un ambassadeur selon son barème attribué
+ */
+export const calculateAmbassadorCommission = async (
+  ambassadorId: string,
+  financedAmount: number
+): Promise<AmbassadorCommissionData> => {
   try {
-    console.log(`Fetching commissions for ambassador ID: ${ambassadorId}`);
+    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, amount: ${financedAmount}`);
     
-    if (!ambassadorId) {
-      console.error("No ambassador ID provided");
-      return [];
-    }
+    // Récupérer le niveau de commission de l'ambassadeur
+    const commissionLevel = await getAmbassadorCommissionLevel(ambassadorId);
     
-    // Tentative directe avec l'ID fourni
-    const { data, error } = await supabase
-      .from('offers')
-      .select('id, client_name, commission, created_at, commission_status, equipment_description')
-      .eq('ambassador_id', ambassadorId)
-      .not('commission', 'is', null)
-      .gt('commission', 0)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error("Error fetching ambassador commissions:", error);
-      throw error;
+    if (!commissionLevel) {
+      console.log("[calculateAmbassadorCommission] No commission level found, using default");
+      return {
+        amount: Math.round(financedAmount * 0.05), // 5% par défaut
+        rate: 5,
+        levelName: "Aucun barème attribué",
+        financedAmount
+      };
     }
 
-    console.log(`Found ${data?.length || 0} commissions for ambassador ${ambassadorId}`);
+    console.log("[calculateAmbassadorCommission] Found commission level:", commissionLevel.name);
 
-    // Si aucune commission n'est trouvée, tenter de rechercher l'ambassadeur par email
-    if (data?.length === 0) {
-      try {
-        const { data: authData } = await supabase.auth.getUser();
-        if (authData?.user?.email) {
-          console.log("Trying to find ambassador by email:", authData.user.email);
-          
-          const { data: ambassadorData } = await supabase
-            .from('ambassadors')
-            .select('id')
-            .eq('email', authData.user.email)
-            .maybeSingle();
-            
-          if (ambassadorData?.id && ambassadorData.id !== ambassadorId) {
-            console.log("Found alternative ambassador ID:", ambassadorData.id);
-            
-            // Réessayer avec le nouvel ID
-            const { data: altData, error: altError } = await supabase
-              .from('offers')
-              .select('id, client_name, commission, created_at, commission_status, equipment_description')
-              .eq('ambassador_id', ambassadorData.id)
-              .not('commission', 'is', null)
-              .gt('commission', 0)
-              .order('created_at', { ascending: false });
-              
-            if (!altError && altData?.length > 0) {
-              console.log(`Found ${altData.length} commissions using alternative ambassador ID`);
-              return transformCommissionsData(altData);
-            }
-          }
-        }
-      } catch (alternativeError) {
-        console.error("Error in alternative ambassador lookup:", alternativeError);
-        // Continue with empty array
-      }
+    // Récupérer les taux du niveau de commission
+    const rates = await getCommissionRates(commissionLevel.id);
+    
+    if (!rates || rates.length === 0) {
+      console.log("[calculateAmbassadorCommission] No rates found, using default");
+      return {
+        amount: Math.round(financedAmount * 0.05),
+        rate: 5,
+        levelName: commissionLevel.name,
+        financedAmount
+      };
     }
 
-    return transformCommissionsData(data || []);
+    console.log("[calculateAmbassadorCommission] Found rates:", rates);
+
+    // Trouver le taux applicable selon le montant financé
+    const applicableRate = rates.find(rate => 
+      financedAmount >= rate.min_amount && financedAmount <= rate.max_amount
+    );
+
+    if (applicableRate) {
+      const commissionAmount = Math.round(financedAmount * (applicableRate.rate / 100));
+      console.log("[calculateAmbassadorCommission] Applied rate found:", applicableRate.rate, "Commission:", commissionAmount);
+      
+      return {
+        amount: commissionAmount,
+        rate: applicableRate.rate,
+        levelName: commissionLevel.name,
+        financedAmount
+      };
+    }
+
+    // Si aucun taux ne correspond exactement, prendre le taux le plus élevé disponible
+    const maxRate = rates.reduce((max, rate) => rate.rate > max.rate ? rate : max, rates[0]);
+    const commissionAmount = Math.round(financedAmount * (maxRate.rate / 100));
+    
+    console.log("[calculateAmbassadorCommission] No exact rate found, using max rate:", maxRate.rate);
+    
+    return {
+      amount: commissionAmount,
+      rate: maxRate.rate,
+      levelName: commissionLevel.name,
+      financedAmount
+    };
+
   } catch (error) {
-    console.error("Error fetching ambassador commissions:", error);
-    return [];
+    console.error("[calculateAmbassadorCommission] Error:", error);
+    
+    // Fallback en cas d'erreur
+    return {
+      amount: Math.round(financedAmount * 0.05),
+      rate: 5,
+      levelName: "Erreur - Commission par défaut",
+      financedAmount
+    };
   }
 };
 
-// Fonction utilitaire pour transformer les données
-const transformCommissionsData = (data: any[]): AmbassadorCommission[] => {
-  return data.map(offer => ({
-    id: offer.id,
-    amount: offer.commission || 0,
-    clientName: offer.client_name || 'Client inconnu',
-    date: offer.created_at,
-    status: offer.commission_status || 'pending',
-    description: offer.equipment_description 
-      ? (typeof offer.equipment_description === 'string' && offer.equipment_description.startsWith('[') 
-          ? `Commission pour ${JSON.parse(offer.equipment_description)[0]?.title || 'équipement'}`
-          : `Commission pour ${offer.equipment_description}`)
-      : 'Commission pour équipement'
-  }));
-};
-
-export const updateAmbassadorCommissionStatus = async (offerId: string, newStatus: 'pending' | 'paid' | 'cancelled'): Promise<boolean> => {
+/**
+ * Vérifie si un ambassadeur a un barème de commission attribué
+ */
+export const hasCommissionLevel = async (ambassadorId: string): Promise<boolean> => {
   try {
-    const updateData: any = {
-      commission_status: newStatus
-    };
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .select('commission_level_id')
+      .eq('id', ambassadorId)
+      .single();
     
-    // Si le statut est "payé", enregistrer la date du paiement
-    if (newStatus === 'paid') {
-      updateData.commission_paid_at = new Date().toISOString();
+    if (error) {
+      console.error("[hasCommissionLevel] Error:", error);
+      return false;
     }
     
-    const { error } = await supabase
-      .from('offers')
-      .update(updateData)
-      .eq('id', offerId);
-
-    if (error) throw error;
-    
-    return true;
+    return data && data.commission_level_id !== null;
   } catch (error) {
-    console.error("Error updating commission status:", error);
-    toast.error("Erreur lors de la mise à jour du statut");
+    console.error("[hasCommissionLevel] Error:", error);
     return false;
   }
 };
 
-export const calculateTotalAmbassadorCommissions = async (ambassadorId: string): Promise<{ pending: number, paid: number, total: number }> => {
+/**
+ * Récupère les informations de barème d'un ambassadeur
+ */
+export const getAmbassadorCommissionInfo = async (ambassadorId: string) => {
   try {
-    if (!ambassadorId) {
-      console.error("No ambassador ID provided for commission calculation");
-      return { pending: 0, paid: 0, total: 0 };
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .select(`
+        id,
+        user_id,
+        commission_level_id,
+        commission_levels (
+          id,
+          name,
+          type,
+          is_default
+        )
+      `)
+      .eq('id', ambassadorId)
+      .single();
+    
+    if (error) {
+      console.error("[getAmbassadorCommissionInfo] Error:", error);
+      return null;
     }
     
-    const { data, error } = await supabase
-      .from('offers')
-      .select('commission, commission_status')
-      .eq('ambassador_id', ambassadorId)
-      .not('commission', 'is', null)
-      .gt('commission', 0);
-
-    if (error) {
-      console.error("Error calculating commissions:", error);
-      throw error;
-    }
-
-    const result = {
-      pending: 0,
-      paid: 0,
-      total: 0
-    };
-
-    data?.forEach(offer => {
-      const amount = parseFloat(offer.commission) || 0;
-      result.total += amount;
-      
-      if (offer.commission_status === 'paid') {
-        result.paid += amount;
-      } else if (offer.commission_status === 'pending' || !offer.commission_status) {
-        result.pending += amount;
-      }
-    });
-
-    return result;
+    return data;
   } catch (error) {
-    console.error("Error calculating total commissions:", error);
-    return { pending: 0, paid: 0, total: 0 };
+    console.error("[getAmbassadorCommissionInfo] Error:", error);
+    return null;
   }
 };

@@ -69,7 +69,7 @@ export const useAmbassadorOfferSave = ({
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Récupérer la commission depuis le nouveau composant simple
+      // Récupérer la commission depuis le composant SimpleCommissionDisplay
       let commissionAmount = 0;
       
       const commissionElement = document.getElementById('ambassador-commission-value');
@@ -77,16 +77,17 @@ export const useAmbassadorOfferSave = ({
       if (commissionElement && commissionElement.dataset.commissionAmount) {
         try {
           commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
-          console.log("Commission récupérée depuis le composant simple:", commissionAmount);
+          console.log("Commission récupérée depuis SimpleCommissionDisplay:", commissionAmount);
         } catch (error) {
           console.error("Error parsing commission:", error);
           // Fallback: calcul simple 5% du montant financé
           commissionAmount = Math.round(financedAmount * 0.05);
+          console.log("Fallback commission appliquée:", commissionAmount);
         }
       } else {
         // Fallback: calcul simple 5% du montant financé
         commissionAmount = Math.round(financedAmount * 0.05);
-        console.log("Commission par défaut appliquée:", commissionAmount);
+        console.log("Commission par défaut appliquée (élément non trouvé):", commissionAmount);
       }
       
       const currentAmbassadorId = ambassadorId || userId;
@@ -94,9 +95,16 @@ export const useAmbassadorOfferSave = ({
       // Validation finale de la commission
       if (commissionAmount === 0 || isNaN(commissionAmount)) {
         commissionAmount = Math.round(financedAmount * 0.05);
+        console.log("Commission finale (validation échouée):", commissionAmount);
       }
       
-      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+      console.log("COMMISSION FINALE À SAUVEGARDER:", {
+        commissionAmount,
+        financedAmount,
+        totalMonthlyPayment,
+        ambassadorId: currentAmbassadorId,
+        ambassador: ambassador?.name || 'Unknown'
+      });
       
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
       const marginAmount = String(globalMarginAdjustment.amount || 0);
