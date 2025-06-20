@@ -1,22 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
-import { CompanyBrandingProvider } from './contexts/CompanyBrandingContext';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import DashboardPage from './pages/DashboardPage';
-import ClientsPage from './pages/ClientsPage';
-import ContractsPage from './pages/ContractsPage';
-import SettingsPage from './pages/SettingsPage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider } from './context/AuthContext';
+import { CompanyBrandingProvider } from './context/CompanyBrandingContext';
+import LoginPage from './pages/Login';
+import SignupPage from './pages/Signup';
+import DashboardPage from './pages/Dashboard';
+import ClientsPage from './pages/Clients';
+import ContractsPage from './pages/Contracts';
+import SettingsPage from './pages/Settings';
 import PricingPage from './pages/PricingPage';
 import LandingPage from './pages/LandingPage';
 import SolutionsPage from './pages/SolutionsPage';
 import ContactPage from './pages/ContactPage';
 import ServicesPage from './pages/ServicesPage';
-import RessourcesPage from './pages/RessourcesPage';
-import NotFoundPage from './pages/NotFoundPage';
+import ResourcesPage from './pages/ResourcesPage';
+import NotFoundPage from './pages/NotFound';
 import UnifiedSolutionsPage from '@/pages/UnifiedSolutionsPage';
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
               <Route path="/solutions" element={<UnifiedSolutionsPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/services" element={<ServicesPage />} />
-              <Route path="/ressources" element={<RessourcesPage />} />
+              <Route path="/ressources" element={<ResourcesPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </CompanyBrandingProvider>

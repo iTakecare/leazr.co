@@ -19,7 +19,7 @@ import {
 import { ArrowRight, Menu, X, ChevronDown, Globe, 
          Users, BarChart, Shield, Zap, Building, 
          Headphones, Book, Briefcase, Monitor, 
-         Server, Recycle, Share2, HelpCircle } from 'lucide-react';
+         Server, Recycle, Share2, HelpCircle, Target, Calculator, Box } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/layout/Logo';
