@@ -1,6 +1,7 @@
 
 import React from 'react';
 import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calculator, TrendingUp, FileText, CheckCircle, ArrowRight } from 'lucide-react';
@@ -91,6 +92,8 @@ const CalculatorPage = () => {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };
