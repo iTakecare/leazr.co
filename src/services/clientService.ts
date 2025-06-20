@@ -1,4 +1,3 @@
-
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import type { Client } from "@/types/client";
 
@@ -208,48 +207,104 @@ const getAllClientsWithStandardClient = async (showAmbassadorClients: boolean): 
 };
 
 /**
- * Récupère un client par son ID
+ * Récupère un client par son ID avec gestion des erreurs améliorée
  * @param id ID du client à récupérer
  * @returns Le client correspondant ou null
  */
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    // First, fetch the client details
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (clientError) {
-      console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, clientError);
+    console.log(`getClientById - Récupération du client avec l'ID: ${id}`);
+    
+    // Récupérer l'utilisateur actuel
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error("getClientById - Utilisateur non connecté");
       return null;
+    }
+
+    // Vérifier si l'utilisateur est admin
+    const isAdmin = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'super_admin';
+    
+    console.log(`getClientById - Utilisateur: ${user.email}, Admin: ${isAdmin}`);
+    
+    let clientData = null;
+    let clientError = null;
+    
+    if (isAdmin) {
+      // Pour les admins, essayer d'abord avec le client admin
+      console.log("getClientById - Tentative avec client admin");
+      try {
+        const adminClient = getAdminSupabaseClient();
+        const { data, error } = await adminClient
+          .from('clients')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (error) {
+          console.warn("getClientById - Erreur avec client admin:", error);
+          clientError = error;
+        } else {
+          clientData = data;
+          console.log("getClientById - Client récupéré avec succès via client admin");
+        }
+      } catch (adminError) {
+        console.warn("getClientById - Exception avec client admin:", adminError);
+        clientError = adminError;
+      }
+    }
+    
+    // Si pas de données ou pas admin, essayer avec le client standard
+    if (!clientData) {
+      console.log("getClientById - Tentative avec client standard");
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
+        
+      if (error) {
+        console.error(`getClientById - Erreur avec client standard pour l'ID ${id}:`, error);
+        return null;
+      }
+      
+      clientData = data;
     }
 
     if (!clientData) {
+      console.warn(`getClientById - Aucun client trouvé pour l'ID: ${id}`);
       return null;
     }
 
-    // Next, fetch the collaborators for this client
+    // Récupérer les collaborateurs pour ce client
+    console.log(`getClientById - Récupération des collaborateurs pour le client ${id}`);
     const { data: collaboratorsData, error: collaboratorsError } = await supabase
       .from('collaborators')
       .select('*')
       .eq('client_id', id);
 
     if (collaboratorsError) {
-      console.error(`Erreur lors de la récupération des collaborateurs pour le client ${id}:`, collaboratorsError);
-      // Continue with the client data even if collaborators couldn't be fetched
+      console.error(`getClientById - Erreur lors de la récupération des collaborateurs pour le client ${id}:`, collaboratorsError);
+      // Continue avec les données du client même si les collaborateurs ne peuvent pas être récupérés
     }
 
-    // Combine the client data with collaborators
+    // Combiner les données du client avec les collaborateurs
     const client: Client = {
       ...clientData,
       collaborators: collaboratorsData || []
     };
 
+    console.log(`getClientById - Client complet récupéré:`, {
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      collaborators_count: client.collaborators?.length || 0
+    });
+
     return client;
   } catch (error) {
-    console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, error);
+    console.error(`getClientById - Exception lors de la récupération du client avec l'ID ${id}:`, error);
     return null;
   }
 };

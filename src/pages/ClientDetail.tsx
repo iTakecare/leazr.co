@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ export default function ClientDetail() {
   const fetchClient = async () => {
     if (!id) {
       console.error("ClientDetail - No ID provided");
+      setError("ID de client manquant");
       toast.error("ID de client manquant");
       navigate("/clients");
       return;
@@ -45,8 +45,8 @@ export default function ClientDetail() {
       
       if (!clientData) {
         console.error("ClientDetail - Client not found for ID:", id);
-        setError("Client introuvable");
-        toast.error("Client introuvable");
+        setError("Client introuvable ou accès non autorisé");
+        toast.error("Client introuvable ou accès non autorisé");
         return;
       }
       
@@ -145,7 +145,7 @@ export default function ClientDetail() {
             Retour à la liste
           </Button>
           {id && (
-            <Button onClick={() => window.location.reload()}>
+            <Button onClick={() => fetchClient()}>
               Réessayer
             </Button>
           )}
