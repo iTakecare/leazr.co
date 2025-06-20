@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
@@ -31,9 +30,9 @@ const AmbassadorClientsPage = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
-  const [clientToDelete, setClientToDelete] = useState(null);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   
-  const { clients, isLoading, error, loadClients } = useAmbassadorClients();
+  const { clients, isLoading, error, loadClients, deleteClient } = useAmbassadorClients();
   
   // Filtrer les clients selon le terme de recherche
   const filteredClients = clients.filter(client => 
@@ -42,7 +41,7 @@ const AmbassadorClientsPage = () => {
     (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
-  const handleCreateOffer = (clientId) => {
+  const handleCreateOffer = (clientId: string) => {
     navigate(`/ambassador/create-offer?clientId=${clientId}`);
   };
   
@@ -60,19 +59,17 @@ const AmbassadorClientsPage = () => {
     }
   };
 
-  const handleEditClient = (clientId) => {
+  const handleEditClient = (clientId: string) => {
     navigate(`/ambassador/clients/edit/${clientId}`);
   };
   
-  const handleDeleteClient = async (clientId) => {
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+    
     try {
-      // Implement deletion logic here
-      // For now, just show a toast and refresh the list
-      toast.success("Client supprimé avec succès");
-      await loadClients();
+      await deleteClient(clientToDelete);
     } catch (error) {
       console.error("Error deleting client:", error);
-      toast.error("Erreur lors de la suppression du client");
     } finally {
       setClientToDelete(null);
     }
@@ -254,13 +251,13 @@ const AmbassadorClientsPage = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action ne peut pas être annulée. Le client sera définitivement supprimé.
+                Cette action ne peut pas être annulée. Le client sera supprimé de votre liste.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => handleDeleteClient(clientToDelete)}
+                onClick={handleDeleteClient}
                 className="bg-red-500 hover:bg-red-600 text-white"
               >
                 Supprimer

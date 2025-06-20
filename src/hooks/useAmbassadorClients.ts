@@ -1,7 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Client, CreateClientData } from '@/types/client';
-import { getAmbassadorClients, getCurrentAmbassadorProfile, createClientAsAmbassadorDb, updateAmbassadorClientCount } from '@/services/ambassadorClientService';
+import { 
+  getAmbassadorClients, 
+  getCurrentAmbassadorProfile, 
+  createClientAsAmbassadorDb, 
+  updateAmbassadorClientCount,
+  deleteAmbassadorClient
+} from '@/services/ambassadorClientService';
 import { toast } from 'sonner';
 
 export const useAmbassadorClients = () => {
@@ -21,8 +27,9 @@ export const useAmbassadorClients = () => {
       setClients(data);
     } catch (err) {
       console.error("Error loading ambassador clients:", err);
-      setError("Impossible de charger vos clients");
-      toast.error("Impossible de charger vos clients");
+      const errorMessage = err instanceof Error ? err.message : "Impossible de charger vos clients";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -63,11 +70,26 @@ export const useAmbassadorClients = () => {
       return true;
     } catch (err) {
       console.error("Error creating client as ambassador:", err);
-      toast.error("Erreur lors de la création du client");
-      setError("Erreur lors de la création du client");
+      const errorMessage = err instanceof Error ? err.message : "Erreur lors de la création du client";
+      toast.error(errorMessage);
+      setError(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Supprimer un client ambassadeur
+  const deleteClient = async (clientId: string): Promise<void> => {
+    try {
+      await deleteAmbassadorClient(clientId);
+      toast.success("Client supprimé avec succès");
+      await loadClients(); // Recharger la liste
+    } catch (err) {
+      console.error("Error deleting client:", err);
+      const errorMessage = err instanceof Error ? err.message : "Erreur lors de la suppression du client";
+      toast.error(errorMessage);
+      throw err;
     }
   };
 
@@ -80,6 +102,7 @@ export const useAmbassadorClients = () => {
     isLoading,
     error,
     loadClients,
-    createClientAsAmbassador
+    createClientAsAmbassador,
+    deleteClient
   };
 };

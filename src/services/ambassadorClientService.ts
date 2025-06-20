@@ -134,17 +134,6 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       throw insertError;
     }
     
-    // Mettre à jour le client pour indiquer qu'il appartient à un ambassadeur
-    const { error: updateClientError } = await supabase
-      .from("clients")
-      .update({ is_ambassador_client: true })
-      .eq("id", clientId);
-    
-    if (updateClientError) {
-      console.error("Error updating client:", updateClientError);
-      // Continue anyway, this is not critical
-    }
-    
     // Mettre à jour le compteur de clients de l'ambassadeur
     await updateAmbassadorClientCount(ambassadorId);
     
@@ -220,5 +209,35 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
   } catch (error) {
     console.error("Exception in createClientAsAmbassadorDb:", error);
     return null;
+  }
+};
+
+// Supprimer un client ambassadeur
+export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
+  try {
+    const ambassadorId = await getCurrentAmbassadorProfile();
+    if (!ambassadorId) {
+      throw new Error("Profil ambassadeur non trouvé");
+    }
+
+    // Supprimer la relation dans ambassador_clients
+    const { error: linkError } = await supabase
+      .from("ambassador_clients")
+      .delete()
+      .eq("client_id", clientId)
+      .eq("ambassador_id", ambassadorId);
+
+    if (linkError) {
+      console.error("Error deleting ambassador client link:", linkError);
+      throw linkError;
+    }
+
+    // Mettre à jour le compteur
+    await updateAmbassadorClientCount(ambassadorId);
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting ambassador client:", error);
+    throw error;
   }
 };
