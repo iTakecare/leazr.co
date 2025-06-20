@@ -13,7 +13,6 @@ import {
   Package,
   LogOut,
   FileText,
-  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,8 +20,6 @@ const AmbassadorSidebar = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-
-  const ambassadorId = user?.ambassador_id;
 
   const handleSignOut = async () => {
     try {
@@ -34,12 +31,12 @@ const AmbassadorSidebar = () => {
     }
   };
 
-  const mainRoutes = [
+  const ambassadorRoutes = [
     {
       title: "Tableau de bord",
       icon: BarChart,
-      href: `/ambassador/dashboard`,
-      active: pathname === "/ambassador/dashboard",
+      href: `/dashboard`,
+      active: pathname === "/dashboard",
     },
     {
       title: "Mes Clients",
@@ -62,75 +59,40 @@ const AmbassadorSidebar = () => {
     {
       title: "Catalogue",
       icon: Package,
-      href: `/ambassador/catalog`,
-      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
-    },
-  ];
-
-  const leazrRoutes = [
-    {
-      title: "Clients Leazr.co",
-      icon: Building2,
-      href: `/leazr-clients`,
-      active: pathname === "/leazr-clients" || pathname.startsWith("/leazr-clients/"),
+      href: `/catalog`,
+      active: pathname === "/catalog" || pathname.startsWith("/catalog/"),
     },
   ];
 
   return (
     <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
-      <div className="flex h-16 items-center justify-start border-b px-6 pl-20">
-        <Link to="/ambassador/dashboard" className="flex items-center justify-start">
-          <Logo showText={false} logoSize="lg" className="scale-[2.5]" />
+      <div className="flex h-16 items-center justify-center border-b px-6">
+        <Link to="/dashboard" className="flex items-center justify-center">
+          <Logo showText={false} logoSize="md" className="scale-150" />
         </Link>
       </div>
       <ScrollArea className="flex-1 px-4 py-4">
-        <nav className="grid gap-4">
-          {/* Section principale */}
-          <div className="grid gap-2">
-            {mainRoutes.map((route, i) => (
-              <Button
-                key={i}
-                variant={route.active ? "default" : "ghost"}
-                className={cn(
-                  "justify-start gap-2",
-                  route.active && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => navigate(route.href)}
-              >
-                <route.icon className="h-4 w-4" />
-                {route.title}
-              </Button>
-            ))}
-          </div>
-
-          {/* Séparateur */}
-          <div className="border-t border-gray-200 my-2"></div>
-
-          {/* Section Clients Leazr.co */}
-          <div className="grid gap-2">
-            <div className="px-2 py-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Plateforme Leazr
-              </span>
-            </div>
-            {leazrRoutes.map((route, i) => (
-              <Button
-                key={i}
-                variant={route.active ? "default" : "ghost"}
-                className={cn(
-                  "justify-start gap-2",
-                  route.active && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => navigate(route.href)}
-              >
-                <route.icon className="h-4 w-4" />
-                {route.title}
-              </Button>
-            ))}
-          </div>
+        <nav className="grid gap-2">
+          {ambassadorRoutes.map((route, i) => (
+            <Button
+              key={i}
+              variant={route.active ? "default" : "ghost"}
+              className={cn(
+                "justify-start gap-2",
+                route.active && "bg-primary text-primary-foreground"
+              )}
+              onClick={() => navigate(route.href)}
+            >
+              <route.icon className="h-4 w-4" />
+              {route.title}
+            </Button>
+          ))}
         </nav>
       </ScrollArea>
       <div className="flex flex-col gap-2 border-t p-4">
+        <div className="px-2 py-1 text-xs text-muted-foreground">
+          {user?.email}
+        </div>
         <Button
           variant="outline"
           className="justify-start gap-2"

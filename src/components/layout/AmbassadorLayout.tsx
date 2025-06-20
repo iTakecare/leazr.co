@@ -25,35 +25,19 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
         ambassador_id: user?.ambassador_id
       });
       
-      // Simple vérification : si l'utilisateur n'est pas un ambassadeur, rediriger
-      if (!isAmbassador()) {
-        console.log("[AmbassadorLayout] Non-ambassadeur tentant d'accéder à l'espace ambassadeur");
-        toast.error("Vous n'avez pas les droits d'accès à l'espace ambassadeur");
-        
-        // Rediriger vers la page appropriée en fonction du rôle
-        if (user.role === "client") {
-          navigate("/client/dashboard", { replace: true });
-        } else if (user.role === "partner") {
-          navigate("/partner/dashboard", { replace: true });
-        } else if (user.role === "admin") {
-          navigate("/dashboard", { replace: true });
-        } else {
-          navigate("/", { replace: true });
-        }
+      // Pour le moment, permettre l'accès à tous les utilisateurs connectés
+      // TODO: Améliorer la logique de vérification des rôles ambassadeur
+      if (!user) {
+        console.log("[AmbassadorLayout] Utilisateur non connecté, redirection vers login");
+        navigate("/login", { replace: true });
         return;
-      }
-      
-      // Permettre l'accès même si l'ID ambassadeur est manquant
-      // Simplement enregistrer un avertissement mais ne pas bloquer l'accès
-      if (!user.ambassador_id) {
-        console.log("[AmbassadorLayout] ID d'ambassadeur manquant mais permettant l'accès");
       }
     } else if (!isLoading && !user) {
       // Si non authentifié, rediriger vers la page de connexion
       console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
       navigate("/login", { replace: true });
     }
-  }, [user, isLoading, navigate, isAmbassador]);
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -63,16 +47,15 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
     );
   }
 
-  // Ne rendre le contenu que si l'utilisateur est un ambassadeur
-  if (!user || !isAmbassador()) {
+  // Ne rendre le contenu que si l'utilisateur est connecté
+  if (!user) {
     return null;
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <AmbassadorSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar onMenuClick={handleMenuClick} />
+      <div className="flex flex-1 flex-col overflow-hidden ml-64">
         <main className="flex-1 overflow-auto">
           {children || <Outlet />}
         </main>
