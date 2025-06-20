@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle, Users, BarChart, Shield, Zap } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/layout/Logo';
 import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -213,46 +214,8 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer avec logo agrandi */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <Logo variant="full" logoSize="lg" showText={false} className="mb-4" />
-              <p className="text-slate-600 text-sm">
-                💼 La solution métier de référence pour le leasing.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-4">📦 Solution</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">⚡ Fonctionnalités</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">💰 Tarifs</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">🔒 Sécurité</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-4">🆘 Support</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">📚 Documentation</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">📞 Contact</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">🎓 Formation</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-4">🏢 Entreprise</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">ℹ️ À propos</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">📝 Blog</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">💼 Carrières</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-slate-200 mt-12 pt-8 text-center text-sm text-slate-600">
-            <p>© 2024 Leazr. Tous droits réservés. 💙</p>
-          </div>
-        </div>
-      </footer>
+      {/* Footer avec le nouveau composant */}
+      <Footer />
     </div>
   );
 };
