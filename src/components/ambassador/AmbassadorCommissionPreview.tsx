@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
@@ -112,7 +113,9 @@ const AmbassadorCommissionPreview = ({
               <div className="font-medium">Montant de commission:</div>
               <div className="text-green-600 font-medium flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
+                <span className="commission-value">
+                  {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
+                </span>
                 {commission.rate > 0 && (
                   <span className="text-sm text-muted-foreground">({commission.rate}%)</span>
                 )}
