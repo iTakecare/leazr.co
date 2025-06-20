@@ -35,9 +35,6 @@ const Logo: React.FC<LogoProps> = ({
           className="w-full h-full object-contain"
         />
       </div>
-      {showText && (
-        <span className="font-semibold text-lg">Leazr</span>
-      )}
     </div>
   );
 };
