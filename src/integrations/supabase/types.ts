@@ -2333,6 +2333,35 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string[]
       }
+      get_all_clients_for_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          address: string | null
+          city: string | null
+          company: string | null
+          company_id: string
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          has_different_shipping_address: boolean | null
+          has_user_account: boolean | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
+          status: string | null
+          updated_at: string
+          user_account_created_at: string | null
+          user_id: string | null
+          vat_number: string | null
+        }[]
+      }
       get_all_users_extended: {
         Args: Record<PropertyKey, never>
         Returns: {

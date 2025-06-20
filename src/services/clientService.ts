@@ -81,7 +81,7 @@ export const createClient = async (clientData: any) => {
 };
 
 /**
- * Récupère tous les clients sans aucun filtrage
+ * Récupère tous les clients
  * @returns Liste de tous les clients
  */
 export const getAllClients = async (): Promise<Client[]> => {
@@ -96,21 +96,47 @@ export const getAllClients = async (): Promise<Client[]> => {
       return [];
     }
 
-    // Vérifier si l'utilisateur est admin
+    // Vérifier si l'utilisateur est admin en utilisant les métadonnées
     const isAdmin = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'super_admin';
     
-    let query;
+    console.log("Utilisateur actuel:", {
+      id: user.id,
+      email: user.email,
+      role: user.user_metadata?.role,
+      isAdmin
+    });
     
     if (isAdmin) {
       // Pour les admins, utiliser la fonction sécurisée qui contourne RLS
-      console.log("Utilisateur admin détecté, récupération de tous les clients");
+      console.log("Utilisateur admin détecté, récupération de tous les clients via RPC");
       const { data, error } = await supabase.rpc('get_all_clients_for_admin');
       
       if (error) {
-        console.error("Erreur lors de la récupération des clients pour admin:", error);
-        return [];
+        console.error("Erreur lors de la récupération des clients pour admin via RPC:", error);
+        
+        // Fallback: essayer avec le client admin direct
+        console.log("Tentative avec le client admin direct");
+        try {
+          const adminClient = getAdminSupabaseClient();
+          const { data: adminData, error: adminError } = await adminClient
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
+            
+          if (adminError) {
+            console.error("Erreur avec le client admin:", adminError);
+            return [];
+          }
+          
+          console.log(`Récupéré ${adminData?.length || 0} clients avec le client admin`);
+          return adminData || [];
+        } catch (adminClientError) {
+          console.error("Erreur avec le client admin:", adminClientError);
+          return [];
+        }
       }
       
+      console.log(`Récupéré ${data?.length || 0} clients via RPC admin`);
       return data || [];
     } else {
       // Pour les autres utilisateurs, utiliser la requête normale
@@ -125,6 +151,7 @@ export const getAllClients = async (): Promise<Client[]> => {
         return [];
       }
 
+      console.log(`Récupéré ${data?.length || 0} clients pour utilisateur non-admin`);
       return data || [];
     }
   } catch (error) {
