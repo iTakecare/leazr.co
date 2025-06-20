@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
@@ -23,6 +22,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { formatDateToFrench } from "@/utils/formatters";
 import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
+import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { getAmbassadorCommissions } from "@/services/ambassadorCommissionService";
+import { Client } from "@/types/client";
 
 const AmbassadorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,9 +35,11 @@ const AmbassadorDetail = () => {
   const [tab, setTab] = useState("overview");
   const [commissionLevel, setCommissionLevel] = useState<CommissionLevel | null>(null);
   const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [commissionsLoading, setCommissionsLoading] = useState(false);
 
   const fetchAmbassador = async () => {
     if (!id) {
@@ -66,25 +70,6 @@ const AmbassadorDetail = () => {
       
       loadCommissionLevels();
       
-      // Simulation de clients pour l'ambassadeur
-      // Dans un cas réel, vous chargeriez ces données depuis une API
-      setClients([
-        {
-          id: "client1",
-          name: "Client 1",
-          company: "Entreprise A",
-          status: "active",
-          createdAt: "2023-10-15T14:30:00.000Z",
-        },
-        {
-          id: "client2",
-          name: "Client 2",
-          company: "Entreprise B",
-          status: "inactive",
-          createdAt: "2023-11-20T09:15:00.000Z",
-        }
-      ]);
-      
     } catch (error: any) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       
@@ -102,9 +87,51 @@ const AmbassadorDetail = () => {
     }
   };
 
+  const loadAmbassadorClients = async () => {
+    if (!id) return;
+    
+    setClientsLoading(true);
+    try {
+      const clientsData = await getAmbassadorClients();
+      console.log("Loaded ambassador clients:", clientsData);
+      setClients(clientsData);
+    } catch (error) {
+      console.error("Error loading ambassador clients:", error);
+      setClients([]);
+    } finally {
+      setClientsLoading(false);
+    }
+  };
+
+  const loadAmbassadorCommissions = async () => {
+    if (!id) return;
+    
+    setCommissionsLoading(true);
+    try {
+      const commissionsData = await getAmbassadorCommissions(id);
+      console.log("Loaded ambassador commissions:", commissionsData);
+      setCommissions(commissionsData);
+    } catch (error) {
+      console.error("Error loading ambassador commissions:", error);
+      setCommissions([]);
+    } finally {
+      setCommissionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAmbassador();
   }, [id, navigate]);
+
+  // Load clients and commissions when tab changes
+  useEffect(() => {
+    if (tab === "clients" && clients.length === 0) {
+      loadAmbassadorClients();
+    }
+    if (tab === "commissions" && commissions.length === 0) {
+      loadAmbassadorCommissions();
+    }
+  }, [tab, id]);
 
   const loadCommissionLevels = async () => {
     try {
@@ -219,23 +246,24 @@ const AmbassadorDetail = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleEdit}
-                    className="flex items-center gap-2"
-                  >
-                    Modifier l'ambassadeur
-                  </Button>
-                  
-                  <Button 
-                    onClick={handleCreateOffer}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Créer une offre
-                  </Button>
-                </div>
+              </div>
+
+              <div className="flex gap-2 mb-6">
+                <Button 
+                  variant="outline" 
+                  onClick={handleEdit}
+                  className="flex items-center gap-2"
+                >
+                  Modifier l'ambassadeur
+                </Button>
+                
+                <Button 
+                  onClick={handleCreateOffer}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Créer une offre
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -321,7 +349,12 @@ const AmbassadorDetail = () => {
                         <div className="space-y-4">
                           <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
                           
-                          {clients.length > 0 ? (
+                          {clientsLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              <span className="ml-2">Chargement des clients...</span>
+                            </div>
+                          ) : clients.length > 0 ? (
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -352,7 +385,7 @@ const AmbassadorDetail = () => {
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
-                                      {formatDateToFrench(new Date(client.createdAt))}
+                                      {formatDateToFrench(new Date(client.created_at))}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -360,7 +393,7 @@ const AmbassadorDetail = () => {
                             </Table>
                           ) : (
                             <div className="text-center py-8 bg-gray-50 rounded-md">
-                              <p className="text-muted-foreground">Aucun client n'est attribué</p>
+                              <p className="text-muted-foreground">Aucun client n'est attribué à cet ambassadeur</p>
                             </div>
                           )}
                         </div>
@@ -369,9 +402,65 @@ const AmbassadorDetail = () => {
                       <TabsContent value="commissions">
                         <div className="space-y-4">
                           <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
-                          <div className="p-8 text-center bg-gray-50 rounded-md">
-                            <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
-                          </div>
+                          
+                          {commissionsLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              <span className="ml-2">Chargement des commissions...</span>
+                            </div>
+                          ) : commissions.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Client</TableHead>
+                                  <TableHead>Montant</TableHead>
+                                  <TableHead>Statut</TableHead>
+                                  <TableHead>Date</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {commissions.map((commission) => (
+                                  <TableRow key={commission.id}>
+                                    <TableCell>
+                                      <div className="font-medium">{commission.clientName}</div>
+                                      {commission.description && (
+                                        <div className="text-xs text-muted-foreground">
+                                          {commission.description}
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                      {commission.amount.toLocaleString('fr-FR')}€
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant={
+                                        commission.status === 'paid' ? 'default' : 
+                                        commission.status === 'pending' ? 'secondary' : 
+                                        'destructive'
+                                      } className={
+                                        commission.status === 'paid' 
+                                          ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                                          : commission.status === 'pending'
+                                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                          : "bg-red-100 text-red-800 hover:bg-red-100"
+                                      }>
+                                        {commission.status === 'paid' ? 'Payé' : 
+                                         commission.status === 'pending' ? 'En attente' : 
+                                         'Annulé'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {formatDateToFrench(new Date(commission.date))}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-center py-8 bg-gray-50 rounded-md">
+                              <p className="text-muted-foreground">Aucune commission trouvée pour cet ambassadeur</p>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
                     </Tabs>
