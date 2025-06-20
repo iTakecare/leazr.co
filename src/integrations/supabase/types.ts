@@ -2274,6 +2274,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      check_user_exists_by_id: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       create_categories_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined

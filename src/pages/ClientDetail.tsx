@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -45,8 +46,8 @@ export default function ClientDetail() {
       
       if (!clientData) {
         console.error("ClientDetail - Client not found for ID:", id);
-        setError("Client introuvable ou accès non autorisé");
-        toast.error("Client introuvable ou accès non autorisé");
+        setError("Client introuvable. Vérifiez vos permissions d'accès.");
+        toast.error("Client introuvable. Vérifiez vos permissions d'accès.");
         return;
       }
       
@@ -54,7 +55,7 @@ export default function ClientDetail() {
       setClient(clientData);
     } catch (error) {
       console.error("ClientDetail - Error fetching client:", error);
-      setError("Erreur lors du chargement du client");
+      setError("Erreur lors du chargement du client. Vérifiez vos permissions d'accès.");
       toast.error("Erreur lors du chargement du client");
     } finally {
       setLoading(false);
@@ -137,11 +138,17 @@ export default function ClientDetail() {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="rounded-full bg-destructive/10 w-16 h-16 flex items-center justify-center">
-          <span className="text-destructive text-3xl">!</span>
+          <AlertCircle className="h-8 w-8 text-destructive" />
         </div>
-        <div className="text-3xl font-bold text-gray-400">{error || "Client introuvable"}</div>
+        <div className="text-xl font-semibold text-center max-w-md">
+          {error || "Client introuvable"}
+        </div>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          Il se peut que vous n'ayez pas les permissions nécessaires pour accéder à ce client ou qu'il n'existe pas.
+        </p>
         <div className="space-x-2">
           <Button variant="outline" onClick={() => navigate("/clients")}>
+            <ChevronLeft className="mr-1 h-4 w-4" />
             Retour à la liste
           </Button>
           {id && (

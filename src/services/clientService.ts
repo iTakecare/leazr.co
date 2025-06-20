@@ -105,103 +105,37 @@ export const getAllClients = async (): Promise<Client[]> => {
       isAdmin
     });
     
-    if (isAdmin) {
-      // Pour les admins, utiliser la fonction sécurisée qui contourne RLS
-      console.log("Utilisateur admin détecté, récupération de tous les clients via RPC");
-      const { data, error } = await supabase.rpc('get_all_clients_for_admin');
+    // Utiliser directement le client standard avec les nouvelles politiques RLS
+    console.log("Récupération des clients avec les nouvelles politiques RLS");
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Erreur lors de la récupération des clients:", error);
       
-      if (error) {
-        console.error("Erreur lors de la récupération des clients pour admin via RPC:", error);
+      // Fallback: essayer avec la fonction RPC pour les admins
+      if (isAdmin) {
+        console.log("Tentative avec la fonction RPC admin");
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_all_clients_for_admin');
         
-        // Fallback: essayer avec le client admin direct
-        console.log("Tentative avec le client admin direct");
-        try {
-          const adminClient = getAdminSupabaseClient();
-          const { data: adminData, error: adminError } = await adminClient
-            .from('clients')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (adminError) {
-            console.error("Erreur avec le client admin:", adminError);
-            return [];
-          }
-          
-          console.log(`Récupéré ${adminData?.length || 0} clients avec le client admin`);
-          return adminData || [];
-        } catch (adminClientError) {
-          console.error("Erreur avec le client admin:", adminClientError);
+        if (rpcError) {
+          console.error("Erreur lors de la récupération des clients via RPC:", rpcError);
           return [];
         }
+        
+        console.log(`Récupéré ${rpcData?.length || 0} clients via RPC admin`);
+        return rpcData || [];
       }
       
-      console.log(`Récupéré ${data?.length || 0} clients via RPC admin`);
-      return data || [];
-    } else {
-      // Pour les autres utilisateurs, utiliser la requête normale
-      console.log("Utilisateur non-admin, récupération des clients selon les permissions");
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Erreur lors de la récupération des clients:", error);
-        return [];
-      }
-
-      console.log(`Récupéré ${data?.length || 0} clients pour utilisateur non-admin`);
-      return data || [];
-    }
-  } catch (error) {
-    console.error("Erreur lors de la récupération des clients:", error);
-    return [];
-  }
-};
-
-/**
- * Fallback pour récupérer les clients avec le client standard
- * @param showAmbassadorClients Indique si on doit afficher les clients des ambassadeurs
- * @returns Liste des clients
- */
-const getAllClientsWithStandardClient = async (showAmbassadorClients: boolean): Promise<Client[]> => {
-  try {
-    console.log("Fallback: récupération des clients avec le client standard");
-    
-    const { data: allClients, error: clientsError } = await supabase
-      .from('clients')
-      .select('*');
-
-    if (clientsError) {
-      console.error("Erreur lors de la récupération des clients avec le client standard:", clientsError);
       return [];
     }
-    
-    console.log(`Récupéré ${allClients?.length || 0} clients au total avec le client standard`);
-    
-    // Si on veut afficher les clients des ambassadeurs, filtrer différemment
-    if (showAmbassadorClients) {
-      // Récupérer les IDs des clients ambassadeurs
-      const { data: ambassadorClientLinks, error: ambassadorError } = await supabase
-        .from('ambassador_clients')
-        .select('client_id');
 
-      if (ambassadorError) {
-        console.error("Erreur lors de la récupération des liens ambassadeurs:", ambassadorError);
-        return allClients || [];
-      }
-
-      // Créer un ensemble d'IDs de clients ambassadeurs
-      const ambassadorClientIdSet = new Set(ambassadorClientLinks?.map(link => link.client_id) || []);
-
-      // Ne garder QUE les clients qui sont dans la table ambassador_clients
-      return allClients?.filter(client => ambassadorClientIdSet.has(client.id)) || [];
-    } else {
-      // Retourner tous les clients si on n'affiche pas spécifiquement les clients ambassadeurs
-      return allClients || [];
-    }
+    console.log(`Récupéré ${data?.length || 0} clients avec les nouvelles politiques RLS`);
+    return data || [];
   } catch (error) {
-    console.error("Erreur lors de la récupération des clients avec le client standard:", error);
+    console.error("Erreur lors de la récupération des clients:", error);
     return [];
   }
 };
@@ -228,48 +162,17 @@ export const getClientById = async (id: string): Promise<Client | null> => {
     
     console.log(`getClientById - Utilisateur: ${user.email}, Admin: ${isAdmin}`);
     
-    let clientData = null;
-    let clientError = null;
-    
-    if (isAdmin) {
-      // Pour les admins, essayer d'abord avec le client admin
-      console.log("getClientById - Tentative avec client admin");
-      try {
-        const adminClient = getAdminSupabaseClient();
-        const { data, error } = await adminClient
-          .from('clients')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (error) {
-          console.warn("getClientById - Erreur avec client admin:", error);
-          clientError = error;
-        } else {
-          clientData = data;
-          console.log("getClientById - Client récupéré avec succès via client admin");
-        }
-      } catch (adminError) {
-        console.warn("getClientById - Exception avec client admin:", adminError);
-        clientError = adminError;
-      }
-    }
-    
-    // Si pas de données ou pas admin, essayer avec le client standard
-    if (!clientData) {
-      console.log("getClientById - Tentative avec client standard");
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
+    // Utiliser directement le client standard avec les nouvelles politiques RLS
+    console.log("getClientById - Utilisation du client standard avec nouvelles politiques RLS");
+    const { data: clientData, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
         
-      if (error) {
-        console.error(`getClientById - Erreur avec client standard pour l'ID ${id}:`, error);
-        return null;
-      }
-      
-      clientData = data;
+    if (error) {
+      console.error(`getClientById - Erreur avec client standard pour l'ID ${id}:`, error);
+      return null;
     }
 
     if (!clientData) {
