@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import Layout from "./Layout";
 import ClientRoutes from "./ClientRoutes";
 import AmbassadorLayout from "./AmbassadorLayout";
+import AmbassadorRoutes from "./AmbassadorRoutes";
 import PartnerRoutes from "./PartnerRoutes";
 
 // Pages admin existantes
