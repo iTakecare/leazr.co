@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -78,25 +77,25 @@ const LandingHeader = () => {
   const servicesMenu = [
     { 
       label: "🏢 Pour entreprises", 
-      href: "/services/entreprises", 
+      href: "/services#entreprises", 
       icon: <Building className="h-4 w-4 text-blue-600" />, 
       description: "Solutions adaptées aux besoins des entreprises" 
     },
     { 
       label: "💼 Pour professionnels", 
-      href: "/services/professionnels", 
+      href: "/services#professionnels", 
       icon: <Briefcase className="h-4 w-4 text-emerald-600" />, 
       description: "Offres spéciales pour indépendants" 
     },
     { 
       label: "🆘 Support technique", 
-      href: "/services/support", 
+      href: "/services#support", 
       icon: <Headphones className="h-4 w-4 text-purple-600" />, 
       description: "Assistance technique dédiée et réactive" 
     },
     { 
       label: "📚 Formation", 
-      href: "/services/formation", 
+      href: "/services#formation", 
       icon: <Book className="h-4 w-4 text-orange-600" />, 
       description: "Formation complète à l'utilisation de Leazr" 
     },
@@ -105,25 +104,25 @@ const LandingHeader = () => {
   const ressourcesMenu = [
     { 
       label: "📚 Documentation", 
-      href: "/ressources/documentation", 
+      href: "/ressources#documentation", 
       icon: <Book className="h-4 w-4 text-blue-600" />, 
       description: "Guides complets et tutoriels" 
     },
     { 
       label: "📝 Blog", 
-      href: "/ressources/blog", 
+      href: "/ressources#blog", 
       icon: <Share2 className="h-4 w-4 text-emerald-600" />, 
       description: "Actualités et conseils sectoriels" 
     },
     { 
       label: "❓ FAQ", 
-      href: "/ressources/faq", 
+      href: "/ressources#faq", 
       icon: <HelpCircle className="h-4 w-4 text-purple-600" />, 
       description: "Réponses aux questions fréquentes" 
     },
     { 
       label: "🎓 Webinaires", 
-      href: "/ressources/webinaires", 
+      href: "/ressources#webinaires", 
       icon: <Monitor className="h-4 w-4 text-orange-600" />, 
       description: "Sessions de formation en ligne" 
     },
