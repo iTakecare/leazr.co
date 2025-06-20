@@ -54,6 +54,7 @@ const AmbassadorEditForm = ({
       status: (ambassadorData.status as "active" | "inactive") || "active",
       region: ambassadorData.region || "",
       vat_number: ambassadorData.vat_number || "",
+      commission_level_id: ambassadorData.commission_level_id || "",
     },
   });
 

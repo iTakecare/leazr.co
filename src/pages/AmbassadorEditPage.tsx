@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import AmbassadorEditForm from "@/components/crm/forms/AmbassadorEditForm";
+import AmbassadorCommissionLevelSelector from "@/components/crm/forms/AmbassadorCommissionLevelSelector";
+import AmbassadorClientsSection from "@/components/crm/forms/AmbassadorClientsSection";
+import AmbassadorCommissionsSection from "@/components/crm/forms/AmbassadorCommissionsSection";
+import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
 import { getAmbassadorById } from "@/services/ambassadorService";
 import { Ambassador } from "@/services/ambassadorService";
 
@@ -63,6 +67,13 @@ const AmbassadorEditPage = () => {
     navigate(`/ambassadors/${id}`);
   };
 
+  const handleAccountCreated = () => {
+    // Recharger les données de l'ambassadeur pour mettre à jour le statut du compte
+    if (id) {
+      getAmbassadorById(id).then(setAmbassador);
+    }
+  };
+
   if (loading) {
     return (
       <PageTransition>
@@ -117,11 +128,26 @@ const AmbassadorEditPage = () => {
             <h1 className="text-2xl font-bold">Modifier l'ambassadeur</h1>
           </div>
 
-          <AmbassadorEditForm
-            ambassadorData={ambassador}
-            onAmbassadorUpdated={handleAmbassadorUpdated}
-            onCancel={handleCancel}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <AmbassadorEditForm
+                ambassadorData={ambassador}
+                onAmbassadorUpdated={handleAmbassadorUpdated}
+                onCancel={handleCancel}
+              />
+              
+              <AmbassadorUserAccount
+                ambassador={ambassador}
+                onAccountCreated={handleAccountCreated}
+              />
+            </div>
+            
+            <div className="space-y-6">
+              <AmbassadorClientsSection ambassadorId={ambassador.id} />
+              
+              <AmbassadorCommissionsSection ambassadorId={ambassador.id} />
+            </div>
+          </div>
         </div>
       </Container>
     </PageTransition>
