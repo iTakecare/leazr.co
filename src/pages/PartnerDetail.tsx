@@ -9,13 +9,15 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, Loader2, TrendingUp, Users
+  AlertCircle, Info, Loader2, TrendingUp, Users, DollarSign
 } from "lucide-react";
+import { getPartnerById, Partner } from "@/services/partnerService";
+import PartnerCommissionsTable from "@/components/partners/PartnerCommissionsTable";
 
 export default function PartnerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [partner, setPartner] = useState<any | null>(null);
+  const [partner, setPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,28 +35,7 @@ export default function PartnerDetail() {
     
     try {
       console.log("PartnerDetail - Fetching partner with ID:", id);
-      // TODO: Replace with actual partner service call
-      // const partnerData = await getPartnerById(id);
-      
-      // Mock data for now
-      const partnerData = {
-        id,
-        name: "TechSolutions SAS",
-        contactName: "Alexandre Martin",
-        email: "contact@techsolutions.com",
-        phone: "+33 1 23 45 67 89",
-        type: "Revendeur",
-        status: "active",
-        commission_level_id: "level-1",
-        revenue_total: 45000,
-        clients_count: 15,
-        last_transaction: 2500,
-        notes: "Excellent partenaire avec de très bons résultats commerciaux",
-        created_at: new Date(),
-        updated_at: new Date(),
-        has_user_account: true,
-        user_account_created_at: new Date()
-      };
+      const partnerData = await getPartnerById(id);
       
       console.log("PartnerDetail - Partner data received:", partnerData);
       setPartner(partnerData);
@@ -123,8 +104,8 @@ export default function PartnerDetail() {
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{partner.name}</h1>
-          {partner.contactName && (
-            <p className="text-muted-foreground text-lg">Contact: {partner.contactName}</p>
+          {partner.contact_name && (
+            <p className="text-muted-foreground text-lg">Contact: {partner.contact_name}</p>
           )}
           <Badge className="mt-1" variant={partner.type === 'Revendeur' ? 'default' : 'secondary'}>
             {partner.type}
@@ -274,6 +255,10 @@ export default function PartnerDetail() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <PartnerCommissionsTable partnerId={partner.id} />
       </div>
     </div>
   );

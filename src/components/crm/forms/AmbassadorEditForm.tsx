@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,26 +24,11 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-
-// Schéma de validation pour l'édition d'un ambassadeur
-const ambassadorSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
-  email: z.string().email("Email invalide").optional().or(z.literal("")),
-  company: z.string().optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
-  address: z.string().optional().or(z.literal("")),
-  city: z.string().optional().or(z.literal("")),
-  postal_code: z.string().optional().or(z.literal("")),
-  country: z.string().optional().or(z.literal("")),
-  notes: z.string().optional().or(z.literal("")),
-  status: z.enum(["active", "inactive"]).optional(),
-});
-
-type AmbassadorFormValues = z.infer<typeof ambassadorSchema>;
+import { updateAmbassador, ambassadorSchema, AmbassadorFormValues, Ambassador } from "@/services/ambassadorService";
 
 interface AmbassadorEditFormProps {
-  ambassadorData: any;
-  onAmbassadorUpdated: (ambassador?: any) => void;
+  ambassadorData: Ambassador;
+  onAmbassadorUpdated: (ambassador?: Ambassador) => void;
   onCancel: () => void;
 }
 
@@ -68,18 +52,18 @@ const AmbassadorEditForm = ({
       country: ambassadorData.country || "",
       notes: ambassadorData.notes || "",
       status: ambassadorData.status || "active",
+      region: ambassadorData.region || "",
+      vat_number: ambassadorData.vat_number || "",
     },
   });
 
   const onSubmit = async (values: AmbassadorFormValues) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual update service call
-      // const updatedAmbassador = await updateAmbassador(ambassadorData.id, values);
-      
       console.log("Updating ambassador with values:", values);
       
-      // Mock successful update
+      await updateAmbassador(ambassadorData.id, values);
+      
       const updatedAmbassador = { ...ambassadorData, ...values };
       
       toast.success("Ambassadeur mis à jour avec succès");
@@ -191,6 +175,20 @@ const AmbassadorEditForm = ({
 
                 <FormField
                   control={form.control}
+                  name="vat_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro de TVA</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="address"
                   render={({ field }) => (
                     <FormItem>
@@ -246,6 +244,20 @@ const AmbassadorEditForm = ({
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="region"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Région</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 

@@ -7,11 +7,13 @@ import { toast } from "sonner";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import AmbassadorEditForm from "@/components/crm/forms/AmbassadorEditForm";
+import { getAmbassadorById } from "@/services/ambassadorService";
+import { Ambassador } from "@/services/ambassadorService";
 
 const AmbassadorEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ambassador, setAmbassador] = useState<any | null>(null);
+  const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,26 +33,7 @@ const AmbassadorEditPage = () => {
         setError(null);
         console.log("AmbassadorEditPage - Fetching ambassador with ID:", id);
         
-        // TODO: Replace with actual ambassador service call
-        // const ambassadorData = await getAmbassadorById(id);
-        
-        // Mock data for now
-        const ambassadorData = {
-          id,
-          name: "John Doe",
-          email: "john@example.com",
-          phone: "+33 1 23 45 67 89",
-          company: "Tech Solutions",
-          address: "123 Rue de la Tech",
-          city: "Paris",
-          postal_code: "75001",
-          country: "France",
-          status: "active",
-          commission_level_id: "level-1",
-          notes: "Excellent ambassadeur avec de très bons résultats",
-          created_at: new Date(),
-          updated_at: new Date()
-        };
+        const ambassadorData = await getAmbassadorById(id);
         
         console.log("AmbassadorEditPage - Ambassador data received:", ambassadorData);
         setAmbassador(ambassadorData);
@@ -66,7 +49,7 @@ const AmbassadorEditPage = () => {
     fetchAmbassador();
   }, [id, navigate]);
 
-  const handleAmbassadorUpdated = (updatedAmbassador?: any) => {
+  const handleAmbassadorUpdated = (updatedAmbassador?: Ambassador) => {
     console.log("AmbassadorEditPage - Ambassador updated:", updatedAmbassador);
     if (updatedAmbassador) {
       setAmbassador(updatedAmbassador);

@@ -9,13 +9,17 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info, Loader2, TrendingUp, Users
+  AlertCircle, Info, Loader2, TrendingUp, Users, DollarSign
 } from "lucide-react";
+import { getAmbassadorById } from "@/services/ambassadorService";
+import { Ambassador } from "@/services/ambassadorService";
+import AmbassadorCommissionsTable from "@/components/ambassadors/AmbassadorCommissionsTable";
+import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
 export default function AmbassadorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ambassador, setAmbassador] = useState<any | null>(null);
+  const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,31 +37,7 @@ export default function AmbassadorDetail() {
     
     try {
       console.log("AmbassadorDetail - Fetching ambassador with ID:", id);
-      // TODO: Replace with actual ambassador service call
-      // const ambassadorData = await getAmbassadorById(id);
-      
-      // Mock data for now
-      const ambassadorData = {
-        id,
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+33 1 23 45 67 89",
-        company: "Tech Solutions",
-        address: "123 Rue de la Tech",
-        city: "Paris",
-        postal_code: "75001",
-        country: "France",
-        status: "active",
-        commission_level_id: "level-1",
-        commissions_total: 15000,
-        clients_count: 25,
-        last_commission: 1200,
-        notes: "Excellent ambassadeur avec de très bons résultats",
-        created_at: new Date(),
-        updated_at: new Date(),
-        has_user_account: true,
-        user_account_created_at: new Date()
-      };
+      const ambassadorData = await getAmbassadorById(id);
       
       console.log("AmbassadorDetail - Ambassador data received:", ambassadorData);
       setAmbassador(ambassadorData);
@@ -141,8 +121,8 @@ export default function AmbassadorDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
           <CardHeader className="bg-muted/50 pb-4 border-b">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
@@ -291,7 +271,27 @@ export default function AmbassadorDetail() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Barème de commissionnement
+              </CardTitle>
+              <CardDescription>Taux de commission par palier</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <CommissionDisplay 
+                ambassadorId={ambassador.id}
+                commissionLevelId={ambassador.commission_level_id}
+              />
+            </CardContent>
+          </Card>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <AmbassadorCommissionsTable ambassadorId={ambassador.id} />
       </div>
     </div>
   );
