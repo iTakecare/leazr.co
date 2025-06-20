@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -42,7 +41,7 @@ const PartnerEditForm: React.FC<PartnerEditFormProps> = ({ partnerData }) => {
     resolver: zodResolver(partnerSchema),
     defaultValues: {
       name: partnerData?.name || "",
-      contactName: partnerData?.contactName || "",
+      contact_name: partnerData?.contact_name || "",
       email: partnerData?.email || "",
       phone: partnerData?.phone || "",
       type: partnerData?.type || "Revendeur",
@@ -58,6 +57,7 @@ const PartnerEditForm: React.FC<PartnerEditFormProps> = ({ partnerData }) => {
     try {
       const updatedPartner = await updatePartner(id, data);
       setPartner(updatedPartner);
+      toast.success("Partenaire mis à jour avec succès");
       navigate(`/partners/${id}`);
     } catch (error) {
       console.error("Error updating partner:", error);
@@ -118,7 +118,7 @@ const PartnerEditForm: React.FC<PartnerEditFormProps> = ({ partnerData }) => {
                 
                 <FormField
                   control={form.control}
-                  name="contactName"
+                  name="contact_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nom du contact</FormLabel>

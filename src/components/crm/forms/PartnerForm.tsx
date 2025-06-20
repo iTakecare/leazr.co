@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +39,7 @@ const PartnerForm = ({
   // Default values for the form
   const defaultValues: PartnerFormValues = {
     name: "",
-    contactName: "",
+    contact_name: "",
     email: "",
     phone: "",
     type: "Revendeur",
@@ -104,7 +103,7 @@ const PartnerForm = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="contactName"
+                name="contact_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom du contact*</FormLabel>

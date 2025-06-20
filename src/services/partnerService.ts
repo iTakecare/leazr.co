@@ -12,6 +12,7 @@ export const partnerSchema = z.object({
   type: z.string().min(1, "Le type est requis"),
   status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
+  commission_level_id: z.string().optional(),
 });
 
 // Type des données du formulaire de partenaire
@@ -38,6 +39,9 @@ export interface Partner {
   user_id?: string;
   company_id: string;
 }
+
+// Export des types pour compatibilité
+export type PartnerType = Partner;
 
 // Récupérer tous les partenaires
 export const getPartners = async (): Promise<Partner[]> => {
@@ -76,6 +80,33 @@ export const getPartnerById = async (id: string): Promise<Partner | null> => {
     return data;
   } catch (error) {
     console.error(`Error fetching partner with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+// Récupérer les clients d'un partenaire
+export const getPartnerClients = async (partnerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("partner_clients")
+      .select(`
+        client_id,
+        clients (
+          id,
+          name,
+          email,
+          company,
+          status,
+          created_at
+        )
+      `)
+      .eq("partner_id", partnerId);
+
+    if (error) throw error;
+    
+    return data?.map(item => item.clients).filter(Boolean) || [];
+  } catch (error) {
+    console.error("Error fetching partner clients:", error);
     throw error;
   }
 };
@@ -133,15 +164,17 @@ export const createPartner = async (
 // Mettre à jour un partenaire existant
 export const updatePartner = async (
   id: string,
-  partnerData: PartnerFormValues
-): Promise<void> => {
+  partnerData: Partial<PartnerFormValues>
+): Promise<Partner> => {
   try {
     console.log(`Updating partner ${id} with data:`, partnerData);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("partners")
       .update(partnerData)
-      .eq("id", id);
+      .eq("id", id)
+      .select()
+      .single();
       
     if (error) {
       console.error("Error updating partner:", error);
@@ -149,6 +182,7 @@ export const updatePartner = async (
     }
     
     console.log(`Partner ${id} updated successfully`);
+    return data;
   } catch (error) {
     console.error("Error updating partner:", error);
     throw error;

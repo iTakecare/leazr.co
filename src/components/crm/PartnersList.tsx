@@ -75,7 +75,7 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     const matchesSearch = 
       partner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (partner.email && partner.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (partner.contactName && partner.contactName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (partner.contact_name && partner.contact_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || partner.status === statusFilter;
     
@@ -190,20 +190,12 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
     
     try {
       if (currentPartner?.id) {
-        await updatePartner(currentPartner.id, data);
+        const updatedPartner = await updatePartner(currentPartner.id, data);
         
         setPartnersList(prevList => 
           prevList.map(partner => 
             partner.id === currentPartner.id
-              ? { 
-                  ...partner, 
-                  name: data.name,
-                  contactName: data.contactName,
-                  email: data.email,
-                  phone: data.phone || "",
-                  type: data.type,
-                  notes: data.notes || ""
-                }
+              ? updatedPartner
               : partner
           )
         );
@@ -239,12 +231,13 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
   const convertPartnerToFormValues = (partner: Partner): PartnerFormValues => {
     return {
       name: partner.name,
-      contactName: partner.contactName,
+      contact_name: partner.contact_name,
       email: partner.email,
       phone: partner.phone || "",
       type: partner.type,
       status: partner.status as "active" | "inactive",
-      notes: partner.notes || ""
+      notes: partner.notes || "",
+      commission_level_id: partner.commission_level_id
     };
   };
 
@@ -298,7 +291,7 @@ const PartnersList: React.FC<PartnersListProps> = ({ searchTerm = '', statusFilt
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Building2 className="h-3 w-3 mr-1" />
-                      {partner.contactName}
+                      {partner.contact_name}
                     </div>
                   </div>
                 </TableCell>

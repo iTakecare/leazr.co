@@ -51,7 +51,7 @@ const AmbassadorEditForm = ({
       postal_code: ambassadorData.postal_code || "",
       country: ambassadorData.country || "",
       notes: ambassadorData.notes || "",
-      status: ambassadorData.status || "active",
+      status: (ambassadorData.status as "active" | "inactive") || "active",
       region: ambassadorData.region || "",
       vat_number: ambassadorData.vat_number || "",
     },
