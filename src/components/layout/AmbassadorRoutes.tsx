@@ -4,7 +4,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
-import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage";
 import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
 
@@ -12,7 +11,7 @@ const AmbassadorRoutes = () => {
   return (
     <Routes>
       <Route path="dashboard" element={<AmbassadorDashboardPage />} />
-      <Route path="catalog" element={<PublicCatalogMultiTenant />} />
+      <Route path="catalog" element={<AmbassadorCatalog />} />
       <Route path="create-offer" element={<AmbassadorCreateOffer />} />
       <Route path="clients" element={<AmbassadorClientsPage />} />
       <Route path="offers" element={<AmbassadorOffersPage />} />
