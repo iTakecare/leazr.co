@@ -17,25 +17,37 @@ const UpdatePassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const handlePasswordReset = async () => {
+      console.log("UpdatePassword - Début de l'initialisation");
+      console.log("UpdatePassword - URL complète:", window.location.href);
+      console.log("UpdatePassword - Search params:", window.location.search);
+      
       // Vérifier si nous avons les paramètres nécessaires pour la réinitialisation
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const type = searchParams.get('type');
+      const token = searchParams.get('token');
       
-      console.log("UpdatePassword - URL params:", {
+      console.log("UpdatePassword - Paramètres détectés:", {
         accessToken: !!accessToken,
         refreshToken: !!refreshToken,
         type,
-        currentUrl: window.location.href
+        token: !!token,
+        allParams: Object.fromEntries(searchParams.entries())
       });
+
+      // Vérifier la session actuelle
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log("UpdatePassword - Session actuelle:", !!currentSession);
       
       if (accessToken && refreshToken && type === 'recovery') {
         try {
+          console.log("UpdatePassword - Configuration avec tokens access/refresh");
           // Définir la session avec les tokens reçus
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -51,16 +63,45 @@ const UpdatePassword = () => {
           
           console.log("Session définie avec succès pour la réinitialisation");
           setSessionReady(true);
+          setIsAuthenticating(false);
         } catch (err) {
           console.error("Erreur lors de la configuration de la session:", err);
           toast.error("Erreur lors de la configuration de la session");
           navigate('/login');
         }
-      } else {
-        console.log("Paramètres manquants ou invalides, redirection vers login");
-        if (!accessToken || !refreshToken) {
-          toast.error("Lien de réinitialisation invalide");
+      } else if (token && type === 'recovery') {
+        console.log("UpdatePassword - Configuration avec token simple");
+        // Cas d'un token simple de récupération
+        try {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery'
+          });
+          
+          if (error) {
+            console.error("Erreur lors de la vérification du token:", error);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            navigate('/login');
+            return;
+          }
+          
+          console.log("Token vérifié avec succès");
+          setSessionReady(true);
+          setIsAuthenticating(false);
+        } catch (err) {
+          console.error("Erreur lors de la vérification du token:", err);
+          toast.error("Erreur lors de la vérification du token");
+          navigate('/login');
         }
+      } else if (currentSession) {
+        console.log("UpdatePassword - Session existante détectée, permettre la réinitialisation");
+        // Si l'utilisateur est déjà connecté, on peut permettre la réinitialisation
+        setSessionReady(true);
+        setIsAuthenticating(false);
+      } else {
+        console.log("UpdatePassword - Aucun paramètre valide trouvé");
+        console.log("UpdatePassword - Redirection vers login");
+        toast.error("Lien de réinitialisation invalide ou manquant");
         navigate('/login');
       }
     };
@@ -126,12 +167,12 @@ const UpdatePassword = () => {
   };
 
   // Afficher un loader pendant la configuration de la session
-  if (!sessionReady) {
+  if (isAuthenticating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-blue-50 px-6 py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Configuration de la session...</p>
+          <p className="text-gray-600">Vérification du lien de réinitialisation...</p>
         </div>
       </div>
     );
@@ -208,7 +249,7 @@ const UpdatePassword = () => {
               <Button 
                 type="submit" 
                 className="w-full transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
-                disabled={loading}
+                disabled={loading || !sessionReady}
               >
                 {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
               </Button>
