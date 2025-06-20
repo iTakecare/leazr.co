@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Ambassador, getAmbassadorById } from "@/services/ambassadorService";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, ArrowLeft, UserPlus, MapPin, Building2 } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, UserPlus, MapPin, Building2, BadgePercent } from "lucide-react";
 import { toast } from "sonner";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -185,171 +186,214 @@ const AmbassadorDetail = () => {
   return (
     <PageTransition>
       <Container>
-        <div className="flex justify-between items-center mb-6">
+        <div className="py-6">
           <Button 
             variant="ghost" 
             onClick={() => navigate("/ambassadors")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 mb-6"
           >
             <ArrowLeft className="h-4 w-4" /> Retour aux ambassadeurs
           </Button>
           
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleEdit}
-              className="flex items-center gap-2"
-            >
-              Modifier l'ambassadeur
-            </Button>
-            
-            <Button 
-              onClick={handleCreateOffer}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Créer une offre
-            </Button>
-          </div>
-        </div>
-        
-        {ambassador && (
-          <div className="mt-4">
-            <div className="flex items-start gap-4 mb-6">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="bg-primary text-white text-xl">
-                  {getInitials(ambassador.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold">{ambassador.name}</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge
-                    variant={ambassador.status === "active" ? "default" : "secondary"}
+          {ambassador && (
+            <div className="mt-4">
+              <div className="flex items-start gap-4 mb-6">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-primary text-white text-xl">
+                    {getInitials(ambassador.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold">{ambassador.name}</h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge
+                      variant={ambassador.status === "active" ? "default" : "secondary"}
+                    >
+                      {ambassador.status === "active" ? "Actif" : "Inactif"}
+                    </Badge>
+                    {ambassador.region && (
+                      <span className="flex items-center text-xs gap-1 text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {ambassador.region}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleEdit}
+                    className="flex items-center gap-2"
                   >
-                    {ambassador.status === "active" ? "Actif" : "Inactif"}
-                  </Badge>
-                  {ambassador.region && (
-                    <span className="flex items-center text-xs gap-1 text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {ambassador.region}
-                    </span>
-                  )}
+                    Modifier l'ambassadeur
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleCreateOffer}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Créer une offre
+                  </Button>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
-                <CardContent className="pt-6">
-                  <Tabs value={tab} onValueChange={setTab}>
-                    <TabsList className="mb-4 grid w-full grid-cols-3">
-                      <TabsTrigger value="overview">Aperçu</TabsTrigger>
-                      <TabsTrigger value="clients">Clients</TabsTrigger>
-                      <TabsTrigger value="commissions">Commissions</TabsTrigger>
-                    </TabsList>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <Card className="md:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+                  <CardContent className="pt-6">
+                    <Tabs value={tab} onValueChange={setTab}>
+                      <TabsList className="mb-4 grid w-full grid-cols-3">
+                        <TabsTrigger value="overview">Aperçu</TabsTrigger>
+                        <TabsTrigger value="clients">Clients</TabsTrigger>
+                        <TabsTrigger value="commissions">Commissions</TabsTrigger>
+                      </TabsList>
 
-                    <TabsContent value="overview">
-                      <div className="space-y-6">
-                        <ContactInfoSection 
-                          email={ambassador.email} 
-                          phone={ambassador.phone} 
-                        />
+                      <TabsContent value="overview">
+                        <div className="space-y-6">
+                          <ContactInfoSection 
+                            email={ambassador.email} 
+                            phone={ambassador.phone} 
+                          />
 
-                        <CompanyInfoSection 
-                          company={ambassador.company}
-                          vat_number={ambassador.vat_number}
-                          address={ambassador.address}
-                          postal_code={ambassador.postal_code}
-                          city={ambassador.city}
-                          country={ambassador.country}
-                        />
+                          <CompanyInfoSection 
+                            company={ambassador.company}
+                            vat_number={ambassador.vat_number}
+                            address={ambassador.address}
+                            postal_code={ambassador.postal_code}
+                            city={ambassador.city}
+                            country={ambassador.country}
+                          />
 
-                        <StatsSummary 
-                          clientsCount={ambassador.clients_count || 0}
-                          commissionsTotal={ambassador.commissions_total || 0}
-                        />
-
-                        <NotesSection notes={ambassador.notes} />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="clients">
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
-                        
-                        {clients.length > 0 ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Statut</TableHead>
-                                <TableHead>Date</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {clients.map((client) => (
-                                <TableRow key={client.id}>
-                                  <TableCell>
-                                    <div className="font-medium">{client.name}</div>
-                                    {client.company && (
-                                      <div className="flex items-center text-xs text-muted-foreground">
-                                        <Building2 className="h-3 w-3 mr-1" />
-                                        {client.company}
-                                      </div>
+                          {/* Section Barème de commission */}
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                              <BadgePercent className="h-4 w-4 text-primary" />
+                              Barème de commissionnement
+                            </h3>
+                            
+                            <div className="p-3 rounded-lg border">
+                              {commissionLoading ? (
+                                <div className="flex items-center justify-center py-3">
+                                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                </div>
+                              ) : commissionLevel ? (
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="font-medium">{commissionLevel.name}</div>
+                                    {commissionLevel.is_default && (
+                                      <Badge variant="outline" className="text-xs">Par défaut</Badge>
                                     )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
-                                      client.status === 'active' 
-                                        ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                                        : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                                    }>
-                                      {client.status === 'active' ? 'Actif' : 'Inactif'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    {formatDateToFrench(new Date(client.createdAt))}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <div className="text-center py-8 bg-gray-50 rounded-md">
-                            <p className="text-muted-foreground">Aucun client n'est attribué</p>
+                                  </div>
+                                  {commissionLevel.rates && commissionLevel.rates.length > 0 && (
+                                    <div className="mt-2 space-y-1 text-sm">
+                                      {commissionLevel.rates
+                                        .sort((a, b) => b.min_amount - a.min_amount)
+                                        .map((rate, index) => (
+                                          <div key={index} className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">
+                                              {Number(rate.min_amount).toLocaleString('fr-FR')}€ - {Number(rate.max_amount).toLocaleString('fr-FR')}€
+                                            </div>
+                                            <div className="font-medium text-right">{rate.rate}%</div>
+                                          </div>
+                                        ))
+                                      }
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-amber-600">
+                                  Aucun barème de commissionnement attribué.
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </TabsContent>
 
-                    <TabsContent value="commissions">
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
-                        <div className="p-8 text-center bg-gray-50 rounded-md">
-                          <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                          <StatsSummary 
+                            clientsCount={ambassador.clients_count || 0}
+                            commissionsTotal={ambassador.commissions_total || 0}
+                          />
+
+                          <NotesSection notes={ambassador.notes} />
                         </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-              
-              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-                <CardContent className="pt-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <UserPlus className="h-5 w-5 text-primary" />
-                    Compte utilisateur
-                  </h2>
-                  <AmbassadorUserAccount 
-                    ambassador={ambassador}
-                    onAccountCreated={fetchAmbassador}
-                  />
-                </CardContent>
-              </Card>
+                      </TabsContent>
+
+                      <TabsContent value="clients">
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-semibold">Clients de {ambassador.name}</h2>
+                          
+                          {clients.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Client</TableHead>
+                                  <TableHead>Statut</TableHead>
+                                  <TableHead>Date</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {clients.map((client) => (
+                                  <TableRow key={client.id}>
+                                    <TableCell>
+                                      <div className="font-medium">{client.name}</div>
+                                      {client.company && (
+                                        <div className="flex items-center text-xs text-muted-foreground">
+                                          <Building2 className="h-3 w-3 mr-1" />
+                                          {client.company}
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={
+                                        client.status === 'active' 
+                                          ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                                          : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                                      }>
+                                        {client.status === 'active' ? 'Actif' : 'Inactif'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      {formatDateToFrench(new Date(client.createdAt))}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-center py-8 bg-gray-50 rounded-md">
+                              <p className="text-muted-foreground">Aucun client n'est attribué</p>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="commissions">
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-semibold">Commissions - {ambassador.name}</h2>
+                          <div className="p-8 text-center bg-gray-50 rounded-md">
+                            <p className="text-muted-foreground">Commissions ambassadeur en cours de développement</p>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+                
+                <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+                  <CardContent className="pt-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-primary" />
+                      Compte utilisateur
+                    </h2>
+                    <AmbassadorUserAccount 
+                      ambassador={ambassador}
+                      onAccountCreated={fetchAmbassador}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </Container>
     </PageTransition>
   );
