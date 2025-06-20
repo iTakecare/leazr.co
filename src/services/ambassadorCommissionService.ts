@@ -9,6 +9,16 @@ export interface AmbassadorCommissionData {
   financedAmount: number;
 }
 
+export interface AmbassadorCommission {
+  id: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  date: string;
+  clientName: string;
+  clientId?: string;
+  description?: string;
+}
+
 /**
  * Calcule la commission d'un ambassadeur selon son barème attribué
  */
@@ -89,6 +99,113 @@ export const calculateAmbassadorCommission = async (
       levelName: "Erreur - Commission par défaut",
       financedAmount
     };
+  }
+};
+
+/**
+ * Récupère les commissions d'un ambassadeur
+ */
+export const getAmbassadorCommissions = async (ambassadorId: string): Promise<AmbassadorCommission[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select(`
+        id,
+        commission,
+        commission_status,
+        created_at,
+        client_name,
+        client_id,
+        equipment_description
+      `)
+      .eq('ambassador_id', ambassadorId)
+      .not('commission', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("[getAmbassadorCommissions] Error:", error);
+      return [];
+    }
+
+    return (data || []).map(offer => ({
+      id: offer.id,
+      amount: offer.commission || 0,
+      status: offer.commission_status || 'pending',
+      date: offer.created_at,
+      clientName: offer.client_name,
+      clientId: offer.client_id,
+      description: offer.equipment_description
+    }));
+  } catch (error) {
+    console.error("[getAmbassadorCommissions] Error:", error);
+    return [];
+  }
+};
+
+/**
+ * Met à jour le statut d'une commission d'ambassadeur
+ */
+export const updateAmbassadorCommissionStatus = async (
+  offerId: string, 
+  newStatus: 'pending' | 'paid' | 'cancelled'
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('offers')
+      .update({ 
+        commission_status: newStatus,
+        commission_paid_at: newStatus === 'paid' ? new Date().toISOString() : null
+      })
+      .eq('id', offerId);
+
+    if (error) {
+      console.error("[updateAmbassadorCommissionStatus] Error:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[updateAmbassadorCommissionStatus] Error:", error);
+    return false;
+  }
+};
+
+/**
+ * Calcule les totaux des commissions d'un ambassadeur
+ */
+export const calculateTotalAmbassadorCommissions = async (ambassadorId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('commission, commission_status')
+      .eq('ambassador_id', ambassadorId)
+      .not('commission', 'is', null);
+
+    if (error) {
+      console.error("[calculateTotalAmbassadorCommissions] Error:", error);
+      return { pending: 0, paid: 0, total: 0 };
+    }
+
+    const totals = (data || []).reduce(
+      (acc, offer) => {
+        const amount = offer.commission || 0;
+        acc.total += amount;
+        
+        if (offer.commission_status === 'paid') {
+          acc.paid += amount;
+        } else if (offer.commission_status === 'pending') {
+          acc.pending += amount;
+        }
+        
+        return acc;
+      },
+      { pending: 0, paid: 0, total: 0 }
+    );
+
+    return totals;
+  } catch (error) {
+    console.error("[calculateTotalAmbassadorCommissions] Error:", error);
+    return { pending: 0, paid: 0, total: 0 };
   }
 };
 
