@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -25,8 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { updateAmbassador, Ambassador } from "@/services/ambassadorService";
+import { CommissionLevel, getCommissionLevels } from "@/services/commissionService";
 
 const ambassadorSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -41,6 +43,7 @@ const ambassadorSchema = z.object({
   city: z.string().optional(),
   postal_code: z.string().optional(),
   country: z.string().optional(),
+  commission_level_id: z.string().uuid().optional(),
 });
 
 export type AmbassadorFormData = z.infer<typeof ambassadorSchema>;
@@ -53,6 +56,8 @@ const AmbassadorEditForm = ({ ambassadorData }: AmbassadorEditFormProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
+  const [commissionLevels, setCommissionLevels] = useState<CommissionLevel[]>([]);
+  const [loadingLevels, setLoadingLevels] = useState(true);
 
   const form = useForm<AmbassadorFormData>({
     resolver: zodResolver(ambassadorSchema),
@@ -69,8 +74,25 @@ const AmbassadorEditForm = ({ ambassadorData }: AmbassadorEditFormProps) => {
       city: ambassadorData.city || "",
       postal_code: ambassadorData.postal_code || "",
       country: ambassadorData.country || "",
+      commission_level_id: ambassadorData.commission_level_id || "",
     },
   });
+
+  useEffect(() => {
+    const loadCommissionLevels = async () => {
+      try {
+        const levels = await getCommissionLevels("ambassador");
+        setCommissionLevels(levels);
+      } catch (error) {
+        console.error("Error loading commission levels:", error);
+        toast.error("Erreur lors du chargement des barèmes de commission");
+      } finally {
+        setLoadingLevels(false);
+      }
+    };
+
+    loadCommissionLevels();
+  }, []);
 
   const onSubmit = async (data: AmbassadorFormData) => {
     if (!id) {
@@ -189,6 +211,43 @@ const AmbassadorEditForm = ({ ambassadorData }: AmbassadorEditFormProps) => {
                           <SelectItem value="inactive">Inactif</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="commission_level_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Barème de commissionnement</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={loadingLevels}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez un barème" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {commissionLevels.map((level) => (
+                            <SelectItem key={level.id} value={level.id}>
+                              <div className="flex items-center gap-2">
+                                {level.name}
+                                {level.is_default && (
+                                  <Badge variant="outline" className="text-xs">Par défaut</Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Sélectionnez le barème de commission pour cet ambassadeur
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
