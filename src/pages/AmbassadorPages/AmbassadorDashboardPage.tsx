@@ -10,13 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { toast } from "sonner";
-import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
 
 const AmbassadorDashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  // Utiliser un état pour stocker l'ID d'ambassadeur trouvé par la recherche alternative
-  const [resolvedAmbassadorId, setResolvedAmbassadorId] = useState<string | null>(user?.ambassador_id || null);
   
   const [stats, setStats] = useState({
     clientsCount: 0,
@@ -28,37 +25,52 @@ const AmbassadorDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [recentClients, setRecentClients] = useState([]);
   const [recentOffers, setRecentOffers] = useState([]);
-  const [error, setError] = useState(null);
+  const [ambassadorId, setAmbassadorId] = useState<string | null>(null);
 
-  // Fonction pour rechercher l'ID de l'ambassadeur par email si non trouvé dans le profil utilisateur
+  // Fonction pour trouver l'ID de l'ambassadeur
   const findAmbassadorId = async () => {
-    if (user?.ambassador_id) {
-      setResolvedAmbassadorId(user.ambassador_id);
-      return user.ambassador_id;
+    if (!user?.email) {
+      console.log("Pas d'email utilisateur disponible");
+      return null;
     }
     
-    if (!user?.email) return null;
-    
     try {
-      console.log("Recherche d'un ambassadeur associé à l'email:", user.email);
+      console.log("Recherche d'un ambassadeur pour l'email:", user.email);
       
-      const { data, error } = await supabase
+      // D'abord essayer par user_id
+      let { data: ambassadorData, error } = await supabase
         .from("ambassadors")
         .select("id")
-        .eq("email", user.email)
+        .eq("user_id", user.id)
         .maybeSingle();
       
       if (error) {
-        console.error("Erreur lors de la recherche de l'ambassadeur:", error);
-        return null;
+        console.error("Erreur lors de la recherche par user_id:", error);
       }
       
-      if (data && data.id) {
-        console.log("Ambassadeur trouvé par email:", data.id);
-        setResolvedAmbassadorId(data.id);
-        return data.id;
+      // Si pas trouvé par user_id, essayer par email
+      if (!ambassadorData) {
+        console.log("Ambassadeur non trouvé par user_id, tentative par email");
+        const { data, error: emailError } = await supabase
+          .from("ambassadors")
+          .select("id")
+          .eq("email", user.email)
+          .maybeSingle();
+        
+        if (emailError) {
+          console.error("Erreur lors de la recherche par email:", emailError);
+          return null;
+        }
+        
+        ambassadorData = data;
       }
       
+      if (ambassadorData && ambassadorData.id) {
+        console.log("Ambassadeur trouvé:", ambassadorData.id);
+        return ambassadorData.id;
+      }
+      
+      console.log("Aucun ambassadeur trouvé pour cet utilisateur");
       return null;
     } catch (error) {
       console.error("Exception lors de la recherche de l'ambassadeur:", error);
@@ -68,146 +80,102 @@ const AmbassadorDashboardPage = () => {
 
   const loadStats = async () => {
     setLoading(true);
-    setError(null);
     
     try {
-      const ambassadorId = resolvedAmbassadorId || await findAmbassadorId();
+      const foundAmbassadorId = await findAmbassadorId();
       
-      if (!ambassadorId) {
-        console.warn("Aucun ID d'ambassadeur trouvé dans le profil utilisateur ou par email");
-        setError("Identifiant d'ambassadeur non trouvé");
+      if (!foundAmbassadorId) {
+        console.warn("Aucun ID d'ambassadeur trouvé");
+        toast.error("Profil ambassadeur non trouvé. Veuillez contacter l'administrateur.");
         setLoading(false);
         return;
       }
 
-      console.log(`Chargement des statistiques pour l'ambassadeur ${ambassadorId}`);
+      setAmbassadorId(foundAmbassadorId);
+      console.log(`Chargement des statistiques pour l'ambassadeur ${foundAmbassadorId}`);
       
-      // Direct query to count ambassador clients
+      // Compter les clients de l'ambassadeur
       const { data: clientsData, error: clientsError } = await supabase
         .from("ambassador_clients")
-        .select("client_id")
-        .eq("ambassador_id", ambassadorId);
+        .select("client_id, clients:client_id(*)")
+        .eq("ambassador_id", foundAmbassadorId);
 
-      if (clientsError) throw clientsError;
+      if (clientsError) {
+        console.error("Erreur lors du chargement des clients:", clientsError);
+        throw clientsError;
+      }
       
       const clientsCount = clientsData?.length || 0;
-      console.log(`Found ${clientsCount} clients for ambassador ${ambassadorId}`);
+      console.log(`Trouvé ${clientsCount} clients pour l'ambassadeur ${foundAmbassadorId}`);
       
-      // Get commissions directly from the offers table
+      // Récupérer les commissions depuis la table offers
+      const { data: offersData, error: offersError } = await supabase
+        .from("offers")
+        .select("commission, created_at, workflow_status, client_name, monthly_payment, id")
+        .eq("ambassador_id", foundAmbassadorId)
+        .eq("type", "ambassador_offer");
+
+      if (offersError) {
+        console.error("Erreur lors du chargement des offres:", offersError);
+        throw offersError;
+      }
+      
       let totalCommissions = 0;
       let lastCommissionAmount = 0;
+      let pendingOffersCount = 0;
+      let acceptedOffersCount = 0;
       
-      try {
-        // Get all offers with commissions for this ambassador
-        const { data: commissionsData, error: commissionsError } = await supabase
-          .from("offers")
-          .select("commission, created_at")
-          .eq("ambassador_id", ambassadorId)
-          .not("commission", "is", null)
-          .gt("commission", 0);
-
-        if (!commissionsError && commissionsData && commissionsData.length > 0) {
-          // Calculate total commissions
-          totalCommissions = commissionsData.reduce(
-            (sum, offer) => sum + (parseFloat(offer.commission) || 0),
-            0
-          );
-          
-          // Find the most recent commission
+      if (offersData && offersData.length > 0) {
+        // Calculer les commissions
+        const commissionsData = offersData.filter(offer => offer.commission && offer.commission > 0);
+        totalCommissions = commissionsData.reduce(
+          (sum, offer) => sum + (parseFloat(offer.commission) || 0),
+          0
+        );
+        
+        // Trouver la commission la plus récente
+        if (commissionsData.length > 0) {
           const sortedCommissions = [...commissionsData].sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
-          
-          if (sortedCommissions.length > 0) {
-            lastCommissionAmount = parseFloat(sortedCommissions[0].commission) || 0;
-          }
-          
-          console.log(`Loaded ${commissionsData.length} commissions, total: ${totalCommissions}`);
-        } else {
-          console.log('No commissions found for ambassador in offers table');
-          
-          // Fallback: get data from ambassadors table
-          const { data: ambassador } = await supabase
-            .from("ambassadors")
-            .select("commissions_total, last_commission")
-            .eq("id", ambassadorId)
-            .single();
-            
-          if (ambassador) {
-            totalCommissions = parseFloat(ambassador.commissions_total) || 0;
-            lastCommissionAmount = parseFloat(ambassador.last_commission) || 0;
-          }
+          lastCommissionAmount = parseFloat(sortedCommissions[0].commission) || 0;
         }
-      } catch (commissionError) {
-        console.error("Error fetching commission data:", commissionError);
-        // Continue execution, just with zero values for commissions
+        
+        // Compter les offres par statut
+        pendingOffersCount = offersData.filter(offer => 
+          offer.workflow_status && 
+          !['financed', 'rejected'].includes(offer.workflow_status)
+        ).length;
+        
+        acceptedOffersCount = offersData.filter(offer => 
+          offer.workflow_status === 'financed'
+        ).length;
+        
+        console.log(`Statistiques calculées: ${totalCommissions} commissions, ${pendingOffersCount} offres en cours, ${acceptedOffersCount} offres acceptées`);
       }
-      
-      // Count pending offers
-      const { data: pendingOffers, error: pendingOffersError } = await supabase
-        .from("offers")
-        .select("id")
-        .eq("type", "ambassador_offer")
-        .eq("ambassador_id", ambassadorId)
-        .not("workflow_status", "eq", "financed")
-        .not("workflow_status", "eq", "rejected");
-        
-      if (pendingOffersError) throw pendingOffersError;
-      
-      // Count accepted offers
-      const { data: acceptedOffers, error: acceptedOffersError } = await supabase
-        .from("offers")
-        .select("id")
-        .eq("type", "ambassador_offer")
-        .eq("ambassador_id", ambassadorId)
-        .eq("workflow_status", "financed");
-        
-      if (acceptedOffersError) throw acceptedOffersError;
-      
-      // Get recent clients
-      const { data: clients, error: recentClientsError } = await supabase
-        .from("ambassador_clients")
-        .select(`
-          id,
-          client_id,
-          clients:client_id(*)
-        `)
-        .eq("ambassador_id", ambassadorId)
-        .order("created_at", { ascending: false })
-        .limit(5);
-        
-      if (recentClientsError) throw recentClientsError;
-      
-      // Get recent offers
-      const { data: offers, error: recentOffersError } = await supabase
-        .from("offers")
-        .select("*")
-        .eq("type", "ambassador_offer")
-        .eq("ambassador_id", ambassadorId)
-        .order("created_at", { ascending: false })
-        .limit(5);
-        
-      if (recentOffersError) throw recentOffersError;
 
       setStats({
         clientsCount,
         totalCommissions,
         lastCommissionAmount,
-        pendingOffersCount: pendingOffers?.length || 0,
-        acceptedOffersCount: acceptedOffers?.length || 0
+        pendingOffersCount,
+        acceptedOffersCount
       });
       
-      // Process clients data to get the actual client objects
-      const processedClients = clients
-        ?.filter(item => item.clients) // Filter out any null client references
-        .map(item => item.clients) || [];
+      // Préparer les clients récents
+      const processedClients = clientsData
+        ?.filter(item => item.clients)
+        .map(item => item.clients)
+        .slice(0, 5) || [];
       
-      console.log("Processed clients:", processedClients);
       setRecentClients(processedClients);
-      setRecentOffers(offers || []);
+      
+      // Préparer les offres récentes
+      const recentOffersData = offersData?.slice(0, 5) || [];
+      setRecentOffers(recentOffersData);
+      
     } catch (error) {
       console.error("Erreur lors du chargement des statistiques:", error);
-      setError("Impossible de charger les données du tableau de bord");
       toast.error("Impossible de charger les données du tableau de bord");
     } finally {
       setLoading(false);
@@ -216,7 +184,7 @@ const AmbassadorDashboardPage = () => {
 
   useEffect(() => {
     loadStats();
-  }, [resolvedAmbassadorId]);
+  }, []);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -231,31 +199,6 @@ const AmbassadorDashboardPage = () => {
         <Container>
           <div className="h-screen flex items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="p-6">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold">
-                {greeting()}, {user?.first_name || user?.email}
-              </h1>
-              <p className="text-muted-foreground">Votre tableau de bord ambassadeur</p>
-            </div>
-            
-            <AmbassadorErrorHandler 
-              message={`Erreur: ${error}. Veuillez réessayer plus tard ou contacter l'assistance.`}
-              onRetry={() => {
-                findAmbassadorId().then(() => loadStats());
-              }}
-              showDiagnosticInfo={true}
-            />
           </div>
         </Container>
       </PageTransition>
