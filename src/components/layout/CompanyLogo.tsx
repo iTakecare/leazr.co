@@ -14,17 +14,17 @@ interface CompanyLogoProps {
 const CompanyLogo: React.FC<CompanyLogoProps> = ({ 
   className, 
   showText = false, 
-  logoSize = "md", 
+  logoSize = "lg", 
   variant = "avatar" 
 }) => {
   const { settings, loading } = useSiteSettings();
 
   const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-20 h-20", 
-    lg: "w-24 h-24",
-    xl: "w-32 h-32",
-    "2xl": "w-40 h-40"
+    sm: "w-16 h-16",
+    md: "w-24 h-24", 
+    lg: "w-32 h-32",
+    xl: "w-40 h-40",
+    "2xl": "w-48 h-48"
   };
 
   // Si on charge encore ou qu'il n'y a pas de logo d'entreprise, utiliser le logo par défaut
