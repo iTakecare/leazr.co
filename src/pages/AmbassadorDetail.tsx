@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { getAmbassadorById } from "@/services/ambassadorService";
 import { Ambassador } from "@/services/ambassadorService";
-import AmbassadorCommissionsTable from "@/components/ambassadors/AmbassadorCommissionsTable";
-import CommissionDisplay from "@/components/ui/CommissionDisplay";
+import AmbassadorCommissionLevelSelector from "@/components/crm/forms/AmbassadorCommissionLevelSelector";
+import AmbassadorClientsSection from "@/components/crm/forms/AmbassadorClientsSection";
+import AmbassadorCommissionsSection from "@/components/crm/forms/AmbassadorCommissionsSection";
+import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
 
 export default function AmbassadorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +55,13 @@ export default function AmbassadorDetail() {
   useEffect(() => {
     fetchAmbassador();
   }, [id, navigate]);
+
+  const handleAccountCreated = () => {
+    // Recharger les données de l'ambassadeur pour mettre à jour le statut du compte
+    if (id) {
+      fetchAmbassador();
+    }
+  };
 
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return "N/A";
@@ -121,122 +130,115 @@ export default function AmbassadorDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Informations générales
-            </CardTitle>
-            <CardDescription>Coordonnées et détails de l'ambassadeur</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {ambassador.email && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Colonne de gauche - Informations générales */}
+        <div className="space-y-6">
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="bg-muted/50 pb-4 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Informations générales
+              </CardTitle>
+              <CardDescription>Coordonnées et détails de l'ambassadeur</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {ambassador.email && (
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <Mail className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Email</h3>
+                      <p className="text-sm">{ambassador.email}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {ambassador.phone && (
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <Phone className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium">Téléphone</h3>
+                      <p className="text-sm">{ambassador.phone}</p>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                  <Mail className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium">Email</h3>
-                    <p className="text-sm">{ambassador.email}</p>
+                  <Badge className="mt-0.5" variant={ambassador.status === 'active' ? 'default' : 'secondary'}>
+                    {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
+                  </Badge>
+                </div>
+              </div>
+              
+              {ambassador.address && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium mb-3">Adresse</h3>
+                  <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                    <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm">
+                        {ambassador.address}
+                        {(ambassador.postal_code || ambassador.city) && (
+                          <>, {ambassador.postal_code} {ambassador.city}</>
+                        )}
+                        {ambassador.country && <>, {ambassador.country}</>}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
               
-              {ambassador.phone && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                  <Phone className="h-5 w-5 text-primary mt-0.5" />
+                  <Clock className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium">Téléphone</h3>
-                    <p className="text-sm">{ambassador.phone}</p>
+                    <h3 className="text-sm font-medium">Créé le</h3>
+                    <p className="text-sm">{formatDate(ambassador.created_at)}</p>
                   </div>
+                </div>
+                
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <Clock className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium">Dernière mise à jour</h3>
+                    <p className="text-sm">{formatDate(ambassador.updated_at)}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {ambassador.notes && (
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4 text-primary" />
+                    Notes
+                  </h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{ambassador.notes}</p>
                 </div>
               )}
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Badge className="mt-0.5" variant={ambassador.status === 'active' ? 'default' : 'secondary'}>
-                  {ambassador.status === 'active' ? 'Actif' : 'Inactif'}
-                </Badge>
-              </div>
-            </div>
-            
-            {ambassador.address && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium mb-3">Adresse</h3>
-                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm">
-                      {ambassador.address}
-                      {(ambassador.postal_code || ambassador.city) && (
-                        <>, {ambassador.postal_code} {ambassador.city}</>
-                      )}
-                      {ambassador.country && <>, {ambassador.country}</>}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Clock className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Créé le</h3>
-                  <p className="text-sm">{formatDate(ambassador.created_at)}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-                <Clock className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Dernière mise à jour</h3>
-                  <p className="text-sm">{formatDate(ambassador.updated_at)}</p>
-                </div>
-              </div>
-            </div>
-            
-            {ambassador.notes && (
-              <div className="mt-6 border-t pt-4">
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" />
-                  Notes
-                </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line bg-muted/30 p-4 rounded-md">{ambassador.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
+          <AmbassadorCommissionLevelSelector 
+            control={null}
+            currentLevelId={ambassador.commission_level_id}
+          />
+        </div>
+
+        {/* Colonne de droite - Gestion et statistiques */}
         <div className="space-y-6">
           <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
             <CardHeader className="bg-muted/50 pb-4 border-b">
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5 text-primary" />
-                Compte utilisateur
+                Gestion du compte utilisateur
               </CardTitle>
               <CardDescription>Accès au portail ambassadeur</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {hasUserAccount ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <div className="font-medium text-green-800">Compte actif</div>
-                      {ambassador.user_account_created_at && (
-                        <span className="text-xs text-green-700">
-                          Créé le {formatDate(ambassador.user_account_created_at)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">Cet ambassadeur n'a pas encore de compte utilisateur pour accéder au portail.</p>
-                </div>
-              )}
+              <AmbassadorUserAccount
+                ambassador={ambassador}
+                onAccountCreated={handleAccountCreated}
+              />
             </CardContent>
           </Card>
 
@@ -271,27 +273,13 @@ export default function AmbassadorDetail() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-            <CardHeader className="bg-muted/50 pb-4 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                Barème de commissionnement
-              </CardTitle>
-              <CardDescription>Taux de commission par palier</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <CommissionDisplay 
-                ambassadorId={ambassador.id}
-                commissionLevelId={ambassador.commission_level_id}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
 
-      <div className="mt-8">
-        <AmbassadorCommissionsTable ambassadorId={ambassador.id} />
+      {/* Sections en pleine largeur */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AmbassadorClientsSection ambassadorId={ambassador.id} />
+        <AmbassadorCommissionsSection ambassadorId={ambassador.id} />
       </div>
     </div>
   );
