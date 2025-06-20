@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -132,7 +133,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b">
-                <CompanyLogo showText={true} logoSize="md" />
+                <CompanyLogo showText={false} logoSize="md" />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
                   <X className="h-5 w-5" />
                 </Button>
@@ -237,7 +238,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
           "flex items-center p-4 mb-2 transition-all duration-300",
           collapsed ? "justify-center" : "px-6 justify-start"
         )}>
-          <CompanyLogo showText={!collapsed} logoSize="md" />
+          <CompanyLogo showText={false} logoSize="md" />
           
           {!collapsed && (
             <Button 
