@@ -44,27 +44,33 @@ const LandingHeader = () => {
 
   const solutionsMenu = [
     { 
+      label: "🎯 Vue d'ensemble", 
+      href: "/solutions", 
+      icon: <Target className="h-4 w-4 text-blue-600" />, 
+      description: "Découvrez toute notre suite de solutions" 
+    },
+    { 
       label: "🤝 CRM Intégré", 
-      href: "/solutions/crm", 
+      href: "/solutions#crm", 
       icon: <Users className="h-4 w-4 text-blue-600" />, 
       description: "Gérez vos clients et prospects efficacement" 
     },
     { 
       label: "🧮 Calculateur Intelligent", 
-      href: "/solutions/calculateur", 
-      icon: <BarChart className="h-4 w-4 text-emerald-600" />, 
+      href: "/solutions#calculateur", 
+      icon: <Calculator className="h-4 w-4 text-emerald-600" />, 
       description: "Automatisez vos calculs de leasing" 
     },
     { 
       label: "📝 Contrats Digitaux", 
-      href: "/solutions/contrats", 
+      href: "/solutions#contrats", 
       icon: <Shield className="h-4 w-4 text-purple-600" />, 
       description: "Signature électronique sécurisée" 
     },
     { 
       label: "📦 Catalogue Produits", 
-      href: "/solutions/catalogue", 
-      icon: <Zap className="h-4 w-4 text-orange-600" />, 
+      href: "/solutions#catalogue", 
+      icon: <Box className="h-4 w-4 text-orange-600" />, 
       description: "Gestion centralisée de vos équipements" 
     },
   ];
