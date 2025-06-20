@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Trash2, Edit2, Package, TrendingUp } from "lucide-react";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import { Switch } from "@/components/ui/switch";
-import CommissionDisplay from "@/components/ambassador/CommissionDisplay";
+import SimpleCommissionDisplay from "@/components/ambassador/SimpleCommissionDisplay";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -51,8 +50,6 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
       updateQuantity(id, newQuantity);
     }
   };
-
-  const shouldShowCommission = ambassadorId && totalMonthlyPayment > 0 && equipmentList.length > 0;
 
   return (
     <div className="space-y-6">
@@ -199,12 +196,11 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </Card>
       )}
 
-      {/* Commission d'ambassadeur - nouveau composant simplifié */}
-      {shouldShowCommission && (
-        <CommissionDisplay
+      {/* Commission d'ambassadeur - nouvelle approche simplifiée */}
+      {ambassadorId && totalMonthlyPayment > 0 && equipmentList.length > 0 && (
+        <SimpleCommissionDisplay
           totalMonthlyPayment={totalMonthlyPayment}
           ambassadorId={ambassadorId}
-          commissionLevelId={commissionLevelId}
           equipmentListLength={equipmentList.length}
         />
       )}

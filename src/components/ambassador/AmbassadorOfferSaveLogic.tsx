@@ -69,22 +69,22 @@ export const useAmbassadorOfferSave = ({
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Récupérer la commission depuis le nouveau composant
+      // Récupérer la commission depuis le nouveau composant simple
       let commissionAmount = 0;
       
-      const commissionElement = document.querySelector('[data-commission-amount]') as HTMLElement;
+      const commissionElement = document.getElementById('ambassador-commission-value');
       
       if (commissionElement && commissionElement.dataset.commissionAmount) {
         try {
           commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
-          console.log("Commission récupérée depuis le nouveau composant:", commissionAmount);
+          console.log("Commission récupérée depuis le composant simple:", commissionAmount);
         } catch (error) {
           console.error("Error parsing commission:", error);
-          // Fallback: 5% du montant financé
+          // Fallback: calcul simple 5% du montant financé
           commissionAmount = Math.round(financedAmount * 0.05);
         }
       } else {
-        // Fallback si l'élément n'existe pas
+        // Fallback: calcul simple 5% du montant financé
         commissionAmount = Math.round(financedAmount * 0.05);
         console.log("Commission par défaut appliquée:", commissionAmount);
       }
