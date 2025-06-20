@@ -153,11 +153,11 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-blue-600" />
-                    📍 Notre siège social
+                    📍 Siège social iTakecare
                   </h3>
-                  <p className="text-slate-600 mb-2">123 Avenue des Champs-Élysées</p>
-                  <p className="text-slate-600 mb-2">75008 Paris, France</p>
-                  <p className="text-slate-600">🚇 Métro : Charles de Gaulle - Étoile</p>
+                  <p className="text-slate-600 mb-2">27 Avenue de l'Opéra</p>
+                  <p className="text-slate-600 mb-2">75001 Paris, France</p>
+                  <p className="text-slate-600">🚇 Métro : Opéra, Châtelet-Les Halles</p>
                 </CardContent>
               </Card>
 
@@ -167,7 +167,7 @@ const ContactPage = () => {
                     <Phone className="h-5 w-5 text-green-600" />
                     📞 Téléphone
                   </h3>
-                  <p className="text-slate-600 mb-2">+33 1 23 45 67 89</p>
+                  <p className="text-slate-600 mb-2">+33 1 85 09 26 04</p>
                   <p className="text-sm text-slate-500">Du lundi au vendredi, 9h-18h</p>
                 </CardContent>
               </Card>
@@ -178,8 +178,8 @@ const ContactPage = () => {
                     <Mail className="h-5 w-5 text-purple-600" />
                     ✉️ Email
                   </h3>
-                  <p className="text-slate-600 mb-2">contact@leazr.fr</p>
-                  <p className="text-slate-600 mb-2">support@leazr.fr</p>
+                  <p className="text-slate-600 mb-2">contact@itakecare.fr</p>
+                  <p className="text-slate-600 mb-2">support@itakecare.fr</p>
                   <p className="text-sm text-slate-500">Réponse sous 24h</p>
                 </CardContent>
               </Card>
@@ -191,7 +191,7 @@ const ContactPage = () => {
                     🆘 Support prioritaire
                   </h3>
                   <p className="text-slate-600 mb-2">Pour nos clients abonnés</p>
-                  <p className="text-slate-600 mb-2">+33 1 23 45 67 90</p>
+                  <p className="text-slate-600 mb-2">+33 1 85 09 26 04</p>
                   <p className="text-sm text-slate-500">Support dédié 7j/7</p>
                 </CardContent>
               </Card>
