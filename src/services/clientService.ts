@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+
+import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import type { Client } from "@/types/client";
 
 /**
