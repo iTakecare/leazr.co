@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users, Target, Award, ArrowRight, Heart, Lightbulb, Shield, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
 import Logo from '@/components/layout/Logo';
 
 const AboutPage: React.FC = () => {
@@ -276,16 +276,7 @@ const AboutPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
-            <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

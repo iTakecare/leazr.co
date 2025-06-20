@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users, BarChart, Shield, Zap, ArrowRight, CheckCircle, TrendingUp, Database, Clock, Award, Star, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LandingHeader from '@/components/layout/LandingHeader';
+import Footer from '@/components/layout/Footer';
 import Logo from '@/components/layout/Logo';
 
 const SolutionsPage: React.FC = () => {
@@ -533,16 +534,7 @@ const SolutionsPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
-            <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

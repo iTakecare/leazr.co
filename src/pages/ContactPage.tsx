@@ -1,38 +1,8 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Mail, Clock, Send, MessageSquare, Headphones, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
+import React from 'react';
 import LandingHeader from '@/components/layout/LandingHeader';
-import Logo from '@/components/layout/Logo';
+import Footer from '@/components/layout/Footer';
 
-const ContactPage: React.FC = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    phone: '',
-    subject: '',
-    message: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Message envoyé avec succès ! Nous vous recontacterons sous 24h.');
-    setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
+const ContactPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <LandingHeader />
@@ -201,16 +171,7 @@ const ContactPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <Logo variant="full" logoSize="lg" showText={false} className="mb-4 mx-auto" />
-            <p className="text-slate-600">
-              💼 La solution métier de référence pour le leasing.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
