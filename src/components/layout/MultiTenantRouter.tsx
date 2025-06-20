@@ -10,7 +10,6 @@ import PartnerRoutes from "./PartnerRoutes";
 // Pages admin existantes
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
 
 // Pages publiques (sans authentification)
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
@@ -21,16 +20,6 @@ import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
 import LandingPage from "@/pages/LandingPage";
 import HomePage from "@/pages/HomePage";
-
-// Pages nouvelles créées pour la navigation
-import SolutionsPage from "@/pages/SolutionsPage";
-import ServicesPage from "@/pages/ServicesPage";
-import ResourcesPage from "@/pages/ResourcesPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/ContactPage";
-import PricingPage from "@/pages/PricingPage";
-import CalculatorPage from "@/pages/CalculatorPage";
-import CRMFeaturePage from "@/pages/CRMFeaturePage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -76,19 +65,8 @@ const MultiTenantRouter = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<HomePage />} />
       
-      {/* Pages publiques de navigation - DÉPLACÉES EN PREMIER */}
-      <Route path="/solutions" element={<SolutionsPage />} />
-      <Route path="/services" element={<ServicesPage />} />
-      <Route path="/ressources" element={<ResourcesPage />} />
-      <Route path="/a-propos" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/tarifs" element={<PricingPage />} />
-      <Route path="/calculator" element={<CalculatorPage />} />
-      <Route path="/crm-feature" element={<CRMFeaturePage />} />
-      
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
       
       {/* Routes publiques pour les entreprises (sans authentification) */}
       <Route path="/public/:companyId" element={<PublicCompanyLanding />} />

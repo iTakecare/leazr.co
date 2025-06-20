@@ -16,11 +16,11 @@ const Logo: React.FC<LogoProps> = ({
   variant = "avatar" 
 }) => {
   const sizeClasses = {
-    sm: "w-20 h-20",
-    md: "w-28 h-28", 
-    lg: "w-36 h-36",
-    xl: "w-44 h-44",
-    "2xl": "w-56 h-56"
+    sm: "w-6 h-6",
+    md: "w-8 h-8", 
+    lg: "w-10 h-10",
+    xl: "w-12 h-12",
+    "2xl": "w-16 h-16"
   };
 
   // Utiliser le nouveau logo fourni

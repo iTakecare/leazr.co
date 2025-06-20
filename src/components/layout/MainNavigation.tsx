@@ -18,13 +18,10 @@ const MainNavigation = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setScrollY(currentScrollY);
-      if (currentScrollY > 20) {
+      if (window.scrollY > 20) {
         setScrolled(true);
       } else {
         setScrolled(false);
@@ -35,24 +32,17 @@ const MainNavigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Calculer la taille du logo en fonction du scroll
-  const getLogoScale = () => {
-    const baseScale = 1.2;
-    const scrollScale = Math.min(scrollY / 300, 1) * 0.8; // Max 80% d'agrandissement supplémentaire
-    return baseScale + scrollScale;
-  };
-
   const solutionsMenu = [
     { label: "🏢 Solutions Entreprises", href: "/solutions", icon: <Building className="w-4 h-4 mr-2" />, description: "Solutions complètes pour grandes entreprises" },
     { label: "💼 Solutions Professionnels", href: "/solutions", icon: <Briefcase className="w-4 h-4 mr-2" />, description: "Offres adaptées aux PME et indépendants" },
-    { label: "🤝 CRM Intégré", href: "/crm-feature", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
-    { label: "🧮 Calculateur Intelligent", href: "/calculator", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
+    { label: "🤝 CRM Leasing", href: "/solutions", icon: <Monitor className="w-4 h-4 mr-2" />, description: "Gestion complète de la relation client" },
+    { label: "🧮 Calculateur Intelligent", href: "/solutions", icon: <Cpu className="w-4 h-4 mr-2" />, description: "Moteur de calcul spécialisé leasing" },
   ];
 
   const servicesMenu = [
-    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Services dédiés aux grandes entreprises" },
-    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Accompagnement personnalisé pour PME" },
-    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique complète" },
+    { label: "🏢 Pour entreprises", href: "/services", icon: <Building className="h-4 w-4 text-[#48b5c3]" />, description: "Solutions adaptées aux besoins des entreprises" },
+    { label: "💼 Pour professionnels", href: "/services", icon: <Briefcase className="h-4 w-4 text-[#48b5c3]" />, description: "Offres spéciales pour indépendants et professionnels" },
+    { label: "🆘 Support technique", href: "/services", icon: <HelpCircle className="h-4 w-4 text-[#48b5c3]" />, description: "Assistance technique dédiée et réactive" },
     { label: "🎓 Formation & Accompagnement", href: "/services", icon: <Share2 className="h-4 w-4 text-[#48b5c3]" />, description: "Formation complète à nos solutions" },
   ];
 
@@ -72,20 +62,13 @@ const MainNavigation = () => {
       "fixed top-0 left-0 right-0 z-50 flex justify-center px-4 py-6 transition-all duration-300",
       scrolled ? "bg-white/95 backdrop-blur-sm shadow-md" : "bg-white"
     )}>
-      <div className="relative w-full max-w-[1320px] mx-auto h-auto md:h-[160px] bg-[#f8f8f6] rounded-[20px] md:rounded-[50px] border-2 border-solid border-[#e1e1e1] flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-3 md:py-0 transition-all duration-300 hover:border-[#48B5C3]/30">
+      <div className="relative w-full max-w-[1320px] mx-auto h-auto md:h-[82px] bg-[#f8f8f6] rounded-[20px] md:rounded-[50px] border-2 border-solid border-[#e1e1e1] flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-3 md:py-0 transition-all duration-300 hover:border-[#48B5C3]/30">
         <div className="flex items-center justify-between w-full md:w-auto">
           <Link to="/" className="group">
             <img
-              className={cn(
-                "h-auto md:h-[120px] object-contain transition-all duration-500 group-hover:scale-105",
-                "w-[280px] md:w-[450px]"
-              )}
+              className="w-[160px] md:w-[240px] h-auto md:h-[50px] object-contain transition-transform duration-300 group-hover:scale-105"
               alt="Leazr Logo"
               src="/lovable-uploads/3a4ae1ec-2b87-4a07-a178-b3bc5d86594b.png"
-              style={{
-                transform: `scale(${getLogoScale()})`,
-                transformOrigin: 'left center'
-              }}
             />
           </Link>
           
@@ -175,17 +158,6 @@ const MainNavigation = () => {
             onClick={() => setMobileMenuOpen(false)}
           >
             Contact
-          </Link>
-          
-          <Link
-            to="/tarifs"
-            className={cn(
-              "py-2 px-4 text-center font-medium text-[#222222] text-sm rounded-md",
-              location.pathname === "/tarifs" && "bg-[#33638E]/10 text-[#33638E]"
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            💰 Tarifs
           </Link>
           
           <div className="flex flex-col space-y-2 pt-4">
@@ -318,18 +290,6 @@ const MainNavigation = () => {
                 )}
               >
                 Contact
-              </Link>
-            </li>
-            
-            <li>
-              <Link
-                to="/tarifs"
-                className={cn(
-                  "font-normal text-[#222222] text-base hover:text-[#33638E] transition-colors",
-                  location.pathname === "/tarifs" && "font-medium text-[#33638E]"
-                )}
-              >
-                💰 Tarifs
               </Link>
             </li>
           </ul>
