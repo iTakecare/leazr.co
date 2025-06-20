@@ -265,7 +265,7 @@ const AmbassadorCreateOffer = () => {
         ambassador_id: ambassadorId || user?.ambassador_id,
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)  // Marge générée
+        margin: String(marginAmount)
       };
       
       console.log("Saving offer with the following data:", offerData);
