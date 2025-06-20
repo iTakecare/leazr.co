@@ -26,200 +26,51 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { updateAmbassador, Ambassador } from "@/services/ambassadorService";
 
 const ambassadorSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Veuillez entrer un email valide"),
-  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
-  region: z.string().min(2, "La région est requise"),
-  status: z.enum(["active", "inactive"]),
+  phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide").optional(),
+  region: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
+  company: z.string().optional(),
+  vat_number: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
 });
 
 export type AmbassadorFormData = z.infer<typeof ambassadorSchema>;
 
-interface Ambassador {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  region: string;
-  status: string;
-  commissionsTotal: number;
-  clientsCount?: number;
-  lastCommission?: number;
-  notes?: string;
+interface AmbassadorEditFormProps {
+  ambassadorData: Ambassador;
 }
 
-// Base de données mockée plus complète
-const mockAmbassadors: Record<string, Ambassador> = {
-  "1": {
-    id: '1',
-    name: 'Sophie Laurent',
-    email: 'sophie.laurent@example.com',
-    phone: '+33 6 12 34 56 78',
-    region: 'Île-de-France',
-    status: 'active',
-    commissionsTotal: 4500,
-    clientsCount: 12,
-    lastCommission: 750,
-    notes: 'Ambassadrice très active dans le milieu hospitalier parisien.'
-  },
-  "2": {
-    id: '2',
-    name: 'Marc Dubois',
-    email: 'marc.dubois@example.com',
-    phone: '+33 6 23 45 67 89',
-    region: 'Auvergne-Rhône-Alpes',
-    status: 'active',
-    commissionsTotal: 3200,
-    clientsCount: 8,
-    lastCommission: 550,
-    notes: 'Bonne connaissance du réseau de cliniques privées de Lyon.'
-  },
-  "3": {
-    id: '3',
-    name: 'Émilie Moreau',
-    email: 'emilie.moreau@example.com',
-    phone: '+33 6 34 56 78 90',
-    region: 'Provence-Alpes-Côte d\'Azur',
-    status: 'inactive',
-    commissionsTotal: 1800,
-    clientsCount: 5,
-    lastCommission: 0,
-    notes: 'En pause temporaire pour congé maternité.'
-  },
-  "4": {
-    id: '4',
-    name: 'Thomas Bernard',
-    email: 'thomas.bernard@example.com',
-    phone: '+33 6 45 67 89 01',
-    region: 'Grand Est',
-    status: 'active',
-    commissionsTotal: 2800,
-    clientsCount: 7,
-    lastCommission: 420,
-    notes: 'Spécialisé dans les équipements de rééducation.'
-  },
-  "5": {
-    id: '5',
-    name: 'Lucie Petit',
-    email: 'lucie.petit@example.com',
-    phone: '+33 6 56 78 90 12',
-    region: 'Bretagne',
-    status: 'active',
-    commissionsTotal: 2100,
-    clientsCount: 6,
-    lastCommission: 350,
-    notes: 'Excellente connaissance du tissu médical local.'
-  }
-};
-
-// Fonction pour récupérer un ambassadeur par son ID
-const getAmbassadorById = (id: string): Promise<Ambassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const ambassador = mockAmbassadors[id];
-      if (ambassador) {
-        console.log(`Récupération de l'ambassadeur ID: ${id}`, ambassador);
-        resolve(ambassador);
-      } else {
-        console.error(`Ambassadeur avec ID ${id} non trouvé`);
-        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
-      }
-    }, 500);
-  });
-};
-
-// Fonction pour mettre à jour un ambassadeur
-const updateAmbassador = (id: string, data: AmbassadorFormData): Promise<Ambassador> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      console.log('Mise à jour de l\'ambassadeur:', id, data);
-      
-      const existingAmbassador = mockAmbassadors[id];
-      if (!existingAmbassador) {
-        console.error(`Ambassadeur avec ID ${id} non trouvé lors de la mise à jour`);
-        reject(new Error(`Ambassadeur avec ID ${id} non trouvé`));
-        return;
-      }
-      
-      // Créer un objet ambassadeur mis à jour en conservant les données existantes
-      const updatedAmbassador: Ambassador = {
-        ...existingAmbassador,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        region: data.region,
-        status: data.status,
-        notes: data.notes
-      };
-      
-      // Mettre à jour la base de données mockée
-      mockAmbassadors[id] = updatedAmbassador;
-      
-      console.log(`Ambassadeur ID ${id} mis à jour avec succès:`, updatedAmbassador);
-      toast.success(`L'ambassadeur ${data.name} a été mis à jour avec succès`);
-      resolve(updatedAmbassador);
-    }, 800);
-  });
-};
-
-const AmbassadorEditForm = () => {
+const AmbassadorEditForm = ({ ambassadorData }: AmbassadorEditFormProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
 
   const form = useForm<AmbassadorFormData>({
     resolver: zodResolver(ambassadorSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      region: "",
-      status: "active",
-      notes: "",
+      name: ambassadorData.name || "",
+      email: ambassadorData.email || "",
+      phone: ambassadorData.phone || "",
+      region: ambassadorData.region || "",
+      status: (ambassadorData.status as "active" | "inactive") || "active",
+      notes: ambassadorData.notes || "",
+      company: ambassadorData.company || "",
+      vat_number: ambassadorData.vat_number || "",
+      address: ambassadorData.address || "",
+      city: ambassadorData.city || "",
+      postal_code: ambassadorData.postal_code || "",
+      country: ambassadorData.country || "",
     },
   });
-
-  React.useEffect(() => {
-    if (!id) {
-      console.error("Aucun ID d'ambassadeur fourni");
-      toast.error("Erreur: Ambassadeur non identifié");
-      navigate("/ambassadors");
-      return;
-    }
-
-    const fetchAmbassador = async () => {
-      setIsLoading(true);
-      try {
-        const data = await getAmbassadorById(id);
-        
-        console.log(`Données de l'ambassadeur ID ${id} chargées:`, data);
-        setAmbassador(data);
-        
-        // Mettre à jour les valeurs du formulaire
-        form.reset({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          region: data.region,
-          status: data.status as "active" | "inactive",
-          notes: data.notes || "",
-        });
-      } catch (error) {
-        console.error("Erreur lors du chargement de l'ambassadeur:", error);
-        toast.error("Erreur lors du chargement des données de l'ambassadeur");
-        navigate("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAmbassador();
-  }, [id, form, navigate]);
 
   const onSubmit = async (data: AmbassadorFormData) => {
     if (!id) {
@@ -229,11 +80,8 @@ const AmbassadorEditForm = () => {
     
     setIsSaving(true);
     try {
-      const updatedAmbassador = await updateAmbassador(id, data);
-      setAmbassador(updatedAmbassador);
-      console.log(`Ambassadeur ID ${id} sauvegardé avec succès:`, updatedAmbassador);
-      
-      // Rediriger vers la page de détail après sauvegarde
+      await updateAmbassador(id, data);
+      toast.success("Ambassadeur mis à jour avec succès");
       navigate(`/ambassadors/${id}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'ambassadeur:", error);
@@ -242,15 +90,6 @@ const AmbassadorEditForm = () => {
       setIsSaving(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Chargement des données...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -350,6 +189,90 @@ const AmbassadorEditForm = () => {
                           <SelectItem value="inactive">Inactif</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="company"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Entreprise</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nom de l'entreprise" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="vat_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro de TVA</FormLabel>
+                      <FormControl>
+                        <Input placeholder="FR12345678901" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Adresse</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Rue de la Paix" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ville</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Paris" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="postal_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code postal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="75001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pays</FormLabel>
+                      <FormControl>
+                        <Input placeholder="France" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
