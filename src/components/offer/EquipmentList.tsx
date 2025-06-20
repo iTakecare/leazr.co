@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import { Switch } from "@/components/ui/switch";
 import SimpleCommissionDisplay from "@/components/ambassador/SimpleCommissionDisplay";
+import { useCommissionCalculator } from "@/utils/commission";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -51,6 +51,21 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
       updateQuantity(id, newQuantity);
     }
   };
+
+  const commission = useCommissionCalculator(
+    totalMonthlyPayment,
+    ambassadorId,
+    commissionLevelId,
+    equipmentList.length
+  );
+
+  console.log("EquipmentList - Commission calculation debug:", {
+    ambassadorId,
+    commissionLevelId,
+    totalMonthlyPayment,
+    equipmentListLength: equipmentList.length,
+    commission
+  });
 
   // Debug logging pour diagnostiquer les props
   console.log("EquipmentList debug:", {

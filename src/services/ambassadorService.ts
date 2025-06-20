@@ -74,17 +74,62 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
 // Récupérer un ambassadeur par son ID
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
+    console.log(`[getAmbassadorById] Fetching ambassador with ID: ${id}`);
+    
     const { data, error } = await supabase
       .from("ambassadors")
       .select("*")
       .eq("id", id)
       .single();
 
-    if (error) throw error;
-    console.log(`Ambassadeur récupéré avec succès. ID: ${id}, Barème: ${data.commission_level_id}`);
+    if (error) {
+      console.error(`[getAmbassadorById] Error:`, error);
+      throw error;
+    }
+    
+    console.log(`[getAmbassadorById] Success - Ambassador found:`, {
+      id: data.id,
+      name: data.name,
+      commission_level_id: data.commission_level_id
+    });
+    
     return data;
   } catch (error) {
-    console.error(`Error fetching ambassador with ID ${id}:`, error);
+    console.error(`[getAmbassadorById] Error fetching ambassador with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+// Nouvelle fonction pour récupérer un ambassadeur par user_id
+export const getAmbassadorByUserId = async (userId: string): Promise<Ambassador | null> => {
+  try {
+    console.log(`[getAmbassadorByUserId] Fetching ambassador for user ID: ${userId}`);
+    
+    const { data, error } = await supabase
+      .from("ambassadors")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // No rows returned
+        console.log(`[getAmbassadorByUserId] No ambassador found for user ID: ${userId}`);
+        return null;
+      }
+      console.error(`[getAmbassadorByUserId] Error:`, error);
+      throw error;
+    }
+    
+    console.log(`[getAmbassadorByUserId] Success - Ambassador found:`, {
+      id: data.id,
+      name: data.name,
+      user_id: data.user_id,
+      commission_level_id: data.commission_level_id
+    });
+    
+    return data;
+  } catch (error) {
+    console.error(`[getAmbassadorByUserId] Error fetching ambassador for user ID ${userId}:`, error);
     throw error;
   }
 };

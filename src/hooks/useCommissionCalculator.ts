@@ -47,8 +47,10 @@ export const useCommissionCalculator = (
         let commissionRate = 0;
         let levelName = '';
 
-        if (commissionLevelId && ambassadorId) {
+        // Vérifier que nous avons bien un ambassadorId ET un commissionLevelId
+        if (ambassadorId && commissionLevelId) {
           try {
+            console.log("Using ambassador commission calculation with level:", commissionLevelId);
             const commissionData = await calculateCommissionByLevel(
               financedAmount,
               commissionLevelId,
@@ -58,26 +60,27 @@ export const useCommissionCalculator = (
             
             commissionAmount = commissionData.amount || 0;
             commissionRate = commissionData.rate || 0;
-            levelName = commissionData.levelName || '';
+            levelName = commissionData.levelName || 'Barème ambassadeur';
+            
+            console.log("Commission calculated successfully:", {
+              amount: commissionAmount,
+              rate: commissionRate,
+              levelName
+            });
           } catch (error) {
             console.error("Error calculating commission with level:", error);
             // Fallback: 5% du montant financé
             commissionAmount = Math.round(financedAmount * 0.05);
             commissionRate = 5;
-            levelName = 'Commission par défaut';
+            levelName = 'Commission par défaut (erreur)';
           }
         } else {
+          console.log("Missing ambassadorId or commissionLevelId, using default calculation");
           // Fallback: 5% du montant financé
           commissionAmount = Math.round(financedAmount * 0.05);
           commissionRate = 5;
-          levelName = 'Commission par défaut';
+          levelName = ambassadorId ? 'Aucun barème attribué' : 'Aucun ambassadeur associé';
         }
-
-        console.log("Commission calculated:", {
-          amount: commissionAmount,
-          rate: commissionRate,
-          levelName
-        });
 
         setCommission({
           amount: commissionAmount,
@@ -93,7 +96,7 @@ export const useCommissionCalculator = (
         setCommission({
           amount: fallbackAmount,
           rate: 5,
-          levelName: 'Commission estimée',
+          levelName: 'Commission estimée (erreur)',
           isCalculating: false
         });
       }
