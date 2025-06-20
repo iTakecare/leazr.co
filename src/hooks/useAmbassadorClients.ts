@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Client, CreateClientData } from '@/types/client';
-import { getAmbassadorClients, getCurrentAmbassadorProfile, linkClientToAmbassador, createClientAsAmbassadorDb, updateAmbassadorClientCount } from '@/services/ambassadorClientService';
+import { getAmbassadorClients, getCurrentAmbassadorProfile, createClientAsAmbassadorDb, updateAmbassadorClientCount } from '@/services/ambassadorClientService';
 import { toast } from 'sonner';
 
 export const useAmbassadorClients = () => {
@@ -15,7 +15,9 @@ export const useAmbassadorClients = () => {
     setError(null);
     
     try {
+      console.log("Loading ambassador clients...");
       const data = await getAmbassadorClients();
+      console.log("Loaded clients:", data);
       setClients(data);
     } catch (err) {
       console.error("Error loading ambassador clients:", err);

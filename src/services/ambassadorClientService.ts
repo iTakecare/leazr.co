@@ -18,20 +18,21 @@ export const getCurrentAmbassadorProfile = async (): Promise<string | null> => {
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
       .select('id')
-      .eq('user_id', userData.user.id);
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
     
     if (ambassadorError) {
       console.error("Error fetching ambassador data:", ambassadorError);
       return null;
     }
     
-    if (!ambassadorData || ambassadorData.length === 0) {
+    if (!ambassadorData) {
       console.error("No ambassador profile found for user", userData.user.id);
       return null;
     }
     
-    console.log("Ambassador found:", ambassadorData[0].id);
-    return ambassadorData[0].id;
+    console.log("Ambassador found:", ambassadorData.id);
+    return ambassadorData.id;
   } catch (error) {
     console.error("Error getting ambassador profile:", error);
     return null;
@@ -49,7 +50,7 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
     
     if (!ambassadorIdToUse) {
       console.error("Failed to get ambassador ID");
-      return [];
+      throw new Error("Profil ambassadeur non trouvé");
     }
     
     console.log("Loading clients for ambassador:", ambassadorIdToUse);
@@ -66,7 +67,7 @@ export const getAmbassadorClients = async (ambassadorId?: string): Promise<Clien
     
     if (error) {
       console.error("Error loading ambassador clients:", error);
-      throw error;
+      throw new Error(`Erreur de base de données: ${error.message}`);
     }
     
     console.log("Raw data from ambassador_clients:", data);

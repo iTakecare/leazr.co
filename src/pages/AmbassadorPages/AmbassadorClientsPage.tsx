@@ -14,7 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientsEmptyState } from "@/components/clients/ClientsEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import AmbassadorErrorHandler from "@/components/ambassador/AmbassadorErrorHandler";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,55 +30,20 @@ const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [clients, setClients] = useState([]);
-  const [filteredClients, setFilteredClients] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
-
-  const fetchClients = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Utiliser directement le service pour récupérer les clients
-      const data = await getAmbassadorClients();
-      
-      setClients(data);
-      setFilteredClients(data);
-    } catch (err) {
-      console.error("Error loading clients:", err);
-      setError("Unable to load clients");
-      toast.error("Error loading clients");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
   
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+  const { clients, isLoading, error, loadClients } = useAmbassadorClients();
   
-  useEffect(() => {
-    if (!clients.length) return;
-    
-    if (searchTerm) {
-      const filtered = clients.filter(client => 
-        (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredClients(filtered);
-    } else {
-      setFilteredClients(clients);
-    }
-  }, [searchTerm, clients]);
+  // Filtrer les clients selon le terme de recherche
+  const filteredClients = clients.filter(client => 
+    (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
   
   const handleCreateOffer = (clientId) => {
-    navigate(`/ambassador/create-offer/${clientId}`);
+    navigate(`/ambassador/create-offer?clientId=${clientId}`);
   };
   
   const handleAddClient = () => {
@@ -86,9 +51,13 @@ const AmbassadorClientsPage = () => {
   };
   
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchClients();
-    toast.success("Client list refreshed");
+    try {
+      await loadClients();
+      toast.success("Liste des clients actualisée");
+    } catch (err) {
+      console.error("Erreur lors de l'actualisation des clients:", err);
+      toast.error("Impossible d'actualiser la liste des clients");
+    }
   };
 
   const handleEditClient = (clientId) => {
@@ -100,7 +69,7 @@ const AmbassadorClientsPage = () => {
       // Implement deletion logic here
       // For now, just show a toast and refresh the list
       toast.success("Client supprimé avec succès");
-      await fetchClients();
+      await loadClients();
     } catch (error) {
       console.error("Error deleting client:", error);
       toast.error("Erreur lors de la suppression du client");
@@ -114,7 +83,9 @@ const AmbassadorClientsPage = () => {
       return (
         <div className="text-center p-10">
           <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-          <p className="text-muted-foreground">No clients found</p>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Aucun client trouvé pour cette recherche" : "Aucun client trouvé"}
+          </p>
         </div>
       );
     }
@@ -139,7 +110,7 @@ const AmbassadorClientsPage = () => {
                   <Trash2 className="h-4 w-4 text-gray-500" />
                 </Button>
                 <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                  <Plus className="h-4 w-4 mr-1" /> Offer
+                  <Plus className="h-4 w-4 mr-1" /> Offre
                 </Button>
               </div>
             </div>
@@ -155,14 +126,14 @@ const AmbassadorClientsPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
+              <TableHead>Société</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4}>
                   <div className="space-y-2">
@@ -187,7 +158,7 @@ const AmbassadorClientsPage = () => {
                         <Trash2 className="h-4 w-4 text-gray-500" />
                       </Button>
                       <Button size="sm" onClick={() => handleCreateOffer(client.id)}>
-                        <Plus className="h-4 w-4 mr-1" /> Create offer
+                        <Plus className="h-4 w-4 mr-1" /> Créer une offre
                       </Button>
                     </div>
                   </TableCell>
@@ -196,7 +167,12 @@ const AmbassadorClientsPage = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={4}>
-                  <ClientsEmptyState />
+                  <div className="text-center py-8">
+                    <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
+                    <p className="text-muted-foreground">
+                      {searchTerm ? "Aucun client trouvé pour cette recherche" : "Aucun client trouvé"}
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -206,7 +182,7 @@ const AmbassadorClientsPage = () => {
     );
   };
 
-  if (loading && !refreshing) {
+  if (isLoading && !clients.length) {
     return (
       <PageTransition>
         <Container>
@@ -224,27 +200,27 @@ const AmbassadorClientsPage = () => {
         <div className="p-4 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">My Clients</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Mes Clients</h1>
               <p className="text-muted-foreground">
-                Manage clients you've brought in
+                Gérer les clients que vous avez amenés
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button 
                 variant="outline" 
                 onClick={handleRefresh}
-                disabled={refreshing}
+                disabled={isLoading}
               >
-                {refreshing ? (
+                {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Refresh
+                Actualiser
               </Button>
               <Button onClick={handleAddClient}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add a client
+                Ajouter un client
               </Button>
             </div>
           </div>
@@ -253,7 +229,7 @@ const AmbassadorClientsPage = () => {
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search for a client..."
+                placeholder="Rechercher un client..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
