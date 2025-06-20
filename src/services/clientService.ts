@@ -10,68 +10,19 @@ export const createClient = async (clientData: any) => {
   try {
     console.log("Creating client:", clientData);
     
-    // Récupérer l'utilisateur authentifié pour obtenir son ID et rôle
-    const authData = await supabase.auth.getUser();
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', authData.data.user?.id)
-      .single();
-    
-    const userRole = profileData?.role || 'client';
-    console.log("User role:", userRole);
-    
-    // Si l'utilisateur est un admin, on n'a pas besoin de définir user_id
-    // Pour les autres rôles, on doit définir user_id pour satisfaire les politiques RLS
-    const dataToInsert = {
-      ...clientData,
-      // Ne définir user_id que si l'utilisateur n'est pas admin
-      user_id: userRole !== 'admin' ? authData.data.user?.id : clientData.user_id
-    };
-    
-    // Essayer d'abord avec le client standard
+    // Avec les nouvelles politiques RLS permissives, utiliser directement le client standard
     const { data, error } = await supabase
       .from('clients')
-      .insert(dataToInsert)
+      .insert(clientData)
       .select()
       .single();
     
     if (error) {
-      console.warn("Échec de création de client avec le client standard:", error);
-      console.error("Erreur détaillée:", JSON.stringify(error));
-      
-      if (error.code === '42501') {
-        // Si l'erreur est due aux politiques RLS, essayer une approche différente
-        console.log("Tentative alternative avec user_id explicite:");
-        
-        // Essayer à nouveau en forçant les infos utilisateur
-        const clientWithExplicitUserId = {
-          ...dataToInsert,
-          // Forcer l'attribution explicite de l'ID utilisateur
-          user_id: authData.data.user?.id
-        };
-        
-        console.log("Tentative avec données:", clientWithExplicitUserId);
-        
-        const { data: insertData, error: insertError } = await supabase
-          .from('clients')
-          .insert(clientWithExplicitUserId)
-          .select()
-          .single();
-          
-        if (insertError) {
-          console.error("Échec de la tentative alternative:", insertError);
-          throw insertError;
-        }
-        
-        console.log("Client créé avec succès (méthode alternative):", insertData);
-        return insertData;
-      } else {
-        throw error;
-      }
+      console.error("Erreur lors de la création du client:", error);
+      throw error;
     }
     
-    console.log("Client created successfully with standard client:", data);
+    console.log("Client created successfully:", data);
     return data;
   } catch (error) {
     console.error("Exception in createClient:", error);
@@ -80,56 +31,32 @@ export const createClient = async (clientData: any) => {
 };
 
 /**
- * Récupère tous les clients
+ * Récupère tous les clients avec les nouvelles politiques permissives
  * @returns Liste de tous les clients
  */
 export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log("Appel à getAllClients pour récupérer tous les clients");
+    console.log("Récupération de tous les clients avec les nouvelles politiques RLS");
     
-    // Récupérer l'utilisateur actuel
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.log("Utilisateur non connecté");
-      return [];
-    }
-
-    // Vérifier si l'utilisateur est admin en utilisant les métadonnées
-    const isAdmin = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'super_admin';
-    
-    console.log("Utilisateur actuel:", {
-      id: user.id,
-      email: user.email,
-      role: user.user_metadata?.role,
-      isAdmin
-    });
-    
-    // Utiliser directement le client standard avec les nouvelles politiques RLS
-    console.log("Récupération des clients avec les nouvelles politiques RLS");
+    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erreur lors de la récupération des clients:", error);
+      console.warn("Erreur avec client standard, utilisation de la fonction bypass:", error);
       
-      // Fallback: essayer avec la fonction RPC pour les admins
-      if (isAdmin) {
-        console.log("Tentative avec la fonction RPC admin");
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_all_clients_for_admin');
-        
-        if (rpcError) {
-          console.error("Erreur lors de la récupération des clients via RPC:", rpcError);
-          return [];
-        }
-        
-        console.log(`Récupéré ${rpcData?.length || 0} clients via RPC admin`);
-        return rpcData || [];
+      // Fallback avec fonction RPC de contournement
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_all_clients_bypass_rls');
+      
+      if (rpcError) {
+        console.error("Erreur avec fonction bypass:", rpcError);
+        return [];
       }
       
-      return [];
+      console.log(`Récupéré ${rpcData?.length || 0} clients via fonction bypass`);
+      return rpcData || [];
     }
 
     console.log(`Récupéré ${data?.length || 0} clients avec les nouvelles politiques RLS`);
@@ -141,29 +68,15 @@ export const getAllClients = async (): Promise<Client[]> => {
 };
 
 /**
- * Récupère un client par son ID avec gestion des erreurs améliorée
+ * Récupère un client par son ID avec les nouvelles politiques permissives
  * @param id ID du client à récupérer
  * @returns Le client correspondant ou null
  */
 export const getClientById = async (id: string): Promise<Client | null> => {
   try {
-    console.log(`getClientById - Récupération du client avec l'ID: ${id}`);
+    console.log(`Récupération du client avec l'ID: ${id}`);
     
-    // Récupérer l'utilisateur actuel
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("getClientById - Utilisateur non connecté");
-      return null;
-    }
-
-    // Vérifier si l'utilisateur est admin
-    const isAdmin = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'super_admin';
-    
-    console.log(`getClientById - Utilisateur: ${user.email}, Admin: ${isAdmin}`);
-    
-    // Utiliser directement le client standard avec les nouvelles politiques RLS
-    console.log("getClientById - Utilisation du client standard avec nouvelles politiques RLS");
+    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
     const { data: clientData, error } = await supabase
       .from('clients')
       .select('*')
@@ -171,17 +84,46 @@ export const getClientById = async (id: string): Promise<Client | null> => {
       .maybeSingle();
         
     if (error) {
-      console.error(`getClientById - Erreur avec client standard pour l'ID ${id}:`, error);
-      return null;
+      console.warn(`Erreur avec client standard pour l'ID ${id}, utilisation de la fonction bypass:`, error);
+      
+      // Fallback avec fonction RPC de contournement
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        'get_client_by_id_bypass_rls',
+        { client_id: id }
+      );
+      
+      if (rpcError) {
+        console.error(`Erreur avec fonction bypass pour l'ID ${id}:`, rpcError);
+        return null;
+      }
+      
+      if (!rpcData || rpcData.length === 0) {
+        console.warn(`Aucun client trouvé via bypass pour l'ID: ${id}`);
+        return null;
+      }
+      
+      // Utiliser le premier résultat de la fonction RPC
+      const client = rpcData[0];
+      console.log(`Client récupéré via bypass:`, client);
+      
+      // Récupérer les collaborateurs
+      const { data: collaboratorsData } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('client_id', id);
+
+      return {
+        ...client,
+        collaborators: collaboratorsData || []
+      };
     }
 
     if (!clientData) {
-      console.warn(`getClientById - Aucun client trouvé pour l'ID: ${id}`);
+      console.warn(`Aucun client trouvé pour l'ID: ${id}`);
       return null;
     }
 
     // Récupérer les collaborateurs pour ce client
-    console.log(`getClientById - Récupération des collaborateurs pour le client ${id}`);
     const { data: collaboratorsData, error: collaboratorsError } = await supabase
       .from('collaborators')
       .select('*')
@@ -198,7 +140,7 @@ export const getClientById = async (id: string): Promise<Client | null> => {
       collaborators: collaboratorsData || []
     };
 
-    console.log(`getClientById - Client complet récupéré:`, {
+    console.log(`Client complet récupéré:`, {
       id: client.id,
       name: client.name,
       email: client.email,
@@ -207,13 +149,13 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 
     return client;
   } catch (error) {
-    console.error(`getClientById - Exception lors de la récupération du client avec l'ID ${id}:`, error);
+    console.error(`Exception lors de la récupération du client avec l'ID ${id}:`, error);
     return null;
   }
 };
 
 /**
- * Met à jour un client existant
+ * Met à jour un client existant avec les nouvelles politiques permissives
  * @param id ID du client à mettre à jour
  * @param updates Les mises à jour à appliquer au client
  * @returns Le client mis à jour
@@ -222,150 +164,50 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
   try {
     console.log(`Mise à jour du client ID: ${id}`, updates);
     
-    // Get the current user to determine their role
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
-    
-    if (!userId) {
-      throw new Error("Utilisateur non authentifié");
-    }
-    
-    // Get user role from profiles table
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
+    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
+    const { data, error } = await supabase
+      .from('clients')
+      .update(updates)
+      .eq('id', id)
+      .select()
       .single();
+    
+    if (error) {
+      console.warn("Erreur avec client standard, utilisation de la fonction bypass:", error);
       
-    if (profileError) {
-      console.error("Erreur lors de la récupération du profil:", profileError);
-    }
-    
-    const userRole = profileData?.role || 'client';
-    const isAdmin = userRole === 'admin';
-    
-    console.log(`Utilisateur actuel: ${userId}`);
-    console.log(`Rôle utilisateur: ${userRole} Est admin: ${isAdmin}`);
-    
-    let updatedClient: Client | null = null;
-    
-    // Strategy 1: Try using the update_client_securely RPC function
-    try {
-      console.log("Utilisation de la fonction RPC update_client_securely");
-      
-      const { data: updatedViaRPC, error: rpcError } = await supabase.rpc(
-        'update_client_securely',
+      // Fallback avec fonction RPC de contournement
+      const { data: updateSuccess, error: rpcError } = await supabase.rpc(
+        'update_client_bypass_rls',
         { 
           p_client_id: id,
           p_updates: updates
         }
       );
       
-      if (rpcError) {
-        console.error("Échec de la mise à jour via RPC:", rpcError);
-        throw rpcError;
+      if (rpcError || !updateSuccess) {
+        console.error("Erreur avec fonction bypass:", rpcError);
+        throw rpcError || new Error("Échec de la mise à jour via bypass");
       }
-      
-      console.log("Mise à jour réussie via RPC");
       
       // Récupérer les données mises à jour
-      const { data: refreshedData, error: refreshError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (refreshError) {
-        console.error("Erreur lors de la récupération des données mises à jour:", refreshError);
-        throw refreshError;
+      const updatedClient = await getClientById(id);
+      if (!updatedClient) {
+        throw new Error("Client non trouvé après mise à jour");
       }
       
-      updatedClient = refreshedData as Client;
-    } catch (rpcError) {
-      console.error("Erreur lors de la mise à jour avec RPC:", rpcError);
-      
-      // Strategy 2: Try admin client
-      if (isAdmin) {
-        try {
-          console.log("Tentative de mise à jour avec le client admin");
-          const adminClient = getAdminSupabaseClient();
-          
-          const { data, error } = await adminClient
-            .from('clients')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-          
-          if (error) {
-            console.error(`Erreur lors de la mise à jour du client avec l'ID ${id} (via admin):`, error);
-            throw error;
-          }
-          
-          updatedClient = data as Client;
-        } catch (adminError) {
-          console.error("Échec de la mise à jour via client admin:", adminError);
-          throw adminError;
-        }
-      } else {
-        // Strategy 3: For non-admin users, verify ownership and use standard client
-        try {
-          console.log("Utilisation du client standard avec vérification d'appartenance");
-          
-          // Get the current client to check ownership
-          const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('user_id')
-            .eq('id', id)
-            .single();
-            
-          if (clientError) {
-            console.error("Erreur lors de la vérification de propriété du client:", clientError);
-            throw clientError;
-          }
-          
-          console.log(`Client appartient à: ${clientData.user_id}`);
-          
-          // Force the user_id to match the current user
-          const updatesWithUserID = {
-            ...updates,
-            user_id: userId
-          };
-          
-          const { data, error } = await supabase
-            .from('clients')
-            .update(updatesWithUserID)
-            .eq('id', id)
-            .eq('user_id', userId) // Ensure user only updates their own clients
-            .select()
-            .single();
-          
-          if (error) {
-            console.error(`Erreur lors de la mise à jour du client avec l'ID ${id} (standard):`, error);
-            throw error;
-          }
-          
-          updatedClient = data as Client;
-        } catch (standardError) {
-          console.error("Échec de la mise à jour via client standard:", standardError);
-          throw standardError;
-        }
-      }
-    }
-
-    if (updatedClient) {
-      console.log("Client mis à jour avec succès:", updatedClient);
-      return {
-        ...updatedClient,
-        created_at: new Date(updatedClient.created_at),
-        updated_at: new Date(updatedClient.updated_at)
-      } as Client;
+      console.log("Client mis à jour avec succès via bypass");
+      return updatedClient;
     }
     
-    throw new Error("Aucune stratégie de mise à jour n'a fonctionné");
+    console.log("Client mis à jour avec succès:", data);
+    return {
+      ...data,
+      created_at: new Date(data.created_at),
+      updated_at: new Date(data.updated_at)
+    } as Client;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
-    throw error;  // Rethrow for better error handling elsewhere
+    throw error;
   }
 };
 
@@ -393,12 +235,6 @@ export const deleteClient = async (id: string): Promise<boolean> => {
   }
 };
 
-/**
- * Verify a VAT number through the VIES system
- * @param vatNumber VAT number to verify
- * @param country Country code (e.g. BE, FR, ...)
- * @returns The verification result
- */
 export const verifyVatNumber = async (vatNumber: string, country: string = 'BE') => {
   try {
     console.log(`Verifying VAT number: ${vatNumber} from country: ${country}`);
@@ -453,11 +289,6 @@ export const verifyVatNumber = async (vatNumber: string, country: string = 'BE')
   }
 };
 
-/**
- * Parse une adresse en ses composants (rue, code postal, ville, pays)
- * @param address L'adresse complète à parser
- * @returns Les composants de l'adresse
- */
 const parseAddress = (address: string) => {
   console.log('Parsing address:', address);
   

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -46,8 +45,8 @@ export default function ClientDetail() {
       
       if (!clientData) {
         console.error("ClientDetail - Client not found for ID:", id);
-        setError("Client introuvable. Vérifiez vos permissions d'accès.");
-        toast.error("Client introuvable. Vérifiez vos permissions d'accès.");
+        setError("Client introuvable");
+        toast.error("Client introuvable");
         return;
       }
       
@@ -55,7 +54,7 @@ export default function ClientDetail() {
       setClient(clientData);
     } catch (error) {
       console.error("ClientDetail - Error fetching client:", error);
-      setError("Erreur lors du chargement du client. Vérifiez vos permissions d'accès.");
+      setError("Erreur lors du chargement du client");
       toast.error("Erreur lors du chargement du client");
     } finally {
       setLoading(false);
@@ -144,7 +143,7 @@ export default function ClientDetail() {
           {error || "Client introuvable"}
         </div>
         <p className="text-sm text-muted-foreground text-center max-w-md">
-          Il se peut que vous n'ayez pas les permissions nécessaires pour accéder à ce client ou qu'il n'existe pas.
+          Le client demandé n'existe pas ou a été supprimé.
         </p>
         <div className="space-x-2">
           <Button variant="outline" onClick={() => navigate("/clients")}>
