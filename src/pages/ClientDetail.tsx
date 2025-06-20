@@ -1,21 +1,20 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import CollaboratorForm from "@/components/clients/CollaboratorForm";
 import CollaboratorsList from "@/components/clients/CollaboratorsList";
 import { toast } from "sonner";
 import { getClientById, syncClientUserAccountStatus } from "@/services/clientService";
 import { resetPassword, createUserAccount } from "@/services/accountService";
-import { fixIncorrectUserAssociation } from "@/utils/clientUserAssociation";
 import { Client } from "@/types/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, UserPlus, KeyRound, ChevronLeft, User, CheckCircle, 
-  AlertCircle, Info
+  AlertCircle, Info, Loader2
 } from "lucide-react";
 import ClientCleanupButton from "@/components/clients/ClientCleanupButton";
 
@@ -24,26 +23,38 @@ export default function ClientDetail() {
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   const fetchClient = async () => {
-    if (!id) return;
+    if (!id) {
+      console.error("ClientDetail - No ID provided");
+      toast.error("ID de client manquant");
+      navigate("/clients");
+      return;
+    }
     
     setLoading(true);
+    setError(null);
+    
     try {
+      console.log("ClientDetail - Fetching client with ID:", id);
       const clientData = await getClientById(id);
+      console.log("ClientDetail - Client data received:", clientData);
       
       if (!clientData) {
+        console.error("ClientDetail - Client not found for ID:", id);
+        setError("Client introuvable");
         toast.error("Client introuvable");
-        navigate("/clients");
         return;
       }
       
-      console.log("Client data loaded:", clientData);
+      console.log("ClientDetail - Client loaded successfully:", clientData);
       setClient(clientData);
     } catch (error) {
-      console.error("Error fetching client:", error);
+      console.error("ClientDetail - Error fetching client:", error);
+      setError("Erreur lors du chargement du client");
       toast.error("Erreur lors du chargement du client");
     } finally {
       setLoading(false);
@@ -116,19 +127,29 @@ export default function ClientDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <span className="ml-3 text-lg">Chargement...</span>
       </div>
     );
   }
 
-  if (!client) {
+  if (error || !client) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-3xl font-bold text-gray-400">Client introuvable</div>
-        <Button variant="default" onClick={() => navigate("/clients")}>
-          Retour à la liste
-        </Button>
+        <div className="rounded-full bg-destructive/10 w-16 h-16 flex items-center justify-center">
+          <span className="text-destructive text-3xl">!</span>
+        </div>
+        <div className="text-3xl font-bold text-gray-400">{error || "Client introuvable"}</div>
+        <div className="space-x-2">
+          <Button variant="outline" onClick={() => navigate("/clients")}>
+            Retour à la liste
+          </Button>
+          {id && (
+            <Button onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
