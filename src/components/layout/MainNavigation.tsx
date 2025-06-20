@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,7 @@ const MainNavigation = () => {
         <div className="flex items-center justify-between w-full md:w-auto">
           <Link to="/" className="group">
             <img
-              className="w-[160px] md:w-[240px] h-auto md:h-[50px] object-contain transition-transform duration-300 group-hover:scale-105"
+              className="w-[120px] md:w-[201px] h-auto md:h-[41px] object-contain transition-transform duration-300 group-hover:scale-105"
               alt="Leazr Logo"
               src="/lovable-uploads/3a4ae1ec-2b87-4a07-a178-b3bc5d86594b.png"
             />

@@ -18,8 +18,6 @@ import ProductDetailPage from "@/pages/ProductDetailPage";
 import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
-import LandingPage from "@/pages/LandingPage";
-import HomePage from "@/pages/HomePage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -42,7 +40,6 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
-import PartnersListPage from "@/pages/PartnersList";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
@@ -61,10 +58,6 @@ const MultiTenantRouter = () => {
 
   return (
     <Routes>
-      {/* Page d'accueil publique (landing page) */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/home" element={<HomePage />} />
-      
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
       
@@ -75,19 +68,8 @@ const MultiTenantRouter = () => {
       <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
       <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
       
-      {/* Routage intelligent basé sur le rôle pour les utilisateurs connectés */}
-      <Route path="/dashboard/*" element={<RoleBasedRoutes />} />
-      <Route path="/admin/*" element={<RoleBasedRoutes />} />
-      <Route path="/client/*" element={<RoleBasedRoutes />} />
-      <Route path="/partner/*" element={<RoleBasedRoutes />} />
-      <Route path="/ambassador/*" element={<RoleBasedRoutes />} />
-      <Route path="/clients/*" element={<RoleBasedRoutes />} />
-      <Route path="/partners/*" element={<RoleBasedRoutes />} />
-      <Route path="/ambassadors/*" element={<RoleBasedRoutes />} />
-      <Route path="/offers/*" element={<RoleBasedRoutes />} />
-      <Route path="/catalog/*" element={<RoleBasedRoutes />} />
-      <Route path="/crm/*" element={<RoleBasedRoutes />} />
-      <Route path="/company/*" element={<RoleBasedRoutes />} />
+      {/* Routage intelligent basé sur le rôle */}
+      <Route path="/*" element={<RoleBasedRoutes />} />
     </Routes>
   );
 };
@@ -121,11 +103,8 @@ const RoleBasedRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/clients" element={<Clients />} />
-        <Route path="/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/clients/edit/:id" element={<ClientEditPage />} />
-        <Route path="/partners" element={<PartnersListPage />} />
-        <Route path="/ambassadors" element={<AmbassadorsList />} />
         <Route path="/admin/offers" element={<Offers />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
@@ -143,6 +122,7 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/partners/edit/:id" element={<PartnerEditPage />} />
         <Route path="/ambassador/catalog" element={<AmbassadorCatalog />} />
         <Route path="/ambassadors/create" element={<AmbassadorCreatePage />} />
+        <Route path="/ambassadors" element={<AmbassadorsList />} />
         <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
         <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
         <Route path="/partners/:id" element={<PartnerDetail />} />

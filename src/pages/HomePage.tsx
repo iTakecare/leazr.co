@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -201,7 +200,7 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-slate-200 mt-12 pt-8 text-center text-sm text-slate-600">
-            <p>© 2025 Leazr.co est une marque développée par iTakecare SRL. Tous droits réservés. 💙</p>
+            <p>© 2024 Leazr. Tous droits réservés. 💙</p>
           </div>
         </div>
       </footer>
