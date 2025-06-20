@@ -19,71 +19,41 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   const runDiagnostics = async () => {
     setIsLoading(true);
     try {
-      // Vérifier si l'utilisateur a un profil d'ambassadeur via notre fonction sécurisée
-      const { data: isAmbassador, error: ambassadorCheckError } = await supabase
-        .rpc('is_ambassador');
-      
-      if (ambassadorCheckError) {
-        console.error("Error checking ambassador status:", ambassadorCheckError);
-        setDiagnosticInfo({
-          isAuthenticated: false,
-          authError: ambassadorCheckError.message,
-          hasAmbassadorProfile: false,
-          ambassadorId: null,
-          rlsAccess: false
-        });
-        toast.error("Erreur lors de la vérification du statut ambassadeur");
-        return;
-      }
-      
-      let ambassadorData = null;
-      if (isAmbassador) {
-        // Si c'est un ambassadeur, récupérer ses informations
-        const { data: ambassadorInfo, error: ambassadorInfoError } = await supabase
-          .from('ambassadors')
-          .select('id, name, email')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .maybeSingle();
-        
-        if (!ambassadorInfoError) {
-          ambassadorData = ambassadorInfo;
-        }
-      }
-      
-      // Vérifier les politiques RLS en testant l'accès aux ambassador_clients
+      // Test simple d'accès à la table ambassador_clients
       const { data: rlsTestData, error: rlsError } = await supabase
         .from('ambassador_clients')
-        .select('*')
+        .select('id')
         .limit(1);
       
-      const currentUser = (await supabase.auth.getUser()).data.user;
+      // Test d'accès à la table ambassadors
+      const { data: ambassadorTestData, error: ambassadorError } = await supabase
+        .from('ambassadors')
+        .select('id, name')
+        .limit(1);
       
       setDiagnosticInfo({
-        isAuthenticated: !!currentUser,
-        userId: currentUser?.id || "Non disponible",
-        userEmail: currentUser?.email || "Non disponible",
-        hasAmbassadorProfile: !!ambassadorData,
-        ambassadorId: ambassadorData?.id,
-        ambassadorName: ambassadorData?.name,
-        ambassadorEmail: ambassadorData?.email,
-        rlsAccess: !rlsError,
-        rlsError: rlsError ? rlsError.message : null,
-        testDataCount: rlsTestData?.length || 0
+        canAccessAmbassadorClients: !rlsError,
+        canAccessAmbassadors: !ambassadorError,
+        ambassadorClientsError: rlsError ? rlsError.message : null,
+        ambassadorsError: ambassadorError ? ambassadorError.message : null,
+        ambassadorClientsCount: rlsTestData?.length || 0,
+        ambassadorTestCount: ambassadorTestData?.length || 0
       });
       
-      if (!ambassadorData) {
-        toast.error("Nous n'avons pas trouvé votre profil ambassadeur. Veuillez contacter l'administrateur.");
-      } else if (rlsError) {
-        toast.error("Problème d'accès à la base de données. Vos permissions sont peut-être insuffisantes.");
+      if (rlsError) {
+        toast.error("Problème d'accès à la table ambassador_clients");
+      } else if (ambassadorError) {
+        toast.error("Problème d'accès à la table ambassadors");
       } else {
-        toast.success("Diagnostic terminé. Vous pouvez essayer à nouveau.");
+        toast.success("Tests d'accès réussis");
       }
+      
     } catch (error) {
       console.error("Erreur lors du diagnostic:", error);
       setDiagnosticInfo({
-        isAuthenticated: false,
-        error: error.message,
-        rlsAccess: false
+        canAccessAmbassadorClients: false,
+        canAccessAmbassadors: false,
+        generalError: error.message || "Erreur inconnue"
       });
       toast.error("Erreur lors du diagnostic");
     } finally {
@@ -131,34 +101,26 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
       {diagnosticInfo && (
         <div className="mt-6 p-4 bg-muted rounded-md text-xs space-y-2">
           <h3 className="font-medium text-sm">Informations de diagnostic</h3>
-          <p>Authentifié: {diagnosticInfo.isAuthenticated ? "Oui" : "Non"}</p>
-          <p>ID Utilisateur: {diagnosticInfo.userId || "Non disponible"}</p>
-          <p>Email: {diagnosticInfo.userEmail || "Non disponible"}</p>
-          <p>Profil ambassadeur: {diagnosticInfo.hasAmbassadorProfile ? "Trouvé" : "Non trouvé"}</p>
-          <p>ID Ambassadeur: {diagnosticInfo.ambassadorId || "Non disponible"}</p>
-          {diagnosticInfo.ambassadorName && (
-            <p>Nom Ambassadeur: {diagnosticInfo.ambassadorName}</p>
-          )}
-          {diagnosticInfo.ambassadorEmail && (
-            <p>Email Ambassadeur: {diagnosticInfo.ambassadorEmail}</p>
-          )}
-          <p>Accès base de données: {diagnosticInfo.rlsAccess ? "OK" : "Problème"}</p>
+          <p>Accès ambassador_clients: {diagnosticInfo.canAccessAmbassadorClients ? "OK" : "Problème"}</p>
+          <p>Accès ambassadors: {diagnosticInfo.canAccessAmbassadors ? "OK" : "Problème"}</p>
+          <p>Nombre d'enregistrements ambassador_clients: {diagnosticInfo.ambassadorClientsCount || 0}</p>
+          <p>Nombre d'enregistrements ambassadors: {diagnosticInfo.ambassadorTestCount || 0}</p>
           
-          {diagnosticInfo.rlsError && (
+          {diagnosticInfo.ambassadorClientsError && (
             <div className="p-2 bg-destructive/10 rounded text-destructive">
-              <p>Erreur: {diagnosticInfo.rlsError}</p>
+              <p>Erreur ambassador_clients: {diagnosticInfo.ambassadorClientsError}</p>
             </div>
           )}
           
-          {diagnosticInfo.authError && (
+          {diagnosticInfo.ambassadorsError && (
             <div className="p-2 bg-destructive/10 rounded text-destructive">
-              <p>Erreur d'authentification: {diagnosticInfo.authError}</p>
+              <p>Erreur ambassadors: {diagnosticInfo.ambassadorsError}</p>
             </div>
           )}
           
-          {diagnosticInfo.error && (
+          {diagnosticInfo.generalError && (
             <div className="p-2 bg-destructive/10 rounded text-destructive">
-              <p>Erreur générale: {diagnosticInfo.error}</p>
+              <p>Erreur générale: {diagnosticInfo.generalError}</p>
             </div>
           )}
         </div>
