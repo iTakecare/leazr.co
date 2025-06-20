@@ -1,6 +1,6 @@
 
 import React from 'react';
-import MainNavigation from '@/components/layout/MainNavigation';
+import LandingHeader from '@/components/layout/LandingHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Calendar, BarChart, Mail, ArrowRight } from 'lucide-react';
@@ -38,7 +38,7 @@ const CRMFeaturePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <MainNavigation />
+      <LandingHeader />
       
       <div className="pt-32 pb-20">
         <div className="container mx-auto px-6">
