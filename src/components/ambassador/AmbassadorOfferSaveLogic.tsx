@@ -2,7 +2,7 @@
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createOffer } from "@/services/offers";
-import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { calculateFinancedAmount } from "@/utils/calculator";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { Client } from "@/types/client";
 
@@ -69,76 +69,36 @@ export const useAmbassadorOfferSave = ({
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Variable pour stocker la commission
+      // Récupérer la commission depuis le nouveau composant
       let commissionAmount = 0;
       
-      // Récupérer la commission depuis l'interface utilisateur
-      const commissionElement = document.getElementById('commission-display-value');
-      
-      console.log("Commission element found:", commissionElement);
+      const commissionElement = document.querySelector('[data-commission-amount]') as HTMLElement;
       
       if (commissionElement && commissionElement.dataset.commissionAmount) {
         try {
           commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
-          if (!isNaN(commissionAmount)) {
-            console.log("Commission récupérée depuis l'interface:", commissionAmount);
-          } else {
-            throw new Error("Commission is NaN");
-          }
+          console.log("Commission récupérée depuis le nouveau composant:", commissionAmount);
         } catch (error) {
-          console.error("Error parsing commission from UI:", error);
-          
-          // Méthode de secours : calculer la commission
-          const currentAmbassadorId = ambassadorId || userId;
-          const commissionLevelId = ambassador?.commission_level_id;
-          
-          if (currentAmbassadorId && commissionLevelId) {
-            try {
-              const commissionData = await calculateCommissionByLevel(
-                financedAmount,
-                commissionLevelId,
-                'ambassador',
-                currentAmbassadorId
-              );
-              
-              if (commissionData && typeof commissionData.amount === 'number') {
-                commissionAmount = commissionData.amount;
-                console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
-              } else {
-                console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
-                commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
-              }
-            } catch (commError) {
-              console.error("Erreur lors du calcul de la commission:", commError);
-              commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
-            }
-          } else {
-            console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
-            commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
-          }
+          console.error("Error parsing commission:", error);
+          // Fallback: 5% du montant financé
+          commissionAmount = Math.round(financedAmount * 0.05);
         }
       } else {
         // Fallback si l'élément n'existe pas
-        console.warn("Commission element not found in DOM");
-        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
-        console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
+        commissionAmount = Math.round(financedAmount * 0.05);
+        console.log("Commission par défaut appliquée:", commissionAmount);
       }
       
       const currentAmbassadorId = ambassadorId || userId;
       
-      // On s'assure que la commission n'est pas invalide
+      // Validation finale de la commission
       if (commissionAmount === 0 || isNaN(commissionAmount)) {
-        console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+        commissionAmount = Math.round(financedAmount * 0.05);
       }
       
-      // Log final de la commission à sauvegarder
-      console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
+      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
       
-      // Convertir le montant de total_margin_with_difference en chaîne de caractères
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
-      
-      // Récupérer la marge totale générée (sans la différence)
       const marginAmount = String(globalMarginAdjustment.amount || 0);
       
       const offerData = {
@@ -160,10 +120,7 @@ export const useAmbassadorOfferSave = ({
         margin: marginAmount
       };
       
-      console.log("Saving offer with the following data:", offerData);
-      console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
-      console.log("Margin generated value being saved:", marginAmount);
+      console.log("Saving offer with data:", offerData);
       
       const { data, error } = await createOffer(offerData);
       
@@ -174,7 +131,6 @@ export const useAmbassadorOfferSave = ({
       }
       
       toast.success("Offre créée avec succès!");
-      
       navigate("/ambassador/offers");
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de l'offre:", error);

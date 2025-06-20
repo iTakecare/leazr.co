@@ -3,11 +3,11 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit2, Package, TrendingUp, Calculator } from "lucide-react";
+import { Trash2, Edit2, Package, TrendingUp } from "lucide-react";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import { Switch } from "@/components/ui/switch";
-import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
+import CommissionDisplay from "@/components/ambassador/CommissionDisplay";
 
 interface EquipmentListProps {
   equipmentList: Equipment[];
@@ -199,21 +199,14 @@ const EquipmentList: React.FC<EquipmentListProps> = ({
         </Card>
       )}
 
-      {/* Commission d'ambassadeur */}
+      {/* Commission d'ambassadeur - nouveau composant simplifié */}
       {shouldShowCommission && (
-        <div id="commission-display-value" data-commission-amount={(() => {
-          // Calculate commission here to store in data attribute
-          const financedAmount = totalMonthlyPayment * 100 / (globalMarginAdjustment.newCoef || 3.27);
-          const defaultCommission = Math.round(financedAmount * 0.05); // 5% default
-          return defaultCommission;
-        })()}>
-          <AmbassadorCommissionPreview
-            totalMonthlyPayment={totalMonthlyPayment}
-            ambassadorId={ambassadorId}
-            commissionLevelId={commissionLevelId}
-            equipmentList={equipmentList}
-          />
-        </div>
+        <CommissionDisplay
+          totalMonthlyPayment={totalMonthlyPayment}
+          ambassadorId={ambassadorId}
+          commissionLevelId={commissionLevelId}
+          equipmentListLength={equipmentList.length}
+        />
       )}
     </div>
   );
