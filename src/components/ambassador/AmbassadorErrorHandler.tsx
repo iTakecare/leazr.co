@@ -19,43 +19,36 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
   const runDiagnostics = async () => {
     setIsLoading(true);
     try {
-      // Vérifier que l'utilisateur est bien authentifié
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      // Vérifier si l'utilisateur a un profil d'ambassadeur via notre fonction sécurisée
+      const { data: isAmbassador, error: ambassadorCheckError } = await supabase
+        .rpc('is_ambassador');
       
-      if (authError) {
-        console.error("Auth error:", authError);
+      if (ambassadorCheckError) {
+        console.error("Error checking ambassador status:", ambassadorCheckError);
         setDiagnosticInfo({
           isAuthenticated: false,
-          authError: authError.message,
-          userId: null,
-          userEmail: null,
+          authError: ambassadorCheckError.message,
           hasAmbassadorProfile: false,
           ambassadorId: null,
           rlsAccess: false
         });
-        toast.error("Erreur d'authentification détectée");
+        toast.error("Erreur lors de la vérification du statut ambassadeur");
         return;
       }
       
-      if (!authData?.user) {
-        setDiagnosticInfo({
-          isAuthenticated: false,
-          userId: null,
-          userEmail: null,
-          hasAmbassadorProfile: false,
-          ambassadorId: null,
-          rlsAccess: false
-        });
-        toast.error("Vous n'êtes pas connecté. Veuillez vous reconnecter.");
-        return;
+      let ambassadorData = null;
+      if (isAmbassador) {
+        // Si c'est un ambassadeur, récupérer ses informations
+        const { data: ambassadorInfo, error: ambassadorInfoError } = await supabase
+          .from('ambassadors')
+          .select('id, name, email')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .maybeSingle();
+        
+        if (!ambassadorInfoError) {
+          ambassadorData = ambassadorInfo;
+        }
       }
-      
-      // Vérifier si l'utilisateur a un profil d'ambassadeur
-      const { data: ambassadorData, error: ambassadorError } = await supabase
-        .from('ambassadors')
-        .select('id, name, email')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
       
       // Vérifier les politiques RLS en testant l'accès aux ambassador_clients
       const { data: rlsTestData, error: rlsError } = await supabase
@@ -63,10 +56,12 @@ const AmbassadorErrorHandler = ({ message, onRetry, showDiagnosticInfo = false }
         .select('*')
         .limit(1);
       
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      
       setDiagnosticInfo({
-        isAuthenticated: !!authData.user,
-        userId: authData.user?.id,
-        userEmail: authData.user?.email,
+        isAuthenticated: !!currentUser,
+        userId: currentUser?.id || "Non disponible",
+        userEmail: currentUser?.email || "Non disponible",
         hasAmbassadorProfile: !!ambassadorData,
         ambassadorId: ambassadorData?.id,
         ambassadorName: ambassadorData?.name,
