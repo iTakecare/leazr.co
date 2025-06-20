@@ -11,7 +11,7 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ 
   className, 
-  showText = true, 
+  showText = false, 
   logoSize = "md", 
   variant = "avatar" 
 }) => {
