@@ -12,12 +12,24 @@ import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 
 // Pages publiques (sans authentification)
+import LandingPage from "@/pages/LandingPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
+
+// Pages des sous-menus
+import SolutionsPage from "@/pages/SolutionsPage";
+import ServicesPage from "@/pages/ServicesPage";
+import ResourcesPage from "@/pages/ResourcesPage";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
+import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
+import CRMFeaturePage from "@/pages/CRMFeaturePage";
+import CalculatorPage from "@/pages/CalculatorPage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -58,8 +70,23 @@ const MultiTenantRouter = () => {
 
   return (
     <Routes>
+      {/* Page d'accueil - Landing Page */}
+      <Route path="/" element={<LandingPage />} />
+      
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
+      
+      {/* Pages publiques des sous-menus */}
+      <Route path="/solutions" element={<SolutionsPage />} />
+      <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
+      <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
+      <Route path="/solutions/crm" element={<CRMFeaturePage />} />
+      <Route path="/solutions/calculateur" element={<CalculatorPage />} />
+      <Route path="/services" element={<ServicesPage />} />
+      <Route path="/ressources" element={<ResourcesPage />} />
+      <Route path="/a-propos" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/blog" element={<ResourcesPage />} />
       
       {/* Routes publiques pour les entreprises (sans authentification) */}
       <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
@@ -99,7 +126,6 @@ const RoleBasedRoutes = () => {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/clients" element={<Clients />} />
