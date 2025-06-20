@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -75,7 +76,7 @@ const MultiTenantRouter = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<HomePage />} />
       
-      {/* Pages publiques de navigation */}
+      {/* Pages publiques de navigation - DÉPLACÉES EN PREMIER */}
       <Route path="/solutions" element={<SolutionsPage />} />
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/ressources" element={<ResourcesPage />} />
