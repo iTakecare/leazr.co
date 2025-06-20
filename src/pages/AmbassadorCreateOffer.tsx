@@ -205,49 +205,77 @@ const AmbassadorCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // SOLUTION DIRECTE: Récupérer la valeur exacte affichée dans l'interface utilisateur
-      const commissionElement = document.querySelector('.commission-value');
+      // Variable pour stocker la commission
       let commissionAmount = 0;
       
-      console.log("Recherche de l'élément de commission:", commissionElement);
+      // Récupérer la commission depuis l'interface utilisateur
+      const commissionElement = document.getElementById('commission-display-value');
       
-      if (commissionElement) {
+      console.log("Commission element found:", commissionElement);
+      
+      if (commissionElement && commissionElement.dataset.commissionAmount) {
         try {
-          // Extraire la valeur numérique en supprimant le symbole € et tout autre texte
-          const commissionText = commissionElement.textContent || '';
-          // Nettoyer la chaîne de caractères pour récupérer seulement le nombre
-          const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
-          commissionAmount = parseFloat(numericValue);
-          
-          console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
-          
-          if (isNaN(commissionAmount)) {
-            console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-            commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+          commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
+          if (!isNaN(commissionAmount)) {
+            console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          } else {
+            throw new Error("Commission is NaN");
           }
         } catch (error) {
-          console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
-          commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+          console.error("Error parsing commission from UI:", error);
+          
+          // Méthode de secours : calculer la commission
+          const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+          const commissionLevelId = ambassador?.commission_level_id;
+          
+          if (currentAmbassadorId && commissionLevelId) {
+            try {
+              const commissionData = await calculateCommissionByLevel(
+                financedAmount,
+                commissionLevelId,
+                'ambassador',
+                currentAmbassadorId
+              );
+              
+              if (commissionData && typeof commissionData.amount === 'number') {
+                commissionAmount = commissionData.amount;
+                console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
+              } else {
+                console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
+                commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+              }
+            } catch (commError) {
+              console.error("Erreur lors du calcul de la commission:", commError);
+              commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+            }
+          } else {
+            console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
+            commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+          }
         }
       } else {
-        console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
-        commissionAmount = Math.round(financedAmount * 0.08); // 8% par défaut pour les ambassadeurs
+        // Fallback si l'élément n'existe pas
+        console.warn("Commission element not found in DOM");
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
+        console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
       }
       
-      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+      const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      
+      // On s'assure que la commission n'est pas invalide
+      if (commissionAmount === 0 || isNaN(commissionAmount)) {
+        console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+      }
+      
+      // Log final de la commission à sauvegarder
+      console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
+      
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
       
       // Récupérer la marge totale générée (sans la différence)
-      const marginAmount = globalMarginAdjustment.amount || 0;
-      
-      // Récupérer la différence de marge 
-      const marginDifference = globalMarginAdjustment.marginDifference || 0;
-      
-      // Calculer le total de marge avec différence
-      const totalMarginWithDifference = marginAmount + marginDifference;
-      
-      console.log("Marge totale:", marginAmount);
-      console.log("Différence de marge:", marginDifference);
-      console.log("Total marge avec différence:", totalMarginWithDifference);
+      const marginAmount = String(globalMarginAdjustment.amount || 0);
       
       const offerData = {
         client_id: client.id,
@@ -262,15 +290,15 @@ const AmbassadorCreateOffer = () => {
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: user?.id || "",
-        ambassador_id: ambassadorId || user?.ambassador_id,
+        ambassador_id: currentAmbassadorId,
         remarks: remarks,
-        total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)
+        total_margin_with_difference: totalMarginWithDifferenceString,
+        margin: marginAmount
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
       console.log("Margin generated value being saved:", marginAmount);
       
       const { data, error } = await createOffer(offerData);
