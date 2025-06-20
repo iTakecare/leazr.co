@@ -49,7 +49,7 @@ const PricingPage: React.FC = () => {
     },
     {
       name: 'Business',
-      price: 299,
+      price: 'sur demande',
       description: 'Pour les grandes organisations de leasing',
       popular: false,
       features: [
@@ -121,8 +121,14 @@ const PricingPage: React.FC = () => {
                   <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                   <CardDescription className="text-slate-600">{plan.description}</CardDescription>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-blue-600">{plan.price}€</span>
-                    <span className="text-slate-600">/mois</span>
+                    {typeof plan.price === 'number' ? (
+                      <>
+                        <span className="text-4xl font-bold text-blue-600">{plan.price}€</span>
+                        <span className="text-slate-600">/mois</span>
+                      </>
+                    ) : (
+                      <span className="text-2xl font-bold text-blue-600">{plan.price}</span>
+                    )}
                   </div>
                 </CardHeader>
                 
