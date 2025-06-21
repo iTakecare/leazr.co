@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Client } from "@/types/client";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Eye } from "lucide-react";
@@ -14,21 +14,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import AmbassadorClientDetailDialog from "./AmbassadorClientDetailDialog";
+import AmbassadorClientEditDialog from "./AmbassadorClientEditDialog";
 
 interface AmbassadorClientsListProps {
   clients: Client[];
   isLoading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onDeleteClient?: (clientId: string) => Promise<void>;
 }
 
 const AmbassadorClientsList = ({ 
   clients, 
   isLoading, 
   error, 
-  onRefresh 
+  onRefresh,
+  onDeleteClient
 }: AmbassadorClientsListProps) => {
   const navigate = useNavigate();
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (isLoading) {
     return (
@@ -79,19 +99,45 @@ const AmbassadorClientsList = ({
     }
   };
 
-  const handleViewClient = (clientId: string) => {
-    // TODO: Implémenter la vue détaillée du client
-    toast.info("Vue détaillée du client à implémenter");
+  const handleViewClient = (client: Client) => {
+    setSelectedClient(client);
+    setShowDetailDialog(true);
   };
 
-  const handleEditClient = (clientId: string) => {
-    // TODO: Implémenter l'édition du client
-    toast.info("Édition du client à implémenter");
+  const handleEditClient = (client: Client) => {
+    setSelectedClient(client);
+    setShowEditDialog(true);
   };
 
-  const handleDeleteClient = (clientId: string) => {
-    // TODO: Implémenter la suppression du client
-    toast.info("Suppression du client à implémenter");
+  const handleDeleteClick = (client: Client) => {
+    setClientToDelete(client);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!clientToDelete || !onDeleteClient) return;
+
+    setIsDeleting(true);
+    try {
+      await onDeleteClient(clientToDelete.id);
+      setShowDeleteDialog(false);
+      setClientToDelete(null);
+      onRefresh();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClientUpdated = (updatedClient: Client) => {
+    toast.success("Client mis à jour avec succès");
+    onRefresh();
+  };
+
+  const handleEditFromDetail = () => {
+    setShowDetailDialog(false);
+    setShowEditDialog(true);
   };
 
   return (
@@ -114,31 +160,33 @@ const AmbassadorClientsList = ({
                 <TableCell className="font-medium">{client.name}</TableCell>
                 <TableCell>{client.email || '-'}</TableCell>
                 <TableCell>{client.company || '-'}</TableCell>
-                <TableCell>{getStatusBadge(client.status)}</TableCell>
+                <TableCell>{getStatusBadge(client.status || 'active')}</TableCell>
                 <TableCell>{client.phone || '-'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end space-x-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleViewClient(client.id)}
+                      onClick={() => handleViewClient(client)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEditClient(client.id)}
+                      onClick={() => handleEditClient(client)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteClient(client.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {onDeleteClient && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(client)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -150,6 +198,45 @@ const AmbassadorClientsList = ({
       <div className="text-sm text-muted-foreground">
         Total : {clients.length} client{clients.length > 1 ? 's' : ''}
       </div>
+
+      {/* Dialog de détail */}
+      <AmbassadorClientDetailDialog
+        client={selectedClient}
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        onEdit={handleEditFromDetail}
+      />
+
+      {/* Dialog d'édition */}
+      <AmbassadorClientEditDialog
+        client={selectedClient}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onClientUpdated={handleClientUpdated}
+      />
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer le client "{clientToDelete?.name}" ? 
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Suppression..." : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

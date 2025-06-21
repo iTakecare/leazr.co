@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AmbassadorClientsPage = () => {
   const navigate = useNavigate();
-  const { clients, isLoading, error, loadClients } = useAmbassadorClients();
+  const { clients, isLoading, error, loadClients, deleteClient } = useAmbassadorClients();
 
   const handleCreateClient = () => {
     navigate("/ambassador/clients/create");
@@ -44,6 +44,7 @@ const AmbassadorClientsPage = () => {
                 isLoading={isLoading}
                 error={error}
                 onRefresh={loadClients}
+                onDeleteClient={deleteClient}
               />
             </CardContent>
           </Card>
