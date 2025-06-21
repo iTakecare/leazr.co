@@ -12,6 +12,7 @@ import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
 import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import ClientList from "@/components/clients/ClientList";
 import { toast } from "sonner";
+import { CreateClientData } from "@/types/client";
 
 const AmbassadorClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,7 +51,7 @@ const AmbassadorClientsPage = () => {
     );
   });
 
-  const handleCreateClient = async (clientData: any) => {
+  const handleCreateClient = async (clientData: CreateClientData): Promise<boolean> => {
     try {
       const success = await createClientAsAmbassador(clientData);
       if (success) {

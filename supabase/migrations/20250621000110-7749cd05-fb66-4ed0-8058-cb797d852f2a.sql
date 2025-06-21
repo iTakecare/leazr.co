@@ -14,6 +14,18 @@ DROP POLICY IF EXISTS "client_access" ON public.clients;
 DROP POLICY IF EXISTS "offer_access" ON public.offers;
 DROP POLICY IF EXISTS "profile_access" ON public.profiles;
 DROP POLICY IF EXISTS "product_access" ON public.products;
+DROP POLICY IF EXISTS "profiles_own_access" ON public.profiles;
+DROP POLICY IF EXISTS "ambassadors_manage_client_relationships" ON public.ambassador_clients;
+DROP POLICY IF EXISTS "ambassadors_view_assigned_clients" ON public.clients;
+DROP POLICY IF EXISTS "ambassadors_create_clients" ON public.clients;
+DROP POLICY IF EXISTS "ambassadors_update_assigned_clients" ON public.clients;
+DROP POLICY IF EXISTS "ambassadors_delete_assigned_clients" ON public.clients;
+DROP POLICY IF EXISTS "ambassadors_view_own_profile" ON public.ambassadors;
+DROP POLICY IF EXISTS "ambassadors_update_own_profile" ON public.ambassadors;
+DROP POLICY IF EXISTS "companies_public_branding_access" ON public.companies;
+DROP POLICY IF EXISTS "offers_user_access" ON public.offers;
+DROP POLICY IF EXISTS "products_public_access" ON public.products;
+DROP POLICY IF EXISTS "products_admin_manage" ON public.products;
 
 -- Étape 2: S'assurer que RLS est activé sur toutes les tables nécessaires
 ALTER TABLE public.ambassador_clients ENABLE ROW LEVEL SECURITY;
@@ -167,18 +179,30 @@ FOR SELECT
 TO authenticated
 USING (true);
 
--- Politiques pour profiles
+-- Politiques pour profiles - CORRECTION DE LA RÉCURSION
 CREATE POLICY "profiles_own_access" 
 ON public.profiles
 FOR ALL 
 TO authenticated
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
+
+CREATE POLICY "profiles_admin_access" 
+ON public.profiles
+FOR ALL 
+TO authenticated
 USING (
-  id = auth.uid()
-  OR
   EXISTS (
-    SELECT 1 FROM public.profiles p2
-    WHERE p2.id = auth.uid() 
-    AND p2.role IN ('admin', 'super_admin')
+    SELECT 1 FROM auth.users 
+    WHERE id = auth.uid() 
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM auth.users 
+    WHERE id = auth.uid() 
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -195,9 +219,9 @@ USING (
   )
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -210,9 +234,9 @@ USING (
   active = true
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -222,8 +246,8 @@ FOR ALL
 TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
