@@ -90,7 +90,19 @@ export const updateAmbassadorClientCount = async (ambassadorId: string): Promise
 // Créer un client en tant qu'ambassadeur en utilisant une fonction SECURITY DEFINER
 export const createClientAsAmbassadorDb = async (clientData: CreateClientData, ambassadorId: string): Promise<string | null> => {
   try {
-    console.log("Using database function to create client as ambassador:", { ambassadorId, clientData });
+    console.log("🔍 DIAGNOSTIC - createClientAsAmbassadorDb:", { ambassadorId, clientData });
+    
+    // Vérifier que la fonction existe
+    const { data: functionExists } = await supabase.rpc('check_function_exists', {
+      function_name: 'create_client_as_ambassador'
+    });
+    
+    console.log("🔍 DIAGNOSTIC - Fonction existe:", functionExists);
+    
+    if (!functionExists) {
+      console.error("🔍 DIAGNOSTIC - La fonction create_client_as_ambassador n'existe pas");
+      throw new Error("La fonction de création de client ambassadeur n'est pas disponible");
+    }
     
     // Ajouter is_ambassador_client: true aux données du client pour le marquer correctement
     const enhancedClientData = {
@@ -98,24 +110,31 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData, a
       is_ambassador_client: true
     };
     
+    console.log("🔍 DIAGNOSTIC - Appel de la fonction RPC avec:", {
+      client_data: enhancedClientData,
+      ambassador_id: ambassadorId
+    });
+    
     const { data, error } = await supabase
       .rpc('create_client_as_ambassador', {
         client_data: enhancedClientData,
         ambassador_id: ambassadorId
       });
     
+    console.log("🔍 DIAGNOSTIC - Résultat RPC:", { data, error: error?.message });
+    
     if (error) {
-      console.error("Error creating client through RPC:", error);
+      console.error("🔍 DIAGNOSTIC - Erreur lors de la création du client via RPC:", error);
       throw error;
     }
     
     // Mettre à jour le compteur de clients de l'ambassadeur après la création réussie
     await updateAmbassadorClientCount(ambassadorId);
     
-    console.log("Client created successfully through RPC function:", data);
+    console.log("🔍 DIAGNOSTIC - Client créé avec succès via fonction RPC:", data);
     return data;
   } catch (error) {
-    console.error("Exception in createClientAsAmbassadorDb:", error);
+    console.error("🔍 DIAGNOSTIC - Exception dans createClientAsAmbassadorDb:", error);
     return null;
   }
 };
