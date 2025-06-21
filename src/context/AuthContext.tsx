@@ -1,19 +1,37 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
+
+// Étendre le type User pour inclure les propriétés personnalisées
+interface ExtendedUser extends User {
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  company?: string;
+  partner_id?: string;
+  ambassador_id?: string;
+  client_id?: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: ExtendedUser | null;
   session: Session | null;
   isLoading: boolean;
-  userProfile: any;
+  subscription: {
+    subscribed: boolean;
+    subscription_tier?: string;
+    subscription_end?: string;
+  } | null;
+  checkSubscription: () => Promise<void>;
+  logout: () => Promise<void>;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, options?: any) => Promise<{ data?: any; error?: any }>;
   isAdmin: () => boolean;
   isClient: () => boolean;
-  isAmbassador: () => boolean;
   isPartner: () => boolean;
-  refreshUserData: () => Promise<void>;
+  isAmbassador: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,256 +49,337 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [subscription, setSubscription] = useState<{
+    subscribed: boolean;
+    subscription_tier?: string;
+    subscription_end?: string;
+  } | null>(null);
 
-  const logAuthState = (message: string, data?: any) => {
-    console.log(`🎯 AUTH CONTEXT ${message}`, data ? data : '');
-  };
-
-  const enrichUserData = async (currentUser: User, event?: string) => {
-    if (!currentUser?.email) {
-      logAuthState('ENRICH - Aucun utilisateur fourni');
-      return;
-    }
-
-    logAuthState(`ENRICH - Enrichissement des données pour: ${currentUser.email}`);
-
+  const checkSubscription = async () => {
+    if (!session) return;
+    
     try {
-      // D'abord, vérifier les métadonnées utilisateur dans le JWT
-      const userMetadata = currentUser.user_metadata;
-      const role = userMetadata?.role;
-      const ambassadorId = userMetadata?.ambassador_id;
-
-      logAuthState('ENRICH - Métadonnées utilisateur:', { role, ambassadorId });
-
-      // Si l'utilisateur a un role d'ambassadeur dans ses métadonnées, on le respecte
-      if (role === 'ambassador' && ambassadorId) {
-        logAuthState('ENRICH - Utilisateur identifié comme ambassadeur via métadonnées');
-        
-        // Essayer de récupérer les détails de l'ambassadeur
-        try {
-          const { data: ambassadorData, error: ambassadorError } = await supabase
-            .from('ambassadors')
-            .select('*')
-            .eq('id', ambassadorId)
-            .single();
-
-          if (!ambassadorError && ambassadorData) {
-            const enrichedUser = {
-              ...currentUser,
-              role: 'ambassador',
-              ambassador_id: ambassadorId,
-              name: ambassadorData.name,
-              email: ambassadorData.email
-            };
-            
-            setUser(enrichedUser);
-            setUserProfile({
-              role: 'ambassador',
-              ambassador_id: ambassadorId,
-              first_name: ambassadorData.name?.split(' ')[0] || '',
-              last_name: ambassadorData.name?.split(' ').slice(1).join(' ') || '',
-              email: ambassadorData.email
-            });
-            
-            logAuthState('ENRICH - Ambassadeur enrichi avec succès:', enrichedUser);
-            return;
-          }
-        } catch (ambassadorError) {
-          console.error('Erreur lors de la récupération des données ambassadeur:', ambassadorError);
-        }
-      }
-
-      // Sinon, essayer de récupérer le profil depuis la table profiles
-      logAuthState('ENRICH - Récupération du profil depuis la table profiles');
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (profileError) {
-        logAuthState('ENRICH - Erreur profiles:', profileError.message);
-        
-        // Créer un utilisateur par défaut basé sur les métadonnées
-        const fallbackUser = {
-          ...currentUser,
-          role: role || 'client'
-        };
-        
-        setUser(fallbackUser);
-        setUserProfile({
-          role: role || 'client',
-          first_name: userMetadata?.name?.split(' ')[0] || '',
-          last_name: userMetadata?.name?.split(' ').slice(1).join(' ') || '',
-          email: currentUser.email
-        });
-        
-        logAuthState('ENRICH - Utilisateur fallback créé:', fallbackUser);
-        return;
-      }
-
-      // Enrichir avec les données du profil
-      const enrichedUser = {
-        ...currentUser,
-        role: profileData.role,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        company_id: profileData.company_id,
-        client_id: profileData.client_id
-      };
-
-      setUser(enrichedUser);
-      setUserProfile(profileData);
-      
-      logAuthState('ENRICH - Utilisateur enrichi depuis profiles:', enrichedUser);
-
-    } catch (error) {
-      console.error('Erreur lors de l\'enrichissement des données utilisateur:', error);
-      
-      // Fallback basé sur les métadonnées utilisateur
-      const userMetadata = currentUser.user_metadata;
-      const fallbackUser = {
-        ...currentUser,
-        role: userMetadata?.role || 'client'
-      };
-      
-      setUser(fallbackUser);
-      setUserProfile({
-        role: userMetadata?.role || 'client',
-        first_name: userMetadata?.name?.split(' ')[0] || '',
-        last_name: userMetadata?.name?.split(' ').slice(1).join(' ') || '',
-        email: currentUser.email
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
-      
-      logAuthState('ENRICH - Utilisateur fallback avec métadonnées:', fallbackUser);
+
+      if (error) throw error;
+      setSubscription(data);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
     }
   };
 
-  const handleAuthChange = async (event: AuthChangeEvent, session: Session | null) => {
-    logAuthState(`EVENT: ${event} Session présente: ${!!session}`);
-    
-    setSession(session);
-    
-    if (session?.user) {
-      logAuthState(`EVENT - Session valide détectée, event: ${event}`);
-      await enrichUserData(session.user, event);
-    } else {
-      logAuthState('EVENT - Aucune session, reset de l\'état');
-      setUser(null);
-      setUserProfile(null);
-    }
-    
-    setIsLoading(false);
-  };
-
-  const refreshUserData = async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (session?.user && !error) {
-      await enrichUserData(session.user, 'REFRESH');
-    }
-  };
-
-  const signOut = async () => {
+  const logout = async () => {
+    console.log("🔥 LOGOUT - Début de la déconnexion");
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
-    setUser(null);
-    setSession(null);
-    setUserProfile(null);
-    setIsLoading(false);
+    if (error) {
+      console.error('Error signing out:', error);
+    } else {
+      console.log("🔥 LOGOUT - Déconnexion réussie");
+    }
   };
 
+  const signOut = logout;
+
+  const signIn = async (email: string, password: string) => {
+    console.log("🔑 SIGNIN - Tentative de connexion pour:", email);
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    console.log("🔑 SIGNIN - Résultat:", { 
+      hasUser: !!result.data.user, 
+      hasSession: !!result.data.session, 
+      error: result.error?.message 
+    });
+    return result;
+  };
+
+  const signUp = async (email: string, password: string, options?: any) => {
+    return await supabase.auth.signUp({ email, password, options });
+  };
+
+  // Fonctions de vérification des rôles avec logging amélioré
   const isAdmin = () => {
-    const role = user?.role || userProfile?.role;
-    const result = role === 'admin' || role === 'super_admin';
-    logAuthState('isAdmin check:', { userRole: role, result });
+    const result = user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
+    console.log("🔍 isAdmin check:", {
+      userRole: user?.role,
+      partnerId: user?.partner_id,
+      ambassadorId: user?.ambassador_id,
+      clientId: user?.client_id,
+      result
+    });
     return result;
   };
 
   const isClient = () => {
-    const role = user?.role || userProfile?.role;
-    const clientId = user?.client_id || userProfile?.client_id || '';
-    const result = role === 'client';
-    logAuthState('isClient check:', { userRole: role, clientId, result });
-    return result;
-  };
-
-  const isAmbassador = () => {
-    const role = user?.role || userProfile?.role;
-    const ambassadorId = user?.ambassador_id || userProfile?.ambassador_id || '';
-    const result = role === 'ambassador';
-    logAuthState('isAmbassador check:', { userRole: role, ambassadorId, result });
+    const result = user?.role === 'client' || !!user?.client_id;
+    console.log("🔍 isClient check:", {
+      userRole: user?.role,
+      clientId: user?.client_id,
+      result
+    });
     return result;
   };
 
   const isPartner = () => {
-    const role = user?.role || userProfile?.role;
-    const partnerId = user?.partner_id || userProfile?.partner_id || '';
-    const result = role === 'partner';
-    logAuthState('isPartner check:', { userRole: role, partnerId, result });
+    const result = user?.role === 'partner' || !!user?.partner_id;
+    console.log("🔍 isPartner check:", {
+      userRole: user?.role,
+      partnerId: user?.partner_id,
+      result
+    });
     return result;
   };
 
-  useEffect(() => {
-    logAuthState('CONTEXT - Initialisation');
-    
-    // Configuration de l'écoute des changements d'auth
-    logAuthState('CONTEXT - Configuration de l\'écoute des changements d\'auth');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-
-    // Vérification de la session existante
-    logAuthState('CONTEXT - Vérification de la session existante');
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Erreur lors de la récupération de la session:', error);
-        setIsLoading(false);
-        return;
-      }
-      
-      logAuthState(`CONTEXT - Session existante: ${!!session}`);
-      
-      if (session?.user) {
-        logAuthState(`CONTEXT - Session existante trouvée pour: ${session.user.email}`);
-        enrichUserData(session.user, 'INITIAL_SESSION').then(() => {
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
+  const isAmbassador = () => {
+    const result = user?.role === 'ambassador' || !!user?.ambassador_id;
+    console.log("🔍 isAmbassador check:", {
+      userRole: user?.role,
+      ambassadorId: user?.ambassador_id,
+      result
     });
+    return result;
+  };
+
+  // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
+  const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
+    try {
+      console.log("📝 ENRICH - Enrichissement des données pour:", baseUser.email);
+      console.log("📝 ENRICH - Début de la requête vers profiles");
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', baseUser.id)
+        .single();
+
+      console.log("📝 ENRICH - Réponse de la requête profiles:", { 
+        hasData: !!profile, 
+        hasError: !!error,
+        errorMessage: error?.message 
+      });
+
+      if (error) {
+        console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
+        const defaultUser = {
+          ...baseUser,
+          first_name: '',
+          last_name: '',
+          role: 'admin',
+          company: '',
+          partner_id: '',
+          ambassador_id: '',
+          client_id: '',
+        };
+        console.log("📝 ENRICH - Utilisateur par défaut créé:", {
+          email: defaultUser.email,
+          role: defaultUser.role
+        });
+        return defaultUser;
+      }
+
+      const enrichedUser = {
+        ...baseUser,
+        first_name: profile?.first_name || '',
+        last_name: profile?.last_name || '',
+        role: profile?.role || 'admin',
+        company: profile?.company || '',
+        partner_id: profile?.partner_id || '',
+        ambassador_id: profile?.ambassador_id || '',
+        client_id: profile?.client_id || '',
+      };
+      
+      console.log("📝 ENRICH - Données enrichies:", {
+        email: enrichedUser.email,
+        role: enrichedUser.role,
+        client_id: enrichedUser.client_id,
+        partner_id: enrichedUser.partner_id,
+        ambassador_id: enrichedUser.ambassador_id
+      });
+      
+      return enrichedUser;
+    } catch (error) {
+      console.error('📝 ENRICH - Erreur lors de l\'enrichissement:', error);
+      const fallbackUser = {
+        ...baseUser,
+        first_name: '',
+        last_name: '',
+        role: 'admin',
+        company: '',
+        partner_id: '',
+        ambassador_id: '',
+        client_id: '',
+      };
+      console.log("📝 ENRICH - Utilisateur de fallback créé:", {
+        email: fallbackUser.email,
+        role: fallbackUser.role
+      });
+      return fallbackUser;
+    }
+  };
+
+  // Initialisation
+  useEffect(() => {
+    console.log("🚀 AUTH CONTEXT - Initialisation");
+    
+    let isMounted = true;
+    
+    const initAuth = async () => {
+      try {
+        console.log("🚀 AUTH CONTEXT - Configuration de l'écoute des changements d'auth");
+        
+        // Configuration de l'écoute des changements d'auth
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log("🔄 AUTH EVENT:", event, "Session présente:", !!newSession);
+            
+            if (!isMounted) {
+              console.log("🔄 AUTH EVENT - Composant démonté, ignoré");
+              return;
+            }
+            
+            if (event === 'SIGNED_OUT' || !newSession) {
+              console.log("🔄 AUTH EVENT - Déconnexion ou pas de session");
+              setSession(null);
+              setUser(null);
+              setSubscription(null);
+              setIsLoading(false);
+              return;
+            }
+            
+            if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+              console.log("🔄 AUTH EVENT - Session valide détectée, event:", event);
+              setSession(newSession);
+              
+              console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
+              
+              // Utiliser un timeout pour éviter les blocages
+              setTimeout(async () => {
+                try {
+                  console.log("🔄 AUTH EVENT - Début enrichissement avec timeout");
+                  const enrichedUser = await enrichUserData(newSession.user);
+                  if (isMounted) {
+                    console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
+                    setUser(enrichedUser);
+                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé");
+                    setIsLoading(false);
+                  }
+                } catch (error) {
+                  console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
+                  if (isMounted) {
+                    console.log("🔄 AUTH EVENT - Erreur: utilisation de l'utilisateur de base");
+                    setUser(newSession.user as ExtendedUser);
+                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé après erreur");
+                    setIsLoading(false);
+                  }
+                }
+              }, 100);
+            }
+          }
+        );
+        
+        console.log("🚀 AUTH CONTEXT - Vérification de la session existante");
+        // Vérification de la session existante
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("🚀 AUTH CONTEXT - Erreur lors de la récupération de la session:", error);
+          if (isMounted) {
+            console.log("🚀 AUTH CONTEXT - Erreur: setIsLoading(false)");
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        console.log("🚀 AUTH CONTEXT - Session existante:", !!currentSession);
+        
+        if (currentSession?.user && isMounted) {
+          console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
+          setSession(currentSession);
+          
+          // Utiliser un timeout pour éviter les blocages
+          setTimeout(async () => {
+            try {
+              console.log("🚀 AUTH CONTEXT - Début enrichissement session existante avec timeout");
+              const enrichedUser = await enrichUserData(currentSession.user);
+              if (isMounted) {
+                setUser(enrichedUser);
+                console.log("🚀 AUTH CONTEXT - Session existante: setIsLoading(false)");
+                setIsLoading(false);
+              }
+            } catch (error) {
+              console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
+              if (isMounted) {
+                setUser(currentSession.user as ExtendedUser);
+                console.log("🚀 AUTH CONTEXT - Erreur session existante: setIsLoading(false)");
+                setIsLoading(false);
+              }
+            }
+          }, 100);
+        } else if (isMounted) {
+          console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
+          setIsLoading(false);
+        }
+
+        return () => {
+          subscription.unsubscribe();
+        };
+        
+      } catch (error) {
+        console.error("🚀 AUTH CONTEXT - Erreur initialisation:", error);
+        if (isMounted) {
+          console.log("🚀 AUTH CONTEXT - Erreur fatale: setIsLoading(false)");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initAuth();
 
     return () => {
-      subscription.unsubscribe();
+      console.log("🚀 AUTH CONTEXT - Nettoyage");
+      isMounted = false;
     };
   }, []);
 
-  const contextValue = {
+  // Auto-refresh subscription
+  useEffect(() => {
+    if (!session) return;
+
+    const interval = setInterval(checkSubscription, 10000);
+    return () => clearInterval(interval);
+  }, [session]);
+
+  const value = {
     user,
     session,
     isLoading,
-    userProfile,
+    subscription,
+    checkSubscription,
+    logout,
     signOut,
+    signIn,
+    signUp,
     isAdmin,
     isClient,
-    isAmbassador,
     isPartner,
-    refreshUserData
+    isAmbassador,
   };
 
-  logAuthState('RENDER - État actuel:', {
+  console.log("🎯 AUTH CONTEXT RENDER - État actuel:", {
     hasUser: !!user,
     hasSession: !!session,
     isLoading,
     userEmail: user?.email,
-    userRole: user?.role || userProfile?.role
+    userRole: user?.role
   });
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
