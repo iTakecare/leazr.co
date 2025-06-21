@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -6,7 +7,7 @@ import { CheckIcon, ChevronsUpDownIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAllClients } from "@/services/clientService";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 import { useAuth } from "@/context/AuthContext";
 
 // Define a specific type for the client in this component
@@ -48,12 +49,12 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         let fetchedClients;
         
         if (ambassadorMode && user?.ambassador_id) {
-          // Si en mode ambassadeur, charger les clients de l'ambassadeur
+          // Si en mode ambassadeur, charger UNIQUEMENT les clients de l'ambassadeur
           console.log("Loading ambassador clients with ambassador_id:", user.ambassador_id);
           fetchedClients = await getAmbassadorClients();
           console.log("Loaded ambassador clients:", fetchedClients);
         } else {
-          // Sinon, charger tous les clients
+          // Sinon, charger tous les clients (mode admin)
           fetchedClients = await getAllClients();
         }
         
@@ -146,7 +147,10 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       ))
                     ) : (
                       <div className="py-6 text-center text-muted-foreground">
-                        Aucun client trouvé pour cet ambassadeur.
+                        {ambassadorMode ? 
+                          "Aucun client trouvé pour cet ambassadeur." : 
+                          "Aucun client trouvé."
+                        }
                       </div>
                     )
                   )}
