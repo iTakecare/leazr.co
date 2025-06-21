@@ -3,11 +3,8 @@ import { useState, useEffect } from 'react';
 import { Client, CreateClientData } from '@/types/client';
 import { 
   getAmbassadorClients, 
-  getCurrentAmbassadorProfile, 
-  createClientAsAmbassadorDb, 
-  updateAmbassadorClientCount,
   deleteAmbassadorClient
-} from '@/services/ambassadorClientService';
+} from '@/services/ambassador/ambassadorClients';
 import { toast } from 'sonner';
 
 export const useAmbassadorClients = () => {
@@ -60,46 +57,9 @@ export const useAmbassadorClients = () => {
     setIsLoading(true);
     
     try {
-      // 1. Obtenir l'ID de l'ambassadeur
-      console.log("🔍 HOOK DIAGNOSTIC - Récupération du profil ambassadeur...");
-      const ambassadorId = await getCurrentAmbassadorProfile();
-      console.log("🔍 HOOK DIAGNOSTIC - Profil ambassadeur récupéré:", { ambassadorId });
-      
-      if (!ambassadorId) {
-        const errorMsg = "Impossible de récupérer votre profil ambassadeur";
-        console.error("🔍 HOOK DIAGNOSTIC - Erreur profil ambassadeur:", errorMsg);
-        toast.error(errorMsg);
-        setError(errorMsg);
-        return false;
-      }
-      
-      console.log("🔍 HOOK DIAGNOSTIC - Création du client via fonction DB...");
-      
-      // 2. Utiliser notre fonction de base de données SECURITY DEFINER
-      const newClientId = await createClientAsAmbassadorDb(clientData, ambassadorId);
-      
-      console.log("🔍 HOOK DIAGNOSTIC - Résultat création client:", { newClientId });
-      
-      if (!newClientId) {
-        const errorMsg = "Échec de la création du client";
-        console.error("🔍 HOOK DIAGNOSTIC - Erreur création:", errorMsg);
-        toast.error(errorMsg);
-        setError(errorMsg);
-        return false;
-      }
-      
-      // 3. Mettre à jour explicitement le compteur de clients de l'ambassadeur
-      console.log("🔍 HOOK DIAGNOSTIC - Mise à jour du compteur...");
-      await updateAmbassadorClientCount(ambassadorId);
-      
-      toast.success("Client créé et associé à votre compte ambassadeur");
-      
-      // 4. Recharger la liste des clients
-      console.log("🔍 HOOK DIAGNOSTIC - Rechargement de la liste...");
-      await loadClients();
-      
-      console.log("🔍 HOOK DIAGNOSTIC - Fin createClientAsAmbassador - Succès");
-      return true;
+      // Cette fonctionnalité sera implémentée plus tard si nécessaire
+      toast.error("Fonctionnalité de création de client non encore implémentée");
+      return false;
     } catch (err) {
       console.error("🔍 HOOK DIAGNOSTIC - Erreur lors de la création du client:", {
         error: err,

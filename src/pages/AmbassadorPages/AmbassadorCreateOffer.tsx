@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
-import { getAmbassadorClients } from "@/services/ambassadorClientService";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 import { createOffer } from "@/services/offers";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
