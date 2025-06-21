@@ -2,10 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
 
-// Obtenir les clients d'un ambassadeur avec diagnostic approfondi
+// Obtenir les clients d'un ambassadeur en utilisant la fonction SECURITY DEFINER
 export const getAmbassadorClients = async (): Promise<Client[]> => {
   try {
-    console.log("🔍 DIAGNOSTIC - Début getAmbassadorClients");
+    console.log("🔍 DIAGNOSTIC - Début getAmbassadorClients avec fonction SECURITY DEFINER");
     
     // Vérifier l'utilisateur authentifié
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -13,9 +13,7 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       userId: user?.id,
       email: user?.email,
       hasUser: !!user,
-      userError: userError?.message,
-      userMetadata: user?.user_metadata,
-      rawUserMetadata: user?.raw_user_meta_data
+      userError: userError?.message
     });
     
     if (!user) {
@@ -23,151 +21,13 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Vérifier la session avec plus de détails
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log("🔍 DIAGNOSTIC - Session:", {
-      hasSession: !!session,
-      sessionError: sessionError?.message,
-      accessToken: session?.access_token ? "Present" : "Missing",
-      tokenExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : "No expiry"
-    });
-    
-    // D'abord vérifier si l'utilisateur a un profil ambassadeur avec diagnostic détaillé
-    console.log("🔍 DIAGNOSTIC - Vérification du profil ambassadeur...");
-    console.log("🔍 DIAGNOSTIC - Requête SQL équivalente: SELECT id, name, email, user_id FROM ambassadors WHERE user_id = '", user.id, "'");
-    
-    const { data: ambassadorProfile, error: ambassadorError } = await supabase
-      .from('ambassadors')
-      .select('id, name, email, user_id, company_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    console.log("🔍 DIAGNOSTIC - Profil ambassadeur:", {
-      ambassadorFound: !!ambassadorProfile,
-      ambassadorId: ambassadorProfile?.id,
-      ambassadorName: ambassadorProfile?.name,
-      ambassadorEmail: ambassadorProfile?.email,
-      ambassadorUserId: ambassadorProfile?.user_id,
-      ambassadorCompanyId: ambassadorProfile?.company_id,
-      ambassadorError: ambassadorError?.message,
-      ambassadorErrorCode: ambassadorError?.code,
-      ambassadorErrorDetails: ambassadorError?.details
-    });
-    
-    if (ambassadorError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la récupération du profil ambassadeur:", ambassadorError);
-      throw new Error(`Erreur profil ambassadeur: ${ambassadorError.message}`);
-    }
-    
-    if (!ambassadorProfile) {
-      console.error("🔍 DIAGNOSTIC - Aucun profil ambassadeur trouvé pour cet utilisateur");
-      throw new Error("Profil ambassadeur non trouvé");
-    }
-    
-    console.log("🔍 DIAGNOSTIC - Récupération des liens ambassador_clients...");
-    console.log("🔍 DIAGNOSTIC - Requête SQL équivalente: SELECT client_id, created_at, ambassador_id FROM ambassador_clients WHERE ambassador_id = '", ambassadorProfile.id, "'");
-    
-    // Test simple pour vérifier les permissions sur ambassador_clients
-    console.log("🔍 DIAGNOSTIC - Test permissions sur ambassador_clients...");
-    const { data: testData, error: testError } = await supabase
-      .from('ambassador_clients')
-      .select('id')
-      .limit(1);
-    
-    console.log("🔍 DIAGNOSTIC - Test permissions:", {
-      testSuccess: !testError,
-      testError: testError?.message,
-      testErrorCode: testError?.code,
-      testErrorDetails: testError?.details,
-      testDataCount: testData?.length || 0
-    });
-    
-    if (testError) {
-      console.error("🔍 DIAGNOSTIC - Erreur de permissions de base sur ambassador_clients:", testError);
-    }
-    
-    // Récupérer les liens ambassador_clients avec RLS
-    const { data: ambassadorClientsData, error: ambassadorClientsError } = await supabase
-      .from('ambassador_clients')
-      .select(`
-        client_id,
-        created_at,
-        ambassador_id
-      `)
-      .eq('ambassador_id', ambassadorProfile.id);
-    
-    console.log("🔍 DIAGNOSTIC - Liens ambassador_clients:", {
-      linksFound: ambassadorClientsData?.length || 0,
-      linksData: ambassadorClientsData,
-      linksError: ambassadorClientsError?.message,
-      linksErrorCode: ambassadorClientsError?.code,
-      linksErrorDetails: ambassadorClientsError?.details
-    });
-    
-    if (ambassadorClientsError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la récupération des liens:", ambassadorClientsError);
-      
-      // Diagnostic spécial pour l'erreur "permission denied for table users"
-      if (ambassadorClientsError.message?.includes('permission denied for table users')) {
-        console.error("🔍 DIAGNOSTIC - PROBLÈME CRITIQUE: La requête essaie d'accéder à auth.users");
-        console.error("🔍 DIAGNOSTIC - Cela suggère un problème dans les politiques RLS");
-        console.error("🔍 DIAGNOSTIC - Les politiques RLS ne devraient pas référencer auth.users directement");
-      }
-      
-      throw new Error(`Erreur liens clients: ${ambassadorClientsError.message}`);
-    }
-    
-    if (!ambassadorClientsData || ambassadorClientsData.length === 0) {
-      console.log("🔍 DIAGNOSTIC - Aucun lien client trouvé pour cet ambassadeur");
-      return [];
-    }
-    
-    // Extraire les IDs des clients
-    const clientIds = ambassadorClientsData.map(item => item.client_id);
-    console.log("🔍 DIAGNOSTIC - IDs des clients à récupérer:", clientIds);
-    
-    // Test permissions sur la table clients
-    console.log("🔍 DIAGNOSTIC - Test permissions sur clients...");
-    const { data: clientTestData, error: clientTestError } = await supabase
-      .from('clients')
-      .select('id')
-      .limit(1);
-    
-    console.log("🔍 DIAGNOSTIC - Test permissions clients:", {
-      testSuccess: !clientTestError,
-      testError: clientTestError?.message,
-      testErrorCode: clientTestError?.code,
-      testDataCount: clientTestData?.length || 0
-    });
-    
-    // Récupérer les détails des clients en utilisant les IDs
-    console.log("🔍 DIAGNOSTIC - Récupération des détails des clients...");
-    console.log("🔍 DIAGNOSTIC - Requête SQL équivalente: SELECT * FROM clients WHERE id IN (", clientIds.join(', '), ")");
+    // Appeler la fonction SECURITY DEFINER pour récupérer les clients
+    console.log("🔍 DIAGNOSTIC - Appel de la fonction get_ambassador_clients_secure avec user_id:", user.id);
     
     const { data: clientsData, error: clientsError } = await supabase
-      .from('clients')
-      .select(`
-        id,
-        name,
-        email,
-        company,
-        phone,
-        address,
-        city,
-        postal_code,
-        country,
-        vat_number,
-        notes,
-        status,
-        created_at,
-        updated_at,
-        user_id,
-        has_user_account,
-        company_id
-      `)
-      .in('id', clientIds);
+      .rpc('get_ambassador_clients_secure', { p_user_id: user.id });
     
-    console.log("🔍 DIAGNOSTIC - Détails des clients:", {
+    console.log("🔍 DIAGNOSTIC - Résultat de la fonction SECURITY DEFINER:", {
       clientsFound: clientsData?.length || 0,
       clientsData: clientsData,
       clientsError: clientsError?.message,
@@ -176,15 +36,37 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
     });
     
     if (clientsError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la récupération des détails clients:", clientsError);
-      throw new Error(`Erreur détails clients: ${clientsError.message}`);
+      console.error("🔍 DIAGNOSTIC - Erreur lors de l'appel de la fonction:", clientsError);
+      throw new Error(`Erreur fonction: ${clientsError.message}`);
     }
     
-    // Marquer les clients comme clients d'ambassadeur
-    const processedClients = clientsData?.map(client => ({
-      ...client,
-      is_ambassador_client: true
-    })) || [];
+    if (!clientsData || clientsData.length === 0) {
+      console.log("🔍 DIAGNOSTIC - Aucun client trouvé pour cet ambassadeur");
+      return [];
+    }
+    
+    // Transformer les données de la fonction en format Client
+    const processedClients: Client[] = clientsData.map(row => ({
+      id: row.client_id,
+      name: row.client_name,
+      email: row.client_email,
+      company: row.client_company,
+      phone: row.client_phone,
+      address: row.client_address,
+      city: row.client_city,
+      postal_code: row.client_postal_code,
+      country: row.client_country,
+      vat_number: row.client_vat_number,
+      notes: row.client_notes,
+      status: row.client_status as any,
+      created_at: row.client_created_at,
+      updated_at: row.client_updated_at,
+      user_id: row.client_user_id,
+      has_user_account: row.client_has_user_account,
+      company_id: row.client_company_id,
+      is_ambassador_client: true,
+      createdAt: row.link_created_at?.toISOString()
+    }));
     
     console.log("🔍 DIAGNOSTIC - Clients traités:", {
       totalProcessed: processedClients.length,
@@ -196,7 +78,7 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       }))
     });
     
-    console.log("🔍 DIAGNOSTIC - Fin getAmbassadorClients - Succès");
+    console.log("🔍 DIAGNOSTIC - Fin getAmbassadorClients - Succès avec fonction SECURITY DEFINER");
     return processedClients;
   } catch (error) {
     console.error("🔍 DIAGNOSTIC - Erreur fatale dans getAmbassadorClients:", {

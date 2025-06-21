@@ -2343,6 +2343,29 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_ambassador_clients_secure: {
+        Args: { p_user_id: string }
+        Returns: {
+          client_id: string
+          client_name: string
+          client_email: string
+          client_company: string
+          client_phone: string
+          client_address: string
+          client_city: string
+          client_postal_code: string
+          client_country: string
+          client_vat_number: string
+          client_notes: string
+          client_status: string
+          client_created_at: string
+          client_updated_at: string
+          client_user_id: string
+          client_has_user_account: boolean
+          client_company_id: string
+          link_created_at: string
+        }[]
+      }
       get_blog_categories: {
         Args: Record<PropertyKey, never>
         Returns: {
