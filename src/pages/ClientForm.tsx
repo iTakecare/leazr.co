@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { 
@@ -7,7 +6,7 @@ import {
   updateClient, 
   verifyVatNumber
 } from "@/services/clientService";
-import { linkClientToAmbassador } from "@/services/ambassadorClientService";
+import { linkClientToAmbassador } from "@/services/ambassador/ambassadorClients";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
