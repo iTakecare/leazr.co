@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
 
@@ -91,6 +90,53 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       errorStack: error instanceof Error ? error.stack : undefined,
       errorType: typeof error,
       errorObject: error
+    });
+    throw error;
+  }
+};
+
+// Lier un client à un ambassadeur
+export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
+  try {
+    console.log("🔍 DIAGNOSTIC - Début linkClientToAmbassador:", { clientId, ambassadorId });
+    
+    // Vérifier l'utilisateur authentifié
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log("🔍 DIAGNOSTIC - Utilisateur pour liaison:", {
+      userId: user?.id,
+      email: user?.email,
+      userError: userError?.message
+    });
+    
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+    
+    // Créer le lien entre client et ambassadeur
+    const { error: linkError } = await supabase
+      .from("ambassador_clients")
+      .insert({
+        client_id: clientId,
+        ambassador_id: ambassadorId
+      });
+
+    console.log("🔍 DIAGNOSTIC - Résultat création lien:", {
+      success: !linkError,
+      error: linkError?.message
+    });
+
+    if (linkError) {
+      console.error("🔍 DIAGNOSTIC - Erreur lors de la création du lien:", linkError);
+      throw linkError;
+    }
+
+    console.log("🔍 DIAGNOSTIC - Fin linkClientToAmbassador - Succès");
+    return true;
+  } catch (error) {
+    console.error("🔍 DIAGNOSTIC - Erreur fatale dans linkClientToAmbassador:", {
+      errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+      clientId,
+      ambassadorId
     });
     throw error;
   }
