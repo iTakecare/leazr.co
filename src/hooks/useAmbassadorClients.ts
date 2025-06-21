@@ -29,7 +29,11 @@ export const useAmbassadorClients = () => {
       console.error("Error loading ambassador clients:", err);
       const errorMessage = err instanceof Error ? err.message : "Impossible de charger vos clients";
       setError(errorMessage);
-      toast.error(errorMessage);
+      
+      // Ne pas afficher de toast d'erreur si c'est juste un problème de permissions
+      if (!errorMessage.includes('permission denied')) {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -37,8 +41,6 @@ export const useAmbassadorClients = () => {
 
   // Créer un nouveau client en tant qu'ambassadeur
   const createClientAsAmbassador = async (clientData: CreateClientData): Promise<boolean> => {
-    setIsLoading(true);
-    
     try {
       // 1. Obtenir l'ID de l'ambassadeur
       const ambassadorId = await getCurrentAmbassadorProfile();
@@ -74,8 +76,6 @@ export const useAmbassadorClients = () => {
       toast.error(errorMessage);
       setError(errorMessage);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
