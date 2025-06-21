@@ -65,7 +65,12 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       has_user_account: row.client_has_user_account,
       company_id: row.client_company_id,
       is_ambassador_client: true,
-      createdAt: row.link_created_at?.toISOString()
+      // Correction : vérifier si link_created_at existe et est une date valide
+      createdAt: row.link_created_at ? (
+        typeof row.link_created_at === 'string' ? row.link_created_at : 
+        row.link_created_at instanceof Date ? row.link_created_at.toISOString() :
+        new Date(row.link_created_at).toISOString()
+      ) : undefined
     }));
     
     console.log("🔍 DIAGNOSTIC - Clients traités:", {
