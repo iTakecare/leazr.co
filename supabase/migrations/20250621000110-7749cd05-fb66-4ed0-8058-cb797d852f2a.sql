@@ -82,9 +82,9 @@ USING (
   OR
   -- Accès admin complet
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -99,9 +99,9 @@ WITH CHECK (
   )
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -118,9 +118,9 @@ USING (
   )
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -137,9 +137,9 @@ USING (
   )
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -152,9 +152,9 @@ USING (
   user_id = auth.uid()
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
@@ -166,9 +166,9 @@ USING (
   user_id = auth.uid()
   OR
   EXISTS (
-    SELECT 1 FROM public.profiles 
+    SELECT 1 FROM auth.users 
     WHERE id = auth.uid() 
-    AND role IN ('admin', 'super_admin')
+    AND raw_user_meta_data->>'role' IN ('admin', 'super_admin')
   )
 );
 
