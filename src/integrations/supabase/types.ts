@@ -2274,10 +2274,6 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
-      check_user_exists_by_id: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
       create_categories_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2336,64 +2332,6 @@ export type Database = {
       find_duplicate_client_emails: {
         Args: Record<PropertyKey, never>
         Returns: string[]
-      }
-      get_all_clients_bypass_rls: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          address: string | null
-          city: string | null
-          company: string | null
-          company_id: string
-          contact_name: string | null
-          country: string | null
-          created_at: string
-          email: string | null
-          has_different_shipping_address: boolean | null
-          has_user_account: boolean | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          postal_code: string | null
-          shipping_address: string | null
-          shipping_city: string | null
-          shipping_country: string | null
-          shipping_postal_code: string | null
-          status: string | null
-          updated_at: string
-          user_account_created_at: string | null
-          user_id: string | null
-          vat_number: string | null
-        }[]
-      }
-      get_all_clients_for_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          address: string | null
-          city: string | null
-          company: string | null
-          company_id: string
-          contact_name: string | null
-          country: string | null
-          created_at: string
-          email: string | null
-          has_different_shipping_address: boolean | null
-          has_user_account: boolean | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          postal_code: string | null
-          shipping_address: string | null
-          shipping_city: string | null
-          shipping_country: string | null
-          shipping_postal_code: string | null
-          status: string | null
-          updated_at: string
-          user_account_created_at: string | null
-          user_id: string | null
-          vat_number: string | null
-        }[]
       }
       get_all_users_extended: {
         Args: Record<PropertyKey, never>
@@ -2464,35 +2402,6 @@ export type Database = {
           name: string
           translation: string
           updated_at: string
-        }[]
-      }
-      get_client_by_id_bypass_rls: {
-        Args: { client_id: string }
-        Returns: {
-          address: string | null
-          city: string | null
-          company: string | null
-          company_id: string
-          contact_name: string | null
-          country: string | null
-          created_at: string
-          email: string | null
-          has_different_shipping_address: boolean | null
-          has_user_account: boolean | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          postal_code: string | null
-          shipping_address: string | null
-          shipping_city: string | null
-          shipping_country: string | null
-          shipping_postal_code: string | null
-          status: string | null
-          updated_at: string
-          user_account_created_at: string | null
-          user_id: string | null
-          vat_number: string | null
         }[]
       }
       get_company_dashboard_metrics: {
@@ -2755,10 +2664,6 @@ export type Database = {
           translation: string
           updated_at: string
         }
-      }
-      update_client_bypass_rls: {
-        Args: { p_client_id: string; p_updates: Json }
-        Returns: boolean
       }
       update_client_securely: {
         Args: { p_client_id: string; p_updates: Json }
