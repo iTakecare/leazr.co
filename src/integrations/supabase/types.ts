@@ -329,6 +329,7 @@ export type Database = {
           has_different_shipping_address: boolean | null
           has_user_account: boolean | null
           id: string
+          is_ambassador_client: boolean | null
           name: string
           notes: string | null
           phone: string | null
@@ -355,6 +356,7 @@ export type Database = {
           has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
+          is_ambassador_client?: boolean | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -381,6 +383,7 @@ export type Database = {
           has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
+          is_ambassador_client?: boolean | null
           name?: string
           notes?: string | null
           phone?: string | null
