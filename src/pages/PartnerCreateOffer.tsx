@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -259,7 +258,7 @@ const PartnerCreateOffer = () => {
     setClientId(client.id);
     setClientName(client.name);
     setClientEmail(client.email || '');
-    setClientCompany(client.company || client.companyName || '');
+    setClientCompany(client.company || '');
   };
 
   const handleLeaserSelect = (leaser: Leaser) => {
