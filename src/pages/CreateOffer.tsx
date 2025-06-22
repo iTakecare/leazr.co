@@ -1,44 +1,55 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import ClientInfo from "@/components/offer/ClientInfo";
-import EquipmentForm from "@/components/offer/EquipmentForm";
-import EquipmentList from "@/components/offer/EquipmentList";
-import { Equipment, Leaser, GlobalMarginAdjustment } from "@/types/equipment";
-import PageTransition from "@/components/layout/PageTransition";
-import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
-import { v4 as uuidv4 } from "uuid";
-import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { Leaser } from "@/types/equipment";
+import ProductSelector from "@/components/ui/ProductSelector";
+import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
+import LeaserSelector from "@/components/ui/LeaserSelector";
+import { createOffer, getOfferById, updateOffer } from "@/services/offerService";
+import { getLeasers } from "@/services/leaserService";
+import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
-import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
-import { Client } from "@/types/client";
-import { getAllClients } from "@/services/clientService";
-import { createOffer } from "@/services/offers/createOffer";
-import LeaserSelector from "@/components/ui/LeaserSelector";
-import LeaserButton from "@/components/offer/LeaserButton";
-import { getLeasers } from "@/services/leaserService";
+import PageTransition from "@/components/layout/PageTransition";
+import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
-import { Switch } from "@/components/ui/switch";
+
+import EquipmentForm from "@/components/offer/EquipmentForm";
+import EquipmentList from "@/components/offer/EquipmentList";
+import ClientInfo from "@/components/offer/ClientInfo";
+import LeaserButton from "@/components/offer/LeaserButton";
+import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
 
 const CreateOffer = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const {
-    user,
-    isAdmin
-  } = useAuth();
-  const [client, setClient] = useState<Client | null>(null);
+  const { user } = useAuth();
+  const query = useQuery();
+  const clientIdParam = query.get("client");
+  const offerId = query.get("id");
+  
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientCompany, setClientCompany] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [quoteId, setQuoteId] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
+  
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
+  const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
-  const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [remarks, setRemarks] = useState("");
-  const [isInternalOffer, setIsInternalOffer] = useState(true);
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const {
     equipment,
     setEquipment,
@@ -62,10 +73,12 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
+
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
         const fetchedLeasers = await getLeasers();
+        
         if (fetchedLeasers && fetchedLeasers.length > 0) {
           setSelectedLeaser(fetchedLeasers[0]);
         }
@@ -74,288 +87,384 @@ const CreateOffer = () => {
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
       }
     };
+    
     fetchLeasers();
   }, []);
-  const fetchClient = async (id: string) => {
-    try {
-      setLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from("clients").select("*").eq("id", id).single();
-      if (error) throw error;
-      setClient(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement du client:", error);
-      toast.error("Impossible de charger les informations du client");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleOpenClientSelector = () => {
-    setClientSelectorOpen(true);
-  };
-  const handleSelectClient = (selectedClient: ClientSelectorClient) => {
-    setClient({
-      id: selectedClient.id,
-      name: selectedClient.name,
-      email: selectedClient.email || "",
-      company: selectedClient.company || "",
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-  };
-  const handleOpenLeaserSelector = () => {
-    setLeaserSelectorOpen(true);
-  };
-  const handleLeaserSelect = (leaser: Leaser) => {
-    setSelectedLeaser(leaser);
-    setLeaserSelectorOpen(false);
-  };
-  const handleOpenCatalog = () => {
-    // Fonctionnalité à implémenter si nécessaire
-  };
-  const handleSaveOffer = async () => {
-    if (!client) {
-      toast.error("Veuillez d'abord sélectionner un client");
-      return;
-    }
-    if (equipmentList.length === 0) {
-      toast.error("Veuillez ajouter au moins un équipement");
-      return;
-    }
-    try {
-      setIsSubmitting(true);
-      
-      const totalMonthlyPayment = equipmentList.reduce((sum, item) => sum + (item.monthlyPayment || 0) * item.quantity, 0);
-      const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + item.purchasePrice * item.quantity, 0);
-      
-      const equipmentDescription = JSON.stringify(
-        equipmentList.map(eq => ({
-          id: eq.id,
-          title: eq.title,
-          purchasePrice: eq.purchasePrice,
-          quantity: eq.quantity,
-          margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-          attributes: eq.attributes || {},
-          specifications: eq.specifications || {}
-        }))
-      );
 
-      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
-      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
-      const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-
-      let commissionAmount = 0;
-      if (isInternalOffer) {
-        commissionAmount = 0;
-        console.log("Offre interne - commission à 0");
-      } else {
-        const commissionElement = document.querySelector('.commission-value');
-        console.log("Recherche de l'élément de commission:", commissionElement);
-        if (commissionElement) {
-          try {
-            const commissionText = commissionElement.textContent || '';
-            const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
-            commissionAmount = parseFloat(numericValue);
-            console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
-            if (isNaN(commissionAmount)) {
-              console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-              commissionAmount = Math.round(financedAmount * 0.03);
-            }
-          } catch (error) {
-            console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
-            commissionAmount = Math.round(financedAmount * 0.03);
+  useEffect(() => {
+    const loadClientFromParam = async () => {
+      if (clientIdParam) {
+        try {
+          setLoading(true);
+          const client = await getClientById(clientIdParam);
+          if (client) {
+            setClientId(client.id);
+            setClientName(client.name);
+            setClientEmail(client.email || "");
+            setClientCompany(client.company || "");
           }
-        } else {
-          console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
-          commissionAmount = Math.round(financedAmount * 0.03);
+        } catch (error) {
+          console.error("Error loading client:", error);
+        } finally {
+          setLoading(false);
         }
       }
+    };
 
-      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+    loadClientFromParam();
+  }, [clientIdParam]);
 
-      const marginAmount = globalMarginAdjustment.amount || 0;
-      const marginDifference = globalMarginAdjustment.marginDifference || 0;
-      const totalMarginWithDifference = marginAmount + marginDifference;
+  useEffect(() => {
+    const loadOfferData = async () => {
+      if (offerId) {
+        try {
+          setLoading(true);
+          setIsEditMode(true);
+          
+          const offer = await getOfferById(offerId);
+          if (offer) {
+            console.log("Loaded offer data:", offer);
+            setClientId(offer.client_id || null);
+            setClientName(offer.client_name || '');
+            setClientEmail(offer.client_email || '');
+            setClientCompany(offer.clients?.company || '');
+            setRemarks(offer.additional_info || '');
+            
+            if (offer.coefficient && offer.amount) {
+              const coefficient = typeof offer.coefficient === 'string' 
+                ? parseFloat(offer.coefficient) 
+                : offer.coefficient || 0;
+                
+              const amount = typeof offer.amount === 'string' 
+                ? parseFloat(offer.amount) 
+                : offer.amount || 0;
+                
+              const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                ? parseFloat(offer.monthly_payment) 
+                : offer.monthly_payment || 0;
+              
+              setGlobalMarginAdjustment(prev => ({
+                ...prev,
+                amount: amount,
+                newCoef: coefficient,
+                newMonthly: monthlyPayment
+              }));
+            }
+            
+            if (offer.equipment_description) {
+              try {
+                const equipmentData = JSON.parse(offer.equipment_description);
+                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+                  console.log("Found JSON equipment data:", equipmentData);
+                  const formattedEquipment = equipmentData.map(item => ({
+                    id: item.id || crypto.randomUUID(),
+                    title: item.title,
+                    purchasePrice: parseFloat(item.purchasePrice) || 0,
+                    quantity: parseInt(item.quantity, 10) || 1,
+                    margin: parseFloat(item.margin) || 20,
+                    monthlyPayment: parseFloat(item.monthlyPayment || 0)
+                  }));
+                  
+                  console.log("Formatted equipment with preserved margins:", formattedEquipment);
+                  setEquipmentList(formattedEquipment);
+                  
+                  if (offer.monthly_payment) {
+                    const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                      ? parseFloat(offer.monthly_payment) 
+                      : offer.monthly_payment;
+                    setTargetMonthlyPayment(monthlyPayment || 0);
+                  }
+                }
+              } catch (e) {
+                console.log("Parsing equipment_description as string format:", offer.equipment_description);
+                const equipmentItems = offer.equipment_description.split(',').map(item => {
+                  const match = item.trim().match(/(.+) \((\d+)x\)/);
+                  if (match) {
+                    const title = match[1].trim();
+                    const quantity = parseInt(match[2], 10);
+                    
+                    const totalCost = typeof offer.amount === 'string' 
+                      ? parseFloat(offer.amount) 
+                      : offer.amount || 0;
+                    const approxPricePerItem = totalCost / (quantity || 1);
+                    
+                    return {
+                      id: crypto.randomUUID(),
+                      title,
+                      purchasePrice: approxPricePerItem,
+                      quantity,
+                      margin: 20
+                    };
+                  }
+                  return null;
+                }).filter(Boolean);
+                
+                if (equipmentItems.length > 0) {
+                  setEquipmentList(equipmentItems);
+                  
+                  const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                    ? parseFloat(offer.monthly_payment) 
+                    : offer.monthly_payment || 0;
+                  setTargetMonthlyPayment(monthlyPayment);
+                }
+              }
+            }
+            
+            toast.success("Offre chargée avec succès");
+          } else {
+            toast.error("Impossible de trouver cette offre");
+            navigate("/offers");
+          }
+        } catch (error) {
+          console.error("Error loading offer:", error);
+          toast.error("Erreur lors du chargement de l'offre");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadOfferData();
+  }, [offerId, navigate, setEquipmentList, setGlobalMarginAdjustment, setTargetMonthlyPayment]);
 
-      console.log("Marge totale:", marginAmount);
-      console.log("Différence de marge:", marginDifference);
-      console.log("Total marge avec différence:", totalMarginWithDifference);
+  const handleProductSelect = (product: any) => {
+    if (!selectedLeaser) return;
+    
+    console.log("Selected product:", product);
+    
+    const purchasePrice = product.price || 0;
+    const monthlyPrice = product.monthly_price || 0;
+    const coef = findCoefficient(purchasePrice);
+    const margin = 20;
+    
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: product.name,
+      purchasePrice: purchasePrice,
+      quantity: 1,
+      margin: Number(margin),
+    });
+
+    if (monthlyPrice > 0) {
+      console.log("Setting target monthly payment:", monthlyPrice);
+      setTargetMonthlyPayment(monthlyPrice);
+    }
+    
+    setIsCatalogOpen(false);
+  };
+
+  const handleClientSelect = (client: ClientSelectorClient) => {
+    setClientId(client.id);
+    setClientName(client.name);
+    setClientEmail(client.email || '');
+    setClientCompany(client.company || client.companyName || '');
+  };
+
+  const handleLeaserSelect = (leaser: Leaser) => {
+    setSelectedLeaser(leaser);
+    setIsLeaserSelectorOpen(false);
+  };
+
+  const handleOpenLeaserSelector = () => {
+    setIsLeaserSelectorOpen(true);
+  };
+
+  const handleSaveOffer = async () => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour créer une offre");
+      return;
+    }
+
+    if (!clientName || !clientEmail || equipmentList.length === 0) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const equipmentData = equipmentList.map(eq => ({
+        id: eq.id,
+        title: eq.title,
+        purchasePrice: eq.purchasePrice,
+        quantity: eq.quantity,
+        margin: eq.margin,
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+      }));
+      
+      console.log("Saving equipment data with preserved margins:", equipmentData);
+      
+      const equipmentDescription = equipmentList
+        .map(eq => `${eq.title} (${eq.quantity}x)`)
+        .join(", ");
+
+      const totalAmount = globalMarginAdjustment.amount + 
+        equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+      
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
 
       const offerData = {
-        client_id: client.id,
-        client_name: client.name,
-        client_email: client.email,
-        equipment_description: equipmentDescription,
-        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + eq.purchasePrice * eq.quantity, 0),
+        user_id: user.id,
+        client_name: clientName,
+        client_email: clientEmail,
+        client_id: clientId,
+        equipment_description: JSON.stringify(equipmentData),
+        equipment_text: equipmentDescription,
+        amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: commissionAmount,
+        commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
-        workflow_status: "draft",
-        type: offerType,
-        user_id: user?.id || "",
-        remarks: remarks,
-        total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)
+        additional_info: remarks,
+        type: 'admin_offer',
+        total_margin_with_difference: totalMarginWithDifferenceString
       };
 
       console.log("Saving offer with the following data:", offerData);
-      console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
-      console.log("Margin generated value being saved:", marginAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
 
-      const { data, error } = await createOffer(offerData);
-
-      if (error) {
-        console.error("Erreur lors de la sauvegarde:", error);
-        toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
-        return;
+      let result;
+      
+      if (isEditMode && offerId) {
+        result = await updateOffer(offerId, offerData);
+        if (result) {
+          toast.success("Offre mise à jour avec succès !");
+        } else {
+          throw new Error("Failed to update offer");
+        }
+      } else {
+        result = await createOffer(offerData);
+        if (result) {
+          toast.success("Offre créée avec succès !");
+        } else {
+          throw new Error("Failed to create offer");
+        }
       }
-
-      toast.success("Offre créée avec succès!");
+      
       navigate("/offers");
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de l'offre:", error);
-      toast.error("Impossible de sauvegarder l'offre");
+      console.error("Error saving offer:", error);
+      toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
     } finally {
       setIsSubmitting(false);
     }
   };
-  const clientInfoProps = {
-    clientId: client?.id || null,
-    clientName: client?.name || "",
-    clientEmail: client?.email || "",
-    clientCompany: client?.company || "",
-    remarks: remarks,
-    setRemarks: setRemarks,
-    onOpenClientSelector: handleOpenClientSelector,
-    handleSaveOffer: handleSaveOffer,
-    isSubmitting: isSubmitting,
-    selectedLeaser: selectedLeaser,
-    equipmentList: equipmentList,
-    hideFinancialDetails: !isAdmin()
-  };
-  const handleAddEquipment = (title: string) => {
-    setEquipment({
-      id: crypto.randomUUID(),
-      title: title || "",
-      purchasePrice: 1000,
-      quantity: 1,
-      margin: 20,
-      monthlyPayment: 0
-    });
-  };
-  const hideFinancialDetails = !isAdmin();
-  return <PageTransition>
-      <Container>
-        <ClientSelector isOpen={clientSelectorOpen} onClose={() => setClientSelectorOpen(false)} onSelectClient={handleSelectClient} selectedClientId="" onClientSelect={() => {}} />
-        
-        <LeaserSelector isOpen={leaserSelectorOpen} onClose={() => setLeaserSelectorOpen(false)} onSelect={handleLeaserSelect} selectedLeaser={selectedLeaser} />
 
-        <div className="py-12 px-4">
-          <div className="max-w-[90rem] mx-auto">
+  return (
+    <PageTransition>
+      <Container>
+        <div className="py-8 px-4">
+          <div className="max-w-full mx-auto">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <CalcIcon className="h-8 w-8 text-blue-600" />
-                <h1 className="text-2xl font-bold text-gray-900">Calculateur de Mensualités</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {isEditMode ? "Modifier l'offre" : "Calculateur de Mensualités iTakecare"}
+                </h1>
               </div>
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => navigate('/offers')}>
+                <LeaserButton 
+                  selectedLeaser={selectedLeaser} 
+                  onOpenSelector={handleOpenLeaserSelector}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/offers')}
+                >
                   Retour
                 </Button>
               </div>
             </div>
 
-            {loading ? <div className="flex items-center justify-center h-64">
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2">Chargement...</span>
-              </div> : <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div>
-                    <div className="mb-4">
-                      <LeaserButton selectedLeaser={selectedLeaser} onOpen={handleOpenLeaserSelector} />
-                    </div>
-                    
-                    <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label htmlFor="is_internal_offer" className="text-base font-medium text-blue-800">
-                            Offre interne (sans commission)
-                          </label>
-                          <p className="text-sm text-blue-600 mt-1">
-                            Cette offre sera marquée comme interne et n'aura pas de commission associée.
-                          </p>
-                        </div>
-                        <Switch
-                          id="is_internal_offer"
-                          checked={isInternalOffer}
-                          onCheckedChange={setIsInternalOffer}
-                          className="data-[state=checked]:bg-blue-600"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6">
-                      <EquipmentForm
-                        equipment={equipment}
-                        setEquipment={setEquipment}
-                        selectedLeaser={selectedLeaser}
-                        addToList={addToList}
-                        editingId={editingId}
-                        cancelEditing={cancelEditing}
-                        onOpenCatalog={handleOpenCatalog}
-                        coefficient={coefficient}
-                        monthlyPayment={monthlyPayment}
-                        targetMonthlyPayment={targetMonthlyPayment}
-                        setTargetMonthlyPayment={setTargetMonthlyPayment}
-                        calculatedMargin={calculatedMargin}
-                        applyCalculatedMargin={applyCalculatedMargin}
-                        hideFinancialDetails={hideFinancialDetails}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    <EquipmentList
-                      equipmentList={equipmentList}
-                      editingId={editingId}
-                      startEditing={startEditing}
-                      removeFromList={removeFromList}
-                      updateQuantity={updateQuantity}
-                      totalMonthlyPayment={totalMonthlyPayment}
-                      globalMarginAdjustment={{
-                        amount: globalMarginAdjustment.amount,
-                        newCoef: globalMarginAdjustment.newCoef,
-                        active: globalMarginAdjustment.adaptMonthlyPayment,
-                        marginDifference: globalMarginAdjustment.marginDifference
-                      }}
-                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                      hideFinancialDetails={hideFinancialDetails}
-                    />
-
-                    <ClientInfo
-                      clientId={clientInfoProps.clientId}
-                      clientName={clientInfoProps.clientName}
-                      clientEmail={clientInfoProps.clientEmail}
-                      clientCompany={clientInfoProps.clientCompany}
-                      remarks={clientInfoProps.remarks}
-                      setRemarks={clientInfoProps.setRemarks}
-                      onOpenClientSelector={clientInfoProps.onOpenClientSelector}
-                      handleSaveOffer={clientInfoProps.handleSaveOffer}
-                      isSubmitting={clientInfoProps.isSubmitting}
-                      selectedLeaser={clientInfoProps.selectedLeaser}
-                      equipmentList={clientInfoProps.equipmentList}
-                      hideFinancialDetails={hideFinancialDetails}
-                    />
-                  </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+                <div className="xl:col-span-2">
+                  <EquipmentForm
+                    equipment={equipment}
+                    setEquipment={setEquipment}
+                    selectedLeaser={selectedLeaser}
+                    addToList={addToList}
+                    editingId={editingId}
+                    cancelEditing={cancelEditing}
+                    onOpenCatalog={() => setIsCatalogOpen(true)}
+                    coefficient={coefficient}
+                    monthlyPayment={monthlyPayment}
+                    targetMonthlyPayment={targetMonthlyPayment}
+                    setTargetMonthlyPayment={setTargetMonthlyPayment}
+                    calculatedMargin={calculatedMargin}
+                    applyCalculatedMargin={applyCalculatedMargin}
+                  />
                 </div>
-              </>}
+
+                <div className="xl:col-span-3 space-y-8">
+                  <EquipmentList
+                    equipmentList={equipmentList}
+                    editingId={editingId}
+                    startEditing={startEditing}
+                    removeFromList={removeFromList}
+                    updateQuantity={updateQuantity}
+                    totalMonthlyPayment={totalMonthlyPayment}
+                    globalMarginAdjustment={{
+                      amount: globalMarginAdjustment.amount,
+                      newCoef: globalMarginAdjustment.newCoef,
+                      active: globalMarginAdjustment.adaptMonthlyPayment,
+                      marginDifference: globalMarginAdjustment.marginDifference
+                    }}
+                    toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                  />
+                  
+                  <ClientInfo
+                    clientId={clientId}
+                    clientName={clientName}
+                    clientEmail={clientEmail}
+                    clientCompany={clientCompany}
+                    remarks={remarks}
+                    setRemarks={setRemarks}
+                    onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                    handleSaveOffer={handleSaveOffer}
+                    isSubmitting={isSubmitting}
+                    selectedLeaser={selectedLeaser}
+                    equipmentList={equipmentList}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        <ProductSelector
+          isOpen={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onSelectProduct={handleProductSelect}
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
+        />
+
+        <ClientSelector
+          isOpen={isClientSelectorOpen}
+          onClose={() => setIsClientSelectorOpen(false)}
+          onSelectClient={handleClientSelect}
+          selectedClientId={clientId}
+          onClientSelect={() => {}}
+        />
+        
+        <LeaserSelector
+          isOpen={isLeaserSelectorOpen}
+          onClose={() => setIsLeaserSelectorOpen(false)}
+          onSelect={handleLeaserSelect}
+          selectedLeaser={selectedLeaser}
+        />
       </Container>
-    </PageTransition>;
+    </PageTransition>
+  );
 };
+
 export default CreateOffer;
