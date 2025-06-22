@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -22,7 +23,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers } from "@/services/leaserService";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
@@ -41,12 +42,11 @@ const LeaserManager = () => {
   }, []);
 
   const loadLeasers = async () => {
+    console.log('=== LeaserManager: Loading leasers ===');
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log('=== LeaserManager: Loading leasers ===');
-      
       const fetchedLeasers = await getLeasers();
       console.log('=== LeaserManager: Fetched leasers result ===');
       console.log('Count:', fetchedLeasers.length);

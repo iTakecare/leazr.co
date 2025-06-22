@@ -10,9 +10,9 @@ import { toast } from 'sonner';
  */
 export const getLeasers = async (): Promise<Leaser[]> => {
   try {
-    console.log('Fetching leasers from database...');
+    console.log('=== FETCHING LEASERS - Simple query without filtering ===');
     
-    // Fetch ALL leasers without any filtering - debug version
+    // Simple query without any filtering to avoid RLS issues
     const { data, error } = await supabase
       .from('leasers')
       .select(`
