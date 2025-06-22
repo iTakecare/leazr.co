@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -34,11 +35,21 @@ export const createOffer = async (offerData: OfferData) => {
     if (!companyId) {
       throw new Error("Impossible de récupérer l'ID de l'entreprise. Veuillez vous reconnecter.");
     }
+
+    // Vérifier que l'utilisateur est bien authentifié
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    console.log("Utilisateur authentifié:", user.id);
+    console.log("Company ID final:", companyId);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
       company_id: companyId, // Ajouter explicitement le company_id
+      user_id: user.id, // S'assurer que user_id est défini
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
@@ -134,19 +145,13 @@ export const createOffer = async (offerData: OfferData) => {
       });
     }
     
-    // Log des données finales
-    console.log("Données finales de l'offre avant sauvegarde:", {
-      amount: offerDataToSave.amount,
-      coefficient: offerDataToSave.coefficient,
-      monthly_payment: offerDataToSave.monthly_payment,
-      financed_amount: offerDataToSave.financed_amount,
-      commission: offerDataToSave.commission,
-      margin: offerDataToSave.margin,
-      type: offerDataToSave.type,
-      company_id: offerDataToSave.company_id,
-      user_id: offerDataToSave.user_id,
-      client_id: offerDataToSave.client_id
-    });
+    // Log des données finales AVANT insertion
+    console.log("=== DONNÉES FINALES POUR RLS DEBUG ===");
+    console.log("company_id:", offerDataToSave.company_id);
+    console.log("user_id:", offerDataToSave.user_id);
+    console.log("client_id:", offerDataToSave.client_id);
+    console.log("type:", offerDataToSave.type);
+    console.log("Toutes les données:", offerDataToSave);
     
     // Insertion de l'offre
     const { data, error } = await supabase
@@ -156,7 +161,12 @@ export const createOffer = async (offerData: OfferData) => {
       .single();
     
     if (error) {
-      console.error("Erreur lors de l'insertion de l'offre:", error);
+      console.error("=== ERREUR RLS DÉTAILLÉE ===");
+      console.error("Message d'erreur:", error.message);
+      console.error("Code d'erreur:", error.code);
+      console.error("Détails:", error.details);
+      console.error("Hint:", error.hint);
+      console.error("Données tentées:", offerDataToSave);
       return { data: null, error };
     }
     
