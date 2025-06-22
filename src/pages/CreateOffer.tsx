@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 const CreateOffer = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  
+  // TOUS LES HOOKS DOIVENT ÊTRE APPELÉS EN PREMIER, SANS CONDITIONS
   const { companyId, loading: companyIdLoading, error: companyIdError } = useCompanyId();
   
   const [client, setClient] = useState<Client | null>(null);
@@ -39,6 +42,7 @@ const CreateOffer = () => {
   const [remarks, setRemarks] = useState("");
   const [isInternalOffer, setIsInternalOffer] = useState(true);
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  
   const {
     equipment,
     setEquipment,
@@ -62,44 +66,6 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
-  
-  // Afficher une erreur si le company_id ne peut pas être récupéré
-  if (companyIdError) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="py-12 px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
-              <p className="text-gray-600">{companyIdError}</p>
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                className="mt-4"
-              >
-                Retour au tableau de bord
-              </Button>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
-  // Afficher un loader pendant le chargement du company_id
-  if (companyIdLoading) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="py-12 px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-gray-600">Chargement des informations d'entreprise...</p>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
 
   useEffect(() => {
     const fetchLeasers = async () => {
@@ -287,7 +253,45 @@ const CreateOffer = () => {
   
   const hideFinancialDetails = !isAdmin();
   
-  return <PageTransition>
+  // GESTION DES CONDITIONS D'AFFICHAGE AVEC JSX CONDITIONNEL
+  if (companyIdError) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-12 px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
+              <p className="text-gray-600">{companyIdError}</p>
+              <Button 
+                onClick={() => navigate('/dashboard')} 
+                className="mt-4"
+              >
+                Retour au tableau de bord
+              </Button>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (companyIdLoading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-12 px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-600">Chargement des informations d'entreprise...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+  
+  return (
+    <PageTransition>
       <Container>
         <ClientSelector isOpen={clientSelectorOpen} onClose={() => setClientSelectorOpen(false)} onSelectClient={handleSelectClient} selectedClientId="" onClientSelect={() => {}} />
         
@@ -307,10 +311,13 @@ const CreateOffer = () => {
               </div>
             </div>
 
-            {loading ? <div className="flex items-center justify-center h-64">
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2">Chargement...</span>
-              </div> : <>
+              </div>
+            ) : (
+              <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
                     <div className="mb-4">
@@ -390,11 +397,13 @@ const CreateOffer = () => {
                     />
                   </div>
                 </div>
-              </>}
+              </>
+            )}
           </div>
         </div>
       </Container>
-    </PageTransition>;
+    </PageTransition>
+  );
 };
 
 export default CreateOffer;
