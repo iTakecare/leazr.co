@@ -27,7 +27,6 @@ import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
-import { v4 as uuidv4, validate as isUUID } from 'uuid';
 
 const LeaserManager = () => {
   const [leasers, setLeasers] = useState<Leaser[]>([]);
@@ -49,8 +48,12 @@ const LeaserManager = () => {
     try {
       console.log('LeaserManager: Initializing leasers...');
       
-      // Insérer les leasers par défaut si nécessaire
+      // Force insert default leasers first
+      console.log('LeaserManager: Forcing default leasers insertion...');
       await insertDefaultLeasers();
+      
+      // Wait a bit to ensure the insertion is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Récupérer les leasers
       const fetchedLeasers = await getLeasers();
@@ -75,8 +78,16 @@ const LeaserManager = () => {
     setIsRefreshing(true);
     try {
       console.log('LeaserManager: Refreshing leasers...');
+      
+      // Force re-initialization
+      await insertDefaultLeasers();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const fetchedLeasers = await getLeasers();
+      console.log('LeaserManager: Refreshed leasers:', fetchedLeasers);
+      
       setLeasers(fetchedLeasers);
+      setError(null);
       toast.success("Liste des leasers actualisée");
     } catch (error: any) {
       console.error('LeaserManager: Error during refresh:', error);
@@ -182,7 +193,17 @@ const LeaserManager = () => {
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshLeasers}
+                  className="ml-2"
+                >
+                  Réessayer
+                </Button>
+              </AlertDescription>
             </Alert>
           )}
           
