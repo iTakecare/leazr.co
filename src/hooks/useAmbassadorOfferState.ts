@@ -12,7 +12,7 @@ import { ClientSelectorClient } from "@/components/ui/ClientSelector";
 
 export const useAmbassadorOfferState = () => {
   const { clientId, ambassadorId } = useParams();
-  const { user } = useAuth();
+  const { user, ambassadorId: authAmbassadorId } = useAuth();
   
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,10 +52,10 @@ export const useAmbassadorOfferState = () => {
   
   useEffect(() => {
     // Améliorer la logique de récupération de l'ambassadeur
-    const targetAmbassadorId = ambassadorId || user?.ambassador_id;
+    const targetAmbassadorId = ambassadorId || authAmbassadorId;
     console.log("🔍 DIAGNOSTIC - Récupération ambassadeur:", {
       ambassadorIdFromParams: ambassadorId,
-      userAmbassadorId: user?.ambassador_id,
+      authAmbassadorId: authAmbassadorId,
       targetAmbassadorId,
       user: user
     });
@@ -66,7 +66,7 @@ export const useAmbassadorOfferState = () => {
       // Si pas d'ambassador_id direct, essayer de trouver l'ambassadeur via l'ID utilisateur
       fetchAmbassadorByUserId(user.id);
     }
-  }, [ambassadorId, user]);
+  }, [ambassadorId, authAmbassadorId, user]);
 
   const fetchAmbassadorByUserId = async (userId: string) => {
     try {

@@ -105,11 +105,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const enrichedData = {
         email: currentUser.email || '',
-        role: profileData?.role || 'client',
-        client_id: profileData?.client_id || '',
+        role: (profileData as any)?.role || 'client',
+        client_id: (profileData as any)?.client_id || '',
         partner_id: finalPartnerId || '',
         ambassador_id: finalAmbassadorId || '',
-        company_id: profileData?.company_id || ''
+        company_id: (profileData as any)?.company_id || ''
       };
 
       console.log("📝 ENRICH - Données enrichies:", enrichedData);
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     try {
-      const enrichedData = await Promise.race([enrichPromise(), timeoutPromise]);
+      const enrichedData = await Promise.race([enrichPromise(), timeoutPromise]) as any;
       
       console.log("🔄 AUTH EVENT - Utilisateur défini:", currentUser.email);
       setUser(currentUser);

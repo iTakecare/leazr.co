@@ -57,7 +57,7 @@ const OffersView = ({
   const hideFinancialDetails = owner.type === "ambassador";
   
   // Only admins can see margin column
-  const showMarginColumn = isAdmin();
+  const showMarginColumn = isAdmin;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>

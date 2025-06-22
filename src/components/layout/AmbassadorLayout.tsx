@@ -6,17 +6,17 @@ import AmbassadorSidebar from "./AmbassadorSidebar";
 import { toast } from "sonner";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
       navigate("/login", { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, loading, navigate]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-primary"></div>

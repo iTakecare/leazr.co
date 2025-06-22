@@ -46,8 +46,10 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   const getUserInitials = () => {
     if (!user) return "IT";
     
-    if (user.first_name && user.last_name) {
-      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    // Récupérer les données depuis les métadonnées utilisateur
+    const metadata = user.user_metadata || {};
+    if (metadata.first_name && metadata.last_name) {
+      return `${metadata.first_name.charAt(0)}${metadata.last_name.charAt(0)}`.toUpperCase();
     } else if (user.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
