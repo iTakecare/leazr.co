@@ -80,6 +80,15 @@ const ClientDashboard = () => {
     }
   };
 
+  // Get user display name from metadata or email
+  const getUserDisplayName = () => {
+    const metadata = user?.user_metadata || {};
+    if (metadata.first_name) {
+      return metadata.first_name;
+    }
+    return user?.email?.split('@')[0] || 'Utilisateur';
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -123,7 +132,7 @@ const ClientDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard Client</h1>
             <p className="text-muted-foreground">
-              Bonjour {clientData?.name || user?.first_name || user?.email?.split('@')[0]}, voici un aperçu de votre activité
+              Bonjour {clientData?.name || getUserDisplayName()}, voici un aperçu de votre activité
             </p>
           </div>
           <Button
