@@ -48,9 +48,18 @@ export const useAmbassadorOfferSave = ({
       return;
     }
     
-    const currentAmbassadorId = ambassadorId || userId;
+    // Améliorer la logique de récupération de l'ID ambassadeur
+    const currentAmbassadorId = ambassadorId || userId || ambassador?.id;
+    console.log("🔍 DIAGNOSTIC - IDs disponibles:", {
+      ambassadorId,
+      userId,
+      ambassadorFromObject: ambassador?.id,
+      currentAmbassadorId
+    });
+    
     if (!currentAmbassadorId) {
-      toast.error("ID ambassadeur manquant");
+      console.error("🔍 DIAGNOSTIC - Aucun ID ambassadeur trouvé");
+      toast.error("ID ambassadeur manquant. Veuillez vous reconnecter.");
       return;
     }
     
@@ -143,7 +152,7 @@ export const useAmbassadorOfferSave = ({
         margin: marginAmount
       };
       
-      console.log("Saving offer with data:", offerData);
+      console.log("🔍 DIAGNOSTIC - Données d'offre à sauvegarder:", offerData);
       
       const { data, error } = await createOffer(offerData);
       
