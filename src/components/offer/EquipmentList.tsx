@@ -61,7 +61,7 @@ const EquipmentList = ({
   const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
   const coefficient = globalMarginAdjustment.newCoef || 3.27;
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
-  const adjustedMonthlyPayment = globalMarginAdjustment.active ? totalMonthlyPayment : (totalPurchasePrice + totalMarginAmount) / coefficient * 100;
+  const adjustedMargin = globalMarginAdjustment.active ? globalMarginAdjustment.marginDifference : 0;
 
   return (
     <div className="space-y-6">
@@ -209,6 +209,15 @@ const EquipmentList = ({
                   </div>
                 </div>
                 
+                {globalMarginAdjustment.active && adjustedMargin !== 0 && (
+                  <div className="flex items-center justify-between py-1">
+                    <div className="text-sm text-orange-600">Marge ajustée au coefficient:</div>
+                    <div className="font-medium text-orange-600">
+                      {formatCurrency(adjustedMargin)}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between py-1">
                   <div className="text-sm text-gray-600">Coefficient:</div>
                   <div className="font-medium text-gray-900">
@@ -230,15 +239,6 @@ const EquipmentList = ({
                       {formatCurrency(totalMonthlyPayment)}
                     </div>
                   </div>
-                  
-                  {globalMarginAdjustment.active && (
-                    <div className="flex items-center justify-between py-1">
-                      <div className="text-sm text-orange-600">Mensualité ajustée au coefficient:</div>
-                      <div className="text-orange-600 font-medium">
-                        {formatCurrency(adjustedMonthlyPayment)}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="border-t pt-3 mt-3">
