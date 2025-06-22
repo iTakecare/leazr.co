@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,9 @@ const EquipmentList = ({
                       Mensualité
                     </th>
                   )}
-                  <th className="px-4 py-2 text-right text-sm font-medium text-gray-700"></th>
+                  <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -96,42 +99,41 @@ const EquipmentList = ({
                       {formatCurrency(item.purchasePrice)}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {editingId === item.id ? (
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() =>
-                              handleQuantityChange(item.id, item.quantity - 1)
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleQuantityChange(item.id, Math.max(1, item.quantity - 1))
+                          }
+                          disabled={item.quantity <= 1}
+                          className="h-8 w-8"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseInt(e.target.value, 10);
+                            if (!isNaN(newQuantity) && newQuantity >= 1) {
+                              handleQuantityChange(item.id, newQuantity);
                             }
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const newQuantity = parseInt(e.target.value, 10);
-                              if (!isNaN(newQuantity)) {
-                                handleQuantityChange(item.id, newQuantity);
-                              }
-                            }}
-                            className="w-16 text-center"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() =>
-                              handleQuantityChange(item.id, item.quantity + 1)
-                            }
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        item.quantity
-                      )}
+                          }}
+                          className="w-16 text-center h-8"
+                          min="1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleQuantityChange(item.id, item.quantity + 1)
+                          }
+                          className="h-8 w-8"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </td>
                     {!hideFinancialDetails && (
                       <td className="px-4 py-3 text-sm text-gray-900">
@@ -144,30 +146,22 @@ const EquipmentList = ({
                       </td>
                     )}
                     <td className="px-4 py-3 text-right space-x-2">
-                      {editingId === item.id ? (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => startEditing(null)}
-                        >
-                          Annuler
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startEditing(item.id)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEditing(item.id)}
+                        className="h-8"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Modifier
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => removeFromList(item.id)}
+                        className="h-8"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash2 className="h-3 w-3 mr-1" />
                         Supprimer
                       </Button>
                     </td>
