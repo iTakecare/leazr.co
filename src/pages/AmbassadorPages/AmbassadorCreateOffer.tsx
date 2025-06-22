@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import EquipmentForm from "@/components/offer/EquipmentForm";
-import { EquipmentFormData } from "@/types/equipment";
+import { EquipmentFormData, Leaser } from "@/types/equipment";
 import { Calculator, FileText, User, Building, Euro, CalendarDays, Package } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
@@ -38,7 +37,7 @@ const AmbassadorCreateOffer: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
-  const [selectedLeaserId, setSelectedLeaserId] = useState<string>("");
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
   const [equipment, setEquipment] = useState<EquipmentFormData[]>([]);
   const [duration, setDuration] = useState<number>(36);
   const [notes, setNotes] = useState<string>("");
@@ -125,7 +124,7 @@ const AmbassadorCreateOffer: React.FC = () => {
       case 1:
         return selectedClientId !== "";
       case 2:
-        return selectedLeaserId !== "";
+        return selectedLeaser !== null;
       case 3:
         return equipment.length > 0 && equipment.every(item => 
           item.name && item.monthly_price > 0 && item.quantity > 0
@@ -143,12 +142,17 @@ const AmbassadorCreateOffer: React.FC = () => {
       return;
     }
 
+    if (!selectedLeaser) {
+      toast.error("Veuillez sélectionner un bailleur");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const offerData: OfferData = {
         client_id: selectedClientId,
-        leaser_id: selectedLeaserId,
+        leaser_id: selectedLeaser.id,
         duration: duration,
         equipment: equipment,
         notes: notes,
@@ -224,6 +228,14 @@ const AmbassadorCreateOffer: React.FC = () => {
     }
   };
 
+  const handleSelectClient = (client: any) => {
+    setSelectedClientId(client.id);
+  };
+
+  const handleLeaserSelect = (leaser: Leaser) => {
+    setSelectedLeaser(leaser);
+  };
+
   const stepTitles = [
     "Sélection du client",
     "Sélection du bailleur", 
@@ -286,9 +298,12 @@ const AmbassadorCreateOffer: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ClientSelector
+                isOpen={true}
+                onClose={() => {}}
+                onSelectClient={handleSelectClient}
                 selectedClientId={selectedClientId}
-                onClientSelect={setSelectedClientId}
-                showCreateOption={true}
+                onClientSelect={() => {}}
+                ambassadorMode={true}
               />
             </CardContent>
           </Card>
@@ -305,8 +320,10 @@ const AmbassadorCreateOffer: React.FC = () => {
             </CardHeader>
             <CardContent>
               <LeaserSelector
-                selectedLeaser={selectedLeaserId}
-                onSelect={setSelectedLeaserId}
+                isOpen={true}
+                onClose={() => {}}
+                selectedLeaser={selectedLeaser}
+                onSelect={handleLeaserSelect}
               />
               <div className="mt-4">
                 <Label htmlFor="duration">Durée du contrat (mois)</Label>
@@ -336,7 +353,7 @@ const AmbassadorCreateOffer: React.FC = () => {
             <CardContent>
               <EquipmentForm
                 equipment={equipment as any}
-                onEquipmentChange={setEquipment as any}
+                setEquipment={setEquipment as any}
                 duration={duration}
               />
             </CardContent>
