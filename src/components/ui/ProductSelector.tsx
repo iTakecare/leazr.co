@@ -224,7 +224,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     <div key={product.id} className="cursor-pointer">
                       <CatalogProductCard 
                         product={product} 
-                        onClick={() => handleProductSelect(product)}
+                        onViewProduct={() => handleProductSelect(product)}
                         onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
                       />
                     </div>

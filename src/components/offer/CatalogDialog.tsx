@@ -21,11 +21,13 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
 }) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showVariantSelector, setShowVariantSelector] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   
   useEffect(() => {
     if (!isOpen) {
       setSelectedProduct(null);
       setShowVariantSelector(false);
+      setSelectedOptions({});
     }
   }, [isOpen]);
   
@@ -59,6 +61,22 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
   const handleBackToProducts = () => {
     setShowVariantSelector(false);
     setSelectedProduct(null);
+    setSelectedOptions({});
+  };
+
+  const handleOptionChange = (optionName: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [optionName]: value
+    }));
+  };
+
+  const isOptionAvailable = (optionName: string, value: string): boolean => {
+    if (!selectedProduct?.variant_combination_prices) return true;
+    
+    return selectedProduct.variant_combination_prices.some(variant => 
+      variant.attributes && variant.attributes[optionName] === value
+    );
   };
   
   return (
@@ -88,8 +106,12 @@ const CatalogDialog: React.FC<CatalogDialogProps> = ({
             <ScrollArea className="h-full max-h-[calc(90vh-80px)]">
               <div className="p-4">
                 <VariantSelector 
-                  product={selectedProduct}
-                  onVariantSelect={onVariantSelect}
+                  variationAttributes={selectedProduct.variation_attributes || {}}
+                  selectedOptions={selectedOptions}
+                  onOptionChange={handleOptionChange}
+                  isOptionAvailable={isOptionAvailable}
+                  hasVariants={true}
+                  hasOptions={Object.keys(selectedProduct.variation_attributes || {}).length > 0}
                 />
               </div>
             </ScrollArea>
