@@ -42,6 +42,10 @@ export const createOffer = async (offerData: OfferData) => {
       margin: offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         0,
+      financed_amount: offerData.financed_amount !== undefined && offerData.financed_amount !== null ?
+        (typeof offerData.financed_amount === 'string' ? parseFloat(offerData.financed_amount) : offerData.financed_amount) :
+        0,
+      ambassador_id: offerData.ambassador_id || null,
       workflow_status: offerData.workflow_status || "draft",
       type: offerData.type || "internal_offer",
       remarks: offerData.remarks || "",
