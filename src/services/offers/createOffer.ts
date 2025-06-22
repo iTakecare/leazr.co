@@ -27,19 +27,57 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Résultat de la requête profil:", { profile, profileError });
     
-    if (profileError) {
-      console.error("Erreur lors de la récupération du profil:", profileError);
-      throw new Error(`Erreur profil: ${profileError.message}`);
-    }
-    
-    if (!profile) {
-      console.error("Profil utilisateur introuvable");
-      throw new Error("Profil utilisateur introuvable");
-    }
-    
-    if (!profile.company_id) {
-      console.error("company_id manquant dans le profil:", profile);
-      throw new Error("company_id manquant dans le profil utilisateur");
+    if (profileError || !profile || !profile.company_id) {
+      console.error("Erreur lors de la récupération du profil ou company_id manquant:", { profileError, profile });
+      
+      // Fallback: essayer d'utiliser la fonction get_user_company_id
+      console.log("Tentative avec get_user_company_id...");
+      const { data: companyIdFromFunction, error: functionError } = await supabase
+        .rpc('get_user_company_id');
+      
+      if (functionError || !companyIdFromFunction) {
+        console.error("Erreur avec get_user_company_id:", functionError);
+        throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+      }
+      
+      console.log("Company ID récupéré via fonction:", companyIdFromFunction);
+      const companyId = companyIdFromFunction;
+      
+      // Créer les données d'offre avec le company_id récupéré
+      const offerDataToSave = {
+        ...offerData,
+        company_id: companyId,
+        user_id: user.id,
+        amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
+        coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
+        monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
+        commission: offerData.commission !== undefined && offerData.commission !== null ? 
+          (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
+          undefined,
+        margin: offerData.margin !== undefined && offerData.margin !== null ?
+          (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
+          undefined
+      };
+
+      console.log("=== DONNÉES FINALES POUR INSERTION ===");
+      console.log("company_id:", offerDataToSave.company_id);
+      console.log("user_id:", offerDataToSave.user_id);
+      
+      const { data, error } = await supabase
+        .from('offers')
+        .insert([offerDataToSave])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("=== ERREUR LORS DE L'INSERTION ===");
+        console.error("Message d'erreur:", error.message);
+        console.error("Données tentées:", offerDataToSave);
+        return { data: null, error };
+      }
+      
+      console.log("Offre créée avec succès:", data);
+      return { data, error: null };
     }
 
     const companyId = profile.company_id;
@@ -48,8 +86,8 @@ export const createOffer = async (offerData: OfferData) => {
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
-      company_id: companyId, // Utiliser le company_id récupéré
-      user_id: user.id, // S'assurer que user_id est défini
+      company_id: companyId,
+      user_id: user.id,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
