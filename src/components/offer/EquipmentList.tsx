@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,7 @@ const EquipmentList = ({
     active: globalMarginAdjustment.active,
     marginDifference: globalMarginAdjustment.marginDifference,
     adjustedMargin: adjustedMargin,
-    shouldShow: globalMarginAdjustment.active && Math.abs(adjustedMargin) > 0.01
+    shouldShow: globalMarginAdjustment.active
   });
 
   return (
@@ -216,7 +215,7 @@ const EquipmentList = ({
                   </div>
                 </div>
                 
-                {globalMarginAdjustment.active && Math.abs(adjustedMargin) > 0.01 && (
+                {globalMarginAdjustment.active && (
                   <div className="flex items-center justify-between py-1 bg-orange-50 px-3 rounded-md border border-orange-200">
                     <div className="text-sm font-medium text-orange-700">Marge ajustée au coefficient:</div>
                     <div className="font-bold text-orange-700">
