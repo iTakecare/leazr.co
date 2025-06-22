@@ -1,55 +1,41 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
-    console.log("=== DÉBUT CRÉATION OFFRE ===");
+    // Log pour le débogage
     console.log("DONNÉES D'OFFRE REÇUES:", offerData);
     
-    // Vérifier que l'utilisateur est bien authentifié AVANT tout
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("Utilisateur non authentifié:", authError);
-      throw new Error("Utilisateur non authentifié");
+    // Récupérer le company_id de l'utilisateur connecté
+    let companyId;
+    try {
+      companyId = await getCurrentUserCompanyId();
+      console.log("Company ID récupéré:", companyId);
+    } catch (error) {
+      console.error("Erreur lors de la récupération du company_id:", error);
+      throw new Error("Impossible de récupérer l'ID de l'entreprise");
     }
 
-    console.log("Utilisateur authentifié:", user.id);
-    
-    // VALIDATION STRICTE : S'assurer que company_id est présent
-    if (!offerData.company_id) {
-      console.error("ERREUR CRITIQUE: company_id manquant dans offerData:", offerData);
-      throw new Error("company_id est obligatoire pour créer une offre");
+    if (!companyId) {
+      throw new Error("Company ID is required but not found");
     }
-    
-    console.log("Company ID validé:", offerData.company_id);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
-      client_id: offerData.client_id,
-      client_name: offerData.client_name,
-      client_email: offerData.client_email,
-      equipment_description: offerData.equipment_description,
-      company_id: offerData.company_id, // EXPLICITEMENT INCLUS
-      user_id: user.id,
+      ...offerData,
+      company_id: companyId, // Ajouter explicitement le company_id
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
       commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
-        0,
+        undefined,
+      // Convertir la marge si elle est présente
       margin: offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
-        0,
-      financed_amount: offerData.financed_amount !== undefined && offerData.financed_amount !== null ?
-        (typeof offerData.financed_amount === 'string' ? parseFloat(offerData.financed_amount) : offerData.financed_amount) :
-        0,
-      ambassador_id: offerData.ambassador_id || null,
-      workflow_status: offerData.workflow_status || "draft",
-      type: offerData.type || "internal_offer",
-      remarks: offerData.remarks || "",
-      total_margin_with_difference: offerData.total_margin_with_difference || "0"
+        undefined
     };
 
     // Calculer le montant financé si non défini
@@ -68,8 +54,20 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("Marge calculée:", offerDataToSave.margin);
     }
 
-    // Gestion des commissions pour les ambassadeurs
-    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+    // Vérification pour commission invalide (NaN)
+    if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
+      console.warn("Commission invalide détectée (NaN) dans createOffer.ts, définition à 0");
+      offerDataToSave.commission = 0;
+    }
+
+    // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
+    // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
+    if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
+      console.log(`Utilisation de la commission fournie explicitement dans les données: ${offerDataToSave.commission}`);
+    }
+    // Sinon, essayons de calculer la commission en fonction du type d'offre
+    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+      // Récupérer l'ambassador_id associé à cet utilisateur
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
         .select('id, commission_level_id')
@@ -79,8 +77,10 @@ export const createOffer = async (offerData: OfferData) => {
       if (!ambassadorError && ambassadorData) {
         offerDataToSave.ambassador_id = ambassadorData.id;
         
+        // Si nous avons un montant et un niveau de commission, recalculons la commission
         if (offerDataToSave.amount && ambassadorData.commission_level_id) {
           try {
+            // Ensure amount is a number for calculation
             const amount = typeof offerDataToSave.amount === 'string' 
               ? parseFloat(offerDataToSave.amount) 
               : offerDataToSave.amount;
@@ -103,44 +103,52 @@ export const createOffer = async (offerData: OfferData) => {
       }
     }
     
-    // Log des données finales AVANT insertion
-    console.log("=== DONNÉES FINALES POUR INSERTION ===");
-    console.log("Toutes les données à sauvegarder:", JSON.stringify(offerDataToSave, null, 2));
-    
-    // VALIDATION FINALE STRICTE
-    if (!offerDataToSave.company_id) {
-      console.error("ERREUR FATALE: company_id null après traitement");
-      throw new Error("company_id null après traitement - abandon de la création");
+    // Si le type est client_request, s'assurer que toutes les informations financières sont renseignées
+    if (offerData.type === 'client_request' || offerData.type === 'product_request') {
+      // Structure correcte pour le stockage des équipements dans le champ equipment_description
+      // Si les équipements sont fournis sous forme d'un tableau JSON, les stocker ainsi
+      if (offerData.equipment && Array.isArray(offerData.equipment)) {
+        offerDataToSave.equipment_description = JSON.stringify(offerData.equipment);
+      }
+      
+      console.log("Demande client, données finales:", {
+        amount: offerDataToSave.amount,
+        coefficient: offerDataToSave.coefficient,
+        monthly_payment: offerDataToSave.monthly_payment,
+        financed_amount: offerDataToSave.financed_amount,
+        margin: offerDataToSave.margin,
+        company_id: offerDataToSave.company_id
+      });
     }
-    if (!offerDataToSave.user_id) {
-      console.error("ERREUR FATALE: user_id null après traitement");
-      throw new Error("user_id null après traitement - abandon de la création");
-    }
     
-    console.log("=== ENVOI VERS SUPABASE ===");
+    // Log des données finales
+    console.log("Données finales de l'offre avant sauvegarde:", {
+      amount: offerDataToSave.amount,
+      coefficient: offerDataToSave.coefficient,
+      monthly_payment: offerDataToSave.monthly_payment,
+      financed_amount: offerDataToSave.financed_amount,
+      commission: offerDataToSave.commission,
+      margin: offerDataToSave.margin,
+      type: offerDataToSave.type,
+      company_id: offerDataToSave.company_id
+    });
     
-    // Insertion simplifiée avec select('*') pour éviter les problèmes de colonnes
+    // Insertion de l'offre
     const { data, error } = await supabase
       .from('offers')
-      .insert(offerDataToSave)
-      .select('*')
+      .insert([offerDataToSave])
+      .select()
       .single();
     
     if (error) {
-      console.error("=== ERREUR LORS DE L'INSERTION ===");
-      console.error("Message d'erreur:", error.message);
-      console.error("Code d'erreur:", error.code);
-      console.error("Détails:", error.details);
-      console.error("Hint:", error.hint);
-      console.error("Données envoyées:", JSON.stringify(offerDataToSave, null, 2));
+      console.error("Erreur lors de l'insertion de l'offre:", error);
       return { data: null, error };
     }
     
-    console.log("=== SUCCÈS ===");
-    console.log("Offre créée avec succès:", data);
+    console.log("Offre créée avec succès, données:", data);
     return { data, error: null };
   } catch (error) {
-    console.error("=== ERREUR DANS createOffer ===", error);
+    console.error("Error in createOffer:", error);
     return { data: null, error };
   }
 };

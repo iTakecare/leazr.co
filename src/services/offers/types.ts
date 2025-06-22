@@ -1,3 +1,4 @@
+
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -33,8 +34,6 @@ export interface OfferData {
   signer_ip?: string;
   margin?: number | string; // Ajout de cette propriété pour résoudre les erreurs
   equipment?: any[]; // Ajout de cette propriété pour résoudre les erreurs
-  company_id?: string; // Add the missing company_id property
-  total_margin_with_difference?: string; // Add this property as it's used in CreateOffer.tsx
 }
 
 export enum OfferStatus {

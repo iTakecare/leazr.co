@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,12 @@ import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
-import { useCompanyId } from "@/hooks/useCompanyId";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAllClients } from "@/services/clientService";
-import { createOfferNew } from "@/services/offers/createOfferNew";
+import { createOffer } from "@/services/offers/createOffer";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
@@ -29,11 +27,10 @@ import { Switch } from "@/components/ui/switch";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
-  
-  // TOUS LES HOOKS DOIVENT ÊTRE APPELÉS EN PREMIER, SANS CONDITIONS
-  const { companyId, loading: companyIdLoading, error: companyIdError } = useCompanyId();
-  
+  const {
+    user,
+    isAdmin
+  } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +39,6 @@ const CreateOffer = () => {
   const [remarks, setRemarks] = useState("");
   const [isInternalOffer, setIsInternalOffer] = useState(true);
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
-  
   const {
     equipment,
     setEquipment,
@@ -66,7 +62,6 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
-
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -81,7 +76,6 @@ const CreateOffer = () => {
     };
     fetchLeasers();
   }, []);
-  
   const fetchClient = async (id: string) => {
     try {
       setLoading(true);
@@ -98,11 +92,9 @@ const CreateOffer = () => {
       setLoading(false);
     }
   };
-  
   const handleOpenClientSelector = () => {
     setClientSelectorOpen(true);
   };
-  
   const handleSelectClient = (selectedClient: ClientSelectorClient) => {
     setClient({
       id: selectedClient.id,
@@ -113,23 +105,17 @@ const CreateOffer = () => {
       updated_at: new Date()
     });
   };
-  
   const handleOpenLeaserSelector = () => {
     setLeaserSelectorOpen(true);
   };
-  
   const handleLeaserSelect = (leaser: Leaser) => {
     setSelectedLeaser(leaser);
     setLeaserSelectorOpen(false);
   };
-  
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
-  
   const handleSaveOffer = async () => {
-    console.log("=== DÉBUT SAUVEGARDE NOUVELLE VERSION ===");
-    
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
       return;
@@ -138,22 +124,6 @@ const CreateOffer = () => {
       toast.error("Veuillez ajouter au moins un équipement");
       return;
     }
-    
-    if (!companyId) {
-      console.error("ERREUR: companyId manquant");
-      toast.error("Erreur: Impossible de récupérer l'ID de l'entreprise");
-      return;
-    }
-
-    if (!user?.id) {
-      console.error("ERREUR: user.id manquant");
-      toast.error("Erreur: Utilisateur non authentifié");
-      return;
-    }
-
-    console.log("Validation OK - companyId:", companyId);
-    console.log("Validation OK - user.id:", user.id);
-
     try {
       setIsSubmitting(true);
       
@@ -176,55 +146,84 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-      const commissionAmount = isInternalOffer ? 0 : Math.round(financedAmount * 0.03);
+
+      let commissionAmount = 0;
+      if (isInternalOffer) {
+        commissionAmount = 0;
+        console.log("Offre interne - commission à 0");
+      } else {
+        const commissionElement = document.querySelector('.commission-value');
+        console.log("Recherche de l'élément de commission:", commissionElement);
+        if (commissionElement) {
+          try {
+            const commissionText = commissionElement.textContent || '';
+            const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
+            commissionAmount = parseFloat(numericValue);
+            console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
+            if (isNaN(commissionAmount)) {
+              console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
+              commissionAmount = Math.round(financedAmount * 0.03);
+            }
+          } catch (error) {
+            console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
+            commissionAmount = Math.round(financedAmount * 0.03);
+          }
+        } else {
+          console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
+          commissionAmount = Math.round(financedAmount * 0.03);
+        }
+      }
+
+      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
 
       const marginAmount = globalMarginAdjustment.amount || 0;
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
       const totalMarginWithDifference = marginAmount + marginDifference;
 
-      // Construction des données pour le nouveau service
+      console.log("Marge totale:", marginAmount);
+      console.log("Différence de marge:", marginDifference);
+      console.log("Total marge avec différence:", totalMarginWithDifference);
+
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
         equipment_description: equipmentDescription,
-        amount: globalMarginAdjustment.amount + totalPurchasePrice,
-        coefficient: currentCoefficient,
+        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + eq.purchasePrice * eq.quantity, 0),
+        coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: offerType,
-        user_id: user.id,
-        company_id: companyId,
+        user_id: user?.id || "",
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
         margin: String(marginAmount)
       };
 
-      console.log("=== DONNÉES POUR NOUVEAU SERVICE ===");
-      console.log("offerData:", offerData);
+      console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
+      console.log("Margin generated value being saved:", marginAmount);
 
-      const { data, error } = await createOfferNew(offerData);
+      const { data, error } = await createOffer(offerData);
 
       if (error) {
-        console.error("Erreur nouveau service:", error);
+        console.error("Erreur lors de la sauvegarde:", error);
         toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
         return;
       }
 
-      console.log("=== SUCCÈS NOUVEAU SERVICE ===");
-      console.log("data:", data);
       toast.success("Offre créée avec succès!");
       navigate("/offers");
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
+      console.error("Erreur lors de la sauvegarde de l'offre:", error);
       toast.error("Impossible de sauvegarder l'offre");
     } finally {
       setIsSubmitting(false);
     }
   };
-  
   const clientInfoProps = {
     clientId: client?.id || null,
     clientName: client?.name || "",
@@ -239,7 +238,6 @@ const CreateOffer = () => {
     equipmentList: equipmentList,
     hideFinancialDetails: !isAdmin()
   };
-  
   const handleAddEquipment = (title: string) => {
     setEquipment({
       id: crypto.randomUUID(),
@@ -250,48 +248,8 @@ const CreateOffer = () => {
       monthlyPayment: 0
     });
   };
-  
   const hideFinancialDetails = !isAdmin();
-  
-  // GESTION DES CONDITIONS D'AFFICHAGE AVEC JSX CONDITIONNEL
-  if (companyIdError) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="py-12 px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
-              <p className="text-gray-600">{companyIdError}</p>
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                className="mt-4"
-              >
-                Retour au tableau de bord
-              </Button>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
-  if (companyIdLoading) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="py-12 px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-gray-600">Chargement des informations d'entreprise...</p>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-  
-  return (
-    <PageTransition>
+  return <PageTransition>
       <Container>
         <ClientSelector isOpen={clientSelectorOpen} onClose={() => setClientSelectorOpen(false)} onSelectClient={handleSelectClient} selectedClientId="" onClientSelect={() => {}} />
         
@@ -311,13 +269,10 @@ const CreateOffer = () => {
               </div>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
+            {loading ? <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2">Chargement...</span>
-              </div>
-            ) : (
-              <>
+              </div> : <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
                     <div className="mb-4">
@@ -397,13 +352,10 @@ const CreateOffer = () => {
                     />
                   </div>
                 </div>
-              </>
-            )}
+              </>}
           </div>
         </div>
       </Container>
-    </PageTransition>
-  );
+    </PageTransition>;
 };
-
 export default CreateOffer;

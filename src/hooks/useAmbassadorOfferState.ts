@@ -51,67 +51,25 @@ export const useAmbassadorOfferState = () => {
   }, [clientId]);
   
   useEffect(() => {
-    // Améliorer la logique de récupération de l'ambassadeur
-    const targetAmbassadorId = ambassadorId || user?.ambassador_id;
-    console.log("🔍 DIAGNOSTIC - Récupération ambassadeur:", {
-      ambassadorIdFromParams: ambassadorId,
-      userAmbassadorId: user?.ambassador_id,
-      targetAmbassadorId,
-      user: user
-    });
-    
-    if (targetAmbassadorId) {
-      fetchAmbassador(targetAmbassadorId);
-    } else if (user?.id) {
-      // Si pas d'ambassador_id direct, essayer de trouver l'ambassadeur via l'ID utilisateur
-      fetchAmbassadorByUserId(user.id);
+    if (ambassadorId) {
+      fetchAmbassador(ambassadorId);
+    } else if (user?.ambassador_id) {
+      fetchAmbassador(user.ambassador_id);
     }
   }, [ambassadorId, user]);
-
-  const fetchAmbassadorByUserId = async (userId: string) => {
-    try {
-      setLoading(true);
-      console.log("🔍 DIAGNOSTIC - Recherche ambassadeur par user_id:", userId);
-      
-      const { data, error } = await supabase
-        .from("ambassadors")
-        .select("*, commission_levels(name)")
-        .eq("user_id", userId)
-        .single();
-      
-      if (error) {
-        console.error("🔍 DIAGNOSTIC - Erreur recherche ambassadeur par user_id:", error);
-        throw error;
-      }
-      
-      console.log("🔍 DIAGNOSTIC - Ambassadeur trouvé par user_id:", data);
-      setAmbassador(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement de l'ambassadeur par user_id:", error);
-      toast.error("Impossible de charger les informations de l'ambassadeur");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchAmbassador = async (id: string) => {
     try {
       setLoading(true);
-      console.log("🔍 DIAGNOSTIC - Recherche ambassadeur par ID:", id);
-      
       const { data, error } = await supabase
         .from("ambassadors")
         .select("*, commission_levels(name)")
         .eq("id", id)
         .single();
       
-      if (error) {
-        console.error("🔍 DIAGNOSTIC - Erreur recherche ambassadeur par ID:", error);
-        throw error;
-      }
-      
-      console.log("🔍 DIAGNOSTIC - Ambassadeur trouvé par ID:", data);
+      if (error) throw error;
       setAmbassador(data);
+      console.log("Ambassador data loaded:", data);
     } catch (error) {
       console.error("Erreur lors du chargement de l'ambassadeur:", error);
       toast.error("Impossible de charger les informations de l'ambassadeur");
@@ -170,7 +128,7 @@ export const useAmbassadorOfferState = () => {
     remarks,
     setRemarks,
     selectedLeaser,
-    ambassadorId: ambassadorId || ambassador?.id,
+    ambassadorId,
     user,
     handleSelectClient,
     handleLeaserSelect
