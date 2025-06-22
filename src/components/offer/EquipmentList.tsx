@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Edit, Plus, Minus } from "lucide-react";
+import { Trash2, Pencil, Plus, Minus } from "lucide-react";
 import { Equipment, Leaser } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
@@ -120,7 +120,7 @@ const EquipmentList = ({
                               handleQuantityChange(item.id, newQuantity);
                             }
                           }}
-                          className="w-16 text-center h-8"
+                          className="w-16 text-center h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           min="1"
                         />
                         <Button
@@ -148,21 +148,19 @@ const EquipmentList = ({
                     <td className="px-4 py-3 text-right space-x-2">
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => startEditing(item.id)}
-                        className="h-8"
+                        className="h-8 w-8"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Modifier
+                        <Pencil className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="destructive"
-                        size="sm"
+                        size="icon"
                         onClick={() => removeFromList(item.id)}
-                        className="h-8"
+                        className="h-8 w-8"
                       >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Supprimer
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </td>
                   </tr>
