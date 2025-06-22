@@ -17,8 +17,11 @@ export const createOffer = async (offerData: OfferData) => {
 
     console.log("Utilisateur authentifié:", user.id);
     
-    // Récupérer le company_id directement depuis le profil de l'utilisateur
+    // Récupérer le company_id depuis le profil utilisateur avec plusieurs tentatives
     console.log("Récupération du profil utilisateur...");
+    let companyId = null;
+    
+    // Première tentative : récupération directe du profil
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
@@ -27,61 +30,53 @@ export const createOffer = async (offerData: OfferData) => {
     
     console.log("Résultat de la requête profil:", { profile, profileError });
     
-    if (profileError || !profile || !profile.company_id) {
-      console.error("Erreur lors de la récupération du profil ou company_id manquant:", { profileError, profile });
+    if (!profileError && profile?.company_id) {
+      companyId = profile.company_id;
+      console.log("Company ID récupéré depuis le profil:", companyId);
+    } else {
+      console.log("Échec de récupération depuis profiles, tentative avec la fonction RPC...");
       
-      // Fallback: essayer d'utiliser la fonction get_user_company_id
-      console.log("Tentative avec get_user_company_id...");
+      // Deuxième tentative : utiliser la fonction RPC
       const { data: companyIdFromFunction, error: functionError } = await supabase
         .rpc('get_user_company_id');
       
-      if (functionError || !companyIdFromFunction) {
-        console.error("Erreur avec get_user_company_id:", functionError);
-        throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+      console.log("Résultat de get_user_company_id:", { companyIdFromFunction, functionError });
+      
+      if (!functionError && companyIdFromFunction) {
+        companyId = companyIdFromFunction;
+        console.log("Company ID récupéré via fonction RPC:", companyId);
+      } else {
+        console.error("Impossible de récupérer company_id:", { profileError, functionError });
+        
+        // Troisième tentative : récupérer depuis les métadonnées utilisateur
+        const userMetadata = user.user_metadata || user.raw_user_meta_data;
+        if (userMetadata?.company_id) {
+          companyId = userMetadata.company_id;
+          console.log("Company ID récupéré depuis les métadonnées:", companyId);
+        } else {
+          // Dernière tentative : rechercher une entreprise par défaut
+          const { data: defaultCompany, error: defaultCompanyError } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('name', 'iTakecare (Default)')
+            .single();
+          
+          if (!defaultCompanyError && defaultCompany) {
+            companyId = defaultCompany.id;
+            console.log("Company ID par défaut utilisé:", companyId);
+          } else {
+            throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+          }
+        }
       }
-      
-      console.log("Company ID récupéré via fonction:", companyIdFromFunction);
-      const companyId = companyIdFromFunction;
-      
-      // Créer les données d'offre avec le company_id récupéré
-      const offerDataToSave = {
-        ...offerData,
-        company_id: companyId,
-        user_id: user.id,
-        amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
-        coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
-        monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
-        commission: offerData.commission !== undefined && offerData.commission !== null ? 
-          (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
-          undefined,
-        margin: offerData.margin !== undefined && offerData.margin !== null ?
-          (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
-          undefined
-      };
-
-      console.log("=== DONNÉES FINALES POUR INSERTION ===");
-      console.log("company_id:", offerDataToSave.company_id);
-      console.log("user_id:", offerDataToSave.user_id);
-      
-      const { data, error } = await supabase
-        .from('offers')
-        .insert([offerDataToSave])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error("=== ERREUR LORS DE L'INSERTION ===");
-        console.error("Message d'erreur:", error.message);
-        console.error("Données tentées:", offerDataToSave);
-        return { data: null, error };
-      }
-      
-      console.log("Offre créée avec succès:", data);
-      return { data, error: null };
     }
-
-    const companyId = profile.company_id;
-    console.log("Company ID récupéré depuis le profil:", companyId);
+    
+    // Validation finale du company_id
+    if (!companyId) {
+      throw new Error("company_id manquant - impossible de créer l'offre");
+    }
+    
+    console.log("Company ID final validé:", companyId);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {

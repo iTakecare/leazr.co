@@ -13,6 +13,7 @@ import Container from "@/components/layout/Container";
 import { useAuth } from "@/context/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { useCompanyId } from "@/hooks/useCompanyId";
 import { defaultLeasers } from "@/data/leasers";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
@@ -27,10 +28,9 @@ import { Switch } from "@/components/ui/switch";
 
 const CreateOffer = () => {
   const navigate = useNavigate();
-  const {
-    user,
-    isAdmin
-  } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { companyId, loading: companyIdLoading, error: companyIdError } = useCompanyId();
+  
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +62,45 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment
   } = useEquipmentCalculator(selectedLeaser);
+  
+  // Afficher une erreur si le company_id ne peut pas être récupéré
+  if (companyIdError) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-12 px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
+              <p className="text-gray-600">{companyIdError}</p>
+              <Button 
+                onClick={() => navigate('/dashboard')} 
+                className="mt-4"
+              >
+                Retour au tableau de bord
+              </Button>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  // Afficher un loader pendant le chargement du company_id
+  if (companyIdLoading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-12 px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-gray-600">Chargement des informations d'entreprise...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -76,6 +115,7 @@ const CreateOffer = () => {
     };
     fetchLeasers();
   }, []);
+  
   const fetchClient = async (id: string) => {
     try {
       setLoading(true);
@@ -92,9 +132,11 @@ const CreateOffer = () => {
       setLoading(false);
     }
   };
+  
   const handleOpenClientSelector = () => {
     setClientSelectorOpen(true);
   };
+  
   const handleSelectClient = (selectedClient: ClientSelectorClient) => {
     setClient({
       id: selectedClient.id,
@@ -105,16 +147,20 @@ const CreateOffer = () => {
       updated_at: new Date()
     });
   };
+  
   const handleOpenLeaserSelector = () => {
     setLeaserSelectorOpen(true);
   };
+  
   const handleLeaserSelect = (leaser: Leaser) => {
     setSelectedLeaser(leaser);
     setLeaserSelectorOpen(false);
   };
+  
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
+  
   const handleSaveOffer = async () => {
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
@@ -124,6 +170,11 @@ const CreateOffer = () => {
       toast.error("Veuillez ajouter au moins un équipement");
       return;
     }
+    if (!companyId) {
+      toast.error("Erreur: ID d'entreprise manquant");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
@@ -199,13 +250,13 @@ const CreateOffer = () => {
         user_id: user?.id || "",
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount)
+        margin: String(marginAmount),
+        // S'assurer que le company_id est inclus
+        company_id: companyId
       };
 
-      console.log("Saving offer with the following data:", offerData);
-      console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
-      console.log("Margin generated value being saved:", marginAmount);
+      console.log("Saving offer with company_id:", companyId);
+      console.log("Full offer data:", offerData);
 
       const { data, error } = await createOffer(offerData);
 
@@ -224,6 +275,7 @@ const CreateOffer = () => {
       setIsSubmitting(false);
     }
   };
+  
   const clientInfoProps = {
     clientId: client?.id || null,
     clientName: client?.name || "",
@@ -238,6 +290,7 @@ const CreateOffer = () => {
     equipmentList: equipmentList,
     hideFinancialDetails: !isAdmin()
   };
+  
   const handleAddEquipment = (title: string) => {
     setEquipment({
       id: crypto.randomUUID(),
@@ -248,7 +301,9 @@ const CreateOffer = () => {
       monthlyPayment: 0
     });
   };
+  
   const hideFinancialDetails = !isAdmin();
+  
   return <PageTransition>
       <Container>
         <ClientSelector isOpen={clientSelectorOpen} onClose={() => setClientSelectorOpen(false)} onSelectClient={handleSelectClient} selectedClientId="" onClientSelect={() => {}} />
@@ -358,4 +413,5 @@ const CreateOffer = () => {
       </Container>
     </PageTransition>;
 };
+
 export default CreateOffer;
