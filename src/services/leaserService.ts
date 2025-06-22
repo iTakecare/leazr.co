@@ -33,7 +33,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     
     if (!data || data.length === 0) {
       console.log('No leasers found in database');
-      toast.warning('Aucun leaser trouvé dans la base de données');
       return [];
     }
     
@@ -44,6 +43,8 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       logo_url: leaser.logo_url,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
+    
+    console.log(`Loaded ${formattedLeasers.length} leasers from database:`, formattedLeasers);
     
     return formattedLeasers;
   } catch (error) {
@@ -276,115 +277,11 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
   }
 };
 
-/**
- * Insère TOUS les leasers par défaut dans la base de données
- * @returns true si l'opération a réussi, false sinon
- */
-export const insertDefaultLeasers = async (): Promise<boolean> => {
-  try {
-    console.log('=== INSERTING DEFAULT LEASERS ===');
-    
-    // Get or create the default company
-    let { data: defaultCompany } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('name', 'iTakecare (Default)')
-      .maybeSingle();
-
-    let companyId = defaultCompany?.id;
-
-    // If no default company, create one
-    if (!companyId) {
-      console.log('Creating default company...');
-      const { data: newCompany, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: 'iTakecare (Default)',
-          plan: 'business',
-          is_active: true
-        })
-        .select()
-        .single();
-      
-      if (companyError) {
-        console.error('Error creating default company:', companyError);
-        return false;
-      }
-      
-      companyId = newCompany.id;
-      console.log('Default company created with ID:', companyId);
-    }
-    
-    // Clear all existing leasers and ranges to start fresh
-    console.log('Clearing existing leasers...');
-    await supabase.from('leaser_ranges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('leasers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    // Insert each default leaser
-    let insertedCount = 0;
-    for (const leaser of defaultLeasers) {
-      try {
-        console.log(`Inserting leaser: ${leaser.name}`);
-        
-        const { data, error } = await supabase
-          .from('leasers')
-          .insert({
-            name: leaser.name,
-            logo_url: leaser.logo_url || null,
-            company_id: companyId
-          })
-          .select()
-          .single();
-        
-        if (error) {
-          console.error(`Error inserting leaser ${leaser.name}:`, error);
-          continue;
-        }
-        
-        const leaserId = data.id;
-        insertedCount++;
-        console.log(`Successfully inserted leaser: ${leaser.name} with ID: ${leaserId}`);
-        
-        // Insert ranges for this leaser
-        if (leaser.ranges && leaser.ranges.length > 0) {
-          const rangesToInsert = leaser.ranges.map(range => ({
-            leaser_id: leaserId,
-            min: range.min,
-            max: range.max,
-            coefficient: range.coefficient
-          }));
-          
-          const { error: rangeError } = await supabase
-            .from('leaser_ranges')
-            .insert(rangesToInsert);
-            
-          if (rangeError) {
-            console.error(`Error inserting ranges for leaser ${leaser.name}:`, rangeError);
-          } else {
-            console.log(`Successfully inserted ${rangesToInsert.length} ranges for ${leaser.name}`);
-          }
-        }
-      } catch (individualError) {
-        console.error(`Error processing leaser ${leaser.name}:`, individualError);
-      }
-    }
-    
-    console.log(`=== DEFAULT LEASERS INSERTION COMPLETED ===`);
-    console.log(`Total leasers inserted: ${insertedCount}`);
-    
-    return insertedCount > 0;
-  } catch (error) {
-    console.error('Exception during default leasers insertion:', error);
-    return false;
-  }
-};
-
 export default {
   getLeasers,
   getLeaserById,
   createLeaser,
   addLeaser,
   updateLeaser,
-  deleteLeaser,
-  insertDefaultLeasers
+  deleteLeaser
 };
