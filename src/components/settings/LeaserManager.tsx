@@ -19,7 +19,8 @@ import {
 import { 
   Building2, 
   Plus,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers } from "@/services/leaserService";
@@ -34,6 +35,7 @@ const LeaserManager = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentLeaser, setCurrentLeaser] = useState<Leaser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -45,47 +47,48 @@ const LeaserManager = () => {
     setError(null);
     
     try {
+      console.log('LeaserManager: Initializing leasers...');
+      
       // Insérer les leasers par défaut si nécessaire
       await insertDefaultLeasers();
       
       // Récupérer les leasers
       const fetchedLeasers = await getLeasers();
-      console.log("Leasers récupérés:", fetchedLeasers);
+      console.log('LeaserManager: Fetched leasers:', fetchedLeasers);
       
-      // Vérifier que tous les leasers ont des IDs valides
-      const validLeasers = fetchedLeasers.map(leaser => {
-        // Si l'ID n'est pas un UUID valide, en générer un nouveau
-        if (!isUUID(leaser.id)) {
-          console.log(`ID leaser non valide détecté: ${leaser.id}, génération d'un nouveau UUID`);
-          return {
-            ...leaser,
-            id: uuidv4()
-          };
-        }
-        return leaser;
-      });
+      if (fetchedLeasers.length === 0) {
+        console.warn('LeaserManager: No leasers found after initialization');
+        setError('Aucun leaser trouvé. Veuillez essayer de rafraîchir la page.');
+      }
       
-      setLeasers(validLeasers);
+      setLeasers(fetchedLeasers);
     } catch (error: any) {
-      console.error("Erreur lors de l'initialisation des leasers:", error);
+      console.error('LeaserManager: Error during initialization:', error);
       setError(`Erreur lors du chargement des leasers: ${error.message}`);
       toast.error(`Erreur: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const refreshLeasers = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log('LeaserManager: Refreshing leasers...');
+      const fetchedLeasers = await getLeasers();
+      setLeasers(fetchedLeasers);
+      toast.success("Liste des leasers actualisée");
+    } catch (error: any) {
+      console.error('LeaserManager: Error during refresh:', error);
+      toast.error(`Erreur lors de l'actualisation: ${error.message}`);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   const handleOpenSheet = (leaser?: Leaser) => {
     if (leaser) {
-      // Vérifier que l'ID est un UUID valide
-      if (!isUUID(leaser.id)) {
-        console.error(`Tentative d'éditer un leaser avec un ID non valide: ${leaser.id}`);
-        toast.error("Identifiant du leaser non valide");
-        return;
-      }
-      
-      console.log(`Édition du leaser - ID: ${leaser.id}, Name: ${leaser.name}`);
-      
+      console.log(`LeaserManager: Editing leaser - ID: ${leaser.id}, Name: ${leaser.name}`);
       setCurrentLeaser(leaser);
       setIsEditMode(true);
     } else {
@@ -103,56 +106,43 @@ const LeaserManager = () => {
   const handleSaveLeaser = async (leaserData: Omit<Leaser, "id">) => {
     try {
       if (isEditMode && currentLeaser) {
-        // Vérifier que l'ID du leaser est un UUID valide
-        if (!isUUID(currentLeaser.id)) {
-          throw new Error(`ID du leaser non valide: ${currentLeaser.id}`);
-        }
-        
-        console.log("Mise à jour du leaser avec ID:", currentLeaser.id);
+        console.log("LeaserManager: Updating leaser with ID:", currentLeaser.id);
         
         const success = await updateLeaser(currentLeaser.id, leaserData);
         if (success) {
-          // Mettre à jour le leaser dans la liste locale
-          setLeasers(prevLeasers => 
-            prevLeasers.map(l => 
-              l.id === currentLeaser.id ? { ...l, ...leaserData } : l
-            )
-          );
+          // Actualiser la liste complète après modification
+          await refreshLeasers();
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
         }
       } else {
+        console.log("LeaserManager: Creating new leaser");
         const addedLeaser = await addLeaser(leaserData);
         if (addedLeaser) {
-          // Ajouter le nouveau leaser à la liste locale
-          setLeasers(prevLeasers => [...prevLeasers, addedLeaser]);
+          // Actualiser la liste complète après ajout
+          await refreshLeasers();
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
         }
       }
     } catch (error: any) {
-      console.error("Erreur lors de la sauvegarde du leaser:", error);
+      console.error("LeaserManager: Error saving leaser:", error);
       toast.error(`Erreur: ${error.message}`);
     }
   };
   
   const handleDeleteLeaser = async (id: string) => {
-    // Vérifier que l'ID est un UUID valide
-    if (!isUUID(id)) {
-      toast.error(`ID du leaser non valide: ${id}`);
-      return;
-    }
-    
     if (confirm("Êtes-vous sûr de vouloir supprimer ce leaser ?")) {
       try {
-        console.log("Tentative de suppression du leaser avec ID:", id);
+        console.log("LeaserManager: Deleting leaser with ID:", id);
         const success = await deleteLeaser(id);
         if (success) {
-          setLeasers(leasers.filter(leaser => leaser.id !== id));
+          // Actualiser la liste complète après suppression
+          await refreshLeasers();
           toast.success("Leaser supprimé avec succès");
         }
       } catch (error: any) {
-        console.error("Erreur lors de la suppression du leaser:", error);
+        console.error("LeaserManager: Error deleting leaser:", error);
         toast.error(`Erreur: ${error.message}`);
       }
     }
@@ -167,13 +157,25 @@ const LeaserManager = () => {
               <Building2 className="h-5 w-5 text-primary" />
               <span>Leasers</span>
             </CardTitle>
-            <Button onClick={() => handleOpenSheet()} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              <span>Ajouter un leaser</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refreshLeasers}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+              <Button onClick={() => handleOpenSheet()} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span>Ajouter un leaser</span>
+              </Button>
+            </div>
           </div>
           <CardDescription>
-            Gérez les organismes de financement et leurs tranches de coefficients.
+            Gérez les organismes de financement et leurs tranches de coefficients. ({leasers.length} leasers)
           </CardDescription>
         </CardHeader>
         <CardContent>

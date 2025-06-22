@@ -281,36 +281,37 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
     
     if (countError) {
       console.error('Error checking existing leasers:', countError);
-      return false;
+      // En cas d'erreur, essayer quand même d'insérer les leasers par défaut
     }
     
-    // Si des leasers existent déjà, ne pas insérer les leasers par défaut
-    if (count && count > 0) {
+    // Si des leasers existent déjà et qu'il y en a plus d'un, ne pas insérer les leasers par défaut
+    if (count && count >= defaultLeasers.length) {
       console.log(`${count} leasers already exist, skipping default insertion`);
       return true;
     }
     
-    console.log('No leasers found, inserting default leasers...');
+    console.log('Insufficient leasers found, ensuring all default leasers are present...');
     
-    // Insérer les leasers par défaut un par un pour éviter les conflits
+    // Vérifier et insérer chaque leaser par défaut s'il n'existe pas
     for (const leaser of defaultLeasers) {
       try {
-        // D'abord vérifier si ce leaser existe déjà (par ID ou nom)
+        // D'abord vérifier si ce leaser existe déjà (par nom pour éviter les doublons)
         const { data: existingLeaser } = await supabase
           .from('leasers')
-          .select('id')
-          .or(`id.eq.${leaser.id},name.eq.${leaser.name}`)
-          .single();
+          .select('id, name')
+          .eq('name', leaser.name)
+          .maybeSingle();
         
         if (existingLeaser) {
           console.log(`Leaser ${leaser.name} already exists, skipping...`);
           continue;
         }
 
+        console.log(`Inserting default leaser: ${leaser.name}`);
+        
         const { data, error } = await supabase
           .from('leasers')
           .insert({
-            id: leaser.id,
             name: leaser.name,
             logo_url: leaser.logo_url || null
           })
@@ -322,7 +323,7 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
           continue;
         }
         
-        console.log(`Inserted leaser: ${leaser.name}`);
+        console.log(`Successfully inserted leaser: ${leaser.name} with ID: ${data.id}`);
         
         // Insérer les tranches pour ce leaser
         if (leaser.ranges && leaser.ranges.length > 0) {
@@ -340,15 +341,16 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
           if (rangeError) {
             console.error(`Error inserting ranges for leaser ${leaser.name}:`, rangeError);
           } else {
-            console.log(`Inserted ${rangesToInsert.length} ranges for ${leaser.name}`);
+            console.log(`Successfully inserted ${rangesToInsert.length} ranges for ${leaser.name}`);
           }
         }
       } catch (individualError) {
         console.error(`Error processing leaser ${leaser.name}:`, individualError);
+        // Continue avec le leaser suivant
       }
     }
     
-    console.log('Default leasers insertion completed');
+    console.log('Default leasers insertion process completed');
     return true;
   } catch (error) {
     console.error('Exception during default leasers insertion:', error);
