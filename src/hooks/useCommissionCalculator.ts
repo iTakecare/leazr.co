@@ -14,7 +14,7 @@ export const useCommissionCalculator = (
   ambassadorId?: string,
   commissionLevelId?: string,
   equipmentListLength: number = 0
-) => {
+): CommissionData => {
   const [commission, setCommission] = useState<CommissionData>({
     amount: 0,
     rate: 0,

@@ -15,6 +15,18 @@ export interface Equipment {
   specifications?: Record<string, string | number>;
 }
 
+export interface EquipmentFormData {
+  name: string;
+  description?: string;
+  brand?: string;
+  model?: string;
+  category?: string;
+  quantity: number;
+  monthly_price: number;
+  purchase_price: number;
+  specifications?: Record<string, string | number>;
+}
+
 export interface Leaser {
   id: string;
   name: string;

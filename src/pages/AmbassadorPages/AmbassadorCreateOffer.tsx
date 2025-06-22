@@ -46,6 +46,7 @@ const AmbassadorCreateOffer: React.FC = () => {
   const [totalPurchasePrice, setTotalPurchasePrice] = useState<number>(0);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [ambassadorId, setAmbassadorId] = useState<string>("");
+  const [commissionLevelId, setCommissionLevelId] = useState<string>("");
 
   useEffect(() => {
     const fetchAmbassadorProfile = async () => {
@@ -65,6 +66,17 @@ const AmbassadorCreateOffer: React.FC = () => {
 
         if (profile?.ambassador_id) {
           setAmbassadorId(profile.ambassador_id);
+          
+          // Fetch commission level
+          const { data: ambassador, error: ambError } = await supabase
+            .from('ambassadors')
+            .select('commission_level_id')
+            .eq('id', profile.ambassador_id)
+            .single();
+            
+          if (ambassador?.commission_level_id) {
+            setCommissionLevelId(ambassador.commission_level_id);
+          }
         }
       } catch (err) {
         console.error("Erreur lors du chargement du profil:", err);
@@ -75,9 +87,11 @@ const AmbassadorCreateOffer: React.FC = () => {
   }, [user]);
 
   // Calculate commission using the hook
-  const { commission, commissionRate, isLoading: isCommissionLoading } = useCommissionCalculator(
+  const commission = useCommissionCalculator(
+    totalMonthlyPrice,
     ambassadorId,
-    totalMonthlyPrice
+    commissionLevelId,
+    equipment.length
   );
 
   // Calculate totals whenever equipment or duration changes
@@ -183,14 +197,14 @@ const AmbassadorCreateOffer: React.FC = () => {
       }
 
       // Insert commission record if there's a commission
-      if (commission > 0 && ambassadorId) {
+      if (commission.amount > 0 && ambassadorId) {
         const { error: commissionError } = await supabase
           .from('ambassador_commissions')
           .insert([{
             ambassador_id: ambassadorId,
             offer_id: data.id,
-            amount: commission,
-            commission_rate: commissionRate,
+            amount: commission.amount,
+            commission_rate: commission.rate,
             status: 'pending'
           }]);
 
@@ -291,8 +305,8 @@ const AmbassadorCreateOffer: React.FC = () => {
             </CardHeader>
             <CardContent>
               <LeaserSelector
-                selectedLeaserId={selectedLeaserId}
-                onLeaserSelect={setSelectedLeaserId}
+                selectedLeaser={selectedLeaserId}
+                onSelect={setSelectedLeaserId}
               />
               <div className="mt-4">
                 <Label htmlFor="duration">Durée du contrat (mois)</Label>
@@ -321,8 +335,8 @@ const AmbassadorCreateOffer: React.FC = () => {
             </CardHeader>
             <CardContent>
               <EquipmentForm
-                equipment={equipment}
-                onEquipmentChange={setEquipment}
+                equipment={equipment as any}
+                onEquipmentChange={setEquipment as any}
                 duration={duration}
               />
             </CardContent>
@@ -412,8 +426,10 @@ const AmbassadorCreateOffer: React.FC = () => {
                   <>
                     <Separator />
                     <AmbassadorCommissionPreview
-                      totalMonthlyPrice={totalMonthlyPrice}
+                      totalMonthlyPayment={totalMonthlyPrice}
                       ambassadorId={ambassadorId}
+                      commissionLevelId={commissionLevelId}
+                      equipmentList={equipment}
                     />
                   </>
                 )}
