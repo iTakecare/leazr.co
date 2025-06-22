@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -38,39 +37,31 @@ const LeaserManager = () => {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    initializeLeasers();
+    loadLeasers();
   }, []);
 
-  const initializeLeasers = async () => {
+  const loadLeasers = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log('LeaserManager: Initializing leasers...');
+      console.log('=== LeaserManager: Loading leasers ===');
       
-      // First try to get existing leasers
-      const existingLeasers = await getLeasers();
-      console.log('LeaserManager: Existing leasers found:', existingLeasers.length);
+      const fetchedLeasers = await getLeasers();
+      console.log('=== LeaserManager: Fetched leasers result ===');
+      console.log('Count:', fetchedLeasers.length);
+      console.log('Data:', fetchedLeasers);
       
-      // If no leasers found, insert defaults
-      if (existingLeasers.length === 0) {
-        console.log('LeaserManager: No leasers found, inserting defaults...');
-        const insertSuccess = await insertDefaultLeasers();
-        
-        if (insertSuccess) {
-          // Wait a moment then fetch again
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const fetchedLeasers = await getLeasers();
-          console.log('LeaserManager: Fetched leasers after insertion:', fetchedLeasers.length);
-          setLeasers(fetchedLeasers);
-        } else {
-          setError('Impossible d\'insérer les leasers par défaut');
-        }
+      setLeasers(fetchedLeasers);
+      
+      if (fetchedLeasers.length === 0) {
+        setError('Aucun leaser trouvé. Vérifiez la configuration de la base de données.');
+        toast.warning('Aucun leaser trouvé dans la base de données');
       } else {
-        setLeasers(existingLeasers);
+        toast.success(`${fetchedLeasers.length} leasers chargés avec succès`);
       }
     } catch (error: any) {
-      console.error('LeaserManager: Error during initialization:', error);
+      console.error('LeaserManager: Error loading leasers:', error);
       setError(`Erreur lors du chargement des leasers: ${error.message}`);
       toast.error(`Erreur: ${error.message}`);
     } finally {
@@ -81,30 +72,8 @@ const LeaserManager = () => {
   const refreshLeasers = async () => {
     setIsRefreshing(true);
     try {
-      console.log('LeaserManager: Manual refresh...');
-      
-      const fetchedLeasers = await getLeasers();
-      console.log('LeaserManager: Refreshed leasers:', fetchedLeasers.length);
-      
-      // If still no leasers, try to insert defaults
-      if (fetchedLeasers.length === 0) {
-        console.log('LeaserManager: Still no leasers, trying to insert defaults...');
-        const insertSuccess = await insertDefaultLeasers();
-        
-        if (insertSuccess) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const newLeasers = await getLeasers();
-          setLeasers(newLeasers);
-          toast.success(`Leasers par défaut insérés - ${newLeasers.length} leasers trouvés`);
-        } else {
-          toast.error("Impossible d'insérer les leasers par défaut");
-        }
-      } else {
-        setLeasers(fetchedLeasers);
-        toast.success(`Liste des leasers actualisée - ${fetchedLeasers.length} leasers trouvés`);
-      }
-      
-      setError(null);
+      console.log('=== LeaserManager: Manual refresh ===');
+      await loadLeasers();
     } catch (error: any) {
       console.error('LeaserManager: Error during refresh:', error);
       toast.error(`Erreur lors de l'actualisation: ${error.message}`);
