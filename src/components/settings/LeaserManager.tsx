@@ -48,25 +48,27 @@ const LeaserManager = () => {
     try {
       console.log('LeaserManager: Initializing leasers...');
       
-      // FORCE insertion of all default leasers
-      console.log('LeaserManager: Forcing ALL default leasers insertion...');
-      await insertDefaultLeasers();
+      // First try to get existing leasers
+      const existingLeasers = await getLeasers();
+      console.log('LeaserManager: Existing leasers found:', existingLeasers.length);
       
-      // Wait to ensure the insertion is complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Récupérer les leasers
-      const fetchedLeasers = await getLeasers();
-      console.log('LeaserManager: Fetched leasers after forced insertion:', fetchedLeasers);
-      
-      if (fetchedLeasers.length === 0) {
-        console.warn('LeaserManager: STILL no leasers found after forced insertion');
-        setError('Aucun leaser trouvé même après l\'insertion forcée. Contactez le support technique.');
+      // If no leasers found, insert defaults
+      if (existingLeasers.length === 0) {
+        console.log('LeaserManager: No leasers found, inserting defaults...');
+        const insertSuccess = await insertDefaultLeasers();
+        
+        if (insertSuccess) {
+          // Wait a moment then fetch again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const fetchedLeasers = await getLeasers();
+          console.log('LeaserManager: Fetched leasers after insertion:', fetchedLeasers.length);
+          setLeasers(fetchedLeasers);
+        } else {
+          setError('Impossible d\'insérer les leasers par défaut');
+        }
       } else {
-        console.log(`LeaserManager: Successfully loaded ${fetchedLeasers.length} leasers`);
+        setLeasers(existingLeasers);
       }
-      
-      setLeasers(fetchedLeasers);
     } catch (error: any) {
       console.error('LeaserManager: Error during initialization:', error);
       setError(`Erreur lors du chargement des leasers: ${error.message}`);
@@ -79,23 +81,30 @@ const LeaserManager = () => {
   const refreshLeasers = async () => {
     setIsRefreshing(true);
     try {
-      console.log('LeaserManager: Manual refresh - forcing all leasers re-insertion...');
-      
-      // Force complete re-initialization
-      await insertDefaultLeasers();
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('LeaserManager: Manual refresh...');
       
       const fetchedLeasers = await getLeasers();
-      console.log('LeaserManager: Refreshed leasers:', fetchedLeasers);
+      console.log('LeaserManager: Refreshed leasers:', fetchedLeasers.length);
       
-      setLeasers(fetchedLeasers);
-      setError(null);
-      
-      if (fetchedLeasers.length > 0) {
-        toast.success(`Liste des leasers actualisée - ${fetchedLeasers.length} leasers trouvés`);
+      // If still no leasers, try to insert defaults
+      if (fetchedLeasers.length === 0) {
+        console.log('LeaserManager: Still no leasers, trying to insert defaults...');
+        const insertSuccess = await insertDefaultLeasers();
+        
+        if (insertSuccess) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const newLeasers = await getLeasers();
+          setLeasers(newLeasers);
+          toast.success(`Leasers par défaut insérés - ${newLeasers.length} leasers trouvés`);
+        } else {
+          toast.error("Impossible d'insérer les leasers par défaut");
+        }
       } else {
-        toast.error("Aucun leaser trouvé après actualisation");
+        setLeasers(fetchedLeasers);
+        toast.success(`Liste des leasers actualisée - ${fetchedLeasers.length} leasers trouvés`);
       }
+      
+      setError(null);
     } catch (error: any) {
       console.error('LeaserManager: Error during refresh:', error);
       toast.error(`Erreur lors de l'actualisation: ${error.message}`);
@@ -128,7 +137,6 @@ const LeaserManager = () => {
         
         const success = await updateLeaser(currentLeaser.id, leaserData);
         if (success) {
-          // Actualiser la liste complète après modification
           await refreshLeasers();
           handleCloseSheet();
           toast.success("Leaser mis à jour avec succès");
@@ -137,7 +145,6 @@ const LeaserManager = () => {
         console.log("LeaserManager: Creating new leaser");
         const addedLeaser = await addLeaser(leaserData);
         if (addedLeaser) {
-          // Actualiser la liste complète après ajout
           await refreshLeasers();
           handleCloseSheet();
           toast.success("Leaser ajouté avec succès");
@@ -155,7 +162,6 @@ const LeaserManager = () => {
         console.log("LeaserManager: Deleting leaser with ID:", id);
         const success = await deleteLeaser(id);
         if (success) {
-          // Actualiser la liste complète après suppression
           await refreshLeasers();
           toast.success("Leaser supprimé avec succès");
         }

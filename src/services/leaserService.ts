@@ -286,7 +286,7 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
  */
 export const insertDefaultLeasers = async (): Promise<boolean> => {
   try {
-    console.log('=== FORCE INSERTING ALL DEFAULT LEASERS ===');
+    console.log('=== INSERTING DEFAULT LEASERS ===');
     
     // Get or create the default company
     let { data: defaultCompany } = await supabase
@@ -319,56 +319,38 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
       console.log('Default company created with ID:', companyId);
     }
     
-    // Insert each default leaser - FORCE INSERT ALL
+    // Clear all existing leasers and ranges to start fresh
+    console.log('Clearing existing leasers...');
+    await supabase.from('leaser_ranges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('leasers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    // Insert each default leaser
     let insertedCount = 0;
     for (const leaser of defaultLeasers) {
       try {
-        console.log(`=== Processing leaser: ${leaser.name} ===`);
+        console.log(`Inserting leaser: ${leaser.name}`);
         
-        // Check if this leaser already exists
-        const { data: existingLeaser } = await supabase
+        const { data, error } = await supabase
           .from('leasers')
-          .select('id, name')
-          .eq('name', leaser.name)
-          .maybeSingle();
+          .insert({
+            name: leaser.name,
+            logo_url: leaser.logo_url || null,
+            company_id: companyId
+          })
+          .select()
+          .single();
         
-        let leaserId;
-        
-        if (existingLeaser) {
-          console.log(`Leaser ${leaser.name} already exists with ID: ${existingLeaser.id}`);
-          leaserId = existingLeaser.id;
-        } else {
-          console.log(`Inserting new leaser: ${leaser.name}`);
-          
-          const { data, error } = await supabase
-            .from('leasers')
-            .insert({
-              name: leaser.name,
-              logo_url: leaser.logo_url || null,
-              company_id: companyId
-            })
-            .select()
-            .single();
-          
-          if (error) {
-            console.error(`Error inserting leaser ${leaser.name}:`, error);
-            continue;
-          }
-          
-          leaserId = data.id;
-          insertedCount++;
-          console.log(`Successfully inserted leaser: ${leaser.name} with ID: ${leaserId}`);
+        if (error) {
+          console.error(`Error inserting leaser ${leaser.name}:`, error);
+          continue;
         }
         
-        // Always ensure ranges exist for this leaser
+        const leaserId = data.id;
+        insertedCount++;
+        console.log(`Successfully inserted leaser: ${leaser.name} with ID: ${leaserId}`);
+        
+        // Insert ranges for this leaser
         if (leaser.ranges && leaser.ranges.length > 0) {
-          // Delete existing ranges first
-          await supabase
-            .from('leaser_ranges')
-            .delete()
-            .eq('leaser_id', leaserId);
-          
-          // Insert new ranges
           const rangesToInsert = leaser.ranges.map(range => ({
             leaser_id: leaserId,
             min: range.min,
@@ -392,9 +374,9 @@ export const insertDefaultLeasers = async (): Promise<boolean> => {
     }
     
     console.log(`=== DEFAULT LEASERS INSERTION COMPLETED ===`);
-    console.log(`Total leasers processed: ${defaultLeasers.length}`);
-    console.log(`New leasers inserted: ${insertedCount}`);
-    return true;
+    console.log(`Total leasers inserted: ${insertedCount}`);
+    
+    return insertedCount > 0;
   } catch (error) {
     console.error('Exception during default leasers insertion:', error);
     return false;
