@@ -19,31 +19,12 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import { Client } from "@/types/client";
 import { getAllClients } from "@/services/clientService";
-import { createOffer } from "@/services/offers/createOffer";
+import { createOfferNew } from "@/services/offers/createOfferNew";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
 import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
-
-type OfferData = {
-  client_id: string;
-  client_name: string;
-  client_email: string;
-  equipment_description: string;
-  amount: number;
-  coefficient: number;
-  monthly_payment: number;
-  commission: number;
-  financed_amount: number;
-  workflow_status: string;
-  type: string;
-  user_id: string;
-  remarks: string;
-  total_margin_with_difference: string;
-  margin: string;
-  company_id: string;
-};
 
 const CreateOffer = () => {
   const navigate = useNavigate();
@@ -181,6 +162,8 @@ const CreateOffer = () => {
   };
   
   const handleSaveOffer = async () => {
+    console.log("=== DÉBUT SAUVEGARDE NOUVELLE VERSION ===");
+    
     if (!client) {
       toast.error("Veuillez d'abord sélectionner un client");
       return;
@@ -190,17 +173,20 @@ const CreateOffer = () => {
       return;
     }
     
-    // VALIDATION STRICTE DU COMPANY_ID
     if (!companyId) {
-      console.error("ERREUR CRITIQUE: companyId manquant du hook useCompanyId");
-      toast.error("Erreur: Impossible de récupérer l'ID de l'entreprise. Veuillez recharger la page.");
+      console.error("ERREUR: companyId manquant");
+      toast.error("Erreur: Impossible de récupérer l'ID de l'entreprise");
       return;
     }
 
-    console.log("=== DÉBUT SAUVEGARDE OFFRE ===");
-    console.log("Company ID du hook:", companyId);
-    console.log("Client sélectionné:", client);
-    console.log("Liste d'équipements:", equipmentList);
+    if (!user?.id) {
+      console.error("ERREUR: user.id manquant");
+      toast.error("Erreur: Utilisateur non authentifié");
+      return;
+    }
+
+    console.log("Validation OK - companyId:", companyId);
+    console.log("Validation OK - user.id:", user.id);
 
     try {
       setIsSubmitting(true);
@@ -224,89 +210,49 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       const offerType = isInternalOffer ? 'internal_offer' : 'partner_offer';
-
-      let commissionAmount = 0;
-      if (isInternalOffer) {
-        commissionAmount = 0;
-        console.log("Offre interne - commission à 0");
-      } else {
-        const commissionElement = document.querySelector('.commission-value');
-        console.log("Recherche de l'élément de commission:", commissionElement);
-        if (commissionElement) {
-          try {
-            const commissionText = commissionElement.textContent || '';
-            const numericValue = commissionText.replace(/[^0-9,\.]/g, '').replace(',', '.');
-            commissionAmount = parseFloat(numericValue);
-            console.log("Commission extraite directement de l'UI:", commissionText, "->", commissionAmount);
-            if (isNaN(commissionAmount)) {
-              console.warn("Échec de l'extraction de la commission depuis l'UI, utilisation de la valeur par défaut");
-              commissionAmount = Math.round(financedAmount * 0.03);
-            }
-          } catch (error) {
-            console.error("Erreur lors de l'extraction de la commission depuis l'UI:", error);
-            commissionAmount = Math.round(financedAmount * 0.03);
-          }
-        } else {
-          console.warn("Élément de commission non trouvé dans le DOM, utilisation de la valeur par défaut");
-          commissionAmount = Math.round(financedAmount * 0.03);
-        }
-      }
-
-      console.log("COMMISSION FINALE À SAUVEGARDER:", commissionAmount);
+      const commissionAmount = isInternalOffer ? 0 : Math.round(financedAmount * 0.03);
 
       const marginAmount = globalMarginAdjustment.amount || 0;
       const marginDifference = globalMarginAdjustment.marginDifference || 0;
       const totalMarginWithDifference = marginAmount + marginDifference;
 
-      console.log("Marge totale:", marginAmount);
-      console.log("Différence de marge:", marginDifference);
-      console.log("Total marge avec différence:", totalMarginWithDifference);
-
-      // CONSTRUCTION EXPLICITE DE L'OBJET AVEC COMPANY_ID
-      const offerData: OfferData = {
+      // Construction des données pour le nouveau service
+      const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
         equipment_description: equipmentDescription,
-        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + eq.purchasePrice * eq.quantity, 0),
-        coefficient: globalMarginAdjustment.newCoef,
+        amount: globalMarginAdjustment.amount + totalPurchasePrice,
+        coefficient: currentCoefficient,
         monthly_payment: totalMonthlyPayment,
         commission: commissionAmount,
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: offerType,
-        user_id: user?.id || "",
+        user_id: user.id,
+        company_id: companyId,
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
-        margin: String(marginAmount),
-        company_id: companyId // EXPLICITEMENT ASSIGNÉ ICI
+        margin: String(marginAmount)
       };
 
-      console.log("=== DONNÉES OFFRE CONSTRUITES ===");
-      console.log("Objet offerData complet:", JSON.stringify(offerData, null, 2));
-      console.log("Company ID dans offerData:", offerData.company_id);
+      console.log("=== DONNÉES POUR NOUVEAU SERVICE ===");
+      console.log("offerData:", offerData);
 
-      // VALIDATION FINALE AVANT ENVOI
-      if (!offerData.company_id) {
-        console.error("ERREUR FATALE: company_id null dans offerData juste avant envoi");
-        toast.error("Erreur critique: ID d'entreprise manquant");
-        return;
-      }
-
-      console.log("=== APPEL DU SERVICE createOffer ===");
-      const { data, error } = await createOffer(offerData);
+      const { data, error } = await createOfferNew(offerData);
 
       if (error) {
-        console.error("Erreur lors de la sauvegarde:", error);
+        console.error("Erreur nouveau service:", error);
         toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
         return;
       }
 
-      console.log("=== SUCCÈS TOTAL ===");
+      console.log("=== SUCCÈS NOUVEAU SERVICE ===");
+      console.log("data:", data);
       toast.success("Offre créée avec succès!");
       navigate("/offers");
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de l'offre:", error);
+      console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Impossible de sauvegarder l'offre");
     } finally {
       setIsSubmitting(false);
