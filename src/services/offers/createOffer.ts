@@ -1,9 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
+    console.log("=== DÉBUT CRÉATION OFFRE ===");
     console.log("DONNÉES D'OFFRE REÇUES:", offerData);
     
     // Vérifier que l'utilisateur est bien authentifié AVANT tout
@@ -16,15 +18,28 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("Utilisateur authentifié:", user.id);
     
     // Récupérer le company_id directement depuis le profil de l'utilisateur
+    console.log("Récupération du profil utilisateur...");
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
       .eq('id', user.id)
       .single();
     
-    if (profileError || !profile?.company_id) {
-      console.error("Impossible de récupérer le company_id:", profileError);
-      throw new Error("Impossible de récupérer l'ID de l'entreprise. Veuillez vous reconnecter.");
+    console.log("Résultat de la requête profil:", { profile, profileError });
+    
+    if (profileError) {
+      console.error("Erreur lors de la récupération du profil:", profileError);
+      throw new Error(`Erreur profil: ${profileError.message}`);
+    }
+    
+    if (!profile) {
+      console.error("Profil utilisateur introuvable");
+      throw new Error("Profil utilisateur introuvable");
+    }
+    
+    if (!profile.company_id) {
+      console.error("company_id manquant dans le profil:", profile);
+      throw new Error("company_id manquant dans le profil utilisateur");
     }
 
     const companyId = profile.company_id;
