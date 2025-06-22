@@ -385,7 +385,7 @@ const CreateOffer = () => {
                 <span className="ml-2">Chargement...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <div className="xl:col-span-1">
                   <EquipmentForm
                     equipment={equipment}
@@ -404,7 +404,7 @@ const CreateOffer = () => {
                   />
                 </div>
 
-                <div className="xl:col-span-2 space-y-8">
+                <div className="xl:col-span-1 space-y-8">
                   <EquipmentList
                     equipmentList={equipmentList}
                     editingId={editingId}
