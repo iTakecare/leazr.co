@@ -78,11 +78,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVaria
               />
             </div>
             
-            <ProductPricing 
-              product={product} 
-              selectedVariant={undefined}
-              quantity={1}
-            />
+            <ProductPricing product={product} hasVariants={hasVariants} />
             
             {hasVariants && onViewVariants && (
               <div className="mt-3 pt-3 border-t border-gray-100">

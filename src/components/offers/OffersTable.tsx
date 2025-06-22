@@ -80,7 +80,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   const handleViewDetails = (offerId: string) => {
-    if (isAmbassador) {
+    if (isAmbassador()) {
       navigate(`/ambassador/offers/${offerId}`);
     } else {
       navigate(`/offers/${offerId}`);
@@ -103,7 +103,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   // Only admins can see the margin column
-  const showMarginColumn = isAdmin;
+  const showMarginColumn = isAdmin();
 
   return (
     <>
@@ -116,7 +116,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead>Client</TableHead>
                 <TableHead>Équipement</TableHead>
                 {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
-                {!isAmbassador && <TableHead className="text-right">Montant financé</TableHead>}
+                {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right w-[100px]">Actions</TableHead>
@@ -161,7 +161,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       </div>
                     </TableCell>
                   )}
-                  {!isAmbassador && (
+                  {!isAmbassador() && (
                     <TableCell className="text-right">
                       {offer.financed_amount ? formatCurrency(offer.financed_amount) : 
                         offer.monthly_payment ? formatCurrency((offer.monthly_payment * 100) / (offer.coefficient || 3.27)) : "N/A"}
@@ -190,7 +190,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           Voir détails
                         </DropdownMenuItem>
                         
-                        {offer.workflow_status === "draft" && !isAmbassador && (
+                        {offer.workflow_status === "draft" && !isAmbassador() && (
                           <DropdownMenuItem
                             onClick={() => handleSendToClient(offer.id)}
                             disabled={isUpdatingStatus}
@@ -200,21 +200,21 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {onDownloadPdf && !isAmbassador && (
+                        {onDownloadPdf && !isAmbassador() && (
                           <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
                             <FileDown className="mr-2 h-4 w-4" />
                             Télécharger PDF
                           </DropdownMenuItem>
                         )}
                         
-                        {!isAmbassador && (
+                        {!isAmbassador() && (
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Voir offre en ligne
                           </DropdownMenuItem>
                         )}
                         
-                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador && (
+                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador() && (
                           <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
                             <Send className="mr-2 h-4 w-4" />
                             Renvoyer

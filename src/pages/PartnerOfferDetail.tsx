@@ -270,7 +270,7 @@ const PartnerOfferDetail = () => {
     
     if (currentIndex === -1) return WORKFLOW_STEPS;
 
-    if (user?.role === 'admin') {
+    if (isAdmin()) {
       if (offer.workflow_status === 'rejected' || offer.workflow_status === 'financed') {
         return [];
       }
@@ -517,7 +517,7 @@ const PartnerOfferDetail = () => {
                     <span>{getStatusBadge(offer.workflow_status || offer.status)}</span>
                   </div>
                   
-                  {user?.role === 'admin' && (
+                  {isAdmin() && (
                     <div className="mt-6">
                       <h3 className="text-sm font-medium mb-2">Progression dans le workflow</h3>
                       <div className="space-y-3">
@@ -636,7 +636,7 @@ const PartnerOfferDetail = () => {
                           <span className="font-medium">{formatCurrency(offer.monthly_payment)}</span>
                         </div>
                         
-                        {user?.role === 'admin' && (
+                        {isAdmin() && (
                           <>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Montant total:</span>

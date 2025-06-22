@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
@@ -85,11 +84,6 @@ const PublicCatalogAnonymous = () => {
     { name: "tablet", icon: Smartphone, count: products.filter(p => p.category === "tablet").length },
     { name: "printer", icon: Printer, count: products.filter(p => p.category === "printer").length }
   ];
-
-  const handleViewProduct = (product: Product) => {
-    // Navigate to product detail in public context
-    window.location.href = `/public/${companyId}/products/${product.id}`;
-  };
 
   if (!companyId) {
     return (
@@ -206,8 +200,10 @@ const PublicCatalogAnonymous = () => {
               <CatalogProductCard
                 key={product.id}
                 product={product}
-                onViewProduct={handleViewProduct}
-                showAddToCart={false}
+                onClick={() => {
+                  // Navigate to product detail in public context
+                  window.location.href = `/public/${companyId}/products/${product.id}`;
+                }}
               />
             ))}
           </div>

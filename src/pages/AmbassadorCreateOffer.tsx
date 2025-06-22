@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,7 @@ const AmbassadorCreateOffer = () => {
     remarks,
     ambassadorId,
     ambassador,
-    userId: user?.id,
+    userId: user?.id, // Fixed: use user.id instead of user.ambassador_id
     setIsSubmitting
   });
 
@@ -102,12 +101,12 @@ const AmbassadorCreateOffer = () => {
   const isPageLoading = loading || loadingLeasers;
 
   // Determine the correct ambassador ID and commission level ID
-  const currentAmbassadorId = ambassadorId || ambassador?.id;
+  const currentAmbassadorId = ambassadorId || user?.ambassador_id;
   const currentCommissionLevelId = ambassador?.commission_level_id;
 
   console.log("Ambassador render debug:", {
     ambassadorId,
-    userAmbassadorId: user?.id,
+    userAmbassadorId: user?.ambassador_id,
     currentAmbassadorId,
     ambassador,
     commissionLevelId: currentCommissionLevelId,

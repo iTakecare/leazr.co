@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -237,7 +236,7 @@ const CreateOffer = () => {
     isSubmitting: isSubmitting,
     selectedLeaser: selectedLeaser,
     equipmentList: equipmentList,
-    hideFinancialDetails: !isAdmin
+    hideFinancialDetails: !isAdmin()
   };
   const handleAddEquipment = (title: string) => {
     setEquipment({
@@ -249,7 +248,7 @@ const CreateOffer = () => {
       monthlyPayment: 0
     });
   };
-  const hideFinancialDetails = !isAdmin;
+  const hideFinancialDetails = !isAdmin();
   return <PageTransition>
       <Container>
         <ClientSelector isOpen={clientSelectorOpen} onClose={() => setClientSelectorOpen(false)} onSelectClient={handleSelectClient} selectedClientId="" onClientSelect={() => {}} />

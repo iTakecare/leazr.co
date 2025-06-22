@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -173,14 +174,6 @@ const AmbassadorDashboardPage = () => {
     }
   }, [user?.id]);
 
-  // Get user display name safely
-  const getUserDisplayName = () => {
-    if (user?.user_metadata?.first_name) {
-      return user.user_metadata.first_name;
-    }
-    return user?.email?.split('@')[0] || 'Utilisateur';
-  };
-
   const greeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Bonjour";
@@ -207,7 +200,7 @@ const AmbassadorDashboardPage = () => {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold">
-                {greeting()}, {getUserDisplayName()}
+                {greeting()}, {user?.first_name || user?.email}
               </h1>
               <p className="text-muted-foreground">Votre tableau de bord ambassadeur</p>
             </div>

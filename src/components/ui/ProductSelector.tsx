@@ -149,13 +149,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     onSelectProduct(product);
   };
   
-  const handleViewVariants = (product: Product) => {
-    if (onViewVariants) {
-      const mockEvent = { preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent;
-      onViewVariants(product, mockEvent);
-    }
-  };
-  
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("");
@@ -231,9 +224,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     <div key={product.id} className="cursor-pointer">
                       <CatalogProductCard 
                         product={product} 
-                        onViewProduct={() => handleProductSelect(product)}
-                        onAddToCart={onViewVariants ? () => handleViewVariants(product) : undefined}
-                        showAddToCart={!!onViewVariants}
+                        onClick={() => handleProductSelect(product)}
+                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
                       />
                     </div>
                   ))}

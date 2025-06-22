@@ -31,20 +31,17 @@ const AmbassadorProductGrid: React.FC<AmbassadorProductGridProps> = ({ products 
     navigate(`/ambassador/catalog/${productId}`);
   };
 
-  const handleViewProduct = (product: Product) => {
-    navigate(`/ambassador/catalog/${product.id}`);
-  };
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-24">
       {products.map((product) => (
         <motion.div 
           key={product.id} 
           variants={itemVariants}
+          onClick={() => handleProductClick(product.id)}
         >
           <CatalogProductCard 
             product={product} 
-            onViewProduct={handleViewProduct}
+            onClick={() => handleProductClick(product.id)}
           />
         </motion.div>
       ))}

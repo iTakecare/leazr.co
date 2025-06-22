@@ -18,39 +18,31 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
-
-  // Custom sign in function
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { data, error };
-  };
+  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
   // Redirection automatique
   useEffect(() => {
     console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
+      isLoading,
       hasUser: !!user,
       userEmail: user?.email,
       userRole: user?.role
     });
 
-    if (user) {
+    if (!isLoading && user) {
       console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection...", user.email, "Role:", user.role);
       
       // Redirection basée sur le rôle
       if (user.email === "ecommerce@itakecare.be") {
         console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
         navigate('/admin/leazr-saas-dashboard', { replace: true });
-      } else if (isClient) {
+      } else if (isClient()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
         navigate('/client/dashboard', { replace: true });
-      } else if (isAmbassador) {
+      } else if (isAmbassador()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
         navigate('/ambassador/dashboard', { replace: true });
-      } else if (isPartner) {
+      } else if (isPartner()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
         navigate('/partner/dashboard', { replace: true });
       } else {
@@ -58,7 +50,7 @@ const Login = () => {
         navigate('/admin/dashboard', { replace: true });
       }
     }
-  }, [user, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +103,7 @@ const Login = () => {
   };
 
   // Afficher un loader si l'utilisateur est déjà connecté
-  if (user) {
+  if (user && !isLoading) {
     console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -124,6 +116,7 @@ const Login = () => {
   }
 
   console.log("🔀 LOGIN RENDER - Rendu du formulaire de connexion", {
+    isLoading,
     hasUser: !!user,
     loading
   });

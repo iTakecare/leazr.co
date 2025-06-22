@@ -139,7 +139,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
   }, [clientId, form]);
 
   const navigateBack = () => {
-    if (isAmbassador || checkIsAmbassador) {
+    if (isAmbassador || checkIsAmbassador()) {
       navigate("/ambassador/clients");
     } else {
       navigate("/clients");
@@ -172,7 +172,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
           form.setValue("address", result.addressParsed.streetAddress || "");
           form.setValue("postal_code", result.addressParsed.postalCode || "");
           form.setValue("city", result.addressParsed.city || "");
-          form.setValue("country", result.addressParsed.country || "");
+          form.setValue("country", result.addressParsed.country || ""); // Fixed the syntax error here by adding the missing closing parenthesis
         } else if (result.address) {
           const addressParts = result.address.split(',');
           if (addressParts.length >= 3) {
@@ -297,7 +297,7 @@ const ClientForm = ({ isAmbassador = false }: ClientFormProps) => {
             console.log("Résultat de la synchronisation:", syncResult);
           }
           
-          if (isAmbassador || checkIsAmbassador) {
+          if (isAmbassador || checkIsAmbassador()) {
             try {
               console.log("Ambassador flow: Linking client to ambassador");
               

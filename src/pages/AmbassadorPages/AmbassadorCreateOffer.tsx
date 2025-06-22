@@ -1,608 +1,468 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
-import ClientSelector from "@/components/ui/ClientSelector";
-import LeaserSelector from "@/components/ui/LeaserSelector";
+import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
-import { EquipmentFormData, Leaser } from "@/types/equipment";
-import { Calculator, FileText, User, Building, Euro, CalendarDays, Package } from "lucide-react";
-import { formatCurrency } from "@/utils/formatters";
-import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
-import AmbassadorCommissionPreview from "@/components/ambassador/AmbassadorCommissionPreview";
-import { Badge } from "@/components/ui/badge";
+import EquipmentList from "@/components/offer/EquipmentList";
+import { Equipment, Leaser, GlobalMarginAdjustment } from "@/types/equipment";
+import PageTransition from "@/components/layout/PageTransition";
+import Container from "@/components/layout/Container";
+import { useAuth } from "@/context/AuthContext";
+import { v4 as uuidv4 } from "uuid";
+import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { defaultLeasers } from "@/data/leasers";
+import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
+import { Client } from "@/types/client";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
+import { createOffer } from "@/services/offers";
+import LeaserSelector from "@/components/ui/LeaserSelector";
+import { getLeasers } from "@/services/leaserService";
+import OffersLoading from "@/components/offers/OffersLoading";
+import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
 
-interface OfferData {
-  client_id: string;
-  leaser_id: string;
-  duration: number;
-  equipment: EquipmentFormData[];
-  notes?: string;
-  offer_type: string;
-  ambassador_id?: string;
-  total_monthly_price: number;
-  total_purchase_price: number;
-}
-
-const AmbassadorCreateOffer: React.FC = () => {
-  const { user } = useAuth();
+const AmbassadorCreateOffer = () => {
+  const location = useLocation();
+  const { clientId, ambassadorId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const [client, setClient] = useState<Client | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingLeasers, setLoadingLeasers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
-  const [equipment, setEquipment] = useState<EquipmentFormData[]>([]);
-  const [duration, setDuration] = useState<number>(36);
-  const [notes, setNotes] = useState<string>("");
-  const [totalMonthlyPrice, setTotalMonthlyPrice] = useState<number>(0);
-  const [totalPurchasePrice, setTotalPurchasePrice] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [ambassadorId, setAmbassadorId] = useState<string>("");
-  const [commissionLevelId, setCommissionLevelId] = useState<string>("");
-
+  const [ambassador, setAmbassador] = useState(null);
+  const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
+  const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
+  const [remarks, setRemarks] = useState("");
+  
+  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  
+  const {
+    equipment,
+    setEquipment,
+    monthlyPayment,
+    targetMonthlyPayment,
+    setTargetMonthlyPayment,
+    coefficient,
+    calculatedMargin,
+    equipmentList,
+    setEquipmentList,
+    totalMonthlyPayment,
+    globalMarginAdjustment,
+    setGlobalMarginAdjustment,
+    editingId,
+    applyCalculatedMargin,
+    addToList,
+    startEditing,
+    cancelEditing,
+    removeFromList,
+    updateQuantity,
+    findCoefficient,
+    toggleAdaptMonthlyPayment
+  } = useEquipmentCalculator(selectedLeaser);
+  
   useEffect(() => {
-    const fetchAmbassadorProfile = async () => {
-      if (!user?.id) return;
-
+    const fetchLeasers = async () => {
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('ambassador_id, user_type')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error("Erreur lors de la récupération du profil:", error);
-          return;
+        setLoadingLeasers(true);
+        const fetchedLeasers = await getLeasers();
+        
+        if (fetchedLeasers && fetchedLeasers.length > 0) {
+          setSelectedLeaser(fetchedLeasers[0]);
         }
-
-        if (profile?.ambassador_id) {
-          setAmbassadorId(profile.ambassador_id);
-          
-          // Fetch commission level
-          const { data: ambassador, error: ambError } = await supabase
-            .from('ambassadors')
-            .select('commission_level_id')
-            .eq('id', profile.ambassador_id)
-            .single();
-            
-          if (ambassador?.commission_level_id) {
-            setCommissionLevelId(ambassador.commission_level_id);
-          }
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement du profil:", err);
+      } catch (error) {
+        console.error("Error fetching leasers:", error);
+        toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      } finally {
+        setLoadingLeasers(false);
       }
     };
-
-    fetchAmbassadorProfile();
-  }, [user]);
-
-  // Calculate commission using the hook
-  const commission = useCommissionCalculator(
-    totalMonthlyPrice,
-    ambassadorId,
-    commissionLevelId,
-    equipment.length
-  );
-
-  // Calculate totals whenever equipment or duration changes
+    
+    fetchLeasers();
+  }, []);
+  
   useEffect(() => {
-    const monthlyTotal = equipment.reduce((sum, item) => {
-      return sum + ((item.monthly_price || 0) * (item.quantity || 1));
-    }, 0);
-    
-    const purchaseTotal = equipment.reduce((sum, item) => {
-      return sum + ((item.purchase_price || 0) * (item.quantity || 1));
-    }, 0);
-    
-    setTotalMonthlyPrice(monthlyTotal);
-    setTotalPurchasePrice(purchaseTotal);
-  }, [equipment]);
-
-  const nextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
+    if (clientId) {
+      fetchClient(clientId);
     }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  }, [clientId]);
+  
+  useEffect(() => {
+    if (ambassadorId) {
+      fetchAmbassador(ambassadorId);
+    } else if (user?.ambassador_id) {
+      fetchAmbassador(user.ambassador_id);
     }
-  };
-
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        return selectedClientId !== "";
-      case 2:
-        return selectedLeaser !== null;
-      case 3:
-        return equipment.length > 0 && equipment.every(item => 
-          item.name && item.monthly_price > 0 && item.quantity > 0
-        );
-      case 4:
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!validateStep(4)) {
-      toast.error("Veuillez vérifier toutes les informations");
-      return;
-    }
-
-    if (!selectedLeaser) {
-      toast.error("Veuillez sélectionner un bailleur");
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  }, [ambassadorId, user]);
+  
+  const fetchAmbassador = async (id: string) => {
     try {
-      const offerData: OfferData = {
-        client_id: selectedClientId,
-        leaser_id: selectedLeaser.id,
-        duration: duration,
-        equipment: equipment,
-        notes: notes,
-        offer_type: "leasing",
-        ambassador_id: ambassadorId,
-        total_monthly_price: totalMonthlyPrice,
-        total_purchase_price: totalPurchasePrice
-      };
-
+      setLoading(true);
       const { data, error } = await supabase
-        .from('offers')
-        .insert([offerData])
-        .select()
+        .from("ambassadors")
+        .select("*, commission_levels(name)")
+        .eq("id", id)
         .single();
-
+      
+      if (error) throw error;
+      setAmbassador(data);
+      console.log("Ambassador data loaded:", data);
+    } catch (error) {
+      console.error("Erreur lors du chargement de l'ambassadeur:", error);
+      toast.error("Impossible de charger les informations de l'ambassadeur");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchClient = async (id: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (error) throw error;
+      setClient(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement du client:", error);
+      toast.error("Impossible de charger les informations du client");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleOpenClientSelector = () => {
+    setClientSelectorOpen(true);
+  };
+  
+  const handleSelectClient = (selectedClient: ClientSelectorClient) => {
+    console.log("Selected client in AmbassadorCreateOffer:", selectedClient);
+    setClient({
+      id: selectedClient.id,
+      name: selectedClient.name,
+      email: selectedClient.email || "",
+      company: selectedClient.company || "",
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+  };
+  
+  const handleOpenLeaserSelector = () => {
+    setLeaserSelectorOpen(true);
+  };
+  
+  const handleLeaserSelect = (leaser: Leaser) => {
+    setSelectedLeaser(leaser);
+    setLeaserSelectorOpen(false);
+  };
+  
+  const handleOpenCatalog = () => {
+    // Fonctionnalité à implémenter si nécessaire
+  };
+  
+  const handleSaveOffer = async () => {
+    if (!client) {
+      toast.error("Veuillez d'abord sélectionner un client");
+      return;
+    }
+    
+    if (equipmentList.length === 0) {
+      toast.error("Veuillez ajouter au moins un équipement");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      const totalMonthlyPayment = equipmentList.reduce(
+        (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
+        0
+      );
+      
+      const totalPurchasePrice = equipmentList.reduce(
+        (sum, item) => sum + (item.purchasePrice * item.quantity),
+        0
+      );
+      
+      const equipmentDescription = JSON.stringify(
+        equipmentList.map(eq => ({
+          id: eq.id,
+          title: eq.title,
+          purchasePrice: eq.purchasePrice,
+          quantity: eq.quantity,
+          margin: eq.margin,
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+        }))
+      );
+      
+      const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
+      const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+      
+      // Variable pour stocker la commission
+      let commissionAmount = 0;
+      
+      // Récupérer la commission depuis l'interface utilisateur
+      const commissionElement = document.getElementById('commission-display-value');
+      
+      console.log("Commission element found:", commissionElement);
+      
+      if (commissionElement && commissionElement.dataset.commissionAmount) {
+        try {
+          commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
+          if (!isNaN(commissionAmount)) {
+            console.log("Commission récupérée depuis l'interface:", commissionAmount);
+          } else {
+            throw new Error("Commission is NaN");
+          }
+        } catch (error) {
+          console.error("Error parsing commission from UI:", error);
+          
+          // Méthode de secours : calculer la commission
+          const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+          const commissionLevelId = ambassador?.commission_level_id;
+          
+          if (currentAmbassadorId && commissionLevelId) {
+            try {
+              const commissionData = await calculateCommissionByLevel(
+                financedAmount,
+                commissionLevelId,
+                'ambassador',
+                currentAmbassadorId
+              );
+              
+              if (commissionData && typeof commissionData.amount === 'number') {
+                commissionAmount = commissionData.amount;
+                console.log(`Commission calculée pour l'offre: ${commissionAmount}€ (${commissionData.rate}%)`);
+              } else {
+                console.error("Erreur: le calcul de commission a retourné un objet invalide", commissionData);
+                commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+              }
+            } catch (commError) {
+              console.error("Erreur lors du calcul de la commission:", commError);
+              commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+            }
+          } else {
+            console.log("Impossible de calculer la commission précise: données d'ambassadeur manquantes");
+            commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+          }
+        }
+      } else {
+        // Fallback si l'élément n'existe pas
+        console.warn("Commission element not found in DOM");
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut pour les ambassadeurs, arrondi
+        console.log("Commission par défaut calculée (élément non trouvé):", commissionAmount);
+      }
+      
+      const currentAmbassadorId = ambassadorId || user?.ambassador_id;
+      
+      // On s'assure que la commission n'est pas invalide
+      if (commissionAmount === 0 || isNaN(commissionAmount)) {
+        console.warn("Commission invalide ou nulle, application d'une valeur par défaut");
+        commissionAmount = Math.round(financedAmount * 0.05); // 5% par défaut, arrondi
+      }
+      
+      // Log final de la commission à sauvegarder
+      console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
+      
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      
+      // Récupérer la marge totale générée (sans la différence)
+      const marginAmount = String(globalMarginAdjustment.amount || 0);
+      
+      const offerData = {
+        client_id: client.id,
+        client_name: client.name,
+        client_email: client.email,
+        equipment_description: equipmentDescription,
+        amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+        coefficient: globalMarginAdjustment.newCoef,
+        monthly_payment: totalMonthlyPayment,
+        commission: commissionAmount,
+        financed_amount: financedAmount,
+        workflow_status: "draft",
+        type: "ambassador_offer",
+        user_id: user?.id || "",
+        ambassador_id: currentAmbassadorId,
+        remarks: remarks,
+        total_margin_with_difference: totalMarginWithDifferenceString,
+        margin: marginAmount  // Ajout de la marge générée
+      };
+      
+      console.log("Saving offer with the following data:", offerData);
+      console.log("Commission value being saved:", commissionAmount);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Margin generated value being saved:", marginAmount);
+      
+      const { data, error } = await createOffer(offerData);
+      
       if (error) {
-        console.error('Erreur lors de la création de l\'offre:', error);
-        toast.error("Erreur lors de la création de l'offre");
+        console.error("Erreur lors de la sauvegarde:", error);
+        toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
         return;
       }
-
-      // Insert equipment details
-      if (equipment.length > 0) {
-        const equipmentData = equipment.map(item => ({
-          offer_id: data.id,
-          name: item.name,
-          description: item.description,
-          brand: item.brand,
-          model: item.model,
-          quantity: item.quantity,
-          monthly_price: item.monthly_price,
-          purchase_price: item.purchase_price,
-          category: item.category,
-          specifications: item.specifications
-        }));
-
-        const { error: equipmentError } = await supabase
-          .from('offer_equipment')
-          .insert(equipmentData);
-
-        if (equipmentError) {
-          console.error('Erreur lors de l\'ajout des équipements:', equipmentError);
-          toast.error("Erreur lors de l'ajout des équipements");
-          return;
-        }
-      }
-
-      // Insert commission record if there's a commission
-      if (commission.amount > 0 && ambassadorId) {
-        const { error: commissionError } = await supabase
-          .from('ambassador_commissions')
-          .insert([{
-            ambassador_id: ambassadorId,
-            offer_id: data.id,
-            amount: commission.amount,
-            commission_rate: commission.rate,
-            status: 'pending'
-          }]);
-
-        if (commissionError) {
-          console.error('Erreur lors de l\'enregistrement de la commission:', commissionError);
-          // Non-blocking error, continue with success flow
-        }
-      }
-
+      
       toast.success("Offre créée avec succès!");
-      navigate(`/ambassador/offers/${data.id}`);
+      
+      navigate("/ambassador/offers");
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error("Une erreur est survenue");
+      console.error("Erreur lors de la sauvegarde de l'offre:", error);
+      toast.error("Impossible de sauvegarder l'offre");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const handleSelectClient = (client: any) => {
-    setSelectedClientId(client.id);
+  
+  const clientInfoProps = {
+    clientId: client?.id || null,
+    clientName: client?.name || "",
+    clientEmail: client?.email || "",
+    clientCompany: client?.company || "",
+    remarks: remarks,
+    setRemarks: setRemarks,
+    onOpenClientSelector: handleOpenClientSelector,
+    handleSaveOffer: handleSaveOffer,
+    isSubmitting: isSubmitting,
+    selectedLeaser: selectedLeaser,
+    equipmentList: equipmentList,
+    hideFinancialDetails: true
   };
-
-  const handleLeaserSelect = (leaser: Leaser) => {
-    setSelectedLeaser(leaser);
+  
+  const handleAddEquipment = (title: string) => {
+    setEquipment({
+      id: crypto.randomUUID(),
+      title: title || "",
+      purchasePrice: 1000,
+      quantity: 1,
+      margin: 20,
+      monthlyPayment: 0,
+    });
   };
-
-  const stepTitles = [
-    "Sélection du client",
-    "Sélection du bailleur", 
-    "Configuration des équipements",
-    "Récapitulatif et validation"
-  ];
-
-  const stepIcons = [User, Building, Package, FileText];
-
-  const renderStepIndicator = () => (
-    <div className="w-full mb-8">
-      <div className="flex items-center justify-between">
-        {stepTitles.map((title, index) => {
-          const stepNumber = index + 1;
-          const isActive = currentStep === stepNumber;
-          const isCompleted = currentStep > stepNumber;
-          const Icon = stepIcons[index];
-          
-          return (
-            <div key={stepNumber} className="flex flex-col items-center relative">
-              <div className={cn(
-                "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-colors mb-2",
-                isActive ? "border-indigo-600 bg-indigo-600 text-white" :
-                isCompleted ? "border-green-600 bg-green-600 text-white" :
-                "border-gray-300 bg-white text-gray-400"
-              )}>
-                <Icon className="h-5 w-5" />
+  
+  const hideFinancialDetails = true;
+  const isPageLoading = loading || loadingLeasers;
+  
+  useEffect(() => {
+    if (ambassador) {
+      console.log("Ambassador state updated:", ambassador);
+      console.log("Commission level ID:", ambassador.commission_level_id);
+    }
+  }, [ambassador]);
+  
+  return (
+    <PageTransition>
+      <Container>
+        <ClientSelector 
+          isOpen={clientSelectorOpen} 
+          onClose={() => setClientSelectorOpen(false)} 
+          onSelectClient={handleSelectClient}
+          selectedClientId={client?.id || ""}
+          onClientSelect={() => {}}
+          ambassadorMode={true}
+        />
+        
+        <LeaserSelector
+          isOpen={leaserSelectorOpen}
+          onClose={() => setLeaserSelectorOpen(false)}
+          onSelect={handleLeaserSelect}
+          selectedLeaser={selectedLeaser}
+        />
+        
+        <div className="py-12 px-4">
+          <div className="max-w-[90rem] mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <CalcIcon className="h-8 w-8 text-blue-600" />
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Calculateur de Mensualités iTakecare
+                </h1>
               </div>
-              <span className={cn(
-                "text-sm font-medium text-center max-w-24",
-                isActive ? "text-indigo-600" :
-                isCompleted ? "text-green-600" :
-                "text-gray-400"
-              )}>
-                {title}
-              </span>
-              {index < stepTitles.length - 1 && (
-                <div className={cn(
-                  "absolute top-6 left-12 w-full h-0.5 -z-10",
-                  currentStep > stepNumber ? "bg-green-600" : "bg-gray-300"
-                )} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Sélection du client
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ClientSelector
-                isOpen={true}
-                onClose={() => {}}
-                onSelectClient={handleSelectClient}
-                selectedClientId={selectedClientId}
-                onClientSelect={() => {}}
-                ambassadorMode={true}
-              />
-            </CardContent>
-          </Card>
-        );
-
-      case 2:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Sélection du bailleur
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LeaserSelector
-                isOpen={true}
-                onClose={() => {}}
-                selectedLeaser={selectedLeaser}
-                onSelect={handleLeaserSelect}
-              />
-              <div className="mt-4">
-                <Label htmlFor="duration">Durée du contrat (mois)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={duration}
-                  onChange={(e) => setDuration(parseInt(e.target.value) || 36)}
-                  min="12"
-                  max="60"
-                  className="mt-1"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case 3:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Configuration des équipements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {equipment.map((item, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Nom du produit</Label>
-                        <Input
-                          value={item.name}
-                          onChange={(e) => {
-                            const newEquipment = [...equipment];
-                            newEquipment[index].name = e.target.value;
-                            setEquipment(newEquipment);
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label>Quantité</Label>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const newEquipment = [...equipment];
-                            newEquipment[index].quantity = parseInt(e.target.value) || 1;
-                            setEquipment(newEquipment);
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label>Prix mensuel (€)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.monthly_price}
-                          onChange={(e) => {
-                            const newEquipment = [...equipment];
-                            newEquipment[index].monthly_price = parseFloat(e.target.value) || 0;
-                            setEquipment(newEquipment);
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label>Prix d'achat (€)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.purchase_price}
-                          onChange={(e) => {
-                            const newEquipment = [...equipment];
-                            newEquipment[index].purchase_price = parseFloat(e.target.value) || 0;
-                            setEquipment(newEquipment);
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const newEquipment = equipment.filter((_, i) => i !== index);
-                        setEquipment(newEquipment);
-                      }}
-                      className="mt-2"
-                    >
-                      Supprimer
-                    </Button>
-                  </div>
-                ))}
-                
+              <div className="flex gap-4">
                 <Button
-                  onClick={() => {
-                    setEquipment([...equipment, {
-                      name: "",
-                      quantity: 1,
-                      monthly_price: 0,
-                      purchase_price: 0
-                    }]);
-                  }}
-                  className="w-full"
+                  variant="outline"
+                  onClick={() => navigate('/ambassador/offers')}
                 >
-                  Ajouter un équipement
+                  Retour
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        );
+            </div>
 
-      case 4:
-        return (
-          <div className="space-y-6">
-            {/* Récapitulatif de l'offre */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Récapitulatif de l'offre
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Informations générales */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Durée du contrat</Label>
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-gray-500" />
-                      <span>{duration} mois</span>
+            {isPageLoading ? (
+              <OffersLoading />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <div className="mt-6">
+                      <EquipmentForm
+                        equipment={equipment}
+                        setEquipment={setEquipment}
+                        selectedLeaser={selectedLeaser}
+                        addToList={addToList}
+                        editingId={editingId}
+                        cancelEditing={cancelEditing}
+                        onOpenCatalog={handleOpenCatalog}
+                        coefficient={coefficient}
+                        monthlyPayment={monthlyPayment}
+                        targetMonthlyPayment={targetMonthlyPayment}
+                        setTargetMonthlyPayment={setTargetMonthlyPayment}
+                        calculatedMargin={calculatedMargin}
+                        applyCalculatedMargin={applyCalculatedMargin}
+                        hideFinancialDetails={hideFinancialDetails}
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Type d'offre</Label>
-                    <Badge variant="outline">Leasing</Badge>
-                  </div>
-                </div>
 
-                <Separator />
-
-                {/* Équipements */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block">
-                    Équipements ({equipment.length} article{equipment.length > 1 ? 's' : ''})
-                  </Label>
-                  <div className="space-y-3">
-                    {equipment.map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.name}</h4>
-                            {item.brand && (
-                              <p className="text-sm text-gray-600">Marque: {item.brand}</p>
-                            )}
-                            {item.model && (
-                              <p className="text-sm text-gray-600">Modèle: {item.model}</p>
-                            )}
-                            <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold text-indigo-600">
-                              {formatCurrency((item.monthly_price || 0) * (item.quantity || 1))}/mois
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Prix d'achat: {formatCurrency((item.purchase_price || 0) * (item.quantity || 1))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Totaux */}
-                <div className="bg-indigo-50 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">Total mensuel</span>
-                    <span className="text-xl font-bold text-indigo-600">
-                      {formatCurrency(totalMonthlyPrice)}/mois
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm text-gray-600">
-                    <span>Prix d'achat total</span>
-                    <span>{formatCurrency(totalPurchasePrice)}</span>
-                  </div>
-                </div>
-
-                {/* Commission Preview */}
-                {ambassadorId && (
-                  <>
-                    <Separator />
-                    <AmbassadorCommissionPreview
-                      totalMonthlyPayment={totalMonthlyPrice}
-                      ambassadorId={ambassadorId}
-                      commissionLevelId={commissionLevelId}
-                      equipmentList={equipment}
+                  <div className="space-y-8">
+                    <EquipmentList
+                      equipmentList={equipmentList}
+                      editingId={editingId}
+                      startEditing={startEditing}
+                      removeFromList={removeFromList}
+                      updateQuantity={updateQuantity}
+                      totalMonthlyPayment={totalMonthlyPayment}
+                      globalMarginAdjustment={{
+                        amount: globalMarginAdjustment.amount,
+                        newCoef: globalMarginAdjustment.newCoef,
+                        active: globalMarginAdjustment.adaptMonthlyPayment,
+                        marginDifference: globalMarginAdjustment.marginDifference
+                      }}
+                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                      hideFinancialDetails={hideFinancialDetails}
+                      ambassadorId={ambassadorId || user?.ambassador_id}
+                      commissionLevelId={ambassador?.commission_level_id}
                     />
-                  </>
-                )}
-
-                {/* Notes */}
-                <div>
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                    Notes additionnelles (optionnel)
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ajoutez des notes ou commentaires concernant cette offre..."
-                    className="mt-1"
-                    rows={3}
-                  />
+                    
+                    <ClientInfo
+                      clientId={clientInfoProps.clientId}
+                      clientName={clientInfoProps.clientName}
+                      clientEmail={clientInfoProps.clientEmail}
+                      clientCompany={clientInfoProps.clientCompany}
+                      remarks={clientInfoProps.remarks}
+                      setRemarks={clientInfoProps.setRemarks}
+                      onOpenClientSelector={clientInfoProps.onOpenClientSelector}
+                      handleSaveOffer={clientInfoProps.handleSaveOffer}
+                      isSubmitting={clientInfoProps.isSubmitting}
+                      selectedLeaser={clientInfoProps.selectedLeaser}
+                      equipmentList={clientInfoProps.equipmentList}
+                      hideFinancialDetails={hideFinancialDetails}
+                    />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </>
+            )}
           </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Création d'une nouvelle offre
-        </h1>
-        <p className="text-gray-600">
-          Suivez les étapes pour créer une offre de leasing personnalisée
-        </p>
-      </div>
-
-      {renderStepIndicator()}
-
-      <div className="mb-8">
-        {renderStepContent()}
-      </div>
-
-      {/* Navigation buttons */}
-      <div className="flex justify-between items-center pt-6 border-t">
-        <Button
-          variant="outline"
-          onClick={prevStep}
-          disabled={currentStep === 1}
-          className="flex items-center gap-2"
-        >
-          Précédent
-        </Button>
-
-        <div className="text-sm text-gray-500">
-          Étape {currentStep} sur {stepTitles.length}
         </div>
-
-        {currentStep < stepTitles.length ? (
-          <Button
-            onClick={nextStep}
-            disabled={!validateStep(currentStep)}
-            className="flex items-center gap-2"
-          >
-            Suivant
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !validateStep(currentStep)}
-            className="flex items-center gap-2"
-          >
-            {isSubmitting ? "Création..." : "Créer l'offre"}
-          </Button>
-        )}
-      </div>
-    </div>
+      </Container>
+    </PageTransition>
   );
 };
 

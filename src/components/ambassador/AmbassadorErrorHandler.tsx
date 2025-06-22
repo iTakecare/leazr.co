@@ -26,8 +26,8 @@ const AmbassadorErrorHandler: React.FC<AmbassadorErrorHandlerProps> = ({
         userId: user?.id,
         email: user?.email,
         hasSession: !!session,
-        isAdmin: isAdmin,
-        isAmbassador: isAmbassador
+        isAdmin: isAdmin(),
+        isAmbassador: isAmbassador()
       },
       timestamp: new Date().toISOString(),
       errorMessage: message
@@ -65,7 +65,7 @@ const AmbassadorErrorHandler: React.FC<AmbassadorErrorHandlerProps> = ({
               <p><strong>Accès ambassadeur_clients:</strong> {message.includes('ambassador_clients') ? 'Problème' : 'OK'}</p>
               <p><strong>Accès ambassadeurs:</strong> {message.includes('ambassadors') ? 'Problème' : 'OK'}</p>
               <p><strong>Nombre d'enregistrements ambassadeurs:</strong> {user ? '1' : '0'}</p>
-              <p><strong>Nombre d'enregistrements ambassadeurs:</strong> {isAmbassador ? '1' : '0'}</p>
+              <p><strong>Nombre d'enregistrements ambassadeurs:</strong> {isAmbassador() ? '1' : '0'}</p>
               <p className="text-red-600"><strong>Erreur ambassador_clients:</strong> {message.includes('permission denied for table users') ? 'permission denied for table users' : 'Autre erreur'}</p>
             </div>
             

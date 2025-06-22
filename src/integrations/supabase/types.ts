@@ -519,18 +519,13 @@ export type Database = {
       }
       companies: {
         Row: {
-          accent_color: string | null
           created_at: string
-          custom_domain: string | null
-          favicon_url: string | null
           id: string
           is_active: boolean | null
           logo_url: string | null
           modules_enabled: string[] | null
           name: string
           plan: string
-          primary_color: string | null
-          secondary_color: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
@@ -538,18 +533,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          accent_color?: string | null
           created_at?: string
-          custom_domain?: string | null
-          favicon_url?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           modules_enabled?: string[] | null
           name: string
           plan?: string
-          primary_color?: string | null
-          secondary_color?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
@@ -557,18 +547,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          accent_color?: string | null
           created_at?: string
-          custom_domain?: string | null
-          favicon_url?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           modules_enabled?: string[] | null
           name?: string
           plan?: string
-          primary_color?: string | null
-          secondary_color?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null

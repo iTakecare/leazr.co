@@ -9,13 +9,13 @@ interface PrivateRouteProps {
 }
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  console.log("PrivateRoute - loading:", loading, "user:", !!user, "path:", location.pathname);
+  console.log("PrivateRoute - isLoading:", isLoading, "user:", !!user, "path:", location.pathname);
 
   // Afficher le loader pendant le chargement
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

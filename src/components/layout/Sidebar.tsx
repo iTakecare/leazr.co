@@ -115,13 +115,6 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     }
   };
 
-  const getUserDisplayName = () => {
-    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-      return `${user.user_metadata.first_name} ${user.user_metadata.last_name}`;
-    }
-    return user?.email || 'Utilisateur';
-  };
-
   if (isMobile) {
     return (
       <>
@@ -206,7 +199,9 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                     </Avatar>
                     <div className="overflow-hidden">
                       <p className="text-sm font-medium truncate">
-                        {getUserDisplayName()}
+                        {user.first_name && user.last_name 
+                          ? `${user.first_name} ${user.last_name}` 
+                          : user.email}
                       </p>
                       <p className="text-xs text-muted-foreground">Admin</p>
                     </div>
@@ -353,7 +348,9 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                   </Avatar>
                   <div className="overflow-hidden">
                     <p className="text-sm font-medium truncate">
-                      {getUserDisplayName()}
+                      {user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}` 
+                        : user.email}
                     </p>
                     <p className="text-xs text-muted-foreground">Admin</p>
                   </div>

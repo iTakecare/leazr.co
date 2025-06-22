@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,10 @@ import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 
 const Settings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, subscription, checkSubscription, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
 
-  // Remove subscription-related functionality since it's not available in AuthContext
   const handleManageSubscription = async () => {
     setLoading(true);
     try {
@@ -53,19 +53,9 @@ const Settings: React.FC = () => {
 
   const handleRefreshSubscription = async () => {
     setLoading(true);
-    // Implement subscription refresh logic here
+    await checkSubscription();
     setLoading(false);
     toast.success('Statut d\'abonnement mis à jour');
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast.success('Déconnexion réussie');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      toast.error('Erreur lors de la déconnexion');
-    }
   };
 
   const planNames = {
@@ -190,8 +180,19 @@ const Settings: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Plan actuel:</span>
-                      <Badge variant="secondary">Plan de base</Badge>
+                      {subscription?.subscribed ? (
+                        <Badge className="bg-green-100 text-green-800">
+                          {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Aucun abonnement actif</Badge>
+                      )}
                     </div>
+                    {subscription?.subscription_end && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -203,14 +204,30 @@ const Settings: React.FC = () => {
                       <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                       Actualiser
                     </Button>
-                    <Button
-                      onClick={handleManageSubscription}
-                      disabled={loading}
-                    >
-                      Gérer l'abonnement
-                    </Button>
+                    {subscription?.subscribed && (
+                      <Button
+                        onClick={handleManageSubscription}
+                        disabled={loading}
+                      >
+                        Gérer l'abonnement
+                      </Button>
+                    )}
                   </div>
                 </div>
+
+                {!subscription?.subscribed && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800">
+                      Aucun abonnement actif. Souscrivez à un plan pour accéder à toutes les fonctionnalités.
+                    </p>
+                    <Button
+                      className="mt-2"
+                      onClick={() => window.location.href = '/signup'}
+                    >
+                      Choisir un plan
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -235,7 +252,7 @@ const Settings: React.FC = () => {
                   <p className="text-sm text-gray-500 font-mono">{user?.id}</p>
                 </div>
                 <div className="pt-4 border-t">
-                  <Button variant="outline" onClick={handleLogout}>
+                  <Button variant="outline" onClick={logout}>
                     Se déconnecter
                   </Button>
                 </div>

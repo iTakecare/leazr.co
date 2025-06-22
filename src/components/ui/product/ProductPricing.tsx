@@ -1,77 +1,76 @@
 
 import React from "react";
-import { Badge } from "@/components/ui/badge";
+import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProductPricingProps {
-  product: any;
-  selectedVariant?: any;
-  quantity?: number;
+  product: Product;
+  hasVariants: boolean;
 }
 
-const ProductPricing: React.FC<ProductPricingProps> = ({
-  product,
-  selectedVariant,
-  quantity = 1
-}) => {
+const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants }) => {
   const { isAdmin } = useAuth();
-
-  const shouldShowPurchasePrice = isAdmin;
   
-  const getDisplayPrice = () => {
-    if (selectedVariant) {
-      return {
-        price: selectedVariant.price || 0,
-        monthlyPrice: selectedVariant.monthly_price || 0
-      };
+  const calculateMonthlyPrice = (): string | number => {
+    let productMonthlyPrice: string | number = "Non définie";
+    
+    if (hasVariants) {
+      if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+        const variantPrices = product.variant_combination_prices
+          .map(variant => variant.monthly_price || 0)
+          .filter(price => price > 0);
+          
+        if (variantPrices.length > 0) {
+          const minPrice = Math.min(...variantPrices);
+          productMonthlyPrice = formatCurrency(minPrice);
+        }
+      } else if (product.variants && product.variants.length > 0) {
+        const variantPrices = product.variants
+          .map(variant => variant.monthly_price || 0)
+          .filter(price => price > 0);
+          
+        if (variantPrices.length > 0) {
+          const minPrice = Math.min(...variantPrices);
+          productMonthlyPrice = formatCurrency(minPrice);
+        }
+      }
+    } else if (product?.monthly_price) {
+      productMonthlyPrice = formatCurrency(product.monthly_price);
     }
     
-    return {
-      price: product.price || 0,
-      monthlyPrice: product.monthly_price || 0
-    };
+    return productMonthlyPrice;
   };
-
-  const { price, monthlyPrice } = getDisplayPrice();
-  const totalPrice = price * quantity;
-  const totalMonthlyPrice = monthlyPrice * quantity;
-
+  
+  const calculatePrice = (): string => {
+    let productPrice: number | string = product?.price || 0;
+    
+    if (typeof productPrice === 'number') {
+      productPrice = formatCurrency(productPrice);
+    }
+    
+    return productPrice;
+  };
+  
+  const productPrice = calculatePrice();
+  const productMonthlyPrice = calculateMonthlyPrice();
+  
+  // Only admin can see purchase price
+  const shouldShowPurchasePrice = isAdmin();
+  
   return (
-    <div className="space-y-3">
-      {shouldShowPurchasePrice && price > 0 && (
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <span className="text-sm text-gray-600">Prix d'achat</span>
-          <span className="font-semibold text-gray-900">
-            {formatCurrency(totalPrice)}
-          </span>
-        </div>
+    <div className="mt-3 space-y-1">
+      {productPrice !== "0,00 €" && shouldShowPurchasePrice && (
+        <p className="text-gray-700">
+          Prix: <span className="font-semibold">{productPrice}</span>
+        </p>
       )}
       
-      {monthlyPrice > 0 && (
-        <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-          <span className="text-sm text-indigo-700 font-medium">Mensualité de leasing</span>
-          <div className="text-right">
-            <span className="text-xl font-bold text-indigo-900">
-              {formatCurrency(totalMonthlyPrice)}
-            </span>
-            <span className="text-sm text-indigo-600 ml-1">/mois</span>
-          </div>
-        </div>
-      )}
-      
-      {monthlyPrice === 0 && price === 0 && (
-        <div className="flex items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <Badge variant="secondary" className="text-gray-600">
-            Prix sur demande
-          </Badge>
-        </div>
-      )}
-      
-      {quantity > 1 && (
-        <div className="text-xs text-gray-500 text-center">
-          Quantité: {quantity} • Prix unitaire: {formatCurrency(monthlyPrice)}/mois
-        </div>
+      {productMonthlyPrice !== "Non définie" && (
+        <p className="text-gray-700">
+          {hasVariants ? "À partir de " : "Mensualité: "}
+          <span className="font-bold text-indigo-700">{productMonthlyPrice}{hasVariants && "/mois"}</span>
+        </p>
       )}
     </div>
   );

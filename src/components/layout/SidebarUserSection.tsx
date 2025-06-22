@@ -8,16 +8,14 @@ import { toast } from "sonner";
 import NavbarUserProfile from "./NavbarUserProfile";
 
 const SidebarUserSection = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;
 
   const getUserInitials = () => {
-    // Récupérer les données depuis les métadonnées utilisateur
-    const metadata = user.user_metadata || {};
-    if (metadata.first_name && metadata.last_name) {
-      return `${metadata.first_name[0]}${metadata.last_name[0]}`.toUpperCase();
+    if (user.first_name && user.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
     }
     return user.email?.[0]?.toUpperCase() || 'U';
   };
@@ -25,7 +23,7 @@ const SidebarUserSection = () => {
   const handleLogout = async () => {
     try {
       console.log("Début de la déconnexion...");
-      await signOut();
+      await logout();
       console.log("Déconnexion réussie, redirection vers /login");
       toast.success("Déconnexion réussie");
       navigate("/login");
