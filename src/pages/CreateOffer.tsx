@@ -357,9 +357,9 @@ const CreateOffer = () => {
     <PageTransition>
       <div className="min-h-screen bg-background flex w-full">
         <div className="flex-1 overflow-auto">
-          <div className="py-8 px-6">
+          <div className="py-8 px-4">
             <div className="max-w-full mx-auto">
-              <div className="flex justify-between items-center mb-8 px-2">
+              <div className="flex justify-between items-center mb-8 px-1">
                 <div className="flex items-center gap-3">
                   <CalcIcon className="h-8 w-8 text-blue-600" />
                   <h1 className="text-2xl font-bold text-gray-900">
@@ -386,7 +386,7 @@ const CreateOffer = () => {
                   <span className="ml-2">Chargement...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 px-2">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 px-1">
                   <div className="xl:col-span-1">
                     <EquipmentForm
                       equipment={equipment}
