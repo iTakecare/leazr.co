@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -59,10 +58,10 @@ import CRMPage from "@/pages/CRMPage";
 import UpdatePassword from "@/pages/UpdatePassword";
 
 const MultiTenantRouter = () => {
-  const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const { user, loading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
   // Pendant le chargement, afficher un loader
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -119,11 +118,11 @@ const RoleBasedRoutes = () => {
   }
 
   // Routage selon le rôle principal de l'utilisateur
-  if (isClient()) {
+  if (isClient) {
     return <ClientRoutes />;
   }
 
-  if (isAmbassador()) {
+  if (isAmbassador) {
     return (
       <AmbassadorLayout>
         <Routes>
@@ -135,7 +134,7 @@ const RoleBasedRoutes = () => {
     );
   }
 
-  if (isPartner()) {
+  if (isPartner) {
     return <PartnerRoutes />;
   }
 

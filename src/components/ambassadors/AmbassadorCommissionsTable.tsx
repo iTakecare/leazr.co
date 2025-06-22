@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -37,7 +36,7 @@ interface AmbassadorCommissionsTableProps {
 }
 
 const AmbassadorCommissionsTable: React.FC<AmbassadorCommissionsTableProps> = ({ ambassadorId }) => {
-  const { user } = useAuth();
+  const { user, ambassadorId: authAmbassadorId } = useAuth();
   const [commissions, setCommissions] = useState<AmbassadorCommission[]>([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ pending: 0, paid: 0, total: 0 });
@@ -47,7 +46,7 @@ const AmbassadorCommissionsTable: React.FC<AmbassadorCommissionsTableProps> = ({
       setLoading(true);
       if (!ambassadorId && !user) return;
 
-      const ambassadorIdToUse = ambassadorId || user?.ambassador_id;
+      const ambassadorIdToUse = ambassadorId || authAmbassadorId;
       
       if (!ambassadorIdToUse) {
         toast.error("ID d'ambassadeur introuvable");
