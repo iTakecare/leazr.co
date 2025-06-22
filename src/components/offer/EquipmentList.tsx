@@ -61,7 +61,14 @@ const EquipmentList = ({
   const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
   const coefficient = globalMarginAdjustment.newCoef || 3.27;
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
-  const adjustedMargin = globalMarginAdjustment.active ? globalMarginAdjustment.marginDifference : 0;
+  const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
+
+  console.log("GlobalMarginAdjustment debug:", {
+    active: globalMarginAdjustment.active,
+    marginDifference: globalMarginAdjustment.marginDifference,
+    adjustedMargin: adjustedMargin,
+    shouldShow: globalMarginAdjustment.active && Math.abs(adjustedMargin) > 0.01
+  });
 
   return (
     <div className="space-y-6">
@@ -209,10 +216,10 @@ const EquipmentList = ({
                   </div>
                 </div>
                 
-                {globalMarginAdjustment.active && adjustedMargin !== 0 && (
-                  <div className="flex items-center justify-between py-1">
-                    <div className="text-sm text-orange-600">Marge ajustée au coefficient:</div>
-                    <div className="font-medium text-orange-600">
+                {globalMarginAdjustment.active && Math.abs(adjustedMargin) > 0.01 && (
+                  <div className="flex items-center justify-between py-1 bg-orange-50 px-3 rounded-md border border-orange-200">
+                    <div className="text-sm font-medium text-orange-700">Marge ajustée au coefficient:</div>
+                    <div className="font-bold text-orange-700">
                       {formatCurrency(adjustedMargin)}
                     </div>
                   </div>
