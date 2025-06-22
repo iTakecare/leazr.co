@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
@@ -21,7 +20,7 @@ const Signup = () => {
   const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("client");
   const [isExistingClient, setIsExistingClient] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
-  const { signUp, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const checkExistingClient = async () => {
@@ -75,7 +74,9 @@ const Signup = () => {
     e.preventDefault();
     
     try {
-      // Mise à jour pour inclure le rôle personnalisé lors de l'inscription
+      setIsLoading(true);
+      
+      // Use Supabase auth directly instead of AuthContext signUp
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -84,7 +85,7 @@ const Signup = () => {
             first_name: firstName,
             last_name: lastName,
             company,
-            role: role // Utiliser le rôle sélectionné
+            role: role
           }
         }
       });
@@ -101,6 +102,8 @@ const Signup = () => {
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
