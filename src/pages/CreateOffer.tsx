@@ -368,7 +368,7 @@ const CreateOffer = () => {
               <div className="flex gap-4">
                 <LeaserButton 
                   selectedLeaser={selectedLeaser} 
-                  onOpenSelector={handleOpenLeaserSelector}
+                  onOpen={handleOpenLeaserSelector}
                 />
                 <Button
                   variant="outline"
