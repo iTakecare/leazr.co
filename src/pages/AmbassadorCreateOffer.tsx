@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,7 @@ const AmbassadorCreateOffer = () => {
     remarks,
     ambassadorId,
     ambassador,
-    userId: user?.ambassador_id,
+    userId: user?.id, // Fixed: use user.id instead of user.ambassador_id
     setIsSubmitting
   });
 
