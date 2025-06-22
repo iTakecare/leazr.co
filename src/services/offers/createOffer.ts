@@ -17,66 +17,14 @@ export const createOffer = async (offerData: OfferData) => {
 
     console.log("Utilisateur authentifié:", user.id);
     
-    // Récupérer le company_id depuis le profil utilisateur avec plusieurs tentatives
-    console.log("Récupération du profil utilisateur...");
-    let companyId = null;
-    
-    // Première tentative : récupération directe du profil
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single();
-    
-    console.log("Résultat de la requête profil:", { profile, profileError });
-    
-    if (!profileError && profile?.company_id) {
-      companyId = profile.company_id;
-      console.log("Company ID récupéré depuis le profil:", companyId);
-    } else {
-      console.log("Échec de récupération depuis profiles, tentative avec la fonction RPC...");
-      
-      // Deuxième tentative : utiliser la fonction RPC
-      const { data: companyIdFromFunction, error: functionError } = await supabase
-        .rpc('get_user_company_id');
-      
-      console.log("Résultat de get_user_company_id:", { companyIdFromFunction, functionError });
-      
-      if (!functionError && companyIdFromFunction) {
-        companyId = companyIdFromFunction;
-        console.log("Company ID récupéré via fonction RPC:", companyId);
-      } else {
-        console.error("Impossible de récupérer company_id:", { profileError, functionError });
-        
-        // Troisième tentative : récupérer depuis les métadonnées utilisateur
-        const userMetadata = user.user_metadata || user.raw_user_meta_data;
-        if (userMetadata?.company_id) {
-          companyId = userMetadata.company_id;
-          console.log("Company ID récupéré depuis les métadonnées:", companyId);
-        } else {
-          // Dernière tentative : rechercher une entreprise par défaut
-          const { data: defaultCompany, error: defaultCompanyError } = await supabase
-            .from('companies')
-            .select('id')
-            .eq('name', 'iTakecare (Default)')
-            .single();
-          
-          if (!defaultCompanyError && defaultCompany) {
-            companyId = defaultCompany.id;
-            console.log("Company ID par défaut utilisé:", companyId);
-          } else {
-            throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
-          }
-        }
-      }
-    }
-    
-    // Validation finale du company_id
+    // Utiliser le company_id fourni dans offerData au lieu de le récupérer
+    const companyId = offerData.company_id;
     if (!companyId) {
+      console.error("company_id manquant dans offerData");
       throw new Error("company_id manquant - impossible de créer l'offre");
     }
     
-    console.log("Company ID final validé:", companyId);
+    console.log("Company ID utilisé:", companyId);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {

@@ -251,7 +251,7 @@ const CreateOffer = () => {
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
         margin: String(marginAmount),
-        // S'assurer que le company_id est inclus
+        // IMPORTANT: Utiliser le company_id récupéré par le hook
         company_id: companyId
       };
 
