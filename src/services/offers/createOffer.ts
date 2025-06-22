@@ -15,11 +15,24 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("Company ID récupéré:", companyId);
     } catch (error) {
       console.error("Erreur lors de la récupération du company_id:", error);
-      throw new Error("Impossible de récupérer l'ID de l'entreprise");
+      // Fallback: essayer de récupérer depuis le profil de l'utilisateur
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.company_id) {
+          companyId = profile.company_id;
+          console.log("Company ID récupéré depuis le profil:", companyId);
+        }
+      }
     }
 
     if (!companyId) {
-      throw new Error("Company ID is required but not found");
+      throw new Error("Impossible de récupérer l'ID de l'entreprise. Veuillez vous reconnecter.");
     }
     
     // S'assurer que les valeurs numériques sont correctement converties
@@ -130,7 +143,9 @@ export const createOffer = async (offerData: OfferData) => {
       commission: offerDataToSave.commission,
       margin: offerDataToSave.margin,
       type: offerDataToSave.type,
-      company_id: offerDataToSave.company_id
+      company_id: offerDataToSave.company_id,
+      user_id: offerDataToSave.user_id,
+      client_id: offerDataToSave.client_id
     });
     
     // Insertion de l'offre
