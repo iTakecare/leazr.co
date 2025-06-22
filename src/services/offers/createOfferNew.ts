@@ -16,7 +16,7 @@ export interface MinimalOfferData {
   client_id?: string;
   commission?: number;
   financed_amount?: number;
-  margin?: number;
+  margin?: string; // Changé en string pour correspondre à l'usage
   ambassador_id?: string;
   remarks?: string;
   total_margin_with_difference?: string;
@@ -57,7 +57,7 @@ export const createOfferNew = async (offerData: MinimalOfferData) => {
       client_id: offerData.client_id || null,
       commission: offerData.commission || 0,
       financed_amount: offerData.financed_amount || 0,
-      margin: offerData.margin || 0,
+      margin: offerData.margin ? parseFloat(offerData.margin) : 0, // Conversion string vers number
       ambassador_id: offerData.ambassador_id || null,
       remarks: offerData.remarks || "",
       total_margin_with_difference: offerData.total_margin_with_difference ? 
