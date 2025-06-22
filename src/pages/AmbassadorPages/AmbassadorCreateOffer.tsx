@@ -351,11 +351,88 @@ const AmbassadorCreateOffer: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <EquipmentForm
-                equipment={equipment as any}
-                setEquipment={setEquipment as any}
-                duration={duration}
-              />
+              <div className="space-y-4">
+                {equipment.map((item, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Nom du produit</Label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => {
+                            const newEquipment = [...equipment];
+                            newEquipment[index].name = e.target.value;
+                            setEquipment(newEquipment);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Quantité</Label>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newEquipment = [...equipment];
+                            newEquipment[index].quantity = parseInt(e.target.value) || 1;
+                            setEquipment(newEquipment);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Prix mensuel (€)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.monthly_price}
+                          onChange={(e) => {
+                            const newEquipment = [...equipment];
+                            newEquipment[index].monthly_price = parseFloat(e.target.value) || 0;
+                            setEquipment(newEquipment);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Prix d'achat (€)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.purchase_price}
+                          onChange={(e) => {
+                            const newEquipment = [...equipment];
+                            newEquipment[index].purchase_price = parseFloat(e.target.value) || 0;
+                            setEquipment(newEquipment);
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newEquipment = equipment.filter((_, i) => i !== index);
+                        setEquipment(newEquipment);
+                      }}
+                      className="mt-2"
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                ))}
+                
+                <Button
+                  onClick={() => {
+                    setEquipment([...equipment, {
+                      name: "",
+                      quantity: 1,
+                      monthly_price: 0,
+                      purchase_price: 0
+                    }]);
+                  }}
+                  className="w-full"
+                >
+                  Ajouter un équipement
+                </Button>
+              </div>
             </CardContent>
           </Card>
         );
