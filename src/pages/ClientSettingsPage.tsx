@@ -20,11 +20,11 @@ const ClientSettingsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">Prénom</Label>
-              <Input id="firstName" defaultValue={user?.first_name || ""} />
+              <Input id="firstName" defaultValue={""} />
             </div>
             <div>
               <Label htmlFor="lastName">Nom</Label>
-              <Input id="lastName" defaultValue={user?.last_name || ""} />
+              <Input id="lastName" defaultValue={""} />
             </div>
           </div>
           <div>
