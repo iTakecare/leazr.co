@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -152,7 +153,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     return product.monthly_price || 0;
   };
   
-  const shouldShowPurchasePrice = isAdmin();
+  const shouldShowPurchasePrice = isAdmin;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

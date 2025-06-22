@@ -1,188 +1,126 @@
-import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+
+import React from "react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Layers } from "lucide-react";
-import { Product } from "@/types/catalog";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { Eye, Plus } from "lucide-react";
 
 interface CatalogProductCardProps {
-  product: Product;
-  onClick?: () => void;
-  onViewVariants?: (e: React.MouseEvent) => void;
+  product: any;
+  onViewProduct: (product: any) => void;
+  onAddToCart?: (product: any) => void;
+  showAddToCart?: boolean;
 }
 
-const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClick, onViewVariants }) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+const CatalogProductCard: React.FC<CatalogProductCardProps> = ({
+  product,
+  onViewProduct,
+  onAddToCart,
+  showAddToCart = true
+}) => {
   const { isAdmin } = useAuth();
-  
-  if (!product) return null;
-  
-  // Check if the product has variants
-  const hasVariants = 
-    (product.variants && product.variants.length > 0) || 
-    (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
-    (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0);
-  
-  const variantsCount = hasVariants 
-    ? (product.variants_count || product.variant_combination_prices?.length || 0)
-    : 0;
-    
-  // Get minimum price across all variants
-  const getMinimumPrice = (): number => {
-    let minPrice = product.price || 0;
-    
+
+  const shouldShowPurchasePrice = isAdmin;
+
+  const getLowestPrice = () => {
     if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const combinationPrices = product.variant_combination_prices
-        .map(variant => variant.price || 0)
-        .filter(price => price > 0);
-      
-      if (combinationPrices.length > 0) {
-        const minCombinationPrice = Math.min(...combinationPrices);
-        if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
-          minPrice = minCombinationPrice;
-        }
-      }
+      const prices = product.variant_combination_prices.map((variant: any) => 
+        variant.monthly_price || variant.price || 0
+      );
+      return Math.min(...prices);
     }
-    
-    return minPrice;
+    return product.monthly_price || product.price || 0;
   };
-  
-  // Get minimum monthly price across all variants
-  const getMinimumMonthlyPrice = (): number => {
-    let minPrice = product.monthly_price || 0;
-    
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const combinationPrices = product.variant_combination_prices
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (combinationPrices.length > 0) {
-        const minCombinationPrice = Math.min(...combinationPrices);
-        if (minCombinationPrice > 0) {
-          minPrice = minCombinationPrice;
-        }
-      }
-    }
-    
-    if (product.variants && product.variants.length > 0 && minPrice === 0) {
-      const variantPrices = product.variants
-        .map(variant => variant.monthly_price || 0)
-        .filter(price => price > 0);
-      
-      if (variantPrices.length > 0) {
-        const minVariantPrice = Math.min(...variantPrices);
-        if (minVariantPrice > 0) {
-          minPrice = minVariantPrice;
-        }
-      }
-    }
-    
-    return minPrice;
+
+  const getImageUrl = () => {
+    if (product.image_url) return product.image_url;
+    if (product.image_urls && product.image_urls.length > 0) return product.image_urls[0];
+    if (product.imageurls && product.imageurls.length > 0) return product.imageurls[0];
+    return "/placeholder.svg";
   };
-  
-  const price = getMinimumPrice();
-  const monthlyPrice = getMinimumMonthlyPrice();
-  const hasPrice = price > 0 || monthlyPrice > 0;
-  
-  // Only admin should see purchase prices
-  const shouldShowPurchasePrice = isAdmin();
-  
+
+  const handleAddToCart = () => {
+    if (onAddToCart) {
+      onAddToCart(product);
+    }
+  };
+
   return (
-    <Card 
-      className="h-full overflow-hidden transition-all cursor-pointer border hover:shadow-md rounded-xl bg-white" 
-      onClick={onClick}
-    >
-      <CardContent className="p-0">
-        <div className="flex flex-col h-full">
-          {/* Image Area */}
-          <div className="relative h-36 bg-gray-50 flex items-center justify-center overflow-hidden">
-            {!imageLoaded && !imageError && (
-              <Skeleton className="w-full h-full absolute inset-0" />
-            )}
-            
-            {!imageError && (
-              <img
-                src={product.image_url || "/placeholder.svg"}
-                alt={product.name || "Produit"}
-                className={`object-contain w-full h-full p-2 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                style={{ transition: "opacity 0.3s" }}
-                onLoad={() => setImageLoaded(true)}
-                onError={() => {
-                  console.log(`Failed to load image for ${product.name}`);
-                  setImageError(true);
-                }}
-                loading="lazy"
-              />
-            )}
-            
-            {imageError && (
-              <div className="flex flex-col items-center justify-center h-full w-full p-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-2xl">{product.name?.charAt(0) || "P"}</span>
-                </div>
-              </div>
-            )}
-          </div>
+    <Card className="group h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+        <img
+          src={getImageUrl()}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = "/placeholder.svg";
+          }}
+        />
+        {product.brand && (
+          <Badge 
+            variant="secondary" 
+            className="absolute top-2 left-2 bg-white/90 text-gray-700"
+          >
+            {product.brand}
+          </Badge>
+        )}
+      </div>
+      
+      <CardContent className="flex flex-col flex-1 p-4">
+        <div className="flex-1">
+          <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
+            {product.name}
+          </h3>
           
-          {/* Content Area */}
-          <div className="p-3 flex-1 flex flex-col">
-            {product.brand && (
-              <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-            )}
-            
-            <h3 className="font-medium text-gray-900 line-clamp-2 mb-1">
-              {product.name || "Produit sans nom"}
-            </h3>
-            
-            <div className="flex gap-2 mt-auto">
-              {product.category && (
-                <Badge variant="outline" className="rounded-full text-xs bg-gray-100 text-gray-800">
-                  {product.category}
-                </Badge>
-              )}
-              
-              {hasVariants && variantsCount > 0 && (
-                <Badge variant="outline" className="rounded-full text-xs bg-purple-100 text-purple-800 flex items-center gap-1">
-                  <Layers className="h-3 w-3" />
-                  {variantsCount} config{variantsCount > 1 ? 's' : ''}
-                </Badge>
-              )}
-            </div>
-            
-            <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
-              <div>
-                {monthlyPrice > 0 ? (
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-blue-600">
-                      {hasVariants ? "À partir de " : ""}
-                      {formatCurrency(monthlyPrice)}
-                      <span className="text-gray-500 font-normal text-xs"> /mois</span>
-                    </span>
-                  </div>
-                ) : price > 0 && shouldShowPurchasePrice ? (
-                  <div className="text-sm font-semibold">
-                    {hasVariants ? "À partir de " : ""}
-                    {formatCurrency(price)}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">Prix sur demande</div>
-                )}
+          {product.description && (
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+              {product.description}
+            </p>
+          )}
+          
+          <div className="space-y-1 mb-4">
+            {shouldShowPurchasePrice && product.price > 0 && (
+              <div className="text-sm text-gray-600">
+                Prix: {formatCurrency(product.price)}
               </div>
-              
-              {hasVariants && onViewVariants && (
-                <button 
-                  className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                  onClick={onViewVariants}
-                >
-                  Configs
-                  <ChevronRight className="h-3 w-3" />
-                </button>
-              )}
-            </div>
+            )}
+            {getLowestPrice() > 0 && (
+              <div className="text-lg font-bold text-indigo-600">
+                À partir de {formatCurrency(getLowestPrice())}/mois
+              </div>
+            )}
+            {getLowestPrice() === 0 && (
+              <div className="text-lg font-bold text-gray-500">
+                Prix sur demande
+              </div>
+            )}
           </div>
+        </div>
+        
+        <div className="flex gap-2 mt-auto">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onViewProduct(product)}
+            className="flex-1"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Voir
+          </Button>
+          
+          {showAddToCart && onAddToCart && (
+            <Button 
+              size="sm" 
+              onClick={handleAddToCart}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Ajouter
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

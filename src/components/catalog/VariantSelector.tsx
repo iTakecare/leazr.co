@@ -1,201 +1,126 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/utils/formatters";
-import { Check, ChevronRight } from "lucide-react";
-import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
+import { AlertCircle, Info } from "lucide-react";
+import { ProductVariationAttributes } from "@/types/catalog";
 import { useAuth } from "@/context/AuthContext";
 
 interface VariantSelectorProps {
-  product: any;
-  onVariantSelect: (variant: any) => void;
+  variationAttributes: ProductVariationAttributes;
+  selectedOptions: Record<string, string>;
+  onOptionChange: (optionName: string, value: string) => void;
+  isOptionAvailable: (optionName: string, value: string) => boolean;
+  hasVariants: boolean;
+  hasOptions: boolean;
 }
 
-const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSelect }) => {
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
-  const [availableOptions, setAvailableOptions] = useState<Record<string, string[]>>({});
-  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+const VariantSelector: React.FC<VariantSelectorProps> = ({
+  variationAttributes,
+  selectedOptions,
+  onOptionChange,
+  isOptionAvailable,
+  hasVariants,
+  hasOptions
+}) => {
   const { isAdmin } = useAuth();
   
-  useEffect(() => {
-    if (!product) return;
+  // Fonction pour organiser les options par groupes
+  const getGroupedAttributes = () => {
+    // Trier les attributs par priorité
+    const priorityOrder = [
+      "condition", "etat", 
+      "screen_size", "taille_ecran", 
+      "processor", "processeur", 
+      "stockage", "storage", 
+      "memory", "ram", 
+      "graphics_card", "carte_graphique", 
+      "network", "reseau", 
+      "keyboard", "clavier"
+    ];
     
-    const variationAttrs = product.variation_attributes || {};
-    setAvailableOptions(variationAttrs);
+    // Convertir les attributs en tableau pour le tri
+    const attributesArray = Object.entries(variationAttributes || {});
     
-    const initialSelection: Record<string, string> = {};
-    Object.entries(variationAttrs).forEach(([attrName, values]) => {
-      if (Array.isArray(values) && values.length > 0) {
-        initialSelection[attrName] = values[0];
-      }
+    // Trier les attributs selon l'ordre de priorité
+    attributesArray.sort(([keyA], [keyB]) => {
+      const indexA = priorityOrder.indexOf(keyA.toLowerCase());
+      const indexB = priorityOrder.indexOf(keyB.toLowerCase());
+      
+      // Si l'attribut n'est pas dans la liste de priorité, lui donner un indice élevé
+      const valueA = indexA === -1 ? 999 : indexA;
+      const valueB = indexB === -1 ? 999 : indexB;
+      
+      return valueA - valueB;
     });
     
-    setSelectedAttributes(initialSelection);
-  }, [product]);
-  
-  useEffect(() => {
-    if (!product || !product.variant_combination_prices || Object.keys(selectedAttributes).length === 0) {
-      return;
-    }
-    
-    const matchingVariant = product.variant_combination_prices.find((variant: any) => {
-      if (!variant.attributes) return false;
-      
-      return Object.entries(selectedAttributes).every(([key, value]) => 
-        String(variant.attributes[key]) === String(value)
-      );
-    });
-    
-    setSelectedVariant(matchingVariant);
-  }, [selectedAttributes, product]);
-  
-  const isOptionAvailable = (attributeName: string, value: string): boolean => {
-    if (!product || !product.variant_combination_prices) return false;
-    
-    const otherSelections = { ...selectedAttributes };
-    delete otherSelections[attributeName];
-    
-    return product.variant_combination_prices.some((variant: any) => {
-      if (!variant.attributes) return false;
-      
-      if (String(variant.attributes[attributeName]) !== String(value)) return false;
-      
-      return Object.entries(otherSelections).every(([key, val]) => 
-        String(variant.attributes[key]) === String(val)
-      );
-    });
+    console.log("Grouped attributes:", attributesArray);
+    return attributesArray;
   };
-  
-  const handleSelectAttribute = (attributeName: string, value: string) => {
-    setSelectedAttributes(prev => ({
-      ...prev,
-      [attributeName]: value
-    }));
-  };
-  
-  const handleConfirmSelection = () => {
-    if (selectedVariant) {
-      const productWithVariant = {
-        ...product,
-        price: selectedVariant.price,
-        monthly_price: selectedVariant.monthly_price,
-        attributes: selectedVariant.attributes,
-        selected_variant_id: selectedVariant.id
-      };
-      
-      onVariantSelect(productWithVariant);
-    }
-  };
-  
-  const shouldShowPurchasePrice = isAdmin();
-  
-  if (!product || !product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
-    return null;
+
+  if (!hasVariants) {
+    return (
+      <div className="text-gray-500 text-xs">Aucune option de configuration disponible pour ce produit.</div>
+    );
   }
   
-  const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+  if (hasVariants && !hasOptions) {
+    return (
+      <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200 text-xs">
+        <p className="flex items-center">
+          <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+          Ce produit a des variantes, mais aucune option de configuration n'a pu être récupérée.
+        </p>
+      </div>
+    );
+  }
+  
+  const groupedAttributes = getGroupedAttributes();
+  
+  if (groupedAttributes.length === 0) {
+    return (
+      <div className="text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200 text-xs">
+        <p className="flex items-center">
+          <Info className="h-3.5 w-3.5 mr-1.5" />
+          Aucune option de variation n'est disponible actuellement.
+        </p>
+      </div>
+    );
+  }
   
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-bold text-gray-900">
-          Sélectionner une configuration pour {product.name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {Object.entries(availableOptions).map(([attributeName, options]) => (
-            <div key={attributeName} className="space-y-3">
-              <h3 className="text-md font-semibold text-gray-800">
-                {attributeName}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {Array.isArray(options) && options.map((option) => {
-                  const isAvailable = isOptionAvailable(attributeName, option);
-                  const isSelected = selectedAttributes[attributeName] === option;
-                  
-                  return (
-                    <Button
-                      key={`${attributeName}-${option}`}
-                      variant={isSelected ? "default" : "outline"}
-                      size="sm"
-                      className={`relative rounded-full px-4 py-2 transition-all ${
-                        isSelected ? "bg-primary text-white" : "bg-white"
-                      } ${!isAvailable ? "opacity-40" : ""}`}
-                      disabled={!isAvailable}
-                      onClick={() => handleSelectAttribute(attributeName, option)}
-                    >
-                      {isSelected && (
-                        <span className="absolute left-2 flex h-4 w-4 items-center justify-center">
-                          <Check className="h-3 w-3" />
-                        </span>
-                      )}
-                      <span className={isSelected ? "pl-2" : ""}>
-                        {String(option)}
-                      </span>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          
-          {selectedVariant ? (
-            <div className="mt-6 rounded-xl bg-gray-50 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-md font-medium text-gray-900">Configuration sélectionnée</h3>
-                <div className="flex gap-1">
-                  {Object.entries(selectedVariant.attributes || {}).map(([key, value]) => (
-                    <Badge key={key} variant="secondary" className="rounded-full bg-blue-100 text-blue-800 text-xs px-2 py-1">
-                      {key}: {String(value)}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+    <div className="space-y-3">
+      {groupedAttributes.map(([option, values]) => (
+        <div key={option} className="rounded-md border border-gray-200 p-2 bg-white shadow-sm">
+          <label className="block text-xs font-medium text-gray-700 capitalize mb-1.5">
+            {option}
+          </label>
+          <div className="flex flex-wrap gap-1">
+            {values.map((value) => {
+              const isAvailable = isOptionAvailable(option, value);
+              const isSelected = selectedOptions[option] === value;
               
-              <div className="mb-4 grid grid-cols-2 gap-6">
-                {shouldShowPurchasePrice && selectedVariant.price > 0 && (
-                  <div className="rounded-lg bg-white p-3 shadow-sm">
-                    <p className="text-sm text-gray-500">Prix</p>
-                    <p className="text-xl font-bold text-gray-900">{formatCurrency(selectedVariant.price)}</p>
-                  </div>
-                )}
-                {selectedVariant.monthly_price > 0 && (
-                  <div className={`rounded-lg bg-white p-3 shadow-sm ${!shouldShowPurchasePrice ? 'col-span-2' : ''}`}>
-                    <p className="text-sm text-gray-500">Mensualité</p>
-                    <p className="text-xl font-bold text-indigo-700">{formatCurrency(selectedVariant.monthly_price)}/mois</p>
-                  </div>
-                )}
-              </div>
-              
-              <Button 
-                className="w-full gap-2 justify-center items-center bg-indigo-600 hover:bg-indigo-700 transition-colors" 
-                onClick={handleConfirmSelection}
-              >
-                Sélectionner cette configuration
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-center">
-              <p className="text-amber-800">
-                {hasVariants 
-                  ? "Veuillez sélectionner une configuration valide"
-                  : "Aucune configuration disponible pour ce produit"}
-              </p>
-            </div>
-          )}
-          
-          {product.category && (
-            <CO2SavingsCalculator 
-              category={product.category} 
-              quantity={1}
-            />
-          )}
+              return (
+                <Button
+                  key={value}
+                  type="button"
+                  size="sm"
+                  variant={isSelected ? "default" : "outline"}
+                  className={`
+                    ${isSelected ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                    ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
+                    text-xs h-6 px-2 py-0
+                  `}
+                  onClick={() => isAvailable && onOptionChange(option, value)}
+                  disabled={!isAvailable}
+                >
+                  {value}
+                </Button>
+              );
+            })}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 };
 
