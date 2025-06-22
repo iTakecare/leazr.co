@@ -20,10 +20,11 @@ import {
   Building2, 
   Plus,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Database
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser, insertDefaultLeasers } from "@/services/leaserService";
 import { toast } from "sonner";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
@@ -35,6 +36,7 @@ const LeaserManager = () => {
   const [currentLeaser, setCurrentLeaser] = useState<Leaser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInsertingDefaults, setIsInsertingDefaults] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -50,7 +52,7 @@ const LeaserManager = () => {
       setLeasers(fetchedLeasers);
       
       if (fetchedLeasers.length === 0) {
-        setError('Aucun leaser trouvé. Vérifiez la configuration de la base de données.');
+        setError('Aucun leaser trouvé. Vous pouvez insérer les données par défaut.');
       } else {
         toast.success(`${fetchedLeasers.length} leasers chargés avec succès`);
       }
@@ -72,6 +74,24 @@ const LeaserManager = () => {
       toast.error(`Erreur lors de l'actualisation: ${error.message}`);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleInsertDefaults = async () => {
+    setIsInsertingDefaults(true);
+    try {
+      const success = await insertDefaultLeasers();
+      if (success) {
+        toast.success("Leasers par défaut insérés avec succès");
+        await loadLeasers();
+      } else {
+        toast.error("Erreur lors de l'insertion des leasers par défaut");
+      }
+    } catch (error: any) {
+      console.error('Error inserting default leasers:', error);
+      toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setIsInsertingDefaults(false);
     }
   };
   
@@ -139,6 +159,18 @@ const LeaserManager = () => {
               <span>Leasers</span>
             </CardTitle>
             <div className="flex items-center gap-2">
+              {leasers.length === 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleInsertDefaults}
+                  disabled={isInsertingDefaults}
+                  className="flex items-center gap-2"
+                >
+                  <Database className={`h-4 w-4 ${isInsertingDefaults ? 'animate-pulse' : ''}`} />
+                  {isInsertingDefaults ? 'Insertion...' : 'Insérer données par défaut'}
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm"
@@ -165,14 +197,25 @@ const LeaserManager = () => {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 {error}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={refreshLeasers}
-                  className="ml-2"
-                >
-                  Réessayer
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={refreshLeasers}
+                  >
+                    Réessayer
+                  </Button>
+                  {leasers.length === 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleInsertDefaults}
+                      disabled={isInsertingDefaults}
+                    >
+                      Insérer données par défaut
+                    </Button>
+                  )}
+                </div>
               </AlertDescription>
             </Alert>
           )}
