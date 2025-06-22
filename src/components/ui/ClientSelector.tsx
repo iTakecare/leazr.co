@@ -39,7 +39,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   const [clients, setClients] = useState<ClientSelectorClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAmbassador } = useAuth();
   
   useEffect(() => {
     const loadClients = async () => {
@@ -48,18 +48,25 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         let fetchedClients;
         
-        if (ambassadorMode && user?.ambassador_id) {
-          // Si en mode ambassadeur, charger UNIQUEMENT les clients de l'ambassadeur
-          console.log("Loading ambassador clients with ambassador_id:", user.ambassador_id);
+        // Force le mode ambassadeur si l'utilisateur est un ambassadeur
+        const isAmbassadorMode = ambassadorMode || isAmbassador();
+        
+        if (isAmbassadorMode) {
+          console.log("Mode ambassadeur activé - Chargement des clients ambassadeur uniquement");
+          console.log("User ambassador_id:", user?.ambassador_id);
+          console.log("User data:", user);
+          
+          // Charger UNIQUEMENT les clients de l'ambassadeur via la fonction sécurisée
           fetchedClients = await getAmbassadorClients();
-          console.log("Loaded ambassador clients:", fetchedClients);
+          console.log("Clients ambassadeur chargés:", fetchedClients);
         } else {
+          console.log("Mode admin - Chargement de tous les clients");
           // Sinon, charger tous les clients (mode admin)
           fetchedClients = await getAllClients();
         }
         
         if (!fetchedClients || fetchedClients.length === 0) {
-          console.log("No clients found");
+          console.log("Aucun client trouvé");
           setClients([]);
           setLoading(false);
           return;
@@ -74,17 +81,18 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           email: client.email
         }));
         
-        console.log("Formatted clients for selector:", formattedClients);
+        console.log("Clients formatés pour le sélecteur:", formattedClients);
         setClients(formattedClients);
       } catch (error) {
-        console.error("Failed to load clients", error);
+        console.error("Erreur lors du chargement des clients:", error);
+        setClients([]);
       } finally {
         setLoading(false);
       }
     };
     
     loadClients();
-  }, [ambassadorMode, user?.ambassador_id]);
+  }, [ambassadorMode, isAmbassador, user?.ambassador_id]);
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -147,7 +155,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       ))
                     ) : (
                       <div className="py-6 text-center text-muted-foreground">
-                        {ambassadorMode ? 
+                        {ambassadorMode || isAmbassador() ? 
                           "Aucun client trouvé pour cet ambassadeur." : 
                           "Aucun client trouvé."
                         }

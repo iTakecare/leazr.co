@@ -42,6 +42,23 @@ export const useAmbassadorOfferSave = ({
       return;
     }
     
+    // Validation des IDs obligatoires
+    if (!client.id) {
+      toast.error("ID client manquant");
+      return;
+    }
+    
+    const currentAmbassadorId = ambassadorId || userId;
+    if (!currentAmbassadorId) {
+      toast.error("ID ambassadeur manquant");
+      return;
+    }
+    
+    if (!userId) {
+      toast.error("Utilisateur non authentifié");
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
@@ -90,8 +107,6 @@ export const useAmbassadorOfferSave = ({
         console.log("Commission par défaut appliquée (élément non trouvé):", commissionAmount);
       }
       
-      const currentAmbassadorId = ambassadorId || userId;
-      
       // Validation finale de la commission
       if (commissionAmount === 0 || isNaN(commissionAmount)) {
         commissionAmount = Math.round(financedAmount * 0.05);
@@ -112,7 +127,7 @@ export const useAmbassadorOfferSave = ({
       const offerData = {
         client_id: client.id,
         client_name: client.name,
-        client_email: client.email,
+        client_email: client.email || "",
         equipment_description: equipmentDescription,
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
@@ -121,7 +136,7 @@ export const useAmbassadorOfferSave = ({
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
-        user_id: userId || "",
+        user_id: userId,
         ambassador_id: currentAmbassadorId,
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifferenceString,
