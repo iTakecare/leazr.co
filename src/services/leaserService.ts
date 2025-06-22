@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Leaser } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -10,9 +9,6 @@ import { toast } from 'sonner';
  */
 export const getLeasers = async (): Promise<Leaser[]> => {
   try {
-    console.log('=== FETCHING LEASERS - Simple query without filtering ===');
-    
-    // Simple query without any filtering to avoid RLS issues
     const { data, error } = await supabase
       .from('leasers')
       .select(`
@@ -28,18 +24,12 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       `)
       .order('name');
     
-    console.log('=== DEBUG: Raw query result ===');
-    console.log('Error:', error);
-    console.log('Data:', data);
-    console.log('Data length:', data?.length || 0);
-    
     if (error) {
       console.error('Error loading leasers from database:', error);
       toast.error(`Erreur de base de données: ${error.message}`);
       return [];
     }
     
-    // Si aucun leaser n'est trouvé, retourner un tableau vide
     if (!data || data.length === 0) {
       console.log('No leasers found in database');
       toast.warning('Aucun leaser trouvé dans la base de données');
@@ -53,10 +43,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       logo_url: leaser.logo_url,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
-    
-    console.log('=== DEBUG: Formatted leasers ===');
-    console.log('Formatted leasers count:', formattedLeasers.length);
-    console.log('Formatted leasers:', formattedLeasers);
     
     return formattedLeasers;
   } catch (error) {

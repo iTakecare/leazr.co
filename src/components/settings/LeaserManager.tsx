@@ -42,21 +42,15 @@ const LeaserManager = () => {
   }, []);
 
   const loadLeasers = async () => {
-    console.log('=== LeaserManager: Loading leasers ===');
     setIsLoading(true);
     setError(null);
     
     try {
       const fetchedLeasers = await getLeasers();
-      console.log('=== LeaserManager: Fetched leasers result ===');
-      console.log('Count:', fetchedLeasers.length);
-      console.log('Data:', fetchedLeasers);
-      
       setLeasers(fetchedLeasers);
       
       if (fetchedLeasers.length === 0) {
         setError('Aucun leaser trouvé. Vérifiez la configuration de la base de données.');
-        toast.warning('Aucun leaser trouvé dans la base de données');
       } else {
         toast.success(`${fetchedLeasers.length} leasers chargés avec succès`);
       }
@@ -72,7 +66,6 @@ const LeaserManager = () => {
   const refreshLeasers = async () => {
     setIsRefreshing(true);
     try {
-      console.log('=== LeaserManager: Manual refresh ===');
       await loadLeasers();
     } catch (error: any) {
       console.error('LeaserManager: Error during refresh:', error);
@@ -84,7 +77,6 @@ const LeaserManager = () => {
   
   const handleOpenSheet = (leaser?: Leaser) => {
     if (leaser) {
-      console.log(`LeaserManager: Editing leaser - ID: ${leaser.id}, Name: ${leaser.name}`);
       setCurrentLeaser(leaser);
       setIsEditMode(true);
     } else {
@@ -102,8 +94,6 @@ const LeaserManager = () => {
   const handleSaveLeaser = async (leaserData: Omit<Leaser, "id">) => {
     try {
       if (isEditMode && currentLeaser) {
-        console.log("LeaserManager: Updating leaser with ID:", currentLeaser.id);
-        
         const success = await updateLeaser(currentLeaser.id, leaserData);
         if (success) {
           await refreshLeasers();
@@ -111,7 +101,6 @@ const LeaserManager = () => {
           toast.success("Leaser mis à jour avec succès");
         }
       } else {
-        console.log("LeaserManager: Creating new leaser");
         const addedLeaser = await addLeaser(leaserData);
         if (addedLeaser) {
           await refreshLeasers();
@@ -128,7 +117,6 @@ const LeaserManager = () => {
   const handleDeleteLeaser = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce leaser ?")) {
       try {
-        console.log("LeaserManager: Deleting leaser with ID:", id);
         const success = await deleteLeaser(id);
         if (success) {
           await refreshLeasers();
