@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,14 @@ const EquipmentList = ({
   // Calculs pour le récapitulatif
   const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
   const totalMarginAmount = globalMarginAdjustment.amount;
-  const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
+  
+  // Calculer le taux de marge en tenant compte de l'ajustement si le switch est activé
+  let marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
+  if (globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0) {
+    const adjustedMarginAmount = totalMarginAmount + globalMarginAdjustment.marginDifference;
+    marginRate = totalPurchasePrice > 0 ? (adjustedMarginAmount / totalPurchasePrice) * 100 : 0;
+  }
+  
   const coefficient = globalMarginAdjustment.newCoef || 3.27;
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
   const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
