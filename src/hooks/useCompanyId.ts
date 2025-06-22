@@ -45,7 +45,7 @@ export const useCompanyId = () => {
         }
 
         // Troisième tentative : récupérer depuis les métadonnées utilisateur
-        const userMetadata = user.user_metadata || user.raw_user_meta_data;
+        const userMetadata = user.user_metadata;
         if (userMetadata?.company_id) {
           setCompanyId(userMetadata.company_id);
           setLoading(false);
