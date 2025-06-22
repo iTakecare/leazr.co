@@ -17,29 +17,35 @@ export const createOffer = async (offerData: OfferData) => {
 
     console.log("Utilisateur authentifié:", user.id);
     
-    // Utiliser le company_id fourni dans offerData au lieu de le récupérer
-    const companyId = offerData.company_id;
-    if (!companyId) {
-      console.error("company_id manquant dans offerData");
-      throw new Error("company_id manquant - impossible de créer l'offre");
+    // VALIDATION STRICTE : S'assurer que company_id est présent
+    if (!offerData.company_id) {
+      console.error("ERREUR CRITIQUE: company_id manquant dans offerData:", offerData);
+      throw new Error("company_id est obligatoire pour créer une offre");
     }
     
-    console.log("Company ID utilisé:", companyId);
+    console.log("Company ID validé:", offerData.company_id);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
-      ...offerData,
-      company_id: companyId,
+      client_id: offerData.client_id,
+      client_name: offerData.client_name,
+      client_email: offerData.client_email,
+      equipment_description: offerData.equipment_description,
+      company_id: offerData.company_id, // EXPLICITEMENT INCLUS
       user_id: user.id,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
       commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
-        undefined,
+        0,
       margin: offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
-        undefined
+        0,
+      workflow_status: offerData.workflow_status || "draft",
+      type: offerData.type || "internal_offer",
+      remarks: offerData.remarks || "",
+      total_margin_with_difference: offerData.total_margin_with_difference || "0"
     };
 
     // Calculer le montant financé si non défini
@@ -58,19 +64,8 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("Marge calculée:", offerDataToSave.margin);
     }
 
-    // Vérification pour commission invalide (NaN)
-    if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
-      console.warn("Commission invalide détectée (NaN), définition à 0");
-      offerDataToSave.commission = 0;
-    }
-
-    // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
-    if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
-      console.log(`Utilisation de la commission fournie explicitement: ${offerDataToSave.commission}`);
-    }
-    // Sinon, essayons de calculer la commission en fonction du type d'offre
-    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
-      // Récupérer l'ambassador_id associé à cet utilisateur
+    // Gestion des commissions pour les ambassadeurs
+    if (offerData.type === 'ambassador_offer' && offerData.user_id) {
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
         .select('id, commission_level_id')
@@ -80,7 +75,6 @@ export const createOffer = async (offerData: OfferData) => {
       if (!ambassadorError && ambassadorData) {
         offerDataToSave.ambassador_id = ambassadorData.id;
         
-        // Si nous avons un montant et un niveau de commission, recalculons la commission
         if (offerDataToSave.amount && ambassadorData.commission_level_id) {
           try {
             const amount = typeof offerDataToSave.amount === 'string' 
@@ -105,43 +99,27 @@ export const createOffer = async (offerData: OfferData) => {
       }
     }
     
-    // Si le type est client_request, s'assurer que toutes les informations financières sont renseignées
-    if (offerData.type === 'client_request' || offerData.type === 'product_request') {
-      if (offerData.equipment && Array.isArray(offerData.equipment)) {
-        offerDataToSave.equipment_description = JSON.stringify(offerData.equipment);
-      }
-      
-      console.log("Demande client, données finales:", {
-        amount: offerDataToSave.amount,
-        coefficient: offerDataToSave.coefficient,
-        monthly_payment: offerDataToSave.monthly_payment,
-        financed_amount: offerDataToSave.financed_amount,
-        margin: offerDataToSave.margin,
-        company_id: offerDataToSave.company_id
-      });
-    }
-    
     // Log des données finales AVANT insertion
     console.log("=== DONNÉES FINALES POUR INSERTION ===");
-    console.log("company_id:", offerDataToSave.company_id);
-    console.log("user_id:", offerDataToSave.user_id);
-    console.log("client_id:", offerDataToSave.client_id);
-    console.log("type:", offerDataToSave.type);
-    console.log("Toutes les données:", offerDataToSave);
+    console.log("Toutes les données à sauvegarder:", JSON.stringify(offerDataToSave, null, 2));
     
-    // Vérification finale avant insertion
+    // VALIDATION FINALE STRICTE
     if (!offerDataToSave.company_id) {
-      throw new Error("company_id manquant - impossible de créer l'offre");
+      console.error("ERREUR FATALE: company_id null après traitement");
+      throw new Error("company_id null après traitement - abandon de la création");
     }
     if (!offerDataToSave.user_id) {
-      throw new Error("user_id manquant - impossible de créer l'offre");
+      console.error("ERREUR FATALE: user_id null après traitement");
+      throw new Error("user_id null après traitement - abandon de la création");
     }
     
-    // Insertion de l'offre
+    console.log("=== ENVOI VERS SUPABASE ===");
+    
+    // Insertion simplifiée avec select('*') pour éviter les problèmes de colonnes
     const { data, error } = await supabase
       .from('offers')
-      .insert([offerDataToSave])
-      .select()
+      .insert(offerDataToSave)
+      .select('*')
       .single();
     
     if (error) {
@@ -150,14 +128,15 @@ export const createOffer = async (offerData: OfferData) => {
       console.error("Code d'erreur:", error.code);
       console.error("Détails:", error.details);
       console.error("Hint:", error.hint);
-      console.error("Données tentées:", offerDataToSave);
+      console.error("Données envoyées:", JSON.stringify(offerDataToSave, null, 2));
       return { data: null, error };
     }
     
+    console.log("=== SUCCÈS ===");
     console.log("Offre créée avec succès:", data);
     return { data, error: null };
   } catch (error) {
-    console.error("Error in createOffer:", error);
+    console.error("=== ERREUR DANS createOffer ===", error);
     return { data: null, error };
   }
 };

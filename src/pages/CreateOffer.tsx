@@ -26,6 +26,25 @@ import { getLeasers } from "@/services/leaserService";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Switch } from "@/components/ui/switch";
 
+type OfferData = {
+  client_id: string;
+  client_name: string;
+  client_email: string;
+  equipment_description: string;
+  amount: number;
+  coefficient: number;
+  monthly_payment: number;
+  commission: number;
+  financed_amount: number;
+  workflow_status: string;
+  type: string;
+  user_id: string;
+  remarks: string;
+  total_margin_with_difference: string;
+  margin: string;
+  company_id: string;
+};
+
 const CreateOffer = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -170,10 +189,18 @@ const CreateOffer = () => {
       toast.error("Veuillez ajouter au moins un équipement");
       return;
     }
+    
+    // VALIDATION STRICTE DU COMPANY_ID
     if (!companyId) {
-      toast.error("Erreur: ID d'entreprise manquant");
+      console.error("ERREUR CRITIQUE: companyId manquant du hook useCompanyId");
+      toast.error("Erreur: Impossible de récupérer l'ID de l'entreprise. Veuillez recharger la page.");
       return;
     }
+
+    console.log("=== DÉBUT SAUVEGARDE OFFRE ===");
+    console.log("Company ID du hook:", companyId);
+    console.log("Client sélectionné:", client);
+    console.log("Liste d'équipements:", equipmentList);
 
     try {
       setIsSubmitting(true);
@@ -235,7 +262,8 @@ const CreateOffer = () => {
       console.log("Différence de marge:", marginDifference);
       console.log("Total marge avec différence:", totalMarginWithDifference);
 
-      const offerData = {
+      // CONSTRUCTION EXPLICITE DE L'OBJET AVEC COMPANY_ID
+      const offerData: OfferData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
@@ -251,13 +279,21 @@ const CreateOffer = () => {
         remarks: remarks,
         total_margin_with_difference: String(totalMarginWithDifference),
         margin: String(marginAmount),
-        // IMPORTANT: Utiliser le company_id récupéré par le hook
-        company_id: companyId
+        company_id: companyId // EXPLICITEMENT ASSIGNÉ ICI
       };
 
-      console.log("Saving offer with company_id:", companyId);
-      console.log("Full offer data:", offerData);
+      console.log("=== DONNÉES OFFRE CONSTRUITES ===");
+      console.log("Objet offerData complet:", JSON.stringify(offerData, null, 2));
+      console.log("Company ID dans offerData:", offerData.company_id);
 
+      // VALIDATION FINALE AVANT ENVOI
+      if (!offerData.company_id) {
+        console.error("ERREUR FATALE: company_id null dans offerData juste avant envoi");
+        toast.error("Erreur critique: ID d'entreprise manquant");
+        return;
+      }
+
+      console.log("=== APPEL DU SERVICE createOffer ===");
       const { data, error } = await createOffer(offerData);
 
       if (error) {
@@ -266,6 +302,7 @@ const CreateOffer = () => {
         return;
       }
 
+      console.log("=== SUCCÈS TOTAL ===");
       toast.success("Offre créée avec succès!");
       navigate("/offers");
     } catch (error) {
