@@ -2,53 +2,39 @@
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
-import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
-    // Log pour le débogage
     console.log("DONNÉES D'OFFRE REÇUES:", offerData);
     
-    // Récupérer le company_id de l'utilisateur connecté
-    let companyId;
-    try {
-      companyId = await getCurrentUserCompanyId();
-      console.log("Company ID récupéré:", companyId);
-    } catch (error) {
-      console.error("Erreur lors de la récupération du company_id:", error);
-      // Fallback: essayer de récupérer depuis le profil de l'utilisateur
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.company_id) {
-          companyId = profile.company_id;
-          console.log("Company ID récupéré depuis le profil:", companyId);
-        }
-      }
-    }
-
-    if (!companyId) {
-      throw new Error("Impossible de récupérer l'ID de l'entreprise. Veuillez vous reconnecter.");
-    }
-
-    // Vérifier que l'utilisateur est bien authentifié
+    // Vérifier que l'utilisateur est bien authentifié AVANT tout
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.error("Utilisateur non authentifié:", authError);
       throw new Error("Utilisateur non authentifié");
     }
 
     console.log("Utilisateur authentifié:", user.id);
-    console.log("Company ID final:", companyId);
+    
+    // Récupérer le company_id directement depuis le profil de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !profile?.company_id) {
+      console.error("Impossible de récupérer le company_id:", profileError);
+      throw new Error("Impossible de récupérer l'ID de l'entreprise. Veuillez vous reconnecter.");
+    }
+
+    const companyId = profile.company_id;
+    console.log("Company ID récupéré depuis le profil:", companyId);
     
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
-      company_id: companyId, // Ajouter explicitement le company_id
+      company_id: companyId, // Utiliser le company_id récupéré
       user_id: user.id, // S'assurer que user_id est défini
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
@@ -56,7 +42,6 @@ export const createOffer = async (offerData: OfferData) => {
       commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined,
-      // Convertir la marge si elle est présente
       margin: offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         undefined
@@ -80,14 +65,13 @@ export const createOffer = async (offerData: OfferData) => {
 
     // Vérification pour commission invalide (NaN)
     if (offerDataToSave.commission !== undefined && isNaN(Number(offerDataToSave.commission))) {
-      console.warn("Commission invalide détectée (NaN) dans createOffer.ts, définition à 0");
+      console.warn("Commission invalide détectée (NaN), définition à 0");
       offerDataToSave.commission = 0;
     }
 
     // Si la commission est déjà définie et non nulle, nous utilisons cette valeur
-    // Cela est prioritaire par rapport au calcul basé sur l'ambassadeur
     if (offerDataToSave.commission !== undefined && offerDataToSave.commission !== null) {
-      console.log(`Utilisation de la commission fournie explicitement dans les données: ${offerDataToSave.commission}`);
+      console.log(`Utilisation de la commission fournie explicitement: ${offerDataToSave.commission}`);
     }
     // Sinon, essayons de calculer la commission en fonction du type d'offre
     else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
@@ -104,7 +88,6 @@ export const createOffer = async (offerData: OfferData) => {
         // Si nous avons un montant et un niveau de commission, recalculons la commission
         if (offerDataToSave.amount && ambassadorData.commission_level_id) {
           try {
-            // Ensure amount is a number for calculation
             const amount = typeof offerDataToSave.amount === 'string' 
               ? parseFloat(offerDataToSave.amount) 
               : offerDataToSave.amount;
@@ -129,8 +112,6 @@ export const createOffer = async (offerData: OfferData) => {
     
     // Si le type est client_request, s'assurer que toutes les informations financières sont renseignées
     if (offerData.type === 'client_request' || offerData.type === 'product_request') {
-      // Structure correcte pour le stockage des équipements dans le champ equipment_description
-      // Si les équipements sont fournis sous forme d'un tableau JSON, les stocker ainsi
       if (offerData.equipment && Array.isArray(offerData.equipment)) {
         offerDataToSave.equipment_description = JSON.stringify(offerData.equipment);
       }
@@ -146,12 +127,20 @@ export const createOffer = async (offerData: OfferData) => {
     }
     
     // Log des données finales AVANT insertion
-    console.log("=== DONNÉES FINALES POUR RLS DEBUG ===");
+    console.log("=== DONNÉES FINALES POUR INSERTION ===");
     console.log("company_id:", offerDataToSave.company_id);
     console.log("user_id:", offerDataToSave.user_id);
     console.log("client_id:", offerDataToSave.client_id);
     console.log("type:", offerDataToSave.type);
     console.log("Toutes les données:", offerDataToSave);
+    
+    // Vérification finale avant insertion
+    if (!offerDataToSave.company_id) {
+      throw new Error("company_id manquant - impossible de créer l'offre");
+    }
+    if (!offerDataToSave.user_id) {
+      throw new Error("user_id manquant - impossible de créer l'offre");
+    }
     
     // Insertion de l'offre
     const { data, error } = await supabase
@@ -161,7 +150,7 @@ export const createOffer = async (offerData: OfferData) => {
       .single();
     
     if (error) {
-      console.error("=== ERREUR RLS DÉTAILLÉE ===");
+      console.error("=== ERREUR LORS DE L'INSERTION ===");
       console.error("Message d'erreur:", error.message);
       console.error("Code d'erreur:", error.code);
       console.error("Détails:", error.details);
@@ -170,7 +159,7 @@ export const createOffer = async (offerData: OfferData) => {
       return { data: null, error };
     }
     
-    console.log("Offre créée avec succès, données:", data);
+    console.log("Offre créée avec succès:", data);
     return { data, error: null };
   } catch (error) {
     console.error("Error in createOffer:", error);
