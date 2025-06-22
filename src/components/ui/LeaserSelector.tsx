@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Sheet, 
@@ -31,27 +32,40 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchLeasers = useCallback(async () => {
+    console.log("LeaserSelector: Starting to fetch leasers...");
     setIsLoading(true);
     try {
       const fetchedLeasers = await getLeasers();
+      console.log("LeaserSelector: Fetched leasers:", fetchedLeasers);
       setLeasers(fetchedLeasers);
+      
+      if (fetchedLeasers.length === 0) {
+        toast.error("Aucun prestataire de leasing trouvé");
+      }
     } catch (error) {
-      console.error("Error fetching leasers:", error);
-      toast.error("Failed to load leasers");
+      console.error("LeaserSelector: Error fetching leasers:", error);
+      toast.error("Impossible de charger les prestataires de leasing");
+      setLeasers([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchLeasers();
-  }, [fetchLeasers]);
+    if (isOpen) {
+      console.log("LeaserSelector: Dialog opened, fetching leasers...");
+      fetchLeasers();
+    }
+  }, [isOpen, fetchLeasers]);
 
   const filteredLeasers = leasers.filter((leaser) =>
     leaser.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  console.log("LeaserSelector: Filtered leasers:", filteredLeasers);
+
   const handleSelect = (leaser: Leaser) => {
+    console.log("LeaserSelector: Selected leaser:", leaser);
     onSelect(leaser);
     onClose();
   };
@@ -80,6 +94,7 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
           {isLoading ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Chargement des leasers...</span>
             </div>
           ) : filteredLeasers.length > 0 ? (
             <div className="space-y-1">
@@ -106,10 +121,10 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
                         <Building2 className="h-4 w-4 text-primary" />
                       </AvatarFallback>
                     </Avatar>
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">{leaser.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {leaser.ranges.length} tranches
+                        {leaser.ranges?.length || 0} tranches
                       </div>
                     </div>
                   </div>
@@ -118,7 +133,10 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Aucun leaser trouvé.
+              {searchTerm ? 
+                `Aucun leaser trouvé pour "${searchTerm}".` : 
+                "Aucun leaser disponible."
+              }
             </div>
           )}
         </div>

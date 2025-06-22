@@ -10,6 +10,11 @@ import { toast } from 'sonner';
  */
 export const getLeasers = async (): Promise<Leaser[]> => {
   try {
+    console.log('Fetching leasers from database...');
+    
+    // First ensure we have default leasers in the database
+    await insertDefaultLeasers();
+    
     // Tenter de charger les leasers depuis la base de données Supabase
     const { data, error } = await supabase
       .from('leasers')
@@ -27,13 +32,16 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       .order('name');
     
     if (error) {
-      console.error('Erreur lors du chargement des leasers:', error);
-      throw error;
+      console.error('Error loading leasers from database:', error);
+      console.log('Using default leasers as fallback');
+      return defaultLeasers;
     }
     
-    // Si aucun leaser n'est trouvé, utiliser les leasers par défaut
+    console.log('Raw data from database:', data);
+    
+    // Si aucun leaser n'est trouvé après insertion, utiliser les leasers par défaut
     if (!data || data.length === 0) {
-      console.log('Aucun leaser trouvé en base de données, utilisation des leasers par défaut');
+      console.log('No leasers found in database even after insertion, using default leasers');
       return defaultLeasers;
     }
     
@@ -42,13 +50,14 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       id: leaser.id,
       name: leaser.name,
       logo_url: leaser.logo_url,
-      ranges: leaser.ranges.sort((a: any, b: any) => a.min - b.min)
+      ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
+    console.log('Formatted leasers:', formattedLeasers);
     return formattedLeasers;
   } catch (error) {
-    console.error('Exception lors du chargement des leasers:', error);
-    // En cas d'erreur, retourner les leasers par défaut
+    console.error('Exception during leaser loading:', error);
+    console.log('Using default leasers as fallback');
     return defaultLeasers;
   }
 };
@@ -77,7 +86,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       .single();
     
     if (error) {
-      console.error('Erreur lors du chargement du leaser:', error);
+      console.error('Error loading leaser:', error);
       return null;
     }
     
@@ -92,7 +101,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     };
   } catch (error) {
-    console.error('Exception lors du chargement du leaser:', error);
+    console.error('Exception during leaser loading:', error);
     return null;
   }
 };
@@ -114,7 +123,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       .single();
     
     if (error) {
-      console.error('Erreur lors de la création du leaser:', error);
+      console.error('Error creating leaser:', error);
       toast.error("Erreur lors de la création du leaser");
       return null;
     }
@@ -133,7 +142,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         .insert(rangesToInsert);
         
       if (rangeError) {
-        console.error('Erreur lors de l\'ajout des tranches:', rangeError);
+        console.error('Error adding ranges:', rangeError);
         toast.error("Le leaser a été créé mais les tranches n'ont pas pu être ajoutées");
       }
     }
@@ -141,7 +150,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
     // Récupérer le leaser complet pour le renvoyer
     return await getLeaserById(data.id);
   } catch (error) {
-    console.error('Exception lors de la création du leaser:', error);
+    console.error('Exception during leaser creation:', error);
     toast.error("Erreur lors de la création du leaser");
     return null;
   }
@@ -171,7 +180,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
       .eq('id', id);
     
     if (error) {
-      console.error('Erreur lors de la mise à jour du leaser:', error);
+      console.error('Error updating leaser:', error);
       toast.error("Erreur lors de la mise à jour du leaser");
       return false;
     }
@@ -183,7 +192,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
       .eq('leaser_id', id);
     
     if (deleteError) {
-      console.error('Erreur lors de la suppression des anciennes tranches:', deleteError);
+      console.error('Error deleting old ranges:', deleteError);
       toast.error("Erreur lors de la mise à jour des tranches");
       return false;
     }
@@ -202,7 +211,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         .insert(rangesToInsert);
         
       if (rangeError) {
-        console.error('Erreur lors de l\'ajout des nouvelles tranches:', rangeError);
+        console.error('Error adding new ranges:', rangeError);
         toast.error("Les informations du leaser ont été mises à jour, mais pas les tranches");
         return false;
       }
@@ -211,7 +220,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
     toast.success("Leaser mis à jour avec succès");
     return true;
   } catch (error) {
-    console.error('Exception lors de la mise à jour du leaser:', error);
+    console.error('Exception during leaser update:', error);
     toast.error("Erreur lors de la mise à jour du leaser");
     return false;
   }
@@ -231,7 +240,7 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
       .eq('leaser_id', id);
     
     if (rangeError) {
-      console.error('Erreur lors de la suppression des tranches:', rangeError);
+      console.error('Error deleting ranges:', rangeError);
       toast.error("Erreur lors de la suppression des tranches");
       return false;
     }
@@ -243,7 +252,7 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
       .eq('id', id);
     
     if (error) {
-      console.error('Erreur lors de la suppression du leaser:', error);
+      console.error('Error deleting leaser:', error);
       toast.error("Erreur lors de la suppression du leaser");
       return false;
     }
@@ -251,7 +260,7 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
     toast.success("Leaser supprimé avec succès");
     return true;
   } catch (error) {
-    console.error('Exception lors de la suppression du leaser:', error);
+    console.error('Exception during leaser deletion:', error);
     toast.error("Erreur lors de la suppression du leaser");
     return false;
   }
@@ -263,62 +272,86 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
  */
 export const insertDefaultLeasers = async (): Promise<boolean> => {
   try {
+    console.log('Checking if default leasers need to be inserted...');
+    
     // Vérifier si des leasers existent déjà
     const { count, error: countError } = await supabase
       .from('leasers')
       .select('*', { count: 'exact', head: true });
     
     if (countError) {
-      console.error('Erreur lors de la vérification des leasers existants:', countError);
+      console.error('Error checking existing leasers:', countError);
       return false;
     }
     
     // Si des leasers existent déjà, ne pas insérer les leasers par défaut
     if (count && count > 0) {
-      console.log('Des leasers existent déjà, pas d\'insertion des leasers par défaut');
+      console.log(`${count} leasers already exist, skipping default insertion`);
       return true;
     }
     
-    // Insérer les leasers par défaut
+    console.log('No leasers found, inserting default leasers...');
+    
+    // Insérer les leasers par défaut un par un pour éviter les conflits
     for (const leaser of defaultLeasers) {
-      const { data, error } = await supabase
-        .from('leasers')
-        .insert({
-          id: leaser.id,  // Conserver l'ID d'origine pour garantir la cohérence
-          name: leaser.name,
-          logo_url: leaser.logo_url || null
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Erreur lors de l\'insertion d\'un leaser par défaut:', error);
-        continue;
-      }
-      
-      // Insérer les tranches pour ce leaser
-      if (leaser.ranges && leaser.ranges.length > 0) {
-        const rangesToInsert = leaser.ranges.map(range => ({
-          leaser_id: data.id,
-          min: range.min,
-          max: range.max,
-          coefficient: range.coefficient
-        }));
+      try {
+        // D'abord vérifier si ce leaser existe déjà (par ID ou nom)
+        const { data: existingLeaser } = await supabase
+          .from('leasers')
+          .select('id')
+          .or(`id.eq.${leaser.id},name.eq.${leaser.name}`)
+          .single();
         
-        const { error: rangeError } = await supabase
-          .from('leaser_ranges')
-          .insert(rangesToInsert);
-          
-        if (rangeError) {
-          console.error('Erreur lors de l\'insertion des tranches pour un leaser par défaut:', rangeError);
+        if (existingLeaser) {
+          console.log(`Leaser ${leaser.name} already exists, skipping...`);
+          continue;
         }
+
+        const { data, error } = await supabase
+          .from('leasers')
+          .insert({
+            id: leaser.id,
+            name: leaser.name,
+            logo_url: leaser.logo_url || null
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error(`Error inserting default leaser ${leaser.name}:`, error);
+          continue;
+        }
+        
+        console.log(`Inserted leaser: ${leaser.name}`);
+        
+        // Insérer les tranches pour ce leaser
+        if (leaser.ranges && leaser.ranges.length > 0) {
+          const rangesToInsert = leaser.ranges.map(range => ({
+            leaser_id: data.id,
+            min: range.min,
+            max: range.max,
+            coefficient: range.coefficient
+          }));
+          
+          const { error: rangeError } = await supabase
+            .from('leaser_ranges')
+            .insert(rangesToInsert);
+            
+          if (rangeError) {
+            console.error(`Error inserting ranges for leaser ${leaser.name}:`, rangeError);
+          } else {
+            console.log(`Inserted ${rangesToInsert.length} ranges for ${leaser.name}`);
+          }
+        }
+      } catch (individualError) {
+        console.error(`Error processing leaser ${leaser.name}:`, individualError);
       }
     }
     
-    console.log('Leasers par défaut insérés avec succès');
+    console.log('Default leasers insertion completed');
     return true;
   } catch (error) {
-    console.error('Exception lors de l\'insertion des leasers par défaut:', error);
+    console.error('Exception during default leasers insertion:', error);
     return false;
   }
 };
