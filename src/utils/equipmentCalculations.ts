@@ -1,4 +1,3 @@
-
 import { Equipment, Leaser, LeaserRange } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
@@ -75,23 +74,19 @@ export const calculateEquipmentResults = (
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser);
   const adjustedMonthlyPayment = (totalFinancedAmountIndividual * globalCoefficient) / 100;
 
-  // 6. Calculer la différence de mensualité
-  const monthlyPaymentDifference = normalMonthlyPayment - adjustedMonthlyPayment;
-
-  // 7. Calculer la marge ajustée basée sur la différence de mensualité
-  // Si on garde la même mensualité normale mais qu'on applique le coefficient global,
-  // quelle marge faudrait-il pour obtenir cette mensualité ?
-  const requiredFinancedAmountForNormalMonthly = (normalMonthlyPayment * 100) / globalCoefficient;
-  const adjustedMarginAmount = requiredFinancedAmountForNormalMonthly - totalPurchasePrice;
+  // 6. Calculer la marge ajustée réelle avec la mensualité globale
+  // Ratio de réduction de la mensualité appliqué à la marge
+  const monthlyPaymentRatio = normalMonthlyPayment > 0 ? (adjustedMonthlyPayment / normalMonthlyPayment) : 1;
+  const adjustedMarginAmount = normalMarginAmount * monthlyPaymentRatio;
   const adjustedMarginPercentage = totalPurchasePrice > 0 
     ? (adjustedMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 8. Calculer la différence de marge réelle
-  // Différence = Marge nécessaire avec coefficient global - Marge normale
-  // Si positif : il faut plus de marge avec le coefficient global
-  // Si négatif : il faut moins de marge avec le coefficient global
-  const marginDifference = adjustedMarginAmount - normalMarginAmount;
+  // 7. Calculer la différence de marge réelle
+  // Différence = Marge normale - Marge ajustée (avec coefficient global)
+  // Si positif : on perd de la marge avec le coefficient global
+  // Si négatif : on gagne de la marge avec le coefficient global
+  const marginDifference = normalMarginAmount - adjustedMarginAmount;
 
   console.log("🔢 CALCUL - Détail des calculs:", {
     totalPurchasePrice,
@@ -101,12 +96,11 @@ export const calculateEquipmentResults = (
     normalMonthlyPayment,
     globalCoefficient,
     adjustedMonthlyPayment,
-    monthlyPaymentDifference,
-    requiredFinancedAmountForNormalMonthly,
+    monthlyPaymentRatio,
     adjustedMarginAmount,
     adjustedMarginPercentage,
     marginDifference,
-    explanation: marginDifference > 0 ? "Il faut plus de marge avec le coefficient global" : "Il faut moins de marge avec le coefficient global"
+    explanation: marginDifference > 0 ? "Perte de marge avec coefficient global" : "Gain de marge avec coefficient global"
   });
 
   const result: CalculationResult = {

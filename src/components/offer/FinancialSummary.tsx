@@ -112,14 +112,14 @@ const FinancialSummary = ({
             <div className="pt-2 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-orange-600">
-                  Différence de marge (ajustement) :
+                  Impact sur la marge :
                 </span>
                 <span className={`text-sm font-semibold ${marginDifference > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {marginDifference > 0 ? '-' : '+'}{formatCurrency(Math.abs(marginDifference))}
                 </span>
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                Coefficient global appliqué sur le montant total financé
+                {marginDifference > 0 ? 'Perte de marge' : 'Gain de marge'} avec le coefficient global
               </div>
             </div>
           )}
