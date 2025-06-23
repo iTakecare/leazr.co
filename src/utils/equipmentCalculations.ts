@@ -56,11 +56,8 @@ export const calculateEquipmentResults = (
     ? (normalMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 3. Calculer le montant financé total pour les équipements individuels
-  const totalFinancedAmountIndividual = equipmentList.reduce((sum, equipment) => {
-    const financedForOne = calculateFinancedAmountForEquipment(equipment);
-    return sum + financedForOne;
-  }, 0);
+  // 3. Calculer le montant financé total avec les marges individuelles
+  const totalFinancedAmountIndividual = totalPurchasePrice + normalMarginAmount;
 
   // 4. Calculer la mensualité normale (somme des mensualités individuelles)
   const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
@@ -74,18 +71,21 @@ export const calculateEquipmentResults = (
     return sum + monthlyForOne;
   }, 0);
 
-  // 5. Calculer avec le coefficient global (montant financé total)
+  // 5. Calculer avec le coefficient global sur le montant financé total
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser);
   const adjustedMonthlyPayment = (totalFinancedAmountIndividual * globalCoefficient) / 100;
 
-  // 6. Calculer la marge ajustée (inverse du calcul mensualité)
+  // 6. Calculer la marge ajustée (recalculée à partir de la mensualité globale)
+  // Pour obtenir le même total mensuel avec le coefficient global, on doit ajuster la marge
   const requiredFinancedAmount = (adjustedMonthlyPayment * 100) / globalCoefficient;
   const adjustedMarginAmount = requiredFinancedAmount - totalPurchasePrice;
   const adjustedMarginPercentage = totalPurchasePrice > 0 
     ? (adjustedMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 7. Calculer la différence de marge
+  // 7. Calculer la différence de marge (marge normale - marge ajustée)
+  // Une valeur positive signifie que la marge normale est plus élevée
+  // Une valeur négative signifie que la marge ajustée est plus élevée
   const marginDifference = normalMarginAmount - adjustedMarginAmount;
 
   const result: CalculationResult = {
@@ -101,7 +101,10 @@ export const calculateEquipmentResults = (
     totalFinancedAmount: totalFinancedAmountIndividual
   };
 
-  console.log("🔢 CALCUL - Résultats:", result);
+  console.log("🔢 CALCUL - Résultats:", {
+    ...result,
+    marginDifferenceExplanation: marginDifference > 0 ? "Marge normale supérieure" : "Marge ajustée supérieure"
+  });
 
   return result;
 };
