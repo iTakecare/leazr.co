@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { getOfferForClient } from "@/services/offers/offerSignature";
+import { getOfferById } from "@/services/offers/getOffers";
 
 export const useLoadClientOffer = (offerId: string | undefined) => {
   const [offer, setOffer] = useState<any>(null);
@@ -17,7 +17,7 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
 
       try {
         console.log("📋 Loading offer for client ID:", offerId);
-        const offerData = await getOfferForClient(offerId);
+        const offerData = await getOfferById(offerId);
         
         if (!offerData) {
           setError("Offre non trouvée");
