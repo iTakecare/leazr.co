@@ -3,11 +3,9 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Trash2, Pencil, Plus, Minus } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateFinancedAmount } from "@/utils/calculator";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
 
 interface GlobalMarginAdjustment {
@@ -29,7 +27,7 @@ interface EquipmentListProps {
   hideFinancialDetails?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
-  calculations?: any; // Nouveau prop pour les calculs détaillés
+  calculations?: any;
 }
 
 const EquipmentList = ({
@@ -49,35 +47,6 @@ const EquipmentList = ({
   const handleQuantityChange = (id: string, newQuantity: number) => {
     updateQuantity(id, newQuantity);
   };
-
-  const handleAdaptMonthlyPaymentToggle = () => {
-    toggleAdaptMonthlyPayment();
-  };
-
-  // Utiliser les calculs détaillés si disponibles, sinon les anciens calculs
-  const displayData = calculations ? {
-    totalPurchasePrice: calculations.totalPurchasePrice,
-    marginRate: globalMarginAdjustment.active ? calculations.adjustedMarginPercentage : calculations.normalMarginPercentage,
-    totalMarginAmount: globalMarginAdjustment.active ? calculations.adjustedMarginAmount : calculations.normalMarginAmount,
-    coefficient: calculations.globalCoefficient,
-    financedAmount: calculations.totalFinancedAmount,
-    marginDifference: calculations.marginDifference
-  } : {
-    // Calculs de fallback pour compatibilité
-    totalPurchasePrice: equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0),
-    marginRate: globalMarginAdjustment.amount > 0 ? (globalMarginAdjustment.amount / equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0)) * 100 : 0,
-    totalMarginAmount: globalMarginAdjustment.amount,
-    coefficient: globalMarginAdjustment.newCoef || 3.27,
-    financedAmount: calculateFinancedAmount(totalMonthlyPayment, globalMarginAdjustment.newCoef || 3.27),
-    marginDifference: globalMarginAdjustment.marginDifference || 0
-  };
-
-  console.log("📊 EQUIPMENTLIST - Données d'affichage:", {
-    active: globalMarginAdjustment.active,
-    totalMonthlyPayment,
-    displayData,
-    calculations: calculations ? "Nouveau système" : "Ancien système"
-  });
 
   return (
     <div className="space-y-6">
@@ -192,99 +161,6 @@ const EquipmentList = ({
                 ))}
               </tbody>
             </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-2 border-b">
-          <CardTitle>Récapitulatif financier</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-1">
-              <div className="text-sm text-gray-600">Prix d'achat total:</div>
-              <div className="font-medium text-gray-900">
-                {formatCurrency(displayData.totalPurchasePrice)}
-              </div>
-            </div>
-            
-            {!hideFinancialDetails && (
-              <>
-                <div className="flex items-center justify-between py-1">
-                  <div className="text-sm text-gray-600">Taux de marge:</div>
-                  <div className="font-medium text-gray-900">
-                    {displayData.marginRate.toFixed(2)}%
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between py-1">
-                  <div className="text-sm text-gray-600">Montant de la marge:</div>
-                  <div className="font-medium text-green-600">
-                    {formatCurrency(displayData.totalMarginAmount)}
-                  </div>
-                </div>
-                
-                {/* LIGNE DIFFÉRENCE DE MARGE - TOUJOURS AFFICHEE QUAND LE SWITCH EST ACTIF */}
-                {globalMarginAdjustment.active && (
-                  <div className="flex items-center justify-between py-1">
-                    <div className="text-sm text-gray-600">Différence de marge (ajustement):</div>
-                    <div className={`font-medium ${displayData.marginDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {displayData.marginDifference >= 0 ? '+' : ''}{formatCurrency(displayData.marginDifference)}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between py-1">
-                  <div className="text-sm text-gray-600">Coefficient:</div>
-                  <div className="font-medium text-gray-900">
-                    {displayData.coefficient.toFixed(3)}
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between py-1">
-                  <div className="text-sm text-gray-600">Montant financé:</div>
-                  <div className="font-medium text-gray-900">
-                    {formatCurrency(displayData.financedAmount)}
-                  </div>
-                </div>
-                
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex items-center justify-between py-1">
-                    <div className="font-medium text-gray-900">Mensualité totale:</div>
-                    <div className="text-blue-600 font-bold text-lg">
-                      {formatCurrency(totalMonthlyPayment)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium text-sm">
-                      Ajuster les mensualités pour atteindre la marge cible:
-                    </div>
-                    <div>
-                      <Switch
-                        id="adapt-monthly-payment"
-                        checked={globalMarginAdjustment.active}
-                        onCheckedChange={handleAdaptMonthlyPaymentToggle}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-            
-            {hideFinancialDetails && (
-              <div className="border-t pt-2 mt-2">
-                <div className="flex items-center justify-between py-1">
-                  <div className="font-medium text-gray-900">Mensualité totale:</div>
-                  <div className="text-blue-600 font-bold text-lg">
-                    {formatCurrency(totalMonthlyPayment)}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
