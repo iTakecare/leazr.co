@@ -10,6 +10,29 @@ export const isOfferSigned = (offer: any): boolean => {
   return !!(offer.signature_data && offer.signed_at);
 };
 
+export const getOfferForClient = async (offerId: string) => {
+  try {
+    console.log("🔍 Fetching offer for client by ID:", offerId);
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*, clients(name, email, company)')
+      .eq('id', offerId)
+      .single();
+    
+    if (error) {
+      console.error("❌ Error fetching offer for client:", error);
+      return null;
+    }
+    
+    console.log("✅ Offer fetched successfully for client:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error in getOfferForClient:", error);
+    return null;
+  }
+};
+
 export const saveOfferSignature = async (
   offerId: string,
   signatureData: string,
