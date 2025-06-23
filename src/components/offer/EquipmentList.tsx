@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,11 +71,15 @@ const EquipmentList = ({
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
   const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
 
-  console.log("GlobalMarginAdjustment debug:", {
+  // Debug logs pour comprendre les valeurs
+  console.log("EquipmentList Debug - GlobalMarginAdjustment:", {
     active: globalMarginAdjustment.active,
     marginDifference: globalMarginAdjustment.marginDifference,
-    adjustedMargin: adjustedMargin,
-    shouldShow: globalMarginAdjustment.active
+    amount: globalMarginAdjustment.amount,
+    newCoef: globalMarginAdjustment.newCoef,
+    totalMonthlyPayment,
+    adjustedMargin,
+    shouldShowAdjustedMargin: globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0
   });
 
   return (
@@ -224,9 +229,9 @@ const EquipmentList = ({
                 </div>
                 
                 {globalMarginAdjustment.active && (
-                  <div className="flex items-center justify-between py-1 bg-orange-50 px-3 rounded-md border border-orange-200">
-                    <div className="text-sm font-medium text-orange-700">Marge ajustée au coefficient:</div>
-                    <div className="font-bold text-orange-700">
+                  <div className="flex items-center justify-between py-1">
+                    <div className="text-sm text-gray-600">Marge ajustée au coefficient:</div>
+                    <div className="font-medium text-orange-600">
                       {formatCurrency(adjustedMargin)}
                     </div>
                   </div>
@@ -297,3 +302,4 @@ const EquipmentList = ({
 };
 
 export default EquipmentList;
+
