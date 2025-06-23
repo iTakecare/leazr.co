@@ -47,7 +47,7 @@ export const useLoadClientOffer = (offerId: string | undefined) => {
             return;
           }
           
-          setDebugInfo(prev => `${prev}\nDonnées d'offre reçues. ID: ${offerData.id}, Status: ${offerData.workflow_status || 'draft'}`);
+          setDebugInfo(prev => `${prev}\nDonnées d'offre reçues. ID: ${offerData.id}, Status: ${offerData.workflow_status}`);
           console.log("Données d'offre complètes:", offerData);
           
           setOffer(offerData);
