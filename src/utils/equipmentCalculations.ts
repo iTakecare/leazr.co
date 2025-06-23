@@ -75,18 +75,31 @@ export const calculateEquipmentResults = (
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser);
   const adjustedMonthlyPayment = (totalFinancedAmountIndividual * globalCoefficient) / 100;
 
-  // 6. Calculer la marge ajustée (recalculée à partir de la mensualité globale)
-  // Pour obtenir le même total mensuel avec le coefficient global, on doit ajuster la marge
-  const requiredFinancedAmount = (adjustedMonthlyPayment * 100) / globalCoefficient;
-  const adjustedMarginAmount = requiredFinancedAmount - totalPurchasePrice;
+  // 6. Calculer la marge ajustée (inversée à partir de la mensualité globale)
+  // Le montant financé nécessaire pour obtenir cette mensualité avec le coefficient global
+  const requiredFinancedAmountForGlobalCoef = (adjustedMonthlyPayment * 100) / globalCoefficient;
+  const adjustedMarginAmount = requiredFinancedAmountForGlobalCoef - totalPurchasePrice;
   const adjustedMarginPercentage = totalPurchasePrice > 0 
     ? (adjustedMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 7. Calculer la différence de marge (marge normale - marge ajustée)
-  // Une valeur positive signifie que la marge normale est plus élevée
-  // Une valeur négative signifie que la marge ajustée est plus élevée
+  // 7. Calculer la différence de marge réelle
+  // Différence = Marge normale - Marge ajustée
+  // Si positif : la marge normale est plus élevée (on perd de la marge en passant au global)
+  // Si négatif : la marge ajustée est plus élevée (on gagne de la marge en passant au global)
   const marginDifference = normalMarginAmount - adjustedMarginAmount;
+
+  console.log("🔢 CALCUL - Détail des calculs:", {
+    totalPurchasePrice,
+    normalMarginAmount,
+    totalFinancedAmountIndividual,
+    globalCoefficient,
+    adjustedMonthlyPayment,
+    requiredFinancedAmountForGlobalCoef,
+    adjustedMarginAmount,
+    marginDifference,
+    explanation: marginDifference > 0 ? "Perte de marge avec coefficient global" : "Gain de marge avec coefficient global"
+  });
 
   const result: CalculationResult = {
     totalPurchasePrice,
@@ -101,10 +114,7 @@ export const calculateEquipmentResults = (
     totalFinancedAmount: totalFinancedAmountIndividual
   };
 
-  console.log("🔢 CALCUL - Résultats:", {
-    ...result,
-    marginDifferenceExplanation: marginDifference > 0 ? "Marge normale supérieure" : "Marge ajustée supérieure"
-  });
+  console.log("🔢 CALCUL - Résultats finaux:", result);
 
   return result;
 };
