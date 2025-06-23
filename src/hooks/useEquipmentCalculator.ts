@@ -291,78 +291,77 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     }, 0);
 
     // Trouver le coefficient basé sur le montant financé total
-    const currentCoef = findCoefficient(totalFinancedAmount);
+    const globalCoef = findCoefficient(totalFinancedAmount);
     
-    // Calculer la mensualité actuelle basée sur les équipements individuels (avec quantités)
-    const currentMonthly = equipmentList.reduce((sum, eq) => {
+    // Calculer la mensualité normale basée sur les équipements individuels (avec quantités)
+    const normalMonthly = equipmentList.reduce((sum, eq) => {
       return sum + ((eq.monthlyPayment || 0) * eq.quantity);
     }, 0);
     
     // Calculer la mensualité théorique avec le coefficient global
-    const theoreticalMonthly = (totalFinancedAmount * currentCoef) / 100;
+    const theoreticalMonthly = (totalFinancedAmount * globalCoef) / 100;
     
-    let newMonthly;
-    let adjustedMarginAmount;
-    let marginDifference = 0;
+    let appliedMonthly;
+    let appliedMarginAmount;
+    let marginDifference;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
-      // Si on adapte, on utilise la mensualité théorique
-      newMonthly = theoreticalMonthly;
+      // Mode ajusté : utiliser le coefficient global
+      appliedMonthly = theoreticalMonthly;
       
       // Calculer le montant financé nécessaire pour cette mensualité
-      const requiredFinancedAmount = (theoreticalMonthly * 100) / currentCoef;
+      const requiredFinancedAmount = (theoreticalMonthly * 100) / globalCoef;
       
       // La marge ajustée est la différence entre le montant financé requis et le prix d'achat total
-      adjustedMarginAmount = requiredFinancedAmount - totalBaseAmount;
+      appliedMarginAmount = requiredFinancedAmount - totalBaseAmount;
       
-      // La différence entre la marge ajustée et la marge normale
-      marginDifference = adjustedMarginAmount - normalMarginAmount;
+      // La différence entre la marge normale et la marge ajustée
+      marginDifference = normalMarginAmount - appliedMarginAmount;
       
-      console.log("Switch ON - Calcul avec quantités:", {
+      console.log("🔵 Mode AJUSTÉ - Switch ON:", {
         totalBaseAmount,
         normalMarginAmount,
         totalFinancedAmount,
-        currentCoef,
+        globalCoef,
         theoreticalMonthly,
         requiredFinancedAmount,
-        adjustedMarginAmount,
+        appliedMarginAmount,
         marginDifference,
-        equipmentList: equipmentList.map(eq => ({
-          title: eq.title,
-          price: eq.purchasePrice,
-          quantity: eq.quantity,
-          margin: eq.margin,
-          totalPrice: eq.purchasePrice * eq.quantity,
-          totalMargin: eq.purchasePrice * eq.quantity * eq.margin / 100
-        }))
+        equipmentCount: equipmentList.length
       });
     } else {
-      // Si on n'adapte pas, on garde les marges individuelles
-      newMonthly = currentMonthly;
-      adjustedMarginAmount = normalMarginAmount;
-      marginDifference = 0;
+      // Mode normal : utiliser les marges individuelles
+      appliedMonthly = normalMonthly;
+      appliedMarginAmount = normalMarginAmount;
       
-      console.log("Switch OFF - Marge normale avec quantités:", {
+      // Calculer quand même la différence pour l'affichage potentiel
+      const requiredFinancedAmountWithGlobalCoef = (theoreticalMonthly * 100) / globalCoef;
+      const adjustedMarginAmount = requiredFinancedAmountWithGlobalCoef - totalBaseAmount;
+      marginDifference = normalMarginAmount - adjustedMarginAmount;
+      
+      console.log("🟡 Mode NORMAL - Switch OFF:", {
         totalBaseAmount,
         normalMarginAmount,
-        currentMonthly,
-        marginDifference: 0
+        appliedMonthly,
+        theoreticalMonthly,
+        globalCoef,
+        marginDifference: "Calculée mais non appliquée"
       });
     }
 
-    const marginPercentage = totalBaseAmount > 0 ? (adjustedMarginAmount / totalBaseAmount) * 100 : 0;
+    const marginPercentage = totalBaseAmount > 0 ? (appliedMarginAmount / totalBaseAmount) * 100 : 0;
 
     setGlobalMarginAdjustment({
       percentage: Number(marginPercentage.toFixed(2)),
-      amount: adjustedMarginAmount,
-      newMonthly: newMonthly,
-      currentCoef: currentCoef,
-      newCoef: currentCoef,
+      amount: appliedMarginAmount,
+      newMonthly: appliedMonthly,
+      currentCoef: globalCoef,
+      newCoef: globalCoef,
       adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
       marginDifference: marginDifference
     });
 
-    setTotalMonthlyPayment(newMonthly);
+    setTotalMonthlyPayment(appliedMonthly);
   };
 
   return {

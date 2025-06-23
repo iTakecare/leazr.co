@@ -235,7 +235,7 @@ const EquipmentList = ({
                   <div className="flex items-center justify-between py-1">
                     <div className="text-sm text-gray-600">Différence de marge (ajustement):</div>
                     <div className={`font-medium ${adjustedMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(adjustedMargin)}
+                      {adjustedMargin >= 0 ? '+' : ''}{formatCurrency(adjustedMargin)}
                     </div>
                   </div>
                 )}
