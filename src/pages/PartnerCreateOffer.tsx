@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -130,28 +131,6 @@ const PartnerCreateOffer = () => {
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
             
-            if (offer.coefficient && offer.amount) {
-              // Convert string values to numbers as needed
-              const coefficient = typeof offer.coefficient === 'string' 
-                ? parseFloat(offer.coefficient) 
-                : offer.coefficient || 0;
-                
-              const amount = typeof offer.amount === 'string' 
-                ? parseFloat(offer.amount) 
-                : offer.amount || 0;
-                
-              const monthlyPayment = typeof offer.monthly_payment === 'string' 
-                ? parseFloat(offer.monthly_payment) 
-                : offer.monthly_payment || 0;
-              
-              setGlobalMarginAdjustment(prev => ({
-                ...prev,
-                amount: amount,
-                newCoef: coefficient,
-                newMonthly: monthlyPayment
-              }));
-            }
-            
             if (offer.equipment_description) {
               try {
                 const equipmentData = JSON.parse(offer.equipment_description);
@@ -226,7 +205,7 @@ const PartnerCreateOffer = () => {
     };
     
     loadOfferData();
-  }, [offerId, navigate, setEquipmentList, setGlobalMarginAdjustment, setTargetMonthlyPayment]);
+  }, [offerId, navigate, setEquipmentList, setTargetMonthlyPayment]);
 
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
