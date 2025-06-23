@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -262,6 +264,23 @@ const CreateOffer = () => {
     setIsSubmitting(true);
 
     try {
+      // Récupérer le company_id avant de créer l'offre
+      let userCompanyId;
+      try {
+        userCompanyId = await getCurrentUserCompanyId();
+        console.log("💾 CRÉATION OFFRE - Company ID récupéré:", userCompanyId);
+      } catch (error) {
+        console.error("❌ Erreur lors de la récupération du company_id:", error);
+        toast.error("Impossible de récupérer l'ID de l'entreprise");
+        return;
+      }
+
+      if (!userCompanyId) {
+        console.error("❌ Company ID manquant");
+        toast.error("ID de l'entreprise manquant");
+        return;
+      }
+
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -286,6 +305,7 @@ const CreateOffer = () => {
 
       const offerData = {
         user_id: user.id,
+        company_id: userCompanyId, // Ajouter explicitement le company_id
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
@@ -302,6 +322,7 @@ const CreateOffer = () => {
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
+      console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
 
       let result;
