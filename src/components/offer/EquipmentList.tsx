@@ -7,6 +7,7 @@ import { Trash2, Pencil, Plus, Minus } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
+import FinancialSummary from "@/components/offer/FinancialSummary";
 
 interface GlobalMarginAdjustment {
   amount: number;
@@ -164,6 +165,13 @@ const EquipmentList = ({
           </div>
         </CardContent>
       </Card>
+      
+      {!hideFinancialDetails && calculations && (
+        <FinancialSummary 
+          calculations={calculations}
+          useGlobalAdjustment={globalMarginAdjustment.active}
+        />
+      )}
       
       {!hideFinancialDetails && ambassadorId && (
         <CommissionDisplay
