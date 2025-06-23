@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -273,27 +274,31 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       return;
     }
 
+    // Calculer le prix d'achat total (avec quantités)
     const totalBaseAmount = equipmentList.reduce((sum, eq) => {
       return sum + (eq.purchasePrice * eq.quantity);
     }, 0);
 
-    // Calculer la marge normale (somme des marges individuelles)
+    // Calculer la marge normale (somme des marges individuelles avec quantités)
     const normalMarginAmount = equipmentList.reduce((sum, eq) => {
       return sum + (eq.purchasePrice * eq.quantity * eq.margin / 100);
     }, 0);
 
+    // Calculer le montant financé total (avec quantités)
     const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
-      return sum + calculateFinancedAmount(eq) * eq.quantity;
+      const financedAmountForOne = calculateFinancedAmount(eq);
+      return sum + (financedAmountForOne * eq.quantity);
     }, 0);
 
+    // Trouver le coefficient basé sur le montant financé total
     const currentCoef = findCoefficient(totalFinancedAmount);
     
-    // Calculer la mensualité actuelle basée sur les équipements individuels
+    // Calculer la mensualité actuelle basée sur les équipements individuels (avec quantités)
     const currentMonthly = equipmentList.reduce((sum, eq) => {
-      return sum + (eq.monthlyPayment || 0) * eq.quantity;
+      return sum + ((eq.monthlyPayment || 0) * eq.quantity);
     }, 0);
     
-    // Calculer la mensualité théorique avec le coefficient actuel
+    // Calculer la mensualité théorique avec le coefficient global
     const theoreticalMonthly = (totalFinancedAmount * currentCoef) / 100;
     
     let newMonthly;
@@ -304,34 +309,44 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       // Si on adapte, on utilise la mensualité théorique
       newMonthly = theoreticalMonthly;
       
-      // Calculer la marge nécessaire pour atteindre cette mensualité théorique
+      // Calculer le montant financé nécessaire pour cette mensualité
       const requiredFinancedAmount = (theoreticalMonthly * 100) / currentCoef;
+      
+      // La marge ajustée est la différence entre le montant financé requis et le prix d'achat total
       adjustedMarginAmount = requiredFinancedAmount - totalBaseAmount;
       
       // La différence entre la marge ajustée et la marge normale
       marginDifference = adjustedMarginAmount - normalMarginAmount;
       
-      console.log("Switch ON - Calcul marginDifference:", {
-        currentMonthly,
-        theoreticalMonthly,
-        currentCoef,
+      console.log("Switch ON - Calcul avec quantités:", {
         totalBaseAmount,
         normalMarginAmount,
+        totalFinancedAmount,
+        currentCoef,
+        theoreticalMonthly,
+        requiredFinancedAmount,
         adjustedMarginAmount,
         marginDifference,
-        requiredFinancedAmount
+        equipmentList: equipmentList.map(eq => ({
+          title: eq.title,
+          price: eq.purchasePrice,
+          quantity: eq.quantity,
+          margin: eq.margin,
+          totalPrice: eq.purchasePrice * eq.quantity,
+          totalMargin: eq.purchasePrice * eq.quantity * eq.margin / 100
+        }))
       });
     } else {
-      // Si on n'adapte pas, on garde les mensualités individuelles
+      // Si on n'adapte pas, on garde les marges individuelles
       newMonthly = currentMonthly;
       adjustedMarginAmount = normalMarginAmount;
       marginDifference = 0;
       
-      console.log("Switch OFF - Pas d'ajustement:", {
-        currentMonthly,
-        theoreticalMonthly,
+      console.log("Switch OFF - Marge normale avec quantités:", {
+        totalBaseAmount,
         normalMarginAmount,
-        marginDifference
+        currentMonthly,
+        marginDifference: 0
       });
     }
 

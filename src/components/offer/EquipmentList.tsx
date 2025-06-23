@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,10 +55,10 @@ const EquipmentList = ({
     toggleAdaptMonthlyPayment();
   };
 
-  // Calculs pour le récapitulatif
+  // Calculs pour le récapitulatif avec prise en compte des quantités
   const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
   
-  // Utiliser directement le montant de marge calculé par le hook
+  // Utiliser le montant de marge calculé par le hook
   const totalMarginAmount = globalMarginAdjustment.amount;
   
   // Calculer le taux de marge
@@ -67,15 +68,21 @@ const EquipmentList = ({
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
   const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
 
-  // Debug logs pour comprendre les valeurs
-  console.log("EquipmentList Debug - Affichage des marges:", {
+  // Debug logs pour comprendre les valeurs avec quantités
+  console.log("EquipmentList Debug - Affichage des marges avec quantités:", {
     active: globalMarginAdjustment.active,
     totalMarginAmount: globalMarginAdjustment.amount,
     marginDifference: globalMarginAdjustment.marginDifference,
     totalMonthlyPayment,
     coefficient,
     totalPurchasePrice,
-    marginRate
+    marginRate,
+    equipmentList: equipmentList.map(eq => ({
+      title: eq.title,
+      price: eq.purchasePrice,
+      quantity: eq.quantity,
+      totalPrice: eq.purchasePrice * eq.quantity
+    }))
   });
 
   return (
@@ -224,10 +231,10 @@ const EquipmentList = ({
                   </div>
                 </div>
                 
-                {globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0 && (
+                {globalMarginAdjustment.active && (
                   <div className="flex items-center justify-between py-1">
                     <div className="text-sm text-gray-600">Différence de marge (ajustement):</div>
-                    <div className="font-medium text-orange-600">
+                    <div className={`font-medium ${adjustedMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(adjustedMargin)}
                     </div>
                   </div>
