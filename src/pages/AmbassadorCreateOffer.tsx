@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { useAmbassadorOfferState } from "@/hooks/useAmbassadorOfferState";
 import { useAmbassadorOfferSave } from "@/components/ambassador/AmbassadorOfferSaveLogic";
+import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 
 const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
@@ -56,8 +56,9 @@ const AmbassadorCreateOffer = () => {
     cancelEditing,
     removeFromList,
     updateQuantity,
-    toggleAdaptMonthlyPayment
-  } = useEquipmentCalculator(selectedLeaser);
+    toggleAdaptMonthlyPayment,
+    calculations
+  } = useSimplifiedEquipmentCalculator(selectedLeaser);
 
   const { handleSaveOffer } = useAmbassadorOfferSave({
     client,
@@ -196,6 +197,7 @@ const AmbassadorCreateOffer = () => {
                     hideFinancialDetails={hideFinancialDetails}
                     ambassadorId={currentAmbassadorId}
                     commissionLevelId={currentCommissionLevelId}
+                    calculations={calculations}
                   />
                   
                   <ClientInfo

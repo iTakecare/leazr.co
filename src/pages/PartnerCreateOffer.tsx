@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
-import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -63,7 +62,6 @@ const PartnerCreateOffer = () => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
-    setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
     addToList,
@@ -72,8 +70,9 @@ const PartnerCreateOffer = () => {
     removeFromList,
     updateQuantity,
     findCoefficient,
-    toggleAdaptMonthlyPayment
-  } = useEquipmentCalculator(selectedLeaser);
+    toggleAdaptMonthlyPayment,
+    calculations
+  } = useSimplifiedEquipmentCalculator(selectedLeaser);
 
   useEffect(() => {
     const fetchLeasers = async () => {
@@ -422,6 +421,7 @@ const PartnerCreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }}
                     toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                    calculations={calculations}
                   />
                   
                   <ClientInfo

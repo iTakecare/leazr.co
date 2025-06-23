@@ -3,10 +3,9 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Pencil, Plus, Minus } from "lucide-react";
-import { Equipment, Leaser } from "@/types/equipment";
+import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import CommissionDisplay from "@/components/ui/CommissionDisplay";
@@ -30,6 +29,7 @@ interface EquipmentListProps {
   hideFinancialDetails?: boolean;
   ambassadorId?: string;
   commissionLevelId?: string;
+  calculations?: any; // Nouveau prop pour les calculs détaillés
 }
 
 const EquipmentList = ({
@@ -43,10 +43,9 @@ const EquipmentList = ({
   toggleAdaptMonthlyPayment,
   hideFinancialDetails = false,
   ambassadorId,
-  commissionLevelId
+  commissionLevelId,
+  calculations
 }: EquipmentListProps) => {
-  const editingEquipment = equipmentList.find((item) => item.id === editingId);
-
   const handleQuantityChange = (id: string, newQuantity: number) => {
     updateQuantity(id, newQuantity);
   };
@@ -55,34 +54,29 @@ const EquipmentList = ({
     toggleAdaptMonthlyPayment();
   };
 
-  // Calculs pour le récapitulatif avec prise en compte des quantités
-  const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
-  
-  // Utiliser le montant de marge calculé par le hook
-  const totalMarginAmount = globalMarginAdjustment.amount;
-  
-  // Calculer le taux de marge
-  const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
-  
-  const coefficient = globalMarginAdjustment.newCoef || 3.27;
-  const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
-  const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
-
-  // Debug logs pour comprendre les valeurs avec quantités
-  console.log("EquipmentList Debug - Affichage des marges avec quantités:", {
-    active: globalMarginAdjustment.active,
+  // Utiliser les calculs détaillés si disponibles, sinon les anciens calculs
+  const displayData = calculations ? {
+    totalPurchasePrice: calculations.totalPurchasePrice,
+    marginRate: globalMarginAdjustment.active ? calculations.adjustedMarginPercentage : calculations.normalMarginPercentage,
+    totalMarginAmount: globalMarginAdjustment.active ? calculations.adjustedMarginAmount : calculations.normalMarginAmount,
+    coefficient: calculations.globalCoefficient,
+    financedAmount: calculations.totalFinancedAmount,
+    marginDifference: calculations.marginDifference
+  } : {
+    // Calculs de fallback pour compatibilité
+    totalPurchasePrice: equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0),
+    marginRate: globalMarginAdjustment.amount > 0 ? (globalMarginAdjustment.amount / equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0)) * 100 : 0,
     totalMarginAmount: globalMarginAdjustment.amount,
-    marginDifference: globalMarginAdjustment.marginDifference,
+    coefficient: globalMarginAdjustment.newCoef || 3.27,
+    financedAmount: calculateFinancedAmount(totalMonthlyPayment, globalMarginAdjustment.newCoef || 3.27),
+    marginDifference: globalMarginAdjustment.marginDifference || 0
+  };
+
+  console.log("📊 EQUIPMENTLIST - Données d'affichage:", {
+    active: globalMarginAdjustment.active,
     totalMonthlyPayment,
-    coefficient,
-    totalPurchasePrice,
-    marginRate,
-    equipmentList: equipmentList.map(eq => ({
-      title: eq.title,
-      price: eq.purchasePrice,
-      quantity: eq.quantity,
-      totalPrice: eq.purchasePrice * eq.quantity
-    }))
+    displayData,
+    calculations: calculations ? "Nouveau système" : "Ancien système"
   });
 
   return (
@@ -211,7 +205,7 @@ const EquipmentList = ({
             <div className="flex items-center justify-between py-1">
               <div className="text-sm text-gray-600">Prix d'achat total:</div>
               <div className="font-medium text-gray-900">
-                {formatCurrency(totalPurchasePrice)}
+                {formatCurrency(displayData.totalPurchasePrice)}
               </div>
             </div>
             
@@ -220,22 +214,23 @@ const EquipmentList = ({
                 <div className="flex items-center justify-between py-1">
                   <div className="text-sm text-gray-600">Taux de marge:</div>
                   <div className="font-medium text-gray-900">
-                    {marginRate.toFixed(2)}%
+                    {displayData.marginRate.toFixed(2)}%
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between py-1">
                   <div className="text-sm text-gray-600">Montant de la marge:</div>
                   <div className="font-medium text-green-600">
-                    {formatCurrency(totalMarginAmount)}
+                    {formatCurrency(displayData.totalMarginAmount)}
                   </div>
                 </div>
                 
+                {/* LIGNE DIFFÉRENCE DE MARGE - TOUJOURS AFFICHEE QUAND LE SWITCH EST ACTIF */}
                 {globalMarginAdjustment.active && (
                   <div className="flex items-center justify-between py-1">
                     <div className="text-sm text-gray-600">Différence de marge (ajustement):</div>
-                    <div className={`font-medium ${adjustedMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {adjustedMargin >= 0 ? '+' : ''}{formatCurrency(adjustedMargin)}
+                    <div className={`font-medium ${displayData.marginDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {displayData.marginDifference >= 0 ? '+' : ''}{formatCurrency(displayData.marginDifference)}
                     </div>
                   </div>
                 )}
@@ -243,14 +238,14 @@ const EquipmentList = ({
                 <div className="flex items-center justify-between py-1">
                   <div className="text-sm text-gray-600">Coefficient:</div>
                   <div className="font-medium text-gray-900">
-                    {coefficient.toFixed(3)}
+                    {displayData.coefficient.toFixed(3)}
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between py-1">
                   <div className="text-sm text-gray-600">Montant financé:</div>
                   <div className="font-medium text-gray-900">
-                    {formatCurrency(financedAmount)}
+                    {formatCurrency(displayData.financedAmount)}
                   </div>
                 </div>
                 
