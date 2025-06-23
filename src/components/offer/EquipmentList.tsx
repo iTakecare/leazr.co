@@ -140,23 +140,25 @@ const EquipmentList = ({
                         {formatCurrency(item.monthlyPayment || 0)}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => startEditing(item.id)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeFromList(item.id)}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => startEditing(item.id)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => removeFromList(item.id)}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
