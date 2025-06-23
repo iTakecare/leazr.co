@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -274,10 +273,6 @@ const CreateOffer = () => {
       
       console.log("Saving equipment data with preserved margins:", equipmentData);
       
-      const equipmentDescription = equipmentList
-        .map(eq => `${eq.title} (${eq.quantity}x)`)
-        .join(", ");
-
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
@@ -295,13 +290,12 @@ const CreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        equipment_text: equipmentDescription,
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
-        remarks: remarks, // Utiliser 'remarks' au lieu de 'additional_info'
+        remarks: remarks,
         type: 'admin_offer',
         total_margin_with_difference: totalMarginWithDifferenceString
       };
