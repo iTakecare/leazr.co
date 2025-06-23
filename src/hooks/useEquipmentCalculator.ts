@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -278,6 +277,11 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       return sum + (eq.purchasePrice * eq.quantity);
     }, 0);
 
+    // Calculer la marge normale (somme des marges individuelles)
+    const normalMarginAmount = equipmentList.reduce((sum, eq) => {
+      return sum + (eq.purchasePrice * eq.quantity * eq.margin / 100);
+    }, 0);
+
     const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
       return sum + calculateFinancedAmount(eq) * eq.quantity;
     }, 0);
@@ -293,42 +297,49 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const theoreticalMonthly = (totalFinancedAmount * currentCoef) / 100;
     
     let newMonthly;
+    let adjustedMarginAmount;
     let marginDifference = 0;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
-      // Si on adapte, on utilise la mensualité théorique et on calcule l'ajustement nécessaire
+      // Si on adapte, on utilise la mensualité théorique
       newMonthly = theoreticalMonthly;
       
-      // Calculer la différence de marge nécessaire pour passer des mensualités individuelles au coefficient global
-      const requiredFinancedAmount = (currentMonthly * 100) / currentCoef;
-      marginDifference = requiredFinancedAmount - totalFinancedAmount;
+      // Calculer la marge nécessaire pour atteindre cette mensualité
+      const requiredFinancedAmount = (theoreticalMonthly * 100) / currentCoef;
+      adjustedMarginAmount = requiredFinancedAmount - totalBaseAmount;
+      
+      // La différence entre la marge ajustée et la marge normale
+      marginDifference = adjustedMarginAmount - normalMarginAmount;
       
       console.log("Switch ON - Calcul marginDifference:", {
         currentMonthly,
         theoreticalMonthly,
         currentCoef,
-        totalFinancedAmount,
-        requiredFinancedAmount,
-        marginDifference
+        totalBaseAmount,
+        normalMarginAmount,
+        adjustedMarginAmount,
+        marginDifference,
+        requiredFinancedAmount
       });
     } else {
       // Si on n'adapte pas, on garde les mensualités individuelles
       newMonthly = currentMonthly;
-      marginDifference = 0; // Pas d'ajustement quand le switch est off
+      adjustedMarginAmount = normalMarginAmount;
+      marginDifference = 0;
       
       console.log("Switch OFF - Pas d'ajustement:", {
         currentMonthly,
         theoreticalMonthly,
+        normalMarginAmount,
         marginDifference
       });
     }
 
-    const marginAmount = totalFinancedAmount - totalBaseAmount;
-    const marginPercentage = (marginAmount / totalBaseAmount) * 100;
+    const marginPercentage = totalBaseAmount > 0 ? (adjustedMarginAmount / totalBaseAmount) * 100 : 0;
 
     setGlobalMarginAdjustment({
       percentage: Number(marginPercentage.toFixed(2)),
-      amount: marginAmount,
+      amount: adjustedMarginAmount,
       newMonthly: newMonthly,
       currentCoef: currentCoef,
       newCoef: currentCoef,

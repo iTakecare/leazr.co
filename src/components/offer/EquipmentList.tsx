@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,14 +57,8 @@ const EquipmentList = ({
   // Calculs pour le récapitulatif
   const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
   
-  // Calculer le montant de la marge en tenant compte de l'ajustement
-  let totalMarginAmount = globalMarginAdjustment.amount;
-  if (globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0) {
-    // Quand le switch est activé, la marge réelle est ajustée
-    const coefficient = globalMarginAdjustment.newCoef || 3.27;
-    const requiredFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
-    totalMarginAmount = requiredFinancedAmount - totalPurchasePrice;
-  }
+  // Utiliser directement le montant de marge calculé par le hook
+  const totalMarginAmount = globalMarginAdjustment.amount;
   
   // Calculer le taux de marge
   const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
@@ -75,14 +68,14 @@ const EquipmentList = ({
   const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
 
   // Debug logs pour comprendre les valeurs
-  console.log("EquipmentList Debug - Margin calculation:", {
+  console.log("EquipmentList Debug - Affichage des marges:", {
     active: globalMarginAdjustment.active,
-    originalMarginAmount: globalMarginAdjustment.amount,
-    adjustedMarginAmount: totalMarginAmount,
+    totalMarginAmount: globalMarginAdjustment.amount,
     marginDifference: globalMarginAdjustment.marginDifference,
     totalMonthlyPayment,
     coefficient,
-    totalPurchasePrice
+    totalPurchasePrice,
+    marginRate
   });
 
   return (
@@ -233,7 +226,7 @@ const EquipmentList = ({
                 
                 {globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0 && (
                   <div className="flex items-center justify-between py-1">
-                    <div className="text-sm text-gray-600">Marge ajustée au coefficient:</div>
+                    <div className="text-sm text-gray-600">Différence de marge (ajustement):</div>
                     <div className="font-medium text-orange-600">
                       {formatCurrency(adjustedMargin)}
                     </div>
