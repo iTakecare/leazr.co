@@ -1,15 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
-import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 
 const Login = () => {
@@ -17,103 +15,101 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  
+  const { signIn, user, isLoading, isClient, isAmbassador, isPartner } = useAuth();
   const navigate = useNavigate();
-  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
+  const location = useLocation();
 
-  // Redirection automatique
+  console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
+    isLoading,
+    hasUser: !!user,
+    userEmail: user?.email,
+    userRole: user?.role
+  });
+
+  // Redirection automatique si l'utilisateur est déjà connecté
   useEffect(() => {
-    console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
-      isLoading,
-      hasUser: !!user,
-      userEmail: user?.email,
-      userRole: user?.role
-    });
-
     if (!isLoading && user) {
       console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection...", user.email, "Role:", user.role);
       
-      // Redirection basée sur le rôle
-      if (user.email === "ecommerce@itakecare.be") {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
-        navigate('/admin/leazr-saas-dashboard', { replace: true });
-      } else if (isClient()) {
+      // Déterminer la redirection selon le rôle
+      if (isClient()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
-        navigate('/client/dashboard', { replace: true });
+        navigate('/client/dashboard');
       } else if (isAmbassador()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
-        navigate('/ambassador/dashboard', { replace: true });
+        navigate('/ambassador/dashboard');  
       } else if (isPartner()) {
         console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
-        navigate('/partner/dashboard', { replace: true });
+        navigate('/partner/dashboard');
       } else {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
-        navigate('/admin/dashboard', { replace: true });
+        console.log("🔀 LOGIN REDIRECT - Redirection vers dashboard");
+        navigate('/dashboard');
       }
     }
-  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, isLoading, navigate, isClient, isAmbassador, isPartner]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const validateForm = () => {
+    const newErrors: { email?: string; password?: string } = {};
+    
+    if (!email) {
+      newErrors.email = 'L\'email est requis';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Format d\'email invalide';
+    }
+    
+    if (!password) {
+      newErrors.password = 'Le mot de passe est requis';
+    } else if (password.length < 6) {
+      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log("🔐 LOGIN FORM - Soumission du formulaire");
-    
-    if (!email || !password) {
-      console.log("🔐 LOGIN FORM - Champs manquants");
-      toast.error('Veuillez remplir tous les champs');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
-    console.log("🔐 LOGIN FORM - Début de la connexion pour:", email);
-    
-    try {
-      const { error } = await signIn(email, password);
+    setErrors({});
 
+    try {
+      console.log("🔑 LOGIN SUBMIT - Tentative de connexion");
+      const { error } = await signIn(email, password);
+      
       if (error) {
-        console.error("🔐 LOGIN FORM - Erreur de connexion:", error);
+        console.error("🔑 LOGIN ERROR:", error);
         let errorMessage = 'Erreur de connexion';
+        
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou mot de passe incorrect';
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
         } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Trop de tentatives de connexion. Veuillez patienter quelques minutes.';
-        } else {
-          errorMessage = error.message;
+          errorMessage = 'Trop de tentatives. Veuillez réessayer plus tard';
         }
         
+        setErrors({ general: errorMessage });
         toast.error(errorMessage);
-        setLoading(false);
-        return;
+      } else {
+        console.log("🔑 LOGIN SUCCESS - Connexion réussie");
+        toast.success('Connexion réussie');
       }
-
-      console.log("🔐 LOGIN FORM - Connexion réussie, en attente de redirection automatique");
-      toast.success('Connexion réussie');
-      // Ne pas appeler setLoading(false) ici, laisser la redirection se faire
-      
-    } catch (error: any) {
-      console.error('🔐 LOGIN FORM - Exception lors de la connexion:', error);
-      toast.error('Erreur inattendue lors de la connexion');
+    } catch (error) {
+      console.error('🔑 LOGIN CATCH ERROR:', error);
+      const errorMessage = 'Une erreur inattendue s\'est produite';
+      setErrors({ general: errorMessage });
+      toast.error(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // Afficher un loader si l'utilisateur est déjà connecté
-  if (user && !isLoading) {
-    console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Redirection en cours...</p>
-        </div>
-      </div>
-    );
-  }
 
   console.log("🔀 LOGIN RENDER - Rendu du formulaire de connexion", {
     isLoading,
@@ -121,154 +117,131 @@ const Login = () => {
     loading
   });
 
+  // Afficher un loader pendant la vérification de l'auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Vérification de votre session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si l'utilisateur est connecté, afficher un loader de redirection
+  if (user) {
+    console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Redirection en cours...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <PageTransition className="min-h-screen flex overflow-hidden">
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
-        <div className="w-full max-w-md space-y-8">
-          <div className="flex flex-col items-center justify-center mb-6">
-            <Logo showText={false} logoSize="lg" className="scale-[3] mb-16" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 p-4">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center mb-4">
+            <Logo variant="full" logoSize="lg" showText={false} />
           </div>
-          
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold text-center">Connexion</CardTitle>
-            </CardHeader>
+          <CardTitle className="text-2xl font-bold text-slate-900">
+            Connexion
+          </CardTitle>
+          <CardDescription className="text-slate-600">
+            Accédez à votre espace Leazr
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.general && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertDescription className="text-red-700">
+                  {errors.general}
+                </AlertDescription>
+              </Alert>
+            )}
             
-            <form onSubmit={handleLogin}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="nom@exemple.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      autoFocus
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="password">Mot de passe</Label>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (email) {
-                          setLoading(true);
-                          supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/login`
-                          }).then(({ error }) => {
-                            setLoading(false);
-                            if (error) {
-                              toast.error('Erreur: ' + error.message);
-                            } else {
-                              toast.success('Email de réinitialisation envoyé');
-                            }
-                          });
-                        } else {
-                          toast.error('Veuillez entrer votre email');
-                        }
-                      }}
-                      className="text-sm text-blue-600 hover:underline"
-                      disabled={loading}
-                    >
-                      Mot de passe oublié?
-                    </button>
-                  </div>
-                  
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      id="password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="Entrez votre mot de passe" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      disabled={loading}
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                      onClick={togglePasswordVisibility}
-                      disabled={loading}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-              
-              <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="votre@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`transition-colors ${errors.email ? 'border-red-300 focus:border-red-500' : 'focus:border-blue-500'}`}
+                disabled={loading}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`pr-10 transition-colors ${errors.password ? 'border-red-300 focus:border-red-500' : 'focus:border-blue-500'}`}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   disabled={loading}
                 >
-                  {loading ? 
-                    'Connexion...' : 
-                    <span className="flex items-center justify-center">
-                      Se connecter
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  }
-                </Button>
-                
-                <div className="w-full text-center space-y-2">
-                  <Link to="/signup" className="text-sm text-blue-600 hover:underline block">
-                    Pas de compte ? Inscrivez-vous
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/home')}
-                    className="text-sm text-gray-600 hover:text-blue-600 hover:underline flex items-center justify-center w-full"
-                  >
-                    <Home className="mr-1 h-4 w-4" />
-                    Retour à l'accueil
-                  </button>
-                </div>
-              </CardFooter>
-            </form>
-          </Card>
-          
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <CheckCircle size={16} className="text-green-500" />
-              <span>Accès sécurisé à votre espace personnel</span>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <ShieldCheck size={16} className="text-green-500" />
-              <span>Protection de vos données garantie</span>
-            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connexion...
+                </>
+              ) : (
+                'Se connecter'
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Button
+              variant="link"
+              onClick={() => navigate('/forgot-password')}
+              className="text-sm text-slate-600 hover:text-blue-600 transition-colors"
+              disabled={loading}
+            >
+              Mot de passe oublié ?
+            </Button>
           </div>
-        </div>
-      </div>
-      
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-indigo-600/40 z-10"></div>
-        <div 
-          className="absolute inset-0 bg-cover bg-center" 
-          style={{ 
-            backgroundImage: "url('https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')",
-            filter: "brightness(0.8) blur(1px)"
-          }}
-        ></div>
-        
-        <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">Leazr.co</h3>
-          <p className="text-white/90">
-            Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
-          </p>
-        </div>
-      </div>
-    </PageTransition>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

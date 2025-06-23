@@ -38,7 +38,23 @@ function App() {
               }
             />
             <Route
+              path="/admin/dashboard"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
               path="/offers"
+              element={
+                <RequireAuth>
+                  <Offers />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/offers"
               element={
                 <RequireAuth>
                   <Offers />
@@ -54,6 +70,14 @@ function App() {
               }
             />
             <Route
+              path="/admin/offers/:id"
+              element={
+                <RequireAuth>
+                  <OfferDetail />
+                </RequireAuth>
+              }
+            />
+            <Route
               path="/clients"
               element={
                 <RequireAuth>
@@ -62,7 +86,23 @@ function App() {
               }
             />
             <Route
+              path="/admin/clients"
+              element={
+                <RequireAuth>
+                  <Clients />
+                </RequireAuth>
+              }
+            />
+            <Route
               path="/create-offer"
+              element={
+                <RequireAuth>
+                  <CreateOffer />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/create-offer"
               element={
                 <RequireAuth>
                   <CreateOffer />
@@ -79,6 +119,14 @@ function App() {
             />
             <Route
               path="/contracts"
+              element={
+                <RequireAuth>
+                  <Contracts />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/contracts"
               element={
                 <RequireAuth>
                   <Contracts />
