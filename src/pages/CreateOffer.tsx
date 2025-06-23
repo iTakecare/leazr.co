@@ -21,7 +21,7 @@ import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
-import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -63,7 +63,6 @@ const CreateOffer = () => {
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
-    setGlobalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
     addToList,
@@ -72,8 +71,9 @@ const CreateOffer = () => {
     removeFromList,
     updateQuantity,
     findCoefficient,
-    toggleAdaptMonthlyPayment
-  } = useEquipmentCalculator(selectedLeaser);
+    toggleAdaptMonthlyPayment,
+    calculations
+  } = useSimplifiedEquipmentCalculator(selectedLeaser);
 
   useEffect(() => {
     const fetchLeasers = async () => {
@@ -130,27 +130,6 @@ const CreateOffer = () => {
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
-            
-            if (offer.coefficient && offer.amount) {
-              const coefficient = typeof offer.coefficient === 'string' 
-                ? parseFloat(offer.coefficient) 
-                : offer.coefficient || 0;
-                
-              const amount = typeof offer.amount === 'string' 
-                ? parseFloat(offer.amount) 
-                : offer.amount || 0;
-                
-              const monthlyPayment = typeof offer.monthly_payment === 'string' 
-                ? parseFloat(offer.monthly_payment) 
-                : offer.monthly_payment || 0;
-              
-              setGlobalMarginAdjustment(prev => ({
-                ...prev,
-                amount: amount,
-                newCoef: coefficient,
-                newMonthly: monthlyPayment
-              }));
-            }
             
             if (offer.equipment_description) {
               try {
@@ -226,7 +205,7 @@ const CreateOffer = () => {
     };
     
     loadOfferData();
-  }, [offerId, navigate, setEquipmentList, setGlobalMarginAdjustment, setTargetMonthlyPayment]);
+  }, [offerId, navigate, setEquipmentList, setTargetMonthlyPayment]);
 
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
@@ -299,12 +278,15 @@ const CreateOffer = () => {
         .map(eq => `${eq.title} (${eq.quantity}x)`)
         .join(", ");
 
+      // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
       
+      // Calculate financed amount
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
       const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
 
       const offerData = {
@@ -421,6 +403,7 @@ const CreateOffer = () => {
                         marginDifference: globalMarginAdjustment.marginDifference
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                      calculations={calculations}
                     />
                     
                     <ClientInfo
