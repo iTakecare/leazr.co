@@ -339,13 +339,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     setTotalMonthlyPayment(newMonthly);
   };
 
-  const toggleAdaptMonthlyPayment = () => {
-    setGlobalMarginAdjustment(prev => ({
-      ...prev,
-      adaptMonthlyPayment: !prev.adaptMonthlyPayment
-    }));
-  };
-
   return {
     equipment,
     setEquipment,
