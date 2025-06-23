@@ -1,5 +1,4 @@
 
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,28 +57,32 @@ const EquipmentList = ({
 
   // Calculs pour le récapitulatif
   const totalPurchasePrice = equipmentList.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
-  const totalMarginAmount = globalMarginAdjustment.amount;
   
-  // Calculer le taux de marge en tenant compte de l'ajustement si le switch est activé
-  let marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
+  // Calculer le montant de la marge en tenant compte de l'ajustement
+  let totalMarginAmount = globalMarginAdjustment.amount;
   if (globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0) {
-    const adjustedMarginAmount = totalMarginAmount + globalMarginAdjustment.marginDifference;
-    marginRate = totalPurchasePrice > 0 ? (adjustedMarginAmount / totalPurchasePrice) * 100 : 0;
+    // Quand le switch est activé, la marge réelle est ajustée
+    const coefficient = globalMarginAdjustment.newCoef || 3.27;
+    const requiredFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
+    totalMarginAmount = requiredFinancedAmount - totalPurchasePrice;
   }
+  
+  // Calculer le taux de marge
+  const marginRate = totalPurchasePrice > 0 ? (totalMarginAmount / totalPurchasePrice) * 100 : 0;
   
   const coefficient = globalMarginAdjustment.newCoef || 3.27;
   const financedAmount = calculateFinancedAmount(totalMonthlyPayment, coefficient);
   const adjustedMargin = globalMarginAdjustment.marginDifference || 0;
 
   // Debug logs pour comprendre les valeurs
-  console.log("EquipmentList Debug - GlobalMarginAdjustment:", {
+  console.log("EquipmentList Debug - Margin calculation:", {
     active: globalMarginAdjustment.active,
+    originalMarginAmount: globalMarginAdjustment.amount,
+    adjustedMarginAmount: totalMarginAmount,
     marginDifference: globalMarginAdjustment.marginDifference,
-    amount: globalMarginAdjustment.amount,
-    newCoef: globalMarginAdjustment.newCoef,
     totalMonthlyPayment,
-    adjustedMargin,
-    shouldShowAdjustedMargin: globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0
+    coefficient,
+    totalPurchasePrice
   });
 
   return (
@@ -228,7 +231,7 @@ const EquipmentList = ({
                   </div>
                 </div>
                 
-                {globalMarginAdjustment.active && (
+                {globalMarginAdjustment.active && globalMarginAdjustment.marginDifference !== 0 && (
                   <div className="flex items-center justify-between py-1">
                     <div className="text-sm text-gray-600">Marge ajustée au coefficient:</div>
                     <div className="font-medium text-orange-600">
@@ -302,4 +305,3 @@ const EquipmentList = ({
 };
 
 export default EquipmentList;
-
