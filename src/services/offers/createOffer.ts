@@ -5,16 +5,16 @@ import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
-    // Log pour le débogage
-    console.log("DONNÉES D'OFFRE REÇUES:", offerData);
+    console.log("🚀 CRÉATION OFFRE - Début du processus");
+    console.log("📋 DONNÉES REÇUES:", offerData);
     
     // Récupérer le company_id de l'utilisateur connecté
     let companyId;
     try {
       companyId = await getCurrentUserCompanyId();
-      console.log("Company ID récupéré:", companyId);
+      console.log("🏢 Company ID récupéré:", companyId);
     } catch (error) {
-      console.error("Erreur lors de la récupération du company_id:", error);
+      console.error("❌ Erreur lors de la récupération du company_id:", error);
       throw new Error("Impossible de récupérer l'ID de l'entreprise");
     }
 
@@ -37,6 +37,15 @@ export const createOffer = async (offerData: OfferData) => {
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         undefined
     };
+
+    console.log("💾 DONNÉES FINALES à sauvegarder:", {
+      user_id: offerDataToSave.user_id,
+      company_id: offerDataToSave.company_id,
+      client_name: offerDataToSave.client_name,
+      type: offerDataToSave.type,
+      amount: offerDataToSave.amount,
+      monthly_payment: offerDataToSave.monthly_payment
+    });
 
     // Calculer le montant financé si non défini
     if (!offerDataToSave.financed_amount && offerDataToSave.monthly_payment && offerDataToSave.coefficient) {
@@ -134,6 +143,7 @@ export const createOffer = async (offerData: OfferData) => {
     });
     
     // Insertion de l'offre
+    console.log("💾 INSERTION - Tentative d'insertion en base de données...");
     const { data, error } = await supabase
       .from('offers')
       .insert([offerDataToSave])
@@ -141,14 +151,19 @@ export const createOffer = async (offerData: OfferData) => {
       .single();
     
     if (error) {
-      console.error("Erreur lors de l'insertion de l'offre:", error);
+      console.error("❌ ERREUR lors de l'insertion de l'offre:", error);
+      console.error("❌ Détails de l'erreur:", error.details);
+      console.error("❌ Message d'erreur:", error.message);
       return { data: null, error };
     }
     
-    console.log("Offre créée avec succès, données:", data);
+    console.log("✅ OFFRE CRÉÉE AVEC SUCCÈS !");
+    console.log("📋 Données de l'offre créée:", data);
+    console.log("🆔 ID de la nouvelle offre:", data.id);
+    
     return { data, error: null };
   } catch (error) {
-    console.error("Error in createOffer:", error);
+    console.error("❌ ERREUR GÉNÉRALE dans createOffer:", error);
     return { data: null, error };
   }
 };

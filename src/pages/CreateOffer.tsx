@@ -306,30 +306,39 @@ const CreateOffer = () => {
         total_margin_with_difference: totalMarginWithDifferenceString
       };
 
-      console.log("Saving offer with the following data:", offerData);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
+      console.log("💾 CRÉATION OFFRE - User ID:", user.id);
+      console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
 
       let result;
       
       if (isEditMode && offerId) {
         result = await updateOffer(offerId, offerData);
         if (result) {
+          console.log("✅ OFFRE MISE À JOUR avec succès:", result);
           toast.success("Offre mise à jour avec succès !");
         } else {
           throw new Error("Failed to update offer");
         }
       } else {
         result = await createOffer(offerData);
-        if (result) {
+        if (result && result.data) {
+          console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
+          console.log("✅ ID de l'offre créée:", result.data.id);
           toast.success("Offre créée avec succès !");
         } else {
-          throw new Error("Failed to create offer");
+          console.error("❌ ERREUR - Pas de données retournées:", result);
+          throw new Error("Failed to create offer - no data returned");
         }
       }
       
-      navigate("/offers");
+      // Attendre un peu avant de rediriger pour s'assurer que l'offre est bien enregistrée
+      setTimeout(() => {
+        navigate("/offers");
+      }, 1000);
+      
     } catch (error) {
-      console.error("Error saving offer:", error);
+      console.error("❌ ERREUR lors de l'enregistrement de l'offre:", error);
       toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
     } finally {
       setIsSubmitting(false);

@@ -1,20 +1,20 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OfferData } from "./types";
 
 export const getOffers = async (includeConverted: boolean = false): Promise<any[]> => {
   try {
-    console.log("Fetching offers with includeConverted:", includeConverted);
+    console.log("🔍 RÉCUPÉRATION OFFRES - includeConverted:", includeConverted);
     
     // Get current authenticated user
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) {
-      console.error("Authentication error:", authError);
+      console.error("❌ Erreur d'authentification:", authError);
       return [];
     }
     
-    console.log("Current user ID:", authData.user?.id);
+    console.log("👤 Utilisateur connecté:", authData.user?.id);
+    console.log("📧 Email utilisateur:", authData.user?.email);
     
     // Construction de la requête de base
     let query = supabase
@@ -29,38 +29,53 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     // Trier par date de création (les plus récentes en premier)
     query = query.order('created_at', { ascending: false });
     
-    console.log("Query built, fetching data...");
+    console.log("🔍 RÉCUPÉRATION OFFRES - Exécution de la requête...");
     
     // Execute the query
     const { data, error } = await query;
     
     if (error) {
-      console.error("Error fetching offers:", error);
+      console.error("❌ Erreur lors de la récupération des offres:", error);
       throw error;
     }
     
-    // Comprehensive debug logging
+    // Debug détaillé
     if (!data || data.length === 0) {
-      console.log("No offers found in database");
+      console.log("⚠️ Aucune offre trouvée");
       
-      // Debug: Check if offers table has any records at all
+      // Debug: Vérifier le nombre total d'offres dans la base
       const { count, error: countError } = await supabase
         .from('offers')
         .select('*', { count: 'exact', head: true });
         
       if (countError) {
-        console.error("Error counting offers:", countError);
+        console.error("❌ Erreur lors du comptage:", countError);
       } else {
-        console.log(`Total offers in database: ${count}`);
+        console.log(`📊 Nombre total d'offres en base: ${count}`);
       }
+      
+      // Debug: Vérifier les offres par type
+      const { data: adminOffers, error: adminError } = await supabase
+        .from('offers')
+        .select('id, type, client_name, created_at')
+        .eq('type', 'admin_offer')
+        .limit(5);
+        
+      if (!adminError && adminOffers) {
+        console.log("🏢 Offres admin trouvées:", adminOffers);
+      }
+      
     } else {
-      console.log(`Retrieved ${data.length} offers from database:`, data);
+      console.log(`✅ ${data.length} offres récupérées:`);
+      data.forEach((offer, index) => {
+        console.log(`  ${index + 1}. ID: ${offer.id} | Type: ${offer.type} | Client: ${offer.client_name} | Créée: ${offer.created_at}`);
+      });
     }
     
     return data || [];
   } catch (error) {
-    console.error("Complete error when fetching offers:", error);
-    toast.error("Error loading offers.");
+    console.error("❌ ERREUR complète lors de la récupération des offres:", error);
+    toast.error("Erreur lors du chargement des offres.");
     return [];
   }
 };
