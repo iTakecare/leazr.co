@@ -1,15 +1,21 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/utils/formatters";
 import { CalculationResult } from "@/utils/equipmentCalculations";
 
 interface FinancialSummaryProps {
   calculations: CalculationResult;
   useGlobalAdjustment: boolean;
+  onToggleAdjustment: () => void;
 }
 
-const FinancialSummary = ({ calculations, useGlobalAdjustment }: FinancialSummaryProps) => {
+const FinancialSummary = ({ 
+  calculations, 
+  useGlobalAdjustment, 
+  onToggleAdjustment 
+}: FinancialSummaryProps) => {
   const {
     totalPurchasePrice,
     totalFinancedAmount,
@@ -32,6 +38,22 @@ const FinancialSummary = ({ calculations, useGlobalAdjustment }: FinancialSummar
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-3">
+          {/* Switch pour l'ajustement global */}
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-blue-800">
+                Ajuster la marge au coefficient appliqué
+              </span>
+              <span className="text-xs text-blue-600">
+                Recalcule automatiquement la marge selon le coefficient global
+              </span>
+            </div>
+            <Switch
+              checked={useGlobalAdjustment}
+              onCheckedChange={onToggleAdjustment}
+            />
+          </div>
+
           {/* Montant total d'achat */}
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-700">

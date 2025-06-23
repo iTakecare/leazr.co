@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -172,6 +171,7 @@ const EquipmentList = ({
         <FinancialSummary 
           calculations={calculations}
           useGlobalAdjustment={globalMarginAdjustment.active}
+          onToggleAdjustment={toggleAdaptMonthlyPayment}
         />
       )}
       
