@@ -21,8 +21,10 @@ const FinancialSummary = ({
     totalFinancedAmount,
     normalMarginAmount,
     normalMarginPercentage,
+    normalMonthlyPayment,
     adjustedMarginAmount,
     adjustedMarginPercentage,
+    adjustedMonthlyPayment,
     globalCoefficient,
     marginDifference
   } = calculations;
@@ -30,6 +32,7 @@ const FinancialSummary = ({
   // Déterminer les valeurs à afficher selon le mode
   const displayedMarginAmount = useGlobalAdjustment ? adjustedMarginAmount : normalMarginAmount;
   const displayedMarginPercentage = useGlobalAdjustment ? adjustedMarginPercentage : normalMarginPercentage;
+  const displayedMonthlyPayment = useGlobalAdjustment ? adjustedMonthlyPayment : normalMonthlyPayment;
 
   return (
     <Card className="border border-gray-200 shadow-sm">
@@ -81,6 +84,16 @@ const FinancialSummary = ({
             </span>
             <span className="text-sm font-semibold text-gray-900">
               {formatCurrency(displayedMarginAmount)} ({displayedMarginPercentage.toFixed(2)}%)
+            </span>
+          </div>
+
+          {/* Mensualité totale */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-700">
+              Mensualité totale :
+            </span>
+            <span className="text-sm font-semibold text-gray-900">
+              {formatCurrency(displayedMonthlyPayment)}
             </span>
           </div>
 
