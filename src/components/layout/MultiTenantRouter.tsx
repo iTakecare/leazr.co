@@ -55,6 +55,9 @@ import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
 
+// Page de signature d'offre
+import SignOffer from "@/pages/client/SignOffer";
+
 // Page de mise à jour du mot de passe
 import UpdatePassword from "@/pages/UpdatePassword";
 
@@ -83,6 +86,9 @@ const MultiTenantRouter = () => {
       
       {/* Route de mise à jour du mot de passe accessible à tous */}
       <Route path="/update-password" element={<UpdatePassword />} />
+      
+      {/* Route de signature d'offre accessible à tous (sans authentification) */}
+      <Route path="/client/sign-offer/:id" element={<SignOffer />} />
       
       {/* Pages publiques des sous-menus */}
       <Route path="/solutions" element={<SolutionsPage />} />

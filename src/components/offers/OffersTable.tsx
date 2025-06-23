@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -98,8 +97,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   const openOnlineOffer = (offerId: string) => {
-    const link = generateSignatureLink(offerId);
-    window.open(link, '_blank', 'noopener,noreferrer');
+    // Navigation directe vers la page de signature au lieu d'ouvrir un nouvel onglet
+    navigate(`/client/sign-offer/${offerId}`);
   };
 
   // Only admins can see the margin column
