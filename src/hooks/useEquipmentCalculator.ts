@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -283,25 +284,42 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     }, 0);
 
     const currentCoef = findCoefficient(totalFinancedAmount);
-    const currentMonthly = (totalFinancedAmount * currentCoef) / 100;
-    const newCoef = findCoefficient(totalFinancedAmount);
+    
+    // Calculer la mensualité actuelle basée sur les équipements individuels
+    const currentMonthly = equipmentList.reduce((sum, eq) => {
+      return sum + (eq.monthlyPayment || 0) * eq.quantity;
+    }, 0);
+    
+    // Calculer la mensualité théorique avec le coefficient actuel
+    const theoreticalMonthly = (totalFinancedAmount * currentCoef) / 100;
     
     let newMonthly;
     let marginDifference = 0;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
-      newMonthly = (totalFinancedAmount * newCoef) / 100;
-      marginDifference = 0;
+      // Si on adapte, on utilise la mensualité théorique
+      newMonthly = theoreticalMonthly;
+      marginDifference = 0; // Pas d'ajustement nécessaire
     } else {
-      newMonthly = equipmentList.reduce((sum, eq) => {
-        return sum + (eq.monthlyPayment || 0) * eq.quantity;
-      }, 0);
+      // Si on n'adapte pas, on garde les mensualités individuelles
+      newMonthly = currentMonthly;
       
-      const adaptedMonthly = (totalFinancedAmount * newCoef) / 100;
-      
-      const monthlyDifference = newMonthly - adaptedMonthly;
-      
-      marginDifference = (monthlyDifference * 100) / newCoef;
+      // Calculer la différence de marge nécessaire pour atteindre la mensualité souhaitée
+      if (currentMonthly !== theoreticalMonthly) {
+        // Différence en mensualité
+        const monthlyDifference = currentMonthly - theoreticalMonthly;
+        
+        // Convertir cette différence en montant financé supplémentaire
+        marginDifference = (monthlyDifference * 100) / currentCoef;
+        
+        console.log("Calcul marginDifference:", {
+          currentMonthly,
+          theoreticalMonthly,
+          monthlyDifference,
+          currentCoef,
+          marginDifference
+        });
+      }
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
@@ -314,7 +332,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       amount: marginAmount,
       newMonthly: newMonthly,
       currentCoef: currentCoef,
-      newCoef: newCoef,
+      newCoef: currentCoef, // Dans ce contexte, ils sont identiques
       adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
       marginDifference: marginDifference
     });
