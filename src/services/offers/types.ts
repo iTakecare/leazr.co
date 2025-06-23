@@ -1,4 +1,3 @@
-
 export interface OfferData {
   id?: string;
   client_id: string;
@@ -16,8 +15,7 @@ export interface OfferData {
   type?: string;
   workflow_status?: string;
   status?: string;
-  remarks?: string; // Used for additional info or notes
-  additional_info?: string; // Alternative field name for remarks
+  remarks?: string; // Utiliser 'remarks' au lieu de 'additional_info'
   user_id?: string;
   converted_to_contract?: boolean;
   financed_amount?: number; // Added this field

@@ -301,7 +301,7 @@ const CreateOffer = () => {
         monthly_payment: totalMonthlyPayment,
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
-        additional_info: remarks,
+        remarks: remarks, // Utiliser 'remarks' au lieu de 'additional_info'
         type: 'admin_offer',
         total_margin_with_difference: totalMarginWithDifferenceString
       };
