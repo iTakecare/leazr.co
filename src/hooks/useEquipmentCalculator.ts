@@ -304,7 +304,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       // Si on adapte, on utilise la mensualité théorique
       newMonthly = theoreticalMonthly;
       
-      // Calculer la marge nécessaire pour atteindre cette mensualité
+      // Calculer la marge nécessaire pour atteindre cette mensualité théorique
       const requiredFinancedAmount = (theoreticalMonthly * 100) / currentCoef;
       adjustedMarginAmount = requiredFinancedAmount - totalBaseAmount;
       
@@ -375,6 +375,11 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     updateQuantity,
     findCoefficient,
     calculateFinancedAmount,
-    toggleAdaptMonthlyPayment
+    toggleAdaptMonthlyPayment: () => {
+      setGlobalMarginAdjustment(prev => ({
+        ...prev,
+        adaptMonthlyPayment: !prev.adaptMonthlyPayment
+      }));
+    }
   };
 };
