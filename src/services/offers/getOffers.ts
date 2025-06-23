@@ -169,3 +169,26 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
     return [];
   }
 };
+
+export const getOfferById = async (id: string): Promise<any> => {
+  try {
+    console.log("🔍 Fetching offer by ID:", id);
+    
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*, clients(name, email, company)')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error("❌ Error fetching offer by ID:", error);
+      return null;
+    }
+    
+    console.log("✅ Offer fetched successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error in getOfferById:", error);
+    return null;
+  }
+};
