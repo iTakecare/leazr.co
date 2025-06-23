@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -304,22 +303,20 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       // Si on n'adapte pas, on garde les mensualités individuelles
       newMonthly = currentMonthly;
       
-      // Calculer la différence de marge nécessaire pour atteindre la mensualité souhaitée
-      if (currentMonthly !== theoreticalMonthly) {
-        // Différence en mensualité
-        const monthlyDifference = currentMonthly - theoreticalMonthly;
-        
-        // Convertir cette différence en montant financé supplémentaire
-        marginDifference = (monthlyDifference * 100) / currentCoef;
-        
-        console.log("Calcul marginDifference:", {
-          currentMonthly,
-          theoreticalMonthly,
-          monthlyDifference,
-          currentCoef,
-          marginDifference
-        });
-      }
+      // Calculer le montant financé nécessaire pour atteindre la mensualité souhaitée
+      const requiredFinancedAmount = (currentMonthly * 100) / currentCoef;
+      
+      // La différence de marge est la différence entre le montant financé requis et le montant financé actuel
+      marginDifference = requiredFinancedAmount - totalFinancedAmount;
+      
+      console.log("Calcul marginDifference:", {
+        currentMonthly,
+        theoreticalMonthly,
+        currentCoef,
+        totalFinancedAmount,
+        requiredFinancedAmount,
+        marginDifference
+      });
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
