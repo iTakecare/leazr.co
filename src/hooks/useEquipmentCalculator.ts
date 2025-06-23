@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
@@ -119,7 +120,6 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     
     const marginAmount = requiredTotal - equipment.purchasePrice;
     
-    // Correction: calculer le pourcentage en divisant par le prix d'achat
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
     
     setCalculatedMargin({
@@ -296,20 +296,14 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     let marginDifference = 0;
     
     if (globalMarginAdjustment.adaptMonthlyPayment) {
-      // Si on adapte, on utilise la mensualité théorique
+      // Si on adapte, on utilise la mensualité théorique et on calcule l'ajustement nécessaire
       newMonthly = theoreticalMonthly;
-      marginDifference = 0; // Pas d'ajustement nécessaire
-    } else {
-      // Si on n'adapte pas, on garde les mensualités individuelles
-      newMonthly = currentMonthly;
       
-      // Calculer le montant financé nécessaire pour atteindre la mensualité souhaitée
+      // Calculer la différence de marge nécessaire pour passer des mensualités individuelles au coefficient global
       const requiredFinancedAmount = (currentMonthly * 100) / currentCoef;
-      
-      // La différence de marge est la différence entre le montant financé requis et le montant financé actuel
       marginDifference = requiredFinancedAmount - totalFinancedAmount;
       
-      console.log("Calcul marginDifference:", {
+      console.log("Switch ON - Calcul marginDifference:", {
         currentMonthly,
         theoreticalMonthly,
         currentCoef,
@@ -317,11 +311,19 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
         requiredFinancedAmount,
         marginDifference
       });
+    } else {
+      // Si on n'adapte pas, on garde les mensualités individuelles
+      newMonthly = currentMonthly;
+      marginDifference = 0; // Pas d'ajustement quand le switch est off
+      
+      console.log("Switch OFF - Pas d'ajustement:", {
+        currentMonthly,
+        theoreticalMonthly,
+        marginDifference
+      });
     }
 
     const marginAmount = totalFinancedAmount - totalBaseAmount;
-    
-    // Correction: calculer le pourcentage en divisant la marge par le prix d'achat total
     const marginPercentage = (marginAmount / totalBaseAmount) * 100;
 
     setGlobalMarginAdjustment({
@@ -329,12 +331,19 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
       amount: marginAmount,
       newMonthly: newMonthly,
       currentCoef: currentCoef,
-      newCoef: currentCoef, // Dans ce contexte, ils sont identiques
+      newCoef: currentCoef,
       adaptMonthlyPayment: globalMarginAdjustment.adaptMonthlyPayment,
       marginDifference: marginDifference
     });
 
     setTotalMonthlyPayment(newMonthly);
+  };
+
+  const toggleAdaptMonthlyPayment = () => {
+    setGlobalMarginAdjustment(prev => ({
+      ...prev,
+      adaptMonthlyPayment: !prev.adaptMonthlyPayment
+    }));
   };
 
   return {
