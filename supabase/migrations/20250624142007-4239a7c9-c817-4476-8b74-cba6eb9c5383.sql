@@ -1,4 +1,5 @@
 
+
 -- Créer une fonction SECURITY DEFINER pour insérer les équipements d'offre de manière sécurisée
 CREATE OR REPLACE FUNCTION public.insert_offer_equipment_secure(
   p_offer_id uuid,
@@ -16,22 +17,22 @@ SET search_path = 'public'
 AS $$
 DECLARE
   new_equipment_id uuid;
-  user_id uuid;
+  current_user_id uuid;
 BEGIN
   -- Récupérer l'ID de l'utilisateur authentifié
-  user_id := auth.uid();
+  current_user_id := auth.uid();
   
   -- Vérifier que l'utilisateur est authentifié
-  IF user_id IS NULL THEN
+  IF current_user_id IS NULL THEN
     RAISE EXCEPTION 'Utilisateur non authentifié';
   END IF;
   
   -- Vérifier que l'utilisateur a le droit de modifier cette offre
   IF NOT EXISTS (
-    SELECT 1 FROM public.offers 
-    WHERE id = p_offer_id 
-    AND (user_id = auth.uid() OR ambassador_id IN (
-      SELECT id FROM public.ambassadors WHERE user_id = auth.uid()
+    SELECT 1 FROM public.offers o
+    WHERE o.id = p_offer_id 
+    AND (o.user_id = current_user_id OR o.ambassador_id IN (
+      SELECT a.id FROM public.ambassadors a WHERE a.user_id = current_user_id
     ))
   ) THEN
     RAISE EXCEPTION 'Permission refusée pour cette offre';
@@ -75,13 +76,13 @@ AS $$
 DECLARE
   attr_key text;
   attr_value text;
-  user_id uuid;
+  current_user_id uuid;
 BEGIN
   -- Récupérer l'ID de l'utilisateur authentifié
-  user_id := auth.uid();
+  current_user_id := auth.uid();
   
   -- Vérifier que l'utilisateur est authentifié
-  IF user_id IS NULL THEN
+  IF current_user_id IS NULL THEN
     RAISE EXCEPTION 'Utilisateur non authentifié';
   END IF;
   
@@ -90,8 +91,8 @@ BEGIN
     SELECT 1 FROM public.offer_equipment oe
     JOIN public.offers o ON oe.offer_id = o.id
     WHERE oe.id = p_equipment_id 
-    AND (o.user_id = auth.uid() OR o.ambassador_id IN (
-      SELECT id FROM public.ambassadors WHERE user_id = auth.uid()
+    AND (o.user_id = current_user_id OR o.ambassador_id IN (
+      SELECT a.id FROM public.ambassadors a WHERE a.user_id = current_user_id
     ))
   ) THEN
     RAISE EXCEPTION 'Permission refusée pour cet équipement';
@@ -129,13 +130,13 @@ AS $$
 DECLARE
   spec_key text;
   spec_value text;
-  user_id uuid;
+  current_user_id uuid;
 BEGIN
   -- Récupérer l'ID de l'utilisateur authentifié
-  user_id := auth.uid();
+  current_user_id := auth.uid();
   
   -- Vérifier que l'utilisateur est authentifié
-  IF user_id IS NULL THEN
+  IF current_user_id IS NULL THEN
     RAISE EXCEPTION 'Utilisateur non authentifié';
   END IF;
   
@@ -144,8 +145,8 @@ BEGIN
     SELECT 1 FROM public.offer_equipment oe
     JOIN public.offers o ON oe.offer_id = o.id
     WHERE oe.id = p_equipment_id 
-    AND (o.user_id = auth.uid() OR o.ambassador_id IN (
-      SELECT id FROM public.ambassadors WHERE user_id = auth.uid()
+    AND (o.user_id = current_user_id OR o.ambassador_id IN (
+      SELECT a.id FROM public.ambassadors a WHERE a.user_id = current_user_id
     ))
   ) THEN
     RAISE EXCEPTION 'Permission refusée pour cet équipement';
@@ -169,3 +170,4 @@ BEGIN
   RETURN true;
 END;
 $$;
+
