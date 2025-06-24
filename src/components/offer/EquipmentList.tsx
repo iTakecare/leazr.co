@@ -29,6 +29,7 @@ interface EquipmentListProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   calculations?: any;
+  hidePriceColumn?: boolean;
 }
 
 const EquipmentList = ({
@@ -43,7 +44,8 @@ const EquipmentList = ({
   hideFinancialDetails = false,
   ambassadorId,
   commissionLevelId,
-  calculations
+  calculations,
+  hidePriceColumn = false
 }: EquipmentListProps) => {
   const handleQuantityChange = (id: string, newQuantity: number) => {
     updateQuantity(id, newQuantity);
@@ -64,9 +66,11 @@ const EquipmentList = ({
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
                       Équipement
                     </th>
-                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
-                      Prix unitaire
-                    </th>
+                    {!hidePriceColumn && (
+                      <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
+                        Prix unitaire
+                      </th>
+                    )}
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
                       Quantité
                     </th>
@@ -91,9 +95,11 @@ const EquipmentList = ({
                       <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px] truncate">
                         <div title={item.title}>{item.title}</div>
                       </td>
-                      <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                        {formatCurrency(item.purchasePrice)}
-                      </td>
+                      {!hidePriceColumn && (
+                        <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
+                          {formatCurrency(item.purchasePrice)}
+                        </td>
+                      )}
                       <td className="px-2 py-3 text-sm text-gray-900">
                         <div className="flex items-center space-x-1">
                           <Button

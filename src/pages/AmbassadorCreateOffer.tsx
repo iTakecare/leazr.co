@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
-import LeaserButton from "@/components/offer/LeaserButton";
 import PageTransition from "@/components/layout/PageTransition";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { Calculator as CalcIcon } from "lucide-react";
@@ -77,10 +76,6 @@ const AmbassadorCreateOffer = () => {
     setClientSelectorOpen(true);
   };
 
-  const handleOpenLeaserSelector = () => {
-    setLeaserSelectorOpen(true);
-  };
-
   const handleOpenCatalog = () => {
     // Fonctionnalité à implémenter si nécessaire
   };
@@ -147,10 +142,6 @@ const AmbassadorCreateOffer = () => {
                   </h1>
                 </div>
                 <div className="flex gap-4">
-                  <LeaserButton 
-                    selectedLeaser={selectedLeaser} 
-                    onOpen={handleOpenLeaserSelector}
-                  />
                   <Button
                     variant="outline"
                     onClick={() => navigate('/ambassador/offers')}
@@ -202,6 +193,7 @@ const AmbassadorCreateOffer = () => {
                       ambassadorId={currentAmbassadorId}
                       commissionLevelId={currentCommissionLevelId}
                       calculations={calculations}
+                      hidePriceColumn={true}
                     />
                     
                     <ClientInfo
