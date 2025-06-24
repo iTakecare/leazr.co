@@ -190,6 +190,7 @@ export const updateAmbassadorCommissionLevel = async (ambassadorId: string, comm
   }
 };
 
+// Fonction pour récupérer les statistiques d'un ambassadeur en utilisant les fonctions sécurisées
 export const getAmbassadorStats = async (ambassadorId: string) => {
   try {
     // Utiliser la fonction sécurisée pour récupérer les clients
@@ -238,6 +239,7 @@ export const getAmbassadorStats = async (ambassadorId: string) => {
   }
 };
 
+// Fonction pour récupérer les clients d'un ambassadeur en utilisant uniquement la fonction sécurisée
 export const getAmbassadorClients = async (ambassadorId: string): Promise<Client[]> => {
   try {
     console.log(`Chargement des clients pour l'ambassadeur: ${ambassadorId}`);
