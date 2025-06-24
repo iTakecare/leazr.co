@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -185,7 +184,6 @@ const AmbassadorCreateOffer = () => {
                       hideFinancialDetails={false}
                       ambassadorId={currentAmbassadorId}
                       commissionLevelId={currentCommissionLevelId}
-                      calculations={calculations}
                       hidePriceColumn={true}
                     />
                     
