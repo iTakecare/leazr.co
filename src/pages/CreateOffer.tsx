@@ -300,8 +300,17 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      // Convertir le montant de total_margin_with_difference en chaîne de caractères
-      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      // CORRECTION: Garder total_margin_with_difference comme nombre et non string
+      const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
+      
+      console.log("💰 MARGIN DEBUG - Saving margin data:", {
+        globalMarginAdjustment,
+        marginDifference: globalMarginAdjustment.marginDifference,
+        totalMarginWithDifference,
+        totalAmount,
+        financedAmount,
+        calculatedMargin: totalAmount - financedAmount
+      });
 
       const offerData = {
         user_id: user.id,
@@ -317,13 +326,14 @@ const CreateOffer = () => {
         financed_amount: financedAmount,
         remarks: remarks,
         type: 'admin_offer',
-        total_margin_with_difference: totalMarginWithDifferenceString
+        total_margin_with_difference: totalMarginWithDifference // Garder comme nombre
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
       console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
+      console.log("💾 CRÉATION OFFRE - Marge totale:", offerData.total_margin_with_difference);
 
       let result;
       

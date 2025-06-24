@@ -107,8 +107,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   // Function to calculate and display the correct margin
   const getDisplayMargin = (offer: any) => {
-    console.log("Debugging margin for offer:", offer.id, {
+    console.log("🔍 DEBUGGING MARGIN for offer:", offer.id);
+    console.log("📊 Raw offer data:", {
       total_margin_with_difference: offer.total_margin_with_difference,
+      total_margin_with_difference_type: typeof offer.total_margin_with_difference,
       margin: offer.margin,
       margin_difference: offer.margin_difference,
       amount: offer.amount,
@@ -117,14 +119,33 @@ const OffersTable: React.FC<OffersTableProps> = ({
       coefficient: offer.coefficient
     });
 
-    // Si total_margin_with_difference existe et est valide, l'utiliser
-    if (offer.total_margin_with_difference && !isNaN(Number(offer.total_margin_with_difference))) {
+    // Vérifier total_margin_with_difference en premier
+    if (offer.total_margin_with_difference !== null && offer.total_margin_with_difference !== undefined) {
       const marginValue = Number(offer.total_margin_with_difference);
-      console.log("Using total_margin_with_difference:", marginValue);
-      return formatCurrency(marginValue);
+      console.log("✅ Using total_margin_with_difference:", marginValue);
+      if (!isNaN(marginValue)) {
+        return formatCurrency(marginValue);
+      }
     }
 
-    // Sinon, calculer la marge basée sur le montant et le montant financé
+    // Calculer la marge basée sur amount - financed_amount
+    if (offer.amount && offer.financed_amount) {
+      const amount = Number(offer.amount);
+      const financedAmount = Number(offer.financed_amount);
+      const calculatedMargin = amount - financedAmount;
+      
+      console.log("💰 Calculating margin from amount - financed_amount:", {
+        amount,
+        financedAmount,
+        calculatedMargin
+      });
+      
+      if (!isNaN(calculatedMargin) && calculatedMargin > 0) {
+        return formatCurrency(calculatedMargin);
+      }
+    }
+
+    // Sinon, calculer la marge basée sur le montant et la mensualité
     if (offer.amount && offer.monthly_payment && offer.coefficient) {
       const amount = Number(offer.amount);
       const monthlyPayment = Number(offer.monthly_payment);
@@ -132,7 +153,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
       const financedAmount = monthlyPayment * coefficient;
       const calculatedMargin = amount - financedAmount;
       
-      console.log("Calculated margin:", {
+      console.log("🧮 Calculated margin from formula:", {
         amount,
         monthlyPayment,
         coefficient,
@@ -140,18 +161,18 @@ const OffersTable: React.FC<OffersTableProps> = ({
         calculatedMargin
       });
       
-      if (calculatedMargin > 0) {
+      if (!isNaN(calculatedMargin) && calculatedMargin > 0) {
         return formatCurrency(calculatedMargin);
       }
     }
 
     // Fallback sur la marge simple si elle existe
     if (offer.margin && !isNaN(Number(offer.margin))) {
-      console.log("Using fallback margin:", offer.margin);
+      console.log("⚠️ Using fallback margin:", offer.margin);
       return formatCurrency(offer.margin);
     }
 
-    console.log("No valid margin found, returning N/A");
+    console.log("❌ No valid margin found, returning N/A");
     return "N/A";
   };
 
