@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { 
   Card, 
@@ -8,6 +8,7 @@ import {
   CardContent
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getOfferEquipment } from "@/services/offers/offerEquipment";
 
 interface EquipmentDisplayProps {
   equipmentDisplay: string;
@@ -21,6 +22,7 @@ interface EquipmentDisplayProps {
   clientCity?: string;
   clientPostalCode?: string;
   clientCountry?: string;
+  offerId?: string;
 }
 
 interface EquipmentItem {
@@ -35,13 +37,20 @@ interface EquipmentItem {
 const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   equipmentDisplay,
   monthlyPayment,
-  remarks
+  remarks,
+  offerId
 }) => {
-  // Parse equipment data if it's JSON
-  const parseEquipmentData = (): EquipmentItem[] => {
+  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fonction pour parser les données texte en fallback
+  const parseEquipmentFromText = (description: string, totalMonthlyPayment: number): EquipmentItem[] => {
+    if (!description) return [];
+    
     try {
-      if (equipmentDisplay.startsWith('[') || equipmentDisplay.startsWith('{')) {
-        const parsed = JSON.parse(equipmentDisplay);
+      // Essayer de parser comme JSON d'abord
+      if (description.startsWith('[') || description.startsWith('{')) {
+        const parsed = JSON.parse(description);
         if (Array.isArray(parsed)) {
           return parsed.map(item => ({
             title: item.title || 'Équipement',
@@ -56,7 +65,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
             title: parsed.title || 'Équipement',
             quantity: Number(parsed.quantity) || 1,
             purchasePrice: Number(parsed.purchasePrice) || 0,
-            monthlyPayment: Number(parsed.monthlyPayment) || monthlyPayment,
+            monthlyPayment: Number(parsed.monthlyPayment) || totalMonthlyPayment,
             attributes: parsed.attributes || {},
             specifications: parsed.specifications || {}
           }];
@@ -66,100 +75,146 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
       console.error("Erreur lors du parsing JSON:", e);
     }
     
-    // Si ce n'est pas du JSON, on traite comme du texte simple
-    // Chaque ligne ou élément séparé par virgule représente un équipement
-    const equipmentText = equipmentDisplay || "";
-    console.log("Equipment text to parse:", equipmentText);
+    // Parsing texte simple
+    const lines = description.split(/[,\n]/).map(line => line.trim()).filter(line => line.length > 0);
     
-    // Diviser par ligne d'abord, puis par virgule si nécessaire
-    let equipmentParts = equipmentText.split('\n').map(item => item.trim()).filter(item => item.length > 0);
-    
-    // Si pas de saut de ligne, essayer la virgule
-    if (equipmentParts.length === 1) {
-      equipmentParts = equipmentText.split(',').map(item => item.trim()).filter(item => item.length > 0);
-    }
-    
-    console.log("Equipment parts:", equipmentParts);
-    console.log("Total monthly payment:", monthlyPayment);
-    
-    if (equipmentParts.length > 1) {
-      // Calculer la mensualité par équipement (répartition équitable)
-      const monthlyPaymentPerItem = monthlyPayment / equipmentParts.length;
-      console.log("Monthly payment per item:", monthlyPaymentPerItem);
+    if (lines.length > 1) {
+      const monthlyPaymentPerItem = totalMonthlyPayment / lines.length;
       
-      return equipmentParts.map((part, index) => {
-        console.log(`Processing part ${index}:`, part);
-        
-        let title = part.trim();
+      return lines.map(line => {
+        let title = line;
         let quantity = 1;
-        let unitPrice = monthlyPaymentPerItem; // Par défaut, répartition équitable
+        let unitPrice = monthlyPaymentPerItem;
         
-        // Pattern pour détecter la quantité dans le texte
-        // Formats supportés: "2x MacBook", "MacBook x2", "2 MacBook", "MacBook (2)"
+        // Détecter la quantité
         const quantityPatterns = [
-          /^(\d+)\s*[x×]\s*(.+)/i, // "2x MacBook"
-          /^(.+)\s*[x×]\s*(\d+)$/i, // "MacBook x2"
-          /^(\d+)\s+(.+)/i, // "2 MacBook"
-          /^(.+)\s*\(\s*(\d+)\s*\)$/i // "MacBook (2)"
+          /^(\d+)\s*[x×]\s*(.+)/i,
+          /^(.+)\s*[x×]\s*(\d+)$/i,
+          /^(\d+)\s+(.+)/i,
+          /^(.+)\s*\(\s*(\d+)\s*\)$/i
         ];
         
         for (const pattern of quantityPatterns) {
-          const match = part.match(pattern);
+          const match = line.match(pattern);
           if (match) {
             if (pattern.source.startsWith('^(\\d+)')) {
-              // La quantité est au début
               quantity = parseInt(match[1], 10);
               title = match[2].trim();
             } else {
-              // La quantité est à la fin
               title = match[1].trim();
               quantity = parseInt(match[2], 10);
             }
-            console.log(`Found quantity ${quantity} for "${title}"`);
             break;
           }
         }
         
-        // Pattern pour détecter un prix dans le texte
+        // Détecter le prix
         const pricePattern = /(\d+(?:[.,]\d{1,2})?)\s*€/;
-        const priceMatch = part.match(pricePattern);
+        const priceMatch = line.match(pricePattern);
         if (priceMatch) {
-          const extractedPrice = parseFloat(priceMatch[1].replace(',', '.'));
-          unitPrice = extractedPrice;
-          // Nettoyer le titre en retirant le prix
+          unitPrice = parseFloat(priceMatch[1].replace(',', '.'));
           title = title.replace(/\s*-?\s*\d+(?:[.,]\d{1,2})?\s*€.*$/, '').trim();
-          console.log(`Found price ${unitPrice}€ for "${title}"`);
         }
         
-        const result = {
+        return {
           title: title || 'Équipement',
           quantity: quantity,
           monthlyPayment: unitPrice,
           attributes: {},
           specifications: {}
         };
-        
-        console.log(`Result for part ${index}:`, result);
-        return result;
       });
     }
     
-    // Si un seul équipement ou pas de séparation possible
     return [{
-      title: equipmentDisplay || "Équipement",
+      title: description || "Équipement",
       quantity: 1,
-      monthlyPayment: monthlyPayment,
+      monthlyPayment: totalMonthlyPayment,
       attributes: {},
       specifications: {}
     }];
   };
 
-  const equipmentItems = parseEquipmentData();
+  useEffect(() => {
+    const loadEquipmentData = async () => {
+      setIsLoading(true);
+      
+      // D'abord essayer de récupérer les données structurées depuis la DB
+      if (offerId) {
+        try {
+          console.log("Loading equipment data for offer:", offerId);
+          const dbEquipment = await getOfferEquipment(offerId);
+          console.log("DB Equipment data:", dbEquipment);
+          
+          if (dbEquipment && dbEquipment.length > 0) {
+            // Convertir les données DB en format d'affichage
+            const formattedEquipment: EquipmentItem[] = dbEquipment.map(item => {
+              const attributes: Record<string, any> = {};
+              if (item.attributes && item.attributes.length > 0) {
+                item.attributes.forEach(attr => {
+                  attributes[attr.key] = attr.value;
+                });
+              }
+              
+              const specifications: Record<string, any> = {};
+              if (item.specifications && item.specifications.length > 0) {
+                item.specifications.forEach(spec => {
+                  const numValue = Number(spec.value);
+                  specifications[spec.key] = !isNaN(numValue) ? numValue : spec.value;
+                });
+              }
+              
+              return {
+                title: item.title,
+                quantity: item.quantity,
+                purchasePrice: item.purchase_price || 0,
+                monthlyPayment: item.monthly_payment || 0,
+                attributes,
+                specifications
+              };
+            });
+            
+            console.log("Formatted equipment from DB:", formattedEquipment);
+            setEquipmentItems(formattedEquipment);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Error loading equipment from DB:", error);
+        }
+      }
+      
+      // Fallback: parser les données texte
+      console.log("Falling back to text parsing for equipment:", equipmentDisplay);
+      const parsedFromText = parseEquipmentFromText(equipmentDisplay, monthlyPayment);
+      console.log("Parsed equipment from text:", parsedFromText);
+      setEquipmentItems(parsedFromText);
+      setIsLoading(false);
+    };
+
+    loadEquipmentData();
+  }, [offerId, equipmentDisplay, monthlyPayment]);
+
   const totalMonthly = equipmentItems.reduce((sum, item) => sum + (item.monthlyPayment * item.quantity), 0);
 
   console.log("Final equipment items:", equipmentItems);
   console.log("Calculated total monthly:", totalMonthly);
   console.log("Expected total monthly:", monthlyPayment);
+
+  if (isLoading) {
+    return (
+      <Card className="mb-6">
+        <CardHeader className="bg-gray-50 border-b">
+          <CardTitle className="text-lg font-semibold text-gray-800">
+            Équipement et financement
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="text-center">Chargement des équipements...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-6">
