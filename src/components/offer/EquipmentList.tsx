@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Trash2, Pencil, Plus, Minus } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
-import CommissionDisplay from "@/components/ambassador/CommissionDisplay";
 import FinancialSummary from "@/components/offer/FinancialSummary";
+import AmbassadorFinancialSummary from "@/components/ambassador/AmbassadorFinancialSummary";
 
 interface GlobalMarginAdjustment {
   amount: number;
@@ -51,12 +51,16 @@ const EquipmentList = ({
     updateQuantity(id, newQuantity);
   };
 
+  // Determine if we're in ambassador mode
+  const isAmbassadorMode = Boolean(ambassadorId);
+
   console.log("EquipmentList - Ambassador info:", {
     ambassadorId,
     commissionLevelId,
     equipmentListLength: equipmentList.length,
     totalMonthlyPayment,
-    hideFinancialDetails
+    hideFinancialDetails,
+    isAmbassadorMode
   });
 
   return (
@@ -184,21 +188,25 @@ const EquipmentList = ({
         </CardContent>
       </Card>
       
-      {!hideFinancialDetails && calculations && (
-        <FinancialSummary 
-          calculations={calculations}
-          useGlobalAdjustment={globalMarginAdjustment.active}
-          onToggleAdjustment={toggleAdaptMonthlyPayment}
-        />
-      )}
-      
-      {ambassadorId && (
-        <CommissionDisplay
-          totalMonthlyPayment={totalMonthlyPayment}
-          ambassadorId={ambassadorId}
-          commissionLevelId={commissionLevelId}
-          equipmentListLength={equipmentList.length}
-        />
+      {!hideFinancialDetails && (
+        <>
+          {isAmbassadorMode ? (
+            <AmbassadorFinancialSummary
+              totalMonthlyPayment={totalMonthlyPayment}
+              ambassadorId={ambassadorId}
+              commissionLevelId={commissionLevelId}
+              equipmentListLength={equipmentList.length}
+            />
+          ) : (
+            calculations && (
+              <FinancialSummary 
+                calculations={calculations}
+                useGlobalAdjustment={globalMarginAdjustment.active}
+                onToggleAdjustment={toggleAdaptMonthlyPayment}
+              />
+            )
+          )}
+        </>
       )}
     </div>
   );

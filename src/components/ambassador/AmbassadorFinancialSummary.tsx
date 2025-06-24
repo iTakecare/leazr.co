@@ -1,0 +1,70 @@
+
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/utils/formatters";
+import { DollarSign } from "lucide-react";
+import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
+
+interface AmbassadorFinancialSummaryProps {
+  totalMonthlyPayment: number;
+  ambassadorId?: string;
+  commissionLevelId?: string;
+  equipmentListLength: number;
+}
+
+const AmbassadorFinancialSummary = ({
+  totalMonthlyPayment,
+  ambassadorId,
+  commissionLevelId,
+  equipmentListLength
+}: AmbassadorFinancialSummaryProps) => {
+  const commission = useCommissionCalculator(
+    totalMonthlyPayment,
+    ambassadorId,
+    commissionLevelId,
+    equipmentListLength
+  );
+
+  if (totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="border border-gray-200 shadow-sm">
+      <CardHeader className="pb-2 border-b">
+        <CardTitle>Récapitulatif financier</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-4">
+        <div className="flex justify-between items-center py-2 border-b">
+          <div className="font-medium text-gray-700">Mensualité totale:</div>
+          <div className="text-lg font-bold text-gray-900">
+            {formatCurrency(totalMonthlyPayment)}
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center py-2">
+          <div className="font-medium text-gray-700">Votre commission:</div>
+          <div className="text-green-600 font-bold flex items-center gap-1">
+            <DollarSign className="h-4 w-4" />
+            <span>
+              {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
+            </span>
+            {commission.rate > 0 && (
+              <span className="text-sm text-muted-foreground ml-1">
+                ({commission.rate}%)
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {commission.levelName && (
+          <div className="text-sm text-muted-foreground pt-2 border-t">
+            Niveau de commission: {commission.levelName}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AmbassadorFinancialSummary;
