@@ -19,6 +19,7 @@ import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSele
 import { Client } from "@/types/client";
 import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 import { createOffer } from "@/services/offers";
+import { saveEquipment } from "@/services/offerService";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { getLeasers } from "@/services/leaserService";
 import OffersLoading from "@/components/offers/OffersLoading";
@@ -191,6 +192,7 @@ const AmbassadorCreateOffer = () => {
         0
       );
       
+      // Create equipment description with attributes for backward compatibility
       const equipmentDescription = JSON.stringify(
         equipmentList.map(eq => ({
           id: eq.id,
@@ -198,7 +200,8 @@ const AmbassadorCreateOffer = () => {
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+          attributes: eq.attributes || {} // Include attributes in JSON
         }))
       );
       
@@ -307,6 +310,38 @@ const AmbassadorCreateOffer = () => {
         console.error("Erreur lors de la sauvegarde:", error);
         toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
         return;
+      }
+      
+      // Save each equipment individually with attributes using the offer equipment service
+      if (offerResult && offerResult.id) {
+        console.log("Saving individual equipment items for offer:", offerResult.id);
+        
+        for (const equipmentItem of equipmentList) {
+          try {
+            const savedEquipment = await saveEquipment(
+              {
+                offer_id: offerResult.id,
+                title: equipmentItem.title,
+                purchase_price: equipmentItem.purchasePrice,
+                quantity: equipmentItem.quantity,
+                margin: equipmentItem.margin,
+                monthly_payment: equipmentItem.monthlyPayment || 0,
+                serial_number: null
+              },
+              equipmentItem.attributes || {}, // Save attributes
+              {} // Specifications (empty for now)
+            );
+            
+            if (savedEquipment) {
+              console.log("Equipment saved successfully:", savedEquipment.id);
+            } else {
+              console.error("Failed to save equipment:", equipmentItem.title);
+            }
+          } catch (equipmentError) {
+            console.error("Error saving equipment:", equipmentItem.title, equipmentError);
+            // Continue with other equipment even if one fails
+          }
+        }
       }
       
       toast.success("Offre créée avec succès!");
