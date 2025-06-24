@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { calculateCommissionByLevel } from "@/utils/calculator";
+import { calculateAmbassadorCommission } from "@/services/ambassadorCommissionService";
 
 interface CommissionResult {
   amount: number;
@@ -24,7 +24,15 @@ export const useCommissionCalculator = (
 
   useEffect(() => {
     const fetchCommission = async () => {
-      if (!ambassadorId || !commissionLevelId || totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+      console.log("useCommissionCalculator - Starting calculation with:", {
+        totalMonthlyPayment,
+        ambassadorId,
+        commissionLevelId,
+        equipmentListLength
+      });
+
+      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+        console.log("useCommissionCalculator - Missing required data, resetting to zero");
         setCommission({
           amount: 0,
           rate: 0,
@@ -37,15 +45,17 @@ export const useCommissionCalculator = (
       setCommission(prev => ({ ...prev, isCalculating: true }));
 
       try {
-        // Calculer le montant financé approximatif (mensualité * coefficient standard)
-        const approximateFinancedAmount = totalMonthlyPayment * 36; // Coefficient moyen
+        // Calculer le montant financé approximatif (mensualité * coefficient standard de 36)
+        const approximateFinancedAmount = totalMonthlyPayment * 36;
+        
+        console.log("useCommissionCalculator - Calling calculateAmbassadorCommission with:", {
+          ambassadorId,
+          approximateFinancedAmount
+        });
 
-        const result = await calculateCommissionByLevel(
-          approximateFinancedAmount,
-          commissionLevelId,
-          'ambassador',
-          ambassadorId
-        );
+        const result = await calculateAmbassadorCommission(ambassadorId, approximateFinancedAmount);
+
+        console.log("useCommissionCalculator - Commission result:", result);
 
         if (result) {
           setCommission({
@@ -55,6 +65,7 @@ export const useCommissionCalculator = (
             isCalculating: false
           });
         } else {
+          console.log("useCommissionCalculator - No result returned");
           setCommission({
             amount: 0,
             rate: 0,
@@ -63,7 +74,7 @@ export const useCommissionCalculator = (
           });
         }
       } catch (error) {
-        console.error("Erreur lors du calcul de la commission:", error);
+        console.error("useCommissionCalculator - Error calculating commission:", error);
         setCommission({
           amount: 0,
           rate: 0,
