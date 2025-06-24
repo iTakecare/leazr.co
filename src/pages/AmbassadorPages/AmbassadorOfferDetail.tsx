@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -228,7 +227,7 @@ const AmbassadorOfferDetail = () => {
     ? offer.amount - offer.financed_amount 
     : 0;
   const marginPercentage = offer?.amount && offer?.financed_amount && offer?.amount > 0
-    ? ((calculatedMargin / offer.financed_amount) * 100).toFixed(2)
+    ? parseFloat(((calculatedMargin / offer.financed_amount) * 100).toFixed(2))
     : 0;
 
   return (
