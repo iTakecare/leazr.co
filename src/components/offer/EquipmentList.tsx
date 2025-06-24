@@ -188,6 +188,7 @@ const EquipmentList = ({
         </CardContent>
       </Card>
       
+      {/* Always show financial summary when not hiding financial details */}
       {!hideFinancialDetails && (
         <>
           {isAmbassadorMode ? (
