@@ -1,24 +1,27 @@
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
+import { useAuth } from "@/context/AuthContext";
 import { Leaser } from "@/types/equipment";
 import { defaultLeasers } from "@/data/leasers";
 import { getLeasers } from "@/services/leaserService";
 import { ClientSelectorClient } from "@/components/ui/ClientSelector";
 
 export const useAmbassadorOfferState = () => {
-  const { clientId, ambassadorId } = useParams();
+  const location = useLocation();
+  const { clientId, ambassadorId: paramAmbassadorId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingLeasers, setLoadingLeasers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ambassador, setAmbassador] = useState<any>(null);
+  const [ambassador, setAmbassador] = useState(null);
+  const [ambassadorId, setAmbassadorId] = useState<string | null>(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
@@ -43,7 +46,7 @@ export const useAmbassadorOfferState = () => {
     
     fetchLeasers();
   }, []);
-
+  
   useEffect(() => {
     if (clientId) {
       fetchClient(clientId);
@@ -51,13 +54,43 @@ export const useAmbassadorOfferState = () => {
   }, [clientId]);
   
   useEffect(() => {
-    if (ambassadorId) {
-      fetchAmbassador(ambassadorId);
-    } else if (user?.ambassador_id) {
-      fetchAmbassador(user.ambassador_id);
+    if (paramAmbassadorId) {
+      fetchAmbassador(paramAmbassadorId);
+      setAmbassadorId(paramAmbassadorId);
+    } else if (user?.id) {
+      // Récupérer l'ambassadeur associé à cet utilisateur
+      fetchAmbassadorByUserId(user.id);
     }
-  }, [ambassadorId, user]);
+  }, [paramAmbassadorId, user?.id]);
 
+  const fetchAmbassadorByUserId = async (userId: string) => {
+    try {
+      setLoading(true);
+      console.log("Fetching ambassador for user ID:", userId);
+      
+      const { data, error } = await supabase
+        .from("ambassadors")
+        .select("*, commission_levels(name)")
+        .eq("user_id", userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching ambassador by user ID:", error);
+        return;
+      }
+      
+      if (data) {
+        console.log("Ambassador found for user:", data);
+        setAmbassador(data);
+        setAmbassadorId(data.id);
+      }
+    } catch (error) {
+      console.error("Error in fetchAmbassadorByUserId:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const fetchAmbassador = async (id: string) => {
     try {
       setLoading(true);
@@ -121,6 +154,7 @@ export const useAmbassadorOfferState = () => {
     isSubmitting,
     setIsSubmitting,
     ambassador,
+    ambassadorId,
     clientSelectorOpen,
     setClientSelectorOpen,
     leaserSelectorOpen,
@@ -128,7 +162,6 @@ export const useAmbassadorOfferState = () => {
     remarks,
     setRemarks,
     selectedLeaser,
-    ambassadorId,
     user,
     handleSelectClient,
     handleLeaserSelect
