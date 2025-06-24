@@ -11,6 +11,8 @@ import {
  */
 export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment[]> => {
   try {
+    console.log("Fetching offer equipment for offer:", offerId);
+    
     // Récupérer les équipements
     const { data: equipmentData, error: equipmentError } = await supabase
       .from('offer_equipment')
@@ -23,8 +25,11 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
     }
     
     if (!equipmentData || equipmentData.length === 0) {
+      console.log("No equipment found for offer:", offerId);
       return [];
     }
+    
+    console.log("Equipment found:", equipmentData.length, "items");
     
     const equipmentWithDetails: OfferEquipment[] = [];
     
@@ -57,6 +62,7 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       });
     }
     
+    console.log("Offer equipment fetched successfully with details");
     return equipmentWithDetails;
   } catch (error) {
     console.error("Erreur lors de la récupération des équipements:", error);

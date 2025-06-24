@@ -22,11 +22,16 @@ export interface OfferNote {
  */
 export const getOfferNotes = async (offerId: string): Promise<OfferNote[]> => {
   try {
+    console.log("Fetching offer notes for offer:", offerId);
+    
     const { data, error } = await supabase
       .from('offer_notes')
       .select(`
         *,
-        profiles!created_by (first_name, last_name)
+        profiles:created_by (
+          first_name, 
+          last_name
+        )
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
@@ -36,6 +41,7 @@ export const getOfferNotes = async (offerId: string): Promise<OfferNote[]> => {
       return [];
     }
 
+    console.log("Offer notes fetched successfully:", data?.length || 0, "notes");
     return data || [];
   } catch (error) {
     console.error("Error fetching offer notes:", error);
@@ -56,13 +62,21 @@ export const addOfferNote = async (
   type: string = "user"
 ): Promise<boolean> => {
   try {
+    console.log("Adding offer note for offer:", offerId);
+    
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      console.error("Error getting current user:", userError);
+      return false;
+    }
+
     const { data, error } = await supabase
       .from('offer_notes')
       .insert({
         offer_id: offerId,
         content,
         type,
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: userData.user.id
       });
 
     if (error) {
@@ -70,6 +84,7 @@ export const addOfferNote = async (
       return false;
     }
 
+    console.log("Offer note added successfully");
     return true;
   } catch (error) {
     console.error("Error adding offer note:", error);

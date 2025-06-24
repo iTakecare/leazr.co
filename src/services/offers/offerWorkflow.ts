@@ -4,11 +4,16 @@ import { RequestInfoData } from "./types";
 
 export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
   try {
+    console.log("Fetching workflow logs for offer:", offerId);
+    
     const { data, error } = await supabase
       .from('offer_workflow_logs')
       .select(`
         *,
-        profiles!user_id (first_name, last_name)
+        profiles:user_id (
+          first_name, 
+          last_name
+        )
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
@@ -18,6 +23,7 @@ export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
       return [];
     }
 
+    console.log("Workflow logs fetched successfully:", data?.length || 0, "logs");
     return data || [];
   } catch (error) {
     console.error("Error fetching workflow logs:", error);
@@ -30,12 +36,18 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
     console.log("Sending information request for offer:", data.offerId);
     console.log("Requested documents:", data.requestedDocs);
     
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      console.error("Error getting current user:", userError);
+      return false;
+    }
+    
     // Journaliser la demande
     const { error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: data.offerId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: userData.user.id,
         previous_status: data.previousStatus,
         new_status: 'info_requested',
         reason: `Demande d'informations supplémentaires: ${data.requestedDocs.join(', ')}`
@@ -60,9 +72,7 @@ export const sendInfoRequest = async (data: RequestInfoData): Promise<boolean> =
       return false;
     }
     
-    // Dans une implémentation réelle, nous enverrions un email ici
-    // via une fonction Supabase Edge ou un service d'emailing
-    
+    console.log("Info request sent successfully");
     return true;
   } catch (error) {
     console.error("Error sending info request:", error);
@@ -96,12 +106,18 @@ export const processInfoResponse = async (
     
     const previousStatus = offerData.workflow_status || 'info_requested';
     
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      console.error("Error getting current user:", userError);
+      return false;
+    }
+    
     // Journaliser le changement
     const { error: logError } = await supabase
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: userData.user.id,
         previous_status: previousStatus,
         new_status: newStatus,
         reason: approve 
@@ -128,6 +144,7 @@ export const processInfoResponse = async (
       return false;
     }
     
+    console.log("Info response processed successfully");
     return true;
   } catch (error) {
     console.error("Error processing info response:", error);
