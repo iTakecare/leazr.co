@@ -31,10 +31,24 @@ export interface OfferData {
   signed_at?: string;
   signer_ip?: string;
   margin?: number | string; // Ajout de cette propriété pour résoudre les erreurs
-  equipment?: any[]; // Ajout de cette propriété pour résoudre les erreurs
   company_id: string; // Champ obligatoire pour la base de données
   margin_difference?: number; // Différence de marge calculée
   total_margin_with_difference?: number; // Marge totale avec différence
+  // Equipment is used for processing but not sent to DB directly
+  equipment?: Array<{
+    id?: string;
+    title: string;
+    purchasePrice?: number;
+    purchase_price?: number;
+    quantity: number;
+    margin: number;
+    monthlyPayment?: number;
+    monthly_payment?: number;
+    serialNumber?: string;
+    serial_number?: string;
+    attributes?: Record<string, any>;
+    specifications?: Record<string, any>;
+  }>;
 }
 
 export enum OfferStatus {
