@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,26 @@ const EquipmentList = ({
     calculationsDetails: calculations
   });
 
+  // Function to render equipment attributes
+  const renderAttributes = (attributes?: Record<string, any>) => {
+    if (!attributes || Object.keys(attributes).length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-1 flex flex-wrap gap-1">
+        {Object.entries(attributes).map(([key, value], index) => (
+          <span 
+            key={`${key}-${index}`}
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+          >
+            {key}: {String(value)}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border border-gray-200 shadow-sm">
@@ -111,8 +132,13 @@ const EquipmentList = ({
                 <tbody className="divide-y divide-gray-200">
                   {equipmentList.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px] truncate">
-                        <div title={item.title}>{item.title}</div>
+                      <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px]">
+                        <div>
+                          <div className="font-medium truncate" title={item.title}>
+                            {item.title}
+                          </div>
+                          {renderAttributes(item.attributes)}
+                        </div>
                       </td>
                       {!hidePriceColumn && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
