@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,15 +55,8 @@ const EquipmentList = ({
                           Boolean(commissionLevelId) || 
                           window.location.pathname.includes('/ambassador');
 
-  // Calculate total margin for ambassador commission
-  const totalMargin = calculations?.normalMarginAmount || 
-                     equipmentList.reduce((sum, item) => {
-                       const itemPurchasePrice = item.purchasePrice * item.quantity;
-                       const itemMonthlyPayment = (item.monthlyPayment || 0) * item.quantity;
-                       // Approximation simple de la marge si calculations n'est pas disponible
-                       const approximateFinancedAmount = itemMonthlyPayment * 36;
-                       return sum + Math.max(0, approximateFinancedAmount - itemPurchasePrice);
-                     }, 0);
+  // Calculate total margin for ambassador commission - USE THE CORRECT MARGIN
+  const totalMargin = calculations?.normalMarginAmount || 0;
 
   console.log("EquipmentList - Ambassador mode debug:", {
     ambassadorId,
@@ -76,7 +68,8 @@ const EquipmentList = ({
     currentPath: window.location.pathname,
     urlCheck: window.location.pathname.includes('/ambassador'),
     totalMargin,
-    calculationsMargin: calculations?.normalMarginAmount
+    calculationsMargin: calculations?.normalMarginAmount,
+    calculationsDetails: calculations
   });
 
   return (
