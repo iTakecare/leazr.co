@@ -66,8 +66,10 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
       console.error("Erreur lors du parsing JSON:", e);
     }
     
-    // Fallback: essayer de parser le texte pour extraire les équipements
+    // Si ce n'est pas du JSON, on traite comme du texte simple
+    // Chaque ligne ou élément séparé par virgule représente un équipement
     const equipmentText = equipmentDisplay || "";
+    console.log("Equipment text to parse:", equipmentText);
     
     // Diviser par ligne d'abord, puis par virgule si nécessaire
     let equipmentParts = equipmentText.split('\n').map(item => item.trim()).filter(item => item.length > 0);
@@ -77,45 +79,72 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
       equipmentParts = equipmentText.split(',').map(item => item.trim()).filter(item => item.length > 0);
     }
     
+    console.log("Equipment parts:", equipmentParts);
+    console.log("Total monthly payment:", monthlyPayment);
+    
     if (equipmentParts.length > 1) {
-      // Pour chaque équipement, essayer d'extraire les informations disponibles
-      return equipmentParts.map(part => {
-        let title = part;
-        let quantity = 1;
-        let unitPrice = monthlyPayment / equipmentParts.length; // Répartition équitable par défaut
+      // Calculer la mensualité par équipement (répartition équitable)
+      const monthlyPaymentPerItem = monthlyPayment / equipmentParts.length;
+      console.log("Monthly payment per item:", monthlyPaymentPerItem);
+      
+      return equipmentParts.map((part, index) => {
+        console.log(`Processing part ${index}:`, part);
         
-        // Chercher des patterns pour la quantité (ex: "2x MacBook" ou "MacBook (x2)")
-        const quantityMatch = part.match(/(\d+)\s*[x×]\s*(.+)|(.+)\s*\(?\s*[x×]\s*(\d+)\s*\)?/i);
-        if (quantityMatch) {
-          if (quantityMatch[1] && quantityMatch[2]) {
-            quantity = parseInt(quantityMatch[1], 10);
-            title = quantityMatch[2].trim();
-          } else if (quantityMatch[3] && quantityMatch[4]) {
-            title = quantityMatch[3].trim();
-            quantity = parseInt(quantityMatch[4], 10);
+        let title = part.trim();
+        let quantity = 1;
+        let unitPrice = monthlyPaymentPerItem; // Par défaut, répartition équitable
+        
+        // Pattern pour détecter la quantité dans le texte
+        // Formats supportés: "2x MacBook", "MacBook x2", "2 MacBook", "MacBook (2)"
+        const quantityPatterns = [
+          /^(\d+)\s*[x×]\s*(.+)/i, // "2x MacBook"
+          /^(.+)\s*[x×]\s*(\d+)$/i, // "MacBook x2"
+          /^(\d+)\s+(.+)/i, // "2 MacBook"
+          /^(.+)\s*\(\s*(\d+)\s*\)$/i // "MacBook (2)"
+        ];
+        
+        for (const pattern of quantityPatterns) {
+          const match = part.match(pattern);
+          if (match) {
+            if (pattern.source.startsWith('^(\\d+)')) {
+              // La quantité est au début
+              quantity = parseInt(match[1], 10);
+              title = match[2].trim();
+            } else {
+              // La quantité est à la fin
+              title = match[1].trim();
+              quantity = parseInt(match[2], 10);
+            }
+            console.log(`Found quantity ${quantity} for "${title}"`);
+            break;
           }
         }
         
-        // Chercher des prix dans le texte (format: 123€ ou 123.45€)
-        const priceMatch = part.match(/(\d+(?:[.,]\d{2})?)\s*€/);
+        // Pattern pour détecter un prix dans le texte
+        const pricePattern = /(\d+(?:[.,]\d{1,2})?)\s*€/;
+        const priceMatch = part.match(pricePattern);
         if (priceMatch) {
           const extractedPrice = parseFloat(priceMatch[1].replace(',', '.'));
           unitPrice = extractedPrice;
           // Nettoyer le titre en retirant le prix
-          title = title.replace(/\s*-?\s*\d+(?:[.,]\d{2})?\s*€.*$/, '').trim();
+          title = title.replace(/\s*-?\s*\d+(?:[.,]\d{1,2})?\s*€.*$/, '').trim();
+          console.log(`Found price ${unitPrice}€ for "${title}"`);
         }
         
-        return {
+        const result = {
           title: title || 'Équipement',
           quantity: quantity,
           monthlyPayment: unitPrice,
           attributes: {},
           specifications: {}
         };
+        
+        console.log(`Result for part ${index}:`, result);
+        return result;
       });
     }
     
-    // Si un seul équipement, utiliser le montant total
+    // Si un seul équipement ou pas de séparation possible
     return [{
       title: equipmentDisplay || "Équipement",
       quantity: 1,
@@ -127,6 +156,10 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
 
   const equipmentItems = parseEquipmentData();
   const totalMonthly = equipmentItems.reduce((sum, item) => sum + (item.monthlyPayment * item.quantity), 0);
+
+  console.log("Final equipment items:", equipmentItems);
+  console.log("Calculated total monthly:", totalMonthly);
+  console.log("Expected total monthly:", monthlyPayment);
 
   return (
     <Card className="mb-6">
@@ -210,7 +243,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
             <div className="text-right">
               <div className="text-sm text-gray-600 mb-1">Total mensualité HT</div>
               <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(totalMonthly)} /mois
+                {formatCurrency(monthlyPayment)} /mois
               </div>
             </div>
           </div>
