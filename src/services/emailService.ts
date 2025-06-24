@@ -497,20 +497,23 @@ export const sendOfferReadyEmail = async (
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
     
-    // Préparer l'URL de l'offre
-    const offerLink = `${window.location.origin}/client/offers/${offerInfo.id}`;
+    // Préparer l'URL de l'offre - correction pour utiliser la route de signature
+    const offerLink = `${window.location.origin}/signature/${offerInfo.id}`;
     
-    let subject = `Votre offre de financement pour ${offerInfo.description} est prête`;
+    // Formater la description de l'équipement avant de l'utiliser
+    const formattedDescription = formatEquipmentDescription(offerInfo.description);
+    
+    let subject = `Votre offre de financement pour ${formattedDescription} est prête`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="text-align: center; margin-bottom: 20px;">
           <img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" />
         </div>
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
-        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation.</p>
+        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation et signature.</p>
         <p><strong>Détails de l'offre:</strong></p>
         <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <li>Équipement: ${formatEquipmentDescription(offerInfo.description)}</li>
+          <li>Équipement: ${formattedDescription}</li>
           <li>Montant: ${offerInfo.amount.toLocaleString('fr-FR')} €</li>
           <li>Mensualité estimée: ${offerInfo.monthlyPayment.toLocaleString('fr-FR')} €</li>
         </ul>
@@ -529,9 +532,6 @@ export const sendOfferReadyEmail = async (
     // Utiliser le modèle personnalisé s'il existe
     if (template) {
       console.log("Utilisation du modèle d'email 'offer_ready'");
-      
-      // Formater la description de l'équipement pour éviter l'affichage de JSON brut
-      const formattedDescription = formatEquipmentDescription(offerInfo.description);
       
       subject = template.subject
         .replace(/{{client_name}}/g, clientName)
@@ -552,6 +552,7 @@ export const sendOfferReadyEmail = async (
     }
     
     console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    console.log("Sujet de l'email formaté:", subject);
     console.log("Aperçu du contenu HTML:", htmlContent.substring(0, 150) + "...");
     
     // Envoyer l'email
@@ -579,26 +580,38 @@ export const sendOfferReadyEmail = async (
  */
 const formatEquipmentDescription = (description: string): string => {
   try {
-    // Vérifier si la description est un JSON (chaîne JSON)
-    if (description.startsWith('[{') && description.endsWith('}]')) {
-      const equipmentItems = JSON.parse(description);
-      
-      if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
-        if (equipmentItems.length === 1) {
-          // Si un seul élément, afficher simplement le titre
-          return equipmentItems[0].title || "Votre équipement";
-        } else {
-          // Si plusieurs éléments, créer un résumé
-          return `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
-        }
+    // Vérifier si la description est un JSON (chaîne JSON ou objet)
+    let equipmentItems = null;
+    
+    if (typeof description === 'string') {
+      if (description.startsWith('[{') && description.endsWith('}]')) {
+        equipmentItems = JSON.parse(description);
+      } else if (description.startsWith('{') && description.endsWith('}')) {
+        // Si c'est un seul objet JSON
+        equipmentItems = [JSON.parse(description)];
+      }
+    } else if (Array.isArray(description)) {
+      equipmentItems = description;
+    } else if (typeof description === 'object' && description !== null) {
+      equipmentItems = [description];
+    }
+    
+    if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+      if (equipmentItems.length === 1) {
+        // Si un seul élément, afficher simplement le titre
+        return equipmentItems[0].title || "Votre équipement";
+      } else {
+        // Si plusieurs éléments, créer un résumé
+        const firstTitle = equipmentItems[0].title || "équipement";
+        return `${equipmentItems.length} équipements dont ${firstTitle}`;
       }
     }
     
-    // Si ce n'est pas un tableau JSON valide, renvoyer la description telle quelle
-    return description;
+    // Si ce n'est pas un format JSON reconnu, renvoyer la description telle quelle
+    return description || "Votre équipement";
   } catch (e) {
     console.log("Erreur lors du parsing de la description:", e);
-    return description;
+    return description || "Votre équipement";
   }
 };
 
