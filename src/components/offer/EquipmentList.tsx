@@ -86,12 +86,12 @@ const EquipmentList = ({
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
                       Quantité
                     </th>
-                    {!hideFinancialDetails && (
+                    {!hideFinancialDetails && !isAmbassadorMode && (
                       <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[70px]">
                         Marge
                       </th>
                     )}
-                    {!hideFinancialDetails && (
+                    {!hideFinancialDetails && !isAmbassadorMode && (
                       <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
                         Mensualité
                       </th>
@@ -149,12 +149,12 @@ const EquipmentList = ({
                           </Button>
                         </div>
                       </td>
-                      {!hideFinancialDetails && (
+                      {!hideFinancialDetails && !isAmbassadorMode && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                           {item.margin}%
                         </td>
                       )}
-                      {!hideFinancialDetails && (
+                      {!hideFinancialDetails && !isAmbassadorMode && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                           {formatCurrency(item.monthlyPayment || 0)}
                         </td>
@@ -188,7 +188,7 @@ const EquipmentList = ({
         </CardContent>
       </Card>
       
-      {/* Show financial summary - always display when we have equipment and total payment */}
+      {/* Show appropriate financial summary based on mode */}
       {equipmentList.length > 0 && totalMonthlyPayment > 0 && (
         <>
           {isAmbassadorMode ? (
