@@ -95,11 +95,9 @@ const EquipmentList = ({
                         Marge
                       </th>
                     )}
-                    {!isAmbassadorMode && (
-                      <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
-                        Mensualité
-                      </th>
-                    )}
+                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
+                      Mensualité
+                    </th>
                     <th className="px-2 py-2 text-right text-sm font-medium text-gray-700 min-w-[100px]">
                       Actions
                     </th>
@@ -158,11 +156,9 @@ const EquipmentList = ({
                           {item.margin}%
                         </td>
                       )}
-                      {!isAmbassadorMode && (
-                        <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                          {formatCurrency(item.monthlyPayment || 0)}
-                        </td>
-                      )}
+                      <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
+                        {formatCurrency(item.monthlyPayment || 0)}
+                      </td>
                       <td className="px-2 py-3 text-right">
                         <div className="flex items-center justify-end space-x-1">
                           <Button
