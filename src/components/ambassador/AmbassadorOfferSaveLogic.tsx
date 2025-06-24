@@ -102,7 +102,7 @@ export const useAmbassadorOfferSave = ({
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Utiliser la commission calculée par le hook
+      // Utiliser SEULEMENT la commission calculée par le hook - pas de recalculs
       const commissionAmount = commission.amount || 0;
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", {
@@ -126,7 +126,7 @@ export const useAmbassadorOfferSave = ({
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: commissionAmount,
+        commission: commissionAmount, // Utiliser directement la commission du hook
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
@@ -139,6 +139,7 @@ export const useAmbassadorOfferSave = ({
       };
       
       console.log("Saving offer with data:", offerData);
+      console.log("Commission being saved:", commissionAmount, "€");
       
       const { data, error } = await createOffer(offerData);
       
@@ -148,6 +149,7 @@ export const useAmbassadorOfferSave = ({
         return;
       }
       
+      console.log("Offre sauvegardée avec commission:", commissionAmount, "€");
       toast.success("Offre créée avec succès!");
       navigate("/ambassador/offers");
     } catch (error) {
