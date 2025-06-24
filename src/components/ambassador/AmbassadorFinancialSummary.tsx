@@ -2,7 +2,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
-import { DollarSign } from "lucide-react";
 import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
 
 interface AmbassadorFinancialSummaryProps {
@@ -58,8 +57,7 @@ const AmbassadorFinancialSummary = ({
         
         <div className="flex justify-between items-center py-2">
           <div className="font-medium text-gray-700">Votre commission:</div>
-          <div className="text-green-600 font-bold flex items-center gap-1">
-            <DollarSign className="h-4 w-4" />
+          <div className="text-green-600 font-bold">
             <span>
               {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
             </span>
