@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -419,7 +418,7 @@ const AmbassadorOfferDetail = () => {
     <PageTransition>
       <Container>
         <TooltipProvider>
-          <div className="p-4 md:p-6">
+          <div className="p-4 md:p-6 space-y-6">
             <div className="flex items-center mb-6">
               <Button 
                 variant="ghost" 
@@ -597,303 +596,301 @@ const AmbassadorOfferDetail = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-              <div>
-                <Card>
-                  <CardHeader className="border-b">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center mb-2">
-                          <h2 className="text-xl font-semibold">
-                            Offre pour {offer.client_name}
-                          </h2>
-                          <OfferStatusBadge status={offer.workflow_status} className="ml-3" />
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center">
-                          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
-                          Créée le {formatDate(offer.created_at)}
-                        </div>
+            <div>
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-2">
+                        <h2 className="text-xl font-semibold">
+                          Offre pour {offer.client_name}
+                        </h2>
+                        <OfferStatusBadge status={offer.workflow_status} className="ml-3" />
                       </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleSendEmail}
-                          disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
-                        >
-                          <Mail className="h-4 w-4 mr-2" />
-                          {sendingEmail ? 'Envoi...' : "Envoyer au client"}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={shareSignatureLink}
-                        >
-                          <SendHorizontal className="h-4 w-4 mr-2" />
-                          Envoyer lien de signature
-                        </Button>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                        Créée le {formatDate(offer.created_at)}
                       </div>
                     </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <Tabs defaultValue="status" value={activeTab} onValueChange={setActiveTab}>
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="status">Suivi</TabsTrigger>
-                        <TabsTrigger value="details">Détails</TabsTrigger>
-                        <TabsTrigger value="equipment">Équipement</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="status" className="mt-4">
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="font-medium mb-3">État actuel</h3>
-                            <div className="p-4 border rounded-md bg-slate-50">
-                              <div className="flex items-center">
-                                <Clock className="h-5 w-5 mr-3 text-blue-600" />
-                                <div>
-                                  <p className="font-medium">
-                                    {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.label || "Statut inconnu"}
-                                  </p>
-                                  <p className="text-sm text-gray-500">
-                                    Dernière mise à jour: {formatDate(offer.updated_at)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {offer.converted_to_contract && remainingMonths !== null && (
-                            <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
-                              <div className="flex items-center">
-                                <CalendarIcon className="h-5 w-5 mr-3 text-blue-600" />
-                                <div>
-                                  <p className="font-medium text-blue-800">
-                                    Contrat en cours
-                                  </p>
-                                  <p className="text-sm text-blue-700">
-                                    {remainingMonths} mois restants jusqu'à échéance
-                                  </p>
-                                  {contractEndDate && (
-                                    <p className="text-xs text-blue-600 mt-1">
-                                      Date de fin: {format(contractEndDate, "dd MMMM yyyy", { locale: fr })}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              {remainingMonths <= 3 && (
-                                <div className="mt-3 p-2 bg-amber-100 rounded text-sm text-amber-800">
-                                  <span className="font-medium">Action recommandée:</span> Contacter le client pour discuter du renouvellement
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          <div>
-                            <h3 className="font-medium mb-3">Processus de validation</h3>
-                            
-                            <div className="hidden md:flex justify-between mb-4">
-                              {workflowStatuses.map((status, index) => {
-                                const stepStatus = getStepStatus(status.id);
-                                return (
-                                  <div key={status.id} className="flex flex-col items-center">
-                                    <div 
-                                      className={`flex items-center justify-center w-16 h-16 rounded-full mb-2 ${
-                                        stepStatus === 'completed' ? 'bg-green-100' : 
-                                        stepStatus === 'active' ? status.color : 
-                                        'bg-gray-100'
-                                      }`}
-                                    >
-                                      {stepStatus === 'completed' ? (
-                                        <Check className="h-6 w-6 text-green-700" />
-                                      ) : (
-                                        <status.icon className="h-6 w-6" />
-                                      )}
-                                    </div>
-                                    <span className={`text-sm font-medium ${
-                                      stepStatus === 'active' ? 'text-blue-700' :
-                                      stepStatus === 'completed' ? 'text-green-700' : 
-                                      'text-gray-500'
-                                    }`}>
-                                      {status.label}
-                                    </span>
-                                    {index < workflowStatuses.length - 1 && (
-                                      <div className="absolute hidden md:block" style={{
-                                        left: `calc(${(index + 0.5) * (100 / workflowStatuses.length)}%)`,
-                                        width: `calc(${100 / workflowStatuses.length}%)`,
-                                        top: '2.5rem',
-                                        height: '2px',
-                                        backgroundColor: stepStatus === 'completed' ? '#22c55e' : '#e5e7eb'
-                                      }}></div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            
-                            <div className="md:hidden">
-                              <ol className="relative border-l border-gray-200 ml-3">
-                                {workflowStatuses.map((status, index) => {
-                                  const stepStatus = getStepStatus(status.id);
-                                  return (
-                                    <li key={status.id} className="mb-6 ml-6">
-                                      <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
-                                        stepStatus === 'completed' ? 'bg-green-100 ring-green-100 ring-4' : 
-                                        stepStatus === 'active' ? `${status.color} ${status.ringColor} ring-4` : 
-                                        'bg-gray-100 ring-gray-100 ring-4'
-                                      }`}>
-                                        {stepStatus === 'completed' ? 
-                                          <Check className="w-3 h-3 text-green-800" /> : 
-                                          stepStatus === 'active' ?
-                                          <status.icon className={`w-3 h-3 ${status.iconColor}`} /> :
-                                          <span className="w-3 h-3 text-gray-800">{index + 1}</span>
-                                        }
-                                      </span>
-                                      <h3 className="font-medium">{status.label}</h3>
-                                      <p className="text-sm text-gray-500">
-                                        {stepStatus === 'completed' ? "Complété" : 
-                                        stepStatus === 'active' ? "En cours" : "En attente"}
-                                      </p>
-                                    </li>
-                                  );
-                                })}
-                              </ol>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <Progress 
-                                value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
-                                className="h-2"
-                              />
-                              <p className="text-xs text-gray-500 mt-1 text-right">
-                                {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0}% complété
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="details" className="mt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h3 className="font-medium mb-2">Informations client</h3>
-                            <div className="space-y-2">
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span className="font-medium">{offer.client_name}</span>
-                              </div>
-                              {offer.client_email && (
-                                <div className="flex items-center">
-                                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                                  <span>{offer.client_email}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h3 className="font-medium mb-2">Détails de paiement</h3>
-                            <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Paiement mensuel:</span>
-                                <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || (offer.workflow_status !== 'draft' && offer.workflow_status !== 'sent')}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        {sendingEmail ? 'Envoi...' : "Envoyer au client"}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={shareSignatureLink}
+                      >
+                        <SendHorizontal className="h-4 w-4 mr-2" />
+                        Envoyer lien de signature
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <Tabs defaultValue="status" value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="status">Suivi</TabsTrigger>
+                      <TabsTrigger value="details">Détails</TabsTrigger>
+                      <TabsTrigger value="equipment">Équipement</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="status" className="mt-4">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="font-medium mb-3">État actuel</h3>
+                          <div className="p-4 border rounded-md bg-slate-50">
+                            <div className="flex items-center">
+                              <Clock className="h-5 w-5 mr-3 text-blue-600" />
+                              <div>
+                                <p className="font-medium">
+                                  {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.label || "Statut inconnu"}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Dernière mise à jour: {formatDate(offer.updated_at)}
+                                </p>
                               </div>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="mt-6">
-                          <h3 className="font-medium mb-2">Votre commission</h3>
-                          <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
-                                  <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
-                                </div>
-                                <div>
-                                  <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
-                                  <p className="text-2xl font-bold text-gray-700">
-                                    {formatCurrency(offer.commission || 0)}
-                                  </p>
-                                </div>
-                              </div>
+                        {offer.converted_to_contract && remainingMonths !== null && (
+                          <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+                            <div className="flex items-center">
+                              <CalendarIcon className="h-5 w-5 mr-3 text-blue-600" />
                               <div>
-                                {getCommissionStatusBadge(offer.commission_status)}
-                                {offer.commission_paid_at && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Payée le {formatDate(offer.commission_paid_at)}
+                                <p className="font-medium text-blue-800">
+                                  Contrat en cours
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                  {remainingMonths} mois restants jusqu'à échéance
+                                </p>
+                                {contractEndDate && (
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Date de fin: {format(contractEndDate, "dd MMMM yyyy", { locale: fr })}
                                   </p>
                                 )}
                               </div>
                             </div>
+                            {remainingMonths <= 3 && (
+                              <div className="mt-3 p-2 bg-amber-100 rounded text-sm text-amber-800">
+                                <span className="font-medium">Action recommandée:</span> Contacter le client pour discuter du renouvellement
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div>
+                          <h3 className="font-medium mb-3">Processus de validation</h3>
+                          
+                          <div className="hidden md:flex justify-between mb-4">
+                            {workflowStatuses.map((status, index) => {
+                              const stepStatus = getStepStatus(status.id);
+                              return (
+                                <div key={status.id} className="flex flex-col items-center">
+                                  <div 
+                                    className={`flex items-center justify-center w-16 h-16 rounded-full mb-2 ${
+                                      stepStatus === 'completed' ? 'bg-green-100' : 
+                                      stepStatus === 'active' ? status.color : 
+                                      'bg-gray-100'
+                                    }`}
+                                  >
+                                    {stepStatus === 'completed' ? (
+                                      <Check className="h-6 w-6 text-green-700" />
+                                    ) : (
+                                      <status.icon className="h-6 w-6" />
+                                    )}
+                                  </div>
+                                  <span className={`text-sm font-medium ${
+                                    stepStatus === 'active' ? 'text-blue-700' :
+                                    stepStatus === 'completed' ? 'text-green-700' : 
+                                    'text-gray-500'
+                                  }`}>
+                                    {status.label}
+                                  </span>
+                                  {index < workflowStatuses.length - 1 && (
+                                    <div className="absolute hidden md:block" style={{
+                                      left: `calc(${(index + 0.5) * (100 / workflowStatuses.length)}%)`,
+                                      width: `calc(${100 / workflowStatuses.length}%)`,
+                                      top: '2.5rem',
+                                      height: '2px',
+                                      backgroundColor: stepStatus === 'completed' ? '#22c55e' : '#e5e7eb'
+                                    }}></div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          <div className="md:hidden">
+                            <ol className="relative border-l border-gray-200 ml-3">
+                              {workflowStatuses.map((status, index) => {
+                                const stepStatus = getStepStatus(status.id);
+                                return (
+                                  <li key={status.id} className="mb-6 ml-6">
+                                    <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ${
+                                      stepStatus === 'completed' ? 'bg-green-100 ring-green-100 ring-4' : 
+                                      stepStatus === 'active' ? `${status.color} ${status.ringColor} ring-4` : 
+                                      'bg-gray-100 ring-gray-100 ring-4'
+                                    }`}>
+                                      {stepStatus === 'completed' ? 
+                                        <Check className="w-3 h-3 text-green-800" /> : 
+                                        stepStatus === 'active' ?
+                                        <status.icon className={`w-3 h-3 ${status.iconColor}`} /> :
+                                        <span className="w-3 h-3 text-gray-800">{index + 1}</span>
+                                      }
+                                    </span>
+                                    <h3 className="font-medium">{status.label}</h3>
+                                    <p className="text-sm text-gray-500">
+                                      {stepStatus === 'completed' ? "Complété" : 
+                                      stepStatus === 'active' ? "En cours" : "En attente"}
+                                    </p>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </div>
+                          
+                          <div className="mt-4">
+                            <Progress 
+                              value={OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0} 
+                              className="h-2"
+                            />
+                            <p className="text-xs text-gray-500 mt-1 text-right">
+                              {OFFER_STATUSES[offer.workflow_status.toUpperCase()]?.progressValue || 0}% complété
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="details" className="mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="font-medium mb-2">Informations client</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <span className="font-medium">{offer.client_name}</span>
+                            </div>
+                            {offer.client_email && (
+                              <div className="flex items-center">
+                                <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span>{offer.client_email}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
-                        {offer.remarks && (
-                          <div className="mt-6">
-                            <h3 className="font-medium mb-2">Remarques</h3>
-                            <div className="p-3 bg-slate-50 rounded-md">
-                              <p className="whitespace-pre-line">{offer.remarks}</p>
+                        <div>
+                          <h3 className="font-medium mb-2">Détails de paiement</h3>
+                          <div className="p-4 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 space-y-3 border border-blue-100">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Paiement mensuel:</span>
+                              <span className="font-semibold text-lg text-blue-700">{formatCurrency(offer.monthly_payment)}</span>
                             </div>
                           </div>
-                        )}
-                      </TabsContent>
+                        </div>
+                      </div>
                       
-                      <TabsContent value="equipment" className="mt-4">
-                        <EquipmentDisplay 
-                          equipmentDisplay={equipmentDisplayText} 
-                          monthlyPayment={offer.monthly_payment} 
-                          remarks={offer.remarks}
-                        />
-                        
-                        {equipmentData && equipmentData.length > 0 ? (
-                          <div className="space-y-4">
-                            <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
-                            {equipmentData.map((item: any, index: number) => (
-                              <Card key={index} className="overflow-hidden">
-                                <CardContent className="p-4">
-                                  <h3 className="font-semibold mb-2">{item.title}</h3>
-                                  <div className="grid grid-cols-2 gap-4 mb-3">
-                                    <div>
-                                      <p className="text-sm text-gray-500">Quantité</p>
-                                      <p className="font-medium">{item.quantity}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-500">Mensualité unitaire</p>
-                                      <p className="font-medium text-blue-700">
-                                        {formatCurrency(item.monthlyPayment || 0)}
-                                      </p>
+                      <div className="mt-6">
+                        <h3 className="font-medium mb-2">Votre commission</h3>
+                        <div className={`p-4 border rounded-md shadow-sm ${getCommissionBoxColor(offer.commission_status)}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className={`h-10 w-10 rounded-full ${offer.commission_status === 'paid' ? 'bg-green-100' : offer.commission_status === 'pending' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center mr-3`}>
+                                <Euro className={`h-5 w-5 ${getCommissionIconColor(offer.commission_status)}`} />
+                              </div>
+                              <div>
+                                <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
+                                <p className="text-2xl font-bold text-gray-700">
+                                  {formatCurrency(offer.commission || 0)}
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              {getCommissionStatusBadge(offer.commission_status)}
+                              {offer.commission_paid_at && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Payée le {formatDate(offer.commission_paid_at)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {offer.remarks && (
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Remarques</h3>
+                          <div className="p-3 bg-slate-50 rounded-md">
+                            <p className="whitespace-pre-line">{offer.remarks}</p>
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="equipment" className="mt-4">
+                      <EquipmentDisplay 
+                        equipmentDisplay={equipmentDisplayText} 
+                        monthlyPayment={offer.monthly_payment} 
+                        remarks={offer.remarks}
+                      />
+                      
+                      {equipmentData && equipmentData.length > 0 ? (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium mb-4">Détails des équipements</h3>
+                          {equipmentData.map((item: any, index: number) => (
+                            <Card key={index} className="overflow-hidden">
+                              <CardContent className="p-4">
+                                <h3 className="font-semibold mb-2">{item.title}</h3>
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                  <div>
+                                    <p className="text-sm text-gray-500">Quantité</p>
+                                    <p className="font-medium">{item.quantity}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-500">Mensualité unitaire</p>
+                                    <p className="font-medium text-blue-700">
+                                      {formatCurrency(item.monthlyPayment || 0)}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {item.variants && Object.keys(item.variants).length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-gray-100">
+                                    <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {Object.entries(item.variants).map(([key, value]: [string, any]) => (
+                                        <div key={key} className="flex flex-col">
+                                          <span className="text-xs text-gray-600">{key}</span>
+                                          <span className="font-medium text-sm">{String(value)}</span>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
-                                  
-                                  {item.variants && Object.keys(item.variants).length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                      <h4 className="text-xs uppercase text-gray-500 mb-2">Spécifications</h4>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {Object.entries(item.variants).map(([key, value]: [string, any]) => (
-                                          <div key={key} className="flex flex-col">
-                                            <span className="text-xs text-gray-600">{key}</span>
-                                            <span className="font-medium text-sm">{String(value)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md bg-gray-50">
-                            <Info className="h-10 w-10 text-gray-400 mb-2" />
-                            <p className="text-gray-500">Aucune information d'équipement disponible</p>
-                          </div>
-                        )}
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8 text-center border rounded-md bg-gray-50">
+                          <Info className="h-10 w-10 text-gray-400 mb-2" />
+                          <p className="text-gray-500">Aucune information d'équipement disponible</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </TooltipProvider>
