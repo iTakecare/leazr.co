@@ -2307,6 +2307,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      count_ambassador_clients_secure: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       create_categories_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2691,6 +2695,10 @@ export type Database = {
         Args: { target_company_id: string }
         Returns: boolean
       }
+      link_client_to_ambassador_secure: {
+        Args: { p_user_id: string; p_client_id: string }
+        Returns: boolean
+      }
       mark_clients_as_duplicates: {
         Args: { client_ids: string[]; main_client_id: string }
         Returns: boolean
@@ -2702,6 +2710,10 @@ export type Database = {
       refresh_admin_pending_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      unlink_client_from_ambassador_secure: {
+        Args: { p_user_id: string; p_client_id: string }
+        Returns: boolean
       }
       update_ambassador_commission_level: {
         Args: { ambassador_id: string; commission_level_id: string }

@@ -96,7 +96,7 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
   }
 };
 
-// Lier un client à un ambassadeur
+// Lier un client à un ambassadeur en utilisant la fonction sécurisée
 export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
   try {
     console.log("🔍 DIAGNOSTIC - Début linkClientToAmbassador:", { clientId, ambassadorId });
@@ -113,26 +113,26 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Créer le lien entre client et ambassadeur
-    const { error: linkError } = await supabase
-      .from("ambassador_clients")
-      .insert({
-        client_id: clientId,
-        ambassador_id: ambassadorId
+    // Utiliser la fonction sécurisée
+    const { data, error } = await supabase
+      .rpc('link_client_to_ambassador_secure', {
+        p_user_id: user.id,
+        p_client_id: clientId
       });
 
     console.log("🔍 DIAGNOSTIC - Résultat création lien:", {
-      success: !linkError,
-      error: linkError?.message
+      success: !error,
+      data,
+      error: error?.message
     });
 
-    if (linkError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la création du lien:", linkError);
-      throw linkError;
+    if (error) {
+      console.error("🔍 DIAGNOSTIC - Erreur lors de la création du lien:", error);
+      throw error;
     }
 
     console.log("🔍 DIAGNOSTIC - Fin linkClientToAmbassador - Succès");
-    return true;
+    return data;
   } catch (error) {
     console.error("🔍 DIAGNOSTIC - Erreur fatale dans linkClientToAmbassador:", {
       errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
@@ -143,7 +143,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
   }
 };
 
-// Supprimer un client ambassadeur
+// Supprimer un client ambassadeur en utilisant la fonction sécurisée
 export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
   try {
     console.log("🔍 DIAGNOSTIC - Début deleteAmbassadorClient:", { clientId });
@@ -160,24 +160,26 @@ export const deleteAmbassadorClient = async (clientId: string): Promise<boolean>
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Utiliser RLS pour supprimer - les politiques vérifieront automatiquement les permissions
-    const { error: linkError } = await supabase
-      .from("ambassador_clients")
-      .delete()
-      .eq("client_id", clientId);
+    // Utiliser la fonction sécurisée pour délier
+    const { data, error } = await supabase
+      .rpc('unlink_client_from_ambassador_secure', {
+        p_user_id: user.id,
+        p_client_id: clientId
+      });
 
     console.log("🔍 DIAGNOSTIC - Résultat suppression lien:", {
-      success: !linkError,
-      error: linkError?.message
+      success: !error,
+      data,
+      error: error?.message
     });
 
-    if (linkError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la suppression du lien:", linkError);
-      throw linkError;
+    if (error) {
+      console.error("🔍 DIAGNOSTIC - Erreur lors de la suppression du lien:", error);
+      throw error;
     }
 
     console.log("🔍 DIAGNOSTIC - Fin deleteAmbassadorClient - Succès");
-    return true;
+    return data;
   } catch (error) {
     console.error("🔍 DIAGNOSTIC - Erreur fatale dans deleteAmbassadorClient:", {
       errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
