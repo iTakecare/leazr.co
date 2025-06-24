@@ -79,6 +79,22 @@ export const saveEquipment = async (
   specifications: Record<string, string | number> = {}
 ): Promise<OfferEquipment | null> => {
   try {
+    console.log("Saving equipment for offer:", equipment.offer_id);
+    
+    // Vérifier d'abord que l'offre existe et que l'utilisateur a les droits
+    const { data: offerCheck, error: offerError } = await supabase
+      .from('offers')
+      .select('id, user_id, ambassador_id')
+      .eq('id', equipment.offer_id)
+      .single();
+    
+    if (offerError || !offerCheck) {
+      console.error("Erreur lors de la vérification de l'offre:", offerError);
+      return null;
+    }
+    
+    console.log("Offer verified, proceeding with equipment creation");
+    
     // 1. Insérer l'équipement principal
     const { data: equipmentData, error: equipmentError } = await supabase
       .from('offer_equipment')
@@ -100,6 +116,7 @@ export const saveEquipment = async (
     }
     
     const equipmentId = equipmentData.id;
+    console.log("Equipment created with ID:", equipmentId);
     
     // 2. Insérer les attributs
     const attributeEntries = Object.entries(attributes);
@@ -159,9 +176,12 @@ export const saveEquipment = async (
 
 /**
  * Migre les équipements existants du format JSON vers la nouvelle structure de tables
+ * ATTENTION: Cette fonction ne supprime plus les anciens équipements pour éviter les erreurs RLS
  */
 export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: string | any): Promise<boolean> => {
   try {
+    console.log("Starting equipment migration for offer:", offerId);
+    
     // Convertir equipmentJson en objet s'il est déjà une chaîne
     let equipmentData;
     
@@ -183,11 +203,34 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
     
     console.log("Données d'équipement à migrer:", equipmentData);
     
-    // Supprimer les anciens équipements s'ils existent
-    await supabase
+    // Vérifier d'abord que l'offre existe
+    const { data: offerExists, error: offerError } = await supabase
+      .from('offers')
+      .select('id')
+      .eq('id', offerId)
+      .single();
+    
+    if (offerError || !offerExists) {
+      console.error("L'offre n'existe pas encore, migration reportée");
+      return false;
+    }
+    
+    // Vérifier s'il y a déjà des équipements pour cette offre
+    const { data: existingEquipment, error: checkError } = await supabase
       .from('offer_equipment')
-      .delete()
-      .eq('offer_id', offerId);
+      .select('id')
+      .eq('offer_id', offerId)
+      .limit(1);
+    
+    if (checkError) {
+      console.error("Erreur lors de la vérification des équipements existants:", checkError);
+    }
+    
+    // Si des équipements existent déjà, ne pas les recréer
+    if (existingEquipment && existingEquipment.length > 0) {
+      console.log("Des équipements existent déjà pour cette offre, migration ignorée");
+      return true;
+    }
     
     // Migrer chaque équipement
     for (const item of equipmentData) {
@@ -228,7 +271,10 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
       }
       
       // Sauvegarder l'équipement avec ses attributs et spécifications
-      await saveEquipment(newEquipment, attributes, specifications);
+      const result = await saveEquipment(newEquipment, attributes, specifications);
+      if (!result) {
+        console.error("Échec de la sauvegarde d'un équipement:", newEquipment);
+      }
     }
     
     console.log(`Migration terminée avec succès pour l'offre ${offerId}`);
