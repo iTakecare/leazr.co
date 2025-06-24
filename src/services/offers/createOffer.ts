@@ -40,7 +40,7 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
     }
     
-    // Préparer les données pour la base de données (sans le champ equipment)
+    // Préparer les données pour la base de données (SANS le champ equipment)
     const dbOfferData = {
       user_id: offerData.user_id,
       company_id: companyId,
@@ -159,7 +159,7 @@ export const createOffer = async (offerData: OfferData) => {
       company_id: dbOfferData.company_id
     });
     
-    // Insertion de l'offre
+    // Insertion de l'offre (SANS le champ equipment)
     console.log("💾 INSERTION - Tentative d'insertion en base de données...");
     const { data, error } = await supabase
       .from('offers')
@@ -180,9 +180,9 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("📋 Données de l'offre créée:", data);
     console.log("🆔 ID de la nouvelle offre:", data.id);
     
-    // Si nous avons des équipements avec des attributs, les sauvegarder dans les nouvelles tables
+    // Maintenant sauvegarder les équipements avec leurs attributs et spécifications
     if (offerData.equipment && Array.isArray(offerData.equipment) && data.id) {
-      console.log("💾 SAUVEGARDE des équipements avec attributs...");
+      console.log("💾 SAUVEGARDE des équipements avec attributs et spécifications...");
       
       for (const equipment of offerData.equipment) {
         try {
