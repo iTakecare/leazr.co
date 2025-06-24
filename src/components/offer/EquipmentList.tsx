@@ -51,6 +51,14 @@ const EquipmentList = ({
     updateQuantity(id, newQuantity);
   };
 
+  console.log("EquipmentList - Ambassador info:", {
+    ambassadorId,
+    commissionLevelId,
+    equipmentListLength: equipmentList.length,
+    totalMonthlyPayment,
+    hideFinancialDetails
+  });
+
   return (
     <div className="space-y-6">
       <Card className="border border-gray-200 shadow-sm">
@@ -184,7 +192,7 @@ const EquipmentList = ({
         />
       )}
       
-      {ambassadorId && equipmentList.length > 0 && (
+      {ambassadorId && (
         <CommissionDisplay
           totalMonthlyPayment={totalMonthlyPayment}
           ambassadorId={ambassadorId}
