@@ -13,6 +13,14 @@ interface EquipmentDisplayProps {
   equipmentDisplay: string;
   monthlyPayment: number;
   remarks?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientCompany?: string;
+  clientPhone?: string;
+  clientAddress?: string;
+  clientCity?: string;
+  clientPostalCode?: string;
+  clientCountry?: string;
 }
 
 interface EquipmentItem {
@@ -27,7 +35,15 @@ interface EquipmentItem {
 const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   equipmentDisplay,
   monthlyPayment,
-  remarks
+  remarks,
+  clientName,
+  clientEmail,
+  clientCompany,
+  clientPhone,
+  clientAddress,
+  clientCity,
+  clientPostalCode,
+  clientCountry
 }) => {
   // Parse equipment data if it's JSON
   const parseEquipmentData = (): EquipmentItem[] => {
@@ -55,26 +71,54 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
     <Card className="mb-6">
       <CardHeader className="bg-gray-50 border-b">
         <CardTitle className="text-lg font-semibold text-gray-800">
-          DEVIS - Équipement et financement
+          DEVIS DE FINANCEMENT - Équipement et conditions
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Table Header */}
+        {/* Client Information Section */}
+        <div className="p-6 bg-blue-50 border-b">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">Informations client</h3>
+              <div className="space-y-2 text-sm">
+                {clientCompany && (
+                  <div><span className="font-medium">Société:</span> {clientCompany}</div>
+                )}
+                <div><span className="font-medium">Contact:</span> {clientName}</div>
+                {clientEmail && (
+                  <div><span className="font-medium">Email:</span> {clientEmail}</div>
+                )}
+                {clientPhone && (
+                  <div><span className="font-medium">Téléphone:</span> {clientPhone}</div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">Adresse</h3>
+              <div className="text-sm text-gray-600">
+                {clientAddress && <div>{clientAddress}</div>}
+                {(clientPostalCode || clientCity) && (
+                  <div>{clientPostalCode} {clientCity}</div>
+                )}
+                {clientCountry && <div>{clientCountry}</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Equipment Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-100 border-b">
-                <th className="text-left py-3 px-4 font-medium text-gray-700 min-w-[300px]">
+                <th className="text-left py-3 px-4 font-medium text-gray-700 min-w-[400px]">
                   Désignation
                 </th>
                 <th className="text-center py-3 px-4 font-medium text-gray-700 w-20">
                   Qté
                 </th>
                 <th className="text-right py-3 px-4 font-medium text-gray-700 w-32">
-                  Prix unitaire
-                </th>
-                <th className="text-right py-3 px-4 font-medium text-gray-700 w-32">
-                  Mensualité
+                  Mensualité HT
                 </th>
               </tr>
             </thead>
@@ -115,9 +159,6 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                   <td className="py-4 px-4 text-center font-medium">
                     {item.quantity}
                   </td>
-                  <td className="py-4 px-4 text-right">
-                    {item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}
-                  </td>
                   <td className="py-4 px-4 text-right font-medium">
                     {formatCurrency(item.monthlyPayment)}
                   </td>
@@ -141,6 +182,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
 
         {/* Financing Details */}
         <div className="p-4 bg-blue-50 border-t">
+          <h3 className="font-semibold text-gray-800 mb-3">Conditions de financement</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="font-medium text-gray-700">Durée:</span>
@@ -155,6 +197,11 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
               <span className="ml-2">Non comprise</span>
             </div>
           </div>
+          <div className="mt-3 text-xs text-gray-600">
+            <p>• Engagement ferme sur la durée totale du contrat</p>
+            <p>• Option d'achat en fin de contrat pour 1€ symbolique</p>
+            <p>• Assurance incluse dans les mensualités</p>
+          </div>
         </div>
 
         {/* Remarks Section */}
@@ -167,6 +214,19 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
             </div>
           </>
         )}
+
+        {/* Signature Section */}
+        <div className="p-6 bg-gray-50 border-t">
+          <div className="text-center">
+            <h3 className="font-semibold text-gray-800 mb-2">Validation du devis</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              En signant ce devis, vous acceptez les conditions de financement proposées
+            </p>
+            <div className="text-xs text-gray-500">
+              Ce devis est valable 30 jours à compter de sa date d'émission
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

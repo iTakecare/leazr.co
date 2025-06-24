@@ -135,7 +135,12 @@ export const getOfferForClient = async (offerId: string) => {
         clients (
           company,
           id,
-          email
+          email,
+          phone,
+          address,
+          city,
+          postal_code,
+          country
         )
       `)
       .eq('id', offerId)
@@ -225,7 +230,7 @@ export const getOfferForClient = async (offerId: string) => {
       console.log("Récupération des détails du client associé...");
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('company, email')
+        .select('company, email, phone, address, city, postal_code, country')
         .eq('id', simpleData.client_id)
         .maybeSingle();
         

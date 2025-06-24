@@ -94,7 +94,15 @@ const SignOffer = () => {
           <EquipmentDisplay 
             equipmentDisplay={equipmentDisplay} 
             monthlyPayment={offer.monthly_payment} 
-            remarks={offer.remarks} 
+            remarks={offer.remarks}
+            clientName={offer.client_name}
+            clientEmail={offer.client_email}
+            clientCompany={offer.clients?.company}
+            clientPhone={offer.clients?.phone}
+            clientAddress={offer.clients?.address}
+            clientCity={offer.clients?.city}
+            clientPostalCode={offer.clients?.postal_code}
+            clientCountry={offer.clients?.country}
           />
           
           <SignatureSection 
