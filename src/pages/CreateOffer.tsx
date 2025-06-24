@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -333,8 +332,6 @@ const CreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
-        // Passer les équipements pour la sauvegarde dans les nouvelles tables
-        equipment: equipmentData,
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
