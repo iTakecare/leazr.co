@@ -101,6 +101,9 @@ const AmbassadorCreateOffer = () => {
   const currentAmbassadorId = ambassadorId;
   const currentCommissionLevelId = ambassador?.commission_level_id;
 
+  // Calculate the correct total margin from calculations
+  const totalMargin = calculations?.normalMarginAmount || 0;
+
   console.log("🔍 AmbassadorCreateOffer - Render debug:", {
     ambassadorId,
     currentAmbassadorId,
@@ -109,7 +112,9 @@ const AmbassadorCreateOffer = () => {
     totalMonthlyPayment,
     equipmentListLength: equipmentList.length,
     loading,
-    userRole: user?.role
+    userRole: user?.role,
+    calculationsNormalMargin: calculations?.normalMarginAmount,
+    totalMarginCalculated: totalMargin
   });
 
   return (
@@ -186,6 +191,7 @@ const AmbassadorCreateOffer = () => {
                       ambassadorId={currentAmbassadorId}
                       commissionLevelId={currentCommissionLevelId}
                       hidePriceColumn={true}
+                      calculations={calculations}
                     />
                     
                     <ClientInfo
