@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -149,7 +150,6 @@ const AmbassadorOfferDetail = () => {
     }
     
     try {
-      // Mettre à jour le statut si l'offre est en brouillon
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
           .from('offers')
@@ -167,7 +167,6 @@ const AmbassadorOfferDetail = () => {
       
       console.log("Tentative d'envoi d'email depuis AmbassadorOfferDetail pour:", offer.client_email);
       
-      // Envoyer l'email "offre prête à consulter"
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
@@ -601,7 +600,7 @@ const AmbassadorOfferDetail = () => {
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
               <div>
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="border-b">
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center mb-2">

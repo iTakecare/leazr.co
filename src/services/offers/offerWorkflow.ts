@@ -7,7 +7,7 @@ export const getWorkflowLogs = async (offerId: string): Promise<any[]> => {
       .from('offer_workflow_logs')
       .select(`
         *,
-        profiles!fk_offer_workflow_logs_user_id (first_name, last_name, email, avatar_url)
+        profiles!fk_offer_workflow_logs_user_id (first_name, last_name)
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
