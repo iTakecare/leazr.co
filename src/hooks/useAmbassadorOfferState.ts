@@ -54,10 +54,18 @@ export const useAmbassadorOfferState = () => {
   }, [clientId]);
   
   useEffect(() => {
+    console.log("useAmbassadorOfferState - useEffect triggered:", { 
+      paramAmbassadorId, 
+      userId: user?.id, 
+      userRole: user?.role 
+    });
+    
     if (paramAmbassadorId) {
+      console.log("useAmbassadorOfferState - Using paramAmbassadorId:", paramAmbassadorId);
       fetchAmbassador(paramAmbassadorId);
       setAmbassadorId(paramAmbassadorId);
     } else if (user?.id) {
+      console.log("useAmbassadorOfferState - Fetching ambassador by user ID:", user.id);
       // Récupérer l'ambassadeur associé à cet utilisateur
       fetchAmbassadorByUserId(user.id);
     }
@@ -66,7 +74,7 @@ export const useAmbassadorOfferState = () => {
   const fetchAmbassadorByUserId = async (userId: string) => {
     try {
       setLoading(true);
-      console.log("Fetching ambassador for user ID:", userId);
+      console.log("🔍 fetchAmbassadorByUserId - Starting with userId:", userId);
       
       const { data, error } = await supabase
         .from("ambassadors")
@@ -74,18 +82,23 @@ export const useAmbassadorOfferState = () => {
         .eq("user_id", userId)
         .single();
       
+      console.log("🔍 fetchAmbassadorByUserId - Query result:", { data, error });
+      
       if (error) {
-        console.error("Error fetching ambassador by user ID:", error);
+        console.error("🔍 fetchAmbassadorByUserId - Error:", error);
         return;
       }
       
       if (data) {
-        console.log("Ambassador found for user:", data);
+        console.log("🔍 fetchAmbassadorByUserId - Ambassador found:", data);
         setAmbassador(data);
         setAmbassadorId(data.id);
+        console.log("🔍 fetchAmbassadorByUserId - State updated with ambassadorId:", data.id);
+      } else {
+        console.log("🔍 fetchAmbassadorByUserId - No ambassador found for user:", userId);
       }
     } catch (error) {
-      console.error("Error in fetchAmbassadorByUserId:", error);
+      console.error("🔍 fetchAmbassadorByUserId - Catch error:", error);
     } finally {
       setLoading(false);
     }
@@ -146,6 +159,14 @@ export const useAmbassadorOfferState = () => {
     setSelectedLeaser(leaser);
     setLeaserSelectorOpen(false);
   };
+
+  // Log des états pour debug
+  console.log("🔍 useAmbassadorOfferState - Current state:", {
+    ambassadorId,
+    ambassador: ambassador ? { id: ambassador.id, commission_level_id: ambassador.commission_level_id } : null,
+    loading,
+    userId: user?.id
+  });
 
   return {
     client,
