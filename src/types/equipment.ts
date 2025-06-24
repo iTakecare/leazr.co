@@ -1,5 +1,3 @@
-
-
 export interface Equipment {
   id: string;
   title: string;
@@ -8,6 +6,7 @@ export interface Equipment {
   margin: number;
   monthlyPayment?: number;
   attributes?: Record<string, any>; // Ajout des attributs
+  specifications?: Record<string, any>; // Ajout des spécifications
 }
 
 export interface Leaser {
@@ -40,4 +39,3 @@ export interface GlobalMarginAdjustment {
   adaptMonthlyPayment: boolean;
   marginDifference: number;
 }
-
