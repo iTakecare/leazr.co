@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Loader2, Mail, Phone, Building } from "lucide-react";
-import { getAmbassadorClients } from "@/services/ambassadorService";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 
 interface AmbassadorClientsSectionProps {
   ambassadorId: string;
@@ -17,7 +17,8 @@ const AmbassadorClientsSection = ({ ambassadorId }: AmbassadorClientsSectionProp
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const clientsData = await getAmbassadorClients(ambassadorId);
+        // Utiliser la fonction sécurisée directement
+        const clientsData = await getAmbassadorClients();
         setClients(clientsData);
       } catch (error) {
         console.error("Error loading ambassador clients:", error);
