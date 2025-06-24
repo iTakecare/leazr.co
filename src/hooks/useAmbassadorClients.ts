@@ -12,14 +12,14 @@ export const useAmbassadorClients = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Charger les clients de l'ambassadeur
+  // Charger les clients de l'ambassadeur en utilisant UNIQUEMENT les fonctions sécurisées
   const loadClients = async () => {
-    console.log("🔍 HOOK DIAGNOSTIC - Début loadClients");
+    console.log("🔍 HOOK DIAGNOSTIC - Début loadClients avec fonctions sécurisées");
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log("🔍 HOOK DIAGNOSTIC - Appel getAmbassadorClients...");
+      console.log("🔍 HOOK DIAGNOSTIC - Appel getAmbassadorClients (fonction sécurisée)...");
       const data = await getAmbassadorClients();
       console.log("🔍 HOOK DIAGNOSTIC - Clients chargés avec succès:", {
         count: data.length,
@@ -66,7 +66,7 @@ export const useAmbassadorClients = () => {
     }
   };
 
-  // Supprimer un client ambassadeur
+  // Supprimer un client ambassadeur en utilisant UNIQUEMENT les fonctions sécurisées
   const deleteClient = async (clientId: string): Promise<void> => {
     console.log("🔍 HOOK DIAGNOSTIC - Début deleteClient:", { clientId });
     try {

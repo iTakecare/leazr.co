@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
 
-// Obtenir les clients d'un ambassadeur en utilisant la fonction SECURITY DEFINER
+// Obtenir les clients d'un ambassadeur en utilisant UNIQUEMENT la fonction SECURITY DEFINER
 export const getAmbassadorClients = async (): Promise<Client[]> => {
   try {
     console.log("🔍 DIAGNOSTIC - Début getAmbassadorClients avec fonction SECURITY DEFINER");
@@ -21,7 +21,7 @@ export const getAmbassadorClients = async (): Promise<Client[]> => {
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Appeler la fonction SECURITY DEFINER pour récupérer les clients
+    // Appeler UNIQUEMENT la fonction SECURITY DEFINER pour récupérer les clients
     console.log("🔍 DIAGNOSTIC - Appel de la fonction get_ambassador_clients_secure avec user_id:", user.id);
     
     const { data: clientsData, error: clientsError } = await supabase
@@ -113,7 +113,7 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Utiliser la fonction sécurisée
+    // Utiliser UNIQUEMENT la fonction sécurisée
     const { data, error } = await supabase
       .rpc('link_client_to_ambassador_secure', {
         p_user_id: user.id,
@@ -160,7 +160,7 @@ export const deleteAmbassadorClient = async (clientId: string): Promise<boolean>
       throw new Error("Utilisateur non authentifié");
     }
     
-    // Utiliser la fonction sécurisée pour délier
+    // Utiliser UNIQUEMENT la fonction sécurisée pour délier
     const { data, error } = await supabase
       .rpc('unlink_client_from_ambassador_secure', {
         p_user_id: user.id,
