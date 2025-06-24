@@ -5,6 +5,7 @@ import { createOffer } from "@/services/offers";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { Client } from "@/types/client";
+import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
 
 interface AmbassadorOfferSaveLogicProps {
   client: Client | null;
@@ -16,6 +17,8 @@ interface AmbassadorOfferSaveLogicProps {
   ambassador: any;
   userId?: string;
   setIsSubmitting: (value: boolean) => void;
+  totalMonthlyPayment: number;
+  totalMargin?: number;
 }
 
 export const useAmbassadorOfferSave = ({
@@ -27,9 +30,20 @@ export const useAmbassadorOfferSave = ({
   ambassadorId,
   ambassador,
   userId,
-  setIsSubmitting
+  setIsSubmitting,
+  totalMonthlyPayment,
+  totalMargin
 }: AmbassadorOfferSaveLogicProps) => {
   const navigate = useNavigate();
+
+  // Utiliser le hook de calcul de commission pour obtenir la commission correcte
+  const commission = useCommissionCalculator(
+    totalMonthlyPayment,
+    ambassadorId,
+    ambassador?.commission_level_id,
+    equipmentList.length,
+    totalMargin
+  );
 
   const handleSaveOffer = async () => {
     if (!client) {
@@ -69,11 +83,6 @@ export const useAmbassadorOfferSave = ({
     try {
       setIsSubmitting(true);
       
-      const totalMonthlyPayment = equipmentList.reduce(
-        (sum, item) => sum + ((item.monthlyPayment || 0) * item.quantity),
-        0
-      );
-      
       const totalPurchasePrice = equipmentList.reduce(
         (sum, item) => sum + (item.purchasePrice * item.quantity),
         0
@@ -93,37 +102,15 @@ export const useAmbassadorOfferSave = ({
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
-      // Récupérer la commission depuis le composant SimpleCommissionDisplay
-      let commissionAmount = 0;
-      
-      const commissionElement = document.getElementById('ambassador-commission-value');
-      
-      if (commissionElement && commissionElement.dataset.commissionAmount) {
-        try {
-          commissionAmount = parseFloat(commissionElement.dataset.commissionAmount);
-          console.log("Commission récupérée depuis SimpleCommissionDisplay:", commissionAmount);
-        } catch (error) {
-          console.error("Error parsing commission:", error);
-          // Fallback: calcul simple 5% du montant financé
-          commissionAmount = Math.round(financedAmount * 0.05);
-          console.log("Fallback commission appliquée:", commissionAmount);
-        }
-      } else {
-        // Fallback: calcul simple 5% du montant financé
-        commissionAmount = Math.round(financedAmount * 0.05);
-        console.log("Commission par défaut appliquée (élément non trouvé):", commissionAmount);
-      }
-      
-      // Validation finale de la commission
-      if (commissionAmount === 0 || isNaN(commissionAmount)) {
-        commissionAmount = Math.round(financedAmount * 0.05);
-        console.log("Commission finale (validation échouée):", commissionAmount);
-      }
+      // Utiliser la commission calculée par le hook
+      const commissionAmount = commission.amount || 0;
       
       console.log("COMMISSION FINALE À SAUVEGARDER:", {
         commissionAmount,
+        commissionFromHook: commission,
         financedAmount,
         totalMonthlyPayment,
+        totalMargin,
         ambassadorId: currentAmbassadorId,
         ambassador: ambassador?.name || 'Unknown'
       });
@@ -145,7 +132,7 @@ export const useAmbassadorOfferSave = ({
         type: "ambassador_offer",
         user_id: userId,
         ambassador_id: currentAmbassadorId,
-        company_id: ambassadorCompanyId, // Ajouter le company_id obligatoire
+        company_id: ambassadorCompanyId,
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifferenceString,
         margin: marginAmount

@@ -6,7 +6,6 @@ import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import PageTransition from "@/components/layout/PageTransition";
-import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 import { Calculator as CalcIcon } from "lucide-react";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
@@ -60,6 +59,9 @@ const AmbassadorCreateOffer = () => {
     calculations
   } = useSimplifiedEquipmentCalculator(selectedLeaser);
 
+  // Calculate the correct total margin from calculations
+  const totalMargin = calculations?.normalMarginAmount || 0;
+
   const { handleSaveOffer } = useAmbassadorOfferSave({
     client,
     equipmentList,
@@ -69,7 +71,9 @@ const AmbassadorCreateOffer = () => {
     ambassadorId,
     ambassador,
     userId: user?.id,
-    setIsSubmitting
+    setIsSubmitting,
+    totalMonthlyPayment,
+    totalMargin
   });
 
   const handleOpenClientSelector = () => {
@@ -100,9 +104,6 @@ const AmbassadorCreateOffer = () => {
   // Determine the correct ambassador ID and commission level ID
   const currentAmbassadorId = ambassadorId;
   const currentCommissionLevelId = ambassador?.commission_level_id;
-
-  // Calculate the correct total margin from calculations
-  const totalMargin = calculations?.normalMarginAmount || 0;
 
   console.log("🔍 AmbassadorCreateOffer - Render debug:", {
     ambassadorId,
