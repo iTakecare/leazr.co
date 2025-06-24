@@ -43,37 +43,85 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
       if (equipmentDisplay.startsWith('[') || equipmentDisplay.startsWith('{')) {
         const parsed = JSON.parse(equipmentDisplay);
         if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.map(item => ({
+            title: item.title || 'Équipement',
+            quantity: Number(item.quantity) || 1,
+            purchasePrice: Number(item.purchasePrice) || 0,
+            monthlyPayment: Number(item.monthlyPayment) || 0,
+            attributes: item.attributes || {},
+            specifications: item.specifications || {}
+          }));
         } else {
-          return [parsed];
+          return [{
+            title: parsed.title || 'Équipement',
+            quantity: Number(parsed.quantity) || 1,
+            purchasePrice: Number(parsed.purchasePrice) || 0,
+            monthlyPayment: Number(parsed.monthlyPayment) || monthlyPayment,
+            attributes: parsed.attributes || {},
+            specifications: parsed.specifications || {}
+          }];
         }
       }
     } catch (e) {
-      // If parsing fails, try to split by common separators to create individual items
+      console.error("Erreur lors du parsing JSON:", e);
     }
     
-    // Fallback: try to split the equipment description into individual items
+    // Fallback: essayer de parser le texte pour extraire les équipements
     const equipmentText = equipmentDisplay || "";
     
-    // Split by comma and create individual equipment items
-    const equipmentParts = equipmentText.split(',').map(item => item.trim()).filter(item => item.length > 0);
+    // Diviser par ligne d'abord, puis par virgule si nécessaire
+    let equipmentParts = equipmentText.split('\n').map(item => item.trim()).filter(item => item.length > 0);
     
-    if (equipmentParts.length > 1) {
-      // Calculate monthly payment per item (distribute evenly)
-      const monthlyPaymentPerItem = monthlyPayment / equipmentParts.length;
-      
-      return equipmentParts.map(part => ({
-        title: part,
-        quantity: 1,
-        monthlyPayment: monthlyPaymentPerItem
-      }));
+    // Si pas de saut de ligne, essayer la virgule
+    if (equipmentParts.length === 1) {
+      equipmentParts = equipmentText.split(',').map(item => item.trim()).filter(item => item.length > 0);
     }
     
-    // If no comma separation possible, create a single item
+    if (equipmentParts.length > 1) {
+      // Pour chaque équipement, essayer d'extraire les informations disponibles
+      return equipmentParts.map(part => {
+        let title = part;
+        let quantity = 1;
+        let unitPrice = monthlyPayment / equipmentParts.length; // Répartition équitable par défaut
+        
+        // Chercher des patterns pour la quantité (ex: "2x MacBook" ou "MacBook (x2)")
+        const quantityMatch = part.match(/(\d+)\s*[x×]\s*(.+)|(.+)\s*\(?\s*[x×]\s*(\d+)\s*\)?/i);
+        if (quantityMatch) {
+          if (quantityMatch[1] && quantityMatch[2]) {
+            quantity = parseInt(quantityMatch[1], 10);
+            title = quantityMatch[2].trim();
+          } else if (quantityMatch[3] && quantityMatch[4]) {
+            title = quantityMatch[3].trim();
+            quantity = parseInt(quantityMatch[4], 10);
+          }
+        }
+        
+        // Chercher des prix dans le texte (format: 123€ ou 123.45€)
+        const priceMatch = part.match(/(\d+(?:[.,]\d{2})?)\s*€/);
+        if (priceMatch) {
+          const extractedPrice = parseFloat(priceMatch[1].replace(',', '.'));
+          unitPrice = extractedPrice;
+          // Nettoyer le titre en retirant le prix
+          title = title.replace(/\s*-?\s*\d+(?:[.,]\d{2})?\s*€.*$/, '').trim();
+        }
+        
+        return {
+          title: title || 'Équipement',
+          quantity: quantity,
+          monthlyPayment: unitPrice,
+          attributes: {},
+          specifications: {}
+        };
+      });
+    }
+    
+    // Si un seul équipement, utiliser le montant total
     return [{
       title: equipmentDisplay || "Équipement",
       quantity: 1,
-      monthlyPayment: monthlyPayment
+      monthlyPayment: monthlyPayment,
+      attributes: {},
+      specifications: {}
     }];
   };
 
