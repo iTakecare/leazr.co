@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +10,7 @@ import PartnerRoutes from "./PartnerRoutes";
 // Pages admin existantes
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 
 // Pages publiques (sans authentification)
 import LandingPage from "@/pages/LandingPage";
@@ -83,6 +83,9 @@ const MultiTenantRouter = () => {
       
       {/* Route de connexion accessible à tous */}
       <Route path="/login" element={<Login />} />
+      
+      {/* Route de mot de passe oublié accessible à tous */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       
       {/* Route de mise à jour du mot de passe accessible à tous */}
       <Route path="/update-password" element={<UpdatePassword />} />

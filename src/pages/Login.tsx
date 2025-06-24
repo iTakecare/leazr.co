@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
@@ -156,31 +155,12 @@ const Login = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="password">Mot de passe</Label>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (email) {
-                          setLoading(true);
-                          supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/login`
-                          }).then(({ error }) => {
-                            setLoading(false);
-                            if (error) {
-                              toast.error('Erreur: ' + error.message);
-                            } else {
-                              toast.success('Email de réinitialisation envoyé');
-                            }
-                          });
-                        } else {
-                          toast.error('Veuillez entrer votre email');
-                        }
-                      }}
+                    <Link
+                      to="/forgot-password"
                       className="text-sm text-blue-600 hover:underline"
-                      disabled={loading}
                     >
                       Mot de passe oublié?
-                    </button>
+                    </Link>
                   </div>
                   
                   <div className="relative">
