@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -104,6 +105,56 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Only admins can see the margin column
   const showMarginColumn = isAdmin();
 
+  // Function to calculate and display the correct margin
+  const getDisplayMargin = (offer: any) => {
+    console.log("Debugging margin for offer:", offer.id, {
+      total_margin_with_difference: offer.total_margin_with_difference,
+      margin: offer.margin,
+      margin_difference: offer.margin_difference,
+      amount: offer.amount,
+      financed_amount: offer.financed_amount,
+      monthly_payment: offer.monthly_payment,
+      coefficient: offer.coefficient
+    });
+
+    // Si total_margin_with_difference existe et est valide, l'utiliser
+    if (offer.total_margin_with_difference && !isNaN(Number(offer.total_margin_with_difference))) {
+      const marginValue = Number(offer.total_margin_with_difference);
+      console.log("Using total_margin_with_difference:", marginValue);
+      return formatCurrency(marginValue);
+    }
+
+    // Sinon, calculer la marge basée sur le montant et le montant financé
+    if (offer.amount && offer.monthly_payment && offer.coefficient) {
+      const amount = Number(offer.amount);
+      const monthlyPayment = Number(offer.monthly_payment);
+      const coefficient = Number(offer.coefficient);
+      const financedAmount = monthlyPayment * coefficient;
+      const calculatedMargin = amount - financedAmount;
+      
+      console.log("Calculated margin:", {
+        amount,
+        monthlyPayment,
+        coefficient,
+        financedAmount,
+        calculatedMargin
+      });
+      
+      if (calculatedMargin > 0) {
+        return formatCurrency(calculatedMargin);
+      }
+    }
+
+    // Fallback sur la marge simple si elle existe
+    if (offer.margin && !isNaN(Number(offer.margin))) {
+      console.log("Using fallback margin:", offer.margin);
+      return formatCurrency(offer.margin);
+    }
+
+    console.log("No valid margin found, returning N/A");
+    return "N/A";
+  };
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
@@ -148,15 +199,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         })()
                       : offer.equipment_description || "Non spécifié"}
                   </TableCell>
-                  {/* Show margin column only for admins - Display total_margin_with_difference if available */}
+                  {/* Show margin column only for admins - Use the corrected margin calculation */}
                   {showMarginColumn && (
                     <TableCell className="text-right">
                       <div className="font-medium text-green-600">
-                        {offer.total_margin_with_difference 
-                          ? formatCurrency(offer.total_margin_with_difference)
-                          : offer.margin 
-                            ? formatCurrency(offer.margin) 
-                            : "N/A"}
+                        {getDisplayMargin(offer)}
                       </div>
                     </TableCell>
                   )}
