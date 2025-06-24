@@ -2,23 +2,39 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Send, CheckCircle, AlertCircle } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, FileDown, Copy } from "lucide-react";
+import { toast } from "sonner";
 
 interface ActionButtonsProps {
   status: string;
-  onSendEmail: () => void;
+  offerId: string;
   onSendSignatureLink: () => void;
+  onDownloadPdf?: () => void;
   sendingEmail: boolean;
+  isPdfGenerating?: boolean;
 }
 
 const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   status,
-  onSendEmail,
+  offerId,
   onSendSignatureLink,
-  sendingEmail
+  onDownloadPdf,
+  sendingEmail,
+  isPdfGenerating = false
 }) => {
-  const canSendEmail = status === 'draft' || status === 'sent';
+  const canSendSignature = status === 'draft' || status === 'sent';
   const isCompleted = status === 'approved' || status === 'financed';
+  const isSigned = status === 'approved';
+
+  const copySignatureLink = async () => {
+    const signatureUrl = `${window.location.origin}/signature/${offerId}`;
+    try {
+      await navigator.clipboard.writeText(signatureUrl);
+      toast.success("Lien de signature copié dans le presse-papier");
+    } catch (error) {
+      toast.error("Impossible de copier le lien");
+    }
+  };
 
   return (
     <Card>
@@ -30,16 +46,41 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
       </CardHeader>
       <CardContent className="space-y-3">
         {isCompleted ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-            <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <div className="font-medium text-green-800">Offre finalisée</div>
-            <div className="text-sm text-green-600">Plus d'action requise</div>
+          <div className="space-y-3">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <div className="font-medium text-green-800">Offre finalisée</div>
+              <div className="text-sm text-green-600">
+                {isSigned ? "Signée par le client" : "Processus terminé"}
+              </div>
+            </div>
+            
+            {isSigned && onDownloadPdf && (
+              <Button 
+                onClick={onDownloadPdf}
+                disabled={isPdfGenerating}
+                className="w-full"
+                variant="outline"
+              >
+                {isPdfGenerating ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></div>
+                    Génération du PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Télécharger le PDF signé
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
             <Button 
-              onClick={onSendEmail}
-              disabled={!canSendEmail || sendingEmail}
+              onClick={onSendSignatureLink}
+              disabled={!canSendSignature || sendingEmail}
               className="w-full"
               size="lg"
             >
@@ -50,28 +91,28 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
                 </>
               ) : (
                 <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  {status === 'draft' ? 'Envoyer au client' : 'Renvoyer au client'}
+                  <Send className="mr-2 h-4 w-4" />
+                  Envoyer lien de signature
                 </>
               )}
             </Button>
             
             <Button 
               variant="outline"
-              onClick={onSendSignatureLink}
+              onClick={copySignatureLink}
               className="w-full"
             >
-              <Send className="mr-2 h-4 w-4" />
-              Envoyer lien de signature
+              <Copy className="mr-2 h-4 w-4" />
+              Copier le lien de signature
             </Button>
           </div>
         )}
 
-        {!canSendEmail && !isCompleted && (
+        {!canSendSignature && !isCompleted && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
             <AlertCircle className="h-6 w-6 text-orange-600 mx-auto mb-2" />
             <div className="text-sm text-orange-700">
-              Actions limitées pour ce statut
+              En attente de traitement par l'administration
             </div>
           </div>
         )}

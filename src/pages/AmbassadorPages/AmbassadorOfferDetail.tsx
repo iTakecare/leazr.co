@@ -25,6 +25,8 @@ import AmbassadorWorkflowTimeline from "@/components/offers/detail/AmbassadorWor
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
 import EquipmentInfoCard from "@/components/offers/detail/EquipmentInfoCard";
+import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
+import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,8 @@ const AmbassadorOfferDetail = () => {
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  
+  const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
   
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -90,6 +94,12 @@ const AmbassadorOfferDetail = () => {
       console.error("Erreur lors du chargement des notes:", error);
     } finally {
       setNotesLoading(false);
+    }
+  };
+  
+  const handleNoteAdded = () => {
+    if (id) {
+      fetchOfferNotes(id);
     }
   };
   
@@ -278,9 +288,16 @@ const AmbassadorOfferDetail = () => {
               <div className="space-y-6">
                 <AmbassadorActionButtons 
                   status={offer.workflow_status}
-                  onSendEmail={handleSendEmail}
+                  offerId={offer.id}
                   onSendSignatureLink={shareSignatureLink}
+                  onDownloadPdf={handlePrintPdf}
                   sendingEmail={sendingEmail}
+                  isPdfGenerating={isPrintingPdf}
+                />
+                
+                <AmbassadorAddNoteCard 
+                  offerId={offer.id}
+                  onNoteAdded={handleNoteAdded}
                 />
                 
                 <AmbassadorOfferNotes 

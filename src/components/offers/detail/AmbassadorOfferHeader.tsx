@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, Calendar } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, Hash } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
@@ -33,9 +33,15 @@ const AmbassadorOfferHeader: React.FC<OfferHeaderProps> = ({
                 Offre pour {offer.client_name}
                 <OfferStatusBadge status={offer.workflow_status} />
               </h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                <Calendar className="h-4 w-4" />
-                Créée le {format(new Date(offer.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  <span className="font-mono font-medium">#{offer.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Créée le {format(new Date(offer.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                </div>
               </div>
             </div>
           </div>

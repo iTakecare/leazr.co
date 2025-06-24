@@ -1,8 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Hash, Euro } from "lucide-react";
-import { formatCurrency } from "@/utils/formatters";
+import { Package, Hash } from "lucide-react";
 
 interface EquipmentInfoCardProps {
   equipmentDescription: string;
@@ -40,35 +39,38 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
               <div key={item.id || index} className="border rounded-lg p-4 bg-gray-50">
                 <div className="font-medium text-lg mb-2">{item.title}</div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Euro className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">{formatCurrency(item.purchasePrice || 0)}</div>
-                      <div className="text-muted-foreground">Prix d'achat</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">{item.quantity || 1}</div>
-                      <div className="text-muted-foreground">Quantité</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-green-100 text-green-600 text-xs flex items-center justify-center font-bold">%</div>
-                    <div>
-                      <div className="font-medium">{item.margin || 0}%</div>
-                      <div className="text-muted-foreground">Marge</div>
-                    </div>
-                  </div>
-                </div>
-                
                 {item.serialNumber && (
                   <div className="mt-2 text-sm text-muted-foreground">
                     <span className="font-medium">N° de série:</span> {item.serialNumber}
+                  </div>
+                )}
+                
+                {/* Afficher les spécifications techniques si disponibles */}
+                {item.specifications && Object.keys(item.specifications).length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Spécifications:</div>
+                    <div className="text-sm space-y-1">
+                      {Object.entries(item.specifications).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="font-medium">{key}:</span>
+                          <span>{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Afficher les attributs si disponibles */}
+                {item.attributes && Object.keys(item.attributes).length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Options:</div>
+                    <div className="text-sm">
+                      {Object.entries(item.attributes).map(([key, value]) => (
+                        <div key={key} className="mb-1">
+                          <span className="font-medium">{key}:</span> {String(value)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
