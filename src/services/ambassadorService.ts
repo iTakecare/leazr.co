@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Client } from "@/types/client";
+import { z } from "zod";
 
 export interface Ambassador {
   id: string;
@@ -10,11 +11,43 @@ export interface Ambassador {
   region?: string;
   status: string;
   created_at: string;
+  updated_at?: string;
   clients_count: number;
   commissions_total: number;
   last_commission: number;
   company_id: string;
+  company?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  notes?: string;
+  vat_number?: string;
+  commission_level_id?: string;
+  has_user_account?: boolean;
+  user_account_created_at?: string;
+  user_id?: string;
+  pdf_template_id?: string;
 }
+
+// Zod schema for form validation
+export const ambassadorSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
+  email: z.string().email("Email invalide").or(z.literal("")),
+  phone: z.string().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+  notes: z.string().optional(),
+  company: z.string().optional(),
+  vat_number: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
+  region: z.string().optional(),
+  commission_level_id: z.string().optional(),
+});
+
+export type AmbassadorFormValues = z.infer<typeof ambassadorSchema>;
 
 export const getAmbassadorById = async (id: string): Promise<Ambassador | null> => {
   try {
@@ -33,6 +66,127 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
   } catch (error) {
     console.error('Error in getAmbassadorById:', error);
     return null;
+  }
+};
+
+export const getAmbassadors = async (): Promise<Ambassador[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching ambassadors:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getAmbassadors:', error);
+    return [];
+  }
+};
+
+export const createAmbassador = async (ambassadorData: Partial<Ambassador>): Promise<Ambassador | null> => {
+  try {
+    // Get current user's company_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.company_id) {
+      throw new Error("Company ID non trouvé");
+    }
+
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .insert({
+        ...ambassadorData,
+        company_id: profile.company_id
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Error creating ambassador:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in createAmbassador:', error);
+    throw error;
+  }
+};
+
+export const updateAmbassador = async (id: string, ambassadorData: Partial<Ambassador>): Promise<Ambassador | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .update({
+        ...ambassadorData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Error updating ambassador:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in updateAmbassador:', error);
+    throw error;
+  }
+};
+
+export const deleteAmbassador = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('ambassadors')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting ambassador:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in deleteAmbassador:', error);
+    throw error;
+  }
+};
+
+export const updateAmbassadorCommissionLevel = async (ambassadorId: string, commissionLevelId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .rpc('update_ambassador_commission_level', {
+        ambassador_id: ambassadorId,
+        commission_level_id: commissionLevelId
+      });
+
+    if (error) {
+      console.error('Error updating ambassador commission level:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in updateAmbassadorCommissionLevel:', error);
+    throw error;
   }
 };
 
