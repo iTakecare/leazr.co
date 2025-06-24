@@ -71,7 +71,7 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
 };
 
 /**
- * Enregistre un équipment et ses attributs/spécifications de manière sécurisée
+ * Enregistre un équipment et ses attributs/spécifications en utilisant les fonctions SECURITY DEFINER
  */
 export const saveEquipment = async (
   equipment: Omit<OfferEquipment, 'id' | 'created_at' | 'updated_at'>,
@@ -81,60 +81,50 @@ export const saveEquipment = async (
   try {
     console.log("Saving equipment for offer:", equipment.offer_id);
     
-    // 1. Insérer l'équipement principal sans vérifications supplémentaires
-    // Les politiques RLS se chargeront de la sécurité
-    const { data: equipmentData, error: equipmentError } = await supabase
-      .from('offer_equipment')
-      .insert({
-        offer_id: equipment.offer_id,
-        title: equipment.title,
-        purchase_price: equipment.purchase_price,
-        quantity: equipment.quantity,
-        margin: equipment.margin,
-        monthly_payment: equipment.monthly_payment,
-        serial_number: equipment.serial_number
-      })
-      .select()
-      .single();
+    // 1. Insérer l'équipement principal en utilisant la fonction SECURITY DEFINER
+    const { data: equipmentId, error: equipmentError } = await supabase
+      .rpc('insert_offer_equipment_secure', {
+        p_offer_id: equipment.offer_id,
+        p_title: equipment.title,
+        p_purchase_price: equipment.purchase_price,
+        p_quantity: equipment.quantity,
+        p_margin: equipment.margin,
+        p_monthly_payment: equipment.monthly_payment,
+        p_serial_number: equipment.serial_number
+      });
     
     if (equipmentError) {
       console.error("Erreur lors de la sauvegarde de l'équipement:", equipmentError);
       return null;
     }
     
-    const equipmentId = equipmentData.id;
     console.log("Equipment created with ID:", equipmentId);
     
-    // 2. Insérer les attributs
-    const attributeEntries = Object.entries(attributes);
-    if (attributeEntries.length > 0) {
-      const attributesToInsert = attributeEntries.map(([key, value]) => ({
-        equipment_id: equipmentId,
-        key,
-        value: String(value)
-      }));
-      
+    // 2. Insérer les attributs en utilisant la fonction SECURITY DEFINER
+    if (Object.keys(attributes).length > 0) {
       const { error: attributesError } = await supabase
-        .from('offer_equipment_attributes')
-        .insert(attributesToInsert);
+        .rpc('insert_offer_equipment_attributes_secure', {
+          p_equipment_id: equipmentId,
+          p_attributes: attributes
+        });
       
       if (attributesError) {
         console.error("Erreur lors de la sauvegarde des attributs:", attributesError);
       }
     }
     
-    // 3. Insérer les spécifications
-    const specificationEntries = Object.entries(specifications);
-    if (specificationEntries.length > 0) {
-      const specificationsToInsert = specificationEntries.map(([key, value]) => ({
-        equipment_id: equipmentId,
-        key,
-        value: String(value)
-      }));
+    // 3. Insérer les spécifications en utilisant la fonction SECURITY DEFINER
+    if (Object.keys(specifications).length > 0) {
+      // Convertir les valeurs en string pour la fonction
+      const specStrings = Object.fromEntries(
+        Object.entries(specifications).map(([key, value]) => [key, String(value)])
+      );
       
       const { error: specificationsError } = await supabase
-        .from('offer_equipment_specifications')
-        .insert(specificationsToInsert);
+        .rpc('insert_offer_equipment_specifications_secure', {
+          p_equipment_id: equipmentId,
+          p_specifications: specStrings
+        });
       
       if (specificationsError) {
         console.error("Erreur lors de la sauvegarde des spécifications:", specificationsError);
@@ -143,13 +133,22 @@ export const saveEquipment = async (
     
     // Retourner l'équipement avec ses attributs et spécifications
     return {
-      ...equipmentData,
-      attributes: attributeEntries.map(([key, value]) => ({
+      id: equipmentId,
+      offer_id: equipment.offer_id,
+      title: equipment.title,
+      purchase_price: equipment.purchase_price,
+      quantity: equipment.quantity,
+      margin: equipment.margin,
+      monthly_payment: equipment.monthly_payment,
+      serial_number: equipment.serial_number,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      attributes: Object.entries(attributes).map(([key, value]) => ({
         equipment_id: equipmentId,
         key,
-        value: String(value)
+        value
       })),
-      specifications: specificationEntries.map(([key, value]) => ({
+      specifications: Object.entries(specifications).map(([key, value]) => ({
         equipment_id: equipmentId,
         key,
         value: String(value)
@@ -163,7 +162,7 @@ export const saveEquipment = async (
 
 /**
  * Migre les équipements existants du format JSON vers la nouvelle structure de tables
- * Version simplifiée pour éviter les conflits RLS
+ * Utilise maintenant les fonctions SECURITY DEFINER
  */
 export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: string | any): Promise<boolean> => {
   try {
@@ -189,9 +188,6 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
     }
     
     console.log("Données d'équipement à migrer:", equipmentData);
-    
-    // Vérification simplifiée - ne pas vérifier l'existence de l'offre
-    // car elle vient d'être créée et les politiques RLS s'en occuperont
     
     // Migrer chaque équipement
     for (const item of equipmentData) {

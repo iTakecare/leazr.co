@@ -2675,6 +2675,26 @@ export type Database = {
           variation_attributes: Json
         }[]
       }
+      insert_offer_equipment_attributes_secure: {
+        Args: { p_equipment_id: string; p_attributes: Json }
+        Returns: boolean
+      }
+      insert_offer_equipment_secure: {
+        Args: {
+          p_offer_id: string
+          p_title: string
+          p_purchase_price: number
+          p_quantity: number
+          p_margin: number
+          p_monthly_payment?: number
+          p_serial_number?: string
+        }
+        Returns: string
+      }
+      insert_offer_equipment_specifications_secure: {
+        Args: { p_equipment_id: string; p_specifications: Json }
+        Returns: boolean
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
