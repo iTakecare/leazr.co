@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Trash2, Pencil, Plus, Minus } from "lucide-react";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
-import CommissionDisplay from "@/components/ui/CommissionDisplay";
+import CommissionDisplay from "@/components/ambassador/CommissionDisplay";
 import FinancialSummary from "@/components/offer/FinancialSummary";
 
 interface GlobalMarginAdjustment {
@@ -56,113 +57,115 @@ const EquipmentList = ({
         </CardHeader>
         <CardContent className="pt-4">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
-                    Équipement
-                  </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
-                    Prix unitaire
-                  </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
-                    Quantité
-                  </th>
-                  {!hideFinancialDetails && (
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
-                      Marge
+            <div className="min-w-full">
+              <table className="w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
+                      Équipement
                     </th>
-                  )}
-                  {!hideFinancialDetails && (
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
-                      Mensualité
+                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
+                      Prix unitaire
                     </th>
-                  )}
-                  <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {equipmentList.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.title}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {formatCurrency(item.purchasePrice)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleQuantityChange(item.id, Math.max(1, item.quantity - 1))
-                          }
-                          disabled={item.quantity <= 1}
-                          className="h-8 w-8"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const newQuantity = parseInt(e.target.value, 10);
-                            if (!isNaN(newQuantity) && newQuantity >= 1) {
-                              handleQuantityChange(item.id, newQuantity);
-                            }
-                          }}
-                          className="w-16 text-center h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          min="1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleQuantityChange(item.id, item.quantity + 1)
-                          }
-                          className="h-8 w-8"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
+                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
+                      Quantité
+                    </th>
                     {!hideFinancialDetails && (
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {item.margin}%
-                      </td>
+                      <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[70px]">
+                        Marge
+                      </th>
                     )}
                     {!hideFinancialDetails && (
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {formatCurrency(item.monthlyPayment || 0)}
-                      </td>
+                      <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
+                        Mensualité
+                      </th>
                     )}
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => startEditing(item.id)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => removeFromList(item.id)}
-                          className="h-8 w-8"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
+                    <th className="px-2 py-2 text-right text-sm font-medium text-gray-700 min-w-[100px]">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {equipmentList.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px] truncate">
+                        <div title={item.title}>{item.title}</div>
+                      </td>
+                      <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
+                        {formatCurrency(item.purchasePrice)}
+                      </td>
+                      <td className="px-2 py-3 text-sm text-gray-900">
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleQuantityChange(item.id, Math.max(1, item.quantity - 1))
+                            }
+                            disabled={item.quantity <= 1}
+                            className="h-7 w-7"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const newQuantity = parseInt(e.target.value, 10);
+                              if (!isNaN(newQuantity) && newQuantity >= 1) {
+                                handleQuantityChange(item.id, newQuantity);
+                              }
+                            }}
+                            className="w-12 text-center h-7 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            min="1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleQuantityChange(item.id, item.quantity + 1)
+                            }
+                            className="h-7 w-7"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                      {!hideFinancialDetails && (
+                        <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
+                          {item.margin}%
+                        </td>
+                      )}
+                      {!hideFinancialDetails && (
+                        <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
+                          {formatCurrency(item.monthlyPayment || 0)}
+                        </td>
+                      )}
+                      <td className="px-2 py-3 text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => startEditing(item.id)}
+                            className="h-7 w-7"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => removeFromList(item.id)}
+                            className="h-7 w-7"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -175,10 +178,12 @@ const EquipmentList = ({
         />
       )}
       
-      {!hideFinancialDetails && ambassadorId && (
+      {ambassadorId && equipmentList.length > 0 && (
         <CommissionDisplay
+          totalMonthlyPayment={totalMonthlyPayment}
           ambassadorId={ambassadorId}
           commissionLevelId={commissionLevelId}
+          equipmentListLength={equipmentList.length}
         />
       )}
     </div>
