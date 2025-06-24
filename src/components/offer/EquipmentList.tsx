@@ -51,17 +51,20 @@ const EquipmentList = ({
     updateQuantity(id, newQuantity);
   };
 
-  // Determine if we're in ambassador mode - check URL path as well
-  const isAmbassadorMode = Boolean(ambassadorId) || window.location.pathname.includes('/ambassador/');
+  // Determine if we're in ambassador mode - check URL path and props
+  const isAmbassadorMode = Boolean(ambassadorId) || 
+                          Boolean(commissionLevelId) || 
+                          window.location.pathname.includes('/ambassador');
 
-  console.log("EquipmentList - Ambassador info:", {
+  console.log("EquipmentList - Ambassador mode debug:", {
     ambassadorId,
     commissionLevelId,
     equipmentListLength: equipmentList.length,
     totalMonthlyPayment,
     hideFinancialDetails,
     isAmbassadorMode,
-    currentPath: window.location.pathname
+    currentPath: window.location.pathname,
+    urlCheck: window.location.pathname.includes('/ambassador')
   });
 
   return (
