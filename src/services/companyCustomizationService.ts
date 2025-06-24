@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Types pour les paramètres d'entreprise
@@ -46,9 +47,18 @@ export class CompanyCustomizationService {
           custom_domain
         `)
         .eq("id", companyId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur Supabase lors de la récupération du branding:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.log("Aucune entreprise trouvée avec l'ID:", companyId);
+        return null;
+      }
+      
       return data;
     } catch (error) {
       console.error("Erreur lors de la récupération du branding:", error);
