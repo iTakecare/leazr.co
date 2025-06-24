@@ -56,6 +56,16 @@ const EquipmentList = ({
                           Boolean(commissionLevelId) || 
                           window.location.pathname.includes('/ambassador');
 
+  // Calculate total margin for ambassador commission
+  const totalMargin = calculations?.normalMarginAmount || 
+                     equipmentList.reduce((sum, item) => {
+                       const itemPurchasePrice = item.purchasePrice * item.quantity;
+                       const itemMonthlyPayment = (item.monthlyPayment || 0) * item.quantity;
+                       // Approximation simple de la marge si calculations n'est pas disponible
+                       const approximateFinancedAmount = itemMonthlyPayment * 36;
+                       return sum + Math.max(0, approximateFinancedAmount - itemPurchasePrice);
+                     }, 0);
+
   console.log("EquipmentList - Ambassador mode debug:", {
     ambassadorId,
     commissionLevelId,
@@ -64,7 +74,9 @@ const EquipmentList = ({
     hideFinancialDetails,
     isAmbassadorMode,
     currentPath: window.location.pathname,
-    urlCheck: window.location.pathname.includes('/ambassador')
+    urlCheck: window.location.pathname.includes('/ambassador'),
+    totalMargin,
+    calculationsMargin: calculations?.normalMarginAmount
   });
 
   return (
@@ -197,6 +209,7 @@ const EquipmentList = ({
               ambassadorId={ambassadorId}
               commissionLevelId={commissionLevelId}
               equipmentListLength={equipmentList.length}
+              totalMargin={totalMargin}
             />
           ) : (
             !hideFinancialDetails && calculations && (

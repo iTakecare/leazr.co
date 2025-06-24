@@ -13,7 +13,8 @@ export const useCommissionCalculator = (
   totalMonthlyPayment: number,
   ambassadorId?: string,
   commissionLevelId?: string,
-  equipmentListLength: number = 0
+  equipmentListLength: number = 0,
+  totalMargin?: number
 ): CommissionResult => {
   const [commission, setCommission] = useState<CommissionResult>({
     amount: 0,
@@ -28,10 +29,11 @@ export const useCommissionCalculator = (
         totalMonthlyPayment,
         ambassadorId,
         commissionLevelId,
-        equipmentListLength
+        equipmentListLength,
+        totalMargin
       });
 
-      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0 || !totalMargin || totalMargin <= 0) {
         console.log("useCommissionCalculator - Missing required data, resetting to zero");
         setCommission({
           amount: 0,
@@ -45,15 +47,12 @@ export const useCommissionCalculator = (
       setCommission(prev => ({ ...prev, isCalculating: true }));
 
       try {
-        // Calculer le montant financé approximatif (mensualité * coefficient standard de 36)
-        const approximateFinancedAmount = totalMonthlyPayment * 36;
-        
         console.log("useCommissionCalculator - Calling calculateAmbassadorCommission with:", {
           ambassadorId,
-          approximateFinancedAmount
+          totalMargin
         });
 
-        const result = await calculateAmbassadorCommission(ambassadorId, approximateFinancedAmount);
+        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin);
 
         console.log("useCommissionCalculator - Commission result:", result);
 
@@ -85,7 +84,7 @@ export const useCommissionCalculator = (
     };
 
     fetchCommission();
-  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentListLength]);
+  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentListLength, totalMargin]);
 
   return commission;
 };

@@ -6,7 +6,7 @@ export interface AmbassadorCommissionData {
   amount: number;
   rate: number;
   levelName: string;
-  financedAmount: number;
+  marginAmount: number;
 }
 
 export interface AmbassadorCommission {
@@ -21,13 +21,14 @@ export interface AmbassadorCommission {
 
 /**
  * Calcule la commission d'un ambassadeur selon son barème attribué
+ * La commission est calculée sur la marge totale générée, pas sur le montant financé
  */
 export const calculateAmbassadorCommission = async (
   ambassadorId: string,
-  financedAmount: number
+  marginAmount: number
 ): Promise<AmbassadorCommissionData> => {
   try {
-    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, amount: ${financedAmount}`);
+    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}`);
     
     // Récupérer le niveau de commission de l'ambassadeur
     const commissionLevel = await getAmbassadorCommissionLevel(ambassadorId);
@@ -35,10 +36,10 @@ export const calculateAmbassadorCommission = async (
     if (!commissionLevel) {
       console.log("[calculateAmbassadorCommission] No commission level found, using default");
       return {
-        amount: Math.round(financedAmount * 0.05), // 5% par défaut
+        amount: Math.round(marginAmount * 0.05), // 5% par défaut
         rate: 5,
         levelName: "Aucun barème attribué",
-        financedAmount
+        marginAmount
       };
     }
 
@@ -50,43 +51,45 @@ export const calculateAmbassadorCommission = async (
     if (!rates || rates.length === 0) {
       console.log("[calculateAmbassadorCommission] No rates found, using default");
       return {
-        amount: Math.round(financedAmount * 0.05),
+        amount: Math.round(marginAmount * 0.05),
         rate: 5,
         levelName: commissionLevel.name,
-        financedAmount
+        marginAmount
       };
     }
 
     console.log("[calculateAmbassadorCommission] Found rates:", rates);
 
-    // Trouver le taux applicable selon le montant financé
+    // Pour les commissions d'ambassadeur basées sur la marge, 
+    // nous utilisons le premier taux disponible (généralement un taux fixe)
+    // ou nous pourrions utiliser la marge comme critère de sélection
     const applicableRate = rates.find(rate => 
-      financedAmount >= rate.min_amount && financedAmount <= rate.max_amount
-    );
+      marginAmount >= rate.min_amount && marginAmount <= rate.max_amount
+    ) || rates[0]; // Fallback sur le premier taux si aucun ne correspond
 
     if (applicableRate) {
-      const commissionAmount = Math.round(financedAmount * (applicableRate.rate / 100));
-      console.log("[calculateAmbassadorCommission] Applied rate found:", applicableRate.rate, "Commission:", commissionAmount);
+      const commissionAmount = Math.round(marginAmount * (applicableRate.rate / 100));
+      console.log("[calculateAmbassadorCommission] Applied rate found:", applicableRate.rate, "Commission:", commissionAmount, "on margin:", marginAmount);
       
       return {
         amount: commissionAmount,
         rate: applicableRate.rate,
         levelName: commissionLevel.name,
-        financedAmount
+        marginAmount
       };
     }
 
-    // Si aucun taux ne correspond exactement, prendre le taux le plus élevé disponible
-    const maxRate = rates.reduce((max, rate) => rate.rate > max.rate ? rate : max, rates[0]);
-    const commissionAmount = Math.round(financedAmount * (maxRate.rate / 100));
+    // Si aucun taux ne correspond, utiliser le taux par défaut
+    const defaultRate = 5;
+    const commissionAmount = Math.round(marginAmount * (defaultRate / 100));
     
-    console.log("[calculateAmbassadorCommission] No exact rate found, using max rate:", maxRate.rate);
+    console.log("[calculateAmbassadorCommission] No rate found, using default:", defaultRate);
     
     return {
       amount: commissionAmount,
-      rate: maxRate.rate,
+      rate: defaultRate,
       levelName: commissionLevel.name,
-      financedAmount
+      marginAmount
     };
 
   } catch (error) {
@@ -94,10 +97,10 @@ export const calculateAmbassadorCommission = async (
     
     // Fallback en cas d'erreur
     return {
-      amount: Math.round(financedAmount * 0.05),
+      amount: Math.round(marginAmount * 0.05),
       rate: 5,
       levelName: "Erreur - Commission par défaut",
-      financedAmount
+      marginAmount
     };
   }
 };

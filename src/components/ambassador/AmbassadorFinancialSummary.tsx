@@ -10,26 +10,30 @@ interface AmbassadorFinancialSummaryProps {
   ambassadorId?: string;
   commissionLevelId?: string;
   equipmentListLength: number;
+  totalMargin?: number;
 }
 
 const AmbassadorFinancialSummary = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentListLength
+  equipmentListLength,
+  totalMargin
 }: AmbassadorFinancialSummaryProps) => {
   console.log("AmbassadorFinancialSummary - Props received:", {
     totalMonthlyPayment,
     ambassadorId,
     commissionLevelId,
-    equipmentListLength
+    equipmentListLength,
+    totalMargin
   });
 
   const commission = useCommissionCalculator(
     totalMonthlyPayment,
     ambassadorId,
     commissionLevelId,
-    equipmentListLength
+    equipmentListLength,
+    totalMargin
   );
 
   console.log("AmbassadorFinancialSummary - Commission calculated:", commission);
@@ -52,6 +56,15 @@ const AmbassadorFinancialSummary = ({
           </div>
         </div>
         
+        {totalMargin && totalMargin > 0 && (
+          <div className="flex justify-between items-center py-2 border-b">
+            <div className="font-medium text-gray-700">Marge totale:</div>
+            <div className="text-lg font-bold text-gray-900">
+              {formatCurrency(totalMargin)}
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center py-2">
           <div className="font-medium text-gray-700">Votre commission:</div>
           <div className="text-green-600 font-bold flex items-center gap-1">
@@ -61,7 +74,7 @@ const AmbassadorFinancialSummary = ({
             </span>
             {commission.rate > 0 && (
               <span className="text-sm text-muted-foreground ml-1">
-                ({commission.rate}%)
+                ({commission.rate}% de la marge)
               </span>
             )}
           </div>
@@ -83,7 +96,7 @@ const AmbassadorFinancialSummary = ({
         {process.env.NODE_ENV === 'development' && (
           <div className="text-xs text-gray-500 pt-2 border-t bg-gray-50 p-2 rounded">
             Debug: ambassadorId={ambassadorId}, commissionLevelId={commissionLevelId}, 
-            totalMonthly={totalMonthlyPayment}, equipCount={equipmentListLength}
+            totalMonthly={totalMonthlyPayment}, equipCount={equipmentListLength}, totalMargin={totalMargin}
           </div>
         )}
       </CardContent>
