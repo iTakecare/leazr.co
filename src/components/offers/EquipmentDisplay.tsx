@@ -35,15 +35,7 @@ interface EquipmentItem {
 const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   equipmentDisplay,
   monthlyPayment,
-  remarks,
-  clientName,
-  clientEmail,
-  clientCompany,
-  clientPhone,
-  clientAddress,
-  clientCity,
-  clientPostalCode,
-  clientCountry
+  remarks
 }) => {
   // Parse equipment data if it's JSON
   const parseEquipmentData = (): EquipmentItem[] => {
@@ -87,7 +79,10 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                   Qté
                 </th>
                 <th className="text-right py-3 px-4 font-medium text-gray-700 w-32">
-                  Mensualité HT
+                  Mensualité unitaire HT
+                </th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700 w-32">
+                  Mensualité totale HT
                 </th>
               </tr>
             </thead>
@@ -130,6 +125,9 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                   </td>
                   <td className="py-4 px-4 text-right font-medium">
                     {formatCurrency(item.monthlyPayment)}
+                  </td>
+                  <td className="py-4 px-4 text-right font-medium">
+                    {formatCurrency(item.monthlyPayment * item.quantity)}
                   </td>
                 </tr>
               ))}
