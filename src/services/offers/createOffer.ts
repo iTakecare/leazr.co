@@ -9,6 +9,11 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("🚀 CRÉATION OFFRE - Début du processus");
     console.log("📋 DONNÉES REÇUES:", offerData);
     
+    // Vérifier que les données obligatoires sont présentes
+    if (!offerData.client_name || !offerData.client_email) {
+      throw new Error("Les informations client (nom et email) sont obligatoires");
+    }
+    
     // Récupérer le company_id de l'utilisateur connecté
     let companyId;
     try {
@@ -48,7 +53,10 @@ export const createOffer = async (offerData: OfferData) => {
         offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         undefined
-      )
+      ),
+      // Calculer les champs de marge
+      margin_difference: offerData.margin_difference || 0,
+      total_margin_with_difference: offerData.total_margin_with_difference || totalEquipmentMargin
     };
 
     console.log("💾 DONNÉES FINALES à sauvegarder:", {
@@ -160,6 +168,8 @@ export const createOffer = async (offerData: OfferData) => {
       console.error("❌ ERREUR lors de l'insertion de l'offre:", error);
       console.error("❌ Détails de l'erreur:", error.details);
       console.error("❌ Message d'erreur:", error.message);
+      console.error("❌ Code d'erreur:", error.code);
+      console.error("❌ Données envoyées:", JSON.stringify(offerDataToSave, null, 2));
       return { data: null, error };
     }
     
@@ -173,7 +183,7 @@ export const createOffer = async (offerData: OfferData) => {
       
       for (const equipment of offerData.equipment) {
         try {
-          // Préparer les attributs et spécifications
+          // Préparer les attributs et spécifications avec des valeurs par défaut
           const attributes = equipment.attributes || {};
           const specifications = equipment.specifications || {};
           
@@ -190,6 +200,7 @@ export const createOffer = async (offerData: OfferData) => {
           
           console.log("💾 Sauvegarde équipement:", newEquipment);
           console.log("💾 Avec attributs:", attributes);
+          console.log("💾 Avec spécifications:", specifications);
           
           // Sauvegarder l'équipement avec ses attributs
           const { saveEquipment } = await import('./offerEquipment');
@@ -209,6 +220,7 @@ export const createOffer = async (offerData: OfferData) => {
     return { data, error: null };
   } catch (error) {
     console.error("❌ ERREUR GÉNÉRALE dans createOffer:", error);
+    console.error("❌ Stack trace:", error.stack);
     return { data: null, error };
   }
 };

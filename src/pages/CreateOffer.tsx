@@ -280,7 +280,7 @@ const CreateOffer = () => {
         return;
       }
 
-      // Préparer les données d'équipement avec les attributs
+      // Préparer les données d'équipement avec les attributs et spécifications
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
@@ -288,7 +288,7 @@ const CreateOffer = () => {
         quantity: eq.quantity,
         margin: eq.margin,
         monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-        // S'assurer que les attributs sont inclus
+        // S'assurer que les attributs et spécifications sont inclus avec des valeurs par défaut
         attributes: eq.attributes || {},
         specifications: eq.specifications || {}
       }));
@@ -311,7 +311,7 @@ const CreateOffer = () => {
       
       console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
 
-      // CORRECTION: Garder total_margin_with_difference comme nombre et non string
+      // Calculer la différence de marge
       const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
       
       console.log("💰 MARGIN DEBUG - Saving margin data:", {
@@ -324,9 +324,9 @@ const CreateOffer = () => {
         totalEquipmentMargin
       });
 
-      const offerData = {
+      const offerData: OfferData = {
         user_id: user.id,
-        company_id: userCompanyId, // Ajouter explicitement le company_id
+        company_id: userCompanyId, // Champ obligatoire
         client_name: clientName,
         client_email: clientEmail,
         client_id: clientId,
@@ -342,7 +342,8 @@ const CreateOffer = () => {
         type: 'admin_offer',
         // Utiliser la marge calculée depuis les équipements si disponible
         margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : totalMarginWithDifference,
-        total_margin_with_difference: totalMarginWithDifference // Garder pour compatibilité
+        margin_difference: globalMarginAdjustment.marginDifference || 0,
+        total_margin_with_difference: totalMarginWithDifference
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
@@ -369,7 +370,12 @@ const CreateOffer = () => {
           toast.success("Offre créée avec succès !");
         } else {
           console.error("❌ ERREUR - Pas de données retournées:", result);
-          throw new Error("Failed to create offer - no data returned");
+          if (result && result.error) {
+            console.error("❌ Détails de l'erreur:", result.error);
+            throw new Error(`Failed to create offer: ${result.error.message || 'Unknown error'}`);
+          } else {
+            throw new Error("Failed to create offer - no data returned");
+          }
         }
       }
       
@@ -380,7 +386,7 @@ const CreateOffer = () => {
       
     } catch (error) {
       console.error("❌ ERREUR lors de l'enregistrement de l'offre:", error);
-      toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
+      toast.error(`Une erreur s'est produite lors de l'enregistrement de l'offre: ${error.message || 'Erreur inconnue'}`);
     } finally {
       setIsSubmitting(false);
     }

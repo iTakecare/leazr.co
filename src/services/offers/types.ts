@@ -32,6 +32,9 @@ export interface OfferData {
   signer_ip?: string;
   margin?: number | string; // Ajout de cette propriété pour résoudre les erreurs
   equipment?: any[]; // Ajout de cette propriété pour résoudre les erreurs
+  company_id: string; // Champ obligatoire pour la base de données
+  margin_difference?: number; // Différence de marge calculée
+  total_margin_with_difference?: number; // Marge totale avec différence
 }
 
 export enum OfferStatus {
