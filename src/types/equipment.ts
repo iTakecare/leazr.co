@@ -1,4 +1,5 @@
 
+
 export interface Equipment {
   id: string;
   title: string;
@@ -22,3 +23,21 @@ export interface LeasingRange {
   max: number;
   coefficient: number;
 }
+
+export interface LeaserRange {
+  id: string;
+  min: number;
+  max: number;
+  coefficient: number;
+}
+
+export interface GlobalMarginAdjustment {
+  percentage: number;
+  amount: number;
+  newMonthly: number;
+  currentCoef: number;
+  newCoef: number;
+  adaptMonthlyPayment: boolean;
+  marginDifference: number;
+}
+
