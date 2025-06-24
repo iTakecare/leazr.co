@@ -16,6 +16,7 @@ import { hasCommission } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
+import { logUserProfileDiagnostics } from "@/utils/userProfileDiagnostics";
 
 // Import des nouveaux composants modulaires
 import AmbassadorOfferHeader from "@/components/offers/detail/AmbassadorOfferHeader";
@@ -142,6 +143,11 @@ const AmbassadorOfferDetail = () => {
     }
     
     try {
+      console.log("🚀 Début de l'envoi du lien de signature");
+      
+      // Exécuter le diagnostic en cas d'erreur pour aider au débogage
+      await logUserProfileDiagnostics();
+      
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
           .from('offers')
@@ -172,12 +178,19 @@ const AmbassadorOfferDetail = () => {
         toast.success("Lien de signature envoyé au client avec succès");
       } else {
         toast.error("Erreur lors de l'envoi de l'email au client");
+        // Lancer un diagnostic détaillé si l'envoi échoue
+        console.error("❌ Échec de l'envoi de l'email - Lancement du diagnostic...");
+        await logUserProfileDiagnostics();
         return;
       }
       
     } catch (error) {
       console.error("Error sending offer ready email:", error);
       toast.error("Erreur lors de l'envoi de l'email");
+      
+      // Lancer un diagnostic détaillé en cas d'exception
+      console.error("❌ Exception lors de l'envoi - Lancement du diagnostic...");
+      await logUserProfileDiagnostics();
     }
   };
 

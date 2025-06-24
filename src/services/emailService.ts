@@ -26,6 +26,8 @@ export const getEmailTemplate = async (
   type: string
 ): Promise<EmailTemplateData | null> => {
   try {
+    console.log(`Tentative de récupération du modèle d'email de type: ${type}`);
+    
     const { data, error } = await supabase
       .from('email_templates')
       .select('*')
@@ -35,9 +37,29 @@ export const getEmailTemplate = async (
     
     if (error) {
       console.error("Erreur lors de la récupération du modèle d'email:", error);
+      
+      // Si c'est une erreur de permission, afficher plus d'informations
+      if (error.code === '42501') {
+        console.error("Erreur de permission - vérifiez que l'utilisateur a le bon rôle dans la table profiles");
+        
+        // Vérifier le profil de l'utilisateur pour diagnostic
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, first_name, last_name')
+          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Erreur lors de la récupération du profil utilisateur:", profileError);
+        } else {
+          console.log("Profil utilisateur actuel:", userProfile);
+        }
+      }
+      
       return null;
     }
     
+    console.log(`Modèle d'email récupéré avec succès:`, data);
     return data;
   } catch (error) {
     console.error("Exception lors de la récupération du modèle d'email:", error);
@@ -121,7 +143,8 @@ export const sendEmail = async (
     // Injecter le logo du site dans le contenu HTML
     const htmlWithLogo = await injectSiteLogo(htmlContent);
     
-    // Récupérer les paramètres de configuration
+    // Récupérer les paramètres de configuration avec diagnostic amélioré
+    console.log("Récupération des paramètres SMTP...");
     const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
       .select('from_email, from_name')
@@ -129,7 +152,26 @@ export const sendEmail = async (
       .single();
       
     if (settingsError) {
-      console.error("Erreur lors de la récupération des paramètres:", settingsError);
+      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      
+      // Si c'est une erreur de permission, afficher plus d'informations
+      if (settingsError.code === '42501') {
+        console.error("Erreur de permission SMTP - vérifiez que l'utilisateur a le bon rôle dans la table profiles");
+        
+        // Vérifier le profil de l'utilisateur pour diagnostic
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, first_name, last_name')
+          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Erreur lors de la récupération du profil utilisateur:", profileError);
+        } else {
+          console.log("Profil utilisateur actuel pour SMTP:", userProfile);
+        }
+      }
+      
       return false;
     }
     
@@ -138,7 +180,7 @@ export const sendEmail = async (
       return false;
     }
     
-    console.log("Paramètres récupérés:", { 
+    console.log("Paramètres SMTP récupérés:", { 
       from_email: settings.from_email,
       from_name: settings.from_name
     });

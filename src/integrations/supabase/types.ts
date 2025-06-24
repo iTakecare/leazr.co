@@ -2707,6 +2707,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_admin_or_ambassador_v2: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_admin_v2: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_ambassador: {
         Args: Record<PropertyKey, never>
         Returns: boolean
