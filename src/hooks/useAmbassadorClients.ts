@@ -33,15 +33,6 @@ export const useAmbassadorClients = () => {
         errorType: typeof err
       });
       
-      // Diagnostic spécifique pour l'erreur "permission denied for table users"
-      if (err instanceof Error && err.message.includes('permission denied for table users')) {
-        console.error("🔍 HOOK DIAGNOSTIC - ERREUR CRITIQUE: Accès refusé à auth.users");
-        console.error("🔍 HOOK DIAGNOSTIC - Solutions possibles:");
-        console.error("🔍 HOOK DIAGNOSTIC - 1. Vérifier les politiques RLS sur ambassador_clients");
-        console.error("🔍 HOOK DIAGNOSTIC - 2. S'assurer qu'aucune politique ne référence auth.users");
-        console.error("🔍 HOOK DIAGNOSTIC - 3. Utiliser des fonctions SECURITY DEFINER si nécessaire");
-      }
-      
       const errorMessage = err instanceof Error ? err.message : "Impossible de charger vos clients";
       setError(errorMessage);
       toast.error(errorMessage);
