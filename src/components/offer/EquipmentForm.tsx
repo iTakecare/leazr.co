@@ -101,12 +101,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   };
 
   const handleProductSelect = (product: any) => {
-    console.log("Product selected:", product);
+    console.log("Product selected with attributes:", product);
     
     const equipmentUpdate = {
       ...equipment,
       title: product.name,
-      purchasePrice: product.price || 0
+      purchasePrice: product.price || 0,
+      // Stocker les attributs sélectionnés
+      attributes: product.selected_attributes || {}
     };
     
     setEquipment(equipmentUpdate);
@@ -138,6 +140,20 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             calculatedMargin={calculatedMargin}
             hideFinancialDetails={hideFinancialDetails}
           />
+
+          {/* Affichage des attributs sélectionnés */}
+          {equipment.attributes && Object.keys(equipment.attributes).length > 0 && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-semibold text-sm text-blue-900 mb-2">Configuration sélectionnée :</h4>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(equipment.attributes).map(([key, value]) => (
+                  <span key={key} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                    {key}: {String(value)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <PriceDetailsDisplay
             marginAmount={marginAmount}

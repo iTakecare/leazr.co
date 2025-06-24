@@ -6,35 +6,19 @@ export interface Equipment {
   quantity: number;
   margin: number;
   monthlyPayment?: number;
-  assignedTo?: string | null;
-  role?: string;
-  assignedDate?: string;
-  status?: string;
-  serial?: string;
-  attributes?: Record<string, string>;
-  specifications?: Record<string, string | number>;
+  attributes?: Record<string, any>; // Ajout des attributs
 }
 
 export interface Leaser {
   id: string;
   name: string;
   logo_url?: string;
-  ranges: LeaserRange[];
+  ranges: LeasingRange[];
 }
 
-export interface LeaserRange {
+export interface LeasingRange {
   id: string;
   min: number;
   max: number;
   coefficient: number;
-}
-
-export interface GlobalMarginAdjustment {
-  percentage: number;
-  amount: number;
-  newMonthly: number;
-  currentCoef: number;
-  newCoef: number;
-  adaptMonthlyPayment: boolean;
-  marginDifference: number;
 }

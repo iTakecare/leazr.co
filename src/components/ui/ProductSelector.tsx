@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Loader2, Info } from "lucide-react";
 import CatalogProductCard from "./CatalogProductCard";
+import ProductVariantSelector from "@/components/catalog/ProductVariantSelector";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 
@@ -31,6 +32,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [variantSelectorOpen, setVariantSelectorOpen] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
   
   const fetchProducts = async (): Promise<Product[]> => {
     try {
@@ -145,8 +148,25 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   const filteredProducts = getFilteredProducts();
   
-  const handleProductSelect = (product: Product) => {
-    onSelectProduct(product);
+  const handleProductClick = (product: Product) => {
+    // Vérifier si le produit a des variantes/attributs
+    const hasVariants = (product.variation_attributes && Object.keys(product.variation_attributes).length > 0) ||
+                       (product.variant_combination_prices && product.variant_combination_prices.length > 0);
+    
+    if (hasVariants) {
+      // Ouvrir le sélecteur de variantes
+      setSelectedProductForVariants(product);
+      setVariantSelectorOpen(true);
+    } else {
+      // Sélectionner directement le produit
+      onSelectProduct(product);
+    }
+  };
+
+  const handleVariantSelect = (productWithVariant: Product) => {
+    setVariantSelectorOpen(false);
+    setSelectedProductForVariants(null);
+    onSelectProduct(productWithVariant);
   };
   
   useEffect(() => {
@@ -157,85 +177,100 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   }, [isOpen]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden flex flex-col">
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
-        
-        <div className="p-4 border-b">
-          <div className="flex gap-2 items-center">
-            <div className="relative w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="text"
-                placeholder="Rechercher un produit..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <SheetClose asChild>
-              <Button variant="outline" onClick={onClose}>Fermer</Button>
-            </SheetClose>
-          </div>
-        </div>
-
-        <Tabs 
-          value={selectedCategory} 
-          onValueChange={setSelectedCategory}
-          className="flex-1 flex flex-col overflow-hidden"
-        >
-          <div className="px-4 py-2 border-b overflow-x-auto">
-            <TabsList className="w-auto inline-flex">
-              <TabsTrigger value="all">Tous</TabsTrigger>
-              {categories.map(category => (
-                <TabsTrigger key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden flex flex-col">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
+          </SheetHeader>
           
-          <ScrollArea className="flex-1">
-            <div className="p-4 pb-24">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2">Chargement des produits...</span>
-                </div>
-              ) : error ? (
-                <div className="text-center p-8 text-red-500">
-                  <p>Une erreur est survenue lors du chargement des produits.</p>
-                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
-                    Réessayer
-                  </Button>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="text-center p-8 text-gray-500 flex flex-col items-center">
-                  <Info className="h-12 w-12 text-gray-400 mb-2" />
-                  <p className="text-lg font-medium">Aucun produit trouvé</p>
-                  <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="cursor-pointer">
-                      <CatalogProductCard 
-                        product={product} 
-                        onClick={() => handleProductSelect(product)}
-                        onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="p-4 border-b">
+            <div className="flex gap-2 items-center">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un produit..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <SheetClose asChild>
+                <Button variant="outline" onClick={onClose}>Fermer</Button>
+              </SheetClose>
             </div>
-          </ScrollArea>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
+          </div>
+
+          <Tabs 
+            value={selectedCategory} 
+            onValueChange={setSelectedCategory}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            <div className="px-4 py-2 border-b overflow-x-auto">
+              <TabsList className="w-auto inline-flex">
+                <TabsTrigger value="all">Tous</TabsTrigger>
+                {categories.map(category => (
+                  <TabsTrigger key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              <div className="p-4 pb-24">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2">Chargement des produits...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-center p-8 text-red-500">
+                    <p>Une erreur est survenue lors du chargement des produits.</p>
+                    <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                      Réessayer
+                    </Button>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="text-center p-8 text-gray-500 flex flex-col items-center">
+                    <Info className="h-12 w-12 text-gray-400 mb-2" />
+                    <p className="text-lg font-medium">Aucun produit trouvé</p>
+                    <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredProducts.map((product) => (
+                      <div key={product.id} className="cursor-pointer">
+                        <CatalogProductCard 
+                          product={product} 
+                          onClick={() => handleProductClick(product)}
+                          onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
+
+      {/* Sélecteur de variantes */}
+      {selectedProductForVariants && (
+        <ProductVariantSelector
+          product={selectedProductForVariants}
+          isOpen={variantSelectorOpen}
+          onClose={() => {
+            setVariantSelectorOpen(false);
+            setSelectedProductForVariants(null);
+          }}
+          onSelectVariant={handleVariantSelect}
+        />
+      )}
+    </>
   );
 };
 

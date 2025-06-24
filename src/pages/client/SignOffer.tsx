@@ -103,6 +103,7 @@ const SignOffer = () => {
             clientCity={offer.clients?.city}
             clientPostalCode={offer.clients?.postal_code}
             clientCountry={offer.clients?.country}
+            offerId={offer.id}
           />
           
           <SignatureSection 
