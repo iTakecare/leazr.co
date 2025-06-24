@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -313,14 +314,14 @@ const AmbassadorCreateOffer = () => {
       }
       
       // Save each equipment individually with attributes using the offer equipment service
-      if (offerResult && offerResult.id) {
-        console.log("Saving individual equipment items for offer:", offerResult.id);
+      if (data && data.id) {
+        console.log("Saving individual equipment items for offer:", data.id);
         
         for (const equipmentItem of equipmentList) {
           try {
             const savedEquipment = await saveEquipment(
               {
-                offer_id: offerResult.id,
+                offer_id: data.id,
                 title: equipmentItem.title,
                 purchase_price: equipmentItem.purchasePrice,
                 quantity: equipmentItem.quantity,
