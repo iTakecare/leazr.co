@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,7 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   const isSigned = status === 'approved';
 
   const copySignatureLink = async () => {
-    const signatureUrl = `${window.location.origin}/signature/${offerId}`;
+    const signatureUrl = `${window.location.origin}/client/sign-offer/${offerId}`;
     try {
       await navigator.clipboard.writeText(signatureUrl);
       toast.success("Lien de signature copié dans le presse-papier");
