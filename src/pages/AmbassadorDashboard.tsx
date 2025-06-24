@@ -1,14 +1,15 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAmbassadorById, getAmbassadorStats, Ambassador } from "@/services/ambassadorService";
+import { getAmbassadorById, Ambassador } from "@/services/ambassadorService";
 import { Loader2, ChevronLeft, Plus, User, Calendar, BarChart } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { useAuth } from "@/context/AuthContext";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
+import { supabase } from "@/integrations/supabase/client";
 
 const AmbassadorDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,8 +32,30 @@ const AmbassadorDashboard = () => {
         const ambassadorData = await getAmbassadorById(id);
         if (ambassadorData) {
           setAmbassador(ambassadorData);
-          const statsData = await getAmbassadorStats(id);
-          setStats(statsData);
+          
+          // Utiliser la fonction sécurisée pour récupérer les clients
+          const clientsData = await getAmbassadorClients();
+          const clientsCount = clientsData?.length || 0;
+          
+          // Récupérer les commissions
+          const { data: commissions, error: commissionError } = await supabase
+            .from('offers')
+            .select('commission')
+            .eq('ambassador_id', id)
+            .not('commission', 'is', null);
+
+          if (commissionError) {
+            console.error('Error fetching commissions:', commissionError);
+          }
+
+          const totalCommissions = commissions?.reduce((sum, offer) => sum + (offer.commission || 0), 0) || 0;
+          const lastCommissionAmount = commissions && commissions.length > 0 ? commissions[commissions.length - 1].commission || 0 : 0;
+          
+          setStats({
+            clientsCount,
+            totalCommissions,
+            lastCommissionAmount
+          });
         }
       } catch (error) {
         console.error('Error loading ambassador data:', error);

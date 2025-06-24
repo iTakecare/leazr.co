@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { toast } from "sonner";
+import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 
 const AmbassadorDashboardPage = () => {
   const navigate = useNavigate();
@@ -78,20 +78,8 @@ const AmbassadorDashboardPage = () => {
       setAmbassadorId(foundAmbassadorId);
       console.log(`Chargement des statistiques pour l'ambassadeur ${foundAmbassadorId}`);
       
-      // Compter les clients de l'ambassadeur
-      const { data: clientsData, error: clientsError } = await supabase
-        .from("ambassador_clients")
-        .select(`
-          id,
-          client_id,
-          clients (*)
-        `)
-        .eq("ambassador_id", foundAmbassadorId);
-
-      if (clientsError) {
-        console.error("Erreur lors du chargement des clients:", clientsError);
-      }
-      
+      // Utiliser la fonction sécurisée pour récupérer les clients
+      const clientsData = await getAmbassadorClients();
       const clientsCount = clientsData?.length || 0;
       console.log(`Trouvé ${clientsCount} clients pour l'ambassadeur ${foundAmbassadorId}`);
       
@@ -149,11 +137,7 @@ const AmbassadorDashboardPage = () => {
       });
       
       // Préparer les clients récents
-      const processedClients = clientsData
-        ?.filter(item => item.clients)
-        .map(item => item.clients)
-        .slice(0, 5) || [];
-      
+      const processedClients = clientsData?.slice(0, 5) || [];
       setRecentClients(processedClients);
       
       // Préparer les offres récentes
