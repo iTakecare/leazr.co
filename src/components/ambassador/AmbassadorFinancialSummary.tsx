@@ -56,15 +56,6 @@ const AmbassadorFinancialSummary = ({
           </div>
         </div>
         
-        {totalMargin && totalMargin > 0 && (
-          <div className="flex justify-between items-center py-2 border-b">
-            <div className="font-medium text-gray-700">Marge totale:</div>
-            <div className="text-lg font-bold text-gray-900">
-              {formatCurrency(totalMargin)}
-            </div>
-          </div>
-        )}
-        
         <div className="flex justify-between items-center py-2">
           <div className="font-medium text-gray-700">Votre commission:</div>
           <div className="text-green-600 font-bold flex items-center gap-1">
@@ -72,11 +63,6 @@ const AmbassadorFinancialSummary = ({
             <span>
               {commission.amount > 0 ? formatCurrency(commission.amount) : "0,00 €"}
             </span>
-            {commission.rate > 0 && (
-              <span className="text-sm text-muted-foreground ml-1">
-                ({commission.rate}% de la marge)
-              </span>
-            )}
           </div>
         </div>
         
