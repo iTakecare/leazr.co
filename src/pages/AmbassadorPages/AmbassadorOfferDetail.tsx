@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OfferStatusBadge, { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
 import PriceDetailsDisplay from "@/components/offer/PriceDetailsDisplay";
 import { Progress } from "@/components/ui/progress";
-import { calculateFinancedAmount, calculateCommissionByLevel } from "@/utils/calculator";
+import { calculateFinancedAmount } from "@/utils/calculator";
 import { translateOfferType, hasCommission } from "@/utils/offerTypeTranslator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
@@ -55,7 +55,6 @@ const AmbassadorOfferDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [activeTab, setActiveTab] = useState("status");
-  const [recalculatingCommission, setRecalculatingCommission] = useState(false);
   const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
@@ -97,10 +96,6 @@ const AmbassadorOfferDetail = () => {
           }
         }
         
-        if (offerData.type === 'ambassador_offer' && offerData.ambassador_id) {
-          await updateCommission(offerData);
-        }
-        
         fetchWorkflowLogs(id);
         fetchOfferNotes(id);
       } catch (err) {
@@ -114,67 +109,6 @@ const AmbassadorOfferDetail = () => {
     
     fetchOfferDetails();
   }, [id, user]);
-  
-  const updateCommission = async (offerData: any) => {
-    try {
-      setRecalculatingCommission(true);
-      
-      if (!offerData.ambassador_id || !offerData.monthly_payment || !offerData.coefficient) {
-        console.log("Impossible de recalculer la commission: données insuffisantes");
-        return;
-      }
-      
-      const { data: ambassador } = await supabase
-        .from('ambassadors')
-        .select('*, commission_levels(name, id)')
-        .eq('id', offerData.ambassador_id)
-        .single();
-      
-      if (!ambassador || !ambassador.commission_level_id) {
-        console.log("Impossible de recalculer la commission: données d'ambassadeur manquantes");
-        return;
-      }
-      
-      const financedAmount = calculateFinancedAmount(
-        Number(offerData.monthly_payment), 
-        Number(offerData.coefficient)
-      );
-      
-      if (financedAmount <= 0) {
-        console.log("Impossible de recalculer la commission: montant financé invalide");
-        return;
-      }
-      
-      const commissionData = await calculateCommissionByLevel(
-        financedAmount,
-        ambassador.commission_level_id,
-        'ambassador',
-        offerData.ambassador_id
-      );
-      
-      if (commissionData && typeof commissionData.amount === 'number') {
-        if (Math.abs(commissionData.amount - offerData.commission) > 0.01) {
-          console.log(`Mise à jour de la commission: ${offerData.commission}€ -> ${commissionData.amount}€`);
-          
-          const { error } = await updateOffer(offerData.id, {
-            commission: commissionData.amount
-          });
-          
-          if (!error) {
-            setOffer({
-              ...offerData,
-              commission: commissionData.amount
-            });
-            console.log(`Commission mise à jour avec succès: ${commissionData.amount}€ (${commissionData.rate}%)`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de la commission:", error);
-    } finally {
-      setRecalculatingCommission(false);
-    }
-  };
   
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -524,11 +458,7 @@ const AmbassadorOfferDetail = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold text-green-600">
-                      {recalculatingCommission ? (
-                        <span className="animate-pulse">Calcul...</span>
-                      ) : (
-                        formatCurrency(offer.commission || 0)
-                      )}
+                      {formatCurrency(offer.commission || 0)}
                     </p>
                     {offer.commission_status && (
                       <div className="mt-1">{getCommissionStatusBadge(offer.commission_status)}</div>
@@ -884,13 +814,7 @@ const AmbassadorOfferDetail = () => {
                                 <div>
                                   <p className={`text-sm ${getCommissionIconColor(offer.commission_status)}`}>Commission pour cette offre</p>
                                   <p className="text-2xl font-bold text-gray-700">
-                                    {recalculatingCommission ? (
-                                      <span className="flex items-center">
-                                        <span className="animate-pulse">Calcul en cours...</span>
-                                      </span>
-                                    ) : (
-                                      formatCurrency(offer.commission || 0)
-                                    )}
+                                    {formatCurrency(offer.commission || 0)}
                                   </p>
                                 </div>
                               </div>
