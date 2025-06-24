@@ -95,7 +95,6 @@ const AmbassadorCreateOffer = () => {
     hideFinancialDetails: true
   };
 
-  const hideFinancialDetails = true;
   const isPageLoading = loading || loadingLeasers;
 
   // Determine the correct ambassador ID and commission level ID
@@ -109,7 +108,8 @@ const AmbassadorCreateOffer = () => {
     ambassador,
     commissionLevelId: currentCommissionLevelId,
     totalMonthlyPayment,
-    equipmentListLength: equipmentList.length
+    equipmentListLength: equipmentList.length,
+    calculations
   });
 
   return (
@@ -123,13 +123,6 @@ const AmbassadorCreateOffer = () => {
             selectedClientId={client?.id || ""}
             onClientSelect={() => {}}
             ambassadorMode={true}
-          />
-          
-          <LeaserSelector
-            isOpen={leaserSelectorOpen}
-            onClose={() => setLeaserSelectorOpen(false)}
-            onSelect={handleLeaserSelect}
-            selectedLeaser={selectedLeaser}
           />
           
           <div className="py-8 px-20">
@@ -170,7 +163,7 @@ const AmbassadorCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={hideFinancialDetails}
+                      hideFinancialDetails={true}
                     />
                   </div>
 
@@ -189,7 +182,7 @@ const AmbassadorCreateOffer = () => {
                         marginDifference: globalMarginAdjustment.marginDifference
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                      hideFinancialDetails={hideFinancialDetails}
+                      hideFinancialDetails={false}
                       ambassadorId={currentAmbassadorId}
                       commissionLevelId={currentCommissionLevelId}
                       calculations={calculations}
@@ -208,7 +201,7 @@ const AmbassadorCreateOffer = () => {
                       isSubmitting={clientInfoProps.isSubmitting}
                       selectedLeaser={clientInfoProps.selectedLeaser}
                       equipmentList={clientInfoProps.equipmentList}
-                      hideFinancialDetails={hideFinancialDetails}
+                      hideFinancialDetails={true}
                     />
                   </div>
                 </div>
