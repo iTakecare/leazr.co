@@ -75,37 +75,6 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Client Information Section */}
-        <div className="p-6 bg-blue-50 border-b">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-3">Informations client</h3>
-              <div className="space-y-2 text-sm">
-                {clientCompany && (
-                  <div><span className="font-medium">Société:</span> {clientCompany}</div>
-                )}
-                <div><span className="font-medium">Contact:</span> {clientName}</div>
-                {clientEmail && (
-                  <div><span className="font-medium">Email:</span> {clientEmail}</div>
-                )}
-                {clientPhone && (
-                  <div><span className="font-medium">Téléphone:</span> {clientPhone}</div>
-                )}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-3">Adresse</h3>
-              <div className="text-sm text-gray-600">
-                {clientAddress && <div>{clientAddress}</div>}
-                {(clientPostalCode || clientCity) && (
-                  <div>{clientPostalCode} {clientCity}</div>
-                )}
-                {clientCountry && <div>{clientCountry}</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Equipment Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -196,11 +165,6 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
               <span className="font-medium text-gray-700">TVA:</span>
               <span className="ml-2">Non comprise</span>
             </div>
-          </div>
-          <div className="mt-3 text-xs text-gray-600">
-            <p>• Engagement ferme sur la durée totale du contrat</p>
-            <p>• Option d'achat en fin de contrat pour 1€ symbolique</p>
-            <p>• Assurance incluse dans les mensualités</p>
           </div>
         </div>
 
