@@ -1180,6 +1180,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_offer_notes_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "offer_notes_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
@@ -1216,7 +1223,15 @@ export type Database = {
           reason?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_offer_workflow_logs_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       offers: {
         Row: {

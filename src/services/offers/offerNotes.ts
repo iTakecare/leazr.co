@@ -9,7 +9,7 @@ export interface OfferNote {
   type: string;
   created_at: string;
   created_by?: string;
-  profile?: {
+  profiles?: {
     first_name?: string;
     last_name?: string;
   };
@@ -26,7 +26,7 @@ export const getOfferNotes = async (offerId: string): Promise<OfferNote[]> => {
       .from('offer_notes')
       .select(`
         *,
-        profiles:created_by (first_name, last_name)
+        profiles!fk_offer_notes_created_by (first_name, last_name)
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
