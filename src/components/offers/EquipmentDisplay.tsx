@@ -42,13 +42,34 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
     try {
       if (equipmentDisplay.startsWith('[') || equipmentDisplay.startsWith('{')) {
         const parsed = JSON.parse(equipmentDisplay);
-        return Array.isArray(parsed) ? parsed : [parsed];
+        if (Array.isArray(parsed)) {
+          return parsed;
+        } else {
+          return [parsed];
+        }
       }
     } catch (e) {
-      // If parsing fails, create a simple item from the text
+      // If parsing fails, try to split by common separators to create individual items
     }
     
-    // Fallback: create a single item from the display text
+    // Fallback: try to split the equipment description into individual items
+    const equipmentText = equipmentDisplay || "";
+    
+    // Split by comma and create individual equipment items
+    const equipmentParts = equipmentText.split(',').map(item => item.trim()).filter(item => item.length > 0);
+    
+    if (equipmentParts.length > 1) {
+      // Calculate monthly payment per item (distribute evenly)
+      const monthlyPaymentPerItem = monthlyPayment / equipmentParts.length;
+      
+      return equipmentParts.map(part => ({
+        title: part,
+        quantity: 1,
+        monthlyPayment: monthlyPaymentPerItem
+      }));
+    }
+    
+    // If no comma separation possible, create a single item
     return [{
       title: equipmentDisplay || "Équipement",
       quantity: 1,
