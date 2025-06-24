@@ -188,8 +188,8 @@ const EquipmentList = ({
         </CardContent>
       </Card>
       
-      {/* Always show financial summary when not hiding financial details */}
-      {!hideFinancialDetails && (
+      {/* Show financial summary - always display when we have equipment and total payment */}
+      {equipmentList.length > 0 && totalMonthlyPayment > 0 && (
         <>
           {isAmbassadorMode ? (
             <AmbassadorFinancialSummary
@@ -199,7 +199,7 @@ const EquipmentList = ({
               equipmentListLength={equipmentList.length}
             />
           ) : (
-            calculations && (
+            !hideFinancialDetails && calculations && (
               <FinancialSummary 
                 calculations={calculations}
                 useGlobalAdjustment={globalMarginAdjustment.active}
