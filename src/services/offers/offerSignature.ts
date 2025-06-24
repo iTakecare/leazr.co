@@ -252,7 +252,7 @@ export const generateSignatureLink = (offerId: string): string => {
   
   // Base URL de l'application
   const baseUrl = window.location.origin;
-  // URL de signature
+  // URL de signature corrigée pour utiliser la bonne route
   return `${baseUrl}/client/sign-offer/${offerId}`;
 };
 

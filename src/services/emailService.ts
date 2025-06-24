@@ -539,8 +539,8 @@ export const sendOfferReadyEmail = async (
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
     
-    // Préparer l'URL de l'offre - correction pour utiliser la route de signature
-    const offerLink = `${window.location.origin}/signature/${offerInfo.id}`;
+    // Préparer l'URL de l'offre - utiliser la route correcte
+    const offerLink = `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
     
     // Formater la description de l'équipement avant de l'utiliser
     const formattedDescription = formatEquipmentDescription(offerInfo.description);
@@ -596,6 +596,7 @@ export const sendOfferReadyEmail = async (
     console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
     console.log("Sujet de l'email formaté:", subject);
     console.log("Aperçu du contenu HTML:", htmlContent.substring(0, 150) + "...");
+    console.log("Lien de signature corrigé:", offerLink);
     
     // Envoyer l'email
     const success = await sendEmail(
