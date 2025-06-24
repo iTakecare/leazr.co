@@ -26,7 +26,7 @@ export const getOfferNotes = async (offerId: string): Promise<OfferNote[]> => {
       .from('offer_notes')
       .select(`
         *,
-        profiles!offer_notes_created_by_fkey (first_name, last_name)
+        profiles!created_by (first_name, last_name)
       `)
       .eq('offer_id', offerId)
       .order('created_at', { ascending: false });
