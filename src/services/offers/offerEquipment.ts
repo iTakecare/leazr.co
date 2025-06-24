@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   OfferEquipment, 
@@ -80,6 +79,8 @@ export const saveEquipment = async (
 ): Promise<OfferEquipment | null> => {
   try {
     console.log("Saving equipment for offer:", equipment.offer_id);
+    console.log("Equipment attributes to save:", attributes);
+    console.log("Equipment specifications to save:", specifications);
     
     // 1. Insérer l'équipement principal en utilisant la fonction SECURITY DEFINER
     const { data: equipmentId, error: equipmentError } = await supabase
@@ -102,6 +103,7 @@ export const saveEquipment = async (
     
     // 2. Insérer les attributs en utilisant la fonction SECURITY DEFINER
     if (Object.keys(attributes).length > 0) {
+      console.log("Inserting attributes:", attributes);
       const { error: attributesError } = await supabase
         .rpc('insert_offer_equipment_attributes_secure', {
           p_equipment_id: equipmentId,
@@ -110,6 +112,8 @@ export const saveEquipment = async (
       
       if (attributesError) {
         console.error("Erreur lors de la sauvegarde des attributs:", attributesError);
+      } else {
+        console.log("Attributes saved successfully");
       }
     }
     
@@ -120,6 +124,7 @@ export const saveEquipment = async (
         Object.entries(specifications).map(([key, value]) => [key, String(value)])
       );
       
+      console.log("Inserting specifications:", specStrings);
       const { error: specificationsError } = await supabase
         .rpc('insert_offer_equipment_specifications_secure', {
           p_equipment_id: equipmentId,
@@ -128,6 +133,8 @@ export const saveEquipment = async (
       
       if (specificationsError) {
         console.error("Erreur lors de la sauvegarde des spécifications:", specificationsError);
+      } else {
+        console.log("Specifications saved successfully");
       }
     }
     

@@ -32,32 +32,44 @@ export const useOfferDetail = (offerId: string) => {
       console.log("useOfferDetail - Equipment data received:", equipmentData);
       
       // Convert equipment data to the expected format for compatibility
-      const parsedEquipment = equipmentData.map(item => ({
-        id: item.id,
-        title: item.title,
-        purchasePrice: item.purchase_price,
-        quantity: item.quantity,
-        margin: item.margin,
-        monthlyPayment: item.monthly_payment,
-        serialNumber: item.serial_number,
-        // Convert attributes array to object
-        attributes: item.attributes ? 
-          item.attributes.reduce((acc, attr) => {
-            acc[attr.key] = attr.value;
-            return acc;
-          }, {} as Record<string, string>) : {},
-        // Convert specifications array to object
-        specifications: item.specifications ? 
-          item.specifications.reduce((acc, spec) => {
-            acc[spec.key] = spec.value;
-            return acc;
-          }, {} as Record<string, string>) : {}
-      }));
+      const parsedEquipment = equipmentData.map(item => {
+        // Convertir les attributs depuis le format array vers object pour compatibilité
+        const attributesObject: Record<string, string> = {};
+        if (item.attributes && item.attributes.length > 0) {
+          item.attributes.forEach(attr => {
+            attributesObject[attr.key] = attr.value;
+          });
+        }
+        
+        // Convertir les spécifications depuis le format array vers object pour compatibilité
+        const specificationsObject: Record<string, string> = {};
+        if (item.specifications && item.specifications.length > 0) {
+          item.specifications.forEach(spec => {
+            specificationsObject[spec.key] = spec.value;
+          });
+        }
+        
+        return {
+          id: item.id,
+          title: item.title,
+          purchasePrice: item.purchase_price,
+          quantity: item.quantity,
+          margin: item.margin,
+          monthlyPayment: item.monthly_payment,
+          serialNumber: item.serial_number,
+          // Garder les deux formats pour la compatibilité
+          attributes: attributesObject, // Format objet pour compatibilité existante
+          attributesArray: item.attributes, // Format array original de la DB
+          specifications: specificationsObject, // Format objet pour compatibilité existante  
+          specificationsArray: item.specifications // Format array original de la DB
+        };
+      });
       
       // Set the offer with parsed equipment
       setOffer({
         ...offerData,
-        parsedEquipment
+        parsedEquipment,
+        equipmentItems: parsedEquipment // Alias pour EquipmentInfoCard
       });
       
     } catch (err) {

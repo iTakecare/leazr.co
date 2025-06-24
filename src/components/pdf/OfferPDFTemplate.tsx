@@ -6,8 +6,8 @@ interface EquipmentItem {
   purchasePrice: number;
   quantity: number;
   monthlyPayment: number;
-  attributes?: Record<string, any>;
-  specifications?: Record<string, any>;
+  attributes?: Record<string, any> | any[];
+  specifications?: Record<string, any> | any[];
 }
 
 interface OfferPDFTemplateProps {
@@ -80,8 +80,23 @@ const formatLegalTimestamp = (dateString: string | Date | null | undefined): str
 const formatEquipmentTitle = (item: EquipmentItem): string => {
   let title = item.title;
   
-  if (item.attributes && Object.keys(item.attributes).length > 0) {
-    const attributesText = Object.entries(item.attributes)
+  // Gérer les attributs sous différents formats
+  let attributes = {};
+  
+  if (item.attributes && Array.isArray(item.attributes)) {
+    // Format array d'objets {key, value}
+    item.attributes.forEach(attr => {
+      if (attr.key && attr.value) {
+        attributes[attr.key] = attr.value;
+      }
+    });
+  } else if (item.attributes && typeof item.attributes === 'object') {
+    // Format objet direct
+    attributes = item.attributes;
+  }
+  
+  if (Object.keys(attributes).length > 0) {
+    const attributesText = Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(', ');
     title += ` (${attributesText})`;
