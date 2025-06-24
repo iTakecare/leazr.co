@@ -51,8 +51,8 @@ const EquipmentList = ({
     updateQuantity(id, newQuantity);
   };
 
-  // Determine if we're in ambassador mode
-  const isAmbassadorMode = Boolean(ambassadorId);
+  // Determine if we're in ambassador mode - check URL path as well
+  const isAmbassadorMode = Boolean(ambassadorId) || window.location.pathname.includes('/ambassador/');
 
   console.log("EquipmentList - Ambassador info:", {
     ambassadorId,
@@ -60,7 +60,8 @@ const EquipmentList = ({
     equipmentListLength: equipmentList.length,
     totalMonthlyPayment,
     hideFinancialDetails,
-    isAmbassadorMode
+    isAmbassadorMode,
+    currentPath: window.location.pathname
   });
 
   return (
@@ -86,12 +87,12 @@ const EquipmentList = ({
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
                       Quantité
                     </th>
-                    {!hideFinancialDetails && !isAmbassadorMode && (
+                    {!isAmbassadorMode && (
                       <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[70px]">
                         Marge
                       </th>
                     )}
-                    {!hideFinancialDetails && !isAmbassadorMode && (
+                    {!isAmbassadorMode && (
                       <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
                         Mensualité
                       </th>
@@ -149,12 +150,12 @@ const EquipmentList = ({
                           </Button>
                         </div>
                       </td>
-                      {!hideFinancialDetails && !isAmbassadorMode && (
+                      {!isAmbassadorMode && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                           {item.margin}%
                         </td>
                       )}
-                      {!hideFinancialDetails && !isAmbassadorMode && (
+                      {!isAmbassadorMode && (
                         <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                           {formatCurrency(item.monthlyPayment || 0)}
                         </td>
