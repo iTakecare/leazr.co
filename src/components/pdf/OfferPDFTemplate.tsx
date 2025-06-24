@@ -6,6 +6,8 @@ interface EquipmentItem {
   purchasePrice: number;
   quantity: number;
   monthlyPayment: number;
+  attributes?: Record<string, any>;
+  specifications?: Record<string, any>;
 }
 
 interface OfferPDFTemplateProps {
@@ -72,6 +74,20 @@ const formatLegalTimestamp = (dateString: string | Date | null | undefined): str
   } catch (e) {
     return "";
   }
+};
+
+// Function to format equipment title with attributes
+const formatEquipmentTitle = (item: EquipmentItem): string => {
+  let title = item.title;
+  
+  if (item.attributes && Object.keys(item.attributes).length > 0) {
+    const attributesText = Object.entries(item.attributes)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+    title += ` (${attributesText})`;
+  }
+  
+  return title;
 };
 
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
@@ -223,7 +239,7 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
                       whiteSpace: "normal",
                       wordBreak: "break-word"
                     }}>
-                      {item.title}
+                      {formatEquipmentTitle(item)}
                     </td>
                     <td style={{ 
                       padding: "2mm", 

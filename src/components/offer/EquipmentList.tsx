@@ -93,6 +93,20 @@ const EquipmentList = ({
     );
   };
 
+  // Function to format equipment title with attributes
+  const formatEquipmentTitle = (item: Equipment) => {
+    let title = item.title;
+    
+    if (item.attributes && Object.keys(item.attributes).length > 0) {
+      const attributesText = Object.entries(item.attributes)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+      title += ` (${attributesText})`;
+    }
+    
+    return title;
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border border-gray-200 shadow-sm">
@@ -134,7 +148,7 @@ const EquipmentList = ({
                     <tr key={item.id}>
                       <td className="px-2 py-3 text-sm text-gray-900 max-w-[120px]">
                         <div>
-                          <div className="font-medium truncate" title={item.title}>
+                          <div className="font-medium" title={formatEquipmentTitle(item)}>
                             {item.title}
                           </div>
                           {renderAttributes(item.attributes)}

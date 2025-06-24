@@ -24,6 +24,17 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
     }
   }
 
+  // Function to format attributes display
+  const formatAttributes = (attributes: any) => {
+    if (!attributes || typeof attributes !== 'object') return '';
+    
+    const attrs = Object.entries(attributes)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+    
+    return attrs ? ` (${attrs})` : '';
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -37,7 +48,14 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
           <div className="space-y-4">
             {parsedEquipment.map((item, index) => (
               <div key={item.id || index} className="border rounded-lg p-4 bg-gray-50">
-                <div className="font-medium text-lg mb-2">{item.title}</div>
+                <div className="font-medium text-lg mb-2">
+                  {item.title}{formatAttributes(item.attributes)}
+                  {item.quantity && item.quantity > 1 && (
+                    <span className="ml-2 text-sm text-gray-600">
+                      (Quantité: {item.quantity})
+                    </span>
+                  )}
+                </div>
                 
                 {item.serialNumber && (
                   <div className="mt-2 text-sm text-muted-foreground">
@@ -60,15 +78,18 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
                   </div>
                 )}
                 
-                {/* Afficher les attributs si disponibles */}
+                {/* Afficher les attributs si disponibles et différents des spécifications */}
                 {item.attributes && Object.keys(item.attributes).length > 0 && (
                   <div className="mt-3">
-                    <div className="text-sm font-medium text-muted-foreground mb-1">Options:</div>
-                    <div className="text-sm">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Configuration:</div>
+                    <div className="flex flex-wrap gap-2">
                       {Object.entries(item.attributes).map(([key, value]) => (
-                        <div key={key} className="mb-1">
-                          <span className="font-medium">{key}:</span> {String(value)}
-                        </div>
+                        <span 
+                          key={key}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {key}: {String(value)}
+                        </span>
                       ))}
                     </div>
                   </div>
