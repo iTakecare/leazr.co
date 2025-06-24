@@ -36,10 +36,8 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   // Utiliser la marge totale avec différence si disponible, sinon utiliser la marge normale
   const finalMargin = totalMarginWithDifference !== undefined ? totalMarginWithDifference : totalMargin;
   
-  // État pour suivre quels équipements sont développés
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   
-  // Fonction pour basculer l'état d'expansion d'un équipement
   const toggleExpand = (itemId: string) => {
     setExpandedItems(prev => ({
       ...prev,
@@ -47,7 +45,6 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
     }));
   };
   
-  // Fonction pour vérifier si un équipement a des attributs ou des spécifications
   const hasDetails = (item: EquipmentItem): boolean => {
     return (
       (item.attributes && Object.keys(item.attributes).length > 0) || 
@@ -55,17 +52,48 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
     );
   };
 
-  // Fonction pour afficher les spécifications et attributs
+  // Function to format equipment title with attributes
+  const formatEquipmentTitle = (item: EquipmentItem): string => {
+    let title = item.title;
+    
+    if (item.attributes && Object.keys(item.attributes).length > 0) {
+      const attributesText = Object.entries(item.attributes)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+      title += ` (${attributesText})`;
+    }
+    
+    return title;
+  };
+
+  // Function to render attribute badges
+  const renderAttributeBadges = (item: EquipmentItem) => {
+    if (!item.attributes || Object.keys(item.attributes).length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {Object.entries(item.attributes).map(([key, value]) => (
+          <span 
+            key={key}
+            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+          >
+            {key}: {value}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   const renderDetailsRow = (item: EquipmentItem, itemId: string) => {
     const hasAttributes = item.attributes && Object.keys(item.attributes).length > 0;
     const hasSpecifications = item.specifications && Object.keys(item.specifications).length > 0;
 
-    // Vérifier s'il y a des détails à afficher
     if (!hasAttributes && !hasSpecifications) {
       return null;
     }
 
-    // Vérifier si l'élément est développé
     if (!expandedItems[itemId]) {
       return null;
     }
@@ -74,28 +102,6 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
       <tr className="bg-gray-50 border-b border-gray-100">
         <td colSpan={5} className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {hasAttributes && (
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Attributs</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-1/2">Attribut</TableHead>
-                      <TableHead className="w-1/2">Valeur</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(item.attributes || {}).map(([key, value]) => (
-                      <TableRow key={`attr-${key}`}>
-                        <TableCell className="font-medium capitalize">{key}</TableCell>
-                        <TableCell>{value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-            
             {hasSpecifications && (
               <div>
                 <h4 className="font-medium text-gray-700 mb-2">Spécifications</h4>
@@ -121,14 +127,6 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
         </td>
       </tr>
     );
-  };
-  
-  // Fonction pour créer une chaîne de caractères à partir des attributs et spécifications
-  const createDetailsString = (item: EquipmentItem): string => {
-    const attributesArray = item.attributes ? Object.entries(item.attributes).map(([key, value]) => `${key}: ${value}`) : [];
-    const specificationsArray = item.specifications ? Object.entries(item.specifications).map(([key, value]) => `${key}: ${value}`) : [];
-    
-    return [...attributesArray, ...specificationsArray].join(' • ');
   };
   
   return (
@@ -164,7 +162,6 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
               const totalItemMonthly = monthlyPayment * item.quantity;
               const itemId = item.id || `item-${index}`;
               const isExpanded = expandedItems[itemId] || false;
-              const detailsString = createDetailsString(item);
               
               return (
                 <React.Fragment key={itemId}>
@@ -180,13 +177,9 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                               {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
                           )}
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium">{item.title}</div>
-                            {detailsString && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {detailsString}
-                              </div>
-                            )}
+                            {renderAttributeBadges(item)}
                           </div>
                         </div>
                       </div>
@@ -197,15 +190,15 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     )}
                     <td className="py-3 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
                     <td className="py-3 px-4 text-right text-gray-500 text-sm">
-                      {hasDetails(item) ? (
+                      {hasDetails(item) && item.specifications && Object.keys(item.specifications).length > 0 ? (
                         <button 
                           onClick={() => toggleExpand(itemId)}
                           className="text-blue-600 text-xs underline hover:text-blue-800"
                         >
-                          {isExpanded ? "Masquer" : "Afficher"}
+                          {isExpanded ? "Masquer" : "Afficher"} specs
                         </button>
                       ) : (
-                        <span className="text-gray-400">Non disponible</span>
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
                   </tr>
