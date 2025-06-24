@@ -71,7 +71,7 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
     <Card className="mb-6">
       <CardHeader className="bg-gray-50 border-b">
         <CardTitle className="text-lg font-semibold text-gray-800">
-          DEVIS DE FINANCEMENT - Équipement et conditions
+          Équipement et financement
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -218,12 +218,12 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
         {/* Signature Section */}
         <div className="p-6 bg-gray-50 border-t">
           <div className="text-center">
-            <h3 className="font-semibold text-gray-800 mb-2">Validation du devis</h3>
+            <h3 className="font-semibold text-gray-800 mb-2">Validation de l'offre</h3>
             <p className="text-sm text-gray-600 mb-4">
-              En signant ce devis, vous acceptez les conditions de financement proposées
+              En signant cette offre, vous acceptez les conditions de financement proposées
             </p>
             <div className="text-xs text-gray-500">
-              Ce devis est valable 30 jours à compter de sa date d'émission
+              Cette offre est valable 30 jours à compter de sa date d'émission
             </div>
           </div>
         </div>
