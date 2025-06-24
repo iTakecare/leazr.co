@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -281,16 +280,20 @@ const CreateOffer = () => {
         return;
       }
 
+      // Préparer les données d'équipement avec les attributs
       const equipmentData = equipmentList.map(eq => ({
         id: eq.id,
         title: eq.title,
         purchasePrice: eq.purchasePrice,
         quantity: eq.quantity,
         margin: eq.margin,
-        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length
+        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
+        // S'assurer que les attributs sont inclus
+        attributes: eq.attributes || {},
+        specifications: eq.specifications || {}
       }));
       
-      console.log("Saving equipment data with preserved margins:", equipmentData);
+      console.log("💾 Saving equipment data with attributes:", equipmentData);
       
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
@@ -299,6 +302,14 @@ const CreateOffer = () => {
       // Calculate financed amount
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
+
+      // Calculer la marge totale des équipements
+      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+        return sum + equipmentMargin;
+      }, 0);
+      
+      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
 
       // CORRECTION: Garder total_margin_with_difference comme nombre et non string
       const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
@@ -309,7 +320,8 @@ const CreateOffer = () => {
         totalMarginWithDifference,
         totalAmount,
         financedAmount,
-        calculatedMargin: totalAmount - financedAmount
+        calculatedMargin: totalAmount - financedAmount,
+        totalEquipmentMargin
       });
 
       const offerData = {
@@ -319,6 +331,8 @@ const CreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
+        // Passer les équipements pour la sauvegarde dans les nouvelles tables
+        equipment: equipmentData,
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -326,14 +340,16 @@ const CreateOffer = () => {
         financed_amount: financedAmount,
         remarks: remarks,
         type: 'admin_offer',
-        total_margin_with_difference: totalMarginWithDifference // Garder comme nombre
+        // Utiliser la marge calculée depuis les équipements si disponible
+        margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : totalMarginWithDifference,
+        total_margin_with_difference: totalMarginWithDifference // Garder pour compatibilité
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
       console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
-      console.log("💾 CRÉATION OFFRE - Marge totale:", offerData.total_margin_with_difference);
+      console.log("💾 CRÉATION OFFRE - Marge totale:", offerData.margin);
 
       let result;
       

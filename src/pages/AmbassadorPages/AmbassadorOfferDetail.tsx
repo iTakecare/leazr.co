@@ -270,7 +270,7 @@ const AmbassadorOfferDetail = () => {
               monthlyPayment={offer.monthly_payment}
               commission={offer.commission}
               commissionStatus={offer.commission_status}
-              margin={calculatedMargin}
+              margin={offer.margin || calculatedMargin}
               marginPercentage={marginPercentage}
               showCommission={shouldShowCommission}
               showMargin={isAdmin()}
@@ -289,6 +289,7 @@ const AmbassadorOfferDetail = () => {
                 
                 <EquipmentInfoCard 
                   equipmentDescription={offer.equipment_description}
+                  equipmentItems={offer.equipmentItems || offer.parsedEquipment}
                 />
                 
                 <AmbassadorWorkflowTimeline 

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -22,6 +23,16 @@ export const createOffer = async (offerData: OfferData) => {
       throw new Error("Company ID is required but not found");
     }
     
+    // Calculer la marge totale des équipements si présents
+    let totalEquipmentMargin = 0;
+    if (offerData.equipment && Array.isArray(offerData.equipment)) {
+      totalEquipmentMargin = offerData.equipment.reduce((sum, eq) => {
+        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+        return sum + equipmentMargin;
+      }, 0);
+      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
+    }
+    
     // S'assurer que les valeurs numériques sont correctement converties
     const offerDataToSave = {
       ...offerData,
@@ -32,10 +43,12 @@ export const createOffer = async (offerData: OfferData) => {
       commission: offerData.commission !== undefined && offerData.commission !== null ? 
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined,
-      // Convertir la marge si elle est présente
-      margin: offerData.margin !== undefined && offerData.margin !== null ?
+      // Utiliser la marge calculée depuis les équipements si disponible, sinon utiliser celle fournie
+      margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : (
+        offerData.margin !== undefined && offerData.margin !== null ?
         (typeof offerData.margin === 'string' ? parseFloat(offerData.margin) : offerData.margin) :
         undefined
+      )
     };
 
     console.log("💾 DONNÉES FINALES à sauvegarder:", {
@@ -44,7 +57,8 @@ export const createOffer = async (offerData: OfferData) => {
       client_name: offerDataToSave.client_name,
       type: offerDataToSave.type,
       amount: offerDataToSave.amount,
-      monthly_payment: offerDataToSave.monthly_payment
+      monthly_payment: offerDataToSave.monthly_payment,
+      margin: offerDataToSave.margin
     });
 
     // Calculer le montant financé si non défini
@@ -53,14 +67,6 @@ export const createOffer = async (offerData: OfferData) => {
         (Number(offerDataToSave.monthly_payment) * Number(offerDataToSave.coefficient)).toFixed(2)
       );
       console.log("Montant financé calculé:", offerDataToSave.financed_amount);
-    }
-
-    // Calculer la marge si elle n'est pas définie mais qu'on a le montant et le montant financé
-    if (!offerDataToSave.margin && offerDataToSave.amount && offerDataToSave.financed_amount) {
-      const marginAmount = offerDataToSave.amount - offerDataToSave.financed_amount;
-      const marginPercentage = (marginAmount / offerDataToSave.amount) * 100;
-      offerDataToSave.margin = parseFloat(marginPercentage.toFixed(2));
-      console.log("Marge calculée:", offerDataToSave.margin);
     }
 
     // Vérification pour commission invalide (NaN)
@@ -160,6 +166,45 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("✅ OFFRE CRÉÉE AVEC SUCCÈS !");
     console.log("📋 Données de l'offre créée:", data);
     console.log("🆔 ID de la nouvelle offre:", data.id);
+    
+    // Si nous avons des équipements avec des attributs, les sauvegarder dans les nouvelles tables
+    if (offerData.equipment && Array.isArray(offerData.equipment) && data.id) {
+      console.log("💾 SAUVEGARDE des équipements avec attributs...");
+      
+      for (const equipment of offerData.equipment) {
+        try {
+          // Préparer les attributs et spécifications
+          const attributes = equipment.attributes || {};
+          const specifications = equipment.specifications || {};
+          
+          // Créer l'équipement de base
+          const newEquipment = {
+            offer_id: data.id,
+            title: equipment.title,
+            purchase_price: equipment.purchasePrice || equipment.purchase_price || 0,
+            quantity: equipment.quantity || 1,
+            margin: equipment.margin || 0,
+            monthly_payment: equipment.monthlyPayment || equipment.monthly_payment || 0,
+            serial_number: equipment.serialNumber || equipment.serial_number
+          };
+          
+          console.log("💾 Sauvegarde équipement:", newEquipment);
+          console.log("💾 Avec attributs:", attributes);
+          
+          // Sauvegarder l'équipement avec ses attributs
+          const { saveEquipment } = await import('./offerEquipment');
+          const result = await saveEquipment(newEquipment, attributes, specifications);
+          
+          if (result) {
+            console.log("✅ Équipement sauvegardé avec succès:", result.id);
+          } else {
+            console.error("❌ Échec de la sauvegarde de l'équipement:", newEquipment.title);
+          }
+        } catch (equipmentError) {
+          console.error("❌ Erreur lors de la sauvegarde de l'équipement:", equipmentError);
+        }
+      }
+    }
     
     return { data, error: null };
   } catch (error) {

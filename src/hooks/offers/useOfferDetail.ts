@@ -26,6 +26,7 @@ export const useOfferDetail = (offerId: string) => {
       }
       
       console.log("useOfferDetail - Offer data received:", offerData);
+      console.log("useOfferDetail - Offer margin from DB:", offerData.margin);
       
       // Fetch equipment from the new structure
       const equipmentData = await getOfferEquipment(offerId);
@@ -65,11 +66,32 @@ export const useOfferDetail = (offerId: string) => {
         };
       });
       
-      // Set the offer with parsed equipment
+      // Si nous n'avons pas d'équipements dans les nouvelles tables, essayer de parser depuis equipment_description
+      let finalEquipment = parsedEquipment;
+      if (parsedEquipment.length === 0 && offerData.equipment_description) {
+        try {
+          const fallbackEquipment = JSON.parse(offerData.equipment_description);
+          if (Array.isArray(fallbackEquipment)) {
+            console.log("useOfferDetail - Using fallback equipment from JSON:", fallbackEquipment);
+            finalEquipment = fallbackEquipment.map(item => ({
+              ...item,
+              // S'assurer que les attributs sont disponibles
+              attributes: item.attributes || {},
+              specifications: item.specifications || {}
+            }));
+          }
+        } catch (e) {
+          console.warn("useOfferDetail - Could not parse equipment_description as JSON");
+        }
+      }
+      
+      // Set the offer with parsed equipment and margin info
       setOffer({
         ...offerData,
-        parsedEquipment,
-        equipmentItems: parsedEquipment // Alias pour EquipmentInfoCard
+        parsedEquipment: finalEquipment,
+        equipmentItems: finalEquipment, // Alias pour EquipmentInfoCard
+        // Passer la marge de l'offre pour l'affichage correct
+        offerMargin: offerData.margin || offerData.total_margin_with_difference || 0
       });
       
     } catch (err) {

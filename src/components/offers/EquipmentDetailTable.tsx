@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { formatCurrency } from '@/utils/formatters';
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';
@@ -21,6 +22,8 @@ interface EquipmentDetailTableProps {
   totalMargin: number;
   totalMarginWithDifference?: number;
   hideFinancialDetails?: boolean;
+  // Nouveau prop pour la marge de l'offre depuis la DB
+  offerMargin?: number;
 }
 
 const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
@@ -28,13 +31,26 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   totalMonthly,
   totalMargin,
   totalMarginWithDifference,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  offerMargin
 }) => {
   // Calcul du nombre total d'articles
   const totalArticles = equipment.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Utiliser la marge totale avec différence si disponible, sinon utiliser la marge normale
-  const finalMargin = totalMarginWithDifference !== undefined ? totalMarginWithDifference : totalMargin;
+  // Calculer la marge à afficher par priorité :
+  // 1. Marge de l'offre depuis la DB (si disponible)
+  // 2. Marge totale avec différence (calculateur)
+  // 3. Marge totale simple
+  let finalMargin = totalMargin;
+  if (offerMargin !== undefined && offerMargin > 0) {
+    finalMargin = offerMargin;
+    console.log("💰 Utilisation de la marge depuis l'offre DB:", offerMargin);
+  } else if (totalMarginWithDifference !== undefined) {
+    finalMargin = totalMarginWithDifference;
+    console.log("💰 Utilisation de la marge avec différence:", totalMarginWithDifference);
+  }
+  
+  console.log("💰 MARGE FINALE affichée:", finalMargin);
   
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   

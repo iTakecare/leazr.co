@@ -79,46 +79,48 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         </div>
         
         <div>
-          <Label htmlFor="quantity" className="block font-medium text-gray-700">
+          <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
             Quantité
           </Label>
-          <div className="mt-1">
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              step="1"
-              value={equipment.quantity}
-              onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 1)}
-              className="border-gray-300"
-            />
-          </div>
+          <Input
+            id="quantity"
+            type="number"
+            min="1"
+            value={equipment.quantity}
+            onChange={(e) => handleChange('quantity', parseInt(e.target.value, 10) || 1)}
+            className="mt-1"
+          />
         </div>
-        
-        {!hideFinancialDetails && (
-          <div>
-            <Label htmlFor="margin" className={`block font-medium ${errors.margin ? 'text-red-500' : 'text-gray-700'}`}>
-              Marge (%)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="margin"
-                type="number"
-                min="0"
-                step="0.01"
-                value={marginToDisplay === 0 ? '' : marginToDisplay}
-                onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
-                className={`pl-8 ${errors.margin ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="0.00"
-              />
-              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">%</span>
-            </div>
-            {errors.margin && (
-              <p className="mt-1 text-sm text-red-500">Ce champ doit être supérieur ou égal à 0</p>
+      </div>
+
+      {!hideFinancialDetails && (
+        <div>
+          <Label htmlFor="margin" className={`block font-medium ${errors.margin ? 'text-red-500' : 'text-gray-700'}`}>
+            Marge (%) *
+          </Label>
+          <div className="mt-1 relative">
+            <Input
+              id="margin"
+              type="number"
+              min="0"
+              step="0.1"
+              value={marginToDisplay === 0 ? '' : marginToDisplay}
+              onChange={(e) => handleChange('margin', parseFloat(e.target.value) || 0)}
+              className={`pr-8 ${errors.margin ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="0.0"
+            />
+            <span className="absolute right-3 top-3 text-gray-500 pointer-events-none">%</span>
+            {calculatedMargin && calculatedMargin.percentage > 0 && (
+              <p className="mt-1 text-xs text-blue-600">
+                Marge calculée automatiquement : {calculatedMargin.percentage.toFixed(2)}%
+              </p>
             )}
           </div>
-        )}
-      </div>
+          {errors.margin && (
+            <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
