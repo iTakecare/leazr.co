@@ -58,6 +58,13 @@ export const useAmbassadorOfferSave = ({
       toast.error("Utilisateur non authentifié");
       return;
     }
+
+    // Récupérer le company_id de l'ambassadeur
+    const ambassadorCompanyId = ambassador?.company_id;
+    if (!ambassadorCompanyId) {
+      toast.error("Company ID manquant pour l'ambassadeur");
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -138,6 +145,7 @@ export const useAmbassadorOfferSave = ({
         type: "ambassador_offer",
         user_id: userId,
         ambassador_id: currentAmbassadorId,
+        company_id: ambassadorCompanyId, // Ajouter le company_id obligatoire
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifferenceString,
         margin: marginAmount
