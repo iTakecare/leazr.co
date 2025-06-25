@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.3.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -137,37 +137,65 @@ serve(async (req) => {
     console.log("Requête validée pour envoyer un email à:", clientEmail);
     console.log("Documents demandés:", requestedDocs);
     
-    // Récupérer les paramètres SMTP depuis la base de données
-    console.log("Récupération de la configuration SMTP depuis la base de données...");
-    const { data: smtpConfig, error: smtpError } = await supabase
+    // Récupérer les paramètres email depuis la base de données
+    console.log("Récupération de la configuration email depuis la base de données...");
+    const { data: emailConfig, error: emailError } = await supabase
       .from('smtp_settings')
       .select('*')
       .eq('enabled', true)
       .single();
       
-    if (smtpError) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", smtpError);
+    if (emailError) {
+      console.error("Erreur lors de la récupération des paramètres email:", emailError);
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Configuration SMTP non trouvée ou désactivée",
-          details: smtpError,
+          message: "Configuration email non trouvée ou désactivée",
+          details: emailError,
         }),
         {
-          status: 200,
+          status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
     }
     
-    console.log("Configuration SMTP récupérée:", {
-      host: smtpConfig.host,
-      port: smtpConfig.port,
-      username: smtpConfig.username,
-      secure: smtpConfig.secure,
-      from_email: smtpConfig.from_email,
-      from_name: smtpConfig.from_name
+    console.log("Configuration email récupérée:", {
+      from_email: emailConfig.from_email,
+      from_name: emailConfig.from_name,
+      use_resend: emailConfig.use_resend
     });
+    
+    // Vérifier que Resend est activé
+    if (!emailConfig.use_resend) {
+      console.error("Resend n'est pas activé dans la configuration");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Service d'email Resend non activé",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    // Récupérer la clé API Resend depuis les secrets
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("Clé API Resend non configurée");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Clé API Resend non configurée",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     // Formater les documents demandés pour l'email
     const formattedDocs = requestedDocs.map(doc => {
@@ -186,89 +214,84 @@ serve(async (req) => {
       }
     }).join('\n');
     
-    // Configurer le client SMTP
-    console.log("Configuration du client SMTP avec les paramètres suivants:");
-    console.log({
-      hostname: smtpConfig.host,
-      port: parseInt(smtpConfig.port),
-      tls: smtpConfig.secure,
-      auth: {
-        username: smtpConfig.username,
-        password: "***HIDDEN***" // Ne pas logger le mot de passe
-      }
-    });
+    // Initialiser Resend
+    const resend = new Resend(resendApiKey);
     
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpConfig.host,
-        port: parseInt(smtpConfig.port),
-        tls: smtpConfig.secure,
-        auth: {
-          username: smtpConfig.username,
-          password: smtpConfig.password,
-        },
-      },
-    });
-
     try {
       // Préparer le contenu de l'email
       const emailSubject = "Documents requis - Offre de leasing";
       const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`;
-      const htmlBody = `<p>Bonjour ${clientName},</p><p>Documents requis:</p><ul>${requestedDocs.map(doc => {
-        if (doc.startsWith('custom:')) {
-          return `<li>${doc.substring(7)}</li>`;
-        } else {
-          const docNameMap: {[key: string]: string} = {
-            balance_sheet: "Bilan financier",
-            tax_notice: "Avertissement extrait de rôle",
-            id_card: "Copie de la carte d'identité",
-            company_register: "Extrait de registre d'entreprise",
-            vat_certificate: "Attestation TVA",
-            bank_statement: "Relevé bancaire des 3 derniers mois"
-          };
-          return `<li>${docNameMap[doc] || doc}</li>`;
-        }
-      }).join('')}</ul>${customMessage ? `<p>${customMessage}</p>` : ''}`;
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
+          <p>Nous avons besoin des documents suivants pour traiter votre demande de financement :</p>
+          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+            ${requestedDocs.map(doc => {
+              if (doc.startsWith('custom:')) {
+                return `<li>${doc.substring(7)}</li>`;
+              } else {
+                const docNameMap: {[key: string]: string} = {
+                  balance_sheet: "Bilan financier",
+                  tax_notice: "Avertissement extrait de rôle",
+                  id_card: "Copie de la carte d'identité",
+                  company_register: "Extrait de registre d'entreprise",
+                  vat_certificate: "Attestation TVA",
+                  bank_statement: "Relevé bancaire des 3 derniers mois"
+                };
+                return `<li>${docNameMap[doc] || doc}</li>`;
+              }
+            }).join('')}
+          </ul>
+          ${customMessage ? `<p><strong>Message personnalisé :</strong><br>${customMessage}</p>` : ''}
+          <p>Merci de nous faire parvenir ces documents dans les meilleurs délais.</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
+            Cordialement,<br>
+            L'équipe ${emailConfig.from_name || 'iTakecare'}
+          </p>
+        </div>
+      `;
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Sujet:", emailSubject);
       console.log("Contenu texte (aperçu):", emailBody.substring(0, 100) + "...");
       
       // Format RFC-compliant pour le champ From
-      const fromField = `"${smtpConfig.from_name}" <${smtpConfig.from_email}>`;
+      const fromField = `${emailConfig.from_name || 'iTakecare'} <${emailConfig.from_email}>`;
       console.log("From field format:", fromField);
       
-      console.log("Tentative d'envoi d'email...");
+      console.log("Tentative d'envoi d'email via Resend...");
       
-      // Envoi de l'email avec des options simples pour maximiser la compatibilité
-      const emailResult = await client.send({
+      // Envoi de l'email avec Resend
+      const emailResult = await resend.emails.send({
         from: fromField,
         to: clientEmail,
         subject: emailSubject,
-        content: "text/plain; charset=utf-8",
         text: emailBody,
         html: htmlBody,
-        // Ajouter des en-têtes supplémentaires pour éviter le spam
-        headers: {
-          "X-Priority": "1",
-          "X-MSMail-Priority": "High",
-          "Importance": "High"
-        }
       });
       
-      console.log("Résultat de l'envoi:", JSON.stringify(emailResult, null, 2));
+      if (emailResult.error) {
+        console.error("Erreur lors de l'envoi via Resend:", emailResult.error);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Erreur lors de l'envoi de l'email: ${emailResult.error.message}`,
+            details: emailResult.error,
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
       
-      // Fermez proprement la connexion après utilisation
-      await client.close();
-      
-      console.log("Email envoyé avec succès à:", clientEmail);
-      console.log("Connexion SMTP fermée");
+      console.log("Email envoyé avec succès via Resend:", emailResult.data);
       
       return new Response(
         JSON.stringify({
           success: true,
           message: "Email envoyé avec succès",
-          details: emailResult
+          details: emailResult.data
         }),
         {
           status: 200,
@@ -276,15 +299,7 @@ serve(async (req) => {
         }
       );
     } catch (emailError) {
-      console.error("Erreur lors de l'envoi de l'email:", emailError);
-      console.error("Détails de l'erreur:", JSON.stringify(emailError, null, 2));
-      
-      try {
-        await client.close();
-        console.log("Connexion SMTP fermée après erreur");
-      } catch (closeError) {
-        console.error("Erreur supplémentaire lors de la fermeture du client:", closeError);
-      }
+      console.error("Erreur lors de l'envoi de l'email via Resend:", emailError);
       
       return new Response(
         JSON.stringify({
@@ -293,7 +308,7 @@ serve(async (req) => {
           details: JSON.stringify(emailError),
         }),
         {
-          status: 200,
+          status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
