@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const AmbassadorDashboard = () => {
           const clientsData = await getAmbassadorClients();
           const clientsCount = clientsData?.length || 0;
           
-          // Récupérer les commissions
           const { data: commissions, error: commissionError } = await supabase
             .from('offers')
             .select('commission')

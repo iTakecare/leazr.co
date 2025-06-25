@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,7 @@ const AmbassadorDashboardPage = () => {
       console.log(`Chargement des statistiques pour l'ambassadeur ${foundAmbassadorId}`);
       
       // Utiliser la fonction sécurisée pour récupérer les clients
-      const clientsData = await getAmbassadorClients();
+      const clientsData = await getAmbassadorClients(user?.id);
       const clientsCount = clientsData?.length || 0;
       console.log(`Trouvé ${clientsCount} clients pour l'ambassadeur ${foundAmbassadorId}`);
       

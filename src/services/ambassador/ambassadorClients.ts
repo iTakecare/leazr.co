@@ -135,3 +135,103 @@ export const getClientsByAmbassadorId = async (ambassadorId: string) => {
     return [];
   }
 };
+
+/**
+ * Fonction d'alias pour maintenir la compatibilité
+ * Utilise getClientsByAmbassadorId mais attend un user_id
+ */
+export const getAmbassadorClients = async (userId?: string) => {
+  try {
+    if (!userId) {
+      console.warn("⚠️ getAmbassadorClients appelé sans userId");
+      return [];
+    }
+    
+    // Essayer de trouver l'ambassadeur par user_id
+    const { data: ambassadorData, error } = await supabase
+      .from('ambassadors')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !ambassadorData) {
+      console.error("❌ Ambassadeur non trouvé pour user_id:", userId, error);
+      return [];
+    }
+    
+    return await getClientsByAmbassadorId(ambassadorData.id);
+  } catch (error) {
+    console.error("❌ Exception dans getAmbassadorClients:", error);
+    return [];
+  }
+};
+
+/**
+ * Supprime un client d'un ambassadeur
+ */
+export const deleteAmbassadorClient = async (clientId: string) => {
+  try {
+    console.log("🗑️ Suppression du client ambassadeur:", clientId);
+    
+    // Supprimer le lien dans ambassador_clients
+    const { error: linkError } = await supabase
+      .from('ambassador_clients')
+      .delete()
+      .eq('client_id', clientId);
+    
+    if (linkError) {
+      console.error("❌ Erreur lors de la suppression du lien ambassadeur-client:", linkError);
+      throw linkError;
+    }
+    
+    // Optionnellement, supprimer le client lui-même si nécessaire
+    // Pour l'instant, on garde juste le détachement
+    
+    console.log("✅ Client détaché de l'ambassadeur avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception dans deleteAmbassadorClient:", error);
+    throw error;
+  }
+};
+
+/**
+ * Lie un client à un ambassadeur
+ */
+export const linkClientToAmbassador = async (clientId: string, ambassadorId: string) => {
+  try {
+    console.log("🔗 Liaison client-ambassadeur:", { clientId, ambassadorId });
+    
+    // Vérifier si le lien existe déjà
+    const { data: existingLink } = await supabase
+      .from('ambassador_clients')
+      .select('id')
+      .eq('client_id', clientId)
+      .eq('ambassador_id', ambassadorId)
+      .single();
+    
+    if (existingLink) {
+      console.log("⚠️ Lien client-ambassadeur déjà existant");
+      return true;
+    }
+    
+    // Créer le lien
+    const { error } = await supabase
+      .from('ambassador_clients')
+      .insert({
+        client_id: clientId,
+        ambassador_id: ambassadorId
+      });
+    
+    if (error) {
+      console.error("❌ Erreur lors de la création du lien:", error);
+      throw error;
+    }
+    
+    console.log("✅ Client lié à l'ambassadeur avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception dans linkClientToAmbassador:", error);
+    throw error;
+  }
+};
