@@ -37,40 +37,17 @@ export const sendDocumentRequestEmail = async ({
     const documentsList = requestedDocuments.map(doc => {
       const isCustom = doc.startsWith('custom:');
       const docName = isCustom ? doc.replace('custom:', '') : DOCUMENT_TYPES[doc] || doc;
-      return `• ${docName}`;
-    }).join('\n');
+      return docName;
+    });
 
-    // Préparer le contenu de l'email
-    const emailSubject = `Documents requis pour votre dossier de financement`;
-    
-    const emailContent = `
-Bonjour ${offerClientName},
-
-Nous avons besoin de documents supplémentaires pour finaliser votre dossier de financement.
-
-Documents demandés :
-${documentsList}
-
-${customMessage ? `Message personnalisé :\n${customMessage}\n\n` : ''}
-
-Pour uploader vos documents, veuillez cliquer sur le lien suivant :
-${uploadUrl}
-
-Ce lien est valide pendant 7 jours. Tous vos documents seront sécurisés et traités en toute confidentialité.
-
-Si vous avez des questions, n'hésitez pas à nous contacter.
-
-Cordialement,
-L'équipe iTakecare
-    `.trim();
-
-    // Appeler l'edge function pour envoyer l'email
-    const { data, error } = await supabase.functions.invoke('send-email', {
+    // Appeler l'edge function send-document-request
+    const { data, error } = await supabase.functions.invoke('send-document-request', {
       body: {
-        to: offerClientEmail,
-        subject: emailSubject,
-        text: emailContent,
-        html: emailContent.replace(/\n/g, '<br>')
+        offerId,
+        clientEmail: offerClientEmail,
+        clientName: offerClientName,
+        requestedDocs: documentsList,
+        customMessage: customMessage || undefined
       }
     });
 
@@ -79,8 +56,13 @@ L'équipe iTakecare
       return false;
     }
 
-    console.log("✅ Email de demande de documents envoyé avec succès");
-    return true;
+    if (data && data.success) {
+      console.log("✅ Email de demande de documents envoyé avec succès");
+      return true;
+    } else {
+      console.error("❌ Échec de l'envoi:", data?.message || "Raison inconnue");
+      return false;
+    }
 
   } catch (error) {
     console.error("❌ Erreur lors de l'envoi de la demande de documents:", error);
