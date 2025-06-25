@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
+import Layout from "@/components/layout/Layout";
 import Login from "@/pages/Login";
 import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
 import Dashboard from "@/pages/Dashboard";
@@ -34,75 +35,103 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
                   
-                  {/* Protected routes */}
+                  {/* Protected routes with Layout */}
                   <Route path="/" element={
                     <PrivateRoute>
-                      <Dashboard />
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/dashboard" element={
                     <PrivateRoute>
-                      <Dashboard />
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/dashboard" element={
                     <PrivateRoute>
-                      <Dashboard />
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/offers" element={
                     <PrivateRoute>
-                      <Offers />
+                      <Layout>
+                        <Offers />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/offers" element={
                     <PrivateRoute>
-                      <Offers />
+                      <Layout>
+                        <Offers />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/offers/:id" element={
                     <PrivateRoute>
-                      <AdminOfferDetail />
+                      <Layout>
+                        <AdminOfferDetail />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/offers/:id" element={
                     <PrivateRoute>
-                      <AdminOfferDetail />
+                      <Layout>
+                        <AdminOfferDetail />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/create-offer" element={
                     <PrivateRoute>
-                      <CreateOffer />
+                      <Layout>
+                        <CreateOffer />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/clients" element={
                     <PrivateRoute>
-                      <Clients />
+                      <Layout>
+                        <Clients />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/clients" element={
                     <PrivateRoute>
-                      <Clients />
+                      <Layout>
+                        <Clients />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/contracts" element={
                     <PrivateRoute>
-                      <Contracts />
+                      <Layout>
+                        <Contracts />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/contracts" element={
                     <PrivateRoute>
-                      <Contracts />
+                      <Layout>
+                        <Contracts />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/settings" element={
                     <PrivateRoute>
-                      <Settings />
+                      <Layout>
+                        <Settings />
+                      </Layout>
                     </PrivateRoute>
                   } />
                   <Route path="/admin/settings" element={
                     <PrivateRoute>
-                      <Settings />
+                      <Layout>
+                        <Settings />
+                      </Layout>
                     </PrivateRoute>
                   } />
                 </Routes>
