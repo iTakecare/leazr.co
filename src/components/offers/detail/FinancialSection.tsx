@@ -60,8 +60,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
     ? (((offer.margin || 0) / totals.totalPurchasePrice) * 100) 
     : 0;
 
-  // Ajuster la marge et la commission selon le type d'offre
-  const displayMargin = shouldShowCommission ? (offer.margin || 0) : 0;
+  // La marge est toujours affichée, seule la commission est conditionnelle
+  const displayMargin = offer.margin || 0;
   const displayCommission = shouldShowCommission ? (offer.commission || 0) : 0;
 
   return (
@@ -109,14 +109,12 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
             </div>
           </div>
           
-          {/* Marge totale - Conditionnelle */}
+          {/* Marge totale - Toujours affichée */}
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium text-purple-700">
-                  {shouldShowCommission ? "Marge totale" : "Marge (offre sans commission)"}
-                </span>
+                <span className="text-sm font-medium text-purple-700">Marge totale</span>
               </div>
             </div>
             <div className="text-2xl font-bold text-purple-900 mb-1">
@@ -124,13 +122,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
             </div>
             <div className="text-xs text-purple-600 flex items-center gap-1">
               <Percent className="w-3 h-3" />
-              {shouldShowCommission ? marginPercentage.toFixed(1) : "0.0"}% du prix d'achat
+              {marginPercentage.toFixed(1)}% du prix d'achat
             </div>
-            {!shouldShowCommission && (
-              <div className="text-xs text-purple-500 mt-1 italic">
-                Pas de commission pour ce type d'offre
-              </div>
-            )}
           </div>
         </div>
 
@@ -163,8 +156,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
             </div>
           )}
 
-          {/* Commission - Conditionnelle */}
-          {shouldShowCommission && offer.commission && (
+          {/* Commission - Conditionnelle selon le type d'offre */}
+          {shouldShowCommission && (
             <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
