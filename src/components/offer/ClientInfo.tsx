@@ -1,13 +1,12 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { UserPlus, Save, Loader2 } from "lucide-react";
-import { Equipment, Leaser } from "@/types/equipment";
+import { Users, FileText, Building2 } from "lucide-react";
+import { Leaser } from "@/types/equipment";
 
 interface ClientInfoProps {
   clientId: string | null;
@@ -15,13 +14,14 @@ interface ClientInfoProps {
   clientEmail: string;
   clientCompany: string;
   remarks: string;
-  setRemarks: (remarks: string) => void;
+  setRemarks: (value: string) => void;
   onOpenClientSelector: () => void;
   handleSaveOffer: () => void;
   isSubmitting: boolean;
   selectedLeaser: Leaser | null;
-  equipmentList: Equipment[];
-  hideFinancialDetails?: boolean;
+  equipmentList: any[];
+  isInternalOffer?: boolean;
+  setIsInternalOffer?: (value: boolean) => void;
 }
 
 const ClientInfo: React.FC<ClientInfoProps> = ({
@@ -36,99 +36,90 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   isSubmitting,
   selectedLeaser,
   equipmentList,
-  hideFinancialDetails
+  isInternalOffer = false,
+  setIsInternalOffer
 }) => {
-  const canSubmit = clientName && clientEmail && equipmentList.length > 0;
-  
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Informations client</CardTitle>
-        <CardDescription className="text-xs">
-          Renseignez les informations du client pour finaliser l'offre
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div>
-            <Button 
-              onClick={onOpenClientSelector}
-              variant="outline"
-              className="w-full flex justify-between items-center"
-            >
-              <div className="flex items-center">
-                <UserPlus className="h-4 w-4 mr-2 text-primary" />
-                <div className="text-left">
-                  <p className="text-sm font-medium">
-                    {clientId ? "Client sélectionné" : "Sélectionner un client"}
-                  </p>
-                  {clientId && (
-                    <p className="text-xs text-muted-foreground">
-                      {clientName}{clientCompany ? ` - ${clientCompany}` : ""}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {clientId ? "Changer" : "Sélectionner"}
-              </span>
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Client Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Informations Client
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            variant="outline"
+            onClick={onOpenClientSelector}
+            className="w-full"
+          >
+            {clientId ? "Modifier le client" : "Sélectionner un client"}
+          </Button>
           
-          {clientId || clientName ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="client-name">Nom</Label>
-                  <Input id="client-name" value={clientName} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
-                </div>
-                <div>
-                  <Label htmlFor="client-email">Email</Label>
-                  <Input id="client-email" value={clientEmail} readOnly={!!clientId} className={clientId ? "bg-muted/50" : ""} />
-                </div>
+          {clientName && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Building2 className="w-4 h-4 text-gray-600" />
+                <span className="font-medium">{clientName}</span>
               </div>
-              
-              {!hideFinancialDetails && (
-                <div>
-                  <Label htmlFor="client-remarks">Remarques (optionnel)</Label>
-                  <Textarea 
-                    id="client-remarks"
-                    placeholder="Ajoutez des remarques pour cette offre..."
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              )}
-              
-              <Separator />
-              
-              <Button 
-                onClick={handleSaveOffer}
-                disabled={!canSubmit || isSubmitting}
-                className="w-full"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer l'offre
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              Sélectionnez un client pour continuer
+              <div className="text-sm text-gray-600">
+                <div>Email: {clientEmail}</div>
+                {clientCompany && <div>Entreprise: {clientCompany}</div>}
+              </div>
             </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Switch pour offre interne */}
+          {setIsInternalOffer && (
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex flex-col">
+                <Label htmlFor="internal-offer" className="text-sm font-medium text-amber-800">
+                  Offre interne
+                </Label>
+                <span className="text-xs text-amber-600">
+                  Aucune commission ne sera calculée
+                </span>
+              </div>
+              <Switch
+                id="internal-offer"
+                checked={isInternalOffer}
+                onCheckedChange={setIsInternalOffer}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Remarks Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Remarques
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Ajouter des remarques ou notes sur cette offre..."
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            rows={3}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <Button
+        onClick={handleSaveOffer}
+        disabled={isSubmitting || !clientName || !clientEmail || equipmentList.length === 0}
+        className="w-full"
+        size="lg"
+      >
+        {isSubmitting ? "Enregistrement..." : "Enregistrer l'offre"}
+      </Button>
+    </div>
   );
 };
 

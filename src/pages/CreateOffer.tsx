@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ const CreateOffer = () => {
   const [remarks, setRemarks] = useState('');
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [isInternalOffer, setIsInternalOffer] = useState(false);
   
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
@@ -328,6 +330,9 @@ const CreateOffer = () => {
         globalMarginDifference: globalMarginAdjustment.marginDifference
       });
 
+      // Déterminer le type d'offre basé sur le switch
+      const offerType = isInternalOffer ? 'internal_offer' : 'admin_offer';
+
       const offerData: OfferData = {
         user_id: user.id,
         company_id: userCompanyId, // Champ obligatoire
@@ -341,7 +346,7 @@ const CreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         remarks: remarks,
-        type: 'admin_offer',
+        type: offerType, // Utiliser le type déterminé par le switch
         // S'assurer que workflow_status est toujours défini
         workflow_status: 'draft',
         // UTILISER DIRECTEMENT la marge calculée depuis les équipements
@@ -481,6 +486,8 @@ const CreateOffer = () => {
                       isSubmitting={isSubmitting}
                       selectedLeaser={selectedLeaser}
                       equipmentList={equipmentList}
+                      isInternalOffer={isInternalOffer}
+                      setIsInternalOffer={setIsInternalOffer}
                     />
                   </div>
                 </div>
