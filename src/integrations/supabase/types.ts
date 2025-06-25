@@ -2627,6 +2627,28 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_free_clients_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          company: string
+          phone: string
+          address: string
+          city: string
+          postal_code: string
+          country: string
+          vat_number: string
+          notes: string
+          status: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          has_user_account: boolean
+          company_id: string
+        }[]
+      }
       get_menus_cms: {
         Args: { location_name: string }
         Returns: {
