@@ -16,7 +16,6 @@ import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
-import { OfferData } from "@/services/offers/types";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -296,21 +295,6 @@ const CreateOffer = () => {
       
       console.log("💾 Saving equipment data with attributes:", equipmentData);
       
-      // Calculer la marge totale DIRECTEMENT depuis les équipements
-      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
-        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
-        return sum + equipmentMargin;
-      }, 0);
-      
-      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
-      console.log("📊 DÉTAIL DES MARGES:", equipmentList.map(eq => ({
-        title: eq.title,
-        purchasePrice: eq.purchasePrice,
-        quantity: eq.quantity,
-        margin: eq.margin,
-        marginAmount: (eq.purchasePrice * eq.quantity * eq.margin) / 100
-      })));
-      
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
@@ -319,13 +303,25 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
+      // Calculer la marge totale des équipements
+      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+        return sum + equipmentMargin;
+      }, 0);
+      
+      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
+
+      // Calculer la différence de marge
+      const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
+      
       console.log("💰 MARGIN DEBUG - Saving margin data:", {
-        totalEquipmentMargin,
+        globalMarginAdjustment,
+        marginDifference: globalMarginAdjustment.marginDifference,
+        totalMarginWithDifference,
         totalAmount,
         financedAmount,
-        equipmentCount: equipmentList.length,
-        globalMarginAdjustmentAmount: globalMarginAdjustment.amount,
-        globalMarginDifference: globalMarginAdjustment.marginDifference
+        calculatedMargin: totalAmount - financedAmount,
+        totalEquipmentMargin
       });
 
       const offerData: OfferData = {
@@ -335,6 +331,8 @@ const CreateOffer = () => {
         client_email: clientEmail,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
+        // Passer les équipements pour la sauvegarde dans les nouvelles tables
+        equipment: equipmentData,
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -342,20 +340,17 @@ const CreateOffer = () => {
         financed_amount: financedAmount,
         remarks: remarks,
         type: 'admin_offer',
-        // S'assurer que workflow_status est toujours défini
-        workflow_status: 'draft',
-        // UTILISER DIRECTEMENT la marge calculée depuis les équipements
-        margin: totalEquipmentMargin,
+        // Utiliser la marge calculée depuis les équipements si disponible
+        margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : totalMarginWithDifference,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)
+        total_margin_with_difference: totalMarginWithDifference
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
       console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
-      console.log("💾 CRÉATION OFFRE - Workflow Status:", offerData.workflow_status);
-      console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
+      console.log("💾 CRÉATION OFFRE - Marge totale:", offerData.margin);
 
       let result;
       
@@ -372,8 +367,6 @@ const CreateOffer = () => {
         if (result && result.data) {
           console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
           console.log("✅ ID de l'offre créée:", result.data.id);
-          console.log("✅ Marge sauvegardée:", result.data.margin);
-          console.log("✅ Workflow Status:", result.data.workflow_status);
           toast.success("Offre créée avec succès !");
         } else {
           console.error("❌ ERREUR - Pas de données retournées:", result);

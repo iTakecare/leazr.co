@@ -1,4 +1,3 @@
-
 export interface Equipment {
   id: string;
   title: string;
@@ -6,8 +5,8 @@ export interface Equipment {
   quantity: number;
   margin: number;
   monthlyPayment?: number;
-  attributes?: Record<string, any>; // Attributs sélectionnés (couleur, taille, etc.)
-  specifications?: Record<string, any>; // Spécifications techniques du produit
+  attributes?: Record<string, any>; // Ajout des attributs
+  specifications?: Record<string, any>; // Ajout des spécifications
 }
 
 export interface Leaser {

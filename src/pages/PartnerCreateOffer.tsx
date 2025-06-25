@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -285,8 +286,8 @@ const PartnerCreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      // Convertir le montant de total_margin_with_difference en number au lieu de string
-      const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
+      // Convertir le montant de total_margin_with_difference en chaîne de caractères
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
 
       const offerData = {
         user_id: user.id,
@@ -302,11 +303,11 @@ const PartnerCreateOffer = () => {
         financed_amount: financedAmount,
         additional_info: remarks,
         type: 'partner_offer',
-        total_margin_with_difference: totalMarginWithDifference
+        total_margin_with_difference: totalMarginWithDifferenceString
       };
 
       console.log("Saving offer with the following data:", offerData);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
 
       let result;
       

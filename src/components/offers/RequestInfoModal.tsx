@@ -6,23 +6,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, AlertCircle, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
-import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
-import { getOfferById } from "@/services/offerService";
-import { updateOfferStatus } from "@/services/offers/offerStatus";
 
 interface RequestInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSendRequest: (requestedDocs: string[], customMessage: string) => Promise<void>;
   offerId: string;
-  onSuccess?: () => void;
 }
 
 const DOCUMENT_OPTIONS = [
   { id: "balance_sheet", label: "Bilan financier" },
-  { id: "provisional_balance", label: "Bilan financier provisoire récent" },
-  { id: "tax_notice", label: "Avertissement extrait de rôle (BE)" },
-  { id: "tax_return", label: "Liasse fiscale (FR)" },
-  { id: "id_card", label: "Carte d'identité nationale (recto-verso)" },
+  { id: "tax_notice", label: "Avertissement extrait de rôle" },
+  { id: "id_card", label: "Copie de la carte d'identité" },
   { id: "company_register", label: "Extrait de registre d'entreprise" },
   { id: "vat_certificate", label: "Attestation TVA" },
   { id: "bank_statement", label: "Relevé bancaire des 3 derniers mois" },
@@ -31,8 +26,8 @@ const DOCUMENT_OPTIONS = [
 const RequestInfoModal: React.FC<RequestInfoModalProps> = ({ 
   isOpen, 
   onClose, 
-  offerId,
-  onSuccess
+  onSendRequest,
+  offerId
 }) => {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [otherDoc, setOtherDoc] = useState("");
@@ -56,38 +51,12 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
     try {
       setIsSending(true);
       
-      // Récupérer les détails de l'offre
-      const offer = await getOfferById(offerId);
-      if (!offer) {
-        throw new Error("Offre non trouvée");
-      }
-
-      // Préparer la liste des documents demandés
       const docsToRequest = [
         ...selectedDocs,
         ...(otherDoc.trim() ? [`custom:${otherDoc.trim()}`] : [])
       ];
       
-      // Envoyer l'email avec le lien d'upload
-      const success = await sendDocumentRequestEmail({
-        offerClientEmail: offer.client_email,
-        offerClientName: offer.client_name,
-        offerId: offerId,
-        requestedDocuments: docsToRequest,
-        customMessage: customMessage || undefined
-      });
-
-      if (!success) {
-        throw new Error("Échec de l'envoi de l'email");
-      }
-
-      // Mettre à jour le statut de l'offre
-      await updateOfferStatus(
-        offerId, 
-        'info_requested', 
-        offer.workflow_status,
-        `Documents demandés: ${docsToRequest.join(', ')}`
-      );
+      await onSendRequest(docsToRequest, customMessage);
       
       // Reset form
       setSelectedDocs([]);
@@ -95,11 +64,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
       setCustomMessage("");
       onClose();
       
-      if (onSuccess) {
-        onSuccess();
-      }
-      
-      toast.success("Demande de documents envoyée avec succès");
+      toast.success("Demande envoyée avec succès au client");
     } catch (error) {
       console.error("Erreur lors de l'envoi de la demande:", error);
       toast.error("Erreur lors de l'envoi de la demande");
@@ -114,10 +79,10 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <FileText className="h-5 w-5 mr-2 text-blue-500" />
-            Demande de documents administratifs
+            Demande d'informations complémentaires
           </DialogTitle>
           <DialogDescription>
-            Sélectionnez les documents à demander au client. Un email avec un lien d'upload sécurisé sera envoyé.
+            Sélectionnez les documents à demander au client pour compléter l'analyse de cette offre.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,7 +128,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
               id="custom-message"
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
-              placeholder="Message qui sera inclus dans l'email au client..."
+              placeholder="Message qui sera envoyé avec la demande..."
               className="resize-none h-24"
             />
           </div>

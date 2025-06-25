@@ -1016,62 +1016,6 @@ export type Database = {
         }
         Relationships: []
       }
-      offer_documents: {
-        Row: {
-          admin_notes: string | null
-          created_at: string
-          document_type: string
-          file_name: string
-          file_path: string
-          file_size: number
-          id: string
-          mime_type: string
-          offer_id: string
-          status: string
-          updated_at: string
-          uploaded_at: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          admin_notes?: string | null
-          created_at?: string
-          document_type: string
-          file_name: string
-          file_path: string
-          file_size: number
-          id?: string
-          mime_type: string
-          offer_id: string
-          status?: string
-          updated_at?: string
-          uploaded_at?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          admin_notes?: string | null
-          created_at?: string
-          document_type?: string
-          file_name?: string
-          file_path?: string
-          file_size?: number
-          id?: string
-          mime_type?: string
-          offer_id?: string
-          status?: string
-          updated_at?: string
-          uploaded_at?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offer_documents_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       offer_equipment: {
         Row: {
           created_at: string
@@ -1259,50 +1203,6 @@ export type Database = {
           },
           {
             foreignKeyName: "offer_notes_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      offer_upload_links: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          custom_message: string | null
-          expires_at: string
-          id: string
-          offer_id: string
-          requested_documents: string[]
-          token: string
-          used_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          custom_message?: string | null
-          expires_at: string
-          id?: string
-          offer_id: string
-          requested_documents: string[]
-          token: string
-          used_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          custom_message?: string | null
-          expires_at?: string
-          id?: string
-          offer_id?: string
-          requested_documents?: string[]
-          token?: string
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offer_upload_links_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
