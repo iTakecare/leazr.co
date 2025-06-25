@@ -22,6 +22,7 @@ interface ClientInfoProps {
   equipmentList: any[];
   isInternalOffer?: boolean;
   setIsInternalOffer?: (value: boolean) => void;
+  hideFinancialDetails?: boolean;
 }
 
 const ClientInfo: React.FC<ClientInfoProps> = ({
@@ -37,7 +38,8 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   selectedLeaser,
   equipmentList,
   isInternalOffer = false,
-  setIsInternalOffer
+  setIsInternalOffer,
+  hideFinancialDetails = false
 }) => {
   return (
     <div className="space-y-6">
@@ -71,8 +73,8 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             </div>
           )}
 
-          {/* Switch pour offre interne */}
-          {setIsInternalOffer && (
+          {/* Switch pour offre interne - uniquement si pas hideFinancialDetails */}
+          {setIsInternalOffer && !hideFinancialDetails && (
             <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
               <div className="flex flex-col">
                 <Label htmlFor="internal-offer" className="text-sm font-medium text-amber-800">
