@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -55,32 +54,26 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         let fetchedClients;
         
-        // Force le mode ambassadeur si l'utilisateur est un ambassadeur
-        const isAmbassadorMode = ambassadorMode || isAmbassador();
+        // NOUVELLE LOGIQUE CORRIGÉE : Vérifier explicitement selectedAmbassadorId
+        const shouldLoadAmbassadorClients = selectedAmbassadorId && selectedAmbassadorId !== undefined;
+        const isCurrentUserAmbassador = isAmbassador();
         
-        console.log("🔍 ClientSelector - Mode:", {
+        console.log("🔍 ClientSelector - Logique corrigée:", {
+          selectedAmbassadorId,
+          shouldLoadAmbassadorClients,
+          isCurrentUserAmbassador,
           ambassadorMode,
-          isAmbassadorUser: isAmbassador(),
-          finalMode: isAmbassadorMode,
-          userId: user?.id,
-          selectedAmbassadorId
+          userId: user?.id
         });
         
-        if (isAmbassadorMode) {
-          console.log("🔍 ClientSelector - Chargement des clients ambassadeur via fonction sécurisée");
+        if (shouldLoadAmbassadorClients) {
+          console.log("🔍 ClientSelector - Mode ambassadeur avec ID spécifique:", selectedAmbassadorId);
           
-          // Charger UNIQUEMENT les clients de l'ambassadeur via la fonction sécurisée
-          fetchedClients = await getAmbassadorClients();
-          console.log("🔍 ClientSelector - Clients ambassadeur chargés:", fetchedClients);
-        } else if (selectedAmbassadorId) {
-          // Mode admin avec ambassadeur sélectionné - requête simplifiée
-          console.log("🔍 ClientSelector - Chargement des clients pour ambassadeur spécifique:", selectedAmbassadorId);
-          
+          // Charger les clients pour l'ambassadeur spécifique
           const { supabase } = await import("@/integrations/supabase/client");
           
           try {
-            // Requête simplifiée sans jointure sur users
-            console.log("📊 ÉTAPE 1: Récupération des liens ambassador_clients");
+            console.log("📊 ÉTAPE 1: Récupération des liens ambassador_clients pour ID:", selectedAmbassadorId);
             const { data: linkData, error: linkError } = await supabase
               .from('ambassador_clients')
               .select('client_id')
@@ -89,7 +82,8 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             console.log("🔍 Résultat liens ambassador_clients:", {
               data: linkData,
               error: linkError?.message,
-              count: linkData?.length || 0
+              count: linkData?.length || 0,
+              ambassadorId: selectedAmbassadorId
             });
 
             if (linkError) {
@@ -134,7 +128,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               return;
             }
 
-            // Récupération des informations de l'ambassadeur (requête séparée et simplifiée)
+            // Récupération des informations de l'ambassadeur
             console.log("📊 ÉTAPE 3: Récupération des informations ambassadeur");
             const { data: ambassadorData, error: ambassadorError } = await supabase
               .from('ambassadors')
@@ -147,7 +141,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               error: ambassadorError?.message
             });
 
-            // Formater les données (même si pas d'ambassadeur trouvé)
+            // Formater les données
             fetchedClients = clientsData?.map(client => ({
               id: client.id,
               name: client.name,
@@ -163,7 +157,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               }
             })) || [];
             
-            console.log("✅ ClientSelector - Clients formatés:", fetchedClients);
+            console.log("✅ ClientSelector - Clients d'ambassadeur formatés:", fetchedClients);
             
           } catch (error) {
             console.error("❌ Erreur inattendue lors du chargement des clients d'ambassadeur:", error);
@@ -171,10 +165,16 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             setLoading(false);
             return;
           }
+        } else if (isCurrentUserAmbassador) {
+          console.log("🔍 ClientSelector - Utilisateur ambassadeur, chargement de SES clients");
+          // L'utilisateur connecté est un ambassadeur, charger ses clients
+          fetchedClients = await getAmbassadorClients();
+          console.log("🔍 ClientSelector - Clients de l'utilisateur ambassadeur chargés:", fetchedClients);
         } else {
-          console.log("🔍 ClientSelector - Chargement de tous les clients (mode admin)");
-          // Sinon, charger tous les clients (mode admin)
+          console.log("🔍 ClientSelector - Mode TOUS les clients (offre interne ou admin)");
+          // Mode offre interne ou admin - charger TOUS les clients
           fetchedClients = await getAllClients();
+          console.log("🔍 ClientSelector - Tous les clients chargés:", fetchedClients);
         }
         
         if (!fetchedClients || fetchedClients.length === 0) {
@@ -203,7 +203,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, [ambassadorMode, isAmbassador, user?.id, selectedAmbassadorId]);
+  }, [selectedAmbassadorId, isAmbassador, user?.id]); // Retirer ambassadorMode des dépendances car on se base sur selectedAmbassadorId
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -290,7 +290,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       <div className="py-6 text-center text-muted-foreground">
                         {selectedAmbassadorId ? 
                           "Cet ambassadeur n'a pas encore de clients rattachés." :
-                          ambassadorMode || isAmbassador() ? 
+                          isAmbassador() ? 
                             "Aucun client trouvé pour cet ambassadeur." : 
                             "Aucun client trouvé."
                         }
