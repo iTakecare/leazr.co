@@ -46,7 +46,7 @@ const CreateOffer = () => {
   const [remarks, setRemarks] = useState('');
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [isInternalOffer, setIsInternalOffer] = useState(false);
+  const [isInternalOffer, setIsInternalOffer] = useState(true); // Changed default to true
   
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
@@ -353,7 +353,9 @@ const CreateOffer = () => {
         // UTILISER DIRECTEMENT la marge calculée depuis les équipements
         margin: totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)
+        total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0),
+        // Assigner l'ambassadeur si ce n'est pas une offre interne
+        ambassador_id: !isInternalOffer ? user.id : undefined
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
@@ -362,6 +364,7 @@ const CreateOffer = () => {
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
       console.log("💾 CRÉATION OFFRE - Workflow Status:", offerData.workflow_status);
       console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
+      console.log("💾 CRÉATION OFFRE - Ambassador ID:", offerData.ambassador_id);
 
       let result;
       
@@ -432,6 +435,15 @@ const CreateOffer = () => {
                 </div>
               </div>
 
+              {/* New section for Internal Offer Toggle */}
+              <div className="mb-6 px-2">
+                <InternalOfferToggle
+                  isInternalOffer={isInternalOffer}
+                  setIsInternalOffer={setIsInternalOffer}
+                  userName={user?.email}
+                />
+              </div>
+
               {loading ? (
                 <div className="flex items-center justify-center h-64">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -487,8 +499,6 @@ const CreateOffer = () => {
                       isSubmitting={isSubmitting}
                       selectedLeaser={selectedLeaser}
                       equipmentList={equipmentList}
-                      isInternalOffer={isInternalOffer}
-                      setIsInternalOffer={setIsInternalOffer}
                     />
                   </div>
                 </div>
