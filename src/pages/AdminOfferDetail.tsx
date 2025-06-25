@@ -11,6 +11,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 
 // Import des composants améliorés
 import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
@@ -33,6 +34,8 @@ const AdminOfferDetail = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
 
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -94,6 +97,12 @@ const AdminOfferDetail = () => {
 
   const handleEditOffer = () => {
     navigate(`/create-offer?offerId=${id}`);
+  };
+
+  const handlePreview = () => {
+    // Ouvrir l'aperçu de l'offre dans un nouvel onglet
+    const previewUrl = `/client/offer/${id}`;
+    window.open(previewUrl, '_blank');
   };
 
   const handleStatusChange = (newStatus: string) => {
@@ -211,7 +220,10 @@ const AdminOfferDetail = () => {
                   onSendEmail={handleSendEmail}
                   onRequestInfo={() => setIsRequestInfoModalOpen(true)}
                   onEdit={handleEditOffer}
+                  onPreview={handlePreview}
+                  onDownloadPdf={handlePrintPdf}
                   sendingEmail={sendingEmail}
+                  isGeneratingPdf={isPrintingPdf}
                 />
               </div>
             </div>

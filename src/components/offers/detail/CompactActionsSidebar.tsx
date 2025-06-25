@@ -19,7 +19,10 @@ interface CompactActionsSidebarProps {
   onSendEmail: () => void;
   onRequestInfo: () => void;
   onEdit: () => void;
+  onPreview: () => void;
+  onDownloadPdf: () => void;
   sendingEmail: boolean;
+  isGeneratingPdf: boolean;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -27,7 +30,10 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onSendEmail,
   onRequestInfo,
   onEdit,
-  sendingEmail
+  onPreview,
+  onDownloadPdf,
+  sendingEmail,
+  isGeneratingPdf
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -128,23 +134,23 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <Button 
               variant="outline" 
               size="sm"
-              className="w-full justify-start text-sm" 
+              className="w-full justify-start text-sm h-8" 
               onClick={onEdit}
             >
               <Edit className="w-4 h-4 mr-2" />
-              <span className="truncate">Modifier</span>
+              <span>Modifier</span>
             </Button>
           )}
           
           {canSendEmail && (
             <Button 
               size="sm"
-              className="w-full justify-start text-sm" 
+              className="w-full justify-start text-sm h-8" 
               onClick={onSendEmail}
               disabled={sendingEmail}
             >
               <Mail className="w-4 h-4 mr-2" />
-              <span className="truncate">{sendingEmail ? "Envoi..." : "Envoyer"}</span>
+              <span>{sendingEmail ? "Envoi..." : "Envoyer"}</span>
             </Button>
           )}
           
@@ -152,30 +158,33 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <Button 
               variant="outline" 
               size="sm"
-              className="w-full justify-start text-sm"
+              className="w-full justify-start text-sm h-8"
               onClick={onRequestInfo}
             >
               <FileText className="w-4 h-4 mr-2" />
-              <span className="truncate">Demander docs</span>
+              <span>Demander docs</span>
             </Button>
           )}
           
           <Button 
             variant="outline" 
             size="sm"
-            className="w-full justify-start text-sm"
+            className="w-full justify-start text-sm h-8"
+            onClick={onDownloadPdf}
+            disabled={isGeneratingPdf}
           >
             <Download className="w-4 h-4 mr-2" />
-            <span className="truncate">PDF</span>
+            <span>{isGeneratingPdf ? "Génération..." : "PDF"}</span>
           </Button>
           
           <Button 
             variant="outline" 
             size="sm"
-            className="w-full justify-start text-sm"
+            className="w-full justify-start text-sm h-8"
+            onClick={onPreview}
           >
             <Eye className="w-4 h-4 mr-2" />
-            <span className="truncate">Aperçu</span>
+            <span>Aperçu</span>
           </Button>
         </CardContent>
       </Card>
