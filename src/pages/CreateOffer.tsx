@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,9 @@ import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
 import InternalOfferToggle from "@/components/offer/InternalOfferToggle";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
+import CompactInternalOfferToggle from "@/components/offer/CompactInternalOfferToggle";
+import AmbassadorButton from "@/components/offer/AmbassadorButton";
+import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -46,7 +48,8 @@ const CreateOffer = () => {
   const [remarks, setRemarks] = useState('');
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [isInternalOffer, setIsInternalOffer] = useState(true); // Changed default to true
+  const [isInternalOffer, setIsInternalOffer] = useState(true);
+  const [selectedAmbassador, setSelectedAmbassador] = useState<AmbassadorSelectorAmbassador | null>(null);
   
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
@@ -54,6 +57,8 @@ const CreateOffer = () => {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
   
   const {
     equipment,
@@ -253,6 +258,11 @@ const CreateOffer = () => {
     setIsLeaserSelectorOpen(true);
   };
 
+  const handleAmbassadorSelect = (ambassador: AmbassadorSelectorAmbassador) => {
+    setSelectedAmbassador(ambassador);
+    setIsAmbassadorSelectorOpen(false);
+  };
+
   const handleSaveOffer = async () => {
     if (!user) {
       toast.error("Vous devez être connecté pour créer une offre");
@@ -261,6 +271,12 @@ const CreateOffer = () => {
 
     if (!clientName || !clientEmail || equipmentList.length === 0) {
       toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    // Validation pour les offres ambassadeur
+    if (!isInternalOffer && !selectedAmbassador) {
+      toast.error("Veuillez sélectionner un ambassadeur pour les offres non-internes");
       return;
     }
 
@@ -331,8 +347,9 @@ const CreateOffer = () => {
         globalMarginDifference: globalMarginAdjustment.marginDifference
       });
 
-      // Déterminer le type d'offre basé sur le switch
+      // Déterminer le type d'offre et l'ambassadeur
       const offerType = isInternalOffer ? 'internal_offer' : 'admin_offer';
+      const ambassadorId = !isInternalOffer && selectedAmbassador ? selectedAmbassador.id : undefined;
 
       const offerData: OfferData = {
         user_id: user.id,
@@ -347,7 +364,7 @@ const CreateOffer = () => {
         commission: totalMonthlyPayment * 0.1,
         financed_amount: financedAmount,
         remarks: remarks,
-        type: offerType, // Utiliser le type déterminé par le switch
+        type: offerType,
         // S'assurer que workflow_status est toujours défini
         workflow_status: 'draft',
         // UTILISER DIRECTEMENT la marge calculée depuis les équipements
@@ -355,7 +372,7 @@ const CreateOffer = () => {
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0),
         // Assigner l'ambassadeur si ce n'est pas une offre interne
-        ambassador_id: !isInternalOffer ? user.id : undefined
+        ambassador_id: ambassadorId
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
@@ -365,6 +382,7 @@ const CreateOffer = () => {
       console.log("💾 CRÉATION OFFRE - Workflow Status:", offerData.workflow_status);
       console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
       console.log("💾 CRÉATION OFFRE - Ambassador ID:", offerData.ambassador_id);
+      console.log("💾 CRÉATION OFFRE - Selected Ambassador:", selectedAmbassador?.name);
 
       let result;
       
@@ -421,11 +439,21 @@ const CreateOffer = () => {
                     {isEditMode ? "Modifier l'offre" : "Calculateur de Mensualités iTakecare"}
                   </h1>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex items-center gap-4">
                   <LeaserButton 
                     selectedLeaser={selectedLeaser} 
                     onOpen={handleOpenLeaserSelector}
                   />
+                  <CompactInternalOfferToggle
+                    isInternalOffer={isInternalOffer}
+                    setIsInternalOffer={setIsInternalOffer}
+                  />
+                  {!isInternalOffer && (
+                    <AmbassadorButton
+                      selectedAmbassador={selectedAmbassador}
+                      onOpen={() => setIsAmbassadorSelectorOpen(true)}
+                    />
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => navigate('/offers')}
@@ -433,15 +461,6 @@ const CreateOffer = () => {
                     Retour
                   </Button>
                 </div>
-              </div>
-
-              {/* New section for Internal Offer Toggle */}
-              <div className="mb-6 px-2">
-                <InternalOfferToggle
-                  isInternalOffer={isInternalOffer}
-                  setIsInternalOffer={setIsInternalOffer}
-                  userName={user?.email}
-                />
               </div>
 
               {loading ? (
@@ -527,6 +546,13 @@ const CreateOffer = () => {
             onClose={() => setIsLeaserSelectorOpen(false)}
             onSelect={handleLeaserSelect}
             selectedLeaser={selectedLeaser}
+          />
+
+          <AmbassadorSelector
+            isOpen={isAmbassadorSelectorOpen}
+            onClose={() => setIsAmbassadorSelectorOpen(false)}
+            onSelectAmbassador={handleAmbassadorSelect}
+            selectedAmbassadorId={selectedAmbassador?.id}
           />
         </div>
       </div>
