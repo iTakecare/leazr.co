@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import {
   BrowserRouter as Router,
@@ -6,31 +7,30 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import PrivateRoute from './components/PrivateRoute';
+import { PrivateRoute } from './components/PrivateRoute';
 import Layout from './components/layout/Layout';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
-import OffersPage from './pages/OffersPage';
+import Offers from './pages/Offers';
 import AdminOfferDetail from './pages/AdminOfferDetail';
-import ClientsPage from './pages/ClientsPage';
-import SettingsPage from './pages/SettingsPage';
+import Clients from './pages/Clients';
+import Settings from './pages/Settings';
 import PublicCatalog from './pages/PublicCatalog';
 import ProductDetail from './pages/ProductDetail';
-import SignupForm from './pages/SignupForm';
-import LoginForm from './pages/LoginForm';
+import Signup from './pages/Signup';
+import Login from './pages/Login';
 import CalculatorPage from './pages/CalculatorPage';
-import AmbassadorDashboard from './pages/AmbassadorPages/AmbassadorDashboard';
-import AmbassadorOffers from './pages/AmbassadorPages/AmbassadorOffers';
+import { AmbassadorDashboardPage as AmbassadorDashboard } from './pages/AmbassadorPages/AmbassadorDashboardPage';
+import { AmbassadorOffersPage as AmbassadorOffers } from './pages/AmbassadorPages/AmbassadorOffersPage';
 import AmbassadorCreateOffer from './pages/AmbassadorPages/AmbassadorCreateOffer';
 import AmbassadorOfferDetail from './pages/AmbassadorPages/AmbassadorOfferDetail';
-import PackagesPage from './pages/PackagesPage';
-import PackDetail from './pages/PackDetail';
+import PricingPage from './pages/PricingPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
-import HelpPage from './pages/HelpPage';
-import ClientOfferView from './pages/ClientOfferView';
-import SignatureView from './pages/SignatureView';
-import ClientLandingPage from './pages/ClientLandingPage';
+import ResourcesPage from './pages/ResourcesPage';
+import ClientOfferView from './pages/client/PublicOfferView';
+import SignOffer from './pages/client/SignOffer';
+import ClientLandingPage from './pages/PublicCompanyLanding';
 import ClientPasswordCheck from './pages/ClientPasswordCheck';
 import LeazrClients from './pages/LeazrClients';
 import LeazrClientDetail from './pages/LeazrClientDetail';
@@ -42,8 +42,8 @@ import CreateLeazrAdmin from './pages/CreateLeazrAdmin';
 import AmbassadorSettings from './pages/AmbassadorPages/AmbassadorSettings';
 import PartnerDashboard from './pages/PartnerDashboard';
 import PartnerOfferDetail from './pages/PartnerOfferDetail';
-import AmbassadorRoute from './components/AmbassadorRoute';
-import PartnerRoute from './components/PartnerRoute';
+import { AmbassadorRoute } from './components/AmbassadorRoute';
+import { PartnerRoute } from './components/PartnerRoute';
 import AdminCalculator from './pages/AdminCalculator';
 
 const ScrollToTop = () => {
@@ -66,18 +66,17 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/public-catalog" element={<PublicCatalog />} />
           <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/signup" element={<SignupForm />} />
-          <Route path="/login" element={<LoginForm />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/calculator" element={<CalculatorPage />} />
-          <Route path="/packages" element={<PackagesPage />} />
-          <Route path="/packs/:packType" element={<PackDetail />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/help" element={<HelpPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/offers/client/:offerId" element={<ClientOfferView />} />
           <Route path="/client/offer/:offerId" element={<ClientOfferView />} />
           <Route path="/client/offers/:offerId" element={<ClientOfferView />} />
-          <Route path="/offers/:offerId/signature" element={<SignatureView />} />
+          <Route path="/offers/:offerId/signature" element={<SignOffer />} />
           <Route path="/c/:clientId/:passwordHash" element={<ClientLandingPage />} />
           <Route path="/check-password/:clientId" element={<ClientPasswordCheck />} />
           <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
@@ -88,11 +87,11 @@ function App() {
               <Layout>
                 <Routes>
                   <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="offers" element={<OffersPage />} />
+                  <Route path="offers" element={<Offers />} />
                   <Route path="offers/:id" element={<AdminOfferDetail />} />
                   <Route path="calculator" element={<AdminCalculator />} />
-                  <Route path="clients" element={<ClientsPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="clients" element={<Clients />} />
+                  <Route path="settings" element={<Settings />} />
                   <Route path="leazr-clients" element={<LeazrClients />} />
                   <Route path="leazr-clients/:id" element={<LeazrClientDetail />} />
                   <Route path="leazr-clients/:id/edit" element={<LeazrClientEdit />} />
