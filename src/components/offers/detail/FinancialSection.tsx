@@ -12,29 +12,29 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
   // Calculer les totaux des équipements si disponibles
   const calculateEquipmentTotals = () => {
     if (!offer.parsedEquipment || offer.parsedEquipment.length === 0) {
+      // Si pas d'équipements parsés, essayer de récupérer depuis les données de base de l'offre
       return {
-        totalPurchasePrice: 0,
+        totalPurchasePrice: offer.amount || 0,
         totalMargin: offer.margin || offer.total_margin_with_difference || 0,
         totalMonthlyPayment: offer.monthly_payment || 0
       };
     }
 
     const totals = offer.parsedEquipment.reduce((acc: any, item: any) => {
-      const purchasePrice = parseFloat(item.purchasePrice) || 0;
+      // Utiliser les bonnes propriétés selon le format des données
+      const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
       const quantity = parseInt(item.quantity) || 1;
-      const margin = parseFloat(item.margin) || 0;
-      const monthlyPayment = parseFloat(item.monthlyPayment) || 0;
+      const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
 
       return {
         totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
-        totalMargin: acc.totalMargin + (margin * quantity),
         totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity)
       };
-    }, { totalPurchasePrice: 0, totalMargin: 0, totalMonthlyPayment: 0 });
+    }, { totalPurchasePrice: 0, totalMonthlyPayment: 0 });
 
     return {
       ...totals,
-      totalMargin: offer.margin || offer.total_margin_with_difference || totals.totalMargin
+      totalMargin: offer.margin || offer.total_margin_with_difference || 0
     };
   };
 
