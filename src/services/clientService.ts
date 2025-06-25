@@ -1,3 +1,4 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import type { Client } from "@/types/client";
 
@@ -699,41 +700,17 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
  */
 export const getFreeClients = async () => {
   try {
-    console.log("🔍 DEBUG getFreeClients - DÉBUT - Version corrigée pour éviter les erreurs de permission");
+    console.log("🔍 DEBUG getFreeClients - DÉBUT - Nouvelle approche avec fonction RPC sécurisée");
     
-    // APPROCHE CORRIGÉE : Utiliser une requête LEFT JOIN pour identifier les clients libres
-    console.log("📊 DEBUG - Utilisation d'une requête LEFT JOIN pour éviter les problèmes de permissions...");
+    // NOUVELLE APPROCHE : Utiliser une fonction RPC sécurisée côté serveur
+    // qui peut contourner les restrictions RLS pour identifier les clients libres
+    const { data: freeClientsData, error: rpcError } = await supabase.rpc('get_free_clients_secure');
     
-    const { data: freeClientsData, error: freeClientsError } = await supabase
-      .from('clients')
-      .select(`
-        id,
-        name,
-        email,
-        company,
-        phone,
-        address,
-        city,
-        postal_code,
-        country,
-        vat_number,
-        notes,
-        status,
-        created_at,
-        updated_at,
-        user_id,
-        has_user_account,
-        company_id,
-        ambassador_clients!left(client_id)
-      `)
-      .is('ambassador_clients.client_id', null)  // Clients NON liés aux ambassadeurs
-      .order('created_at', { ascending: false });
-
-    if (freeClientsError) {
-      console.error("❌ DEBUG - Erreur avec requête LEFT JOIN:", freeClientsError);
+    if (rpcError) {
+      console.error("❌ DEBUG - Erreur avec fonction RPC sécurisée:", rpcError);
       
-      // FALLBACK : Si la requête LEFT JOIN échoue, essayer une approche plus simple
-      console.log("🔄 DEBUG - Tentative de fallback avec requête simple...");
+      // FALLBACK ULTIME : Requête simple sur tous les clients avec avertissement
+      console.log("🔄 DEBUG - Fallback d'urgence : récupération de tous les clients avec avertissement");
       
       const { data: allClientsData, error: allClientsError } = await supabase
         .from('clients')
@@ -759,14 +736,13 @@ export const getFreeClients = async () => {
         .order('created_at', { ascending: false });
 
       if (allClientsError) {
-        console.error("❌ DEBUG - Erreur avec requête fallback:", allClientsError);
+        console.error("❌ DEBUG - Erreur avec requête fallback d'urgence:", allClientsError);
         return [];
       }
 
-      console.log(`📊 DEBUG - Clients récupérés avec fallback: ${allClientsData?.length || 0}`);
+      console.warn("⚠️ DEBUG - ATTENTION : Mode fallback d'urgence - Tous les clients retournés car impossible de filtrer les clients libres");
+      console.log(`📊 DEBUG - Clients récupérés en mode fallback: ${allClientsData?.length || 0}`);
       
-      // Pour le fallback, retourner TOUS les clients (sans filtrage ambassadeur)
-      // C'est un compromis temporaire jusqu'à ce que les permissions soient corrigées
       const formattedClients = allClientsData?.map(client => ({
         id: client.id,
         name: client.name,
@@ -789,11 +765,11 @@ export const getFreeClients = async () => {
         ambassador: undefined
       })) || [];
 
-      console.log("✅ DEBUG - Retour des clients avec fallback:", formattedClients.length);
+      console.log("✅ DEBUG - Retour des clients en mode fallback d'urgence:", formattedClients.length);
       return formattedClients;
     }
 
-    console.log(`✅ DEBUG - Clients libres trouvés avec LEFT JOIN: ${freeClientsData?.length || 0}`);
+    console.log(`✅ DEBUG - Clients libres trouvés avec fonction RPC sécurisée: ${freeClientsData?.length || 0}`);
     
     // Debug spécifique pour "Client Test SRL"
     const testClient = freeClientsData?.find(c => 
@@ -803,14 +779,13 @@ export const getFreeClients = async () => {
     );
     
     if (testClient) {
-      console.log("🎯 DEBUG - Client Test SRL trouvé:", {
+      console.log("🎯 DEBUG - Client Test SRL inclus dans les clients libres:", {
         id: testClient.id,
         name: testClient.name,
-        company: testClient.company,
-        ambassador_clients: testClient.ambassador_clients
+        company: testClient.company
       });
     } else {
-      console.log("⚠️ DEBUG - Client Test SRL NON trouvé dans les résultats");
+      console.log("⚠️ DEBUG - Client Test SRL NON inclus dans les clients libres - vérifier s'il est lié à un ambassadeur");
     }
 
     // Formater les données
@@ -847,8 +822,6 @@ export const getFreeClients = async () => {
 
   } catch (error) {
     console.error("❌ DEBUG - Exception dans getFreeClients:", error);
-    
-    // En cas d'erreur complète, retourner un tableau vide
     return [];
   }
 };
