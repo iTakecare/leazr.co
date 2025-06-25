@@ -13,7 +13,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
   const calculateEquipmentTotals = () => {
     if (!offer.parsedEquipment || offer.parsedEquipment.length === 0) {
       return {
-        totalPurchasePrice: offer.amount || 0,
+        totalPurchasePrice: 0, // Utiliser 0 au lieu de offer.amount
         totalMargin: offer.margin || offer.total_margin_with_difference || 0,
         totalMonthlyPayment: offer.monthly_payment || 0
       };
