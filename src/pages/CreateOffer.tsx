@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,7 @@ const CreateOffer = () => {
   const offerId = query.get("id");
   
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  const [leasersLoaded, setLeasersLoaded] = useState(false);
   
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -113,27 +113,37 @@ const CreateOffer = () => {
     commissionData
   });
 
+  // ÉTAPE 1: Charger les leasers en premier
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
+        console.log("🔧 STEP 1: Loading leasers...");
         const fetchedLeasers = await getLeasers();
         
         if (fetchedLeasers && fetchedLeasers.length > 0) {
+          console.log("✅ STEP 1: Leasers loaded:", fetchedLeasers.length);
           setSelectedLeaser(fetchedLeasers[0]);
+        } else {
+          console.log("⚠️ STEP 1: No leasers found, using default");
         }
       } catch (error) {
-        console.error("Error fetching leasers:", error);
+        console.error("❌ STEP 1: Error fetching leasers:", error);
         toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+      } finally {
+        setLeasersLoaded(true);
+        console.log("🏁 STEP 1: Leasers loading completed");
       }
     };
     
     fetchLeasers();
   }, []);
 
+  // ÉTAPE 2: Charger le client depuis les paramètres (si présent)
   useEffect(() => {
     const loadClientFromParam = async () => {
-      if (clientIdParam) {
+      if (clientIdParam && leasersLoaded) {
         try {
+          console.log("🔧 STEP 2: Loading client from param:", clientIdParam);
           setLoading(true);
           const client = await getClientById(clientIdParam);
           if (client) {
@@ -141,9 +151,10 @@ const CreateOffer = () => {
             setClientName(client.name);
             setClientEmail(client.email || "");
             setClientCompany(client.company || "");
+            console.log("✅ STEP 2: Client loaded:", client.name);
           }
         } catch (error) {
-          console.error("Error loading client:", error);
+          console.error("❌ STEP 2: Error loading client:", error);
         } finally {
           setLoading(false);
         }
@@ -151,18 +162,20 @@ const CreateOffer = () => {
     };
 
     loadClientFromParam();
-  }, [clientIdParam]);
+  }, [clientIdParam, leasersLoaded]);
 
+  // ÉTAPE 3: Charger les données d'offre (seulement après que les leasers soient chargés)
   useEffect(() => {
     const loadOfferData = async () => {
-      if (offerId) {
+      if (offerId && leasersLoaded) {
         try {
+          console.log("🔧 STEP 3: Loading offer data for ID:", offerId);
           setLoading(true);
           setIsEditMode(true);
           
           const offer = await getOfferById(offerId);
           if (offer) {
-            console.log("🔄 Chargement de l'offre existante:", offer);
+            console.log("🔄 STEP 3: Offer data loaded:", offer);
             
             // Charger les informations client
             setClientId(offer.client_id || null);
@@ -173,11 +186,11 @@ const CreateOffer = () => {
             
             // Déterminer le type d'offre et charger l'ambassadeur si nécessaire
             if (offer.type === 'internal_offer') {
-              console.log("🏠 Offre interne détectée");
+              console.log("🏠 STEP 3: Internal offer detected");
               setIsInternalOffer(true);
               setSelectedAmbassador(null);
             } else if (offer.ambassador_id) {
-              console.log("👨‍💼 Offre ambassadeur détectée, ID:", offer.ambassador_id);
+              console.log("👨‍💼 STEP 3: Ambassador offer detected, ID:", offer.ambassador_id);
               setIsInternalOffer(false);
               
               // Charger les données de l'ambassadeur
@@ -188,30 +201,38 @@ const CreateOffer = () => {
                     id,
                     name,
                     email,
-                    commission_level_id
+                    commission_level_id,
+                    commission_levels (
+                      id,
+                      name
+                    )
                   `)
                   .eq('id', offer.ambassador_id)
                   .single();
 
                 if (error) {
-                  console.error("Erreur lors du chargement de l'ambassadeur:", error);
+                  console.error("❌ STEP 3: Error loading ambassador:", error);
                 } else if (ambassadorData) {
-                  console.log("✅ Ambassadeur chargé:", ambassadorData);
+                  console.log("✅ STEP 3: Ambassador loaded:", ambassadorData);
                   setSelectedAmbassador({
                     id: ambassadorData.id,
                     name: ambassadorData.name,
                     email: ambassadorData.email,
-                    commission_level_id: ambassadorData.commission_level_id
+                    commission_level_id: ambassadorData.commission_level_id,
+                    commission_level: ambassadorData.commission_levels ? {
+                      id: ambassadorData.commission_levels.id,
+                      name: ambassadorData.commission_levels.name
+                    } : undefined
                   });
                 }
               } catch (error) {
-                console.error("Erreur lors du chargement de l'ambassadeur:", error);
+                console.error("❌ STEP 3: Error loading ambassador:", error);
               }
             }
 
             // Identifier le leaser utilisé basé sur le coefficient
             if (offer.coefficient) {
-              console.log("🔧 Coefficient détecté:", offer.coefficient);
+              console.log("🔧 STEP 3: Finding leaser for coefficient:", offer.coefficient);
               try {
                 const fetchedLeasers = await getLeasers();
                 
@@ -222,50 +243,54 @@ const CreateOffer = () => {
                 });
                 
                 if (matchingLeaser) {
-                  console.log("✅ Leaser correspondant trouvé:", matchingLeaser.name);
+                  console.log("✅ STEP 3: Matching leaser found:", matchingLeaser.name);
                   setSelectedLeaser(matchingLeaser);
                 } else {
-                  console.log("⚠️ Aucun leaser correspondant au coefficient trouvé, utilisation du défaut");
+                  console.log("⚠️ STEP 3: No matching leaser found for coefficient");
                 }
               } catch (error) {
-                console.error("Erreur lors de la recherche du leaser:", error);
+                console.error("❌ STEP 3: Error finding leaser:", error);
               }
             }
             
-            // Charger et analyser les équipements
+            // ÉTAPE 3a: Charger et analyser les équipements - CRITIQUE
             if (offer.equipment_description) {
               try {
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-                  console.log("📦 Données d'équipements JSON trouvées:", equipmentData);
+                  console.log("📦 STEP 3a: Processing equipment data:", equipmentData);
                   
                   const formattedEquipment = equipmentData.map(item => ({
                     id: item.id || crypto.randomUUID(),
                     title: item.title,
                     purchasePrice: parseFloat(item.purchasePrice) || 0,
                     quantity: parseInt(item.quantity, 10) || 1,
-                    margin: parseFloat(item.margin) || 20, // Préserver les marges individuelles
+                    margin: parseFloat(item.margin) || 20,
                     monthlyPayment: parseFloat(item.monthlyPayment) || 0,
                     attributes: item.attributes || {},
                     specifications: item.specifications || {}
                   }));
                   
-                  console.log("✅ Équipements formatés avec marges préservées:", formattedEquipment);
-                  setEquipmentList(formattedEquipment);
+                  console.log("✅ STEP 3a: Equipment formatted:", formattedEquipment);
                   
-                  // Charger le paiement mensuel cible
-                  if (offer.monthly_payment) {
-                    const monthlyPayment = typeof offer.monthly_payment === 'string' 
-                      ? parseFloat(offer.monthly_payment) 
-                      : offer.monthly_payment;
-                    console.log("💰 Paiement mensuel cible défini:", monthlyPayment);
-                    setTargetMonthlyPayment(monthlyPayment || 0);
-                  }
+                  // ATTENDRE UN PEU pour que le hook soit prêt
+                  setTimeout(() => {
+                    console.log("⏰ STEP 3a: Setting equipment list after delay");
+                    setEquipmentList(formattedEquipment);
+                    
+                    // Charger le paiement mensuel cible
+                    if (offer.monthly_payment) {
+                      const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                        ? parseFloat(offer.monthly_payment) 
+                        : offer.monthly_payment;
+                      console.log("💰 STEP 3a: Setting target monthly payment:", monthlyPayment);
+                      setTargetMonthlyPayment(monthlyPayment || 0);
+                    }
+                  }, 500); // Délai de 500ms pour laisser le hook s'initialiser
                 }
               } catch (e) {
-                console.log("⚠️ Parsing des équipements en format string:", offer.equipment_description);
+                console.log("⚠️ STEP 3a: Parsing equipment as string fallback");
                 
-                // Fallback pour l'ancien format
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
                   if (match) {
@@ -282,7 +307,7 @@ const CreateOffer = () => {
                       title,
                       purchasePrice: approxPricePerItem,
                       quantity,
-                      margin: 20, // Marge par défaut pour l'ancien format
+                      margin: 20,
                       attributes: {},
                       specifications: {}
                     };
@@ -291,24 +316,26 @@ const CreateOffer = () => {
                 }).filter(Boolean);
                 
                 if (equipmentItems.length > 0) {
-                  console.log("📦 Équipements formatés depuis l'ancien format:", equipmentItems);
-                  setEquipmentList(equipmentItems);
-                  
-                  const monthlyPayment = typeof offer.monthly_payment === 'string' 
-                    ? parseFloat(offer.monthly_payment) 
-                    : offer.monthly_payment || 0;
-                  setTargetMonthlyPayment(monthlyPayment);
+                  console.log("📦 STEP 3a: Fallback equipment formatted:", equipmentItems);
+                  setTimeout(() => {
+                    setEquipmentList(equipmentItems);
+                    const monthlyPayment = typeof offer.monthly_payment === 'string' 
+                      ? parseFloat(offer.monthly_payment) 
+                      : offer.monthly_payment || 0;
+                    setTargetMonthlyPayment(monthlyPayment);
+                  }, 500);
                 }
               }
             }
             
+            console.log("🏁 STEP 3: Offer loading completed successfully");
             toast.success("Offre chargée avec succès");
           } else {
             toast.error("Impossible de trouver cette offre");
             navigate("/offers");
           }
         } catch (error) {
-          console.error("Error loading offer:", error);
+          console.error("❌ STEP 3: Error loading offer:", error);
           toast.error("Erreur lors du chargement de l'offre");
         } finally {
           setLoading(false);
@@ -317,7 +344,7 @@ const CreateOffer = () => {
     };
     
     loadOfferData();
-  }, [offerId, navigate, setEquipmentList, setTargetMonthlyPayment]);
+  }, [offerId, leasersLoaded, navigate, setEquipmentList, setTargetMonthlyPayment]);
 
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
