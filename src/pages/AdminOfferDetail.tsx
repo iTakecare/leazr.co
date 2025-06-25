@@ -191,7 +191,6 @@ const AdminOfferDetail = () => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
                     <CompactEquipmentSection offer={offer} />
-                    <FinancialSection offer={offer} />
                   </TabsContent>
                   
                   <TabsContent value="equipment" className="mt-4 overflow-visible">
