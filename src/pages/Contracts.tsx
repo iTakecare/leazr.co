@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
@@ -14,7 +13,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContractsFilter from "@/components/contracts/ContractsFilter";
 import ContractsSearch from "@/components/contracts/ContractsSearch";
 import ContractsTable from "@/components/contracts/ContractsTable";
-import ContractsError from "@/components/contracts/ContractsError";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,13 +93,22 @@ const Contracts = () => {
     );
   }
 
-  if (loadingError) {
+  if (loadingError && filteredContracts.length === 0) {
     return (
-      <ContractsError 
-        message={loadingError} 
-        onRetry={fetchContracts}
-        debugInfo={`Erreur détaillée: ${loadingError}`}
-      />
+      <PageTransition>
+        <Container>
+          <div className="py-8">
+            <div className="text-center">
+              <div className="mb-4 text-red-500">
+                <FileText className="h-12 w-12 mx-auto" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Erreur de chargement</h2>
+              <p className="text-muted-foreground mb-4">{loadingError}</p>
+              <Button onClick={fetchContracts}>Réessayer</Button>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
 
@@ -116,16 +123,6 @@ const Contracts = () => {
             animate="visible"
           >
             <motion.div variants={itemVariants}>
-              <div className="mb-6">
-                <div className="flex items-center">
-                  <FileText className="h-6 w-6 mr-2" />
-                  <h1 className="text-2xl font-bold">Gestion des contrats</h1>
-                </div>
-                <p className="text-muted-foreground mt-1">
-                  Gérez vos contrats et suivez leur progression
-                </p>
-              </div>
-              
               <div className="text-center py-16">
                 <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">Aucun contrat trouvé</h2>

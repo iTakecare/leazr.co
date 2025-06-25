@@ -115,9 +115,8 @@ export const useAmbassadorOfferSave = ({
         ambassador: ambassador?.name || 'Unknown'
       });
       
-      // Convertir en nombres au lieu de strings
-      const totalMarginWithDifference = Number(globalMarginAdjustment.marginDifference || 0);
-      const marginAmount = Number(globalMarginAdjustment.amount || 0);
+      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      const marginAmount = String(globalMarginAdjustment.amount || 0);
       
       const offerData = {
         client_id: client.id,
@@ -135,8 +134,8 @@ export const useAmbassadorOfferSave = ({
         ambassador_id: currentAmbassadorId,
         company_id: ambassadorCompanyId,
         remarks: remarks,
-        total_margin_with_difference: totalMarginWithDifference, // Convertir en nombre
-        margin: marginAmount // Convertir en nombre
+        total_margin_with_difference: totalMarginWithDifferenceString,
+        margin: marginAmount
       };
       
       console.log("Saving offer with data:", offerData);

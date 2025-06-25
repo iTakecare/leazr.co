@@ -25,18 +25,11 @@ export const useContracts = () => {
     try {
       setLoading(true);
       setLoadingError(null);
-      
-      console.log("Fetching contracts with includeCompleted:", includeCompleted);
-      
       const data = await getContracts(includeCompleted);
-      
-      console.log("Contracts fetched successfully:", data);
       setContracts(data);
     } catch (error: any) {
       console.error("Error fetching contracts:", error);
-      const errorMessage = error.message || "Erreur lors du chargement des contrats";
-      setLoadingError(errorMessage);
-      toast.error(errorMessage);
+      setLoadingError("Erreur lors du chargement des contrats");
     } finally {
       setLoading(false);
     }
