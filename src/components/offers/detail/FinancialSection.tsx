@@ -28,8 +28,10 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
     // Si on a des équipements parsés, calculer depuis ces données
     if (equipmentList.length > 0) {
       return equipmentList.reduce((acc: any, item: any) => {
+        // Utiliser purchasePrice ou purchase_price pour le prix d'achat
         const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
         const quantity = parseInt(item.quantity) || 1;
+        // Utiliser monthlyPayment ou monthly_payment pour la mensualité
         const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
 
         return {
@@ -41,7 +43,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
     
     // Sinon, utiliser les données de l'offre comme fallback
     return {
-      totalPurchasePrice: offer.amount || 0,
+      totalPurchasePrice: offer.financed_amount || 0, // Utiliser financed_amount au lieu de amount
       totalMonthlyPayment: offer.monthly_payment || 0
     };
   };
