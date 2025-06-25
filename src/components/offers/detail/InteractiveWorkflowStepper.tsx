@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Circle, Clock, ArrowRight } from "lucide-react";
@@ -20,6 +20,13 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 }) => {
   const { user } = useAuth();
   const [updating, setUpdating] = useState(false);
+  // État local pour maintenir le statut actuel et éviter les délais de synchronisation
+  const [localStatus, setLocalStatus] = useState(currentStatus);
+
+  // Synchroniser l'état local avec les props
+  useEffect(() => {
+    setLocalStatus(currentStatus);
+  }, [currentStatus]);
 
   const steps = [
     { key: 'draft', label: 'Brouillon', icon: Circle },
@@ -31,7 +38,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   ];
 
   const getCurrentStepIndex = () => {
-    return steps.findIndex(step => step.key === currentStatus);
+    return steps.findIndex(step => step.key === localStatus);
   };
 
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {
@@ -43,7 +50,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       return;
     }
 
-    if (targetStatus === currentStatus) {
+    if (targetStatus === localStatus) {
       return; // Pas de changement nécessaire
     }
 
@@ -57,6 +64,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
     try {
       setUpdating(true);
+      // Mise à jour immédiate de l'état local pour maintenir la cohérence visuelle
+      setLocalStatus(targetStatus);
 
       const { error } = await supabase
         .from('offers')
@@ -86,6 +95,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
     } catch (error) {
       console.error("Erreur lors du changement de statut:", error);
+      // En cas d'erreur, revenir à l'état précédent
+      setLocalStatus(currentStatus);
       toast.error("Erreur lors du changement de statut");
     } finally {
       setUpdating(false);
@@ -120,7 +131,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`w-12 h-12 rounded-full p-0 border-2 ${
+                  className={`w-12 h-12 rounded-full p-0 border-2 transition-all duration-200 ${
                     isCompleted 
                       ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                       : isActive 
@@ -136,7 +147,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                 </Button>
                 {index < steps.length - 1 && (
                   <div 
-                    className={`flex-1 h-0.5 mx-2 ${
+                    className={`flex-1 h-0.5 mx-2 transition-colors duration-200 ${
                       isCompleted ? 'bg-green-500' : 'bg-gray-300'
                     }`}
                   />
@@ -145,7 +156,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
               <div className="mt-2 text-center">
                 <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
-                  className="text-xs whitespace-nowrap px-2 py-1"
+                  className={`text-xs whitespace-nowrap px-2 py-1 transition-all duration-200 ${
+                    updating && isActive ? 'opacity-75' : 'opacity-100'
+                  }`}
                 >
                   {step.label}
                 </Badge>
@@ -156,7 +169,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       </div>
       
       <div className="mt-4 text-center text-sm text-gray-500">
-        Cliquez sur une étape pour modifier le statut
+        {updating ? 'Mise à jour en cours...' : 'Cliquez sur une étape pour modifier le statut'}
       </div>
     </div>
   );
