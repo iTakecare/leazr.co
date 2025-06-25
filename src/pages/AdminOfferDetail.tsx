@@ -147,7 +147,7 @@ const AdminOfferDetail = () => {
     <PageTransition>
       <Container>
         <TooltipProvider>
-          <div className="p-4 md:p-6 space-y-6">
+          <div className="p-2 md:p-4 space-y-6">
             {/* En-tête avec navigation */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -175,8 +175,8 @@ const AdminOfferDetail = () => {
               onStatusChange={handleStatusChange}
             />
 
-            {/* Layout principal avec sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Layout principal avec sidebar - padding réduit */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               
               {/* Contenu principal */}
               <div className="lg:col-span-3">
@@ -189,25 +189,25 @@ const AdminOfferDetail = () => {
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="overview" className="space-y-6 mt-6">
+                  <TabsContent value="overview" className="space-y-4 mt-4">
                     <ClientSection offer={offer} />
                     <CompactEquipmentSection offer={offer} />
                     <FinancialSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="equipment" className="mt-6">
+                  <TabsContent value="equipment" className="mt-4">
                     <CompactEquipmentSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="financial" className="mt-6">
+                  <TabsContent value="financial" className="mt-4">
                     <FinancialSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="documents" className="space-y-6 mt-6">
+                  <TabsContent value="documents" className="space-y-4 mt-4">
                     <OfferDocuments offerId={offer.id} />
                   </TabsContent>
                   
-                  <TabsContent value="history" className="space-y-6 mt-6">
+                  <TabsContent value="history" className="space-y-4 mt-4">
                     <ImprovedOfferHistory offerId={offer.id} />
                   </TabsContent>
                 </Tabs>
