@@ -11,39 +11,47 @@ interface FinancialSectionProps {
 const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
   // Calculer les totaux des équipements si disponibles
   const calculateEquipmentTotals = () => {
-    if (!offer.parsedEquipment || offer.parsedEquipment.length === 0) {
-      // Si pas d'équipements parsés, essayer de récupérer depuis les données de base de l'offre
-      return {
-        totalPurchasePrice: offer.amount || 0,
-        totalMargin: offer.margin || offer.total_margin_with_difference || 0,
-        totalMonthlyPayment: offer.monthly_payment || 0
-      };
+    // Essayer de parser les équipements depuis equipment_description
+    let equipmentList = [];
+    
+    if (offer.equipment_description) {
+      try {
+        const parsedEquipment = JSON.parse(offer.equipment_description);
+        if (Array.isArray(parsedEquipment)) {
+          equipmentList = parsedEquipment;
+        }
+      } catch (e) {
+        console.warn("Could not parse equipment_description as JSON");
+      }
     }
+    
+    // Si on a des équipements parsés, calculer depuis ces données
+    if (equipmentList.length > 0) {
+      return equipmentList.reduce((acc: any, item: any) => {
+        const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
+        const quantity = parseInt(item.quantity) || 1;
+        const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
 
-    const totals = offer.parsedEquipment.reduce((acc: any, item: any) => {
-      // Utiliser les bonnes propriétés selon le format des données
-      const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
-      const quantity = parseInt(item.quantity) || 1;
-      const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
-
-      return {
-        totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
-        totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity)
-      };
-    }, { totalPurchasePrice: 0, totalMonthlyPayment: 0 });
-
+        return {
+          totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
+          totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity)
+        };
+      }, { totalPurchasePrice: 0, totalMonthlyPayment: 0 });
+    }
+    
+    // Sinon, utiliser les données de l'offre comme fallback
     return {
-      ...totals,
-      totalMargin: offer.margin || offer.total_margin_with_difference || 0
+      totalPurchasePrice: offer.amount || 0,
+      totalMonthlyPayment: offer.monthly_payment || 0
     };
   };
 
   const totals = calculateEquipmentTotals();
-  const financedAmount = offer.financed_amount || (totals.totalPurchasePrice + totals.totalMargin);
+  const financedAmount = offer.financed_amount || (totals.totalPurchasePrice + (offer.margin || 0));
   
   // Calculer le pourcentage de marge
   const marginPercentage = totals.totalPurchasePrice > 0 
-    ? ((totals.totalMargin / totals.totalPurchasePrice) * 100) 
+    ? (((offer.margin || 0) / totals.totalPurchasePrice) * 100) 
     : 0;
 
   return (
@@ -100,7 +108,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
               </div>
             </div>
             <div className="text-2xl font-bold text-purple-900 mb-1">
-              {formatCurrency(totals.totalMargin)}
+              {formatCurrency(offer.margin || 0)}
             </div>
             <div className="text-xs text-purple-600 flex items-center gap-1">
               <Percent className="w-3 h-3" />
