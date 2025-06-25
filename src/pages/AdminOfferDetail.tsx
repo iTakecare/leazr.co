@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { getOfferById, getWorkflowLogs, getOfferNotes } from "@/services/offerService";
+import { getOfferById } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -12,14 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// Import des nouveaux composants
-import WorkflowStepper from "@/components/offers/detail/WorkflowStepper";
+// Import des composants améliorés
+import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
-import EquipmentSection from "@/components/offers/detail/EquipmentSection";
+import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
 import FinancialSection from "@/components/offers/detail/FinancialSection";
-import ActionsSidebar from "@/components/offers/detail/ActionsSidebar";
-import OfferHistoryTimeline from "@/components/offers/OfferHistoryTimeline";
-import OfferCompleteHistory from "@/components/offers/OfferCompleteHistory";
+import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
+import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 
@@ -32,12 +31,7 @@ const AdminOfferDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
-  const [offerNotes, setOfferNotes] = useState<any[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
-  const [notesLoading, setNotesLoading] = useState(false);
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -55,8 +49,6 @@ const AdminOfferDetail = () => {
         }
 
         setOffer(offerData);
-        fetchWorkflowLogs(id);
-        fetchOfferNotes(id);
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
         setError("Impossible de charger les détails de l'offre");
@@ -68,36 +60,6 @@ const AdminOfferDetail = () => {
 
     fetchOfferDetails();
   }, [id]);
-
-  const fetchWorkflowLogs = async (offerId: string) => {
-    try {
-      setLogsLoading(true);
-      const logs = await getWorkflowLogs(offerId);
-      setWorkflowLogs(logs);
-    } catch (error) {
-      console.error("Erreur lors du chargement des logs:", error);
-    } finally {
-      setLogsLoading(false);
-    }
-  };
-
-  const fetchOfferNotes = async (offerId: string) => {
-    try {
-      setNotesLoading(true);
-      const notes = await getOfferNotes(offerId);
-      setOfferNotes(notes);
-    } catch (error) {
-      console.error("Erreur lors du chargement des notes:", error);
-    } finally {
-      setNotesLoading(false);
-    }
-  };
-
-  const handleNoteAdded = () => {
-    if (id) {
-      fetchOfferNotes(id);
-    }
-  };
 
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -132,6 +94,10 @@ const AdminOfferDetail = () => {
 
   const handleEditOffer = () => {
     navigate(`/create-offer?offerId=${id}`);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setOffer({ ...offer, workflow_status: newStatus });
   };
 
   const isAdmin = useCallback(() => {
@@ -182,7 +148,7 @@ const AdminOfferDetail = () => {
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Retour aux offres
+                  Retour
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold">
@@ -193,32 +159,35 @@ const AdminOfferDetail = () => {
               </div>
             </div>
 
-            {/* Stepper de progression */}
-            <WorkflowStepper 
-              currentStatus={offer.workflow_status || 'draft'} 
+            {/* Stepper de progression interactif */}
+            <InteractiveWorkflowStepper 
+              currentStatus={offer.workflow_status || 'draft'}
+              offerId={offer.id}
+              onStatusChange={handleStatusChange}
             />
 
             {/* Layout principal avec sidebar */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              
               {/* Contenu principal */}
               <div className="lg:col-span-3">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-                    <TabsTrigger value="equipment">Équipements</TabsTrigger>
-                    <TabsTrigger value="financial">Financier</TabsTrigger>
-                    <TabsTrigger value="documents">Documents</TabsTrigger>
-                    <TabsTrigger value="history">Historique</TabsTrigger>
+                    <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
+                    <TabsTrigger value="equipment" className="text-xs sm:text-sm">Équipements</TabsTrigger>
+                    <TabsTrigger value="financial" className="text-xs sm:text-sm">Financier</TabsTrigger>
+                    <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+                    <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview" className="space-y-6 mt-6">
                     <ClientSection offer={offer} />
-                    <EquipmentSection offer={offer} />
+                    <CompactEquipmentSection offer={offer} />
                     <FinancialSection offer={offer} />
                   </TabsContent>
                   
                   <TabsContent value="equipment" className="mt-6">
-                    <EquipmentSection offer={offer} />
+                    <CompactEquipmentSection offer={offer} />
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-6">
@@ -230,21 +199,14 @@ const AdminOfferDetail = () => {
                   </TabsContent>
                   
                   <TabsContent value="history" className="space-y-6 mt-6">
-                    <div className="bg-white rounded-lg border p-6">
-                      <h3 className="text-lg font-semibold mb-4">Historique du workflow</h3>
-                      {logsLoading ? (
-                        <div className="animate-pulse">Chargement...</div>
-                      ) : (
-                        <OfferHistoryTimeline events={workflowLogs} />
-                      )}
-                    </div>
+                    <ImprovedOfferHistory offerId={offer.id} />
                   </TabsContent>
                 </Tabs>
               </div>
 
-              {/* Sidebar des actions */}
+              {/* Sidebar des actions compacte */}
               <div className="lg:col-span-1">
-                <ActionsSidebar
+                <CompactActionsSidebar
                   offer={offer}
                   onSendEmail={handleSendEmail}
                   onRequestInfo={() => setIsRequestInfoModalOpen(true)}
@@ -263,23 +225,6 @@ const AdminOfferDetail = () => {
           offerId={id || ''}
           onSuccess={() => window.location.reload()}
         />
-
-        {/* Modal d'historique complet */}
-        {isHistoryOpen && (
-          <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50">
-            <div className="relative w-11/12 max-w-4xl mx-auto my-12 bg-white rounded-md shadow-lg">
-              <button
-                className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
-                onClick={() => setIsHistoryOpen(false)}
-              >
-                Fermer
-              </button>
-              <div className="p-4">
-                <OfferCompleteHistory offerId={id || ''} />
-              </div>
-            </div>
-          </div>
-        )}
       </Container>
     </PageTransition>
   );
