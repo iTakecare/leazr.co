@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, UserCheck } from "lucide-react";
+import { Building2 } from "lucide-react";
 import CompactInternalOfferToggle from "./CompactInternalOfferToggle";
 import AmbassadorButton from "./AmbassadorButton";
 import LeaserButton from "./LeaserButton";
@@ -26,18 +26,18 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
   onOpenLeaserSelector
 }) => {
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Building2 className="h-5 w-5 text-primary" />
+    <Card className="mb-4">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Building2 className="h-4 w-4 text-primary" />
           Configuration de l'offre
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Type d'offre */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-700">
               Type d'offre
             </label>
             <CompactInternalOfferToggle
@@ -46,15 +46,15 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
             />
             {!isInternalOffer && (
               <p className="text-xs text-muted-foreground">
-                Une commission sera calculée pour l'ambassadeur
+                Commission calculée pour l'ambassadeur
               </p>
             )}
           </div>
 
           {/* Sélection ambassadeur (si offre ambassadeur) */}
           {!isInternalOffer && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
                 Ambassadeur
               </label>
               <AmbassadorButton
@@ -63,15 +63,15 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
               />
               {!selectedAmbassador && (
                 <p className="text-xs text-red-500">
-                  Sélection obligatoire pour les offres ambassadeur
+                  Sélection obligatoire
                 </p>
               )}
             </div>
           )}
 
           {/* Prestataire de leasing */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-700">
               Prestataire de leasing
             </label>
             <LeaserButton 

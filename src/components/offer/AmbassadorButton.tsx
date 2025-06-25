@@ -14,18 +14,17 @@ const AmbassadorButton: React.FC<AmbassadorButtonProps> = ({ selectedAmbassador,
     <Button 
       variant="outline" 
       onClick={onOpen}
-      className="flex justify-between items-center h-auto py-3 min-w-[200px]"
+      className="flex justify-between items-center h-10 w-full px-3 py-2"
     >
-      <div className="flex items-center">
-        <UserCheck className="h-5 w-5 mr-2 text-primary" />
-        <div className="text-left">
-          <p className="font-medium text-sm">Ambassadeur</p>
-          <p className="text-xs text-muted-foreground">
-            {selectedAmbassador ? selectedAmbassador.name : "Sélectionner un ambassadeur"}
+      <div className="flex items-center min-w-0 flex-1">
+        <UserCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+        <div className="text-left min-w-0 flex-1">
+          <p className="text-xs font-medium truncate">
+            {selectedAmbassador ? selectedAmbassador.name : "Sélectionner"}
           </p>
         </div>
       </div>
-      <span className="text-xs text-muted-foreground">Changer</span>
+      <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">•••</span>
     </Button>
   );
 };

@@ -14,18 +14,17 @@ const LeaserButton: React.FC<LeaserButtonProps> = ({ selectedLeaser, onOpen }) =
     <Button 
       variant="outline" 
       onClick={onOpen}
-      className="w-full flex justify-between items-center h-auto py-3"
+      className="flex justify-between items-center h-10 w-full px-3 py-2"
     >
-      <div className="flex items-center">
-        <Coins className="h-5 w-5 mr-2 text-primary" />
-        <div className="text-left">
-          <p className="font-medium text-sm">Prestataire de leasing</p>
-          <p className="text-xs text-muted-foreground">
-            {selectedLeaser ? selectedLeaser.name : "Aucun prestataire sélectionné"}
+      <div className="flex items-center min-w-0 flex-1">
+        <Coins className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+        <div className="text-left min-w-0 flex-1">
+          <p className="text-xs font-medium truncate">
+            {selectedLeaser ? selectedLeaser.name : "Sélectionner"}
           </p>
         </div>
       </div>
-      <span className="text-xs text-muted-foreground">Changer</span>
+      <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">•••</span>
     </Button>
   );
 };

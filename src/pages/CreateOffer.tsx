@@ -425,134 +425,144 @@ const CreateOffer = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background flex w-full">
-        <div className="flex-1 overflow-auto">
-          <div className="py-6 px-4 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-              {/* Header simplifié */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <CalcIcon className="h-7 w-7 text-primary" />
-                  <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
-                    {isEditMode ? "Modifier l'offre" : "Créer une offre"}
-                  </h1>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/offers')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Retour
-                </Button>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2">Chargement...</span>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Configuration de l'offre */}
-                  <OfferConfiguration
-                    isInternalOffer={isInternalOffer}
-                    setIsInternalOffer={setIsInternalOffer}
-                    selectedAmbassador={selectedAmbassador}
-                    onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)}
-                    selectedLeaser={selectedLeaser}
-                    onOpenLeaserSelector={handleOpenLeaserSelector}
-                  />
-
-                  {/* Contenu principal */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <div className="xl:col-span-1">
-                      <EquipmentForm
-                        equipment={equipment}
-                        setEquipment={setEquipment}
-                        selectedLeaser={selectedLeaser}
-                        addToList={addToList}
-                        editingId={editingId}
-                        cancelEditing={cancelEditing}
-                        onOpenCatalog={() => setIsCatalogOpen(true)}
-                        coefficient={coefficient}
-                        monthlyPayment={monthlyPayment}
-                        targetMonthlyPayment={targetMonthlyPayment}
-                        setTargetMonthlyPayment={setTargetMonthlyPayment}
-                        calculatedMargin={calculatedMargin}
-                        applyCalculatedMargin={applyCalculatedMargin}
-                      />
-                    </div>
-
-                    <div className="xl:col-span-1 space-y-6">
-                      <EquipmentList
-                        equipmentList={equipmentList}
-                        editingId={editingId}
-                        startEditing={startEditing}
-                        removeFromList={removeFromList}
-                        updateQuantity={updateQuantity}
-                        totalMonthlyPayment={totalMonthlyPayment}
-                        globalMarginAdjustment={{
-                          amount: globalMarginAdjustment.amount,
-                          newCoef: globalMarginAdjustment.newCoef,
-                          active: globalMarginAdjustment.adaptMonthlyPayment,
-                          marginDifference: globalMarginAdjustment.marginDifference
-                        }}
-                        toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                        calculations={calculations}
-                      />
-                      
-                      <ClientInfo
-                        clientId={clientId}
-                        clientName={clientName}
-                        clientEmail={clientEmail}
-                        clientCompany={clientCompany}
-                        remarks={remarks}
-                        setRemarks={setRemarks}
-                        onOpenClientSelector={() => setIsClientSelectorOpen(true)}
-                        handleSaveOffer={handleSaveOffer}
-                        isSubmitting={isSubmitting}
-                        selectedLeaser={selectedLeaser}
-                        equipmentList={equipmentList}
-                      />
-                    </div>
+      <div className="min-h-screen bg-background">
+        <div className="h-screen flex flex-col">
+          {/* Compact Header */}
+          <div className="flex-shrink-0 border-b bg-background">
+            <div className="px-4 lg:px-6 py-3">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CalcIcon className="h-5 w-5 text-primary" />
+                    <h1 className="text-lg font-semibold text-gray-900">
+                      {isEditMode ? "Modifier l'offre" : "Créer une offre"}
+                    </h1>
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/offers')}
+                    className="flex items-center gap-2 h-8 px-3"
+                    size="sm"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    Retour
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          {/* Modals */}
-          <ProductSelector
-            isOpen={isCatalogOpen}
-            onClose={() => setIsCatalogOpen(false)}
-            onSelectProduct={handleProductSelect}
-            title="Ajouter un équipement"
-            description="Sélectionnez un produit du catalogue à ajouter à votre offre"
-          />
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-auto">
+            <div className="px-4 lg:px-6 py-4">
+              <div className="max-w-7xl mx-auto">
+                {loading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2">Chargement...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Configuration de l'offre */}
+                    <OfferConfiguration
+                      isInternalOffer={isInternalOffer}
+                      setIsInternalOffer={setIsInternalOffer}
+                      selectedAmbassador={selectedAmbassador}
+                      onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)}
+                      selectedLeaser={selectedLeaser}
+                      onOpenLeaserSelector={handleOpenLeaserSelector}
+                    />
 
-          <ClientSelector
-            isOpen={isClientSelectorOpen}
-            onClose={() => setIsClientSelectorOpen(false)}
-            onSelectClient={handleClientSelect}
-            selectedClientId={clientId}
-            onClientSelect={() => {}}
-          />
-          
-          <LeaserSelector
-            isOpen={isLeaserSelectorOpen}
-            onClose={() => setIsLeaserSelectorOpen(false)}
-            onSelect={handleLeaserSelect}
-            selectedLeaser={selectedLeaser}
-          />
+                    {/* Contenu principal */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                      <div className="xl:col-span-1">
+                        <EquipmentForm
+                          equipment={equipment}
+                          setEquipment={setEquipment}
+                          selectedLeaser={selectedLeaser}
+                          addToList={addToList}
+                          editingId={editingId}
+                          cancelEditing={cancelEditing}
+                          onOpenCatalog={() => setIsCatalogOpen(true)}
+                          coefficient={coefficient}
+                          monthlyPayment={monthlyPayment}
+                          targetMonthlyPayment={targetMonthlyPayment}
+                          setTargetMonthlyPayment={setTargetMonthlyPayment}
+                          calculatedMargin={calculatedMargin}
+                          applyCalculatedMargin={applyCalculatedMargin}
+                        />
+                      </div>
 
-          <AmbassadorSelector
-            isOpen={isAmbassadorSelectorOpen}
-            onClose={() => setIsAmbassadorSelectorOpen(false)}
-            onSelectAmbassador={handleAmbassadorSelect}
-            selectedAmbassadorId={selectedAmbassador?.id}
-          />
+                      <div className="xl:col-span-1 space-y-4">
+                        <EquipmentList
+                          equipmentList={equipmentList}
+                          editingId={editingId}
+                          startEditing={startEditing}
+                          removeFromList={removeFromList}
+                          updateQuantity={updateQuantity}
+                          totalMonthlyPayment={totalMonthlyPayment}
+                          globalMarginAdjustment={{
+                            amount: globalMarginAdjustment.amount,
+                            newCoef: globalMarginAdjustment.newCoef,
+                            active: globalMarginAdjustment.adaptMonthlyPayment,
+                            marginDifference: globalMarginAdjustment.marginDifference
+                          }}
+                          toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                          calculations={calculations}
+                        />
+                        
+                        <ClientInfo
+                          clientId={clientId}
+                          clientName={clientName}
+                          clientEmail={clientEmail}
+                          clientCompany={clientCompany}
+                          remarks={remarks}
+                          setRemarks={setRemarks}
+                          onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                          handleSaveOffer={handleSaveOffer}
+                          isSubmitting={isSubmitting}
+                          selectedLeaser={selectedLeaser}
+                          equipmentList={equipmentList}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Modals */}
+        <ProductSelector
+          isOpen={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onSelectProduct={handleProductSelect}
+          title="Ajouter un équipement"
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre"
+        />
+
+        <ClientSelector
+          isOpen={isClientSelectorOpen}
+          onClose={() => setIsClientSelectorOpen(false)}
+          onSelectClient={handleClientSelect}
+          selectedClientId={clientId}
+          onClientSelect={() => {}}
+        />
+        
+        <LeaserSelector
+          isOpen={isLeaserSelectorOpen}
+          onClose={() => setIsLeaserSelectorOpen(false)}
+          onSelect={handleLeaserSelect}
+          selectedLeaser={selectedLeaser}
+        />
+
+        <AmbassadorSelector
+          isOpen={isAmbassadorSelectorOpen}
+          onClose={() => setIsAmbassadorSelectorOpen(false)}
+          onSelectAmbassador={handleAmbassadorSelect}
+          selectedAmbassadorId={selectedAmbassador?.id}
+        />
       </div>
     </PageTransition>
   );
