@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
+import { logOfferCreation } from "./offerHistory";
 
 export const createOffer = async (offerData: OfferData) => {
   try {
@@ -180,6 +181,24 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("✅ OFFRE CRÉÉE AVEC SUCCÈS !");
     console.log("📋 Données de l'offre créée:", data);
     console.log("🆔 ID de la nouvelle offre:", data.id);
+    
+    // NOUVEAU : Enregistrer l'événement de création dans l'historique
+    if (data.id && offerData.user_id) {
+      try {
+        await logOfferCreation(data.id, offerData.user_id, {
+          client_name: offerData.client_name,
+          client_email: offerData.client_email,
+          amount: offerData.amount,
+          monthly_payment: offerData.monthly_payment,
+          type: offerData.type,
+          equipment_count: Array.isArray(offerData.equipment) ? offerData.equipment.length : 0
+        });
+        console.log("✅ Événement de création ajouté à l'historique");
+      } catch (historyError) {
+        console.error("❌ Erreur lors de l'ajout à l'historique:", historyError);
+        // Ne pas faire échouer la création pour un problème d'historique
+      }
+    }
     
     // Maintenant sauvegarder les équipements avec leurs attributs et spécifications
     if (offerData.equipment && Array.isArray(offerData.equipment) && data.id) {
