@@ -186,8 +186,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Équipement</TableHead>
+                <TableHead className="w-[120px]">Type</TableHead>
+                <TableHead className="max-w-[120px]">Équipement</TableHead>
                 {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
@@ -200,10 +200,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableRow key={offer.id}>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
-                  <TableCell>
+                  <TableCell className="w-[120px]">
                     <OfferTypeTag type={offer.type} size="sm" />
                   </TableCell>
-                  <TableCell className="max-w-[180px] truncate">
+                  <TableCell className="max-w-[120px] truncate">
                     {offer.equipment_description &&
                       typeof offer.equipment_description === "string" &&
                       (offer.equipment_description.startsWith("[") ||
