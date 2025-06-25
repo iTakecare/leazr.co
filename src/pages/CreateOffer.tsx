@@ -23,6 +23,7 @@ import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import LeaserButton from "@/components/offer/LeaserButton";
+import InternalOfferToggle from "@/components/offer/InternalOfferToggle";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 
 function useQuery() {

@@ -3,7 +3,6 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Users, FileText, Building2 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
@@ -20,8 +19,6 @@ interface ClientInfoProps {
   isSubmitting: boolean;
   selectedLeaser: Leaser | null;
   equipmentList: any[];
-  isInternalOffer?: boolean;
-  setIsInternalOffer?: (value: boolean) => void;
   hideFinancialDetails?: boolean;
 }
 
@@ -37,8 +34,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   isSubmitting,
   selectedLeaser,
   equipmentList,
-  isInternalOffer = false,
-  setIsInternalOffer,
   hideFinancialDetails = false
 }) => {
   return (
@@ -70,25 +65,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 <div>Email: {clientEmail}</div>
                 {clientCompany && <div>Entreprise: {clientCompany}</div>}
               </div>
-            </div>
-          )}
-
-          {/* Switch pour offre interne - uniquement si pas hideFinancialDetails */}
-          {setIsInternalOffer && !hideFinancialDetails && (
-            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <div className="flex flex-col">
-                <Label htmlFor="internal-offer" className="text-sm font-medium text-amber-800">
-                  Offre interne
-                </Label>
-                <span className="text-xs text-amber-600">
-                  Aucune commission ne sera calculée
-                </span>
-              </div>
-              <Switch
-                id="internal-offer"
-                checked={isInternalOffer}
-                onCheckedChange={setIsInternalOffer}
-              />
             </div>
           )}
         </CardContent>
