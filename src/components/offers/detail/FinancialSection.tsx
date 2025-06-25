@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Calculator, Euro } from "lucide-react";
+import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 
 interface FinancialSectionProps {
@@ -12,6 +12,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
   // Calculer les totaux des équipements si disponibles
   const calculateEquipmentTotals = () => {
     if (!offer.parsedEquipment || offer.parsedEquipment.length === 0) {
+      // Si pas d'équipements parsés, essayer de récupérer depuis les données de base de l'offre
       return {
         totalPurchasePrice: offer.amount || 0,
         totalMargin: offer.margin || offer.total_margin_with_difference || 0,
@@ -20,146 +21,178 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({ offer }) => {
     }
 
     const totals = offer.parsedEquipment.reduce((acc: any, item: any) => {
-      const purchasePrice = parseFloat(item.purchasePrice) || 0;
+      // Utiliser les bonnes propriétés selon le format des données
+      const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
       const quantity = parseInt(item.quantity) || 1;
-      const margin = parseFloat(item.margin) || 0;
-      const monthlyPayment = parseFloat(item.monthlyPayment) || 0;
+      const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
 
       return {
         totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
-        totalMargin: acc.totalMargin + (margin * quantity),
         totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity)
       };
-    }, { totalPurchasePrice: 0, totalMargin: 0, totalMonthlyPayment: 0 });
+    }, { totalPurchasePrice: 0, totalMonthlyPayment: 0 });
 
-    return totals;
+    return {
+      ...totals,
+      totalMargin: offer.margin || offer.total_margin_with_difference || 0
+    };
   };
 
   const totals = calculateEquipmentTotals();
   const financedAmount = offer.financed_amount || (totals.totalPurchasePrice + totals.totalMargin);
+  
+  // Calculer le pourcentage de marge
+  const marginPercentage = totals.totalPurchasePrice > 0 
+    ? ((totals.totalMargin / totals.totalPurchasePrice) * 100) 
+    : 0;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <DollarSign className="w-5 h-5 text-green-600" />
+    <Card className="border-gray-200 shadow-sm">
+      <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+        <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
+          <DollarSign className="w-6 h-6 text-blue-600" />
           Résumé financier
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Layout en grille responsive pour une meilleure utilisation de l'espace horizontal */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <CardContent className="p-6">
+        
+        {/* Principales métriques - Layout en 3 colonnes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           
-          {/* Montant total */}
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-            <div className="flex items-center gap-2 mb-1">
-              <Euro className="w-4 h-4 text-blue-600" />
-              <span className="text-xs text-blue-700 font-medium">Montant total</span>
+          {/* Montant total d'achat */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Euro className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">Montant total d'achat</span>
+              </div>
             </div>
-            <div className="text-lg font-bold text-blue-900">
+            <div className="text-2xl font-bold text-blue-900 mb-1">
               {formatCurrency(totals.totalPurchasePrice)}
             </div>
+            <div className="text-xs text-blue-600">
+              Prix d'achat des équipements
+            </div>
           </div>
           
-          {/* Mensualité */}
-          <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-4 h-4 text-green-600" />
-              <span className="text-xs text-green-700 font-medium">Mensualité</span>
+          {/* Mensualité totale */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium text-green-700">Mensualité totale</span>
+              </div>
             </div>
-            <div className="text-lg font-bold text-green-900">
+            <div className="text-2xl font-bold text-green-900 mb-1">
               {formatCurrency(totals.totalMonthlyPayment)}
             </div>
+            <div className="text-xs text-green-600">
+              Paiement mensuel client
+            </div>
           </div>
           
-          {/* Coefficient */}
-          {offer.coefficient && (
-            <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-orange-600" />
-                <span className="text-xs text-orange-700 font-medium">Coefficient</span>
-              </div>
-              <div className="text-lg font-bold text-orange-900">
-                {offer.coefficient}
+          {/* Marge totale */}
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-purple-600" />
+                <span className="text-sm font-medium text-purple-700">Marge totale</span>
               </div>
             </div>
-          )}
-          
-          {/* Marge offre */}
-          <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-purple-600" />
-              <span className="text-xs text-purple-700 font-medium">Marge offre</span>
-            </div>
-            <div className="text-lg font-bold text-purple-900">
+            <div className="text-2xl font-bold text-purple-900 mb-1">
               {formatCurrency(totals.totalMargin)}
             </div>
+            <div className="text-xs text-purple-600 flex items-center gap-1">
+              <Percent className="w-3 h-3" />
+              {marginPercentage.toFixed(1)}% du prix d'achat
+            </div>
           </div>
+        </div>
+
+        {/* Informations complémentaires */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+          
+          {/* Montant financé */}
+          {financedAmount > 0 && financedAmount !== totals.totalPurchasePrice && (
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2">
+                <Euro className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Montant financé</span>
+              </div>
+              <span className="text-lg font-bold text-gray-900">
+                {formatCurrency(financedAmount)}
+              </span>
+            </div>
+          )}
+
+          {/* Coefficient */}
+          {offer.coefficient && (
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-orange-600" />
+                <span className="text-sm font-medium text-orange-700">Coefficient appliqué</span>
+              </div>
+              <span className="text-lg font-bold text-orange-900">
+                {offer.coefficient}
+              </span>
+            </div>
+          )}
 
           {/* Commission */}
           {offer.commission && (
-            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-              <div className="flex items-center gap-2 mb-1">
-                <Calculator className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs text-emerald-700 font-medium">Commission</span>
+            <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">Commission</span>
               </div>
-              <div className="text-lg font-bold text-emerald-900">
+              <span className="text-lg font-bold text-emerald-900">
                 {formatCurrency(offer.commission)}
-              </div>
-            </div>
-          )}
-
-          {/* Montant financé */}
-          {financedAmount > 0 && financedAmount !== totals.totalPurchasePrice && (
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-              <div className="flex items-center gap-2 mb-1">
-                <Euro className="w-4 h-4 text-gray-600" />
-                <span className="text-xs text-gray-600 font-medium">Montant financé</span>
-              </div>
-              <div className="text-lg font-bold text-gray-900">
-                {formatCurrency(financedAmount)}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Informations supplémentaires en ligne */}
-        <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-100">
-          {offer.commission_status && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Statut commission:</span>
-              <span className={`text-sm font-medium px-2 py-1 rounded ${
-                offer.commission_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                offer.commission_status === 'paid' ? 'bg-green-100 text-green-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {offer.commission_status === 'pending' ? 'En attente' : 
-                 offer.commission_status === 'paid' ? 'Payée' : 
-                 offer.commission_status}
-              </span>
-            </div>
-          )}
-
-          {offer.margin_difference && Math.abs(offer.margin_difference) > 0.01 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Ajustement marge:</span>
-              <span className={`text-sm font-medium px-2 py-1 rounded ${
-                offer.margin_difference > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}>
-                {offer.margin_difference > 0 ? '-' : '+'}{formatCurrency(Math.abs(offer.margin_difference))}
-              </span>
-            </div>
-          )}
-
-          {offer.commission_paid_at && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Commission payée le:</span>
-              <span className="text-sm font-medium">
-                {new Date(offer.commission_paid_at).toLocaleDateString('fr-FR')}
               </span>
             </div>
           )}
         </div>
+
+        {/* Statuts et informations additionnelles */}
+        {(offer.commission_status || offer.margin_difference || offer.commission_paid_at) && (
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-4">
+              {offer.commission_status && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Statut commission:</span>
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                    offer.commission_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    offer.commission_status === 'paid' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {offer.commission_status === 'pending' ? 'En attente' : 
+                     offer.commission_status === 'paid' ? 'Payée' : 
+                     offer.commission_status}
+                  </span>
+                </div>
+              )}
+
+              {offer.margin_difference && Math.abs(offer.margin_difference) > 0.01 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Ajustement marge:</span>
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                    offer.margin_difference > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {offer.margin_difference > 0 ? '-' : '+'}{formatCurrency(Math.abs(offer.margin_difference))}
+                  </span>
+                </div>
+              )}
+
+              {offer.commission_paid_at && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Commission payée le:</span>
+                  <span className="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    {new Date(offer.commission_paid_at).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
