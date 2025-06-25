@@ -20,8 +20,8 @@ import ProductDetail from './pages/ProductDetail';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import CalculatorPage from './pages/CalculatorPage';
-import { AmbassadorDashboardPage as AmbassadorDashboard } from './pages/AmbassadorPages/AmbassadorDashboardPage';
-import { AmbassadorOffersPage as AmbassadorOffers } from './pages/AmbassadorPages/AmbassadorOffersPage';
+import AmbassadorDashboard from './pages/AmbassadorPages/AmbassadorDashboardPage';
+import AmbassadorOffers from './pages/AmbassadorPages/AmbassadorOffersPage';
 import AmbassadorCreateOffer from './pages/AmbassadorPages/AmbassadorCreateOffer';
 import AmbassadorOfferDetail from './pages/AmbassadorPages/AmbassadorOfferDetail';
 import PricingPage from './pages/PricingPage';
@@ -31,19 +31,10 @@ import ResourcesPage from './pages/ResourcesPage';
 import ClientOfferView from './pages/client/PublicOfferView';
 import SignOffer from './pages/client/SignOffer';
 import ClientLandingPage from './pages/PublicCompanyLanding';
-import ClientPasswordCheck from './pages/ClientPasswordCheck';
 import LeazrClients from './pages/LeazrClients';
-import LeazrClientDetail from './pages/LeazrClientDetail';
-import LeazrClientEdit from './pages/LeazrClientEdit';
-import LeazrSaaS from './pages/LeazrSaaS';
-import LeazrSaaSDetail from './pages/LeazrSaaSDetail';
-import LeazrSaaSEdit from './pages/LeazrSaaSEdit';
 import CreateLeazrAdmin from './pages/CreateLeazrAdmin';
-import AmbassadorSettings from './pages/AmbassadorPages/AmbassadorSettings';
 import PartnerDashboard from './pages/PartnerDashboard';
 import PartnerOfferDetail from './pages/PartnerOfferDetail';
-import { AmbassadorRoute } from './components/AmbassadorRoute';
-import { PartnerRoute } from './components/PartnerRoute';
 import AdminCalculator from './pages/AdminCalculator';
 
 const ScrollToTop = () => {
@@ -78,7 +69,6 @@ function App() {
           <Route path="/client/offers/:offerId" element={<ClientOfferView />} />
           <Route path="/offers/:offerId/signature" element={<SignOffer />} />
           <Route path="/c/:clientId/:passwordHash" element={<ClientLandingPage />} />
-          <Route path="/check-password/:clientId" element={<ClientPasswordCheck />} />
           <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
 
           {/* Routes admin */}
@@ -93,11 +83,6 @@ function App() {
                   <Route path="clients" element={<Clients />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="leazr-clients" element={<LeazrClients />} />
-                  <Route path="leazr-clients/:id" element={<LeazrClientDetail />} />
-                  <Route path="leazr-clients/:id/edit" element={<LeazrClientEdit />} />
-                  <Route path="leazr-saas" element={<LeazrSaaS />} />
-                  <Route path="leazr-saas/:id" element={<LeazrSaaSDetail />} />
-                  <Route path="leazr-saas/:id/edit" element={<LeazrSaaSEdit />} />
                 </Routes>
               </Layout>
             </PrivateRoute>
@@ -105,7 +90,7 @@ function App() {
 
           {/* Routes ambassadeur */}
           <Route path="/ambassador/*" element={
-            <AmbassadorRoute>
+            <PrivateRoute>
               <Layout>
                 <Routes>
                   <Route path="dashboard" element={<AmbassadorDashboard />} />
@@ -113,22 +98,21 @@ function App() {
                   <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
                   <Route path="create-offer" element={<AmbassadorCreateOffer />} />
                   <Route path="create-offer/:clientId/:ambassadorId" element={<AmbassadorCreateOffer />} />
-                  <Route path="settings" element={<AmbassadorSettings />} />
                 </Routes>
               </Layout>
-            </AmbassadorRoute>
+            </PrivateRoute>
           } />
 
           {/* Routes partenaire */}
           <Route path="/partner/*" element={
-            <PartnerRoute>
+            <PrivateRoute>
               <Layout>
                 <Routes>
                   <Route path="dashboard" element={<PartnerDashboard />} />
                   <Route path="offer/:id" element={<PartnerOfferDetail />} />
                 </Routes>
               </Layout>
-            </PartnerRoute>
+            </PrivateRoute>
           } />
         </Routes>
       </AuthProvider>
