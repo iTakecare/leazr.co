@@ -88,11 +88,14 @@ const CreateOffer = () => {
     return sum + equipmentMargin;
   }, 0);
 
+  // Obtenir le commission_level_id depuis la structure commission_level
+  const commissionLevelId = selectedAmbassador?.commission_level?.id;
+
   // Calcul de commission dynamique basé sur les paramètres
   const commissionData = useOfferCommissionCalculator({
     isInternalOffer,
     selectedAmbassadorId: selectedAmbassador?.id,
-    commissionLevelId: selectedAmbassador?.commission_level_id,
+    commissionLevelId: commissionLevelId,
     totalMargin: totalEquipmentMargin,
     equipmentListLength: equipmentList.length,
     totalMonthlyPayment
@@ -101,7 +104,7 @@ const CreateOffer = () => {
   console.log("🔍 CreateOffer - Commission Debug:", {
     isInternalOffer,
     selectedAmbassadorId: selectedAmbassador?.id,
-    commissionLevelId: selectedAmbassador?.commission_level_id,
+    commissionLevelId: commissionLevelId,
     totalMargin: totalEquipmentMargin,
     equipmentListLength: equipmentList.length,
     totalMonthlyPayment,
@@ -401,7 +404,7 @@ const CreateOffer = () => {
         offerType,
         ambassadorId,
         ambassadorName: selectedAmbassador?.name,
-        commissionLevelId: selectedAmbassador?.commission_level_id,
+        commissionLevelId: commissionLevelId,
         calculatedCommission,
         isInternalOffer
       });
@@ -579,7 +582,7 @@ const CreateOffer = () => {
                           calculations={calculations}
                           // Transmettre les infos commission pour l'affichage
                           ambassadorId={selectedAmbassador?.id}
-                          commissionLevelId={selectedAmbassador?.commission_level_id}
+                          commissionLevelId={commissionLevelId}
                           hideFinancialDetails={isInternalOffer}
                         />
                         

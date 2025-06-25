@@ -11,7 +11,9 @@ export interface AmbassadorSelectorAmbassador {
   id: string;
   name: string;
   email: string;
+  commission_level_id?: string; // Ajout direct du commission_level_id
   commission_level?: {
+    id: string;
     name: string;
   };
 }
@@ -75,7 +77,7 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
           
           if (levels) {
             commissionLevels = levels.reduce((acc, level) => {
-              acc[level.id] = { name: level.name };
+              acc[level.id] = { id: level.id, name: level.name };
               return acc;
             }, {});
           }
@@ -86,6 +88,7 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
         id: ambassador.id,
         name: ambassador.name || 'Ambassadeur sans nom',
         email: ambassador.email || 'Email non défini',
+        commission_level_id: ambassador.commission_level_id, // Inclure directement l'ID
         commission_level: ambassador.commission_level_id ? commissionLevels[ambassador.commission_level_id] : undefined
       })) || [];
 
