@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { OfferData } from "@/services/offers/types";
+import { supabase } from "@/integrations/supabase/client";
 
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -160,48 +162,110 @@ const CreateOffer = () => {
           
           const offer = await getOfferById(offerId);
           if (offer) {
-            console.log("Loaded offer data:", offer);
+            console.log("🔄 Chargement de l'offre existante:", offer);
+            
+            // Charger les informations client
             setClientId(offer.client_id || null);
             setClientName(offer.client_name || '');
             setClientEmail(offer.client_email || '');
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
             
-            // Déterminer le type d'offre depuis les données existantes
+            // Déterminer le type d'offre et charger l'ambassadeur si nécessaire
             if (offer.type === 'internal_offer') {
+              console.log("🏠 Offre interne détectée");
               setIsInternalOffer(true);
               setSelectedAmbassador(null);
             } else if (offer.ambassador_id) {
+              console.log("👨‍💼 Offre ambassadeur détectée, ID:", offer.ambassador_id);
               setIsInternalOffer(false);
-              // TODO: Charger les données de l'ambassadeur si nécessaire
+              
+              // Charger les données de l'ambassadeur
+              try {
+                const { data: ambassadorData, error } = await supabase
+                  .from('ambassadors')
+                  .select(`
+                    id,
+                    name,
+                    email,
+                    commission_level_id
+                  `)
+                  .eq('id', offer.ambassador_id)
+                  .single();
+
+                if (error) {
+                  console.error("Erreur lors du chargement de l'ambassadeur:", error);
+                } else if (ambassadorData) {
+                  console.log("✅ Ambassadeur chargé:", ambassadorData);
+                  setSelectedAmbassador({
+                    id: ambassadorData.id,
+                    name: ambassadorData.name,
+                    email: ambassadorData.email,
+                    commission_level_id: ambassadorData.commission_level_id
+                  });
+                }
+              } catch (error) {
+                console.error("Erreur lors du chargement de l'ambassadeur:", error);
+              }
+            }
+
+            // Identifier le leaser utilisé basé sur le coefficient
+            if (offer.coefficient) {
+              console.log("🔧 Coefficient détecté:", offer.coefficient);
+              try {
+                const fetchedLeasers = await getLeasers();
+                
+                // Trouver le leaser qui correspond au coefficient
+                const matchingLeaser = fetchedLeasers.find(leaser => {
+                  const ranges = leaser.ranges || [];
+                  return ranges.some(range => Math.abs(range.coefficient - offer.coefficient) < 0.01);
+                });
+                
+                if (matchingLeaser) {
+                  console.log("✅ Leaser correspondant trouvé:", matchingLeaser.name);
+                  setSelectedLeaser(matchingLeaser);
+                } else {
+                  console.log("⚠️ Aucun leaser correspondant au coefficient trouvé, utilisation du défaut");
+                }
+              } catch (error) {
+                console.error("Erreur lors de la recherche du leaser:", error);
+              }
             }
             
+            // Charger et analyser les équipements
             if (offer.equipment_description) {
               try {
                 const equipmentData = JSON.parse(offer.equipment_description);
                 if (Array.isArray(equipmentData) && equipmentData.length > 0) {
-                  console.log("Found JSON equipment data:", equipmentData);
+                  console.log("📦 Données d'équipements JSON trouvées:", equipmentData);
+                  
                   const formattedEquipment = equipmentData.map(item => ({
                     id: item.id || crypto.randomUUID(),
                     title: item.title,
                     purchasePrice: parseFloat(item.purchasePrice) || 0,
                     quantity: parseInt(item.quantity, 10) || 1,
-                    margin: parseFloat(item.margin) || 20,
-                    monthlyPayment: parseFloat(item.monthlyPayment) || 0
+                    margin: parseFloat(item.margin) || 20, // Préserver les marges individuelles
+                    monthlyPayment: parseFloat(item.monthlyPayment) || 0,
+                    attributes: item.attributes || {},
+                    specifications: item.specifications || {}
                   }));
                   
-                  console.log("Formatted equipment with preserved margins:", formattedEquipment);
+                  console.log("✅ Équipements formatés avec marges préservées:", formattedEquipment);
                   setEquipmentList(formattedEquipment);
                   
+                  // Charger le paiement mensuel cible
                   if (offer.monthly_payment) {
                     const monthlyPayment = typeof offer.monthly_payment === 'string' 
                       ? parseFloat(offer.monthly_payment) 
                       : offer.monthly_payment;
+                    console.log("💰 Paiement mensuel cible défini:", monthlyPayment);
                     setTargetMonthlyPayment(monthlyPayment || 0);
                   }
                 }
               } catch (e) {
-                console.log("Parsing equipment_description as string format:", offer.equipment_description);
+                console.log("⚠️ Parsing des équipements en format string:", offer.equipment_description);
+                
+                // Fallback pour l'ancien format
                 const equipmentItems = offer.equipment_description.split(',').map(item => {
                   const match = item.trim().match(/(.+) \((\d+)x\)/);
                   if (match) {
@@ -218,13 +282,16 @@ const CreateOffer = () => {
                       title,
                       purchasePrice: approxPricePerItem,
                       quantity,
-                      margin: 20
+                      margin: 20, // Marge par défaut pour l'ancien format
+                      attributes: {},
+                      specifications: {}
                     };
                   }
                   return null;
                 }).filter(Boolean);
                 
                 if (equipmentItems.length > 0) {
+                  console.log("📦 Équipements formatés depuis l'ancien format:", equipmentItems);
                   setEquipmentList(equipmentItems);
                   
                   const monthlyPayment = typeof offer.monthly_payment === 'string' 
