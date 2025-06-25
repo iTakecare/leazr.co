@@ -60,6 +60,12 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
     }, 0);
   };
 
+  // Calculer la marge totale à partir du résumé financier de l'offre plutôt que des items individuels
+  const calculateTotalMargin = () => {
+    // Utiliser la marge de l'offre qui est correcte
+    return offer.margin || offer.total_margin_with_difference || 0;
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -86,6 +92,12 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
               const isExpanded = expandedItems.includes(index);
               const hasAttributes = item.attributes && Object.keys(item.attributes).length > 0;
               
+              // Calculer la marge proportionnelle pour cet équipement
+              const itemPurchasePrice = (parseFloat(item.purchasePrice) || 0) * (parseInt(item.quantity) || 1);
+              const totalPurchasePrice = calculateTotal();
+              const totalMargin = calculateTotalMargin();
+              const proportionalMargin = totalPurchasePrice > 0 ? (itemPurchasePrice / totalPurchasePrice) * totalMargin : 0;
+              
               return (
                 <div key={index} className="border-b last:border-b-0">
                   {/* Ligne principale */}
@@ -106,7 +118,7 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
                       {item.monthlyPayment ? formatCurrency(item.monthlyPayment) : '-'}
                     </div>
                     <div className="col-span-2 text-right font-medium text-purple-600">
-                      {item.margin ? formatCurrency(item.margin) : '-'}
+                      {formatCurrency(proportionalMargin)}
                     </div>
                     <div className="col-span-1 text-center">
                       {hasAttributes && (
@@ -154,7 +166,7 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
                   {formatCurrency(calculateTotalMonthly())}
                 </div>
                 <div className="col-span-2 text-right text-purple-600">
-                  {formatCurrency(equipmentItems.reduce((sum: number, item: any) => sum + (parseFloat(item.margin) || 0), 0))}
+                  {formatCurrency(calculateTotalMargin())}
                 </div>
                 <div className="col-span-1"></div>
               </div>
