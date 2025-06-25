@@ -1,3 +1,4 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import type { Client } from "@/types/client";
 
@@ -707,7 +708,8 @@ export const getFreeClients = async () => {
   try {
     console.log("🔍 getFreeClients - Récupération des clients libres...");
     
-    // Récupérer tous les clients qui ne sont PAS dans la table ambassador_clients
+    // NOUVELLE APPROCHE avec LEFT JOIN au lieu de NOT IN
+    // Plus fiable pour gérer les valeurs NULL dans ambassador_clients
     const { data: clients, error } = await supabase
       .from('clients')
       .select(`
@@ -734,6 +736,121 @@ export const getFreeClients = async () => {
           .from('ambassador_clients')
           .select('client_id')
       );
+
+    // Utiliser une approche différente avec une requête SQL brute pour plus de fiabilité
+    const { data: freeClientsQuery, error: rawError } = await supabase.rpc('execute_sql', {
+      sql: `
+        SELECT 
+          c.id,
+          c.name,
+          c.email,
+          c.company,
+          c.phone,
+          c.address,
+          c.city,
+          c.postal_code,
+          c.country,
+          c.vat_number,
+          c.notes,
+          c.status,
+          c.created_at,
+          c.updated_at,
+          c.user_id,
+          c.has_user_account,
+          c.company_id
+        FROM public.clients c
+        LEFT JOIN public.ambassador_clients ac ON c.id = ac.client_id
+        WHERE ac.client_id IS NULL
+        ORDER BY c.created_at DESC
+      `
+    });
+
+    // Si la fonction SQL brute échoue, essayer avec une approche alternative
+    if (rawError) {
+      console.warn("❌ Erreur avec la requête SQL brute, essai avec approche alternative:", rawError);
+      
+      // Récupérer tous les clients d'abord
+      const { data: allClients, error: allClientsError } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          name,
+          email,
+          company,
+          phone,
+          address,
+          city,
+          postal_code,
+          country,
+          vat_number,
+          notes,
+          status,
+          created_at,
+          updated_at,
+          user_id,
+          has_user_account,
+          company_id
+        `)
+        .order('created_at', { ascending: false });
+
+      if (allClientsError) {
+        console.error("❌ Erreur lors de la récupération de tous les clients:", allClientsError);
+        throw allClientsError;
+      }
+
+      // Récupérer tous les IDs de clients liés aux ambassadeurs
+      const { data: ambassadorClientIds, error: ambassadorClientsError } = await supabase
+        .from('ambassador_clients')
+        .select('client_id');
+
+      if (ambassadorClientsError) {
+        console.error("❌ Erreur lors de la récupération des liens ambassadeur-clients:", ambassadorClientsError);
+        throw ambassadorClientsError;
+      }
+
+      const linkedClientIds = new Set(ambassadorClientIds?.map(ac => ac.client_id) || []);
+      
+      console.log("🔍 Clients liés aux ambassadeurs:", Array.from(linkedClientIds));
+      console.log("🔍 Total des clients:", allClients?.length || 0);
+
+      // Filtrer manuellement les clients libres
+      const freeClients = allClients?.filter(client => !linkedClientIds.has(client.id)) || [];
+      
+      console.log("🔍 Clients libres trouvés:", freeClients.length);
+      console.log("🔍 IDs des clients libres:", freeClients.map(c => c.id));
+
+      if (!freeClients || freeClients.length === 0) {
+        console.log("⚠️ Aucun client libre trouvé");
+        return [];
+      }
+
+      // Formatter les données pour correspondre au format attendu
+      const formattedClients = freeClients.map(client => ({
+        id: client.id,
+        name: client.name,
+        email: client.email || '',
+        company: client.company || '',
+        companyName: client.company || '',
+        phone: client.phone,
+        address: client.address,
+        city: client.city,
+        postal_code: client.postal_code,
+        country: client.country,
+        vat_number: client.vat_number,
+        notes: client.notes,
+        status: client.status,
+        created_at: new Date(client.created_at),
+        updated_at: new Date(client.updated_at),
+        user_id: client.user_id,
+        has_user_account: client.has_user_account,
+        company_id: client.company_id,
+        // Pas d'ambassadeur pour les clients libres
+        ambassador: undefined
+      }));
+
+      console.log(`✅ ${formattedClients.length} clients libres formatés (approche alternative):`, formattedClients);
+      return formattedClients;
+    }
 
     if (error) {
       console.error("❌ Erreur lors de la récupération des clients libres:", error);
