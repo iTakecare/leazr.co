@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -215,10 +214,14 @@ const AdminOfferDetail = () => {
                 {/* Équipements */}
                 <div className="bg-white rounded-lg border p-6">
                   <h3 className="text-lg font-semibold mb-4">Équipements</h3>
-                  <p className="text-gray-600">{offer.equipment_description}</p>
-                  {offer.equipmentItems && (
-                    <EquipmentDisplay equipmentItems={offer.equipmentItems} />
-                  )}
+                  <EquipmentDisplay 
+                    equipmentDisplay={offer.equipment_description || ''}
+                    monthlyPayment={offer.monthly_payment || 0}
+                    remarks={offer.remarks}
+                    clientName={offer.client_name}
+                    clientEmail={offer.client_email}
+                    offerId={offer.id}
+                  />
                 </div>
 
                 {/* Documents */}
@@ -230,7 +233,7 @@ const AdminOfferDetail = () => {
                   {logsLoading ? (
                     <div className="animate-pulse">Chargement...</div>
                   ) : (
-                    <OfferHistoryTimeline logs={workflowLogs} />
+                    <OfferHistoryTimeline events={workflowLogs} />
                   )}
                 </div>
               </div>
