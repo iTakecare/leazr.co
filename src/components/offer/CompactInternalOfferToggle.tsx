@@ -28,7 +28,6 @@ const CompactInternalOfferToggle: React.FC<CompactInternalOfferToggleProps> = ({
         id="compact-internal-toggle"
         checked={isInternalOffer}
         onCheckedChange={setIsInternalOffer}
-        size="sm"
       />
     </div>
   );

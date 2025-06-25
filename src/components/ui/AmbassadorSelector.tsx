@@ -48,12 +48,8 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
         .from('ambassadors')
         .select(`
           id,
-          profiles!inner(
-            id,
-            first_name,
-            last_name,
-            email
-          ),
+          name,
+          email,
           commission_levels(
             name,
             commission_rate
@@ -65,8 +61,8 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
 
       const formattedAmbassadors = data?.map(ambassador => ({
         id: ambassador.id,
-        name: `${ambassador.profiles.first_name} ${ambassador.profiles.last_name}`,
-        email: ambassador.profiles.email,
+        name: ambassador.name,
+        email: ambassador.email,
         commission_level: ambassador.commission_levels
       })) || [];
 
