@@ -55,37 +55,25 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         let fetchedClients;
         
-        // NOUVELLE LOGIQUE CORRIGÉE
-        const shouldLoadAmbassadorClients = selectedAmbassadorId && selectedAmbassadorId !== undefined;
-        const isCurrentUserAmbassador = isAmbassador();
-        
-        console.log("🔍 ClientSelector - Logique de chargement:", {
+        console.log("🔍 ClientSelector - État de la sélection:", {
           selectedAmbassadorId,
-          shouldLoadAmbassadorClients,
-          isCurrentUserAmbassador,
           ambassadorMode,
+          isUserAmbassador: isAmbassador(),
           userId: user?.id
         });
         
-        if (shouldLoadAmbassadorClients) {
-          console.log("🎯 ClientSelector - Mode ambassadeur sélectionné, ID:", selectedAmbassadorId);
+        // NOUVELLE LOGIQUE CORRIGÉE : Prioriser le type d'offre plutôt que le profil utilisateur
+        if (selectedAmbassadorId) {
+          console.log("🎯 ClientSelector - Offre ambassadeur - Chargement des clients de l'ambassadeur:", selectedAmbassadorId);
           
-          // Utiliser la nouvelle fonction sécurisée pour récupérer les clients de l'ambassadeur
+          // Offre ambassadeur : charger les clients de l'ambassadeur sélectionné
           fetchedClients = await getClientsByAmbassadorId(selectedAmbassadorId);
-          console.log("✅ ClientSelector - Clients d'ambassadeur chargés via fonction sécurisée:", fetchedClients);
-          
-        } else if (isCurrentUserAmbassador) {
-          console.log("🎯 ClientSelector - Utilisateur ambassadeur connecté, chargement de SES clients");
-          
-          // L'utilisateur connecté est un ambassadeur, charger ses clients
-          // Note: Cette partie pourrait nécessiter une adaptation si nécessaire
-          fetchedClients = await getAllClients(); // Temporaire, à adapter si besoin
-          console.log("🔍 ClientSelector - Clients de l'utilisateur ambassadeur chargés:", fetchedClients);
+          console.log("✅ ClientSelector - Clients d'ambassadeur chargés:", fetchedClients);
           
         } else {
-          console.log("🎯 ClientSelector - Mode offre interne - Chargement des clients LIBRES uniquement");
+          console.log("🎯 ClientSelector - Offre interne - Chargement des clients libres uniquement");
           
-          // Mode offre interne - charger UNIQUEMENT les clients libres (non attachés aux ambassadeurs)
+          // Offre interne : charger UNIQUEMENT les clients libres (non attachés aux ambassadeurs)
           fetchedClients = await getFreeClients();
           console.log("✅ ClientSelector - Clients libres chargés:", fetchedClients);
         }
@@ -116,7 +104,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, [selectedAmbassadorId, isAmbassador, user?.id]);
+  }, [selectedAmbassadorId, user?.id]); // Supprimer isAmbassador de la dépendance car on privilégie selectedAmbassadorId
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -141,7 +129,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
-              {selectedAmbassadorId ? "Clients de l'ambassadeur" : "Sélectionner un client"}
+              {selectedAmbassadorId ? "Clients de l'ambassadeur" : "Sélectionner un client (Offre interne)"}
             </h2>
           </div>
           
@@ -187,6 +175,11 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                             <div className="flex flex-col flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium">{client.name}</span>
+                                {!selectedAmbassadorId && (
+                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                    Client libre
+                                  </Badge>
+                                )}
                                 {client.ambassador && (
                                   <Badge variant="outline" className="text-xs">
                                     <User className="h-3 w-3 mr-1" />
@@ -235,7 +228,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={selectedAmbassadorId && clients.length === 0 && !loading}
+          disabled={!loading && clients.length === 0}
         >
           {loading ? (
             <div className="flex items-center">
@@ -246,6 +239,11 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{selectedClient.name}</span>
+                {!selectedAmbassadorId && (
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    Libre
+                  </Badge>
+                )}
                 {selectedClient.ambassador && (
                   <Badge variant="outline" className="text-xs">
                     <User className="h-3 w-3 mr-1" />
@@ -260,7 +258,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               "Aucun client pour cet ambassadeur" :
               !selectedAmbassadorId && clients.length === 0 ?
                 "Aucun client libre disponible" :
-                "Sélectionner un client"
+                selectedAmbassadorId ? "Sélectionner un client ambassadeur" : "Sélectionner un client (interne)"
           )}
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -279,6 +277,11 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                   <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
                       <span>{client.name}</span>
+                      {!selectedAmbassadorId && (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          Libre
+                        </Badge>
+                      )}
                       {client.ambassador && (
                         <Badge variant="outline" className="text-xs">
                           <User className="h-3 w-3 mr-1" />

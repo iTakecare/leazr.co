@@ -700,74 +700,80 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
 };
 
 /**
- * Récupère tous les clients qui ne sont pas attachés à un ambassadeur (clients "libres")
- * Utilisé pour les offres internes où on ne veut pas voir les clients déjà assignés
- * @returns Liste des clients non attachés à un ambassadeur
+ * Récupère uniquement les clients libres (non attachés à des ambassadeurs)
+ * Utilisé pour les offres internes
  */
-export const getFreeClients = async (): Promise<Client[]> => {
+export const getFreeClients = async () => {
   try {
-    console.log("🆓 getFreeClients - Récupération des clients libres (non attachés aux ambassadeurs)");
+    console.log("🔍 getFreeClients - Récupération des clients libres...");
     
-    // Récupérer les clients qui ne sont pas dans la table ambassador_clients
-    const { data, error } = await supabase
+    // Récupérer tous les clients qui ne sont PAS dans la table ambassador_clients
+    const { data: clients, error } = await supabase
       .from('clients')
       .select(`
-        *,
-        ambassador_clients!left(client_id)
+        id,
+        name,
+        email,
+        company,
+        phone,
+        address,
+        city,
+        postal_code,
+        country,
+        vat_number,
+        notes,
+        status,
+        created_at,
+        updated_at,
+        user_id,
+        has_user_account,
+        company_id
       `)
-      .is('ambassador_clients.client_id', null)
-      .order('created_at', { ascending: false });
+      .not('id', 'in', 
+        supabase
+          .from('ambassador_clients')
+          .select('client_id')
+      );
 
     if (error) {
-      console.warn("❌ Erreur lors de la récupération des clients libres:", error);
-      
-      // Fallback: récupérer tous les clients et filtrer côté client
-      console.log("🔄 Fallback: récupération de tous les clients et filtrage manuel");
-      const allClients = await getAllClients();
-      
-      // Récupérer les IDs des clients attachés aux ambassadeurs
-      const { data: attachedClientsData, error: attachedError } = await supabase
-        .from('ambassador_clients')
-        .select('client_id');
-      
-      if (attachedError) {
-        console.error("❌ Erreur lors de la récupération des clients attachés:", attachedError);
-        // En cas d'erreur, retourner tous les clients
-        return allClients;
-      }
-      
-      const attachedClientIds = new Set(
-        (attachedClientsData || []).map(item => item.client_id)
-      );
-      
-      const freeClients = allClients.filter(client => !attachedClientIds.has(client.id));
-      console.log(`✅ Clients libres (fallback): ${freeClients.length} sur ${allClients.length} clients totaux`);
-      return freeClients;
+      console.error("❌ Erreur lors de la récupération des clients libres:", error);
+      throw error;
     }
 
-    if (!data || data.length === 0) {
+    if (!clients) {
       console.log("⚠️ Aucun client libre trouvé");
       return [];
     }
 
-    // Nettoyer les données (supprimer la jointure utilisée pour le filtrage)
-    const cleanedData = data.map(client => {
-      const { ambassador_clients, ...cleanClient } = client;
-      return {
-        ...cleanClient,
-        created_at: new Date(cleanClient.created_at),
-        updated_at: new Date(cleanClient.updated_at),
-        collaborators: [] // Ajouter par défaut, peut être enrichi si nécessaire
-      } as Client;
-    });
+    // Formatter les données pour correspondre au format attendu
+    const formattedClients = clients.map(client => ({
+      id: client.id,
+      name: client.name,
+      email: client.email || '',
+      company: client.company || '',
+      companyName: client.company || '',
+      phone: client.phone,
+      address: client.address,
+      city: client.city,
+      postal_code: client.postal_code,
+      country: client.country,
+      vat_number: client.vat_number,
+      notes: client.notes,
+      status: client.status,
+      created_at: new Date(client.created_at),
+      updated_at: new Date(client.updated_at),
+      user_id: client.user_id,
+      has_user_account: client.has_user_account,
+      company_id: client.company_id,
+      // Pas d'ambassadeur pour les clients libres
+      ambassador: undefined
+    }));
 
-    console.log(`✅ Clients libres récupérés: ${cleanedData.length} clients`);
-    return cleanedData;
+    console.log(`✅ ${formattedClients.length} clients libres trouvés:`, formattedClients);
+    return formattedClients;
+
   } catch (error) {
     console.error("❌ Exception dans getFreeClients:", error);
-    
-    // En cas d'exception, retourner tous les clients comme fallback
-    console.log("🔄 Fallback final: récupération de tous les clients");
-    return await getAllClients();
+    throw error;
   }
 };
