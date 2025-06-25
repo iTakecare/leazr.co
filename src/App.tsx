@@ -17,6 +17,8 @@ import Clients from "@/pages/Clients";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
+import CatalogManagement from "@/pages/CatalogManagement";
+import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -92,6 +94,13 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
+                  <Route path="/admin/create-offer" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <CreateOffer />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
                   <Route path="/clients" element={
                     <PrivateRoute>
                       <Layout>
@@ -117,6 +126,20 @@ function App() {
                     <PrivateRoute>
                       <Layout>
                         <Contracts />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/catalog" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <CatalogManagement />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-dashboard" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSDashboard />
                       </Layout>
                     </PrivateRoute>
                   } />
