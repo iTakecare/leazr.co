@@ -39,7 +39,7 @@ const AmbassadorProductDetail = () => {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg">
+      <Container>
         <div className="py-6">
           <MainNavigation />
         </div>
@@ -63,7 +63,7 @@ const AmbassadorProductDetail = () => {
 
   if (error || !product) {
     return (
-      <Container maxWidth="lg">
+      <Container>
         <div className="py-6">
           <MainNavigation />
         </div>
@@ -294,7 +294,7 @@ const AmbassadorProductDetail = () => {
               )}
             </TabsContent>
           </Tabs>
-        </motion.div>
+        </div>
       </Container>
 
       <Container className="py-8">

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import Layout from "@/components/layout/Layout";
+import LandingPage from "@/pages/LandingPage";
 import Login from "@/pages/Login";
 import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
 import Dashboard from "@/pages/Dashboard";
@@ -33,18 +34,14 @@ function App() {
             <CompanyBrandingProvider>
               <Suspense fallback={<div>Loading...</div>}>
                 <Routes>
+                  {/* Page d'accueil - LandingPage */}
+                  <Route path="/" element={<LandingPage />} />
+                  
                   {/* Public routes */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
                   
                   {/* Protected routes with Layout */}
-                  <Route path="/" element={
-                    <PrivateRoute>
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </PrivateRoute>
-                  } />
                   <Route path="/dashboard" element={
                     <PrivateRoute>
                       <Layout>
