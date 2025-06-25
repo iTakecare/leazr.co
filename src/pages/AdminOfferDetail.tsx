@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -147,7 +146,7 @@ const AdminOfferDetail = () => {
     <PageTransition>
       <Container>
         <TooltipProvider>
-          <div className="p-2 md:p-4 space-y-6">
+          <div className="p-2 md:p-4 space-y-6 pb-8">
             {/* En-tête avec navigation */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -175,11 +174,11 @@ const AdminOfferDetail = () => {
               onStatusChange={handleStatusChange}
             />
 
-            {/* Layout principal avec sidebar - padding réduit */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* Layout principal avec sidebar - structure flexible pour le scroll */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0">
               
-              {/* Contenu principal */}
-              <div className="lg:col-span-3">
+              {/* Contenu principal - permettre le débordement */}
+              <div className="lg:col-span-3 min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
@@ -189,25 +188,25 @@ const AdminOfferDetail = () => {
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="overview" className="space-y-4 mt-4">
+                  <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
                     <CompactEquipmentSection offer={offer} />
                     <FinancialSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="equipment" className="mt-4">
+                  <TabsContent value="equipment" className="mt-4 overflow-visible">
                     <CompactEquipmentSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="financial" className="mt-4">
+                  <TabsContent value="financial" className="mt-4 overflow-visible">
                     <FinancialSection offer={offer} />
                   </TabsContent>
                   
-                  <TabsContent value="documents" className="space-y-4 mt-4">
+                  <TabsContent value="documents" className="space-y-4 mt-4 overflow-visible">
                     <OfferDocuments offerId={offer.id} />
                   </TabsContent>
                   
-                  <TabsContent value="history" className="space-y-4 mt-4">
+                  <TabsContent value="history" className="space-y-4 mt-4 overflow-visible">
                     <ImprovedOfferHistory offerId={offer.id} />
                   </TabsContent>
                 </Tabs>
