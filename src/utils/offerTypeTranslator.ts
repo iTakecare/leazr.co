@@ -19,6 +19,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return "Demande client";
     case 'internal_offer':
       return "Offre interne";
+    case 'web_offer':
+      return "Offre web";
     default:
       return type;
   }
@@ -26,11 +28,12 @@ export const translateOfferType = (type: string | undefined | null): string => {
 
 /**
  * Vérifie si le type d'offre a une commission
- * Les offres internes n'ont pas de commission
+ * Les offres internes et web n'ont pas de commission
  */
 export const hasCommission = (type: string | undefined | null): boolean => {
   if (!type) return false;
   
-  // Les offres internes ou de type 'internal_offer' n'ont pas de commission
-  return type.toLowerCase() !== 'internal_offer';
+  // Les offres internes et web n'ont pas de commission
+  const typeWithoutCommission = ['internal_offer', 'web_offer'];
+  return !typeWithoutCommission.includes(type.toLowerCase());
 };

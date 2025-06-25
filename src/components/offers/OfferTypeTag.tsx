@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { translateOfferType } from "@/utils/offerTypeTranslator";
-import { User, Briefcase, Flag, UserCog, Phone, Building } from "lucide-react";
+import { User, Briefcase, Flag, UserCog, Phone, Building, Globe } from "lucide-react";
 
 interface OfferTypeTagProps {
   type: string;
@@ -33,6 +33,10 @@ const OfferTypeTag = ({ type, size = "md" }: OfferTypeTagProps) => {
     case "internal_offer":
       color = "bg-indigo-100 text-indigo-800 hover:bg-indigo-100";
       icon = <Building className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      break;
+    case "web_offer":
+      color = "bg-emerald-100 text-emerald-800 hover:bg-emerald-100";
+      icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     default:
       color = "bg-gray-100 text-gray-800 hover:bg-gray-100";

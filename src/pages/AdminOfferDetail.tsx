@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
+import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 // Import des composants améliorés
 import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
@@ -159,9 +160,12 @@ const AdminOfferDetail = () => {
                   Retour
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">
-                    Offre #{offer.id?.slice(0, 8)}
-                  </h1>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-2xl font-bold">
+                      Offre #{offer.id?.slice(0, 8)}
+                    </h1>
+                    {offer.type && <OfferTypeTag type={offer.type} size="md" />}
+                  </div>
                   <p className="text-gray-600">{offer.client_name}</p>
                 </div>
               </div>
