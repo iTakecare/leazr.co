@@ -17,17 +17,7 @@ import {
   Trash2
 } from "lucide-react";
 import { Timeline, TimelineItem, TimelineItemContent, TimelineItemIndicator, TimelineItemTitle } from "@/components/ui/timeline";
-
-interface OfferHistoryEvent {
-  id: string;
-  offer_id: string;
-  event_type: 'created' | 'modified' | 'status_changed' | 'note_added' | 'equipment_added' | 'equipment_removed' | 'client_interaction' | 'email_sent';
-  description: string;
-  details?: Record<string, any>;
-  user_id?: string;
-  user_name?: string;
-  created_at: string;
-}
+import { OfferHistoryEvent } from "@/services/offers/offerHistory";
 
 interface OfferHistoryTimelineProps {
   events: OfferHistoryEvent[];
@@ -146,8 +136,8 @@ const OfferHistoryTimeline: React.FC<OfferHistoryTimelineProps> = ({ events, loa
       </CardHeader>
       <CardContent className="max-h-[500px] overflow-y-auto">
         <Timeline>
-          {events.map((event) => (
-            <TimelineItem key={event.id}>
+          {events.map((event, index) => (
+            <TimelineItem key={event.id || `event-${index}`}>
               <TimelineItemIndicator 
                 className={`${getEventColor(event.event_type)} text-white border-0`}
               >
@@ -182,7 +172,12 @@ const OfferHistoryTimeline: React.FC<OfferHistoryTimelineProps> = ({ events, loa
                       <span>{event.user_name || 'Système'}</span>
                       <span>•</span>
                       <Clock className="h-3 w-3" />
-                      <span>{format(new Date(event.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
+                      <span>
+                        {event.created_at 
+                          ? format(new Date(event.created_at), "dd MMM yyyy à HH:mm", { locale: fr })
+                          : 'Date non disponible'
+                        }
+                      </span>
                     </div>
                   </div>
                 </div>
