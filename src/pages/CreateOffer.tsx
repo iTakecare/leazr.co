@@ -11,7 +11,7 @@ import { createOffer, getOfferById, updateOffer } from "@/services/offerService"
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
-import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import { Calculator as CalcIcon, Loader2, ArrowLeft } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
@@ -21,11 +21,8 @@ import { OfferData } from "@/services/offers/types";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
-import LeaserButton from "@/components/offer/LeaserButton";
-import InternalOfferToggle from "@/components/offer/InternalOfferToggle";
+import OfferConfiguration from "@/components/offer/OfferConfiguration";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
-import CompactInternalOfferToggle from "@/components/offer/CompactInternalOfferToggle";
-import AmbassadorButton from "@/components/offer/AmbassadorButton";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
 function useQuery() {
@@ -430,37 +427,24 @@ const CreateOffer = () => {
     <PageTransition>
       <div className="min-h-screen bg-background flex w-full">
         <div className="flex-1 overflow-auto">
-          <div className="py-8 px-20">
-            <div className="max-w-full mx-auto">
-              <div className="flex justify-between items-center mb-8 px-2">
+          <div className="py-6 px-4 lg:px-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Header simplifié */}
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <CalcIcon className="h-8 w-8 text-blue-600" />
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {isEditMode ? "Modifier l'offre" : "Calculateur de Mensualités iTakecare"}
+                  <CalcIcon className="h-7 w-7 text-primary" />
+                  <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
+                    {isEditMode ? "Modifier l'offre" : "Créer une offre"}
                   </h1>
                 </div>
-                <div className="flex items-center gap-4">
-                  <LeaserButton 
-                    selectedLeaser={selectedLeaser} 
-                    onOpen={handleOpenLeaserSelector}
-                  />
-                  <CompactInternalOfferToggle
-                    isInternalOffer={isInternalOffer}
-                    setIsInternalOffer={setIsInternalOffer}
-                  />
-                  {!isInternalOffer && (
-                    <AmbassadorButton
-                      selectedAmbassador={selectedAmbassador}
-                      onOpen={() => setIsAmbassadorSelectorOpen(true)}
-                    />
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/offers')}
-                  >
-                    Retour
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/offers')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour
+                </Button>
               </div>
 
               {loading ? (
@@ -469,62 +453,76 @@ const CreateOffer = () => {
                   <span className="ml-2">Chargement...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 px-2">
-                  <div className="xl:col-span-1">
-                    <EquipmentForm
-                      equipment={equipment}
-                      setEquipment={setEquipment}
-                      selectedLeaser={selectedLeaser}
-                      addToList={addToList}
-                      editingId={editingId}
-                      cancelEditing={cancelEditing}
-                      onOpenCatalog={() => setIsCatalogOpen(true)}
-                      coefficient={coefficient}
-                      monthlyPayment={monthlyPayment}
-                      targetMonthlyPayment={targetMonthlyPayment}
-                      setTargetMonthlyPayment={setTargetMonthlyPayment}
-                      calculatedMargin={calculatedMargin}
-                      applyCalculatedMargin={applyCalculatedMargin}
-                    />
-                  </div>
+                <div className="space-y-6">
+                  {/* Configuration de l'offre */}
+                  <OfferConfiguration
+                    isInternalOffer={isInternalOffer}
+                    setIsInternalOffer={setIsInternalOffer}
+                    selectedAmbassador={selectedAmbassador}
+                    onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)}
+                    selectedLeaser={selectedLeaser}
+                    onOpenLeaserSelector={handleOpenLeaserSelector}
+                  />
 
-                  <div className="xl:col-span-1 space-y-8">
-                    <EquipmentList
-                      equipmentList={equipmentList}
-                      editingId={editingId}
-                      startEditing={startEditing}
-                      removeFromList={removeFromList}
-                      updateQuantity={updateQuantity}
-                      totalMonthlyPayment={totalMonthlyPayment}
-                      globalMarginAdjustment={{
-                        amount: globalMarginAdjustment.amount,
-                        newCoef: globalMarginAdjustment.newCoef,
-                        active: globalMarginAdjustment.adaptMonthlyPayment,
-                        marginDifference: globalMarginAdjustment.marginDifference
-                      }}
-                      toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
-                      calculations={calculations}
-                    />
-                    
-                    <ClientInfo
-                      clientId={clientId}
-                      clientName={clientName}
-                      clientEmail={clientEmail}
-                      clientCompany={clientCompany}
-                      remarks={remarks}
-                      setRemarks={setRemarks}
-                      onOpenClientSelector={() => setIsClientSelectorOpen(true)}
-                      handleSaveOffer={handleSaveOffer}
-                      isSubmitting={isSubmitting}
-                      selectedLeaser={selectedLeaser}
-                      equipmentList={equipmentList}
-                    />
+                  {/* Contenu principal */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="xl:col-span-1">
+                      <EquipmentForm
+                        equipment={equipment}
+                        setEquipment={setEquipment}
+                        selectedLeaser={selectedLeaser}
+                        addToList={addToList}
+                        editingId={editingId}
+                        cancelEditing={cancelEditing}
+                        onOpenCatalog={() => setIsCatalogOpen(true)}
+                        coefficient={coefficient}
+                        monthlyPayment={monthlyPayment}
+                        targetMonthlyPayment={targetMonthlyPayment}
+                        setTargetMonthlyPayment={setTargetMonthlyPayment}
+                        calculatedMargin={calculatedMargin}
+                        applyCalculatedMargin={applyCalculatedMargin}
+                      />
+                    </div>
+
+                    <div className="xl:col-span-1 space-y-6">
+                      <EquipmentList
+                        equipmentList={equipmentList}
+                        editingId={editingId}
+                        startEditing={startEditing}
+                        removeFromList={removeFromList}
+                        updateQuantity={updateQuantity}
+                        totalMonthlyPayment={totalMonthlyPayment}
+                        globalMarginAdjustment={{
+                          amount: globalMarginAdjustment.amount,
+                          newCoef: globalMarginAdjustment.newCoef,
+                          active: globalMarginAdjustment.adaptMonthlyPayment,
+                          marginDifference: globalMarginAdjustment.marginDifference
+                        }}
+                        toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
+                        calculations={calculations}
+                      />
+                      
+                      <ClientInfo
+                        clientId={clientId}
+                        clientName={clientName}
+                        clientEmail={clientEmail}
+                        clientCompany={clientCompany}
+                        remarks={remarks}
+                        setRemarks={setRemarks}
+                        onOpenClientSelector={() => setIsClientSelectorOpen(true)}
+                        handleSaveOffer={handleSaveOffer}
+                        isSubmitting={isSubmitting}
+                        selectedLeaser={selectedLeaser}
+                        equipmentList={equipmentList}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Modals */}
           <ProductSelector
             isOpen={isCatalogOpen}
             onClose={() => setIsCatalogOpen(false)}
