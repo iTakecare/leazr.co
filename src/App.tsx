@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,9 +7,48 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import Layout from "@/components/layout/Layout";
+
+// Public website pages
 import LandingPage from "@/pages/LandingPage";
+import SolutionsPage from "@/pages/SolutionsPage";
+import ServicesPage from "@/pages/ServicesPage";
+import ResourcesPage from "@/pages/ResourcesPage";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import PricingPage from "@/pages/PricingPage";
+import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
+import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
+import UnifiedSolutionsPage from "@/pages/UnifiedSolutionsPage";
+import CRMFeaturePage from "@/pages/CRMFeaturePage";
+import CalculatorPage from "@/pages/CalculatorPage";
+import HubPage from "@/pages/HubPage";
+import HomePage from "@/pages/HomePage";
+
+// Auth pages
 import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import UpdatePassword from "@/pages/UpdatePassword";
+import AuthCallback from "@/pages/AuthCallback";
+
+// Public catalog and product pages
+import PublicCatalog from "@/pages/PublicCatalog";
+import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
+import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
+import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
+import PublicCartPage from "@/pages/PublicCartPage";
+import PublicRequestPage from "@/pages/PublicRequestPage";
+import RequestSentPage from "@/pages/RequestSentPage";
+import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
+
+// Client public pages
+import { PublicOfferView } from "@/pages/client/PublicOfferView";
+import SignOffer from "@/pages/client/SignOffer";
+
+// Other public pages
 import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
+
+// Protected SaaS application pages
 import Dashboard from "@/pages/Dashboard";
 import Offers from "@/pages/Offers";
 import CreateOffer from "@/pages/CreateOffer";
@@ -20,6 +58,7 @@ import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import CatalogManagement from "@/pages/CatalogManagement";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -34,14 +73,47 @@ function App() {
             <CompanyBrandingProvider>
               <Suspense fallback={<div>Loading...</div>}>
                 <Routes>
-                  {/* Page d'accueil - LandingPage */}
+                  {/* Public Website Routes - Landing and showcase pages */}
                   <Route path="/" element={<LandingPage />} />
+                  <Route path="/solutions" element={<SolutionsPage />} />
+                  <Route path="/services" element={<ServicesPage />} />
+                  <Route path="/ressources" element={<ResourcesPage />} />
+                  <Route path="/a-propos" element={<AboutPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/tarifs" element={<PricingPage />} />
                   
-                  {/* Public routes */}
+                  {/* Specialized solution pages */}
+                  <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
+                  <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
+                  <Route path="/solutions/unified" element={<UnifiedSolutionsPage />} />
+                  <Route path="/fonctionnalites/crm" element={<CRMFeaturePage />} />
+                  <Route path="/calculateur" element={<CalculatorPage />} />
+                  <Route path="/hub" element={<HubPage />} />
+                  <Route path="/home" element={<HomePage />} />
+                  
+                  {/* Public Authentication Routes */}
                   <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
+                  <Route path="/mettre-a-jour-mot-de-passe" element={<UpdatePassword />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  
+                  {/* Public Catalog and Commerce Routes */}
+                  <Route path="/catalog" element={<PublicCatalog />} />
+                  <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
+                  <Route path="/catalog/:companyId" element={<PublicCatalogMultiTenant />} />
+                  <Route path="/product/:id" element={<PublicProductDetailPage />} />
+                  <Route path="/cart" element={<PublicCartPage />} />
+                  <Route path="/request" element={<PublicRequestPage />} />
+                  <Route path="/request-sent" element={<RequestSentPage />} />
+                  <Route path="/company/:companyId" element={<PublicCompanyLanding />} />
+                  
+                  {/* Client Public Access Routes */}
+                  <Route path="/client/offer/:id" element={<PublicOfferView />} />
+                  <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                   <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
                   
-                  {/* Protected routes with Layout */}
+                  {/* Protected SaaS Application Routes with Layout */}
                   <Route path="/dashboard" element={
                     <PrivateRoute>
                       <Layout>
