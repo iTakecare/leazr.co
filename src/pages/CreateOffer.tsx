@@ -489,9 +489,27 @@ const CreateOffer = () => {
         globalMarginDifference: globalMarginAdjustment.marginDifference
       });
 
-      // Déterminer le type d'offre et l'ambassadeur
-      const offerType = isInternalOffer ? 'internal_offer' : 'admin_offer';
-      const ambassadorId = !isInternalOffer && selectedAmbassador ? selectedAmbassador.id : undefined;
+      // CORRECTION: Déterminer le type d'offre et l'ambassadeur correctement
+      let offerType: string;
+      let ambassadorId: string | undefined;
+      
+      if (isInternalOffer) {
+        offerType = 'internal_offer';
+        ambassadorId = undefined;
+        console.log("🏠 OFFRE INTERNE détectée");
+      } else if (selectedAmbassador) {
+        offerType = 'ambassador_offer'; // Sera vérifié/corrigé dans createOffer
+        ambassadorId = selectedAmbassador.id;
+        console.log("👨‍💼 OFFRE AMBASSADEUR détectée:", {
+          ambassadorId,
+          ambassadorName: selectedAmbassador.name
+        });
+      } else {
+        offerType = 'admin_offer';
+        ambassadorId = undefined;
+        console.log("⚙️ OFFRE ADMINISTRATIVE détectée");
+      }
+
       const calculatedCommission = commissionData.amount;
 
       console.log("💾 OFFRE - Type et commission:", {
@@ -523,7 +541,7 @@ const CreateOffer = () => {
         margin: totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0),
-        // Assigner l'ambassadeur si ce n'est pas une offre interne
+        // Assigner l'ambassadeur si c'est une offre ambassadeur
         ambassador_id: ambassadorId
       };
 

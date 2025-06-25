@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -40,6 +41,25 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
     }
     
+    // CORRECTION: Déterminer le type d'offre correctement
+    let offerType = offerData.type || 'admin_offer';
+    
+    // Si un ambassador_id est présent, c'est une offre ambassadeur
+    if (offerData.ambassador_id) {
+      offerType = 'ambassador_offer';
+      console.log("👨‍💼 OFFRE AMBASSADEUR détectée - Type mis à jour:", offerType);
+    }
+    // Si le type est explicitement défini comme interne
+    else if (offerData.type === 'internal_offer') {
+      offerType = 'internal_offer';
+      console.log("🏠 OFFRE INTERNE détectée:", offerType);
+    }
+    // Sinon, c'est une offre administrative par défaut
+    else {
+      offerType = 'admin_offer';
+      console.log("⚙️ OFFRE ADMINISTRATIVE par défaut:", offerType);
+    }
+    
     // Préparer les données pour la base de données (SANS le champ equipment)
     const dbOfferData = {
       user_id: offerData.user_id,
@@ -58,7 +78,7 @@ export const createOffer = async (offerData: OfferData) => {
       status: offerData.status || 'pending',
       // S'assurer que workflow_status est toujours défini
       workflow_status: offerData.workflow_status || 'draft',
-      type: offerData.type || 'admin_offer',
+      type: offerType, // Utiliser le type corrigé
       remarks: offerData.remarks,
       ambassador_id: offerData.ambassador_id,
       signature_data: offerData.signature_data,
@@ -89,7 +109,8 @@ export const createOffer = async (offerData: OfferData) => {
       workflow_status: dbOfferData.workflow_status,
       amount: dbOfferData.amount,
       monthly_payment: dbOfferData.monthly_payment,
-      margin: dbOfferData.margin
+      margin: dbOfferData.margin,
+      ambassador_id: dbOfferData.ambassador_id
     });
 
     // Calculer le montant financé si non défini
@@ -112,7 +133,7 @@ export const createOffer = async (offerData: OfferData) => {
       console.log(`Utilisation de la commission fournie explicitement dans les données: ${dbOfferData.commission}`);
     }
     // Sinon, essayons de calculer la commission en fonction du type d'offre
-    else if (offerData.type === 'ambassador_offer' && offerData.user_id) {
+    else if (offerType === 'ambassador_offer' && offerData.user_id) {
       // Récupérer l'ambassador_id associé à cet utilisateur
       const { data: ambassadorData, error: ambassadorError } = await supabase
         .from('ambassadors')
@@ -158,7 +179,8 @@ export const createOffer = async (offerData: OfferData) => {
       commission: dbOfferData.commission,
       margin: dbOfferData.margin,
       type: dbOfferData.type,
-      company_id: dbOfferData.company_id
+      company_id: dbOfferData.company_id,
+      ambassador_id: dbOfferData.ambassador_id
     });
     
     // Insertion de l'offre (SANS le champ equipment)
@@ -181,6 +203,7 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("✅ OFFRE CRÉÉE AVEC SUCCÈS !");
     console.log("📋 Données de l'offre créée:", data);
     console.log("🆔 ID de la nouvelle offre:", data.id);
+    console.log("🏷️ Type d'offre finale:", data.type);
     
     // NOUVEAU : Enregistrer l'événement de création dans l'historique
     if (data.id && offerData.user_id) {
