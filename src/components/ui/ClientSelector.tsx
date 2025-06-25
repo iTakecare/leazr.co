@@ -76,10 +76,9 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           // Mode admin avec ambassadeur sélectionné - filtrer les clients par ambassadeur
           console.log("🔍 ClientSelector - Chargement des clients pour ambassadeur spécifique:", selectedAmbassadorId);
           
-          const allClients = await getAllClients();
-          
-          // Récupérer les clients liés à cet ambassadeur spécifique
+          // Utiliser une requête SQL directe pour récupérer les clients de l'ambassadeur sélectionné
           const { supabase } = await import("@/integrations/supabase/client");
+          
           const { data: ambassadorClientsData, error } = await supabase
             .from('ambassador_clients')
             .select(`
@@ -95,16 +94,29 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                 name
               )
             `)
-            .eq('ambassadors.id', selectedAmbassadorId);
+            .eq('ambassador_id', selectedAmbassadorId);
+
+          console.log("🔍 ClientSelector - Résultat requête ambassador_clients:", {
+            data: ambassadorClientsData,
+            error: error?.message,
+            selectedAmbassadorId
+          });
 
           if (error) {
-            console.error("Erreur lors du chargement des clients d'ambassadeur:", error);
+            console.error("❌ Erreur lors du chargement des clients d'ambassadeur:", error);
             setClients([]);
             setLoading(false);
             return;
           }
 
-          fetchedClients = ambassadorClientsData?.map(item => ({
+          if (!ambassadorClientsData || ambassadorClientsData.length === 0) {
+            console.log("⚠️ Aucun client trouvé pour l'ambassadeur:", selectedAmbassadorId);
+            setClients([]);
+            setLoading(false);
+            return;
+          }
+
+          fetchedClients = ambassadorClientsData.map(item => ({
             id: item.clients.id,
             name: item.clients.name,
             email: item.clients.email || '',
@@ -114,9 +126,9 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
               id: item.ambassadors.id,
               name: item.ambassadors.name
             }
-          })) || [];
+          }));
           
-          console.log("🔍 ClientSelector - Clients filtrés par ambassadeur:", fetchedClients);
+          console.log("✅ ClientSelector - Clients filtrés par ambassadeur:", fetchedClients);
         } else {
           console.log("🔍 ClientSelector - Chargement de tous les clients (mode admin)");
           // Sinon, charger tous les clients (mode admin)
@@ -126,24 +138,22 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         if (!fetchedClients || fetchedClients.length === 0) {
           console.log("🔍 ClientSelector - Aucun client trouvé");
           setClients([]);
-          setLoading(false);
-          return;
+        } else {
+          // Transform to ensure compatibility with ClientSelectorClient type
+          const formattedClients = fetchedClients.map(client => ({
+            id: client.id,
+            name: client.name,
+            companyName: client.company || client.companyName || '',
+            company: client.company || client.companyName,
+            email: client.email,
+            ambassador: client.ambassador
+          }));
+          
+          console.log("✅ ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
+          setClients(formattedClients);
         }
-        
-        // Transform to ensure compatibility with ClientSelectorClient type
-        const formattedClients = fetchedClients.map(client => ({
-          id: client.id,
-          name: client.name,
-          companyName: client.company || '',
-          company: client.company,
-          email: client.email,
-          ambassador: client.ambassador
-        }));
-        
-        console.log("🔍 ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
-        setClients(formattedClients);
       } catch (error) {
-        console.error("🔍 ClientSelector - Erreur lors du chargement des clients:", error);
+        console.error("❌ ClientSelector - Erreur lors du chargement des clients:", error);
         setClients([]);
       } finally {
         setLoading(false);
