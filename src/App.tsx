@@ -1,119 +1,146 @@
 
-import React, { useEffect } from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from 'react-router-dom';
-import { PrivateRoute } from './components/PrivateRoute';
-import Layout from './components/layout/Layout';
-import LandingPage from './pages/LandingPage';
-import Dashboard from './pages/Dashboard';
-import Offers from './pages/Offers';
-import AdminOfferDetail from './pages/AdminOfferDetail';
-import Clients from './pages/Clients';
-import Settings from './pages/Settings';
-import PublicCatalog from './pages/PublicCatalog';
-import ProductDetail from './pages/ProductDetail';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
-import CalculatorPage from './pages/CalculatorPage';
-import AmbassadorDashboard from './pages/AmbassadorPages/AmbassadorDashboardPage';
-import AmbassadorOffers from './pages/AmbassadorPages/AmbassadorOffersPage';
-import AmbassadorCreateOffer from './pages/AmbassadorPages/AmbassadorCreateOffer';
-import AmbassadorOfferDetail from './pages/AmbassadorPages/AmbassadorOfferDetail';
-import PricingPage from './pages/PricingPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import ResourcesPage from './pages/ResourcesPage';
-import ClientOfferView from './pages/client/PublicOfferView';
-import SignOffer from './pages/client/SignOffer';
-import ClientLandingPage from './pages/PublicCompanyLanding';
-import LeazrClients from './pages/LeazrClients';
-import CreateLeazrAdmin from './pages/CreateLeazrAdmin';
-import PartnerDashboard from './pages/PartnerDashboard';
-import PartnerOfferDetail from './pages/PartnerOfferDetail';
-import AdminCalculator from './pages/AdminCalculator';
+import { Suspense } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
+import { PrivateRoute } from "@/components/PrivateRoute";
+import Layout from "@/components/layout/Layout";
+import Login from "@/pages/Login";
+import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
+import Dashboard from "@/pages/Dashboard";
+import Offers from "@/pages/Offers";
+import CreateOffer from "@/pages/CreateOffer";
+import Clients from "@/pages/Clients";
+import Contracts from "@/pages/Contracts";
+import Settings from "@/pages/Settings";
+import AdminOfferDetail from "@/pages/AdminOfferDetail";
+import "./App.css";
 
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-};
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
-      <ScrollToTop />
-      <Routes>
-        {/* Routes publiques */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/public-catalog" element={<PublicCatalog />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/calculator" element={<CalculatorPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/resources" element={<ResourcesPage />} />
-        <Route path="/offers/client/:offerId" element={<ClientOfferView />} />
-        <Route path="/client/offer/:offerId" element={<ClientOfferView />} />
-        <Route path="/client/offers/:offerId" element={<ClientOfferView />} />
-        <Route path="/offers/:offerId/signature" element={<SignOffer />} />
-        <Route path="/c/:clientId/:passwordHash" element={<ClientLandingPage />} />
-        <Route path="/create-leazr-admin" element={<CreateLeazrAdmin />} />
-
-        {/* Routes admin */}
-        <Route path="/admin/*" element={
-          <PrivateRoute>
-            <Layout>
-              <Routes>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="offers" element={<Offers />} />
-                <Route path="offers/:id" element={<AdminOfferDetail />} />
-                <Route path="calculator" element={<AdminCalculator />} />
-                <Route path="clients" element={<Clients />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="leazr-clients" element={<LeazrClients />} />
-              </Routes>
-            </Layout>
-          </PrivateRoute>
-        } />
-
-        {/* Routes ambassadeur */}
-        <Route path="/ambassador/*" element={
-          <PrivateRoute>
-            <Layout>
-              <Routes>
-                <Route path="dashboard" element={<AmbassadorDashboard />} />
-                <Route path="offers" element={<AmbassadorOffers />} />
-                <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
-                <Route path="create-offer" element={<AmbassadorCreateOffer />} />
-                <Route path="create-offer/:clientId/:ambassadorId" element={<AmbassadorCreateOffer />} />
-              </Routes>
-            </Layout>
-          </PrivateRoute>
-        } />
-
-        {/* Routes partenaire */}
-        <Route path="/partner/*" element={
-          <PrivateRoute>
-            <Layout>
-              <Routes>
-                <Route path="dashboard" element={<PartnerDashboard />} />
-                <Route path="offer/:id" element={<PartnerOfferDetail />} />
-              </Routes>
-            </Layout>
-          </PrivateRoute>
-        } />
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <AuthProvider>
+            <CompanyBrandingProvider>
+              <Suspense fallback={<div>Loading...</div>}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
+                  
+                  {/* Protected routes with Layout */}
+                  <Route path="/" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/dashboard" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/dashboard" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/offers" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Offers />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/offers" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Offers />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/offers/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AdminOfferDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/offers/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AdminOfferDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/create-offer" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <CreateOffer />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/clients" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Clients />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/clients" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Clients />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/contracts" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Contracts />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/contracts" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Contracts />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Settings />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/settings" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <Settings />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                </Routes>
+              </Suspense>
+            </CompanyBrandingProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
