@@ -1,3 +1,4 @@
+
 import { Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,7 +43,7 @@ import RequestSentPage from "@/pages/RequestSentPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 
 // Client public pages
-import { PublicOfferView } from "@/pages/client/PublicOfferView";
+import PublicOfferView from "@/pages/client/PublicOfferView";
 import SignOffer from "@/pages/client/SignOffer";
 
 // Other public pages
