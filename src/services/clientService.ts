@@ -1,3 +1,4 @@
+
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import type { Client } from "@/types/client";
 
@@ -402,9 +403,6 @@ interface Collaborator {
 
 /**
  * Ajoute un collaborateur à un client
- * @param clientId ID du client auquel ajouter le collaborateur
- * @param collaborator Données du collaborateur à ajouter
- * @returns Le collaborateur ajouté ou null en cas d'erreur
  */
 export const addCollaborator = async (clientId: string, collaborator: Omit<Collaborator, 'id'>): Promise<Collaborator | null> => {
   try {
@@ -438,8 +436,6 @@ export const addCollaborator = async (clientId: string, collaborator: Omit<Colla
 
 /**
  * Récupère les collaborateurs d'un client
- * @param clientId ID du client
- * @returns Liste des collaborateurs
  */
 export const getCollaboratorsByClientId = async (clientId: string): Promise<Collaborator[]> => {
   try {
@@ -463,7 +459,6 @@ export const getCollaboratorsByClientId = async (clientId: string): Promise<Coll
 
 /**
  * Corrige l'état du compte utilisateur d'un client
- * Utilisé pour synchroniser le statut du compte lorsqu'il y a une incohérence
  */
 export const syncClientUserAccountStatus = async (clientId: string): Promise<boolean> => {
   try {
@@ -705,9 +700,10 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
  */
 export const getFreeClients = async () => {
   try {
-    console.log("🔍 getFreeClients - Début de la récupération des clients libres...");
+    console.log("🔍 DEBUG getFreeClients - DÉBUT");
     
     // ÉTAPE 1: Récupérer TOUS les clients
+    console.log("📊 DEBUG - Récupération de TOUS les clients...");
     const { data: allClients, error: allClientsError } = await supabase
       .from('clients')
       .select(`
@@ -732,13 +728,27 @@ export const getFreeClients = async () => {
       .order('created_at', { ascending: false });
 
     if (allClientsError) {
-      console.error("❌ Erreur lors de la récupération de tous les clients:", allClientsError);
+      console.error("❌ DEBUG - Erreur lors de la récupération de tous les clients:", allClientsError);
       throw allClientsError;
     }
 
-    console.log(`📊 Total des clients trouvés: ${allClients?.length || 0}`);
+    console.log(`📊 DEBUG - Total des clients trouvés: ${allClients?.length || 0}`);
+    
+    // Debug spécifique pour "Client Test SRL"
+    const testClient = allClients?.find(c => c.company === "Cleint Test SRL");
+    if (testClient) {
+      console.log("🎯 DEBUG - Client Test SRL trouvé:", {
+        id: testClient.id,
+        name: testClient.name,
+        company: testClient.company,
+        email: testClient.email
+      });
+    } else {
+      console.log("⚠️ DEBUG - Client Test SRL NON trouvé dans tous les clients");
+    }
+
     if (allClients && allClients.length > 0) {
-      console.log("🔍 Liste des clients:", allClients.map(c => ({
+      console.log("🔍 DEBUG - Liste de tous les clients:", allClients.map(c => ({
         id: c.id,
         name: c.name,
         company: c.company
@@ -746,64 +756,93 @@ export const getFreeClients = async () => {
     }
 
     // ÉTAPE 2: Récupérer TOUS les liens ambassadeur-clients
+    console.log("🔗 DEBUG - Récupération des liens ambassadeur-clients...");
     const { data: ambassadorClientIds, error: ambassadorClientsError } = await supabase
       .from('ambassador_clients')
       .select('client_id');
 
     if (ambassadorClientsError) {
-      console.error("❌ Erreur lors de la récupération des liens ambassadeur-clients:", ambassadorClientsError);
+      console.error("❌ DEBUG - Erreur lors de la récupération des liens ambassadeur-clients:", ambassadorClientsError);
       throw ambassadorClientsError;
     }
 
     const linkedClientIds = new Set(ambassadorClientIds?.map(ac => ac.client_id) || []);
     
-    console.log(`📊 Nombre de liens ambassadeur-clients: ${ambassadorClientIds?.length || 0}`);
-    console.log("🔗 IDs des clients liés aux ambassadeurs:", Array.from(linkedClientIds));
+    console.log(`📊 DEBUG - Nombre de liens ambassadeur-clients: ${ambassadorClientIds?.length || 0}`);
+    console.log("🔗 DEBUG - IDs des clients liés aux ambassadeurs:", Array.from(linkedClientIds));
+
+    // Debug spécifique pour "Client Test SRL"
+    if (testClient) {
+      const isLinked = linkedClientIds.has(testClient.id);
+      console.log(`🎯 DEBUG - Client Test SRL est-il lié à un ambassadeur? ${isLinked}`);
+    }
 
     // ÉTAPE 3: Filtrer manuellement pour trouver les clients libres
-    const freeClients = allClients?.filter(client => !linkedClientIds.has(client.id)) || [];
+    console.log("🔍 DEBUG - Filtrage manuel des clients libres...");
+    const freeClients = allClients?.filter(client => {
+      const isLinked = linkedClientIds.has(client.id);
+      console.log(`🔍 DEBUG - Client ${client.name} (${client.company}) - Lié: ${isLinked}`);
+      return !isLinked;
+    }) || [];
     
-    console.log(`✅ Clients libres trouvés: ${freeClients.length}`);
+    console.log(`✅ DEBUG - Clients libres trouvés: ${freeClients.length}`);
     
     if (freeClients.length > 0) {
-      console.log("🆓 Détail des clients libres:", freeClients.map(c => ({
+      console.log("🆓 DEBUG - Détail des clients libres:", freeClients.map(c => ({
         id: c.id,
         name: c.name,
         company: c.company
       })));
     } else {
-      console.log("⚠️ Aucun client libre trouvé - tous les clients sont liés à des ambassadeurs");
+      console.log("⚠️ DEBUG - Aucun client libre trouvé - tous les clients sont liés à des ambassadeurs");
     }
 
     // ÉTAPE 4: Formatter les données pour correspondre au format attendu
-    const formattedClients = freeClients.map(client => ({
-      id: client.id,
-      name: client.name,
-      email: client.email || '',
-      company: client.company || '',
-      companyName: client.company || '',
-      phone: client.phone,
-      address: client.address,
-      city: client.city,
-      postal_code: client.postal_code,
-      country: client.country,
-      vat_number: client.vat_number,
-      notes: client.notes,
-      status: client.status,
-      created_at: new Date(client.created_at),
-      updated_at: new Date(client.updated_at),
-      user_id: client.user_id,
-      has_user_account: client.has_user_account,
-      company_id: client.company_id,
-      // Pas d'ambassadeur pour les clients libres
-      ambassador: undefined
-    }));
+    const formattedClients = freeClients.map(client => {
+      const formatted = {
+        id: client.id,
+        name: client.name,
+        email: client.email || '',
+        company: client.company || '',
+        companyName: client.company || '',
+        phone: client.phone,
+        address: client.address,
+        city: client.city,
+        postal_code: client.postal_code,
+        country: client.country,
+        vat_number: client.vat_number,
+        notes: client.notes,
+        status: client.status,
+        created_at: new Date(client.created_at),
+        updated_at: new Date(client.updated_at),
+        user_id: client.user_id,
+        has_user_account: client.has_user_account,
+        company_id: client.company_id,
+        // Pas d'ambassadeur pour les clients libres
+        ambassador: undefined
+      };
+      
+      console.log(`📝 DEBUG - Client formaté:`, {
+        id: formatted.id,
+        name: formatted.name,
+        company: formatted.company,
+        companyName: formatted.companyName
+      });
+      
+      return formatted;
+    });
 
-    console.log(`🎯 ${formattedClients.length} clients libres formatés et prêts à être retournés`);
+    console.log(`🎯 DEBUG - ${formattedClients.length} clients libres formatés et prêts à être retournés`);
+    console.log("✅ DEBUG getFreeClients - FIN - Retour des données:", formattedClients.map(c => ({
+      id: c.id,
+      name: c.name,
+      company: c.company
+    })));
+    
     return formattedClients;
 
   } catch (error) {
-    console.error("❌ Exception dans getFreeClients:", error);
+    console.error("❌ DEBUG - Exception dans getFreeClients:", error);
     throw error;
   }
 };

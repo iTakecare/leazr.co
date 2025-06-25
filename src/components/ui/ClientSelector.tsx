@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -55,7 +54,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         let fetchedClients;
         
-        console.log("🔍 ClientSelector - État de la sélection:", {
+        console.log("🔍 DEBUG ClientSelector - État de la sélection:", {
           selectedAmbassadorId,
           ambassadorMode,
           isUserAmbassador: isAmbassador(),
@@ -64,22 +63,30 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         
         // NOUVELLE LOGIQUE CORRIGÉE : Prioriser le type d'offre plutôt que le profil utilisateur
         if (selectedAmbassadorId) {
-          console.log("🎯 ClientSelector - Offre ambassadeur - Chargement des clients de l'ambassadeur:", selectedAmbassadorId);
+          console.log("🎯 DEBUG ClientSelector - Offre ambassadeur - Chargement des clients de l'ambassadeur:", selectedAmbassadorId);
           
           // Offre ambassadeur : charger les clients de l'ambassadeur sélectionné
           fetchedClients = await getClientsByAmbassadorId(selectedAmbassadorId);
-          console.log("✅ ClientSelector - Clients d'ambassadeur chargés:", fetchedClients);
+          console.log("✅ DEBUG ClientSelector - Clients d'ambassadeur chargés:", fetchedClients);
           
         } else {
-          console.log("🎯 ClientSelector - Offre interne - Chargement des clients libres uniquement");
+          console.log("🎯 DEBUG ClientSelector - Offre interne - Chargement des clients libres uniquement");
           
           // Offre interne : charger UNIQUEMENT les clients libres (non attachés aux ambassadeurs)
           fetchedClients = await getFreeClients();
-          console.log("✅ ClientSelector - Clients libres chargés:", fetchedClients);
+          console.log("✅ DEBUG ClientSelector - Clients libres reçus de getFreeClients():", fetchedClients);
+          
+          // Debug spécifique pour "Client Test SRL"
+          const testClient = fetchedClients?.find(c => c.company === "Cleint Test SRL" || c.companyName === "Cleint Test SRL");
+          if (testClient) {
+            console.log("🎯 DEBUG ClientSelector - Client Test SRL trouvé dans fetchedClients:", testClient);
+          } else {
+            console.log("⚠️ DEBUG ClientSelector - Client Test SRL NON trouvé dans fetchedClients");
+          }
         }
         
         if (!fetchedClients || fetchedClients.length === 0) {
-          console.log("⚠️ ClientSelector - Aucun client trouvé");
+          console.log("⚠️ DEBUG ClientSelector - Aucun client trouvé");
           setClients([]);
         } else {
           // Transform to ensure compatibility with ClientSelectorClient type
@@ -92,14 +99,25 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             ambassador: client.ambassador
           }));
           
-          console.log("✅ ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
+          console.log("✅ DEBUG ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
+          
+          // Debug spécifique pour "Client Test SRL"
+          const testClientFormatted = formattedClients?.find(c => c.company === "Cleint Test SRL" || c.companyName === "Cleint Test SRL");
+          if (testClientFormatted) {
+            console.log("🎯 DEBUG ClientSelector - Client Test SRL trouvé après formatage:", testClientFormatted);
+          } else {
+            console.log("⚠️ DEBUG ClientSelector - Client Test SRL NON trouvé après formatage");
+          }
+          
           setClients(formattedClients);
+          console.log("🔄 DEBUG ClientSelector - État des clients mis à jour:", formattedClients.length, "clients");
         }
       } catch (error) {
-        console.error("❌ ClientSelector - Erreur lors du chargement des clients:", error);
+        console.error("❌ DEBUG ClientSelector - Erreur lors du chargement des clients:", error);
         setClients([]);
       } finally {
         setLoading(false);
+        console.log("✅ DEBUG ClientSelector - Chargement terminé");
       }
     };
     
