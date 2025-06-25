@@ -296,6 +296,21 @@ const CreateOffer = () => {
       
       console.log("💾 Saving equipment data with attributes:", equipmentData);
       
+      // Calculer la marge totale DIRECTEMENT depuis les équipements
+      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+        return sum + equipmentMargin;
+      }, 0);
+      
+      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
+      console.log("📊 DÉTAIL DES MARGES:", equipmentList.map(eq => ({
+        title: eq.title,
+        purchasePrice: eq.purchasePrice,
+        quantity: eq.quantity,
+        margin: eq.margin,
+        marginAmount: (eq.purchasePrice * eq.quantity * eq.margin) / 100
+      })));
+      
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
         equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
@@ -304,25 +319,13 @@ const CreateOffer = () => {
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
 
-      // Calculer la marge totale des équipements
-      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
-        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
-        return sum + equipmentMargin;
-      }, 0);
-      
-      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
-
-      // Calculer la différence de marge
-      const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
-      
       console.log("💰 MARGIN DEBUG - Saving margin data:", {
-        globalMarginAdjustment,
-        marginDifference: globalMarginAdjustment.marginDifference,
-        totalMarginWithDifference,
+        totalEquipmentMargin,
         totalAmount,
         financedAmount,
-        calculatedMargin: totalAmount - financedAmount,
-        totalEquipmentMargin
+        equipmentCount: equipmentList.length,
+        globalMarginAdjustmentAmount: globalMarginAdjustment.amount,
+        globalMarginDifference: globalMarginAdjustment.marginDifference
       });
 
       const offerData: OfferData = {
@@ -339,17 +342,17 @@ const CreateOffer = () => {
         financed_amount: financedAmount,
         remarks: remarks,
         type: 'admin_offer',
-        // Utiliser la marge calculée depuis les équipements si disponible
-        margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : totalMarginWithDifference,
+        // UTILISER DIRECTEMENT la marge calculée depuis les équipements
+        margin: totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalMarginWithDifference
+        total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)
       };
 
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
       console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
-      console.log("💾 CRÉATION OFFRE - Marge totale:", offerData.margin);
+      console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
 
       let result;
       
@@ -366,6 +369,7 @@ const CreateOffer = () => {
         if (result && result.data) {
           console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
           console.log("✅ ID de l'offre créée:", result.data.id);
+          console.log("✅ Marge sauvegardée:", result.data.margin);
           toast.success("Offre créée avec succès !");
         } else {
           console.error("❌ ERREUR - Pas de données retournées:", result);

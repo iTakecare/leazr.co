@@ -128,6 +128,15 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
         monthlyPayment: currentMonthlyPayment
       };
       
+      console.log("🔧 ADDING EQUIPMENT TO LIST:", {
+        title: equipmentToAdd.title,
+        purchasePrice: equipmentToAdd.purchasePrice,
+        quantity: equipmentToAdd.quantity,
+        margin: equipmentToAdd.margin,
+        marginAmount: (equipmentToAdd.purchasePrice * equipmentToAdd.quantity * equipmentToAdd.margin) / 100,
+        monthlyPayment: equipmentToAdd.monthlyPayment
+      });
+      
       if (editingId) {
         setEquipmentList(equipmentList.map(eq => 
           eq.id === editingId ? { ...equipmentToAdd, id: editingId } : eq
@@ -179,11 +188,12 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
   };
 
   const removeFromList = (id: string) => {
+    console.log("🗑️ REMOVING EQUIPMENT FROM LIST:", id);
     setEquipmentList(equipmentList.filter(eq => eq.id !== id));
   };
 
   const updateQuantity = (id: string, newQuantity: number) => {
-    console.log(`Updating quantity for item ${id} to ${newQuantity}`);
+    console.log(`📊 UPDATING QUANTITY for item ${id} to ${newQuantity}`);
     setEquipmentList(prevList => 
       prevList.map(eq => 
         eq.id === id ? { ...eq, quantity: newQuantity } : eq
@@ -193,6 +203,24 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
 
   // Calculs globaux basés sur la liste des équipements
   const calculations = calculateEquipmentResults(equipmentList, leaser);
+  
+  // Log des marges pour debugging
+  const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+    const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+    return sum + equipmentMargin;
+  }, 0);
+  
+  console.log("🎯 HOOK - Marges détaillées:", {
+    equipmentCount: equipmentList.length,
+    equipmentMargins: equipmentList.map(eq => ({
+      title: eq.title,
+      margin: eq.margin,
+      marginAmount: (eq.purchasePrice * eq.quantity * eq.margin) / 100
+    })),
+    totalEquipmentMargin,
+    useGlobalAdjustment,
+    marginDifference: calculations.marginDifference
+  });
   
   // Détermination des valeurs finales à utiliser
   const finalMarginAmount = useGlobalAdjustment ? calculations.adjustedMarginAmount : calculations.normalMarginAmount;
@@ -232,6 +260,7 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
     equipmentCount: equipmentList.length,
     useGlobalAdjustment,
     finalMonthlyPayment,
+    totalEquipmentMargin,
     marginDifference: calculations.marginDifference,
     calculations
   });
