@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -72,98 +73,104 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           fetchedClients = await getAmbassadorClients();
           console.log("🔍 ClientSelector - Clients ambassadeur chargés:", fetchedClients);
         } else if (selectedAmbassadorId) {
-          // Mode admin avec ambassadeur sélectionné - filtrer les clients par ambassadeur
+          // Mode admin avec ambassadeur sélectionné - requête simplifiée
           console.log("🔍 ClientSelector - Chargement des clients pour ambassadeur spécifique:", selectedAmbassadorId);
           
-          // Utiliser une approche plus simple avec deux requêtes séparées
           const { supabase } = await import("@/integrations/supabase/client");
           
-          // Première requête : récupérer les IDs des clients liés à l'ambassadeur
-          console.log("📊 ÉTAPE 1: Récupération des liens ambassador_clients");
-          const { data: linkData, error: linkError } = await supabase
-            .from('ambassador_clients')
-            .select('client_id')
-            .eq('ambassador_id', selectedAmbassadorId);
+          try {
+            // Requête simplifiée sans jointure sur users
+            console.log("📊 ÉTAPE 1: Récupération des liens ambassador_clients");
+            const { data: linkData, error: linkError } = await supabase
+              .from('ambassador_clients')
+              .select('client_id')
+              .eq('ambassador_id', selectedAmbassadorId);
 
-          console.log("🔍 Résultat liens ambassador_clients:", {
-            data: linkData,
-            error: linkError?.message,
-            count: linkData?.length || 0
-          });
+            console.log("🔍 Résultat liens ambassador_clients:", {
+              data: linkData,
+              error: linkError?.message,
+              count: linkData?.length || 0
+            });
 
-          if (linkError) {
-            console.error("❌ Erreur lors de la récupération des liens:", linkError);
+            if (linkError) {
+              console.error("❌ Erreur lors de la récupération des liens:", linkError);
+              setClients([]);
+              setLoading(false);
+              return;
+            }
+
+            if (!linkData || linkData.length === 0) {
+              console.log("⚠️ Aucun lien client-ambassadeur trouvé pour l'ambassadeur:", selectedAmbassadorId);
+              setClients([]);
+              setLoading(false);
+              return;
+            }
+
+            const clientIds = linkData.map(link => link.client_id);
+            console.log("📋 IDs des clients à récupérer:", clientIds);
+
+            // Récupération des détails des clients
+            console.log("📊 ÉTAPE 2: Récupération des détails des clients");
+            const { data: clientsData, error: clientsError } = await supabase
+              .from('clients')
+              .select(`
+                id,
+                name,
+                email,
+                company
+              `)
+              .in('id', clientIds);
+
+            console.log("🔍 Résultat détails clients:", {
+              data: clientsData,
+              error: clientsError?.message,
+              count: clientsData?.length || 0
+            });
+
+            if (clientsError) {
+              console.error("❌ Erreur lors de la récupération des clients:", clientsError);
+              setClients([]);
+              setLoading(false);
+              return;
+            }
+
+            // Récupération des informations de l'ambassadeur (requête séparée et simplifiée)
+            console.log("📊 ÉTAPE 3: Récupération des informations ambassadeur");
+            const { data: ambassadorData, error: ambassadorError } = await supabase
+              .from('ambassadors')
+              .select('id, name')
+              .eq('id', selectedAmbassadorId)
+              .single();
+
+            console.log("🔍 Résultat ambassadeur:", {
+              data: ambassadorData,
+              error: ambassadorError?.message
+            });
+
+            // Formater les données (même si pas d'ambassadeur trouvé)
+            fetchedClients = clientsData?.map(client => ({
+              id: client.id,
+              name: client.name,
+              email: client.email || '',
+              companyName: client.company || '',
+              company: client.company,
+              ambassador: ambassadorData ? {
+                id: ambassadorData.id,
+                name: ambassadorData.name
+              } : {
+                id: selectedAmbassadorId,
+                name: 'Ambassadeur'
+              }
+            })) || [];
+            
+            console.log("✅ ClientSelector - Clients formatés:", fetchedClients);
+            
+          } catch (error) {
+            console.error("❌ Erreur inattendue lors du chargement des clients d'ambassadeur:", error);
             setClients([]);
             setLoading(false);
             return;
           }
-
-          if (!linkData || linkData.length === 0) {
-            console.log("⚠️ Aucun lien client-ambassadeur trouvé pour l'ambassadeur:", selectedAmbassadorId);
-            setClients([]);
-            setLoading(false);
-            return;
-          }
-
-          const clientIds = linkData.map(link => link.client_id);
-          console.log("📋 IDs des clients à récupérer:", clientIds);
-
-          // Deuxième requête : récupérer les détails des clients
-          console.log("📊 ÉTAPE 2: Récupération des détails des clients");
-          const { data: clientsData, error: clientsError } = await supabase
-            .from('clients')
-            .select(`
-              id,
-              name,
-              email,
-              company
-            `)
-            .in('id', clientIds);
-
-          console.log("🔍 Résultat détails clients:", {
-            data: clientsData,
-            error: clientsError?.message,
-            count: clientsData?.length || 0
-          });
-
-          if (clientsError) {
-            console.error("❌ Erreur lors de la récupération des clients:", clientsError);
-            setClients([]);
-            setLoading(false);
-            return;
-          }
-
-          // Troisième requête : récupérer les informations de l'ambassadeur
-          console.log("📊 ÉTAPE 3: Récupération des informations ambassadeur");
-          const { data: ambassadorData, error: ambassadorError } = await supabase
-            .from('ambassadors')
-            .select('id, name')
-            .eq('id', selectedAmbassadorId)
-            .single();
-
-          console.log("🔍 Résultat ambassadeur:", {
-            data: ambassadorData,
-            error: ambassadorError?.message
-          });
-
-          if (ambassadorError) {
-            console.error("❌ Erreur lors de la récupération de l'ambassadeur:", ambassadorError);
-          }
-
-          // Formater les données
-          fetchedClients = clientsData?.map(client => ({
-            id: client.id,
-            name: client.name,
-            email: client.email || '',
-            companyName: client.company || '',
-            company: client.company,
-            ambassador: ambassadorData ? {
-              id: ambassadorData.id,
-              name: ambassadorData.name
-            } : undefined
-          })) || [];
-          
-          console.log("✅ ClientSelector - Clients formatés avec ambassadeur rattaché:", fetchedClients);
         } else {
           console.log("🔍 ClientSelector - Chargement de tous les clients (mode admin)");
           // Sinon, charger tous les clients (mode admin)
