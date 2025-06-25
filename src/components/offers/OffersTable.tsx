@@ -38,6 +38,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
+import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
@@ -185,6 +186,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Équipement</TableHead>
                 {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
@@ -198,6 +200,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableRow key={offer.id}>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
+                  <TableCell>
+                    <OfferTypeTag type={offer.type} size="sm" />
+                  </TableCell>
                   <TableCell className="max-w-[180px] truncate">
                     {offer.equipment_description &&
                       typeof offer.equipment_description === "string" &&
