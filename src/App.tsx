@@ -54,11 +54,22 @@ import Dashboard from "@/pages/Dashboard";
 import Offers from "@/pages/Offers";
 import CreateOffer from "@/pages/CreateOffer";
 import Clients from "@/pages/Clients";
+import ClientDetail from "@/pages/ClientDetail";
+import ClientEditPage from "@/pages/ClientEditPage";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import CatalogManagement from "@/pages/CatalogManagement";
+import ProductEditPage from "@/pages/ProductEditPage";
+import PartnerEditPage from "@/pages/PartnerEditPage";
+import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+
+// Ambassador pages
+import AmbassadorsList from "@/pages/AmbassadorsList";
+import AmbassadorDetail from "@/pages/AmbassadorDetail";
+import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
+import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 
 import "./App.css";
 
@@ -178,6 +189,20 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
+                  <Route path="/clients/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ClientDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/clients/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ClientEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
                   <Route path="/admin/clients" element={
                     <PrivateRoute>
                       <Layout>
@@ -203,6 +228,70 @@ function App() {
                     <PrivateRoute>
                       <Layout>
                         <CatalogManagement />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/catalog/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ProductEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/catalog/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ProductEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/partners/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <PartnerDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/partners/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <PartnerEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/partners/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <PartnerEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  {/* Ambassador Routes */}
+                  <Route path="/ambassadors" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AmbassadorsList />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassadors/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AmbassadorDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassadors/edit/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AmbassadorEditPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassadors/create" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AmbassadorCreatePage />
                       </Layout>
                     </PrivateRoute>
                   } />
