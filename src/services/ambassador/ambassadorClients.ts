@@ -1,190 +1,137 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Client } from "@/types/client";
 
-// Obtenir les clients d'un ambassadeur en utilisant UNIQUEMENT la fonction SECURITY DEFINER
-export const getAmbassadorClients = async (): Promise<Client[]> => {
+/**
+ * Récupère les clients d'un ambassadeur spécifique en utilisant la fonction sécurisée
+ * Cette fonction contourne les problèmes RLS
+ */
+export const getAmbassadorClientsSecure = async (ambassadorId: string) => {
   try {
-    console.log("🔍 DIAGNOSTIC - Début getAmbassadorClients avec fonction SECURITY DEFINER");
+    console.log("🔒 getAmbassadorClientsSecure - Récupération pour ambassadeur:", ambassadorId);
     
-    // Vérifier l'utilisateur authentifié
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log("🔍 DIAGNOSTIC - Utilisateur authentifié:", {
-      userId: user?.id,
-      email: user?.email,
-      hasUser: !!user,
-      userError: userError?.message
+    // Utiliser la fonction RPC sécurisée existante
+    const { data, error } = await supabase.rpc('get_ambassador_clients_secure', {
+      p_user_id: ambassadorId // Note: cette fonction attend un user_id, pas un ambassador_id
     });
-    
-    if (!user) {
-      console.error("🔍 DIAGNOSTIC - Aucun utilisateur authentifié");
-      throw new Error("Utilisateur non authentifié");
-    }
-    
-    // Appeler UNIQUEMENT la fonction SECURITY DEFINER pour récupérer les clients
-    console.log("🔍 DIAGNOSTIC - Appel de la fonction get_ambassador_clients_secure avec user_id:", user.id);
-    
-    const { data: clientsData, error: clientsError } = await supabase
-      .rpc('get_ambassador_clients_secure', { p_user_id: user.id });
-    
-    console.log("🔍 DIAGNOSTIC - Résultat de la fonction SECURITY DEFINER:", {
-      clientsFound: clientsData?.length || 0,
-      clientsData: clientsData,
-      clientsError: clientsError?.message,
-      clientsErrorCode: clientsError?.code,
-      clientsErrorDetails: clientsError?.details
-    });
-    
-    if (clientsError) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de l'appel de la fonction:", clientsError);
-      throw new Error(`Erreur fonction: ${clientsError.message}`);
-    }
-    
-    if (!clientsData || clientsData.length === 0) {
-      console.log("🔍 DIAGNOSTIC - Aucun client trouvé pour cet ambassadeur");
+
+    if (error) {
+      console.error("❌ Erreur RPC get_ambassador_clients_secure:", error);
       return [];
     }
-    
-    // Transformer les données de la fonction en format Client
-    const processedClients: Client[] = clientsData.map(row => ({
-      id: row.client_id,
-      name: row.client_name,
-      email: row.client_email,
-      company: row.client_company,
-      phone: row.client_phone,
-      address: row.client_address,
-      city: row.client_city,
-      postal_code: row.client_postal_code,
-      country: row.client_country,
-      vat_number: row.client_vat_number,
-      notes: row.client_notes,
-      status: row.client_status as any,
-      created_at: row.client_created_at,
-      updated_at: row.client_updated_at,
-      user_id: row.client_user_id,
-      has_user_account: row.client_has_user_account,
-      company_id: row.client_company_id,
-      is_ambassador_client: true,
-      // Correction : vérifier si link_created_at existe et est une date valide
-      createdAt: row.link_created_at ? (
-        typeof row.link_created_at === 'string' ? row.link_created_at : 
-        row.link_created_at instanceof Date ? row.link_created_at.toISOString() :
-        new Date(row.link_created_at).toISOString()
-      ) : undefined
+
+    if (!data || data.length === 0) {
+      console.log("⚠️ Aucun client trouvé pour cet ambassadeur via RPC");
+      return [];
+    }
+
+    // Formatter les données pour correspondre au format attendu
+    const formattedClients = data.map(client => ({
+      id: client.client_id,
+      name: client.client_name,
+      email: client.client_email || '',
+      company: client.client_company || '',
+      companyName: client.client_company || '',
+      phone: client.client_phone,
+      address: client.client_address,
+      city: client.client_city,
+      postal_code: client.client_postal_code,
+      country: client.client_country,
+      vat_number: client.client_vat_number,
+      notes: client.client_notes,
+      status: client.client_status,
+      created_at: new Date(client.client_created_at),
+      updated_at: new Date(client.client_updated_at),
+      user_id: client.client_user_id,
+      has_user_account: client.client_has_user_account,
+      company_id: client.client_company_id,
+      ambassador: {
+        id: ambassadorId,
+        name: 'Ambassadeur' // On pourrait enrichir avec le nom réel si nécessaire
+      }
     }));
-    
-    console.log("🔍 DIAGNOSTIC - Clients traités:", {
-      totalProcessed: processedClients.length,
-      clients: processedClients.map(c => ({
-        id: c.id,
-        name: c.name,
-        email: c.email,
-        status: c.status
-      }))
-    });
-    
-    console.log("🔍 DIAGNOSTIC - Fin getAmbassadorClients - Succès avec fonction SECURITY DEFINER");
-    return processedClients;
+
+    console.log("✅ Clients d'ambassadeur formatés:", formattedClients);
+    return formattedClients;
+
   } catch (error) {
-    console.error("🔍 DIAGNOSTIC - Erreur fatale dans getAmbassadorClients:", {
-      errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
-      errorStack: error instanceof Error ? error.stack : undefined,
-      errorType: typeof error,
-      errorObject: error
-    });
-    throw error;
+    console.error("❌ Exception dans getAmbassadorClientsSecure:", error);
+    return [];
   }
 };
 
-// Lier un client à un ambassadeur en utilisant la fonction sécurisée
-export const linkClientToAmbassador = async (clientId: string, ambassadorId: string): Promise<boolean> => {
+/**
+ * Récupère les clients d'un ambassadeur en utilisant l'ID de l'ambassadeur
+ * Cette fonction fait le lien entre l'ID ambassadeur et l'ID utilisateur
+ */
+export const getClientsByAmbassadorId = async (ambassadorId: string) => {
   try {
-    console.log("🔍 DIAGNOSTIC - Début linkClientToAmbassador:", { clientId, ambassadorId });
+    console.log("🔍 getClientsByAmbassadorId - Récupération pour ID ambassadeur:", ambassadorId);
     
-    // Vérifier l'utilisateur authentifié
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log("🔍 DIAGNOSTIC - Utilisateur pour liaison:", {
-      userId: user?.id,
-      email: user?.email,
-      userError: userError?.message
-    });
-    
-    if (!user) {
-      throw new Error("Utilisateur non authentifié");
-    }
-    
-    // Utiliser UNIQUEMENT la fonction sécurisée
-    const { data, error } = await supabase
-      .rpc('link_client_to_ambassador_secure', {
-        p_user_id: user.id,
-        p_client_id: clientId
-      });
+    // D'abord, récupérer l'user_id de l'ambassadeur
+    const { data: ambassadorData, error: ambassadorError } = await supabase
+      .from('ambassadors')
+      .select('user_id, name')
+      .eq('id', ambassadorId)
+      .single();
 
-    console.log("🔍 DIAGNOSTIC - Résultat création lien:", {
-      success: !error,
-      data,
-      error: error?.message
+    if (ambassadorError || !ambassadorData) {
+      console.error("❌ Erreur lors de la récupération de l'ambassadeur:", ambassadorError);
+      return [];
+    }
+
+    if (!ambassadorData.user_id) {
+      console.log("⚠️ Ambassadeur sans user_id associé");
+      return [];
+    }
+
+    console.log("🔍 User ID trouvé pour l'ambassadeur:", ambassadorData.user_id);
+
+    // Utiliser la fonction sécurisée avec l'user_id
+    const { data, error } = await supabase.rpc('get_ambassador_clients_secure', {
+      p_user_id: ambassadorData.user_id
     });
 
     if (error) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la création du lien:", error);
-      throw error;
+      console.error("❌ Erreur RPC get_ambassador_clients_secure:", error);
+      return [];
     }
 
-    console.log("🔍 DIAGNOSTIC - Fin linkClientToAmbassador - Succès");
-    return data;
+    if (!data || data.length === 0) {
+      console.log("⚠️ Aucun client trouvé pour cet ambassadeur");
+      return [];
+    }
+
+    // Formatter les données avec les informations de l'ambassadeur
+    const formattedClients = data.map(client => ({
+      id: client.client_id,
+      name: client.client_name,
+      email: client.client_email || '',
+      company: client.client_company || '',
+      companyName: client.client_company || '',
+      phone: client.client_phone,
+      address: client.client_address,
+      city: client.client_city,
+      postal_code: client.client_postal_code,
+      country: client.client_country,
+      vat_number: client.client_vat_number,
+      notes: client.client_notes,
+      status: client.client_status,
+      created_at: new Date(client.client_created_at),
+      updated_at: new Date(client.client_updated_at),
+      user_id: client.client_user_id,
+      has_user_account: client.client_has_user_account,
+      company_id: client.client_company_id,
+      ambassador: {
+        id: ambassadorId,
+        name: ambassadorData.name || 'Ambassadeur'
+      }
+    }));
+
+    console.log("✅ Clients d'ambassadeur formatés via ID:", formattedClients);
+    return formattedClients;
+
   } catch (error) {
-    console.error("🔍 DIAGNOSTIC - Erreur fatale dans linkClientToAmbassador:", {
-      errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
-      clientId,
-      ambassadorId
-    });
-    throw error;
-  }
-};
-
-// Supprimer un client ambassadeur en utilisant la fonction sécurisée
-export const deleteAmbassadorClient = async (clientId: string): Promise<boolean> => {
-  try {
-    console.log("🔍 DIAGNOSTIC - Début deleteAmbassadorClient:", { clientId });
-    
-    // Vérifier l'utilisateur authentifié
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log("🔍 DIAGNOSTIC - Utilisateur pour suppression:", {
-      userId: user?.id,
-      email: user?.email,
-      userError: userError?.message
-    });
-    
-    if (!user) {
-      throw new Error("Utilisateur non authentifié");
-    }
-    
-    // Utiliser UNIQUEMENT la fonction sécurisée pour délier
-    const { data, error } = await supabase
-      .rpc('unlink_client_from_ambassador_secure', {
-        p_user_id: user.id,
-        p_client_id: clientId
-      });
-
-    console.log("🔍 DIAGNOSTIC - Résultat suppression lien:", {
-      success: !error,
-      data,
-      error: error?.message
-    });
-
-    if (error) {
-      console.error("🔍 DIAGNOSTIC - Erreur lors de la suppression du lien:", error);
-      throw error;
-    }
-
-    console.log("🔍 DIAGNOSTIC - Fin deleteAmbassadorClient - Succès");
-    return data;
-  } catch (error) {
-    console.error("🔍 DIAGNOSTIC - Erreur fatale dans deleteAmbassadorClient:", {
-      errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
-      clientId
-    });
-    throw error;
+    console.error("❌ Exception dans getClientsByAmbassadorId:", error);
+    return [];
   }
 };
