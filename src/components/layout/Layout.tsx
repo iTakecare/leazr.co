@@ -29,7 +29,7 @@ const Layout = ({ children }: LayoutProps) => {
       )}
       
       <main className="flex-1 overflow-auto">
-        <div className="h-full">
+        <div className="min-h-full">
           {children}
         </div>
       </main>
