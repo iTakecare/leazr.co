@@ -23,6 +23,7 @@ import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import OfferConfiguration from "@/components/offer/OfferConfiguration";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
+import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
 function useQuery() {
@@ -81,6 +82,32 @@ const CreateOffer = () => {
     calculations
   } = useSimplifiedEquipmentCalculator(selectedLeaser);
 
+  // Calcul de la marge totale depuis les équipements
+  const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
+    const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
+    return sum + equipmentMargin;
+  }, 0);
+
+  // Calcul de commission dynamique basé sur les paramètres
+  const commissionData = useOfferCommissionCalculator({
+    isInternalOffer,
+    selectedAmbassadorId: selectedAmbassador?.id,
+    commissionLevelId: selectedAmbassador?.commission_level_id,
+    totalMargin: totalEquipmentMargin,
+    equipmentListLength: equipmentList.length,
+    totalMonthlyPayment
+  });
+
+  console.log("🔍 CreateOffer - Commission Debug:", {
+    isInternalOffer,
+    selectedAmbassadorId: selectedAmbassador?.id,
+    commissionLevelId: selectedAmbassador?.commission_level_id,
+    totalMargin: totalEquipmentMargin,
+    equipmentListLength: equipmentList.length,
+    totalMonthlyPayment,
+    commissionData
+  });
+
   useEffect(() => {
     const fetchLeasers = async () => {
       try {
@@ -137,6 +164,15 @@ const CreateOffer = () => {
             setClientCompany(offer.clients?.company || '');
             setRemarks(offer.additional_info || '');
             
+            // Déterminer le type d'offre depuis les données existantes
+            if (offer.type === 'internal_offer') {
+              setIsInternalOffer(true);
+              setSelectedAmbassador(null);
+            } else if (offer.ambassador_id) {
+              setIsInternalOffer(false);
+              // TODO: Charger les données de l'ambassadeur si nécessaire
+            }
+            
             if (offer.equipment_description) {
               try {
                 const equipmentData = JSON.parse(offer.equipment_description);
@@ -148,7 +184,7 @@ const CreateOffer = () => {
                     purchasePrice: parseFloat(item.purchasePrice) || 0,
                     quantity: parseInt(item.quantity, 10) || 1,
                     margin: parseFloat(item.margin) || 20,
-                    monthlyPayment: parseFloat(item.monthlyPayment || 0)
+                    monthlyPayment: parseFloat(item.monthlyPayment) || 0
                   }));
                   
                   console.log("Formatted equipment with preserved margins:", formattedEquipment);
@@ -337,21 +373,7 @@ const CreateOffer = () => {
       }));
       
       console.log("💾 Saving equipment data with attributes:", equipmentData);
-      
-      // Calculer la marge totale DIRECTEMENT depuis les équipements
-      const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
-        const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
-        return sum + equipmentMargin;
-      }, 0);
-      
-      console.log("💰 MARGE CALCULÉE depuis les équipements:", totalEquipmentMargin);
-      console.log("📊 DÉTAIL DES MARGES:", equipmentList.map(eq => ({
-        title: eq.title,
-        purchasePrice: eq.purchasePrice,
-        quantity: eq.quantity,
-        margin: eq.margin,
-        marginAmount: (eq.purchasePrice * eq.quantity * eq.margin) / 100
-      })));
+      console.log("💰 COMMISSION DEBUG - Commission calculée:", commissionData);
       
       // Ensure all numeric values are properly handled
       const totalAmount = globalMarginAdjustment.amount + 
@@ -373,6 +395,16 @@ const CreateOffer = () => {
       // Déterminer le type d'offre et l'ambassadeur
       const offerType = isInternalOffer ? 'internal_offer' : 'admin_offer';
       const ambassadorId = !isInternalOffer && selectedAmbassador ? selectedAmbassador.id : undefined;
+      const calculatedCommission = commissionData.amount;
+
+      console.log("💾 OFFRE - Type et commission:", {
+        offerType,
+        ambassadorId,
+        ambassadorName: selectedAmbassador?.name,
+        commissionLevelId: selectedAmbassador?.commission_level_id,
+        calculatedCommission,
+        isInternalOffer
+      });
 
       const offerData: OfferData = {
         user_id: user.id,
@@ -384,7 +416,7 @@ const CreateOffer = () => {
         amount: totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: totalMonthlyPayment * 0.1,
+        commission: calculatedCommission, // Utiliser la commission calculée dynamiquement
         financed_amount: financedAmount,
         remarks: remarks,
         type: offerType,
@@ -405,6 +437,7 @@ const CreateOffer = () => {
       console.log("💾 CRÉATION OFFRE - Workflow Status:", offerData.workflow_status);
       console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
       console.log("💾 CRÉATION OFFRE - Ambassador ID:", offerData.ambassador_id);
+      console.log("💾 CRÉATION OFFRE - Commission FINALE:", offerData.commission);
       console.log("💾 CRÉATION OFFRE - Selected Ambassador:", selectedAmbassador?.name);
 
       let result;
@@ -423,6 +456,9 @@ const CreateOffer = () => {
           console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
           console.log("✅ ID de l'offre créée:", result.data.id);
           console.log("✅ Marge sauvegardée:", result.data.margin);
+          console.log("✅ Commission sauvegardée:", result.data.commission);
+          console.log("✅ Type d'offre:", result.data.type);
+          console.log("✅ Ambassador ID:", result.data.ambassador_id);
           console.log("✅ Workflow Status:", result.data.workflow_status);
           toast.success("Offre créée avec succès !");
         } else {
@@ -462,6 +498,12 @@ const CreateOffer = () => {
                     <CalcIcon className="h-5 w-5 text-primary" />
                     <h1 className="text-lg font-semibold text-gray-900">
                       {isEditMode ? "Modifier l'offre" : "Créer une offre"}
+                      {/* Debug info pour la commission */}
+                      {!isInternalOffer && commissionData.amount > 0 && (
+                        <span className="ml-2 text-sm text-green-600">
+                          (Commission: {commissionData.amount.toFixed(2)}€)
+                        </span>
+                      )}
                     </h1>
                   </div>
                   <Button
@@ -535,6 +577,10 @@ const CreateOffer = () => {
                           }}
                           toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                           calculations={calculations}
+                          // Transmettre les infos commission pour l'affichage
+                          ambassadorId={selectedAmbassador?.id}
+                          commissionLevelId={selectedAmbassador?.commission_level_id}
+                          hideFinancialDetails={isInternalOffer}
                         />
                         
                         <ClientInfo

@@ -62,7 +62,7 @@ const AmbassadorCreateOffer = () => {
   // Calculate the correct total margin from calculations
   const totalMargin = calculations?.normalMarginAmount || 0;
 
-  const { handleSaveOffer } = useAmbassadorOfferSave({
+  const { handleSaveOffer, commissionData } = useAmbassadorOfferSave({
     client,
     equipmentList,
     globalMarginAdjustment,
@@ -115,7 +115,8 @@ const AmbassadorCreateOffer = () => {
     loading,
     userRole: user?.role,
     calculationsNormalMargin: calculations?.normalMarginAmount,
-    totalMarginCalculated: totalMargin
+    totalMarginCalculated: totalMargin,
+    commissionData
   });
 
   return (
@@ -138,6 +139,12 @@ const AmbassadorCreateOffer = () => {
                   <CalcIcon className="h-8 w-8 text-blue-600" />
                   <h1 className="text-2xl font-bold text-gray-900">
                     Calculateur de Mensualités iTakecare
+                    {/* Debug info pour la commission */}
+                    {commissionData && commissionData.amount > 0 && (
+                      <span className="ml-2 text-sm text-green-600">
+                        (Commission: {commissionData.amount.toFixed(2)}€)
+                      </span>
+                    )}
                   </h1>
                 </div>
                 <div className="flex gap-4">
