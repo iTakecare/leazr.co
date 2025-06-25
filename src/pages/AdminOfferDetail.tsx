@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -17,15 +18,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import { logUserProfileDiagnostics } from "@/utils/userProfileDiagnostics";
-
-// Import des nouveaux composants modulaires
-import AdminOfferHeader from "@/components/offers/detail/AdminOfferHeader";
-import AdminFinancialCards from "@/components/offers/detail/AdminFinancialCards";
-import AdminActionButtons from "@/components/offers/detail/AdminActionButtons";
-import AdminWorkflowTimeline from "@/components/offers/detail/AdminWorkflowTimeline";
-import AdminOfferNotes from "@/components/offers/detail/AdminOfferNotes";
-import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
-import EquipmentInfoCard from "@/components/offers/detail/EquipmentInfoCard";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
 import OfferHistoryTimeline from "@/components/offers/OfferHistoryTimeline";
@@ -46,7 +38,6 @@ const AdminOfferDetail = () => {
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
-
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -156,31 +147,14 @@ const AdminOfferDetail = () => {
     );
   }
 
-  if (error) {
+  if (error || !offer) {
     return (
       <PageTransition>
         <Container>
           <div className="flex flex-col items-center justify-center h-64">
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Erreur</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => navigate("/admin/offers")}>
-              Retour aux offres
-            </Button>
-          </div>
-        </Container>
-      </PageTransition>
-    );
-  }
-
-  if (!offer) {
-    return (
-      <PageTransition>
-        <Container>
-          <div className="flex flex-col items-center justify-center h-64">
-            <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Offre introuvable</h2>
-            <p className="text-gray-600 mb-4">Cette offre n'existe pas ou a été supprimée.</p>
+            <p className="text-gray-600 mb-4">{error || "Offre introuvable"}</p>
             <Button onClick={() => navigate("/admin/offers")}>
               Retour aux offres
             </Button>
@@ -204,64 +178,106 @@ const AdminOfferDetail = () => {
         <TooltipProvider>
           <div className="p-4 md:p-6 space-y-6">
             {/* En-tête de l'offre */}
-            <AdminOfferHeader
-              offer={offer}
-              onBack={() => navigate("/admin/offers")}
-              onEdit={() => navigate(`/create-offer?offerId=${id}`)}
-              onToggleHistory={() => setIsHistoryOpen(!isHistoryOpen)}
-              isHistoryOpen={isHistoryOpen}
-            />
-
-            {/* Cartes financières */}
-            <AdminFinancialCards
-              monthlyPayment={offer.monthly_payment}
-              commission={offer.commission}
-              commissionStatus={offer.commission_status}
-              margin={offer.margin || calculatedMargin}
-              marginPercentage={marginPercentage}
-              showCommission={shouldShowCommission}
-              showMargin={isAdmin()}
-            />
+            <div className="flex items-center justify-between">
+              <div>
+                <Button variant="ghost" onClick={() => navigate("/admin/offers")}>
+                  ← Retour aux offres
+                </Button>
+                <h1 className="text-2xl font-bold mt-2">
+                  Offre #{offer.id?.slice(0, 8)}
+                </h1>
+                <OfferStatusBadge status={offer.workflow_status} />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsHistoryOpen(!isHistoryOpen)}>
+                  {isHistoryOpen ? 'Masquer historique' : 'Voir historique'}
+                </Button>
+                <Button onClick={() => navigate(`/create-offer?offerId=${id}`)}>
+                  Modifier
+                </Button>
+              </div>
+            </div>
 
             {/* Layout principal */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
               {/* Colonne principale */}
               <div className="lg:col-span-2 space-y-6">
-                <ClientInfoCard
-                  clientName={offer.client_name}
-                  clientEmail={offer.client_email}
-                  clientPhone={offer.client_phone}
-                />
+                {/* Informations client */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Informations client</h3>
+                  <div className="space-y-2">
+                    <p><strong>Nom:</strong> {offer.client_name}</p>
+                    <p><strong>Email:</strong> {offer.client_email}</p>
+                    {offer.client_phone && <p><strong>Téléphone:</strong> {offer.client_phone}</p>}
+                  </div>
+                </div>
 
-                <EquipmentInfoCard
-                  equipmentDescription={offer.equipment_description}
-                  equipmentItems={offer.equipmentItems || offer.parsedEquipment}
-                />
+                {/* Équipements */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Équipements</h3>
+                  <p className="text-gray-600">{offer.equipment_description}</p>
+                  {offer.equipmentItems && (
+                    <EquipmentDisplay equipmentItems={offer.equipmentItems} />
+                  )}
+                </div>
 
-                {/* Nouveau: Documents section */}
+                {/* Documents */}
                 <OfferDocuments offerId={offer.id} />
 
-                <AdminWorkflowTimeline
-                  workflowLogs={workflowLogs}
-                  loading={logsLoading}
-                />
+                {/* Timeline des workflows */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Historique du workflow</h3>
+                  {logsLoading ? (
+                    <div className="animate-pulse">Chargement...</div>
+                  ) : (
+                    <OfferHistoryTimeline logs={workflowLogs} />
+                  )}
+                </div>
               </div>
 
               {/* Sidebar */}
               <div className="space-y-6">
-                <AdminActionButtons
-                  status={offer.workflow_status}
-                  offerId={offer.id}
-                  onSendEmail={handleSendEmail}
-                  sendingEmail={sendingEmail}
-                  onRequestInfo={() => setIsRequestInfoModalOpen(true)}
-                />
+                {/* Actions rapides */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Actions</h3>
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      onClick={handleSendEmail}
+                      disabled={sendingEmail}
+                    >
+                      {sendingEmail ? "Envoi..." : "Envoyer par email"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setIsRequestInfoModalOpen(true)}
+                    >
+                      Demander des documents
+                    </Button>
+                  </div>
+                </div>
 
-                <AdminOfferNotes
-                  notes={offerNotes}
-                  loading={notesLoading}
-                />
+                {/* Résumé financier */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Résumé financier</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Montant total:</span>
+                      <span className="font-medium">{formatCurrency(offer.amount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Mensualité:</span>
+                      <span className="font-medium">{formatCurrency(offer.monthly_payment || 0)}</span>
+                    </div>
+                    {shouldShowCommission && (
+                      <div className="flex justify-between">
+                        <span>Commission:</span>
+                        <span className="font-medium">{formatCurrency(offer.commission || 0)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -271,7 +287,7 @@ const AdminOfferDetail = () => {
         <RequestInfoModal
           isOpen={isRequestInfoModalOpen}
           onClose={() => setIsRequestInfoModalOpen(false)}
-          offerId={id}
+          offerId={id || ''}
           onSuccess={() => window.location.reload()}
         />
 
@@ -286,7 +302,7 @@ const AdminOfferDetail = () => {
                 Fermer
               </button>
               <div className="p-4">
-                <OfferCompleteHistory offerId={id} />
+                <OfferCompleteHistory offerId={id || ''} />
               </div>
             </div>
           </div>
