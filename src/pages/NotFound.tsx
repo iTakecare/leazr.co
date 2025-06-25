@@ -1,243 +1,60 @@
 
-import { useLocation, Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { ArrowLeft, Home, Package, User, Building, HeartHandshake, BadgePercent, Users, Calculator, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Home, ArrowLeft, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const NotFound = () => {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
-  const isClientEditAttempt = location.pathname.includes('/clients/edit/');
-  const isProductDetailAttempt = location.pathname.includes('/products/');
-  const isCatalogDetailAttempt = location.pathname.includes('/catalog/');
-  const isPartnerEditAttempt = location.pathname.includes('/partners/edit/');
-  const isAmbassadorEditAttempt = location.pathname.includes('/ambassadors/edit/');
-  const isAmbassadorAttempt = location.pathname.includes('/ambassadors/');
-  const isPartnerAttempt = location.pathname.includes('/partners/');
-  const isAmbassadorDashboardAttempt = location.pathname.includes('/ambassador/') && !location.pathname.includes('/ambassador/dashboard');
-  const isCalculatorAttempt = location.pathname.includes('/calculator');
-  const isCartAttempt = location.pathname.includes('/panier');
-  const isDemandeAttempt = location.pathname.includes('/demande');
-  
-  const clientId = isClientEditAttempt ? 
-    location.pathname.split('/clients/edit/')[1] : null;
-  
-  const productId = isProductDetailAttempt ?
-    location.pathname.split('/products/')[1] : null;
-    
-  const catalogId = isCatalogDetailAttempt ?
-    location.pathname.split('/catalog/')[1] : null;
-
-  const partnerId = isPartnerEditAttempt ?
-    location.pathname.split('/partners/edit/')[1] : null;
-    
-  const ambassadorId = isAmbassadorEditAttempt ?
-    location.pathname.split('/ambassadors/edit/')[1] : null;
-
-  const isSimpleAmbassadorAttempt = isAmbassadorAttempt && !isAmbassadorEditAttempt;
-  const isSimplePartnerAttempt = isPartnerAttempt && !isPartnerEditAttempt;
-
-  const productOrCatalogId = productId || catalogId;
-
-  const goBack = () => {
-    navigate(-1);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-red-500 mb-4">404</h1>
-          <p className="text-xl text-gray-700 mb-2">Page introuvable</p>
-          <p className="text-sm text-gray-500 mb-6">
-            La page que vous recherchez n'existe pas ou a été déplacée.
-          </p>
-          
-          {isClientEditAttempt && clientId && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous essayez de modifier le client, veuillez utiliser le lien ci-dessous:
-              </p>
-              <Link to={`/clients/edit/${clientId}`}>
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Modifier la fiche client
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isPartnerEditAttempt && partnerId && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous essayez de modifier le partenaire, veuillez utiliser le lien ci-dessous:
-              </p>
-              <Link to={`/partners/edit/${partnerId}`}>
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Building className="h-4 w-4" /> Voir la fiche partenaire
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isAmbassadorEditAttempt && ambassadorId && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous essayez de modifier l'ambassadeur, veuillez utiliser le lien ci-dessous:
-              </p>
-              <Link to={`/ambassadors/edit/${ambassadorId}`}>
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <User className="h-4 w-4" /> Voir la fiche ambassadeur
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isSimpleAmbassadorAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez la liste des ambassadeurs, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/ambassadors">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <HeartHandshake className="h-4 w-4" /> Liste des ambassadeurs
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isSimplePartnerAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez la liste des partenaires, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/partners">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Building className="h-4 w-4" /> Liste des partenaires
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isAmbassadorDashboardAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez votre tableau de bord ambassadeur, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/ambassador/dashboard">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <HeartHandshake className="h-4 w-4" /> Tableau de bord ambassadeur
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isCalculatorAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez le calculateur d'offres, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/create-offer">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Calculator className="h-4 w-4" /> Calculateur d'offres
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isCartAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous cherchez votre panier, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/panier">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <ShoppingBag className="h-4 w-4" /> Voir mon panier
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {isDemandeAttempt && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Si vous souhaitez faire une demande, utilisez le lien ci-dessous:
-              </p>
-              <Link to="/demande">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <ShoppingBag className="h-4 w-4" /> Faire ma demande
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {productOrCatalogId && (isProductDetailAttempt || isCatalogDetailAttempt) && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-amber-700 text-sm mb-4">
-                Le produit que vous recherchez n'a pas été trouvé. Revenez au catalogue pour voir les produits disponibles.
-              </p>
-              <Link to="/catalog">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Package className="h-4 w-4" /> Voir le catalogue
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          <div className="flex flex-col gap-3 justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg">
+        <CardContent className="p-8 text-center">
+          <div className="mb-6">
+            <div className="text-6xl font-bold text-primary mb-2">404</div>
+            <h1 className="text-2xl font-semibold text-gray-800 mb-2">
+              Page non trouvée
+            </h1>
+            <p className="text-gray-600">
+              La page que vous recherchez n'existe pas ou a été déplacée.
+            </p>
+          </div>
+
+          <div className="space-y-3">
             <Button 
-              variant="default" 
-              onClick={goBack}
-              className="flex items-center gap-2 w-full"
+              onClick={() => navigate('/dashboard')}
+              className="w-full"
+              size="lg"
             >
-              <ArrowLeft className="h-4 w-4" /> 
-              Retour
+              <Home className="w-4 h-4 mr-2" />
+              Retour au tableau de bord
             </Button>
             
             <Button 
-              variant="outline" 
-              asChild
-              className="flex items-center gap-2 w-full"
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="w-full"
+              size="lg"
             >
-              <Link to="/catalogue">
-                <Package className="h-4 w-4" /> 
-                Catalogue
-              </Link>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Page précédente
             </Button>
-            
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2"
-              >
-                <Link to="/panier">
-                  <ShoppingBag className="h-4 w-4" /> 
-                  Panier
-                </Link>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2"
-              >
-                <Link to="/demande">
-                  <Calculator className="h-4 w-4" /> 
-                  Demande
-                </Link>
-              </Button>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500 mb-3">
+              Besoin d'aide ? Contactez le support technique.
+            </p>
+            <div className="flex justify-center space-x-4 text-xs text-gray-400">
+              <span>Code erreur: 404</span>
+              <span>•</span>
+              <span>Référence: {Date.now()}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

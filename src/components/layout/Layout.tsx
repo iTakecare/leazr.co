@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,19 +22,21 @@ const Layout = ({ children }: LayoutProps) => {
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
-      {shouldUseLeazrSaaSSidebar ? (
-        <LeazrSaaSSidebar />
-      ) : (
-        <Sidebar />
-      )}
-      
-      <main className="flex-1 overflow-auto">
-        <div className="h-full">
-          {children}
-        </div>
-      </main>
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background flex w-full">
+        {shouldUseLeazrSaaSSidebar ? (
+          <LeazrSaaSSidebar />
+        ) : (
+          <Sidebar />
+        )}
+        
+        <main className="flex-1 overflow-auto">
+          <div className="h-full overflow-y-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 };
 
