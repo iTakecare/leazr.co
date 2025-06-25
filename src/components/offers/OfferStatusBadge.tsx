@@ -24,7 +24,7 @@ export const OFFER_STATUSES = {
 };
 
 export interface OfferStatusBadgeProps {
-  status: string;
+  status: string | null | undefined;
   showIcon?: boolean;
   className?: string;
   isConverted?: boolean;
@@ -36,13 +36,16 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   className = "",
   isConverted = false
 }) => {
+  // Normaliser le statut - si null/undefined, utiliser 'draft' par défaut
+  const normalizedStatus = status || 'draft';
+  
   // Fonction pour déterminer le style du badge en fonction du statut
   const getBadgeStyle = () => {
     if (isConverted) {
       return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
     }
     
-    switch (status) {
+    switch (normalizedStatus) {
       case OFFER_STATUSES.DRAFT.id:
         return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
       case OFFER_STATUSES.SENT.id:
@@ -65,10 +68,10 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   };
 
   // Obtenir le statut correspondant ou utiliser un statut par défaut
-  const statusObj = Object.values(OFFER_STATUSES).find(s => s.id === status) || {
-    id: status,
-    label: status,
-    icon: HelpCircle
+  const statusObj = Object.values(OFFER_STATUSES).find(s => s.id === normalizedStatus) || {
+    id: normalizedStatus,
+    label: normalizedStatus === 'draft' ? 'Brouillon' : normalizedStatus,
+    icon: normalizedStatus === 'draft' ? Pencil : HelpCircle
   };
 
   const StatusIcon = statusObj.icon;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -275,11 +274,11 @@ const AmbassadorCreateOffer = () => {
       // Log final de la commission à sauvegarder
       console.log("COMMISSION FINALE À SAUVEGARDER (AMBASSADOR):", commissionAmount);
       
-      // Convertir le montant de total_margin_with_difference en chaîne de caractères
-      const totalMarginWithDifferenceString = String(globalMarginAdjustment.marginDifference || 0);
+      // Convertir le montant de total_margin_with_difference en number au lieu de string
+      const totalMarginWithDifference = globalMarginAdjustment.marginDifference || 0;
       
       // Récupérer la marge totale générée (sans la différence)
-      const marginAmount = String(globalMarginAdjustment.amount || 0);
+      const marginAmount = globalMarginAdjustment.amount || 0;
       
       const offerData = {
         client_id: client.id,
@@ -296,13 +295,13 @@ const AmbassadorCreateOffer = () => {
         user_id: user?.id || "",
         ambassador_id: currentAmbassadorId,
         remarks: remarks,
-        total_margin_with_difference: totalMarginWithDifferenceString,
-        margin: marginAmount  // Ajout de la marge générée
+        total_margin_with_difference: totalMarginWithDifference, // Garder comme number
+        margin: marginAmount  // Garder comme number
       };
       
       console.log("Saving offer with the following data:", offerData);
       console.log("Commission value being saved:", commissionAmount);
-      console.log("Total margin with difference value being saved:", totalMarginWithDifferenceString);
+      console.log("Total margin with difference value being saved:", totalMarginWithDifference);
       console.log("Margin generated value being saved:", marginAmount);
       
       const { data, error } = await createOffer(offerData);

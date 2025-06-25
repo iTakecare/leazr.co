@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
@@ -113,7 +112,7 @@ const AmbassadorOffersPage = () => {
     
     try {
       const offerToUpdate = offers.find(offer => offer.id === offerId);
-      if (!offerToUpdate || offerToUpdate.workflow_status !== 'draft') {
+      if (!offerToUpdate || (offerToUpdate.workflow_status !== 'draft' && offerToUpdate.workflow_status !== null)) {
         toast.error("Vous ne pouvez envoyer que des offres en brouillon");
         return;
       }

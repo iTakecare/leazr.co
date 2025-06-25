@@ -87,6 +87,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const handleSubmit = () => {
     if (validateForm()) {
       console.log("Submitting with monthly payment:", displayMonthlyPayment);
+      console.log("Equipment with attributes and specifications:", {
+        ...equipment,
+        attributes: equipment.attributes || {},
+        specifications: equipment.specifications || {}
+      });
       
       // Si nous avons une marge calculée et qu'elle n'a pas été appliquée,
       // l'appliquer automatiquement avant d'ajouter à la liste
@@ -101,16 +106,26 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   };
 
   const handleProductSelect = (product: any) => {
-    console.log("Product selected with attributes:", product);
+    console.log("Product selected with full data:", product);
+    
+    // Collecter les attributs ET les spécifications du produit
+    const productAttributes = product.selected_attributes || product.attributes || {};
+    const productSpecifications = product.specifications || {};
+    
+    console.log("Product attributes:", productAttributes);
+    console.log("Product specifications:", productSpecifications);
     
     const equipmentUpdate = {
       ...equipment,
       title: product.name,
       purchasePrice: product.price || 0,
       // Stocker les attributs sélectionnés
-      attributes: product.selected_attributes || {}
+      attributes: productAttributes,
+      // Stocker les spécifications du produit
+      specifications: productSpecifications
     };
     
+    console.log("Equipment updated with attributes and specifications:", equipmentUpdate);
     setEquipment(equipmentUpdate);
     
     if (product.monthly_price) {
@@ -140,20 +155,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             calculatedMargin={calculatedMargin}
             hideFinancialDetails={hideFinancialDetails}
           />
-
-          {/* Affichage des attributs sélectionnés */}
-          {equipment.attributes && Object.keys(equipment.attributes).length > 0 && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-sm text-blue-900 mb-2">Configuration sélectionnée :</h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(equipment.attributes).map(([key, value]) => (
-                  <span key={key} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                    {key}: {String(value)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           <PriceDetailsDisplay
             marginAmount={marginAmount}
