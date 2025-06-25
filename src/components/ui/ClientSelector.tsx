@@ -3,12 +3,13 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CheckIcon, ChevronsUpDownIcon, Loader2 } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAllClients } from "@/services/clientService";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 // Define a specific type for the client in this component
 export interface ClientSelectorClient {
@@ -17,6 +18,10 @@ export interface ClientSelectorClient {
   companyName: string;
   company?: string;
   email?: string;
+  ambassador?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface ClientSelectorProps {
@@ -26,6 +31,7 @@ interface ClientSelectorProps {
   onClose?: () => void;
   onSelectClient?: (client: ClientSelectorClient) => void;
   ambassadorMode?: boolean;
+  selectedAmbassadorId?: string | null;
 }
 
 const ClientSelector: React.FC<ClientSelectorProps> = ({ 
@@ -34,7 +40,8 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   isOpen,
   onClose,
   onSelectClient,
-  ambassadorMode = false
+  ambassadorMode = false,
+  selectedAmbassadorId
 }) => {
   const [clients, setClients] = useState<ClientSelectorClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +62,8 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           ambassadorMode,
           isAmbassadorUser: isAmbassador(),
           finalMode: isAmbassadorMode,
-          userId: user?.id
+          userId: user?.id,
+          selectedAmbassadorId
         });
         
         if (isAmbassadorMode) {
@@ -64,6 +72,51 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           // Charger UNIQUEMENT les clients de l'ambassadeur via la fonction sécurisée
           fetchedClients = await getAmbassadorClients();
           console.log("🔍 ClientSelector - Clients ambassadeur chargés:", fetchedClients);
+        } else if (selectedAmbassadorId) {
+          // Mode admin avec ambassadeur sélectionné - filtrer les clients par ambassadeur
+          console.log("🔍 ClientSelector - Chargement des clients pour ambassadeur spécifique:", selectedAmbassadorId);
+          
+          const allClients = await getAllClients();
+          
+          // Récupérer les clients liés à cet ambassadeur spécifique
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data: ambassadorClientsData, error } = await supabase
+            .from('ambassador_clients')
+            .select(`
+              client_id,
+              clients!inner(
+                id,
+                name,
+                email,
+                company
+              ),
+              ambassadors!inner(
+                id,
+                name
+              )
+            `)
+            .eq('ambassadors.id', selectedAmbassadorId);
+
+          if (error) {
+            console.error("Erreur lors du chargement des clients d'ambassadeur:", error);
+            setClients([]);
+            setLoading(false);
+            return;
+          }
+
+          fetchedClients = ambassadorClientsData?.map(item => ({
+            id: item.clients.id,
+            name: item.clients.name,
+            email: item.clients.email || '',
+            companyName: item.clients.company || '',
+            company: item.clients.company,
+            ambassador: {
+              id: item.ambassadors.id,
+              name: item.ambassadors.name
+            }
+          })) || [];
+          
+          console.log("🔍 ClientSelector - Clients filtrés par ambassadeur:", fetchedClients);
         } else {
           console.log("🔍 ClientSelector - Chargement de tous les clients (mode admin)");
           // Sinon, charger tous les clients (mode admin)
@@ -83,7 +136,8 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           name: client.name,
           companyName: client.company || '',
           company: client.company,
-          email: client.email
+          email: client.email,
+          ambassador: client.ambassador
         }));
         
         console.log("🔍 ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
@@ -97,7 +151,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, [ambassadorMode, isAmbassador, user?.id]);
+  }, [ambassadorMode, isAmbassador, user?.id, selectedAmbassadorId]);
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
@@ -121,8 +175,19 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose ? onClose : () => {}}>
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Sélectionner un client</h2>
+            <h2 className="text-lg font-semibold">
+              {selectedAmbassadorId ? "Clients de l'ambassadeur" : "Sélectionner un client"}
+            </h2>
           </div>
+          
+          {selectedAmbassadorId && !loading && clients.length === 0 && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+              <p className="text-amber-800 text-sm">
+                <User className="h-4 w-4 inline mr-2" />
+                Aucun client n'est rattaché à cet ambassadeur.
+              </p>
+            </div>
+          )}
           
           <div className="space-y-4">
             <Command className="rounded-lg border shadow-md">
@@ -142,16 +207,27 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                         <CommandItem
                           key={client.id}
                           onSelect={() => handleSelect(client)}
-                          className="flex flex-col items-start cursor-pointer py-2"
+                          className="flex flex-col items-start cursor-pointer py-3"
                         >
                           <div className="flex justify-between w-full">
-                            <div className="flex flex-col">
-                              <span className="font-medium">{client.name}</span>
+                            <div className="flex flex-col flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">{client.name}</span>
+                                {client.ambassador && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <User className="h-3 w-3 mr-1" />
+                                    {client.ambassador.name}
+                                  </Badge>
+                                )}
+                              </div>
                               <span className="text-xs text-muted-foreground">{client.companyName}</span>
+                              {client.email && (
+                                <span className="text-xs text-muted-foreground">{client.email}</span>
+                              )}
                             </div>
                             <CheckIcon
                               className={cn(
-                                "ml-auto h-4 w-4",
+                                "ml-auto h-4 w-4 mt-1",
                                 selectedClientId === client.id ? "opacity-100" : "opacity-0"
                               )}
                             />
@@ -160,9 +236,11 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       ))
                     ) : (
                       <div className="py-6 text-center text-muted-foreground">
-                        {ambassadorMode || isAmbassador() ? 
-                          "Aucun client trouvé pour cet ambassadeur." : 
-                          "Aucun client trouvé."
+                        {selectedAmbassadorId ? 
+                          "Cet ambassadeur n'a pas encore de clients rattachés." :
+                          ambassadorMode || isAmbassador() ? 
+                            "Aucun client trouvé pour cet ambassadeur." : 
+                            "Aucun client trouvé."
                         }
                       </div>
                     )
@@ -185,6 +263,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          disabled={selectedAmbassadorId && clients.length === 0 && !loading}
         >
           {loading ? (
             <div className="flex items-center">
@@ -193,11 +272,21 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             </div>
           ) : selectedClient ? (
             <div className="flex flex-col items-start">
-              <span className="font-medium">{selectedClient.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{selectedClient.name}</span>
+                {selectedClient.ambassador && (
+                  <Badge variant="outline" className="text-xs">
+                    <User className="h-3 w-3 mr-1" />
+                    {selectedClient.ambassador.name}
+                  </Badge>
+                )}
+              </div>
               <span className="text-xs text-muted-foreground">{selectedClient.companyName}</span>
             </div>
           ) : (
-            "Sélectionner un client"
+            selectedAmbassadorId && clients.length === 0 ? 
+              "Aucun client pour cet ambassadeur" :
+              "Sélectionner un client"
           )}
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -213,8 +302,16 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                   key={client.id}
                   onSelect={() => handleSelect(client)}
                 >
-                  <div className="flex flex-col">
-                    <span>{client.name}</span>
+                  <div className="flex flex-col flex-1">
+                    <div className="flex items-center gap-2">
+                      <span>{client.name}</span>
+                      {client.ambassador && (
+                        <Badge variant="outline" className="text-xs">
+                          <User className="h-3 w-3 mr-1" />
+                          {client.ambassador.name}
+                        </Badge>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">{client.companyName}</span>
                   </div>
                   <CheckIcon

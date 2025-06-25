@@ -260,6 +260,32 @@ const CreateOffer = () => {
     setIsAmbassadorSelectorOpen(false);
   };
 
+  const handleInternalOfferChange = (value: boolean) => {
+    setIsInternalOffer(value);
+    
+    // Si on passe en mode interne, réinitialiser l'ambassadeur et le client
+    if (value) {
+      setSelectedAmbassador(null);
+      resetClientSelection();
+    }
+  };
+
+  const resetClientSelection = () => {
+    setClientId(null);
+    setClientName('');
+    setClientEmail('');
+    setClientCompany('');
+  };
+
+  const handleAmbassadorChange = (ambassador: AmbassadorSelectorAmbassador) => {
+    setSelectedAmbassador(ambassador);
+    
+    // Réinitialiser la sélection client quand on change d'ambassadeur
+    resetClientSelection();
+    
+    setIsAmbassadorSelectorOpen(false);
+  };
+
   const handleSaveOffer = async () => {
     if (!user) {
       toast.error("Vous devez être connecté pour créer une offre");
@@ -466,7 +492,7 @@ const CreateOffer = () => {
                     {/* Configuration de l'offre */}
                     <OfferConfiguration
                       isInternalOffer={isInternalOffer}
-                      setIsInternalOffer={setIsInternalOffer}
+                      setIsInternalOffer={handleInternalOfferChange}
                       selectedAmbassador={selectedAmbassador}
                       onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)}
                       selectedLeaser={selectedLeaser}
@@ -548,6 +574,7 @@ const CreateOffer = () => {
           onSelectClient={handleClientSelect}
           selectedClientId={clientId}
           onClientSelect={() => {}}
+          selectedAmbassadorId={!isInternalOffer ? selectedAmbassador?.id : undefined}
         />
         
         <LeaserSelector
@@ -560,7 +587,7 @@ const CreateOffer = () => {
         <AmbassadorSelector
           isOpen={isAmbassadorSelectorOpen}
           onClose={() => setIsAmbassadorSelectorOpen(false)}
-          onSelectAmbassador={handleAmbassadorSelect}
+          onSelectAmbassador={handleAmbassadorChange}
           selectedAmbassadorId={selectedAmbassador?.id}
         />
       </div>
