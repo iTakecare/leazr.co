@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OfferData } from "./types";
 import { calculateCommissionByLevel } from "@/utils/calculator";
@@ -56,7 +55,8 @@ export const createOffer = async (offerData: OfferData) => {
         undefined,
       financed_amount: offerData.financed_amount,
       status: offerData.status || 'pending',
-      workflow_status: offerData.workflow_status,
+      // S'assurer que workflow_status est toujours défini
+      workflow_status: offerData.workflow_status || 'draft',
       type: offerData.type || 'admin_offer',
       remarks: offerData.remarks,
       ambassador_id: offerData.ambassador_id,
@@ -85,6 +85,7 @@ export const createOffer = async (offerData: OfferData) => {
       company_id: dbOfferData.company_id,
       client_name: dbOfferData.client_name,
       type: dbOfferData.type,
+      workflow_status: dbOfferData.workflow_status,
       amount: dbOfferData.amount,
       monthly_payment: dbOfferData.monthly_payment,
       margin: dbOfferData.margin

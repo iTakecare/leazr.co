@@ -342,6 +342,8 @@ const CreateOffer = () => {
         financed_amount: financedAmount,
         remarks: remarks,
         type: 'admin_offer',
+        // S'assurer que workflow_status est toujours défini
+        workflow_status: 'draft',
         // UTILISER DIRECTEMENT la marge calculée depuis les équipements
         margin: totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
@@ -352,6 +354,7 @@ const CreateOffer = () => {
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
       console.log("💾 CRÉATION OFFRE - Company ID:", userCompanyId);
       console.log("💾 CRÉATION OFFRE - Type d'offre:", offerData.type);
+      console.log("💾 CRÉATION OFFRE - Workflow Status:", offerData.workflow_status);
       console.log("💾 CRÉATION OFFRE - Marge totale FINALE:", offerData.margin);
 
       let result;
@@ -370,6 +373,7 @@ const CreateOffer = () => {
           console.log("✅ OFFRE CRÉÉE avec succès:", result.data);
           console.log("✅ ID de l'offre créée:", result.data.id);
           console.log("✅ Marge sauvegardée:", result.data.margin);
+          console.log("✅ Workflow Status:", result.data.workflow_status);
           toast.success("Offre créée avec succès !");
         } else {
           console.error("❌ ERREUR - Pas de données retournées:", result);
