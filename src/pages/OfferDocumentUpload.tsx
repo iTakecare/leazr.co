@@ -64,7 +64,10 @@ const OfferDocumentUpload = () => {
   }, [token]);
 
   const handleFileUpload = async (documentType: string, file: File) => {
-    if (!token || !uploadLink) return;
+    if (!token || !uploadLink) {
+      toast.error("Token ou lien d'upload manquant");
+      return;
+    }
 
     // Validation du fichier
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -83,7 +86,13 @@ const OfferDocumentUpload = () => {
     setUploading(documentType);
 
     try {
-      console.log('Début de l\'upload:', { documentType, fileName: file.name, size: file.size });
+      console.log('Début de l\'upload:', { 
+        documentType, 
+        fileName: file.name, 
+        size: file.size,
+        type: file.type,
+        offerId: uploadLink.offer_id
+      });
       
       const success = await uploadDocument(token, documentType, file, clientEmail);
       
@@ -97,7 +106,7 @@ const OfferDocumentUpload = () => {
       }
     } catch (error) {
       console.error("Erreur upload:", error);
-      toast.error("Erreur lors de l'upload du document");
+      toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setUploading(null);
     }

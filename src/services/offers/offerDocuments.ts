@@ -166,16 +166,20 @@ export const uploadDocument = async (
     // Valider le token
     const uploadLink = await validateUploadToken(token);
     if (!uploadLink) {
+      console.error('Token invalide ou expiré');
       throw new Error('Token invalide ou expiré');
     }
+
+    console.log('Token validé, offer_id:', uploadLink.offer_id);
 
     // S'assurer que le bucket existe
     const bucketReady = await ensureOfferDocumentsBucket();
     if (!bucketReady) {
+      console.error('Impossible de préparer le stockage des documents');
       throw new Error('Impossible de préparer le stockage des documents');
     }
 
-    // Créer le chemin du fichier
+    // Créer le chemin du fichier avec le token pour la sécurité
     const fileExtension = file.name.split('.').pop();
     const fileName = `${token}/${documentType}_${Date.now()}.${fileExtension}`;
 
@@ -184,39 +188,55 @@ export const uploadDocument = async (
     // Uploader le fichier vers Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('offer-documents')
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
     if (uploadError) {
       console.error('Erreur lors de l\'upload vers le storage:', uploadError);
-      throw uploadError;
+      throw new Error(`Erreur upload storage: ${uploadError.message}`);
     }
 
     console.log('Fichier uploadé avec succès, enregistrement des métadonnées...');
 
     // Enregistrer les métadonnées du document
-    const { error: insertError } = await supabase
+    const documentData = {
+      offer_id: uploadLink.offer_id,
+      document_type: documentType,
+      file_name: file.name,
+      file_path: fileName,
+      file_size: file.size,
+      mime_type: file.type || 'application/octet-stream',
+      uploaded_by: uploaderEmail || null,
+      status: 'pending' as const
+    };
+
+    console.log('Données du document à insérer:', documentData);
+
+    const { error: insertError, data: insertedData } = await supabase
       .from('offer_documents')
-      .insert({
-        offer_id: uploadLink.offer_id,
-        document_type: documentType,
-        file_name: file.name,
-        file_path: fileName,
-        file_size: file.size,
-        mime_type: file.type,
-        uploaded_by: uploaderEmail,
-        status: 'pending'
-      });
+      .insert(documentData)
+      .select();
 
     if (insertError) {
       console.error('Erreur lors de l\'enregistrement des métadonnées:', insertError);
+      console.error('Détails de l\'erreur:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
+      
       // Supprimer le fichier uploadé en cas d'erreur
       await supabase.storage
         .from('offer-documents')
         .remove([fileName]);
-      throw insertError;
+      
+      throw new Error(`Erreur métadonnées: ${insertError.message}`);
     }
 
-    console.log('Document uploadé et enregistré avec succès');
+    console.log('Document enregistré avec succès:', insertedData);
     return true;
   } catch (error) {
     console.error('Erreur lors de l\'upload du document:', error);
