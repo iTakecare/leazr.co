@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +8,15 @@ import {
   Check, 
   X, 
   MessageSquare,
-  Upload
+  Upload,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getOfferDocuments,
   updateDocumentStatus,
   downloadDocument,
+  deleteDocument,
   OfferDocument,
   DOCUMENT_TYPES
 } from "@/services/offers/offerDocuments";
@@ -31,6 +32,7 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
   const [loading, setLoading] = useState(true);
   const [updatingDoc, setUpdatingDoc] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<{ [key: string]: string }>({});
+  const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
 
   useEffect(() => {
     loadDocuments();
@@ -84,6 +86,29 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
     } catch (error) {
       console.error("Erreur téléchargement:", error);
       toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.")) {
+      return;
+    }
+
+    try {
+      setDeletingDoc(documentId);
+      const success = await deleteDocument(documentId);
+      
+      if (success) {
+        await loadDocuments();
+        toast.success("Document supprimé avec succès");
+      } else {
+        toast.error("Erreur lors de la suppression du document");
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors de la suppression du document");
+    } finally {
+      setDeletingDoc(null);
     }
   };
 
@@ -170,6 +195,20 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
                       onClick={() => handleDownload(doc)}
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      disabled={deletingDoc === doc.id}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      {deletingDoc === doc.id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                     
                     {doc.status === 'pending' && (

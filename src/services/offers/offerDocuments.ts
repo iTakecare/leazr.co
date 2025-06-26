@@ -348,6 +348,57 @@ export const getOfferDocuments = async (offerId: string): Promise<OfferDocument[
   }
 };
 
+export const deleteDocument = async (documentId: string): Promise<boolean> => {
+  try {
+    console.log('=== SUPPRESSION DOCUMENT ===');
+    console.log('Document ID:', documentId);
+
+    // Récupérer les informations du document avant suppression
+    const { data: document, error: fetchError } = await supabase
+      .from('offer_documents')
+      .select('file_path')
+      .eq('id', documentId)
+      .single();
+
+    if (fetchError || !document) {
+      console.error('Erreur lors de la récupération du document:', fetchError);
+      return false;
+    }
+
+    console.log('Chemin du fichier à supprimer:', document.file_path);
+
+    // Supprimer le fichier du storage
+    const fileUploadClient = getFileUploadClient();
+    const { error: storageError } = await fileUploadClient.storage
+      .from('offer-documents')
+      .remove([document.file_path]);
+
+    if (storageError) {
+      console.error('Erreur lors de la suppression du fichier:', storageError);
+      // On continue même si la suppression du fichier échoue
+    } else {
+      console.log('✓ Fichier supprimé du storage');
+    }
+
+    // Supprimer l'enregistrement de la base de données
+    const { error: dbError } = await supabase
+      .from('offer_documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (dbError) {
+      console.error('Erreur lors de la suppression en base:', dbError);
+      return false;
+    }
+
+    console.log('✅ Document supprimé avec succès');
+    return true;
+  } catch (error) {
+    console.error('Erreur générale lors de la suppression:', error);
+    return false;
+  }
+};
+
 export const updateDocumentStatus = async (
   documentId: string,
   status: 'approved' | 'rejected',
