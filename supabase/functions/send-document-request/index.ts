@@ -28,7 +28,6 @@ serve(async (req) => {
   console.log("===== NOUVELLE REQUÊTE REÇUE =====");
   console.log("Méthode:", req.method);
   console.log("URL:", req.url);
-  console.log("Headers:", JSON.stringify(Object.fromEntries(req.headers.entries()), null, 2));
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,10 +36,17 @@ serve(async (req) => {
   }
 
   try {
-    // Afficher le type de contenu
-    console.log("Content-Type:", req.headers.get("content-type"));
+    // Debug: Afficher les variables d'environnement disponibles
+    console.log("=== DEBUG VARIABLES D'ENVIRONNEMENT ===");
+    console.log("SUPABASE_URL présent:", !!Deno.env.get("SUPABASE_URL"));
+    console.log("SUPABASE_SERVICE_ROLE_KEY présent:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+    console.log("RESEND_API_KEY présent:", !!Deno.env.get("RESEND_API_KEY"));
     
-    // Récupérer le corps de la requête selon le Content-Type
+    // Lister toutes les variables d'environnement qui commencent par "RESEND"
+    const envKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"));
+    console.log("Variables d'environnement contenant 'RESEND':", envKeys);
+    
+    // Récupérer le corps de la requête
     let requestData: RequestDocumentsData;
     
     if (req.headers.get("content-type")?.includes("application/json")) {
@@ -64,7 +70,6 @@ serve(async (req) => {
         );
       }
     } else {
-      // Fallback pour d'autres types de contenu
       console.error("Type de contenu non supporté:", req.headers.get("content-type"));
       return new Response(
         JSON.stringify({
@@ -145,7 +150,7 @@ serve(async (req) => {
       .eq('enabled', true)
       .single();
       
-    if (emailError) {
+    if (emailError || !emailConfig) {
       console.error("Erreur lors de la récupération des paramètres email:", emailError);
       return new Response(
         JSON.stringify({
@@ -163,7 +168,8 @@ serve(async (req) => {
     console.log("Configuration email récupérée:", {
       from_email: emailConfig.from_email,
       from_name: emailConfig.from_name,
-      use_resend: emailConfig.use_resend
+      use_resend: emailConfig.use_resend,
+      has_resend_api_key_in_db: !!emailConfig.resend_api_key
     });
     
     // Vérifier que Resend est activé
@@ -181,14 +187,28 @@ serve(async (req) => {
       );
     }
     
-    // Récupérer la clé API Resend depuis les secrets
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    // Récupérer la clé API Resend (avec fallback)
+    console.log("=== RÉCUPÉRATION CLÉ API RESEND ===");
+    let resendApiKey = Deno.env.get("RESEND_API_KEY");
+    console.log("Clé API depuis env:", !!resendApiKey);
+    
+    // Fallback: récupérer depuis la base de données
+    if (!resendApiKey && emailConfig.resend_api_key) {
+      console.log("Utilisation de la clé API depuis la base de données");
+      resendApiKey = emailConfig.resend_api_key;
+    }
+    
     if (!resendApiKey) {
-      console.error("Clé API Resend non configurée");
+      console.error("Clé API Resend non configurée - ni dans les secrets ni dans la BDD");
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Clé API Resend non configurée",
+          message: "Clé API Resend non configurée. Veuillez configurer RESEND_API_KEY dans les secrets Supabase ou dans les paramètres SMTP.",
+          debug: {
+            env_available: !!Deno.env.get("RESEND_API_KEY"),
+            db_available: !!emailConfig.resend_api_key,
+            env_keys: Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"))
+          }
         }),
         {
           status: 500,
@@ -196,6 +216,8 @@ serve(async (req) => {
         }
       );
     }
+    
+    console.log("Clé API Resend récupérée avec succès");
     
     // Formater les documents demandés pour l'email
     const formattedDocs = requestedDocs.map(doc => {
@@ -253,7 +275,6 @@ serve(async (req) => {
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Sujet:", emailSubject);
-      console.log("Contenu texte (aperçu):", emailBody.substring(0, 100) + "...");
       
       // Format RFC-compliant pour le champ From
       const fromField = `${emailConfig.from_name || 'iTakecare'} <${emailConfig.from_email}>`;

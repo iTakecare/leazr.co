@@ -37,8 +37,10 @@ export const sendDocumentRequestEmail = async ({
     const documentsList = requestedDocuments.map(doc => {
       const isCustom = doc.startsWith('custom:');
       const docName = isCustom ? doc.replace('custom:', '') : DOCUMENT_TYPES[doc] || doc;
-      return docName;
+      return isCustom ? `custom:${docName}` : doc;
     });
+
+    console.log("📋 Documents à demander:", documentsList);
 
     // Appeler l'edge function send-document-request
     const { data, error } = await supabase.functions.invoke('send-document-request', {
@@ -61,6 +63,7 @@ export const sendDocumentRequestEmail = async ({
       return true;
     } else {
       console.error("❌ Échec de l'envoi:", data?.message || "Raison inconnue");
+      console.error("❌ Détails debug:", data?.debug || "Aucun détail");
       return false;
     }
 
