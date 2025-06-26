@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
 export interface OfferDocument {
@@ -105,39 +105,6 @@ const getMimeTypeFromFile = async (file: File): Promise<string> => {
 
   console.log('MIME type détecté:', detectedMimeType);
   return detectedMimeType;
-};
-
-// Créer un Blob avec le bon MIME type pour forcer Supabase
-const createTypedBlob = async (file: File, mimeType: string): Promise<Blob> => {
-  const arrayBuffer = await file.arrayBuffer();
-  return new Blob([arrayBuffer], { type: mimeType });
-};
-
-// Vérifier le Content-Type servi par Supabase après upload
-const verifyUploadedFileType = async (filePath: string): Promise<string | null> => {
-  try {
-    console.log('=== VÉRIFICATION POST-UPLOAD ===');
-    console.log('Vérification du fichier:', filePath);
-    
-    const { data, error } = await supabase.storage
-      .from('offer-documents')
-      .createSignedUrl(filePath, 60); // URL valide 1 minute pour le test
-
-    if (error || !data?.signedUrl) {
-      console.error('Erreur création URL signée:', error);
-      return null;
-    }
-
-    // Faire une requête HEAD pour obtenir les headers sans télécharger le contenu
-    const response = await fetch(data.signedUrl, { method: 'HEAD' });
-    const contentType = response.headers.get('content-type');
-    
-    console.log('Content-Type servi par Supabase:', contentType);
-    return contentType;
-  } catch (error) {
-    console.error('Erreur lors de la vérification:', error);
-    return null;
-  }
 };
 
 // S'assurer que le bucket existe
@@ -249,7 +216,7 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
   }
 };
 
-// Uploader un document avec approche robuste et vérification
+// Uploader un document avec la nouvelle approche simplifiée
 export const uploadDocument = async (
   token: string,
   documentType: string,
@@ -257,7 +224,7 @@ export const uploadDocument = async (
   uploaderEmail?: string
 ): Promise<boolean> => {
   try {
-    console.log('=== DÉBUT UPLOAD DOCUMENT ROBUSTE ===');
+    console.log('=== DÉBUT UPLOAD DOCUMENT SIMPLIFIÉ ===');
     console.log('Token:', token);
     console.log('Type de document:', documentType);
     console.log('Fichier original:', {
@@ -293,22 +260,20 @@ export const uploadDocument = async (
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 8);
     const fileExtension = file.name.split('.').pop() || 'bin';
-    let fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
+    const fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
 
     console.log('✓ Chemin de destination:', fileName);
 
-    // Étape 5: Créer un Blob typé pour forcer le MIME type
-    const typedBlob = await createTypedBlob(file, detectedMimeType);
-    console.log('✓ Blob typé créé avec MIME:', detectedMimeType);
-
-    // Étape 6: Upload vers Supabase Storage
+    // Étape 5: Upload vers Supabase Storage avec le client dédié aux fichiers
     console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const fileUploadClient = getFileUploadClient();
+    
+    const { data: uploadData, error: uploadError } = await fileUploadClient.storage
       .from('offer-documents')
-      .upload(fileName, typedBlob, {
+      .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false,
-        contentType: detectedMimeType // Forcer le Content-Type
+        contentType: detectedMimeType
       });
 
     if (uploadError) {
@@ -318,44 +283,7 @@ export const uploadDocument = async (
 
     console.log('✓ Upload réussi:', uploadData);
 
-    // Étape 7: Vérification post-upload
-    console.log('=== VÉRIFICATION POST-UPLOAD ===');
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
-    
-    const actualContentType = await verifyUploadedFileType(fileName);
-    console.log('Content-Type réel après upload:', actualContentType);
-
-    // Étape 8: Correction automatique si nécessaire
-    if (actualContentType && actualContentType.includes('application/json')) {
-      console.log('⚠️ Détection de application/json - Correction automatique...');
-      
-      // Supprimer le fichier défaillant
-      await supabase.storage
-        .from('offer-documents')
-        .remove([fileName]);
-      
-      // Recréer le fichier avec une stratégie différente
-      const correctedFileName = `${fileName}_corrected`;
-      
-      const { data: correctedUpload, error: correctedError } = await supabase.storage
-        .from('offer-documents')
-        .upload(correctedFileName, file, { // Utiliser le File original cette fois
-          cacheControl: '3600',
-          upsert: false,
-          contentType: detectedMimeType
-        });
-
-      if (correctedError) {
-        console.error('❌ Échec de la correction automatique:', correctedError);
-        throw new Error(`Erreur correction: ${correctedError.message}`);
-      }
-
-      console.log('✓ Correction automatique réussie');
-      // Utiliser le nom corrigé pour la suite
-      fileName = correctedFileName;
-    }
-
-    // Étape 9: Enregistrer les métadonnées en base de données
+    // Étape 6: Enregistrer les métadonnées en base de données
     const documentData = {
       offer_id: uploadLink.offer_id,
       document_type: documentType,
@@ -379,7 +307,7 @@ export const uploadDocument = async (
       console.error('❌ Erreur insertion DB:', insertError);
       
       // Supprimer le fichier uploadé en cas d'erreur
-      await supabase.storage
+      await fileUploadClient.storage
         .from('offer-documents')
         .remove([fileName]);
       

@@ -29,6 +29,23 @@ export const getSupabaseClient = () => {
   return supabaseInstance;
 };
 
+// Create a dedicated client for file uploads without Content-Type header
+let fileUploadClientInstance = null;
+
+export const getFileUploadClient = () => {
+  if (!fileUploadClientInstance) {
+    fileUploadClientInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+      // No global headers for file uploads to allow proper MIME type detection
+    });
+  }
+  return fileUploadClientInstance;
+};
+
 /**
  * Récupère un client Supabase avec les privilèges d'administration
  * @returns Client Supabase avec privilèges admin
