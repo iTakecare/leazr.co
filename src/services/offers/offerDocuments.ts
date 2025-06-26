@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -43,7 +42,7 @@ export const DOCUMENT_TYPES = {
 };
 
 // Fonction de détection MIME type robuste avec validation du contenu
-const getReliableMimeType = async (file: File): Promise<string> => {
+const getMimeTypeFromFile = async (file: File): Promise<string> => {
   console.log('=== DÉTECTION MIME TYPE ROBUSTE ===');
   console.log('Fichier:', {
     name: file.name,
@@ -55,58 +54,57 @@ const getReliableMimeType = async (file: File): Promise<string> => {
   const fileName = file.name.toLowerCase();
   
   // Détection primaire par extension (plus fiable que le navigateur)
-  let primaryMimeType = 'application/octet-stream';
+  let detectedMimeType = 'application/octet-stream';
   
   if (fileName.endsWith('.pdf')) {
-    primaryMimeType = 'application/pdf';
+    detectedMimeType = 'application/pdf';
   } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-    primaryMimeType = 'image/jpeg';
+    detectedMimeType = 'image/jpeg';
   } else if (fileName.endsWith('.png')) {
-    primaryMimeType = 'image/png';
+    detectedMimeType = 'image/png';
   } else if (fileName.endsWith('.gif')) {
-    primaryMimeType = 'image/gif';
+    detectedMimeType = 'image/gif';
   } else if (fileName.endsWith('.webp')) {
-    primaryMimeType = 'image/webp';
+    detectedMimeType = 'image/webp';
   } else if (fileName.endsWith('.bmp')) {
-    primaryMimeType = 'image/bmp';
+    detectedMimeType = 'image/bmp';
   } else if (fileName.endsWith('.tiff') || fileName.endsWith('.tif')) {
-    primaryMimeType = 'image/tiff';
+    detectedMimeType = 'image/tiff';
   } else if (fileName.endsWith('.doc')) {
-    primaryMimeType = 'application/msword';
+    detectedMimeType = 'application/msword';
   } else if (fileName.endsWith('.docx')) {
-    primaryMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    detectedMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   } else if (fileName.endsWith('.xls')) {
-    primaryMimeType = 'application/vnd.ms-excel';
+    detectedMimeType = 'application/vnd.ms-excel';
   } else if (fileName.endsWith('.xlsx')) {
-    primaryMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    detectedMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   }
 
-  // Validation du contenu pour les types courants
+  // Validation du contenu pour les types courants (magic numbers)
   try {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Vérification des signatures de fichier (magic numbers)
     if (uint8Array.length >= 4) {
       // PDF: %PDF
       if (uint8Array[0] === 0x25 && uint8Array[1] === 0x50 && uint8Array[2] === 0x44 && uint8Array[3] === 0x46) {
-        primaryMimeType = 'application/pdf';
+        detectedMimeType = 'application/pdf';
       }
       // JPEG: FF D8 FF
       else if (uint8Array[0] === 0xFF && uint8Array[1] === 0xD8 && uint8Array[2] === 0xFF) {
-        primaryMimeType = 'image/jpeg';
+        detectedMimeType = 'image/jpeg';
       }
       // PNG: 89 50 4E 47
       else if (uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && uint8Array[2] === 0x4E && uint8Array[3] === 0x47) {
-        primaryMimeType = 'image/png';
+        detectedMimeType = 'image/png';
       }
     }
   } catch (error) {
     console.warn('Impossible de lire le contenu du fichier pour validation:', error);
   }
 
-  console.log('MIME type détecté:', primaryMimeType);
-  return primaryMimeType;
+  console.log('MIME type détecté:', detectedMimeType);
+  return detectedMimeType;
 };
 
 // Créer un Blob avec le bon MIME type pour forcer Supabase
@@ -288,14 +286,14 @@ export const uploadDocument = async (
     console.log('✓ Bucket prêt');
 
     // Étape 3: Détection MIME type robuste
-    const detectedMimeType = await getReliableMimeType(file);
+    const detectedMimeType = await getMimeTypeFromFile(file);
     console.log('✓ MIME type détecté:', detectedMimeType);
 
     // Étape 4: Créer le chemin du fichier unique
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 8);
     const fileExtension = file.name.split('.').pop() || 'bin';
-    const fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
+    let fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
 
     console.log('✓ Chemin de destination:', fileName);
 
