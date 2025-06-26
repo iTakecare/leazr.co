@@ -30,8 +30,7 @@ export const sendDocumentRequestEmail = async ({
       throw new Error("Impossible de créer le lien d'upload");
     }
 
-    // Construire l'URL d'upload
-    const uploadUrl = `${window.location.origin}/offer/documents/upload/${token}`;
+    console.log("🔐 Token d'upload créé:", token);
 
     // Préparer la liste des documents demandés
     const documentsList = requestedDocuments.map(doc => {
@@ -42,14 +41,15 @@ export const sendDocumentRequestEmail = async ({
 
     console.log("📋 Documents à demander:", documentsList);
 
-    // Appeler l'edge function send-document-request
+    // Appeler l'edge function send-document-request avec le token
     const { data, error } = await supabase.functions.invoke('send-document-request', {
       body: {
         offerId,
         clientEmail: offerClientEmail,
         clientName: offerClientName,
         requestedDocs: documentsList,
-        customMessage: customMessage || undefined
+        customMessage: customMessage || undefined,
+        uploadToken: token
       }
     });
 
@@ -59,7 +59,7 @@ export const sendDocumentRequestEmail = async ({
     }
 
     if (data && data.success) {
-      console.log("✅ Email de demande de documents envoyé avec succès");
+      console.log("✅ Email de demande de documents envoyé avec succès avec lien d'upload");
       return true;
     } else {
       console.error("❌ Échec de l'envoi:", data?.message || "Raison inconnue");

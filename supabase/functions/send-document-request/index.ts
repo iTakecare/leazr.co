@@ -20,6 +20,7 @@ interface RequestDocumentsData {
   clientName: string;
   requestedDocs: string[];
   customMessage?: string;
+  uploadToken?: string;
 }
 
 console.log("=== Function Edge send-document-request initialisée ===");
@@ -91,7 +92,8 @@ serve(async (req) => {
       clientEmail,
       clientName,
       requestedDocs,
-      customMessage
+      customMessage,
+      uploadToken
     } = requestData;
     
     // Validation des données
@@ -138,9 +140,25 @@ serve(async (req) => {
         }
       );
     }
+
+    if (!uploadToken) {
+      console.error("Token d'upload manquant");
+      return new Response(
+        JSON.stringify({ success: false, message: "Token d'upload manquant" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     console.log("Requête validée pour envoyer un email à:", clientEmail);
     console.log("Documents demandés:", requestedDocs);
+    console.log("Token d'upload:", uploadToken);
+    
+    // Construire l'URL d'upload
+    const uploadUrl = `${new URL(req.url).origin}/offer/documents/upload/${uploadToken}`;
+    console.log("URL d'upload générée:", uploadUrl);
     
     // Récupérer les paramètres email depuis la base de données
     console.log("Récupération de la configuration email depuis la base de données...");
@@ -242,7 +260,7 @@ serve(async (req) => {
     try {
       // Préparer le contenu de l'email
       const emailSubject = "Documents requis - Offre de leasing";
-      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}`;
+      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${uploadUrl}`;
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
@@ -265,6 +283,16 @@ serve(async (req) => {
             }).join('')}
           </ul>
           ${customMessage ? `<p><strong>Message personnalisé :</strong><br>${customMessage}</p>` : ''}
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${uploadUrl}" style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">
+              📎 Uploader mes documents
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+          <a href="${uploadUrl}" style="color: #2d618f; word-break: break-all;">${uploadUrl}</a></p>
+          
           <p>Merci de nous faire parvenir ces documents dans les meilleurs délais.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
             Cordialement,<br>

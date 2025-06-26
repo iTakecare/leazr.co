@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import EmailTemplateControls from "./EmailTemplateControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EmailTemplate {
   id: number;
@@ -199,15 +201,36 @@ const EmailTemplateEditor: React.FC = () => {
 
             <div className="pt-4">
               <h3 className="text-sm font-medium mb-2">Variables disponibles:</h3>
-              <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm">
-                <code className="block mb-1">{'{{site_logo}}'} - Logo de l'entreprise</code>
-                <code className="block mb-1">{'{{client_name}}'} - Nom du client</code>
-                <code className="block mb-1">{'{{equipment_description}}'} - Description de l'équipement</code>
-                <code className="block mb-1">{'{{amount}}'} - Montant total</code>
-                <code className="block mb-1">{'{{monthly_payment}}'} - Paiement mensuel</code>
-                <code className="block mb-1">{'{{date}}'} - Date actuelle</code>
-                <code className="block mb-1">{'{{account_creation_link}}'} - Lien pour la création de compte client</code>
-              </div>
+              <ScrollArea className="h-48 w-full rounded-md border p-4">
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-1 gap-2">
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{site_logo}}'} - Logo de l'entreprise
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{client_name}}'} - Nom du client
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{equipment_description}}'} - Description de l'équipement
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{amount}}'} - Montant total
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{monthly_payment}}'} - Paiement mensuel
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{date}}'} - Date actuelle
+                    </code>
+                    <code className="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                      {'{{account_creation_link}}'} - Lien pour la création de compte client
+                    </code>
+                    <code className="block p-2 bg-green-100 dark:bg-green-900 rounded font-medium">
+                      {'{{upload_link}}'} - Lien d'upload des documents (pour demandes de documents)
+                    </code>
+                  </div>
+                </div>
+              </ScrollArea>
             </div>
 
             <Button 
