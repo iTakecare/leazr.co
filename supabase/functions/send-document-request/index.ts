@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -42,6 +41,7 @@ serve(async (req) => {
     console.log("SUPABASE_URL présent:", !!Deno.env.get("SUPABASE_URL"));
     console.log("SUPABASE_SERVICE_ROLE_KEY présent:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
     console.log("RESEND_API_KEY présent:", !!Deno.env.get("RESEND_API_KEY"));
+    console.log("APP_URL présent:", !!Deno.env.get("APP_URL"));
     
     // Lister toutes les variables d'environnement qui commencent par "RESEND"
     const envKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"));
@@ -156,8 +156,24 @@ serve(async (req) => {
     console.log("Documents demandés:", requestedDocs);
     console.log("Token d'upload:", uploadToken);
     
-    // Construire l'URL d'upload
-    const uploadUrl = `${new URL(req.url).origin}/offer/documents/upload/${uploadToken}`;
+    // Construire l'URL d'upload avec l'URL de base de l'application
+    const appUrl = Deno.env.get("APP_URL");
+    if (!appUrl) {
+      console.error("APP_URL non configurée dans les variables d'environnement");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "URL de l'application non configurée. Veuillez configurer APP_URL dans les secrets Supabase.",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    // Construire l'URL d'upload correcte
+    const uploadUrl = `${appUrl.replace(/\/$/, '')}/offer/documents/upload/${uploadToken}`;
     console.log("URL d'upload générée:", uploadUrl);
     
     // Récupérer les paramètres email depuis la base de données
