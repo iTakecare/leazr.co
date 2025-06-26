@@ -42,13 +42,12 @@ export const DOCUMENT_TYPES = {
   custom: "Autre document"
 };
 
-// Fonction pour détecter le type MIME correct avec plus de précision
+// Fonction pour détecter le type MIME correct basé sur l'extension
 const detectMimeType = (file: File): string => {
   console.log('=== DÉTECTION TYPE MIME ===');
   console.log('File.type original:', file.type);
   console.log('File.name:', file.name);
   
-  // Détecter d'abord basé sur l'extension du fichier (plus fiable)
   const fileName = file.name.toLowerCase();
   let detectedType = '';
   
@@ -83,255 +82,9 @@ const detectMimeType = (file: File): string => {
   return detectedType;
 };
 
-// Fonction pour créer un blob avec le bon type MIME et forcer l'en-tête
-const createCorrectBlob = (file: File, mimeType: string): Blob => {
-  console.log('=== CRÉATION BLOB ===');
-  console.log('Type MIME à appliquer:', mimeType);
-  
-  // Créer un nouveau blob avec le type MIME correct
-  const blob = new Blob([file], { type: mimeType });
-  console.log('Blob créé - Type:', blob.type, 'Taille:', blob.size);
-  
-  return blob;
-};
-
-// Fonction pour tester le téléchargement et vérifier les headers HTTP réels
-export const testDocumentDownload = async (filePath: string): Promise<{
-  success: boolean;
-  actualContentType: string | null;
-  error?: string;
-}> => {
-  try {
-    console.log('=== TEST TÉLÉCHARGEMENT DOCUMENT ===');
-    console.log('Chemin fichier:', filePath);
-    
-    // Créer une URL signée
-    const { data: signedUrlData, error: urlError } = await supabase.storage
-      .from('offer-documents')
-      .createSignedUrl(filePath, 60);
-    
-    if (urlError || !signedUrlData?.signedUrl) {
-      console.error('Erreur création URL signée:', urlError);
-      return { success: false, actualContentType: null, error: 'Impossible de créer URL signée' };
-    }
-    
-    console.log('URL signée créée:', signedUrlData.signedUrl);
-    
-    // Faire une requête HEAD pour vérifier les headers sans télécharger le contenu
-    const response = await fetch(signedUrlData.signedUrl, { method: 'HEAD' });
-    const contentType = response.headers.get('content-type');
-    
-    console.log('=== HEADERS HTTP REÇUS ===');
-    console.log('Content-Type:', contentType);
-    console.log('Content-Length:', response.headers.get('content-length'));
-    console.log('Cache-Control:', response.headers.get('cache-control'));
-    console.log('Status:', response.status);
-    console.log('Toutes les headers:', Object.fromEntries(response.headers.entries()));
-    
-    return {
-      success: true,
-      actualContentType: contentType
-    };
-  } catch (error: any) {
-    console.error('Erreur lors du test de téléchargement:', error);
-    return { 
-      success: false, 
-      actualContentType: null, 
-      error: error.message 
-    };
-  }
-};
-
-// Fonction pour corriger les métadonnées d'un fichier dans Storage
-export const correctFileMetadata = async (filePath: string, correctMimeType: string): Promise<boolean> => {
-  try {
-    console.log('=== CORRECTION MÉTADONNÉES ===');
-    console.log('Fichier:', filePath);
-    console.log('MIME type correct:', correctMimeType);
-    
-    // D'abord, télécharger le fichier
-    const { data: downloadData, error: downloadError } = await supabase.storage
-      .from('offer-documents')
-      .download(filePath);
-    
-    if (downloadError || !downloadData) {
-      console.error('Erreur téléchargement pour correction:', downloadError);
-      return false;
-    }
-    
-    console.log('Fichier téléchargé, taille:', downloadData.size);
-    
-    // Créer un nouveau blob avec le type MIME correct
-    const correctedBlob = new Blob([downloadData], { type: correctMimeType });
-    console.log('Blob corrigé créé, type:', correctedBlob.type);
-    
-    // Re-uploader avec le bon type MIME (en écrasant)
-    const { error: uploadError } = await supabase.storage
-      .from('offer-documents')
-      .upload(filePath, correctedBlob, {
-        cacheControl: '3600',
-        upsert: true, // Écraser le fichier existant
-        contentType: correctMimeType
-      });
-    
-    if (uploadError) {
-      console.error('Erreur lors de la re-upload:', uploadError);
-      return false;
-    }
-    
-    console.log('✅ Métadonnées corrigées avec succès');
-    
-    // Attendre un peu puis tester
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const testResult = await testDocumentDownload(filePath);
-    console.log('Test après correction:', testResult);
-    
-    return true;
-  } catch (error) {
-    console.error('Erreur lors de la correction des métadonnées:', error);
-    return false;
-  }
-};
-
-// Fonction pour analyser et corriger tous les documents d'une offre
-export const debugOfferDocuments = async (offerId: string): Promise<{
-  totalDocuments: number;
-  correctDocuments: number;
-  correctedDocuments: number;
-  failedCorrections: number;
-  details: Array<{
-    fileName: string;
-    filePath: string;
-    storedMimeType: string;
-    actualMimeType: string | null;
-    correctionNeeded: boolean;
-    correctionSuccess?: boolean;
-  }>;
-}> => {
-  try {
-    console.log('=== DEBUG DOCUMENTS OFFRE ===');
-    console.log('Offre ID:', offerId);
-    
-    // Récupérer tous les documents de l'offre
-    const documents = await getOfferDocuments(offerId);
-    console.log('Documents trouvés:', documents.length);
-    
-    const results = {
-      totalDocuments: documents.length,
-      correctDocuments: 0,
-      correctedDocuments: 0,
-      failedCorrections: 0,
-      details: [] as any[]
-    };
-    
-    for (const doc of documents) {
-      console.log(`\n--- Analyse document: ${doc.file_name} ---`);
-      
-      // Tester le téléchargement pour voir le vrai Content-Type
-      const downloadTest = await testDocumentDownload(doc.file_path);
-      
-      const detail = {
-        fileName: doc.file_name,
-        filePath: doc.file_path,
-        storedMimeType: doc.mime_type,
-        actualMimeType: downloadTest.actualContentType,
-        correctionNeeded: false,
-        correctionSuccess: undefined as boolean | undefined
-      };
-      
-      // Vérifier si une correction est nécessaire
-      if (downloadTest.actualContentType && 
-          downloadTest.actualContentType.includes('json') && 
-          !doc.mime_type.includes('json')) {
-        detail.correctionNeeded = true;
-        console.log('⚠️ Correction nécessaire pour:', doc.file_name);
-        
-        // Tenter la correction
-        const correctionSuccess = await correctFileMetadata(doc.file_path, doc.mime_type);
-        detail.correctionSuccess = correctionSuccess;
-        
-        if (correctionSuccess) {
-          results.correctedDocuments++;
-          console.log('✅ Correction réussie pour:', doc.file_name);
-        } else {
-          results.failedCorrections++;
-          console.log('❌ Correction échouée pour:', doc.file_name);
-        }
-      } else {
-        results.correctDocuments++;
-        console.log('✅ Document correct:', doc.file_name);
-      }
-      
-      results.details.push(detail);
-    }
-    
-    console.log('=== RÉSUMÉ DEBUG ===');
-    console.log('Total documents:', results.totalDocuments);
-    console.log('Documents corrects:', results.correctDocuments);
-    console.log('Documents corrigés:', results.correctedDocuments);
-    console.log('Corrections échouées:', results.failedCorrections);
-    
-    return results;
-  } catch (error) {
-    console.error('Erreur lors du debug des documents:', error);
-    throw error;
-  }
-};
-
-// Fonction pour valider le type MIME après upload avec vérification HTTP renforcée
-const validateUploadedFileMimeType = async (bucketName: string, filePath: string): Promise<void> => {
-  try {
-    console.log('=== VALIDATION POST-UPLOAD RENFORCÉE ===');
-    console.log('Vérification pour:', filePath);
-    
-    // Attendre un peu pour que Supabase traite le fichier
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Test de téléchargement avec notre nouvelle fonction
-    const testResult = await testDocumentDownload(filePath);
-    
-    if (testResult.success && testResult.actualContentType) {
-      if (testResult.actualContentType.includes('json')) {
-        console.error('🚨 PROBLÈME CONFIRMÉ: Le fichier est servi comme JSON!');
-        console.error('Content-Type reçu:', testResult.actualContentType);
-        console.error('Une correction sera nécessaire.');
-      } else {
-        console.log('✅ Type MIME correct confirmé via HTTP:', testResult.actualContentType);
-      }
-    } else {
-      console.warn('Impossible de valider via HTTP:', testResult.error);
-    }
-    
-    // Vérifier aussi via l'API de listing pour comparaison
-    const folderPath = filePath.split('/').slice(0, -1).join('/');
-    const fileName = filePath.split('/').pop();
-    
-    const { data: listData, error: listError } = await supabase.storage
-      .from(bucketName)
-      .list(folderPath, {
-        search: fileName
-      });
-    
-    if (!listError && listData) {
-      const fileInfo = listData.find(f => f.name === fileName);
-      if (fileInfo) {
-        console.log('=== MÉTADONNÉES SUPABASE (COMPARAISON) ===');
-        console.log('Nom fichier:', fileInfo.name);
-        console.log('Taille:', fileInfo.metadata?.size);
-        console.log('Type MIME Supabase:', fileInfo.metadata?.mimetype);
-        console.log('Dernière modification:', fileInfo.updated_at);
-      }
-    }
-    
-  } catch (error) {
-    console.error('Exception lors de la validation renforcée:', error);
-  }
-};
-
 // S'assurer que le bucket existe
 const ensureOfferDocumentsBucket = async (): Promise<boolean> => {
   try {
-    // Vérifier si le bucket existe
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
@@ -344,7 +97,6 @@ const ensureOfferDocumentsBucket = async (): Promise<boolean> => {
     if (!bucketExists) {
       console.log('Création du bucket offer-documents...');
       
-      // Essayer de créer le bucket via l'edge function
       try {
         const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
           body: { bucket_name: 'offer-documents' }
@@ -408,7 +160,7 @@ export const createUploadLink = async (
   }
 };
 
-// Vérifier la validité d'un token (maintenant accessible publiquement grâce à la politique RLS)
+// Vérifier la validité d'un token
 export const validateUploadToken = async (token: string): Promise<OfferUploadLink | null> => {
   try {
     console.log('Validation du token:', token);
@@ -439,7 +191,7 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
   }
 };
 
-// Uploader un document avec contrôle renforcé du type MIME
+// Uploader un document (version simplifiée pour cohérence MIME)
 export const uploadDocument = async (
   token: string,
   documentType: string,
@@ -447,14 +199,13 @@ export const uploadDocument = async (
   uploaderEmail?: string
 ): Promise<boolean> => {
   try {
-    console.log('=== DÉBUT UPLOAD DOCUMENT (VERSION RENFORCÉE) ===');
+    console.log('=== DÉBUT UPLOAD DOCUMENT ===');
     console.log('Token:', token);
     console.log('Type de document:', documentType);
     console.log('Fichier original:', {
       name: file.name,
       size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
+      type: file.type
     });
     
     // Valider le token
@@ -473,63 +224,42 @@ export const uploadDocument = async (
       throw new Error('Impossible de préparer le stockage des documents');
     }
 
-    // Détecter le type MIME correct avec logging renforcé
+    // Détecter le type MIME correct
     const correctMimeType = detectMimeType(file);
-    console.log('=== TYPE MIME FINAL ===');
     console.log('Type MIME choisi:', correctMimeType);
 
-    // Créer le chemin du fichier avec le token pour la sécurité
+    // Créer le chemin du fichier
     const fileExtension = file.name.split('.').pop();
     const fileName = `${token}/${documentType}_${Date.now()}.${fileExtension}`;
 
-    console.log('=== PARAMÈTRES UPLOAD ===');
+    console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
     console.log('Chemin de destination:', fileName);
-    console.log('Bucket:', 'offer-documents');
+    console.log('Type MIME à utiliser:', correctMimeType);
 
-    // Créer un blob avec le type MIME correct et logging détaillé
-    const correctBlob = createCorrectBlob(file, correctMimeType);
-    console.log('Blob créé:', {
-      size: correctBlob.size,
-      type: correctBlob.type
-    });
-
-    // Uploader le fichier vers Supabase Storage avec options renforcées
-    console.log('=== TENTATIVE UPLOAD VERS SUPABASE STORAGE ===');
-    const uploadOptions = {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: correctMimeType
-    };
-    
-    console.log('Options d\'upload:', uploadOptions);
-
+    // IMPORTANT: Utiliser exactement le même MIME type pour Storage ET la DB
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('offer-documents')
-      .upload(fileName, correctBlob, uploadOptions);
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: correctMimeType // Utiliser le même type MIME partout
+      });
 
     if (uploadError) {
-      console.error('=== ERREUR UPLOAD STORAGE ===');
-      console.error('Erreur:', uploadError);
+      console.error('Erreur upload storage:', uploadError);
       throw new Error(`Erreur upload storage: ${uploadError.message}`);
     }
 
-    console.log('=== UPLOAD RÉUSSI ===');
-    console.log('Données retournées par l\'upload:', uploadData);
+    console.log('Upload réussi:', uploadData);
 
-    // Attendre un peu pour que Storage soit à jour puis faire la validation renforcée
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await validateUploadedFileMimeType('offer-documents', fileName);
-
-    console.log('=== ENREGISTREMENT MÉTADONNÉES DB ===');
-    
-    // Enregistrer les métadonnées du document avec le type MIME correct
+    // Enregistrer les métadonnées avec exactement le même MIME type
     const documentData = {
       offer_id: uploadLink.offer_id,
       document_type: documentType,
       file_name: file.name,
       file_path: fileName,
       file_size: file.size,
-      mime_type: correctMimeType,
+      mime_type: correctMimeType, // Même valeur que contentType
       uploaded_by: uploaderEmail || null,
       status: 'pending' as const
     };
@@ -542,11 +272,9 @@ export const uploadDocument = async (
       .select();
 
     if (insertError) {
-      console.error('=== ERREUR INSERTION DB ===');
-      console.error('Erreur:', insertError);
+      console.error('Erreur insertion DB:', insertError);
       
       // Supprimer le fichier uploadé en cas d'erreur
-      console.log('Suppression du fichier uploadé suite à l\'erreur...');
       await supabase.storage
         .from('offer-documents')
         .remove([fileName]);
@@ -556,11 +284,6 @@ export const uploadDocument = async (
 
     console.log('=== SUCCÈS COMPLET ===');
     console.log('Document enregistré:', insertedData);
-    
-    // Test final pour vérifier le résultat
-    console.log('=== TEST FINAL POST-UPLOAD ===');
-    const finalTest = await testDocumentDownload(fileName);
-    console.log('Résultat test final:', finalTest);
     
     return true;
   } catch (error) {
