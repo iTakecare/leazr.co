@@ -29,19 +29,35 @@ const OfferDocumentUpload = () => {
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
   const [clientEmail, setClientEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkToken = async () => {
       if (!token) {
+        setError("Token manquant dans l'URL");
         setLoading(false);
         return;
       }
 
-      const link = await validateUploadToken(token);
-      if (link) {
-        setUploadLink(link);
+      console.log('Vérification du token:', token);
+      
+      try {
+        const link = await validateUploadToken(token);
+        console.log('Résultat de la validation:', link);
+        
+        if (link) {
+          setUploadLink(link);
+          console.log('Lien d\'upload validé:', link);
+        } else {
+          setError("Lien invalide ou expiré");
+          console.error('Token invalide ou expiré');
+        }
+      } catch (error) {
+        console.error('Erreur lors de la validation du token:', error);
+        setError("Erreur lors de la validation du lien");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkToken();
@@ -67,13 +83,17 @@ const OfferDocumentUpload = () => {
     setUploading(documentType);
 
     try {
+      console.log('Début de l\'upload:', { documentType, fileName: file.name, size: file.size });
+      
       const success = await uploadDocument(token, documentType, file, clientEmail);
       
       if (success) {
         setUploadedDocs(prev => new Set([...prev, documentType]));
         toast.success("Document uploadé avec succès");
+        console.log('Upload réussi pour:', documentType);
       } else {
         toast.error("Erreur lors de l'upload du document");
+        console.error('Échec de l\'upload pour:', documentType);
       }
     } catch (error) {
       console.error("Erreur upload:", error);
@@ -98,7 +118,7 @@ const OfferDocumentUpload = () => {
     );
   }
 
-  if (!uploadLink) {
+  if (error || !uploadLink) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -109,7 +129,12 @@ const OfferDocumentUpload = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Ce lien d'upload est invalide ou a expiré.</p>
+            <p>{error || "Ce lien d'upload est invalide ou a expiré."}</p>
+            {token && (
+              <div className="mt-4 p-3 bg-gray-100 rounded text-sm">
+                <strong>Token:</strong> {token}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -230,6 +255,23 @@ const OfferDocumentUpload = () => {
                     Terminer l'envoi
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Debug info en mode développement */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
+                <strong>Debug Info:</strong>
+                <pre>{JSON.stringify({ 
+                  token, 
+                  uploadLink: uploadLink ? {
+                    id: uploadLink.id,
+                    offer_id: uploadLink.offer_id,
+                    requested_documents: uploadLink.requested_documents,
+                    expires_at: uploadLink.expires_at,
+                    used_at: uploadLink.used_at
+                  } : null 
+                }, null, 2)}</pre>
               </div>
             )}
           </CardContent>

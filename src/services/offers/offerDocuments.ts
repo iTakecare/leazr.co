@@ -42,6 +42,50 @@ export const DOCUMENT_TYPES = {
   custom: "Autre document"
 };
 
+// S'assurer que le bucket existe
+const ensureOfferDocumentsBucket = async (): Promise<boolean> => {
+  try {
+    // Vérifier si le bucket existe
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Erreur lors de la vérification des buckets:', listError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'offer-documents');
+    
+    if (!bucketExists) {
+      console.log('Création du bucket offer-documents...');
+      
+      // Essayer de créer le bucket via l'edge function
+      try {
+        const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
+          body: { bucket_name: 'offer-documents' }
+        });
+        
+        if (error) {
+          console.error('Erreur lors de la création du bucket via edge function:', error);
+          return false;
+        }
+        
+        if (data?.success) {
+          console.log('Bucket offer-documents créé avec succès');
+          return true;
+        }
+      } catch (functionError) {
+        console.error('Erreur lors de l\'appel à l\'edge function:', functionError);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erreur générale lors de la vérification du bucket:', error);
+    return false;
+  }
+};
+
 // Créer un lien d'upload sécurisé
 export const createUploadLink = async (
   offerId: string,
@@ -78,9 +122,11 @@ export const createUploadLink = async (
   }
 };
 
-// Vérifier la validité d'un token
+// Vérifier la validité d'un token (maintenant accessible publiquement grâce à la politique RLS)
 export const validateUploadToken = async (token: string): Promise<OfferUploadLink | null> => {
   try {
+    console.log('Validation du token:', token);
+    
     const { data, error } = await supabase
       .from('offer_upload_links')
       .select('*')
@@ -89,10 +135,17 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
       .is('used_at', null)
       .single();
 
-    if (error || !data) {
+    if (error) {
+      console.error('Erreur lors de la validation du token:', error);
       return null;
     }
 
+    if (!data) {
+      console.error('Token non trouvé ou invalide');
+      return null;
+    }
+
+    console.log('Token validé avec succès:', data);
     return data as OfferUploadLink;
   } catch (error) {
     console.error('Erreur lors de la validation du token:', error);
@@ -108,15 +161,25 @@ export const uploadDocument = async (
   uploaderEmail?: string
 ): Promise<boolean> => {
   try {
+    console.log('Début de l\'upload du document:', { token, documentType, fileName: file.name });
+    
     // Valider le token
     const uploadLink = await validateUploadToken(token);
     if (!uploadLink) {
       throw new Error('Token invalide ou expiré');
     }
 
+    // S'assurer que le bucket existe
+    const bucketReady = await ensureOfferDocumentsBucket();
+    if (!bucketReady) {
+      throw new Error('Impossible de préparer le stockage des documents');
+    }
+
     // Créer le chemin du fichier
     const fileExtension = file.name.split('.').pop();
     const fileName = `${token}/${documentType}_${Date.now()}.${fileExtension}`;
+
+    console.log('Upload vers le chemin:', fileName);
 
     // Uploader le fichier vers Supabase Storage
     const { error: uploadError } = await supabase.storage
@@ -124,8 +187,11 @@ export const uploadDocument = async (
       .upload(fileName, file);
 
     if (uploadError) {
+      console.error('Erreur lors de l\'upload vers le storage:', uploadError);
       throw uploadError;
     }
+
+    console.log('Fichier uploadé avec succès, enregistrement des métadonnées...');
 
     // Enregistrer les métadonnées du document
     const { error: insertError } = await supabase
@@ -142,6 +208,7 @@ export const uploadDocument = async (
       });
 
     if (insertError) {
+      console.error('Erreur lors de l\'enregistrement des métadonnées:', insertError);
       // Supprimer le fichier uploadé en cas d'erreur
       await supabase.storage
         .from('offer-documents')
@@ -149,6 +216,7 @@ export const uploadDocument = async (
       throw insertError;
     }
 
+    console.log('Document uploadé et enregistré avec succès');
     return true;
   } catch (error) {
     console.error('Erreur lors de l\'upload du document:', error);
@@ -177,7 +245,6 @@ export const getOfferDocuments = async (offerId: string): Promise<OfferDocument[
   }
 };
 
-// Mettre à jour le statut d'un document
 export const updateDocumentStatus = async (
   documentId: string,
   status: 'approved' | 'rejected',
@@ -205,7 +272,6 @@ export const updateDocumentStatus = async (
   }
 };
 
-// Télécharger un document
 export const downloadDocument = async (filePath: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
@@ -224,7 +290,6 @@ export const downloadDocument = async (filePath: string): Promise<string | null>
   }
 };
 
-// Marquer un lien comme utilisé
 export const markLinkAsUsed = async (token: string): Promise<void> => {
   try {
     await supabase
