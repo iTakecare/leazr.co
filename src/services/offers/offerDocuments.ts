@@ -42,44 +42,49 @@ export const DOCUMENT_TYPES = {
   custom: "Autre document"
 };
 
-// Fonction pour détecter le type MIME correct basé sur l'extension
-const detectMimeType = (file: File): string => {
+// Fonction pour détecter le type MIME correct basé sur l'extension et le contenu
+const getMimeTypeFromFile = (file: File): string => {
   console.log('=== DÉTECTION TYPE MIME ===');
-  console.log('File.type original:', file.type);
-  console.log('File.name:', file.name);
+  console.log('Nom du fichier:', file.name);
+  console.log('Type original du navigateur:', file.type);
   
   const fileName = file.name.toLowerCase();
-  let detectedType = '';
   
+  // Détection basée sur l'extension de fichier (plus fiable)
   if (fileName.endsWith('.pdf')) {
-    detectedType = 'application/pdf';
+    return 'application/pdf';
   } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-    detectedType = 'image/jpeg';
+    return 'image/jpeg';
   } else if (fileName.endsWith('.png')) {
-    detectedType = 'image/png';
+    return 'image/png';
   } else if (fileName.endsWith('.gif')) {
-    detectedType = 'image/gif';
+    return 'image/gif';
   } else if (fileName.endsWith('.webp')) {
-    detectedType = 'image/webp';
+    return 'image/webp';
+  } else if (fileName.endsWith('.bmp')) {
+    return 'image/bmp';
+  } else if (fileName.endsWith('.tiff') || fileName.endsWith('.tif')) {
+    return 'image/tiff';
   } else if (fileName.endsWith('.doc')) {
-    detectedType = 'application/msword';
+    return 'application/msword';
   } else if (fileName.endsWith('.docx')) {
-    detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   } else if (fileName.endsWith('.xls')) {
-    detectedType = 'application/vnd.ms-excel';
+    return 'application/vnd.ms-excel';
   } else if (fileName.endsWith('.xlsx')) {
-    detectedType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-  } else {
-    // Si pas d'extension reconnue, utiliser le type du fichier s'il semble valide
-    if (file.type && file.type !== 'application/octet-stream' && !file.type.includes('json')) {
-      detectedType = file.type;
-    } else {
-      detectedType = 'application/octet-stream';
-    }
+    return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   }
   
-  console.log('Type MIME détecté final:', detectedType);
-  return detectedType;
+  // Si l'extension n'est pas reconnue et que le navigateur donne un type valide
+  if (file.type && 
+      file.type !== 'application/octet-stream' && 
+      !file.type.includes('json') && 
+      file.type.startsWith('image/') || file.type.startsWith('application/')) {
+    return file.type;
+  }
+  
+  // Par défaut
+  return 'application/octet-stream';
 };
 
 // S'assurer que le bucket existe
@@ -191,7 +196,7 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
   }
 };
 
-// Uploader un document (version simplifiée pour cohérence MIME)
+// Uploader un document avec détection MIME fiable
 export const uploadDocument = async (
   token: string,
   documentType: string,
@@ -202,10 +207,11 @@ export const uploadDocument = async (
     console.log('=== DÉBUT UPLOAD DOCUMENT ===');
     console.log('Token:', token);
     console.log('Type de document:', documentType);
-    console.log('Fichier original:', {
+    console.log('Fichier:', {
       name: file.name,
       size: file.size,
-      type: file.type
+      type: file.type,
+      lastModified: file.lastModified
     });
     
     // Valider le token
@@ -225,46 +231,49 @@ export const uploadDocument = async (
     }
 
     // Détecter le type MIME correct
-    const correctMimeType = detectMimeType(file);
-    console.log('Type MIME choisi:', correctMimeType);
+    const detectedMimeType = getMimeTypeFromFile(file);
+    console.log('Type MIME détecté:', detectedMimeType);
 
-    // Créer le chemin du fichier
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${token}/${documentType}_${Date.now()}.${fileExtension}`;
+    // Créer le chemin du fichier avec timestamp pour éviter les conflits
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const fileExtension = file.name.split('.').pop() || 'bin';
+    const fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
 
     console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
     console.log('Chemin de destination:', fileName);
-    console.log('Type MIME à utiliser:', correctMimeType);
+    console.log('Type MIME pour upload:', detectedMimeType);
 
-    // IMPORTANT: Utiliser exactement le même MIME type pour Storage ET la DB
+    // Upload vers Supabase Storage avec le type MIME détecté
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('offer-documents')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false,
-        contentType: correctMimeType // Utiliser le même type MIME partout
+        contentType: detectedMimeType // Utiliser le type MIME détecté
       });
 
     if (uploadError) {
       console.error('Erreur upload storage:', uploadError);
-      throw new Error(`Erreur upload storage: ${uploadError.message}`);
+      throw new Error(`Erreur upload: ${uploadError.message}`);
     }
 
-    console.log('Upload réussi:', uploadData);
+    console.log('Upload vers storage réussi:', uploadData);
 
-    // Enregistrer les métadonnées avec exactement le même MIME type
+    // Enregistrer les métadonnées avec le même type MIME
     const documentData = {
       offer_id: uploadLink.offer_id,
       document_type: documentType,
       file_name: file.name,
       file_path: fileName,
       file_size: file.size,
-      mime_type: correctMimeType, // Même valeur que contentType
+      mime_type: detectedMimeType, // Même valeur que contentType
       uploaded_by: uploaderEmail || null,
       status: 'pending' as const
     };
 
-    console.log('Données du document à insérer:', documentData);
+    console.log('=== ENREGISTREMENT EN BASE ===');
+    console.log('Données à insérer:', documentData);
 
     const { error: insertError, data: insertedData } = await supabase
       .from('offer_documents')
@@ -279,7 +288,7 @@ export const uploadDocument = async (
         .from('offer-documents')
         .remove([fileName]);
       
-      throw new Error(`Erreur métadonnées: ${insertError.message}`);
+      throw new Error(`Erreur base de données: ${insertError.message}`);
     }
 
     console.log('=== SUCCÈS COMPLET ===');
