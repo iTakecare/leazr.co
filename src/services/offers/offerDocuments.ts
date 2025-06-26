@@ -42,49 +42,104 @@ export const DOCUMENT_TYPES = {
   custom: "Autre document"
 };
 
-// Fonction pour détecter le type MIME correct basé sur l'extension et le contenu
-const getMimeTypeFromFile = (file: File): string => {
-  console.log('=== DÉTECTION TYPE MIME ===');
-  console.log('Nom du fichier:', file.name);
-  console.log('Type original du navigateur:', file.type);
-  
+// Fonction de détection MIME type robuste avec validation du contenu
+const getReliableMimeType = async (file: File): Promise<string> => {
+  console.log('=== DÉTECTION MIME TYPE ROBUSTE ===');
+  console.log('Fichier:', {
+    name: file.name,
+    size: file.size,
+    browserType: file.type,
+    lastModified: file.lastModified
+  });
+
   const fileName = file.name.toLowerCase();
   
-  // Détection basée sur l'extension de fichier (plus fiable)
+  // Détection primaire par extension (plus fiable que le navigateur)
+  let primaryMimeType = 'application/octet-stream';
+  
   if (fileName.endsWith('.pdf')) {
-    return 'application/pdf';
+    primaryMimeType = 'application/pdf';
   } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-    return 'image/jpeg';
+    primaryMimeType = 'image/jpeg';
   } else if (fileName.endsWith('.png')) {
-    return 'image/png';
+    primaryMimeType = 'image/png';
   } else if (fileName.endsWith('.gif')) {
-    return 'image/gif';
+    primaryMimeType = 'image/gif';
   } else if (fileName.endsWith('.webp')) {
-    return 'image/webp';
+    primaryMimeType = 'image/webp';
   } else if (fileName.endsWith('.bmp')) {
-    return 'image/bmp';
+    primaryMimeType = 'image/bmp';
   } else if (fileName.endsWith('.tiff') || fileName.endsWith('.tif')) {
-    return 'image/tiff';
+    primaryMimeType = 'image/tiff';
   } else if (fileName.endsWith('.doc')) {
-    return 'application/msword';
+    primaryMimeType = 'application/msword';
   } else if (fileName.endsWith('.docx')) {
-    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    primaryMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   } else if (fileName.endsWith('.xls')) {
-    return 'application/vnd.ms-excel';
+    primaryMimeType = 'application/vnd.ms-excel';
   } else if (fileName.endsWith('.xlsx')) {
-    return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    primaryMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   }
-  
-  // Si l'extension n'est pas reconnue et que le navigateur donne un type valide
-  if (file.type && 
-      file.type !== 'application/octet-stream' && 
-      !file.type.includes('json') && 
-      file.type.startsWith('image/') || file.type.startsWith('application/')) {
-    return file.type;
+
+  // Validation du contenu pour les types courants
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Vérification des signatures de fichier (magic numbers)
+    if (uint8Array.length >= 4) {
+      // PDF: %PDF
+      if (uint8Array[0] === 0x25 && uint8Array[1] === 0x50 && uint8Array[2] === 0x44 && uint8Array[3] === 0x46) {
+        primaryMimeType = 'application/pdf';
+      }
+      // JPEG: FF D8 FF
+      else if (uint8Array[0] === 0xFF && uint8Array[1] === 0xD8 && uint8Array[2] === 0xFF) {
+        primaryMimeType = 'image/jpeg';
+      }
+      // PNG: 89 50 4E 47
+      else if (uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && uint8Array[2] === 0x4E && uint8Array[3] === 0x47) {
+        primaryMimeType = 'image/png';
+      }
+    }
+  } catch (error) {
+    console.warn('Impossible de lire le contenu du fichier pour validation:', error);
   }
-  
-  // Par défaut
-  return 'application/octet-stream';
+
+  console.log('MIME type détecté:', primaryMimeType);
+  return primaryMimeType;
+};
+
+// Créer un Blob avec le bon MIME type pour forcer Supabase
+const createTypedBlob = async (file: File, mimeType: string): Promise<Blob> => {
+  const arrayBuffer = await file.arrayBuffer();
+  return new Blob([arrayBuffer], { type: mimeType });
+};
+
+// Vérifier le Content-Type servi par Supabase après upload
+const verifyUploadedFileType = async (filePath: string): Promise<string | null> => {
+  try {
+    console.log('=== VÉRIFICATION POST-UPLOAD ===');
+    console.log('Vérification du fichier:', filePath);
+    
+    const { data, error } = await supabase.storage
+      .from('offer-documents')
+      .createSignedUrl(filePath, 60); // URL valide 1 minute pour le test
+
+    if (error || !data?.signedUrl) {
+      console.error('Erreur création URL signée:', error);
+      return null;
+    }
+
+    // Faire une requête HEAD pour obtenir les headers sans télécharger le contenu
+    const response = await fetch(data.signedUrl, { method: 'HEAD' });
+    const contentType = response.headers.get('content-type');
+    
+    console.log('Content-Type servi par Supabase:', contentType);
+    return contentType;
+  } catch (error) {
+    console.error('Erreur lors de la vérification:', error);
+    return null;
+  }
 };
 
 // S'assurer que le bucket existe
@@ -196,7 +251,7 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
   }
 };
 
-// Uploader un document avec détection MIME fiable
+// Uploader un document avec approche robuste et vérification
 export const uploadDocument = async (
   token: string,
   documentType: string,
@@ -204,70 +259,112 @@ export const uploadDocument = async (
   uploaderEmail?: string
 ): Promise<boolean> => {
   try {
-    console.log('=== DÉBUT UPLOAD DOCUMENT ===');
+    console.log('=== DÉBUT UPLOAD DOCUMENT ROBUSTE ===');
     console.log('Token:', token);
     console.log('Type de document:', documentType);
-    console.log('Fichier:', {
+    console.log('Fichier original:', {
       name: file.name,
       size: file.size,
       type: file.type,
       lastModified: file.lastModified
     });
     
-    // Valider le token
+    // Étape 1: Valider le token
     const uploadLink = await validateUploadToken(token);
     if (!uploadLink) {
       console.error('Token invalide ou expiré');
       throw new Error('Token invalide ou expiré');
     }
 
-    console.log('Token validé, offer_id:', uploadLink.offer_id);
+    console.log('✓ Token validé, offer_id:', uploadLink.offer_id);
 
-    // S'assurer que le bucket existe
+    // Étape 2: S'assurer que le bucket existe
     const bucketReady = await ensureOfferDocumentsBucket();
     if (!bucketReady) {
       console.error('Impossible de préparer le stockage des documents');
       throw new Error('Impossible de préparer le stockage des documents');
     }
 
-    // Détecter le type MIME correct
-    const detectedMimeType = getMimeTypeFromFile(file);
-    console.log('Type MIME détecté:', detectedMimeType);
+    console.log('✓ Bucket prêt');
 
-    // Créer le chemin du fichier avec timestamp pour éviter les conflits
+    // Étape 3: Détection MIME type robuste
+    const detectedMimeType = await getReliableMimeType(file);
+    console.log('✓ MIME type détecté:', detectedMimeType);
+
+    // Étape 4: Créer le chemin du fichier unique
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 8);
     const fileExtension = file.name.split('.').pop() || 'bin';
     const fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
 
-    console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
-    console.log('Chemin de destination:', fileName);
-    console.log('Type MIME pour upload:', detectedMimeType);
+    console.log('✓ Chemin de destination:', fileName);
 
-    // Upload vers Supabase Storage avec le type MIME détecté
+    // Étape 5: Créer un Blob typé pour forcer le MIME type
+    const typedBlob = await createTypedBlob(file, detectedMimeType);
+    console.log('✓ Blob typé créé avec MIME:', detectedMimeType);
+
+    // Étape 6: Upload vers Supabase Storage
+    console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('offer-documents')
-      .upload(fileName, file, {
+      .upload(fileName, typedBlob, {
         cacheControl: '3600',
         upsert: false,
-        contentType: detectedMimeType // Utiliser le type MIME détecté
+        contentType: detectedMimeType // Forcer le Content-Type
       });
 
     if (uploadError) {
-      console.error('Erreur upload storage:', uploadError);
+      console.error('❌ Erreur upload storage:', uploadError);
       throw new Error(`Erreur upload: ${uploadError.message}`);
     }
 
-    console.log('Upload vers storage réussi:', uploadData);
+    console.log('✓ Upload réussi:', uploadData);
 
-    // Enregistrer les métadonnées avec le même type MIME
+    // Étape 7: Vérification post-upload
+    console.log('=== VÉRIFICATION POST-UPLOAD ===');
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
+    
+    const actualContentType = await verifyUploadedFileType(fileName);
+    console.log('Content-Type réel après upload:', actualContentType);
+
+    // Étape 8: Correction automatique si nécessaire
+    if (actualContentType && actualContentType.includes('application/json')) {
+      console.log('⚠️ Détection de application/json - Correction automatique...');
+      
+      // Supprimer le fichier défaillant
+      await supabase.storage
+        .from('offer-documents')
+        .remove([fileName]);
+      
+      // Recréer le fichier avec une stratégie différente
+      const correctedFileName = `${fileName}_corrected`;
+      
+      const { data: correctedUpload, error: correctedError } = await supabase.storage
+        .from('offer-documents')
+        .upload(correctedFileName, file, { // Utiliser le File original cette fois
+          cacheControl: '3600',
+          upsert: false,
+          contentType: detectedMimeType
+        });
+
+      if (correctedError) {
+        console.error('❌ Échec de la correction automatique:', correctedError);
+        throw new Error(`Erreur correction: ${correctedError.message}`);
+      }
+
+      console.log('✓ Correction automatique réussie');
+      // Utiliser le nom corrigé pour la suite
+      fileName = correctedFileName;
+    }
+
+    // Étape 9: Enregistrer les métadonnées en base de données
     const documentData = {
       offer_id: uploadLink.offer_id,
       document_type: documentType,
       file_name: file.name,
       file_path: fileName,
       file_size: file.size,
-      mime_type: detectedMimeType, // Même valeur que contentType
+      mime_type: detectedMimeType,
       uploaded_by: uploaderEmail || null,
       status: 'pending' as const
     };
@@ -281,7 +378,7 @@ export const uploadDocument = async (
       .select();
 
     if (insertError) {
-      console.error('Erreur insertion DB:', insertError);
+      console.error('❌ Erreur insertion DB:', insertError);
       
       // Supprimer le fichier uploadé en cas d'erreur
       await supabase.storage
@@ -291,12 +388,14 @@ export const uploadDocument = async (
       throw new Error(`Erreur base de données: ${insertError.message}`);
     }
 
-    console.log('=== SUCCÈS COMPLET ===');
+    console.log('=== ✅ SUCCÈS COMPLET ===');
     console.log('Document enregistré:', insertedData);
+    console.log('MIME type final:', detectedMimeType);
+    console.log('Chemin final:', fileName);
     
     return true;
   } catch (error) {
-    console.error('=== ERREUR GÉNÉRALE UPLOAD ===');
+    console.error('=== ❌ ERREUR GÉNÉRALE UPLOAD ===');
     console.error('Erreur complète:', error);
     return false;
   }
