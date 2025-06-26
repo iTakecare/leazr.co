@@ -21,7 +21,7 @@ import {
 } from "@/services/offers/offerDocuments";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { OfferDocumentDebugger } from "@/components/offers/offerDocumentDebugger";
+import OfferDocumentDebugger from "@/components/offers/OfferDocumentDebugger";
 
 interface OfferDocumentsProps {
   offerId: string;
