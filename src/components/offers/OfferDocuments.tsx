@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 } from "@/services/offers/offerDocuments";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { OfferDocumentDebugger } from "@/components/offers/offerDocumentDebugger";
 
 interface OfferDocumentsProps {
   offerId: string;
@@ -108,126 +108,140 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="mr-2 h-5 w-5" />
+              Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ajouter le débogueur de documents */}
+        {process.env.NODE_ENV === 'development' && (
+          <OfferDocumentDebugger offerId={offerId} />
+        )}
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <FileText className="mr-2 h-5 w-5" />
-          Documents ({documents.length})
-        </CardTitle>
-        <CardDescription>
-          Documents administratifs uploadés par le client
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {documents.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Upload className="mx-auto h-12 w-12 mb-4 opacity-50" />
-            <p>Aucun document uploadé</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">{getDocumentTypeName(doc.document_type)}</span>
-                      {getStatusBadge(doc.status)}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-1">{doc.file_name}</p>
-                    <p className="text-xs text-gray-500">
-                      Uploadé le {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
-                      {doc.uploaded_by && ` par ${doc.uploaded_by}`}
-                    </p>
-                    {doc.admin_notes && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                        <strong>Notes admin:</strong> {doc.admin_notes}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            Documents ({documents.length})
+          </CardTitle>
+          <CardDescription>
+            Documents administratifs uploadés par le client
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Upload className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <p>Aucun document uploadé</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">{getDocumentTypeName(doc.document_type)}</span>
+                        {getStatusBadge(doc.status)}
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownload(doc)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+                      <p className="text-sm text-gray-600 mb-1">{doc.file_name}</p>
+                      <p className="text-xs text-gray-500">
+                        Uploadé le {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
+                        {doc.uploaded_by && ` par ${doc.uploaded_by}`}
+                      </p>
+                      {doc.admin_notes && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                          <strong>Notes admin:</strong> {doc.admin_notes}
+                        </div>
+                      )}
+                    </div>
                     
-                    {doc.status === 'pending' && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Révision du document</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="text-sm font-medium">Notes administratives</label>
-                              <Textarea
-                                value={adminNotes[doc.id] || ''}
-                                onChange={(e) => setAdminNotes(prev => ({
-                                  ...prev,
-                                  [doc.id]: e.target.value
-                                }))}
-                                placeholder="Ajoutez des notes sur ce document..."
-                                className="mt-1"
-                              />
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(doc)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      
+                      {doc.status === 'pending' && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Révision du document</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium">Notes administratives</label>
+                                <Textarea
+                                  value={adminNotes[doc.id] || ''}
+                                  onChange={(e) => setAdminNotes(prev => ({
+                                    ...prev,
+                                    [doc.id]: e.target.value
+                                  }))}
+                                  placeholder="Ajoutez des notes sur ce document..."
+                                  className="mt-1"
+                                />
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleStatusUpdate(doc.id, 'approved', adminNotes[doc.id])}
+                                  disabled={updatingDoc === doc.id}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Approuver
+                                </Button>
+                                <Button
+                                  onClick={() => handleStatusUpdate(doc.id, 'rejected', adminNotes[doc.id])}
+                                  disabled={updatingDoc === doc.id}
+                                  variant="destructive"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Rejeter
+                                </Button>
+                              </div>
                             </div>
-                            
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => handleStatusUpdate(doc.id, 'approved', adminNotes[doc.id])}
-                                disabled={updatingDoc === doc.id}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <Check className="mr-2 h-4 w-4" />
-                                Approuver
-                              </Button>
-                              <Button
-                                onClick={() => handleStatusUpdate(doc.id, 'rejected', adminNotes[doc.id])}
-                                disabled={updatingDoc === doc.id}
-                                variant="destructive"
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Rejeter
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Ajouter le débogueur de documents */}
+      {process.env.NODE_ENV === 'development' && (
+        <OfferDocumentDebugger offerId={offerId} />
+      )}
+    </div>
   );
 };
 
