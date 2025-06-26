@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,6 +39,33 @@ export const DOCUMENT_TYPES = {
   provisional_balance: "Bilan financier provisoire",
   tax_return: "Liasse fiscale",
   custom: "Autre document"
+};
+
+// Fonction pour détecter le type MIME correct
+const detectMimeType = (file: File): string => {
+  // Utiliser d'abord le type du fichier si disponible et fiable
+  if (file.type && file.type !== 'application/octet-stream') {
+    return file.type;
+  }
+  
+  // Détecter basé sur l'extension du fichier
+  const fileName = file.name.toLowerCase();
+  if (fileName.endsWith('.pdf')) {
+    return 'application/pdf';
+  } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+    return 'image/jpeg';
+  } else if (fileName.endsWith('.png')) {
+    return 'image/png';
+  } else if (fileName.endsWith('.gif')) {
+    return 'image/gif';
+  } else if (fileName.endsWith('.doc')) {
+    return 'application/msword';
+  } else if (fileName.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  
+  // Fallback au type du fichier ou application/octet-stream
+  return file.type || 'application/octet-stream';
 };
 
 // S'assurer que le bucket existe
@@ -179,18 +205,23 @@ export const uploadDocument = async (
       throw new Error('Impossible de préparer le stockage des documents');
     }
 
+    // Détecter le type MIME correct
+    const correctMimeType = detectMimeType(file);
+    console.log('Type MIME détecté:', correctMimeType, 'pour le fichier:', file.name);
+
     // Créer le chemin du fichier avec le token pour la sécurité
     const fileExtension = file.name.split('.').pop();
     const fileName = `${token}/${documentType}_${Date.now()}.${fileExtension}`;
 
     console.log('Upload vers le chemin:', fileName);
 
-    // Uploader le fichier vers Supabase Storage
+    // Uploader le fichier vers Supabase Storage avec le type MIME correct
     const { error: uploadError } = await supabase.storage
       .from('offer-documents')
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: correctMimeType // Forcer le type MIME correct
       });
 
     if (uploadError) {
@@ -200,14 +231,14 @@ export const uploadDocument = async (
 
     console.log('Fichier uploadé avec succès, enregistrement des métadonnées...');
 
-    // Enregistrer les métadonnées du document
+    // Enregistrer les métadonnées du document avec le type MIME correct
     const documentData = {
       offer_id: uploadLink.offer_id,
       document_type: documentType,
       file_name: file.name,
       file_path: fileName,
       file_size: file.size,
-      mime_type: file.type || 'application/octet-stream',
+      mime_type: correctMimeType, // Utiliser le type MIME détecté
       uploaded_by: uploaderEmail || null,
       status: 'pending' as const
     };
