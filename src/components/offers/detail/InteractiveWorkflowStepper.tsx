@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Circle, Clock, ArrowRight } from "lucide-react";
+import { CheckCircle, Circle, Clock, ArrowRight, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +24,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     { key: 'draft', label: 'Brouillon', icon: Circle },
     { key: 'sent', label: 'Envoyée', icon: Clock },
     { key: 'viewed', label: 'Vue', icon: Clock },
+    { key: 'info_requested', label: 'Infos demandées', icon: HelpCircle },
     { key: 'signed', label: 'Signée', icon: CheckCircle },
     { key: 'approved', label: 'Approuvée', icon: CheckCircle },
     { key: 'completed', label: 'Finalisée', icon: CheckCircle }
@@ -90,6 +90,11 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     } finally {
       setUpdating(false);
     }
+  };
+
+  const getStatusLabel = (statusId: string) => {
+    const status = steps.find(s => s.key === statusId);
+    return status ? status.label : statusId;
   };
 
   const currentIndex = getCurrentStepIndex();
