@@ -3,6 +3,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 
 interface OfferHeaderProps {
   offerId: string;
@@ -17,40 +18,67 @@ const OfferHeader: React.FC<OfferHeaderProps> = ({
   isPrintingPdf, 
   onPrintPdf 
 }) => {
+  const { branding } = useCompanyBranding();
+  
   return (
-    <div className="flex justify-between items-center mb-8">
-      <div>
-        <h1 className="text-2xl font-bold">Offre de leasing</h1>
-        <p className="text-gray-500">Référence: {offerId?.substring(0, 8).toUpperCase()}</p>
-      </div>
-      <div className="flex gap-2 items-center">
-        <Badge 
-          variant={signed ? "secondary" : "outline"} 
-          className={signed ? "bg-green-50 text-green-700 border-green-200" : ""}
-        >
-          {signed ? "Signée" : "En attente de signature"}
-        </Badge>
+    <div className="mb-8">
+      {/* Logo de l'entreprise si disponible et pas déjà affiché */}
+      {branding?.logo_url && (
+        <div className="text-center mb-6 md:hidden">
+          <img 
+            src={branding.logo_url} 
+            alt="Logo entreprise" 
+            className="h-12 mx-auto object-contain"
+          />
+        </div>
+      )}
+      
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            Offre de financement
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Référence: <span className="font-mono font-semibold">{offerId?.substring(0, 8).toUpperCase()}</span>
+          </p>
+        </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onPrintPdf}
-          disabled={isPrintingPdf}
-          className="whitespace-nowrap"
-        >
-          {isPrintingPdf ? (
-            <span className="flex items-center">
-              <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
-              Génération...
-            </span>
-          ) : (
-            <span className="flex items-center">
-              <Printer className="mr-2 h-4 w-4" />
-              Imprimer PDF
-            </span>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <Badge 
+            variant={signed ? "secondary" : "outline"} 
+            className={`text-sm px-3 py-1 ${
+              signed 
+                ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
+                : "bg-orange-100 text-orange-800 border-orange-200"
+            }`}
+          >
+            {signed ? "✓ Signée" : "⏳ En attente de signature"}
+          </Badge>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onPrintPdf}
+            disabled={isPrintingPdf}
+            className="whitespace-nowrap hover:bg-blue-50 border-blue-200"
+          >
+            {isPrintingPdf ? (
+              <span className="flex items-center">
+                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-blue-600 rounded-full"></span>
+                Génération PDF...
+              </span>
+            ) : (
+              <span className="flex items-center">
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer PDF
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
+      
+      {/* Ligne de séparation */}
+      <div className="mt-6 border-b border-gray-200"></div>
     </div>
   );
 };

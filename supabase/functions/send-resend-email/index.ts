@@ -99,16 +99,8 @@ serve(async (req) => {
 
     console.log(`Tentative d'envoi d'email via Resend à ${reqData.to} depuis ${from}`);
     
-    // Vérifier et corriger le contenu HTML si nécessaire
-    let htmlContent = reqData.html;
-    if (!htmlContent.trim().startsWith('<')) {
-      // Si le contenu HTML ne commence pas par une balise, on l'enveloppe dans un div
-      htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${htmlContent}</div>`;
-      console.log("HTML ajusté pour s'assurer du bon format");
-    }
-    
-    // Traiter les chaînes JSON potentielles dans le contenu HTML
-    htmlContent = cleanupJsonStrings(htmlContent);
+    // Nettoyer le HTML pour éviter les doubles logos et autres problèmes
+    let htmlContent = cleanupHtmlContent(reqData.html);
     
     // Log Deno env variables pour le débogage
     console.log("RESEND_API environment variable check:", !!Deno.env.get("RESEND_API"));
@@ -156,6 +148,53 @@ serve(async (req) => {
 // Utilitaire pour supprimer les balises HTML d'une chaîne
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
+}
+
+// Fonction pour nettoyer le contenu HTML et éviter les doubles logos
+function cleanupHtmlContent(html: string): string {
+  // Vérifier et corriger le contenu HTML si nécessaire
+  let cleanedHtml = html;
+  
+  if (!cleanedHtml.trim().startsWith('<')) {
+    // Si le contenu HTML ne commence pas par une balise, on l'enveloppe dans un div
+    cleanedHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">${cleanedHtml}</div>`;
+    console.log("HTML ajusté pour s'assurer du bon format");
+  }
+  
+  // Traiter les chaînes JSON potentielles dans le contenu HTML
+  cleanedHtml = cleanupJsonStrings(cleanedHtml);
+  
+  // Supprimer les logos dupliqués - rechercher les patterns de logos répétés
+  cleanedHtml = removeDuplicateLogos(cleanedHtml);
+  
+  return cleanedHtml;
+}
+
+// Fonction pour supprimer les logos dupliqués
+function removeDuplicateLogos(html: string): string {
+  // Patterns pour détecter les logos dupliqués
+  const logoPatterns = [
+    /<img[^>]*src[^>]*logo[^>]*>/gi,
+    /<img[^>]*alt[^>]*logo[^>]*>/gi,
+    /<div[^>]*logo[^>]*>.*?<\/div>/gi
+  ];
+  
+  let cleanedHtml = html;
+  let logoCount = 0;
+  
+  // Compter et supprimer les logos en trop
+  logoPatterns.forEach(pattern => {
+    const matches = cleanedHtml.match(pattern);
+    if (matches && matches.length > 1) {
+      console.log(`Détection de ${matches.length} logos, suppression des doublons`);
+      // Garder seulement le premier logo
+      for (let i = 1; i < matches.length; i++) {
+        cleanedHtml = cleanedHtml.replace(matches[i], '');
+      }
+    }
+  });
+  
+  return cleanedHtml;
 }
 
 // Fonction pour nettoyer les chaînes JSON dans le contenu HTML
