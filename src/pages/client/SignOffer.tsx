@@ -16,6 +16,10 @@ const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
   const { branding } = useCompanyBranding();
   
+  console.log("SignOffer - Component loaded");
+  console.log("SignOffer - Offer ID from params:", id);
+  console.log("SignOffer - Current URL:", window.location.href);
+  
   const {
     offer,
     loading,
@@ -32,8 +36,17 @@ const SignOffer = () => {
     clientIp
   } = useClientOffer(id);
   
+  console.log("SignOffer - Hook results:", {
+    offer: !!offer,
+    loading,
+    error,
+    signed,
+    debugInfo
+  });
+  
   // Log debugging information to console
   useEffect(() => {
+    console.log("SignOffer - useEffect triggered");
     if (debugInfo) {
       console.log("Debug info:", debugInfo);
     }
@@ -50,13 +63,19 @@ const SignOffer = () => {
     }
   }, [debugInfo, offer]);
   
+  console.log("SignOffer - About to render, loading:", loading, "error:", error, "offer:", !!offer);
+  
   if (loading) {
+    console.log("SignOffer - Rendering loading state");
     return <LoadingState />;
   }
   
   if (error || !offer) {
+    console.log("SignOffer - Rendering error state", { error, hasOffer: !!offer });
     return <ErrorState error={error || "Cette offre n'existe pas ou n'est plus disponible."} debugInfo={debugInfo} />;
   }
+  
+  console.log("SignOffer - Rendering main content");
   
   return (
     <div className="bg-gray-50 flex flex-col md:flex-row">
