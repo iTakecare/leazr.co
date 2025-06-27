@@ -1,115 +1,217 @@
-import React from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Phone, Mail, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import RequestSteps from '@/components/checkout/RequestSteps';
-import { useCart } from '@/context/CartContext';
-import { supabase } from "@/integrations/supabase/client";
-import CompanyCustomizationService from "@/services/companyCustomizationService";
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CompanyBranding } from '@/services/companyCustomizationService';
 
-const PublicRequestPage: React.FC = () => {
-  const { companyId } = useParams<{ companyId: string }>();
-  const { items } = useCart();
-  
-  // Fetch company info with branding
-  const { data: company } = useQuery({
-    queryKey: ["company", companyId],
-    queryFn: async () => {
-      if (!companyId) return null;
-      const { data, error } = await supabase
-        .from("companies")
-        .select("*")
-        .eq("id", companyId)
-        .single();
-      if (error) throw error;
-      
-      // Apply company branding
-      if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
-        CompanyCustomizationService.applyCompanyBranding({
-          primary_color: data.primary_color || "#3b82f6",
-          secondary_color: data.secondary_color || "#64748b",
-          accent_color: data.accent_color || "#8b5cf6",
-          logo_url: data.logo_url || ""
-        });
-      }
-      
-      return data;
-    },
-    enabled: !!companyId,
-  });
-  
+const PublicRequestPage = () => {
+  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
+  const [productCategory, setProductCategory] = useState('');
+  const [productName, setProductName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(undefined);
+  const [message, setMessage] = useState('');
+  const [terms, setTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Configuration par défaut du branding
+  const defaultBranding: CompanyBranding = {
+    company_id: '',
+    primary_color: '#3b82f6',
+    secondary_color: '#64748b',
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    // Validation simple
+    if (!name || !email || !terms) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires et accepter les conditions.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Simuler l'envoi de la demande
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simuler un délai d'attente
+      toast({
+        title: "Demande envoyée",
+        description: "Votre demande a été envoyée avec succès. Nous vous contacterons bientôt.",
+      });
+      // Réinitialiser le formulaire
+      setName('');
+      setEmail('');
+      setPhone('');
+      setCompany('');
+      setProductCategory('');
+      setProductName('');
+      setQuantity('');
+      setDeliveryDate(undefined);
+      setMessage('');
+      setTerms(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de l'envoi de votre demande. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Company Header */}
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {company?.logo_url && (
-                <img 
-                  src={company.logo_url} 
-                  alt={company.name}
-                  className="h-10 w-auto"
-                />
-              )}
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  {company?.contact_phone && (
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      <span>{company.contact_phone}</span>
-                    </div>
-                  )}
-                  {company?.contact_email && (
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      <span>{company.contact_email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+    <div className="container mx-auto py-8">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Demande d'informations</CardTitle>
+          <CardDescription>
+            Remplissez le formulaire ci-dessous pour demander des informations sur nos produits.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="name">Nom *</Label>
+              <Input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
-            
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2"
-              >
-                <Link to={`/public/${companyId}/panier`}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Retour au panier
-                </Link>
-              </Button>
+            <div>
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-          </div>
-        </div>
-      </header>
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Faire ma demande</h1>
-        </div>
-        
-        {items.length === 0 ? (
-          <div className="bg-white p-8 rounded-lg shadow-sm text-center">
-            <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag className="h-10 w-10 text-gray-400" />
+            <div>
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
             </div>
-            <h3 className="text-lg font-medium mb-2">Votre panier est vide</h3>
-            <p className="text-gray-500 mb-6">
-              Vous devez ajouter des produits à votre panier avant de faire une demande.
-            </p>
-            <Button asChild>
-              <Link to={`/public/${companyId}/catalog`}>Voir le catalogue</Link>
+            <div>
+              <Label htmlFor="company">Entreprise</Label>
+              <Input
+                type="text"
+                id="company"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="productCategory">Catégorie de produit</Label>
+              <Select onValueChange={setProductCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="category1">Catégorie 1</SelectItem>
+                  <SelectItem value="category2">Catégorie 2</SelectItem>
+                  <SelectItem value="category3">Catégorie 3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="productName">Nom du produit</Label>
+              <Input
+                type="text"
+                id="productName"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="quantity">Quantité</Label>
+              <Input
+                type="number"
+                id="quantity"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Date de livraison souhaitée</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deliveryDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deliveryDate ? format(deliveryDate, "PPP") : <span>Choisir une date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={deliveryDate}
+                    onSelect={setDeliveryDate}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="terms"
+                checked={terms}
+                onCheckedChange={(checked) => setTerms(!!checked)}
+                required
+              />
+              <Label htmlFor="terms">
+                J'accepte les <a href="#" className="text-blue-500">conditions générales</a> *
+              </Label>
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Envoi en cours..." : "Envoyer la demande"}
             </Button>
-          </div>
-        ) : (
-          <RequestSteps />
-        )}
-      </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

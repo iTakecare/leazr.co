@@ -21,6 +21,14 @@ const PublicProductDetailPage = () => {
   const navigate = useNavigate();
   const { cartCount } = useCart();
   
+  // Configuration par défaut du branding
+  const defaultBranding: CompanyBranding = {
+    company_id: '',
+    primary_color: '#3b82f6',
+    secondary_color: '#64748b',
+    // Removed accent_color since it's now properly defined in the interface
+  };
+  
   // Fetch company info with branding
   const { data: company } = useQuery({
     queryKey: ["company", companyId],
