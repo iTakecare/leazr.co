@@ -3,7 +3,6 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 
 interface OfferHeaderProps {
   offerId: string;
@@ -18,21 +17,8 @@ const OfferHeader: React.FC<OfferHeaderProps> = ({
   isPrintingPdf, 
   onPrintPdf 
 }) => {
-  const { branding } = useCompanyBranding();
-  
   return (
     <div className="mb-8">
-      {/* Logo de l'entreprise si disponible et pas déjà affiché */}
-      {branding?.logo_url && (
-        <div className="text-center mb-6 md:hidden">
-          <img 
-            src={branding.logo_url} 
-            alt="Logo entreprise" 
-            className="h-12 mx-auto object-contain"
-          />
-        </div>
-      )}
-      
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
