@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +27,7 @@ import RequestInfoModal from "@/components/offers/RequestInfoModal";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin, isAmbassador } = useAuth();
   const navigate = useNavigate();
 
   const [offer, setOffer] = useState<any>(null);
@@ -52,6 +53,13 @@ const AdminOfferDetail = () => {
           return;
         }
 
+        // Vérifier l'accès selon le rôle
+        if (isAmbassador() && offerData.user_id !== user?.id) {
+          setError("Vous n'avez pas accès à cette offre");
+          toast.error("Vous n'avez pas accès à cette offre");
+          return;
+        }
+
         setOffer(offerData);
       } catch (err) {
         console.error("Erreur lors du chargement de l'offre:", err);
@@ -63,7 +71,7 @@ const AdminOfferDetail = () => {
     };
 
     fetchOfferDetails();
-  }, [id]);
+  }, [id, user, isAmbassador]);
 
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -145,7 +153,12 @@ const AdminOfferDetail = () => {
   };
 
   const handleEditOffer = () => {
-    navigate(`/create-offer?offerId=${id}`);
+    // Redirection adaptée selon le rôle
+    if (isAmbassador()) {
+      navigate(`/ambassador/create-offer?offerId=${id}`);
+    } else {
+      navigate(`/create-offer?offerId=${id}`);
+    }
   };
 
   const handlePreview = () => {
@@ -158,9 +171,14 @@ const AdminOfferDetail = () => {
     setOffer({ ...offer, workflow_status: newStatus });
   };
 
-  const isAdmin = useCallback(() => {
-    return user?.role === 'admin';
-  }, [user]);
+  const handleBackClick = () => {
+    // Navigation adaptée selon le rôle
+    if (isAmbassador()) {
+      navigate("/ambassador/offers");
+    } else {
+      navigate("/admin/offers");
+    }
+  };
 
   if (loading) {
     return (
@@ -183,7 +201,7 @@ const AdminOfferDetail = () => {
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Erreur</h2>
             <p className="text-gray-600 mb-4">{error || "Offre introuvable"}</p>
-            <Button onClick={() => navigate("/admin/offers")}>
+            <Button onClick={handleBackClick}>
               Retour aux offres
             </Button>
           </div>
@@ -202,7 +220,7 @@ const AdminOfferDetail = () => {
               <div className="flex items-center gap-4">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate("/admin/offers")}
+                  onClick={handleBackClick}
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
