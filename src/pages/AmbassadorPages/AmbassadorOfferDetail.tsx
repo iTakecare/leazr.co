@@ -154,8 +154,8 @@ const AmbassadorOfferDetail = () => {
       // Exécuter le diagnostic en cas d'erreur pour aider au débogage
       await logUserProfileDiagnostics();
       
-      // Construire le lien de signature côté client
-      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      // Construire le lien de signature côté client avec la bonne route
+      const offerLink = `${window.location.origin}/client/offer/${offer.id}/sign`;
       console.log("🔗 Lien de signature généré:", offerLink);
       
       if (offer.workflow_status === 'draft') {

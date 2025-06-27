@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -53,7 +52,7 @@ const PartnerOfferDetail = () => {
       
       const baseUrl = window.location.origin;
       setShareUrl(`${baseUrl}/client/offers/${data.id}`);
-      setSignatureUrl(generateSignatureLink(data.id));
+      setSignatureUrl(`${baseUrl}/client/offer/${data.id}/sign`);
     } catch (error) {
       console.error("Error fetching offer details:", error);
       toast.error("Erreur lors du chargement des détails de l'offre");
@@ -81,8 +80,8 @@ const PartnerOfferDetail = () => {
         workflow_status: offer.workflow_status
       });
       
-      // Construire le lien de signature côté client
-      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      // Construire le lien de signature côté client avec la bonne route
+      const offerLink = `${window.location.origin}/client/offer/${offer.id}/sign`;
       console.log("🔗 Lien de signature généré:", offerLink);
       
       // Mettre à jour le statut si l'offre est en brouillon

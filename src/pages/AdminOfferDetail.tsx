@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -82,8 +81,8 @@ const AdminOfferDetail = () => {
         workflow_status: offer.workflow_status
       });
 
-      // Construire le lien de signature côté client
-      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      // Construire le lien de signature côté client avec la bonne route
+      const offerLink = `${window.location.origin}/client/offer/${offer.id}/sign`;
       console.log("🔗 Lien de signature généré:", offerLink);
 
       // Formatter la description de l'équipement
@@ -150,7 +149,7 @@ const AdminOfferDetail = () => {
   };
 
   const handlePreview = () => {
-    // Ouvrir l'aperçu de l'offre dans un nouvel onglet
+    // Ouvrir l'aperçu de l'offre dans un nouvel onglet avec la bonne route
     const previewUrl = `/client/offer/${id}`;
     window.open(previewUrl, '_blank');
   };

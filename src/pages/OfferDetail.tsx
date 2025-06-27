@@ -135,8 +135,8 @@ const OfferDetail = () => {
         workflow_status: offer.workflow_status
       });
       
-      // Construire le lien de signature côté client
-      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      // Construire le lien de signature côté client avec la bonne route
+      const offerLink = `${window.location.origin}/client/offer/${offer.id}/sign`;
       console.log("🔗 Lien de signature généré:", offerLink);
       
       // Formatter la description de l'équipement si nécessaire
@@ -368,7 +368,7 @@ const OfferDetail = () => {
                           className="w-full bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 text-blue-700"
                           onClick={() => {
                             const origin = window.location.origin;
-                            const signatureLink = `${origin}/client/sign-offer/${id}`;
+                            const signatureLink = `${origin}/client/offer/${id}/sign`;
                             navigator.clipboard.writeText(signatureLink);
                             toast.success("Lien de signature copié dans le presse-papier");
                           }}
