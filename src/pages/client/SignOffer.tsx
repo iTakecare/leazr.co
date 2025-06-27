@@ -63,9 +63,9 @@ const SignOffer = () => {
       {/* Client Offers Sidebar */}
       <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
-      {/* Main Content - Permettre le scroll complet */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="py-4 md:py-8 px-4 md:px-6 min-h-full pb-20">
+      {/* Main Content - Correction du problème de scroll */}
+      <div className="flex-1 min-h-screen">
+        <div className="py-4 md:py-8 px-4 md:px-6 pb-20">
           <div className="max-w-4xl mx-auto">
             {/* Mobile spacing to account for the menu button */}
             <div className="h-10 md:hidden"></div>
