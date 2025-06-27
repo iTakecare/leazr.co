@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getOfferById } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
+import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { AlertCircle, ArrowLeft } from "lucide-react";
