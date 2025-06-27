@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -34,6 +33,7 @@ import ClientInformation from "@/components/offers/ClientInformation";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
+import { sendOfferReadyEmail } from "@/services/emailService";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +41,7 @@ const OfferDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   // Logs de débogage
   console.log("OfferDetail - ID from params:", id);
@@ -115,6 +116,60 @@ const OfferDetail = () => {
       toast.error("Erreur lors de la mise à jour du statut");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleSendOfferEmail = async () => {
+    if (!offer || !offer.id) {
+      toast.error("Impossible d'envoyer l'email - données de l'offre manquantes");
+      return;
+    }
+
+    try {
+      setIsSendingEmail(true);
+      console.log("🚀 Envoi de l'email de contrat prêt à signer");
+      
+      // Formatter la description de l'équipement
+      let equipmentDescription = offer.equipment_description || "Votre équipement";
+      
+      // Si nous avons des équipements parsés, les utiliser pour une meilleure description
+      if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
+        if (offer.parsedEquipment.length === 1) {
+          equipmentDescription = offer.parsedEquipment[0].title || "Votre équipement";
+        } else {
+          equipmentDescription = `${offer.parsedEquipment.length} équipements dont ${offer.parsedEquipment[0].title || "équipement"}`;
+        }
+      }
+      
+      // Calculer le montant financé si nécessaire
+      const financed_amount = offer.financed_amount || (offer.coefficient && offer.monthly_payment 
+        ? parseFloat((offer.coefficient * offer.monthly_payment).toFixed(2))
+        : 0);
+      
+      // Envoyer l'email avec les bonnes données
+      const success = await sendOfferReadyEmail(
+        offer.client_email,
+        offer.client_name,
+        {
+          id: offer.id,
+          description: equipmentDescription,
+          amount: financed_amount || offer.amount || 0,
+          monthlyPayment: offer.monthly_payment || 0
+        }
+      );
+      
+      if (success) {
+        toast.success("Email envoyé au client avec succès");
+        console.log("✅ Email de contrat prêt envoyé avec succès");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'email");
+        console.error("❌ Échec de l'envoi de l'email");
+      }
+    } catch (error) {
+      console.error("💥 Exception lors de l'envoi de l'email:", error);
+      toast.error("Erreur lors de l'envoi de l'email");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -280,7 +335,7 @@ const OfferDetail = () => {
                           className="w-full bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 text-blue-700"
                           onClick={() => {
                             const origin = window.location.origin;
-                            const signatureLink = `${origin}/client/sign/${id}`;
+                            const signatureLink = `${origin}/client/sign-offer/${id}`;
                             navigator.clipboard.writeText(signatureLink);
                             toast.success("Lien de signature copié dans le presse-papier");
                           }}
@@ -291,12 +346,15 @@ const OfferDetail = () => {
                         
                         <Button
                           className="w-full"
-                          onClick={() => {
-                            toast.success("Email envoyé au client");
-                          }}
+                          onClick={handleSendOfferEmail}
+                          disabled={isSendingEmail}
                         >
-                          <Send className="h-4 w-4 mr-2" />
-                          Envoyer par email
+                          {isSendingEmail ? (
+                            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                          ) : (
+                            <Send className="h-4 w-4 mr-2" />
+                          )}
+                          {isSendingEmail ? "Envoi..." : "Envoyer par email"}
                         </Button>
                       </div>
                     </TabsContent>
