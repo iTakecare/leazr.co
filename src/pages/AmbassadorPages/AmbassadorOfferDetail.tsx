@@ -143,10 +143,20 @@ const AmbassadorOfferDetail = () => {
     }
     
     try {
-      console.log("🚀 Début de l'envoi du lien de signature");
+      console.log("🚀 DÉBUT PROCESSUS ENVOI EMAIL");
+      console.log("📋 Détails de l'offre:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        client_email: offer.client_email,
+        workflow_status: offer.workflow_status
+      });
       
       // Exécuter le diagnostic en cas d'erreur pour aider au débogage
       await logUserProfileDiagnostics();
+      
+      // Construire le lien de signature côté client
+      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      console.log("🔗 Lien de signature généré:", offerLink);
       
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
@@ -163,22 +173,44 @@ const AmbassadorOfferDetail = () => {
         setOffer({ ...offer, workflow_status: 'sent' });
       }
       
+      // Formater la description de l'équipement
+      let equipmentDescription = offer.equipment_description || "Votre équipement";
+      
+      try {
+        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
+          const equipmentItems = JSON.parse(equipmentDescription);
+          if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+            if (equipmentItems.length === 1) {
+              equipmentDescription = equipmentItems[0].title || "Votre équipement";
+            } else {
+              equipmentDescription = `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Erreur lors du parsing de la description de l'équipement:", e);
+      }
+      
+      // Calculer les montants
+      const amount = typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0);
+      const monthlyPayment = Number(offer.monthly_payment || 0);
+      
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
         {
           id: offer.id,
-          description: offer.equipment_description || "Votre équipement",
-          amount: offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
-        }
+          description: equipmentDescription,
+          amount: amount,
+          monthlyPayment: monthlyPayment
+        },
+        offerLink
       );
       
       if (success) {
         toast.success("Lien de signature envoyé au client avec succès");
       } else {
         toast.error("Erreur lors de l'envoi de l'email au client");
-        // Lancer un diagnostic détaillé si l'envoi échoue
         console.error("❌ Échec de l'envoi de l'email - Lancement du diagnostic...");
         await logUserProfileDiagnostics();
         return;
@@ -188,7 +220,6 @@ const AmbassadorOfferDetail = () => {
       console.error("Error sending offer ready email:", error);
       toast.error("Erreur lors de l'envoi de l'email");
       
-      // Lancer un diagnostic détaillé en cas d'exception
       console.error("❌ Exception lors de l'envoi - Lancement du diagnostic...");
       await logUserProfileDiagnostics();
     }

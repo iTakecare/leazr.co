@@ -72,6 +72,39 @@ const AdminOfferDetail = () => {
 
     try {
       setSendingEmail(true);
+      console.log("🚀 DÉBUT PROCESSUS ENVOI EMAIL");
+      console.log("📋 Détails de l'offre:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        client_email: offer.client_email,
+        workflow_status: offer.workflow_status
+      });
+
+      // Construire le lien de signature côté client
+      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      console.log("🔗 Lien de signature généré:", offerLink);
+
+      // Formatter la description de l'équipement
+      let equipmentDescription = offer.equipment_description || "Votre équipement";
+      
+      try {
+        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
+          const equipmentItems = JSON.parse(equipmentDescription);
+          if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+            if (equipmentItems.length === 1) {
+              equipmentDescription = equipmentItems[0].title || "Votre équipement";
+            } else {
+              equipmentDescription = `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Erreur lors du parsing de la description de l'équipement:", e);
+      }
+
+      // Calculer les montants
+      const amount = typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0);
+      const monthlyPayment = Number(offer.monthly_payment || 0);
 
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
@@ -84,9 +117,24 @@ const AdminOfferDetail = () => {
         setOffer({ ...offer, workflow_status: 'sent' });
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Envoyer l'email avec sendOfferReadyEmail
+      const success = await sendOfferReadyEmail(
+        offer.client_email,
+        offer.client_name,
+        {
+          id: offer.id,
+          description: equipmentDescription,
+          amount: amount,
+          monthlyPayment: monthlyPayment
+        },
+        offerLink
+      );
 
-      toast.success("Email envoyé au client avec succès");
+      if (success) {
+        toast.success("Email envoyé au client avec succès");
+      } else {
+        toast.error("Erreur lors de l'envoi de l'email");
+      }
     } catch (err) {
       console.error("Erreur lors de l'envoi de l'email:", err);
       toast.error("Impossible d'envoyer l'email");

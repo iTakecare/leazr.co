@@ -73,6 +73,18 @@ const PartnerOfferDetail = () => {
     
     setIsSending(true);
     try {
+      console.log("🚀 DÉBUT PROCESSUS ENVOI EMAIL");
+      console.log("📋 Détails de l'offre:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        client_email: offer.client_email,
+        workflow_status: offer.workflow_status
+      });
+      
+      // Construire le lien de signature côté client
+      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      console.log("🔗 Lien de signature généré:", offerLink);
+      
       // Mettre à jour le statut si l'offre est en brouillon
       if (offer.workflow_status === 'draft') {
         const { error } = await supabase
@@ -107,6 +119,10 @@ const PartnerOfferDetail = () => {
         console.error("Erreur lors du parsing de la description de l'équipement:", e);
       }
       
+      // Calculer les montants
+      const amount = typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0);
+      const monthlyPayment = Number(offer.monthly_payment || 0);
+      
       // Envoyer l'email
       const success = await sendOfferReadyEmail(
         offer.client_email,
@@ -114,9 +130,10 @@ const PartnerOfferDetail = () => {
         {
           id: offer.id,
           description: equipmentDescription,
-          amount: offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
-        }
+          amount: amount,
+          monthlyPayment: monthlyPayment
+        },
+        offerLink
       );
       
       if (success) {

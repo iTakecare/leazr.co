@@ -127,52 +127,80 @@ const OfferDetail = () => {
 
     try {
       setIsSendingEmail(true);
-      console.log("🚀 Envoi de l'email de contrat prêt à signer");
+      console.log("🚀 DÉBUT PROCESSUS ENVOI EMAIL");
+      console.log("📋 Détails de l'offre:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        client_email: offer.client_email,
+        workflow_status: offer.workflow_status
+      });
       
       // Construire le lien de signature côté client
       const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
       console.log("🔗 Lien de signature généré:", offerLink);
       
-      // Formatter la description de l'équipement
+      // Formatter la description de l'équipement si nécessaire
       let equipmentDescription = offer.equipment_description || "Votre équipement";
       
-      // Si nous avons des équipements parsés, les utiliser pour une meilleure description
-      if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
-        if (offer.parsedEquipment.length === 1) {
-          equipmentDescription = offer.parsedEquipment[0].title || "Votre équipement";
-        } else {
-          equipmentDescription = `${offer.parsedEquipment.length} équipements dont ${offer.parsedEquipment[0].title || "équipement"}`;
+      // Vérifier si la description est un JSON et le formater proprement
+      try {
+        if (equipmentDescription.startsWith('[{') && equipmentDescription.endsWith('}]')) {
+          const equipmentItems = JSON.parse(equipmentDescription);
+          if (Array.isArray(equipmentItems) && equipmentItems.length > 0) {
+            if (equipmentItems.length === 1) {
+              equipmentDescription = equipmentItems[0].title || "Votre équipement";
+            } else {
+              equipmentDescription = `${equipmentItems.length} équipements dont ${equipmentItems[0].title}`;
+            }
+          }
         }
+      } catch (e) {
+        console.error("Erreur lors du parsing de la description de l'équipement:", e);
+        // En cas d'erreur, conserver la description originale
       }
       
-      // Calculer le montant financé si nécessaire
-      const financed_amount = offer.financed_amount || (offer.coefficient && offer.monthly_payment 
-        ? parseFloat((offer.coefficient * offer.monthly_payment).toFixed(2))
-        : 0);
+      console.log("📦 Description équipement formatée:", equipmentDescription);
       
-      // Envoyer l'email avec les bonnes données et le lien
+      // Calculer le montant financé de la même façon que dans handleResendOffer
+      const amount = typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0);
+      const monthlyPayment = Number(offer.monthly_payment || 0);
+      
+      console.log("💰 Données financières:", {
+        amount: amount,
+        monthlyPayment: monthlyPayment
+      });
+      
+      // Mettre à jour le statut de l'offre si nécessaire
+      if (offer.workflow_status === 'draft') {
+        console.log("📝 Mise à jour du statut de brouillon vers envoyé");
+        await handleStatusChange('sent');
+      }
+      
+      // Envoyer l'email "offre prête à consulter"
+      console.log("📧 Tentative d'envoi de l'email avec sendOfferReadyEmail");
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
         {
           id: offer.id,
           description: equipmentDescription,
-          amount: financed_amount || offer.amount || 0,
-          monthlyPayment: offer.monthly_payment || 0
+          amount: amount,
+          monthlyPayment: monthlyPayment
         },
         offerLink // Passer le lien en paramètre
       );
       
       if (success) {
-        toast.success("Email envoyé au client avec succès");
-        console.log("✅ Email de contrat prêt envoyé avec succès");
+        console.log("✅ Email envoyé avec succès");
+        toast.success("L'offre a été envoyée au client avec succès");
       } else {
-        toast.error("Erreur lors de l'envoi de l'email");
         console.error("❌ Échec de l'envoi de l'email");
+        console.error("Vérifiez les logs de la fonction edge send-resend-email");
+        toast.error("Erreur lors de l'envoi de l'offre par email. Vérifiez la configuration email.");
       }
     } catch (error) {
-      console.error("💥 Exception lors de l'envoi de l'email:", error);
-      toast.error("Erreur lors de l'envoi de l'email");
+      console.error("💥 Erreur générale lors de l'envoi de l'offre:", error);
+      toast.error("Erreur lors de l'envoi de l'offre");
     } finally {
       setIsSendingEmail(false);
     }
