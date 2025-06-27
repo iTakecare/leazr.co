@@ -538,7 +538,8 @@ export const sendOfferReadyEmail = async (
     description: string;
     amount: number;
     monthlyPayment: number;
-  }
+  },
+  offerLink?: string // Nouveau paramètre optionnel pour le lien
 ): Promise<boolean> => {
   try {
     console.log(`📧 Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
@@ -546,8 +547,10 @@ export const sendOfferReadyEmail = async (
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
     
-    // Préparer l'URL de l'offre - utiliser la route correcte
-    const offerLink = `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
+    // Utiliser le lien fourni ou construire un lien par défaut
+    const finalOfferLink = offerLink || `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
+    
+    console.log("🔗 Lien de l'offre utilisé:", finalOfferLink);
     
     // Formater la description de l'équipement avant de l'utiliser
     const formattedDescription = formatEquipmentDescription(offerInfo.description);
@@ -572,7 +575,7 @@ export const sendOfferReadyEmail = async (
         </ul>
         <p>Pour consulter les détails complets et signer votre contrat, veuillez cliquer sur le lien ci-dessous:</p>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${offerLink}" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+          <a href="${finalOfferLink}" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
             Consulter et signer mon contrat
           </a>
         </p>
@@ -595,7 +598,7 @@ export const sendOfferReadyEmail = async (
         .replace(/{{equipment_description}}/g, formattedDescription)
         .replace(/{{amount}}/g, formattedAmount)
         .replace(/{{monthly_payment}}/g, formattedMonthlyPayment)
-        .replace(/{{offer_link}}/g, offerLink);
+        .replace(/{{offer_link}}/g, finalOfferLink);
         
       // S'assurer que le template contient le placeholder pour le logo
       if (!htmlContent.includes('{{site_logo}}')) {
@@ -608,7 +611,7 @@ export const sendOfferReadyEmail = async (
     
     console.log(`🎯 Tentative d'envoi d'email "contrat prêt à signer" à: ${clientEmail}`);
     console.log("📋 Sujet de l'email formaté:", subject);
-    console.log("🔗 Lien de signature:", offerLink);
+    console.log("🔗 Lien de signature final:", finalOfferLink);
     
     // Envoyer l'email
     const success = await sendEmail(

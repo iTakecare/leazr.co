@@ -129,6 +129,10 @@ const OfferDetail = () => {
       setIsSendingEmail(true);
       console.log("🚀 Envoi de l'email de contrat prêt à signer");
       
+      // Construire le lien de signature côté client
+      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      console.log("🔗 Lien de signature généré:", offerLink);
+      
       // Formatter la description de l'équipement
       let equipmentDescription = offer.equipment_description || "Votre équipement";
       
@@ -146,7 +150,7 @@ const OfferDetail = () => {
         ? parseFloat((offer.coefficient * offer.monthly_payment).toFixed(2))
         : 0);
       
-      // Envoyer l'email avec les bonnes données
+      // Envoyer l'email avec les bonnes données et le lien
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
@@ -155,7 +159,8 @@ const OfferDetail = () => {
           description: equipmentDescription,
           amount: financed_amount || offer.amount || 0,
           monthlyPayment: offer.monthly_payment || 0
-        }
+        },
+        offerLink // Passer le lien en paramètre
       );
       
       if (success) {

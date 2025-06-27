@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -81,6 +80,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         workflow_status: offer.workflow_status
       });
       
+      // Construire le lien de signature côté client
+      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      console.log("🔗 Lien de signature généré:", offerLink);
+      
       // Formatter la description de l'équipement si nécessaire
       let equipmentDescription = offer.equipment_description || "Votre équipement";
       
@@ -123,7 +126,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
           description: equipmentDescription,
           amount: typeof offer.amount === 'string' ? Number(offer.amount) : (offer.amount || 0),
           monthlyPayment: Number(offer.monthly_payment || 0)
-        }
+        },
+        offerLink // Passer le lien en paramètre
       );
       
       if (success) {
