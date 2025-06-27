@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,12 @@ import { toast } from "sonner";
 import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 
 const AmbassadorDashboardPage = () => {
+  console.log("🏠 AmbassadorDashboardPage - Component mounted");
+  
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  console.log("🏠 AmbassadorDashboardPage - User:", user ? { id: user.id, email: user.email } : 'No user');
   
   const [stats, setStats] = useState({
     clientsCount: 0,
@@ -29,13 +34,15 @@ const AmbassadorDashboardPage = () => {
 
   // Fonction pour trouver l'ID de l'ambassadeur
   const findAmbassadorId = async () => {
+    console.log("🔍 Finding ambassador ID for user:", user?.id);
+    
     if (!user?.id) {
-      console.log("Aucun utilisateur connecté");
+      console.log("❌ No user ID provided");
       return null;
     }
     
     try {
-      console.log("Recherche d'un ambassadeur pour l'utilisateur:", user.id);
+      console.log("🔍 Searching ambassador for user_id:", user.id);
       
       // Rechercher par user_id
       const { data: ambassadorData, error } = await supabase
@@ -44,54 +51,61 @@ const AmbassadorDashboardPage = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       
+      console.log("🔍 Ambassador search result:", { ambassadorData, error });
+      
       if (error) {
-        console.error("Erreur lors de la recherche de l'ambassadeur:", error);
+        console.error("❌ Error searching ambassador:", error);
         return null;
       }
       
       if (ambassadorData?.id) {
-        console.log("Ambassadeur trouvé:", ambassadorData.id);
+        console.log("✅ Ambassador found:", ambassadorData.id);
         return ambassadorData.id;
       }
       
-      console.log("Aucun ambassadeur trouvé pour cet utilisateur");
+      console.log("❌ No ambassador found for this user");
       return null;
     } catch (error) {
-      console.error("Exception lors de la recherche de l'ambassadeur:", error);
+      console.error("💥 Exception finding ambassador:", error);
       return null;
     }
   };
 
   const loadStats = async () => {
+    console.log("📊 Loading stats...");
     setLoading(true);
     
     try {
       const foundAmbassadorId = await findAmbassadorId();
       
       if (!foundAmbassadorId) {
-        console.warn("Aucun ID d'ambassadeur trouvé");
+        console.warn("⚠️ No ambassador ID found");
         toast.error("Profil ambassadeur non trouvé. Veuillez contacter l'administrateur.");
         setLoading(false);
         return;
       }
 
       setAmbassadorId(foundAmbassadorId);
-      console.log(`Chargement des statistiques pour l'ambassadeur ${foundAmbassadorId}`);
+      console.log(`📊 Loading stats for ambassador ${foundAmbassadorId}`);
       
       // Utiliser la fonction sécurisée pour récupérer les clients
+      console.log("👥 Fetching clients...");
       const clientsData = await getAmbassadorClients(user?.id);
       const clientsCount = clientsData?.length || 0;
-      console.log(`Trouvé ${clientsCount} clients pour l'ambassadeur ${foundAmbassadorId}`);
+      console.log(`👥 Found ${clientsCount} clients`);
       
       // Récupérer les offres depuis la table offers
+      console.log("📋 Fetching offers...");
       const { data: offersData, error: offersError } = await supabase
         .from("offers")
         .select("commission, created_at, workflow_status, client_name, monthly_payment, id")
         .eq("ambassador_id", foundAmbassadorId)
         .eq("type", "ambassador_offer");
 
+      console.log("📋 Offers result:", { offersData, offersError });
+
       if (offersError) {
-        console.error("Erreur lors du chargement des offres:", offersError);
+        console.error("❌ Error fetching offers:", offersError);
       }
       
       let totalCommissions = 0;
@@ -100,6 +114,8 @@ const AmbassadorDashboardPage = () => {
       let acceptedOffersCount = 0;
       
       if (offersData && offersData.length > 0) {
+        console.log(`📋 Processing ${offersData.length} offers`);
+        
         // Calculer les commissions
         const commissionsData = offersData.filter(offer => offer.commission && offer.commission > 0);
         totalCommissions = commissionsData.reduce(
@@ -125,7 +141,12 @@ const AmbassadorDashboardPage = () => {
           offer.workflow_status === 'financed'
         ).length;
         
-        console.log(`Statistiques calculées: ${totalCommissions} commissions, ${pendingOffersCount} offres en cours, ${acceptedOffersCount} offres acceptées`);
+        console.log(`📊 Stats calculated:`, {
+          totalCommissions,
+          pendingOffersCount,
+          acceptedOffersCount,
+          clientsCount
+        });
       }
 
       setStats({
@@ -144,17 +165,23 @@ const AmbassadorDashboardPage = () => {
       const recentOffersData = offersData?.slice(0, 5) || [];
       setRecentOffers(recentOffersData);
       
+      console.log("✅ Stats loading completed");
+      
     } catch (error) {
-      console.error("Erreur lors du chargement des statistiques:", error);
+      console.error("💥 Error loading stats:", error);
       toast.error("Impossible de charger les données du tableau de bord");
     } finally {
+      console.log("📊 Setting loading to false");
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log("🔄 useEffect triggered, user:", user?.id);
     if (user?.id) {
       loadStats();
+    } else {
+      console.log("⏳ Waiting for user authentication...");
     }
   }, [user?.id]);
 
@@ -165,7 +192,10 @@ const AmbassadorDashboardPage = () => {
     return "Bonsoir";
   };
 
+  console.log("🏠 AmbassadorDashboardPage - About to render, loading:", loading, "user:", !!user);
+
   if (loading) {
+    console.log("🔄 Rendering loading state");
     return (
       <PageTransition>
         <Container>
@@ -176,6 +206,8 @@ const AmbassadorDashboardPage = () => {
       </PageTransition>
     );
   }
+
+  console.log("🏠 Rendering main dashboard content");
 
   return (
     <PageTransition>
