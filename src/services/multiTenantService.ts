@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -16,20 +17,28 @@ export type CreateDataWithCompany<T> = T & WithCompanyId;
  * Récupère le company_id de l'utilisateur connecté en utilisant la fonction sécurisée
  */
 export const getCurrentUserCompanyId = async (): Promise<string> => {
+  console.log("🏢 SERVICE - Début getCurrentUserCompanyId");
+  
   const { data: { user } } = await supabase.auth.getUser();
+  console.log("🏢 SERVICE - Utilisateur récupéré:", user?.id);
   
   if (!user) {
+    console.error("🏢 SERVICE - Utilisateur non authentifié");
     throw new Error("Utilisateur non authentifié");
   }
 
+  console.log("🏢 SERVICE - Appel de get_user_company_id RPC");
   const { data: companyId, error } = await supabase
     .rpc('get_user_company_id');
 
+  console.log("🏢 SERVICE - Résultat RPC:", { companyId, error });
+
   if (error || !companyId) {
-    console.error("Error fetching user company_id:", error);
+    console.error("🏢 SERVICE - Erreur lors de la récupération du company_id:", error);
     throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
   }
 
+  console.log("🏢 SERVICE - CompanyId retourné:", companyId);
   return companyId;
 };
 

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import CompanyCustomizationService, { CompanyBranding } from '@/services/companyCustomizationService';
@@ -29,20 +30,32 @@ export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderPro
   const [loading, setLoading] = useState(true);
 
   const fetchBranding = async () => {
-    if (!companyId) return;
+    console.log("🏢 COMPANY BRANDING - Début fetchBranding, companyId:", companyId);
+    
+    if (!companyId) {
+      console.log("🏢 COMPANY BRANDING - Pas de companyId, arrêt");
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log("🏢 COMPANY BRANDING - Appel getCompanyBranding pour:", companyId);
+      
       const brandingData = await CompanyCustomizationService.getCompanyBranding(companyId);
+      console.log("🏢 COMPANY BRANDING - Données reçues:", brandingData);
+      
       setBranding(brandingData);
       
       // Appliquer automatiquement le branding si disponible
       if (brandingData) {
+        console.log("🏢 COMPANY BRANDING - Application du branding");
         CompanyCustomizationService.applyCompanyBranding(brandingData);
       }
     } catch (error) {
-      console.error('Error fetching company branding:', error);
+      console.error('🏢 COMPANY BRANDING - Erreur lors de la récupération:', error);
     } finally {
+      console.log("🏢 COMPANY BRANDING - Fin de fetchBranding, setLoading(false)");
       setLoading(false);
     }
   };
@@ -73,10 +86,17 @@ export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderPro
   };
 
   useEffect(() => {
+    console.log("🏢 COMPANY BRANDING - useEffect déclenché, companyLoading:", companyLoading, "companyId:", companyId);
+    
     if (!companyLoading && companyId) {
       fetchBranding();
+    } else if (!companyLoading && !companyId) {
+      console.log("🏢 COMPANY BRANDING - Pas de companyId après chargement, setLoading(false)");
+      setLoading(false);
     }
   }, [companyId, companyLoading]);
+
+  console.log("🏢 COMPANY BRANDING - Rendu du provider, loading:", loading, "branding:", !!branding);
 
   const value = {
     branding,
