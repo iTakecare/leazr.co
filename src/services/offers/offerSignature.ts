@@ -257,8 +257,8 @@ export const generateSignatureLink = (offerId: string): string => {
   
   // Base URL de l'application
   const baseUrl = window.location.origin;
-  // URL de signature corrigée pour utiliser la bonne route
-  return `${baseUrl}/client/sign-offer/${offerId}`;
+  // URL de signature corrigée pour correspondre à la route définie dans App.tsx
+  return `${baseUrl}/client/offer/${offerId}/sign`;
 };
 
 /**
