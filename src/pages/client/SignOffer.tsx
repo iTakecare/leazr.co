@@ -59,12 +59,12 @@ const SignOffer = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="bg-gray-50 flex flex-col md:flex-row">
       {/* Client Offers Sidebar */}
       <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
-      {/* Main Content - Correction du problème de scroll */}
-      <div className="flex-1 min-h-screen">
+      {/* Main Content */}
+      <div className="flex-1">
         <div className="py-4 md:py-8 px-4 md:px-6 pb-20">
           <div className="max-w-4xl mx-auto">
             {/* Mobile spacing to account for the menu button */}
