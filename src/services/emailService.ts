@@ -138,15 +138,28 @@ export const sendEmail = async (
   textContent?: string
 ): Promise<boolean> => {
   try {
-    console.log(`📧 DÉBUT ENVOI EMAIL`);
-    console.log(`Destinataire: ${to}`);
-    console.log(`Sujet: "${subject}"`);
+    console.log(`📧 DÉBUT ENVOI EMAIL - DIAGNOSTIC DÉTAILLÉ`);
+    console.log(`🎯 ÉTAPE 1: Validation des paramètres d'entrée`);
+    console.log(`   → Destinataire: ${to}`);
+    console.log(`   → Sujet: "${subject}"`);
+    console.log(`   → HTML défini: ${!!htmlContent}`);
+    console.log(`   → Longueur HTML: ${htmlContent?.length || 0} caractères`);
     
+    if (!to || !subject || !htmlContent) {
+      console.error("❌ ERREUR: Paramètres manquants pour l'envoi d'email");
+      console.error(`   → to: ${!!to}, subject: ${!!subject}, htmlContent: ${!!htmlContent}`);
+      return false;
+    }
+    
+    console.log(`🎯 ÉTAPE 2: Injection du logo du site`);
     // Injecter le logo du site dans le contenu HTML
     const htmlWithLogo = await injectSiteLogo(htmlContent);
+    console.log(`   → Logo injecté, nouvelle longueur: ${htmlWithLogo.length} caractères`);
     
+    console.log(`🎯 ÉTAPE 3: Récupération des paramètres SMTP`);
     // Récupérer les paramètres de configuration avec diagnostic amélioré
-    console.log("Récupération des paramètres SMTP...");
+    console.log("   → Tentative de récupération depuis la table smtp_settings...");
+    
     const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
       .select('from_email, from_name')
@@ -154,79 +167,115 @@ export const sendEmail = async (
       .single();
       
     if (settingsError) {
-      console.error("❌ Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      console.error("❌ ERREUR lors de la récupération des paramètres SMTP:", settingsError);
+      console.error(`   → Code d'erreur: ${settingsError.code}`);
+      console.error(`   → Message: ${settingsError.message}`);
       
       // Si c'est une erreur de permission, afficher plus d'informations
       if (settingsError.code === '42501') {
-        console.error("Erreur de permission SMTP - vérifiez que l'utilisateur a le bon rôle dans la table profiles");
+        console.error("   → Type: Erreur de permission RLS");
         
         // Vérifier le profil de l'utilisateur pour diagnostic
-        const { data: userProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, first_name, last_name')
-          .eq('id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
-          
-        if (profileError) {
-          console.error("Erreur lors de la récupération du profil utilisateur:", profileError);
-        } else {
-          console.log("Profil utilisateur actuel pour SMTP:", userProfile);
+        try {
+          const { data: userProfile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, first_name, last_name')
+            .eq('id', (await supabase.auth.getUser()).data.user?.id)
+            .single();
+            
+          if (profileError) {
+            console.error("   → Impossible de récupérer le profil utilisateur:", profileError);
+          } else {
+            console.log("   → Profil utilisateur actuel pour SMTP:", userProfile);
+          }
+        } catch (e) {
+          console.error("   → Exception lors de la vérification du profil:", e);
         }
       }
       
+      console.log("❌ ARRÊT DU PROCESSUS: Impossible de récupérer les paramètres SMTP");
       return false;
     }
     
     if (!settings) {
-      console.error("❌ Aucun paramètre d'envoi d'email trouvé.");
+      console.error("❌ ERREUR: Aucun paramètre d'envoi d'email trouvé dans la base.");
+      console.log("❌ ARRÊT DU PROCESSUS: Settings null");
       return false;
     }
     
-    console.log("✅ Paramètres SMTP récupérés:", { 
-      from_email: settings.from_email,
-      from_name: settings.from_name
-    });
+    console.log("✅ Paramètres SMTP récupérés avec succès:");
+    console.log(`   → from_email: ${settings.from_email}`);
+    console.log(`   → from_name: ${settings.from_name}`);
     
-    console.log("📤 Utilisation de Resend pour l'envoi d'email");
-    
+    console.log(`🎯 ÉTAPE 4: Préparation du contenu email`);
     // S'assurer que le contenu HTML est bien formaté
     const formattedHtml = ensureHtmlFormat(htmlWithLogo);
-    console.log("📝 Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
+    console.log(`   → HTML formaté, longueur finale: ${formattedHtml.length} caractères`);
+    console.log(`   → Extrait du HTML: ${formattedHtml.substring(0, 150)}...`);
+    
+    // Préparer le contenu texte si non fourni
+    const finalTextContent = textContent || stripHtml(formattedHtml);
+    console.log(`   → Contenu texte préparé, longueur: ${finalTextContent.length} caractères`);
+    
+    console.log(`🎯 ÉTAPE 5: Appel de la fonction edge send-resend-email`);
+    console.log("   → Préparation du payload...");
+    
+    const payload = {
+      to,
+      subject,
+      html: formattedHtml,
+      text: finalTextContent,
+      from: {
+        email: settings.from_email,
+        name: settings.from_name
+      }
+    };
+    
+    console.log("   → Payload préparé:");
+    console.log(`     • to: ${payload.to}`);
+    console.log(`     • subject: ${payload.subject}`);
+    console.log(`     • from.email: ${payload.from.email}`);
+    console.log(`     • from.name: ${payload.from.name}`);
+    console.log(`     • html length: ${payload.html.length}`);
+    console.log(`     • text length: ${payload.text.length}`);
+    
+    console.log("🚀 APPEL IMMINENT de supabase.functions.invoke('send-resend-email')");
+    console.log("   → Si vous ne voyez pas de logs dans send-resend-email après ce message,");
+    console.log("     c'est que l'appel n'atteint pas la fonction edge.");
     
     // Appeler la fonction Supabase pour envoyer l'email via Resend
-    console.log("🚀 Appel de la fonction send-resend-email...");
     const { data, error } = await supabase.functions.invoke('send-resend-email', {
-      body: {
-        to,
-        subject,
-        html: formattedHtml,
-        text: textContent || stripHtml(formattedHtml),
-        from: {
-          email: settings.from_email,
-          name: settings.from_name
-        }
-      }
+      body: payload
     });
+
+    console.log("📨 RETOUR de la fonction send-resend-email:");
+    console.log(`   → error: ${!!error}`);
+    console.log(`   → data: ${JSON.stringify(data)}`);
 
     if (error) {
       console.error("❌ Erreur lors de l'appel à la fonction d'envoi d'email Resend:", error);
+      console.error("   → Type d'erreur:", typeof error);
+      console.error("   → Détails:", JSON.stringify(error, null, 2));
       return false;
     }
-    
-    console.log("📨 Réponse de la fonction send-resend-email:", data);
     
     // Vérifier la réponse
     if (data && data.success) {
       console.log("✅ Email envoyé avec succès via Resend à:", to);
+      console.log(`   → ID de message: ${data.data?.id || 'non disponible'}`);
       return true;
     } else {
       console.error("❌ Échec de l'envoi d'email via Resend:");
-      console.error("Erreur:", data?.error || "Raison inconnue");
-      console.error("Message:", data?.message || "Aucun message");
+      console.error("   → Erreur:", data?.error || "Raison inconnue");
+      console.error("   → Message:", data?.message || "Aucun message");
+      console.error("   → Data complète:", JSON.stringify(data, null, 2));
       return false;
     }
   } catch (error) {
-    console.error("💥 Exception lors de l'envoi de l'email:", error);
+    console.error("💥 EXCEPTION GÉNÉRALE lors de l'envoi de l'email:");
+    console.error("   → Type:", typeof error);
+    console.error("   → Message:", error instanceof Error ? error.message : String(error));
+    console.error("   → Stack:", error instanceof Error ? error.stack : 'Non disponible');
     return false;
   }
 };
@@ -542,23 +591,33 @@ export const sendOfferReadyEmail = async (
   offerLink?: string // Nouveau paramètre optionnel pour le lien
 ): Promise<boolean> => {
   try {
-    console.log(`📧 Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
+    console.log(`📧 DÉBUT sendOfferReadyEmail - DIAGNOSTIC COMPLET`);
+    console.log(`🎯 PARAMÈTRES REÇUS:`);
+    console.log(`   → clientEmail: ${clientEmail}`);
+    console.log(`   → clientName: ${clientName}`);
+    console.log(`   → offerInfo:`, JSON.stringify(offerInfo, null, 2));
+    console.log(`   → offerLink: ${offerLink}`);
     
     // Récupérer le modèle d'email
+    console.log(`🎯 ÉTAPE 1: Récupération du template email`);
     const template = await getEmailTemplate("offer_ready");
+    console.log(`   → Template trouvé: ${!!template}`);
     
     // Utiliser le lien fourni ou construire un lien par défaut
     const finalOfferLink = offerLink || `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
-    
-    console.log("🔗 Lien de l'offre utilisé:", finalOfferLink);
+    console.log(`🔗 Lien de l'offre utilisé: ${finalOfferLink}`);
     
     // Formater la description de l'équipement avant de l'utiliser
+    console.log(`🎯 ÉTAPE 2: Formatage de la description`);
     const formattedDescription = formatEquipmentDescription(offerInfo.description);
+    console.log(`   → Description formatée: ${formattedDescription}`);
     
     // Formater les montants
     const formattedAmount = offerInfo.amount.toLocaleString('fr-FR');
     const formattedMonthlyPayment = offerInfo.monthlyPayment.toLocaleString('fr-FR');
-    
+    console.log(`   → Montant formaté: ${formattedAmount}`);
+    console.log(`   → Mensualité formatée: ${formattedMonthlyPayment}`);
+
     let subject = `Votre contrat pour ${formattedDescription} est prêt à signer`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
@@ -587,7 +646,7 @@ export const sendOfferReadyEmail = async (
     
     // Utiliser le modèle personnalisé s'il existe
     if (template) {
-      console.log("Utilisation du modèle d'email 'offer_ready' depuis la base de données");
+      console.log("   → Utilisation du template depuis la DB");
       
       subject = template.subject
         .replace(/{{client_name}}/g, clientName)
@@ -602,16 +661,18 @@ export const sendOfferReadyEmail = async (
         
       // S'assurer que le template contient le placeholder pour le logo
       if (!htmlContent.includes('{{site_logo}}')) {
-        // Ajouter le logo au début du contenu si le placeholder n'existe pas
         htmlContent = htmlContent.replace(/(<div[^>]*>)/, `$1<div style="text-align: center; margin-bottom: 20px;"><img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" /></div>`);
       }
     } else {
-      console.log("Aucun template 'offer_ready' trouvé, utilisation du template par défaut");
+      console.log("   → Utilisation du template par défaut");
     }
     
-    console.log(`🎯 Tentative d'envoi d'email "contrat prêt à signer" à: ${clientEmail}`);
-    console.log("📋 Sujet de l'email formaté:", subject);
-    console.log("🔗 Lien de signature final:", finalOfferLink);
+    console.log(`🎯 ÉTAPE 3: Contenu email préparé`);
+    console.log(`   → Sujet: ${subject}`);
+    console.log(`   → Longueur HTML: ${htmlContent.length} caractères`);
+    console.log(`   → Lien final: ${finalOfferLink}`);
+    
+    console.log(`🚀 ÉTAPE 4: Appel sendEmail - ICI ON DEVRAIT VOIR LES LOGS DE DIAGNOSTIC`);
     
     // Envoyer l'email
     const success = await sendEmail(
@@ -619,6 +680,8 @@ export const sendOfferReadyEmail = async (
       subject,
       htmlContent
     );
+    
+    console.log(`📧 RÉSULTAT sendOfferReadyEmail: ${success ? 'SUCCÈS' : 'ÉCHEC'}`);
     
     if (success) {
       console.log(`✅ Email "contrat prêt à signer" envoyé avec succès à: ${clientEmail}`);
