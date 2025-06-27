@@ -61,6 +61,19 @@ import SignOffer from "@/pages/client/SignOffer";
 // Page de mise à jour du mot de passe
 import UpdatePassword from "@/pages/UpdatePassword";
 
+// Other imports for complete functionality
+import Signup from "@/pages/Signup";
+import AuthCallback from "@/pages/AuthCallback";
+import PublicCatalog from "@/pages/PublicCatalog";
+import RequestSentPage from "@/pages/RequestSentPage";
+import PublicOfferView from "@/pages/client/PublicOfferView";
+import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
+import AdminOfferDetail from "@/pages/AdminOfferDetail";
+import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+import UnifiedSolutionsPage from "@/pages/UnifiedSolutionsPage";
+import HubPage from "@/pages/HubPage";
+import HomePage from "@/pages/HomePage";
+
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
 
@@ -90,6 +103,12 @@ const MultiTenantRouter = () => {
       {/* Route de mise à jour du mot de passe accessible à tous */}
       <Route path="/update-password" element={<UpdatePassword />} />
       
+      {/* Public Authentication Routes */}
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
+      <Route path="/mettre-a-jour-mot-de-passe" element={<UpdatePassword />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      
       {/* Route de signature d'offre accessible à tous (sans authentification) */}
       <Route path="/client/sign-offer/:id" element={<SignOffer />} />
       
@@ -99,12 +118,27 @@ const MultiTenantRouter = () => {
       <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
       <Route path="/solutions/crm" element={<CRMFeaturePage />} />
       <Route path="/solutions/calculateur" element={<CalculatorPage />} />
+      <Route path="/solutions/unified" element={<UnifiedSolutionsPage />} />
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/ressources" element={<ResourcesPage />} />
       <Route path="/a-propos" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/blog" element={<ResourcesPage />} />
       <Route path="/tarifs" element={<PricingPage />} />
+      <Route path="/fonctionnalites/crm" element={<CRMFeaturePage />} />
+      <Route path="/calculateur" element={<CalculatorPage />} />
+      <Route path="/hub" element={<HubPage />} />
+      <Route path="/home" element={<HomePage />} />
+      
+      {/* Public Catalog and Commerce Routes */}
+      <Route path="/catalog" element={<PublicCatalog />} />
+      <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
+      <Route path="/catalog/:companyId" element={<PublicCatalogMultiTenant />} />
+      <Route path="/product/:id" element={<PublicProductDetailPage />} />
+      <Route path="/cart" element={<PublicCartPage />} />
+      <Route path="/request" element={<PublicRequestPage />} />
+      <Route path="/request-sent" element={<RequestSentPage />} />
+      <Route path="/company/:companyId" element={<PublicCompanyLanding />} />
       
       {/* Routes publiques pour les entreprises (sans authentification) */}
       <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
@@ -112,6 +146,11 @@ const MultiTenantRouter = () => {
       <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
       <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
       <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+      
+      {/* Client Public Access Routes */}
+      <Route path="/client/offer/:id" element={<PublicOfferView />} />
+      <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+      <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
       
       {/* Routage intelligent basé sur le rôle */}
       <Route path="/*" element={<RoleBasedRoutes />} />
@@ -179,6 +218,9 @@ const RoleBasedRoutes = () => {
         <Route path="/ambassadors/:id" element={<AmbassadorDetail />} />
         <Route path="/ambassadors/edit/:id" element={<AmbassadorEditPage />} />
         <Route path="/partners/:id" element={<PartnerDetail />} />
+        <Route path="/admin/leazr-saas-dashboard" element={<LeazrSaaSDashboard />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin/settings" element={<Settings />} />
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
