@@ -552,27 +552,31 @@ export const sendOfferReadyEmail = async (
     // Formater la description de l'équipement avant de l'utiliser
     const formattedDescription = formatEquipmentDescription(offerInfo.description);
     
-    let subject = `Votre offre de financement pour ${formattedDescription} est prête`;
+    // Formater les montants
+    const formattedAmount = offerInfo.amount.toLocaleString('fr-FR');
+    const formattedMonthlyPayment = offerInfo.monthlyPayment.toLocaleString('fr-FR');
+    
+    let subject = `Votre contrat pour ${formattedDescription} est prêt à signer`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="text-align: center; margin-bottom: 20px;">
           <img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" />
         </div>
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
-        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation et signature.</p>
-        <p><strong>Détails de l'offre:</strong></p>
+        <p>Nous avons le plaisir de vous informer que votre contrat de financement est maintenant disponible pour consultation et signature.</p>
+        <p><strong>Détails du contrat:</strong></p>
         <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
           <li>Équipement: ${formattedDescription}</li>
-          <li>Montant: ${offerInfo.amount.toLocaleString('fr-FR')} €</li>
-          <li>Mensualité estimée: ${offerInfo.monthlyPayment.toLocaleString('fr-FR')} €</li>
+          <li>Montant financé: ${formattedAmount} €</li>
+          <li>Mensualité: ${formattedMonthlyPayment} €</li>
         </ul>
-        <p>Pour consulter les détails complets et signer votre offre, veuillez cliquer sur le lien ci-dessous:</p>
+        <p>Pour consulter les détails complets et signer votre contrat, veuillez cliquer sur le lien ci-dessous:</p>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${offerLink}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            Consulter et signer votre offre
+          <a href="${offerLink}" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Consulter et signer mon contrat
           </a>
         </p>
-        <p>Ce lien vous permet d'accéder à votre offre et de la signer électroniquement si elle vous convient.</p>
+        <p>Ce lien vous permet d'accéder à votre contrat et de le signer électroniquement si les conditions vous conviennent.</p>
         <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
         <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
       </div>
@@ -580,7 +584,7 @@ export const sendOfferReadyEmail = async (
     
     // Utiliser le modèle personnalisé s'il existe
     if (template) {
-      console.log("Utilisation du modèle d'email 'offer_ready'");
+      console.log("Utilisation du modèle d'email 'offer_ready' depuis la base de données");
       
       subject = template.subject
         .replace(/{{client_name}}/g, clientName)
@@ -589,8 +593,8 @@ export const sendOfferReadyEmail = async (
       htmlContent = template.html_content
         .replace(/{{client_name}}/g, clientName)
         .replace(/{{equipment_description}}/g, formattedDescription)
-        .replace(/{{amount}}/g, offerInfo.amount.toLocaleString('fr-FR'))
-        .replace(/{{monthly_payment}}/g, offerInfo.monthlyPayment.toLocaleString('fr-FR'))
+        .replace(/{{amount}}/g, formattedAmount)
+        .replace(/{{monthly_payment}}/g, formattedMonthlyPayment)
         .replace(/{{offer_link}}/g, offerLink);
         
       // S'assurer que le template contient le placeholder pour le logo
@@ -598,9 +602,11 @@ export const sendOfferReadyEmail = async (
         // Ajouter le logo au début du contenu si le placeholder n'existe pas
         htmlContent = htmlContent.replace(/(<div[^>]*>)/, `$1<div style="text-align: center; margin-bottom: 20px;"><img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" /></div>`);
       }
+    } else {
+      console.log("Aucun template 'offer_ready' trouvé, utilisation du template par défaut");
     }
     
-    console.log(`🎯 Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    console.log(`🎯 Tentative d'envoi d'email "contrat prêt à signer" à: ${clientEmail}`);
     console.log("📋 Sujet de l'email formaté:", subject);
     console.log("🔗 Lien de signature:", offerLink);
     
@@ -612,14 +618,14 @@ export const sendOfferReadyEmail = async (
     );
     
     if (success) {
-      console.log(`✅ Email "offre prête à consulter" envoyé avec succès à: ${clientEmail}`);
+      console.log(`✅ Email "contrat prêt à signer" envoyé avec succès à: ${clientEmail}`);
       return true;
     } else {
-      console.error(`❌ Échec de l'envoi de l'email "offre prête à consulter" à: ${clientEmail}`);
+      console.error(`❌ Échec de l'envoi de l'email "contrat prêt à signer" à: ${clientEmail}`);
       return false;
     }
   } catch (error) {
-    console.error("💥 Exception lors de l'envoi de l'email d'offre prête:", error);
+    console.error("💥 Exception lors de l'envoi de l'email de contrat prêt:", error);
     return false;
   }
 };
