@@ -8,11 +8,19 @@ import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { Trash2, ShoppingBag, ArrowRight, ArrowLeft, Phone, Mail, ExternalLink } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
-import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
+import CompanyCustomizationService from "@/services/companyCustomizationService";
 
 const PublicCartPage: React.FC = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
+  
+  // Configuration par défaut du branding
+  const defaultBranding: CompanyBranding = {
+    company_id: '',
+    primary_color: '#3b82f6',
+    secondary_color: '#64748b',
+    // Removed accent_color since it's now properly defined in the interface
+  };
   
   // Fetch company info with branding
   const { data: company } = useQuery({
@@ -29,7 +37,6 @@ const PublicCartPage: React.FC = () => {
       // Apply company branding
       if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
         CompanyCustomizationService.applyCompanyBranding({
-          company_id: companyId,
           primary_color: data.primary_color || "#3b82f6",
           secondary_color: data.secondary_color || "#64748b",
           accent_color: data.accent_color || "#8b5cf6",
