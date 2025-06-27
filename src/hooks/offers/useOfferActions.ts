@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -72,8 +73,13 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      console.log("Tentative d'envoi d'email pour l'offre:", id);
-      console.log("Destinataire:", offer.client_email);
+      console.log("🚀 DÉBUT PROCESSUS ENVOI EMAIL");
+      console.log("📋 Détails de l'offre:", {
+        id: offer.id,
+        client_name: offer.client_name,
+        client_email: offer.client_email,
+        workflow_status: offer.workflow_status
+      });
       
       // Formatter la description de l'équipement si nécessaire
       let equipmentDescription = offer.equipment_description || "Votre équipement";
@@ -95,19 +101,20 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         // En cas d'erreur, conserver la description originale
       }
       
-      console.log("Détails de l'offre:", {
-        id: offer.id,
-        description: equipmentDescription,
+      console.log("📦 Description équipement formatée:", equipmentDescription);
+      console.log("💰 Données financières:", {
         amount: offer.amount || 0,
         monthlyPayment: Number(offer.monthly_payment) || 0
       });
       
       // Mettre à jour le statut de l'offre si nécessaire
       if (offer.workflow_status === 'draft') {
+        console.log("📝 Mise à jour du statut de brouillon vers envoyé");
         await handleUpdateWorkflowStatus(id, 'sent', 'Offre envoyée au client');
       }
       
       // Envoyer l'email "offre prête à consulter"
+      console.log("📧 Tentative d'envoi de l'email avec sendOfferReadyEmail");
       const success = await sendOfferReadyEmail(
         offer.client_email,
         offer.client_name,
@@ -120,12 +127,15 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       );
       
       if (success) {
+        console.log("✅ Email envoyé avec succès");
         toast.success("L'offre a été envoyée au client avec succès");
       } else {
-        toast.error("Erreur lors de l'envoi de l'offre par email");
+        console.error("❌ Échec de l'envoi de l'email");
+        console.error("Vérifiez les logs de la fonction edge send-resend-email");
+        toast.error("Erreur lors de l'envoi de l'offre par email. Vérifiez la configuration email.");
       }
     } catch (error) {
-      console.error("Error sending offer:", error);
+      console.error("💥 Erreur générale lors de l'envoi de l'offre:", error);
       toast.error("Erreur lors de l'envoi de l'offre");
     } finally {
       setIsSendingEmail(false);

@@ -138,7 +138,9 @@ export const sendEmail = async (
   textContent?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Tentative d'envoi d'email à ${to} avec sujet "${subject}"`);
+    console.log(`📧 DÉBUT ENVOI EMAIL`);
+    console.log(`Destinataire: ${to}`);
+    console.log(`Sujet: "${subject}"`);
     
     // Injecter le logo du site dans le contenu HTML
     const htmlWithLogo = await injectSiteLogo(htmlContent);
@@ -152,7 +154,7 @@ export const sendEmail = async (
       .single();
       
     if (settingsError) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      console.error("❌ Erreur lors de la récupération des paramètres SMTP:", settingsError);
       
       // Si c'est une erreur de permission, afficher plus d'informations
       if (settingsError.code === '42501') {
@@ -176,22 +178,23 @@ export const sendEmail = async (
     }
     
     if (!settings) {
-      console.error("Aucun paramètre d'envoi d'email trouvé.");
+      console.error("❌ Aucun paramètre d'envoi d'email trouvé.");
       return false;
     }
     
-    console.log("Paramètres SMTP récupérés:", { 
+    console.log("✅ Paramètres SMTP récupérés:", { 
       from_email: settings.from_email,
       from_name: settings.from_name
     });
     
-    console.log("Utilisation de Resend pour l'envoi d'email");
+    console.log("📤 Utilisation de Resend pour l'envoi d'email");
     
     // S'assurer que le contenu HTML est bien formaté
     const formattedHtml = ensureHtmlFormat(htmlWithLogo);
-    console.log("Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
+    console.log("📝 Extrait du HTML formaté:", formattedHtml.substring(0, 150) + "...");
     
     // Appeler la fonction Supabase pour envoyer l'email via Resend
+    console.log("🚀 Appel de la fonction send-resend-email...");
     const { data, error } = await supabase.functions.invoke('send-resend-email', {
       body: {
         to,
@@ -206,20 +209,24 @@ export const sendEmail = async (
     });
 
     if (error) {
-      console.error("Erreur lors de l'appel à la fonction d'envoi d'email Resend:", error);
+      console.error("❌ Erreur lors de l'appel à la fonction d'envoi d'email Resend:", error);
       return false;
     }
     
+    console.log("📨 Réponse de la fonction send-resend-email:", data);
+    
     // Vérifier la réponse
     if (data && data.success) {
-      console.log("Email envoyé avec succès via Resend à:", to);
+      console.log("✅ Email envoyé avec succès via Resend à:", to);
       return true;
     } else {
-      console.error("Échec de l'envoi d'email via Resend:", data?.error || "Raison inconnue");
+      console.error("❌ Échec de l'envoi d'email via Resend:");
+      console.error("Erreur:", data?.error || "Raison inconnue");
+      console.error("Message:", data?.message || "Aucun message");
       return false;
     }
   } catch (error) {
-    console.error("Exception lors de l'envoi de l'email:", error);
+    console.error("💥 Exception lors de l'envoi de l'email:", error);
     return false;
   }
 };
@@ -534,7 +541,7 @@ export const sendOfferReadyEmail = async (
   }
 ): Promise<boolean> => {
   try {
-    console.log(`Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
+    console.log(`📧 Préparation de l'email "offre prête à consulter" pour: ${clientEmail}`);
     
     // Récupérer le modèle d'email
     const template = await getEmailTemplate("offer_ready");
@@ -593,10 +600,9 @@ export const sendOfferReadyEmail = async (
       }
     }
     
-    console.log(`Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
-    console.log("Sujet de l'email formaté:", subject);
-    console.log("Aperçu du contenu HTML:", htmlContent.substring(0, 150) + "...");
-    console.log("Lien de signature corrigé:", offerLink);
+    console.log(`🎯 Tentative d'envoi d'email "offre prête à consulter" à: ${clientEmail}`);
+    console.log("📋 Sujet de l'email formaté:", subject);
+    console.log("🔗 Lien de signature:", offerLink);
     
     // Envoyer l'email
     const success = await sendEmail(
@@ -606,14 +612,14 @@ export const sendOfferReadyEmail = async (
     );
     
     if (success) {
-      console.log(`Email "offre prête à consulter" envoyé avec succès à: ${clientEmail}`);
+      console.log(`✅ Email "offre prête à consulter" envoyé avec succès à: ${clientEmail}`);
       return true;
     } else {
-      console.error(`Échec de l'envoi de l'email "offre prête à consulter" à: ${clientEmail}`);
+      console.error(`❌ Échec de l'envoi de l'email "offre prête à consulter" à: ${clientEmail}`);
       return false;
     }
   } catch (error) {
-    console.error("Exception lors de l'envoi de l'email d'offre prête:", error);
+    console.error("💥 Exception lors de l'envoi de l'email d'offre prête:", error);
     return false;
   }
 };
