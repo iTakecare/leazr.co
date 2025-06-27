@@ -64,13 +64,13 @@ const SignOffer = () => {
       <ClientOffersSidebar currentOfferId={id || ''} clientEmail={offer.client_email} />
       
       {/* Main Content - Permettre le scroll complet */}
-      <div className="flex-1 min-h-screen">
+      <div className="flex-1 overflow-y-auto">
         <div className="py-4 md:py-8 px-4 md:px-6 min-h-full pb-20">
           <div className="max-w-4xl mx-auto">
             {/* Mobile spacing to account for the menu button */}
             <div className="h-10 md:hidden"></div>
             
-            {/* Logo de l'entreprise - Plus visible */}
+            {/* Logo de l'entreprise */}
             {branding?.logo_url && (
               <div className="text-center mb-8 bg-white p-6 rounded-lg shadow-sm">
                 <img 
@@ -78,9 +78,6 @@ const SignOffer = () => {
                   alt="Logo entreprise" 
                   className="h-20 md:h-24 mx-auto object-contain"
                 />
-                {branding.company_name && (
-                  <h2 className="mt-4 text-xl font-semibold text-gray-800">{branding.company_name}</h2>
-                )}
               </div>
             )}
             
