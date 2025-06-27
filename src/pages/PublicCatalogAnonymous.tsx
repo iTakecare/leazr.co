@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search, Filter, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import CompanyCustomizationService from "@/services/companyCustomizationService";
+import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
@@ -16,14 +16,6 @@ const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
-
-  // Configuration par défaut du branding
-  const defaultBranding: CompanyBranding = {
-    company_id: '',
-    primary_color: '#3b82f6',
-    secondary_color: '#64748b',
-    // Removed accent_color since it's now properly defined in the interface
-  };
 
   // Fetch company info with branding
   const { data: company } = useQuery({
@@ -37,9 +29,10 @@ const PublicCatalogAnonymous = () => {
         .single();
       if (error) throw error;
       
-      // Appliquer le branding personnalisé
+      // Apply company branding
       if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
         CompanyCustomizationService.applyCompanyBranding({
+          company_id: companyId,
           primary_color: data.primary_color || "#3b82f6",
           secondary_color: data.secondary_color || "#64748b",
           accent_color: data.accent_color || "#8b5cf6",

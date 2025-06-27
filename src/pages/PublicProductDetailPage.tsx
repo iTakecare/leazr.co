@@ -13,21 +13,13 @@ import ProductConfigurationSection from "@/components/product-detail/ProductConf
 import ProductMainContent from "@/components/product-detail/ProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
-import CompanyCustomizationService from "@/services/companyCustomizationService";
+import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
 import { useCart } from "@/context/CartContext";
 
 const PublicProductDetailPage = () => {
   const { companyId, id } = useParams<{ companyId: string; id: string }>();
   const navigate = useNavigate();
   const { cartCount } = useCart();
-  
-  // Configuration par défaut du branding
-  const defaultBranding: CompanyBranding = {
-    company_id: '',
-    primary_color: '#3b82f6',
-    secondary_color: '#64748b',
-    // Removed accent_color since it's now properly defined in the interface
-  };
   
   // Fetch company info with branding
   const { data: company } = useQuery({
@@ -44,6 +36,7 @@ const PublicProductDetailPage = () => {
       // Apply company branding
       if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
         CompanyCustomizationService.applyCompanyBranding({
+          company_id: companyId,
           primary_color: data.primary_color || "#3b82f6",
           secondary_color: data.secondary_color || "#64748b",
           accent_color: data.accent_color || "#8b5cf6",
