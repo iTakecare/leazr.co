@@ -5,9 +5,11 @@ import {
   getAmbassadorClients, 
   deleteAmbassadorClient
 } from '@/services/ambassador/ambassadorClients';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 export const useAmbassadorClients = () => {
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +21,14 @@ export const useAmbassadorClients = () => {
     setError(null);
     
     try {
-      console.log("🔍 HOOK DIAGNOSTIC - Appel getAmbassadorClients (fonction sécurisée)...");
-      const data = await getAmbassadorClients();
+      if (!user?.id) {
+        console.warn("⚠️ Aucun utilisateur connecté");
+        setClients([]);
+        return;
+      }
+
+      console.log("🔍 HOOK DIAGNOSTIC - Appel getAmbassadorClients avec userId:", user.id);
+      const data = await getAmbassadorClients(user.id);
       console.log("🔍 HOOK DIAGNOSTIC - Clients chargés avec succès:", {
         count: data.length,
         clients: data.map(c => ({ id: c.id, name: c.name, email: c.email }))
@@ -90,13 +98,14 @@ export const useAmbassadorClients = () => {
   useEffect(() => {
     console.log("🔍 HOOK DIAGNOSTIC - useEffect déclenché, chargement initial...");
     loadClients();
-  }, []);
+  }, [user?.id]); // Dépendance sur user.id pour recharger si l'utilisateur change
 
   console.log("🔍 HOOK DIAGNOSTIC - État du hook:", {
     clientsCount: clients.length,
     isLoading,
     error,
-    hasClients: clients.length > 0
+    hasClients: clients.length > 0,
+    userId: user?.id
   });
 
   return {
