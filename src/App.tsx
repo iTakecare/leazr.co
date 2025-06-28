@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import Layout from "@/components/layout/Layout";
+import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 
 // Public website pages
 import LandingPage from "@/pages/LandingPage";
@@ -70,6 +71,12 @@ import AmbassadorsList from "@/pages/AmbassadorsList";
 import AmbassadorDetail from "@/pages/AmbassadorDetail";
 import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
 import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
+import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
+import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage";
+import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
+import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClientCreatePage";
+import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
+import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
 
 import "./App.css";
 
@@ -124,6 +131,57 @@ function App() {
                   <Route path="/client/offer/:id" element={<PublicOfferView />} />
                   <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                   <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
+                  
+                  {/* Ambassador Routes */}
+                  <Route path="/ambassador/dashboard" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorDashboardPage />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/clients" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorClientsPage />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/clients/create" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorClientCreatePage />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/offers" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorOffersPage />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/offers/:id" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AdminOfferDetail />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/create-offer" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorCreateOffer />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/catalog" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <AmbassadorCatalog />
+                      </AmbassadorLayout>
+                    </PrivateRoute>
+                  } />
                   
                   {/* Protected SaaS Application Routes with Layout */}
                   <Route path="/dashboard" element={
@@ -266,7 +324,7 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
-                  {/* Ambassador Routes */}
+                  {/* Ambassador Routes for Admin */}
                   <Route path="/ambassadors" element={
                     <PrivateRoute>
                       <Layout>
