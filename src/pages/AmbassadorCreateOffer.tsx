@@ -130,6 +130,7 @@ const AmbassadorCreateOffer = () => {
             selectedClientId={client?.id || ""}
             onClientSelect={() => {}}
             ambassadorMode={true}
+            selectedAmbassadorId={ambassadorId}
           />
           
           <div className="py-8 px-20">

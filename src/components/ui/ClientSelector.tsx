@@ -58,31 +58,31 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           selectedAmbassadorId,
           ambassadorMode,
           isUserAmbassador: isAmbassador(),
-          userId: user?.id
+          userId: user?.id,
+          userAmbassadorId: user?.ambassador_id
         });
         
-        // NOUVELLE LOGIQUE CORRIGÉE : Prioriser le type d'offre plutôt que le profil utilisateur
+        // LOGIQUE CORRIGÉE : Gérer les trois cas différents
         if (selectedAmbassadorId) {
           console.log("🎯 DEBUG ClientSelector - Offre ambassadeur - Chargement des clients de l'ambassadeur:", selectedAmbassadorId);
           
-          // Offre ambassadeur : charger les clients de l'ambassadeur sélectionné
+          // Cas 1: Offre ambassadeur avec ambassadeur sélectionné
           fetchedClients = await getClientsByAmbassadorId(selectedAmbassadorId);
           console.log("✅ DEBUG ClientSelector - Clients d'ambassadeur chargés:", fetchedClients);
+          
+        } else if (ambassadorMode && isAmbassador() && user?.ambassador_id) {
+          console.log("🎯 DEBUG ClientSelector - Ambassadeur connecté créant une offre - Chargement de ses clients:", user.ambassador_id);
+          
+          // Cas 2: Ambassadeur connecté créant une offre pour ses propres clients
+          fetchedClients = await getClientsByAmbassadorId(user.ambassador_id);
+          console.log("✅ DEBUG ClientSelector - Clients de l'ambassadeur connecté chargés:", fetchedClients);
           
         } else {
           console.log("🎯 DEBUG ClientSelector - Offre interne - Chargement des clients libres uniquement");
           
-          // Offre interne : charger UNIQUEMENT les clients libres (non attachés aux ambassadeurs)
+          // Cas 3: Offre interne - charger UNIQUEMENT les clients libres
           fetchedClients = await getFreeClients();
-          console.log("✅ DEBUG ClientSelector - Clients libres reçus de getFreeClients():", fetchedClients);
-          
-          // Debug spécifique pour "Client Test SRL"
-          const testClient = fetchedClients?.find(c => c.company === "Cleint Test SRL" || c.companyName === "Cleint Test SRL");
-          if (testClient) {
-            console.log("🎯 DEBUG ClientSelector - Client Test SRL trouvé dans fetchedClients:", testClient);
-          } else {
-            console.log("⚠️ DEBUG ClientSelector - Client Test SRL NON trouvé dans fetchedClients");
-          }
+          console.log("✅ DEBUG ClientSelector - Clients libres reçus:", fetchedClients);
         }
         
         if (!fetchedClients || fetchedClients.length === 0) {
@@ -100,15 +100,6 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
           }));
           
           console.log("✅ DEBUG ClientSelector - Clients formatés pour le sélecteur:", formattedClients);
-          
-          // Debug spécifique pour "Client Test SRL"
-          const testClientFormatted = formattedClients?.find(c => c.company === "Cleint Test SRL" || c.companyName === "Cleint Test SRL");
-          if (testClientFormatted) {
-            console.log("🎯 DEBUG ClientSelector - Client Test SRL trouvé après formatage:", testClientFormatted);
-          } else {
-            console.log("⚠️ DEBUG ClientSelector - Client Test SRL NON trouvé après formatage");
-          }
-          
           setClients(formattedClients);
           console.log("🔄 DEBUG ClientSelector - État des clients mis à jour:", formattedClients.length, "clients");
         }
@@ -122,7 +113,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
     
     loadClients();
-  }, [selectedAmbassadorId, user?.id]); // Supprimer isAmbassador de la dépendance car on privilégie selectedAmbassadorId
+  }, [selectedAmbassadorId, ambassadorMode, user?.id, user?.ambassador_id, isAmbassador]);
   
   const selectedClient = clients.find(client => client.id === selectedClientId);
   
