@@ -61,6 +61,13 @@ export const useAmbassadorOfferSave = ({
       toast.error("Informations utilisateur manquantes");
       return;
     }
+
+    // Vérifier que l'ambassadeur a un company_id
+    if (!ambassador?.company_id) {
+      console.error("❌ ERREUR - Ambassador sans company_id:", ambassador);
+      toast.error("Erreur: L'ambassadeur n'a pas de company_id assigné");
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -100,6 +107,14 @@ export const useAmbassadorOfferSave = ({
       // Récupérer la marge totale générée (sans la différence)
       const marginAmount = globalMarginAdjustment.amount || 0;
       
+      console.log("💾 AmbassadorOfferSaveLogic - Company ID Debug:", {
+        ambassadorId,
+        ambassadorName: ambassador?.name,
+        ambassadorCompanyId: ambassador?.company_id,
+        clientId: client.id,
+        clientName: client.name
+      });
+      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
@@ -114,6 +129,7 @@ export const useAmbassadorOfferSave = ({
         type: "ambassador_offer",
         user_id: userId,
         ambassador_id: ambassadorId,
+        company_id: ambassador.company_id, // CORRECTION: Ajouter le company_id de l'ambassadeur
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifference,
         margin: marginAmount
@@ -122,6 +138,7 @@ export const useAmbassadorOfferSave = ({
       console.log("💾 AmbassadorOfferSaveLogic - Saving offer with data:", offerData);
       console.log("💾 AmbassadorOfferSaveLogic - Commission value being saved:", calculatedCommission);
       console.log("💾 AmbassadorOfferSaveLogic - Ambassador:", ambassador?.name);
+      console.log("💾 AmbassadorOfferSaveLogic - Company ID being saved:", ambassador.company_id);
       
       const { data, error } = await createOffer(offerData);
       

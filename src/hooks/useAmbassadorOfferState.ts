@@ -1,172 +1,120 @@
 
-import { useState, useEffect } from "react";
-import { useLocation, useParams, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Client } from "@/types/client";
-import { useAuth } from "@/context/AuthContext";
-import { Leaser } from "@/types/equipment";
-import { defaultLeasers } from "@/data/leasers";
-import { getLeasers } from "@/services/leaserService";
-import { ClientSelectorClient } from "@/components/ui/ClientSelector";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { getLeasers } from '@/services/leaserService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const useAmbassadorOfferState = () => {
-  const location = useLocation();
-  const { clientId, ambassadorId: paramAmbassadorId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  const [client, setClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user, isAmbassador } = useAuth();
+  const [client, setClient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [loadingLeasers, setLoadingLeasers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ambassador, setAmbassador] = useState(null);
-  const [ambassadorId, setAmbassadorId] = useState<string | null>(null);
+  const [ambassador, setAmbassador] = useState<any>(null);
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
-  const [remarks, setRemarks] = useState("");
-  const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  const [remarks, setRemarks] = useState('');
+  const [selectedLeaser, setSelectedLeaser] = useState<any>(null);
+  const [ambassadorId, setAmbassadorId] = useState<string>('');
 
+  // Charger les données de l'ambassadeur connecté
   useEffect(() => {
-    const fetchLeasers = async () => {
+    const loadAmbassadorData = async () => {
+      if (!user?.id || !isAmbassador()) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        setLoadingLeasers(true);
-        const fetchedLeasers = await getLeasers();
+        console.log("🔍 useAmbassadorOfferState - Loading ambassador data for user:", user.id);
         
-        if (fetchedLeasers && fetchedLeasers.length > 0) {
-          setSelectedLeaser(fetchedLeasers[0]);
+        const { data: ambassadorData, error } = await supabase
+          .from('ambassadors')
+          .select(`
+            id,
+            name,
+            email,
+            commission_level_id,
+            company_id,
+            commission_levels (
+              id,
+              name,
+              percentage,
+              fixed_amount
+            )
+          `)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error("❌ useAmbassadorOfferState - Error loading ambassador:", error);
+          toast.error("Impossible de charger les données de l'ambassadeur");
+          return;
+        }
+
+        if (!ambassadorData) {
+          console.error("❌ useAmbassadorOfferState - No ambassador found for user:", user.id);
+          toast.error("Aucun profil ambassadeur trouvé");
+          return;
+        }
+
+        // Vérifier que l'ambassadeur a un company_id
+        if (!ambassadorData.company_id) {
+          console.error("❌ useAmbassadorOfferState - Ambassador without company_id:", ambassadorData);
+          toast.error("Erreur: L'ambassadeur n'a pas de company_id assigné. Contactez l'administrateur.");
+          return;
+        }
+
+        console.log("✅ useAmbassadorOfferState - Ambassador loaded successfully:", {
+          id: ambassadorData.id,
+          name: ambassadorData.name,
+          company_id: ambassadorData.company_id,
+          commission_level_id: ambassadorData.commission_level_id
+        });
+
+        setAmbassador(ambassadorData);
+        setAmbassadorId(ambassadorData.id);
+      } catch (error) {
+        console.error("❌ useAmbassadorOfferState - Unexpected error:", error);
+        toast.error("Erreur lors du chargement des données");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAmbassadorData();
+  }, [user?.id, isAmbassador]);
+
+  // Charger les leasers
+  useEffect(() => {
+    const loadLeasers = async () => {
+      try {
+        const leasers = await getLeasers();
+        if (leasers && leasers.length > 0) {
+          setSelectedLeaser(leasers[0]);
         }
       } catch (error) {
-        console.error("Error fetching leasers:", error);
-        toast.error("Impossible de charger les prestataires de leasing. Utilisation des données par défaut.");
+        console.error("❌ useAmbassadorOfferState - Error loading leasers:", error);
       } finally {
         setLoadingLeasers(false);
       }
     };
-    
-    fetchLeasers();
+
+    loadLeasers();
   }, []);
-  
-  useEffect(() => {
-    if (clientId) {
-      fetchClient(clientId);
-    }
-  }, [clientId]);
-  
-  useEffect(() => {
-    console.log("useAmbassadorOfferState - useEffect triggered:", { 
-      paramAmbassadorId, 
-      userId: user?.id, 
-      userRole: user?.role 
-    });
-    
-    if (paramAmbassadorId) {
-      console.log("useAmbassadorOfferState - Using paramAmbassadorId:", paramAmbassadorId);
-      fetchAmbassador(paramAmbassadorId);
-      setAmbassadorId(paramAmbassadorId);
-    } else if (user?.id) {
-      console.log("useAmbassadorOfferState - Fetching ambassador by user ID:", user.id);
-      // Récupérer l'ambassadeur associé à cet utilisateur
-      fetchAmbassadorByUserId(user.id);
-    }
-  }, [paramAmbassadorId, user?.id]);
 
-  const fetchAmbassadorByUserId = async (userId: string) => {
-    try {
-      setLoading(true);
-      console.log("🔍 fetchAmbassadorByUserId - Starting with userId:", userId);
-      
-      const { data, error } = await supabase
-        .from("ambassadors")
-        .select("*, commission_levels(name)")
-        .eq("user_id", userId)
-        .single();
-      
-      console.log("🔍 fetchAmbassadorByUserId - Query result:", { data, error });
-      
-      if (error) {
-        console.error("🔍 fetchAmbassadorByUserId - Error:", error);
-        return;
-      }
-      
-      if (data) {
-        console.log("🔍 fetchAmbassadorByUserId - Ambassador found:", data);
-        setAmbassador(data);
-        setAmbassadorId(data.id);
-        console.log("🔍 fetchAmbassadorByUserId - State updated with ambassadorId:", data.id);
-      } else {
-        console.log("🔍 fetchAmbassadorByUserId - No ambassador found for user:", userId);
-      }
-    } catch (error) {
-      console.error("🔍 fetchAmbassadorByUserId - Catch error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const fetchAmbassador = async (id: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("ambassadors")
-        .select("*, commission_levels(name)")
-        .eq("id", id)
-        .single();
-      
-      if (error) throw error;
-      setAmbassador(data);
-      console.log("Ambassador data loaded:", data);
-    } catch (error) {
-      console.error("Erreur lors du chargement de l'ambassadeur:", error);
-      toast.error("Impossible de charger les informations de l'ambassadeur");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const fetchClient = async (id: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", id)
-        .single();
-      
-      if (error) throw error;
-      setClient(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement du client:", error);
-      toast.error("Impossible de charger les informations du client");
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectClient = (selectedClient: any) => {
+    console.log("🔍 useAmbassadorOfferState - Client selected:", selectedClient);
+    setClient(selectedClient);
+    setClientSelectorOpen(false);
   };
 
-  const handleSelectClient = (selectedClient: ClientSelectorClient) => {
-    console.log("Selected client in useAmbassadorOfferState:", selectedClient);
-    setClient({
-      id: selectedClient.id,
-      name: selectedClient.name,
-      email: selectedClient.email || "",
-      company: selectedClient.company || "",
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-  };
-
-  const handleLeaserSelect = (leaser: Leaser) => {
+  const handleLeaserSelect = (leaser: any) => {
+    console.log("🔍 useAmbassadorOfferState - Leaser selected:", leaser);
     setSelectedLeaser(leaser);
     setLeaserSelectorOpen(false);
   };
-
-  // Log des états pour debug
-  console.log("🔍 useAmbassadorOfferState - Current state:", {
-    ambassadorId,
-    ambassador: ambassador ? { id: ambassador.id, commission_level_id: ambassador.commission_level_id } : null,
-    loading,
-    userId: user?.id
-  });
 
   return {
     client,
@@ -175,7 +123,6 @@ export const useAmbassadorOfferState = () => {
     isSubmitting,
     setIsSubmitting,
     ambassador,
-    ambassadorId,
     clientSelectorOpen,
     setClientSelectorOpen,
     leaserSelectorOpen,
@@ -183,6 +130,7 @@ export const useAmbassadorOfferState = () => {
     remarks,
     setRemarks,
     selectedLeaser,
+    ambassadorId,
     user,
     handleSelectClient,
     handleLeaserSelect
