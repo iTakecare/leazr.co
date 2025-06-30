@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -51,6 +52,7 @@ import CreateOffer from "@/pages/CreateOffer";
 import Offers from "@/pages/Offers";
 import OfferDetail from "@/pages/OfferDetail";
 import Contracts from "@/pages/Contracts";
+import ContractDetail from "@/pages/ContractDetail";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
@@ -164,6 +166,8 @@ const RoleBasedRoutes = () => {
         <Route path="/create-offer" element={<CreateOffer />} />
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
+        <Route path="/admin/contracts/:id" element={<ContractDetail />} />
+        <Route path="/contracts/:id" element={<ContractDetail />} />
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
