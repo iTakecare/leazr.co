@@ -249,11 +249,7 @@ const Contracts = () => {
             ) : (
               <ContractsTable 
                 contracts={filteredContracts}
-                onStatusChange={handleUpdateContractStatus}
-                onAddTrackingInfo={handleAddTrackingInfo}
-                onDeleteContract={handleDeleteContract}
-                isUpdatingStatus={isUpdatingStatus}
-                isDeleting={isDeleting}
+                onRefresh={fetchContracts}
               />
             )}
           </motion.div>

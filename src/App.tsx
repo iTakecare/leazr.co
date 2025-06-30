@@ -1,13 +1,15 @@
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import PrivateRoute from "@/components/PrivateRoute";
+import { PrivateRoute } from "@/components/PrivateRoute";
 import MultiTenantRouter from "@/components/layout/MultiTenantRouter";
+import Layout from "@/components/layout/Layout";
 
 // Auth pages
 import SignupPage from "@/pages/Signup";
@@ -51,7 +53,7 @@ function App() {
                     <Route path="/:companySlug/*" element={<MultiTenantRouter />} />
                     
                     {/* Protected admin routes */}
-                    <Route path="/admin" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                    <Route path="/admin" element={<PrivateRoute><Layout><Outlet /></Layout></PrivateRoute>}>
                       <Route index element={<Navigate to="/admin/dashboard" replace />} />
                       <Route path="dashboard" element={<Dashboard />} />
                       <Route path="offers" element={<Offers />} />
