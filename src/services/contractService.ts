@@ -66,6 +66,14 @@ export const createContractFromOffer = async (
       return null;
     }
 
+    console.log("📋 Données de l'offre pour création du contrat:", {
+      id: offerData.id,
+      client_name: offerData.client_name,
+      monthly_payment: offerData.monthly_payment,
+      company_id: offerData.company_id,
+      user_id: offerData.user_id
+    });
+
     const contractData = {
       offer_id: offerId,
       client_name: offerData.client_name,
@@ -75,8 +83,11 @@ export const createContractFromOffer = async (
       leaser_name: leaserName,
       leaser_logo: leaserLogo || null,
       status: contractStatuses.CONTRACT_SENT,
-      user_id: offerData.user_id
+      user_id: offerData.user_id,
+      company_id: offerData.company_id // 🔧 AJOUT du company_id manquant
     };
+
+    console.log("💾 Données du contrat à créer:", contractData);
 
     const { data, error } = await supabase
       .from('contracts')
@@ -88,6 +99,8 @@ export const createContractFromOffer = async (
       toast.error("Erreur lors de la création du contrat");
       return null;
     }
+
+    console.log("✅ Contrat créé avec succès:", data?.[0]);
 
     const { error: updateError } = await supabase
       .from('offers')
