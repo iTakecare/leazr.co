@@ -19,6 +19,9 @@ import { useContractDetail } from "@/hooks/useContractDetail";
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  console.log("🔍 ContractDetail - Rendu avec ID:", id);
+  
   const { 
     contract, 
     equipment, 
@@ -28,6 +31,14 @@ const ContractDetail = () => {
     error, 
     refetch 
   } = useContractDetail(id || "");
+
+  console.log("📊 ContractDetail - État actuel:", {
+    contract: contract?.id,
+    equipment: equipment.length,
+    documents: documents.length,
+    loading,
+    error
+  });
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string>('');
@@ -172,6 +183,7 @@ const ContractDetail = () => {
   };
   
   if (loading) {
+    console.log("⏳ ContractDetail - Affichage du loader");
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
@@ -180,16 +192,19 @@ const ContractDetail = () => {
   }
   
   if (error || !contract) {
+    console.log("❌ ContractDetail - Affichage de l'erreur:", error);
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <div className="text-red-500 font-medium">{error || "Le contrat n'a pas été trouvé."}</div>
-        <Button onClick={() => navigate('/contracts')}>
+        <Button onClick={() => navigate('/admin/contracts')}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Retour aux contrats
         </Button>
       </div>
     );
   }
+  
+  console.log("✅ ContractDetail - Rendu de la page principale");
   
   const availableActions = getAvailableActions();
   
@@ -198,7 +213,7 @@ const ContractDetail = () => {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigate('/contracts')}>
+            <Button variant="outline" size="icon" onClick={() => navigate('/admin/contracts')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold">
