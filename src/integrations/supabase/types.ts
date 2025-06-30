@@ -690,6 +690,173 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_documents: {
+        Row: {
+          admin_notes: string | null
+          contract_id: string
+          created_at: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          status: string
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          contract_id: string
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          status?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          contract_id?: string
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          status?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_equipment: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          margin: number
+          monthly_payment: number | null
+          purchase_price: number
+          quantity: number
+          serial_number: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          margin?: number
+          monthly_payment?: number | null
+          purchase_price?: number
+          quantity?: number
+          serial_number?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          margin?: number
+          monthly_payment?: number | null
+          purchase_price?: number
+          quantity?: number
+          serial_number?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_equipment_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_equipment_attributes: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          key?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_equipment_attributes_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_equipment_specifications: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          key?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_equipment_specifications_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_workflow_logs: {
         Row: {
           contract_id: string

@@ -1,28 +1,34 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, FileText, Send, Package, Truck, Play, AlarmClock, MoreHorizontal, CheckCircle } from "lucide-react";
+import { ChevronLeft, FileText, Send, Package, Truck, Play, AlarmClock, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Contract, contractStatuses, getContracts, updateContractStatus, addTrackingNumber, getContractWorkflowLogs } from "@/services/contractService";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { contractStatuses, updateContractStatus, addTrackingNumber } from "@/services/contractService";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import ContractStatusBadge from "@/components/contracts/ContractStatusBadge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import PageTransition from "@/components/layout/PageTransition";
-import { Progress } from "@/components/ui/progress";
+import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSection";
+import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
+import { useContractDetail } from "@/hooks/useContractDetail";
 
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [contract, setContract] = useState<Contract | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+  const { 
+    contract, 
+    equipment, 
+    documents, 
+    logs, 
+    loading, 
+    error, 
+    refetch 
+  } = useContractDetail(id || "");
+
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string>('');
   const [statusChangeReason, setStatusChangeReason] = useState('');
@@ -31,54 +37,6 @@ const ContractDetail = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [carrier, setCarrier] = useState('');
-  const [equipmentItems, setEquipmentItems] = useState<any[]>([]);
-
-  const fetchContractDetails = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      setLoadingError(null);
-      
-      const [contractsData, logsData] = await Promise.all([
-        getContracts(),
-        getContractWorkflowLogs(id)
-      ]);
-
-      const contractData = contractsData.find(c => c.id === id);
-      
-      if (!contractData) {
-        setLoadingError("Le contrat n'a pas été trouvé.");
-        return;
-      }
-      
-      setContract(contractData);
-      setLogs(logsData);
-      
-      if (contractData.equipment_description) {
-        try {
-          const parsedEquipment = typeof contractData.equipment_description === 'string' 
-            ? JSON.parse(contractData.equipment_description) 
-            : contractData.equipment_description;
-            
-          if (Array.isArray(parsedEquipment)) {
-            setEquipmentItems(parsedEquipment);
-          }
-        } catch (e) {
-          console.error("Erreur lors de l'analyse des données d'équipement:", e);
-        }
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des détails du contrat:", error);
-      setLoadingError("Erreur lors du chargement des détails du contrat.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchContractDetails();
-  }, [id]);
   
   const openStatusChangeDialog = (status: string) => {
     setTargetStatus(status);
@@ -108,7 +66,7 @@ const ContractDetail = () => {
       
       if (success) {
         toast.success(`Statut du contrat mis à jour avec succès`);
-        fetchContractDetails();
+        refetch();
         setStatusDialogOpen(false);
       } else {
         toast.error("Erreur lors de la mise à jour du statut du contrat");
@@ -136,7 +94,7 @@ const ContractDetail = () => {
       
       if (success) {
         toast.success(`Informations de suivi ajoutées avec succès`);
-        fetchContractDetails();
+        refetch();
         setTrackingDialogOpen(false);
       } else {
         toast.error("Erreur lors de l'ajout des informations de suivi");
@@ -221,10 +179,10 @@ const ContractDetail = () => {
     );
   }
   
-  if (loadingError || !contract) {
+  if (error || !contract) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
-        <div className="text-red-500 font-medium">{loadingError || "Le contrat n'a pas été trouvé."}</div>
+        <div className="text-red-500 font-medium">{error || "Le contrat n'a pas été trouvé."}</div>
         <Button onClick={() => navigate('/contracts')}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Retour aux contrats
@@ -237,8 +195,8 @@ const ContractDetail = () => {
   
   return (
     <PageTransition>
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigate('/contracts')}>
               <ChevronLeft className="h-4 w-4" />
@@ -250,7 +208,8 @@ const ContractDetail = () => {
           </div>
         </div>
         
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+        {/* Actions disponibles */}
+        <div className="bg-gray-50 rounded-lg p-4 border">
           <h2 className="text-lg font-medium mb-4">
             Gestion du contrat - Étapes du workflow
           </h2>
@@ -275,6 +234,7 @@ const ContractDetail = () => {
             )}
           </div>
           
+          {/* Stepper visuel */}
           <div className="mt-6">
             <div className="flex items-center justify-between">
               <ProgressStep 
@@ -349,6 +309,7 @@ const ContractDetail = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Informations du contrat */}
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle>Détails du contrat</CardTitle>
@@ -410,37 +371,10 @@ const ContractDetail = () => {
                   </div>
                 </>
               )}
-              
-              <Separator className="my-6" />
-              
-              <div>
-                <h3 className="text-lg font-medium mb-4">Équipements</h3>
-                {equipmentItems.length > 0 ? (
-                  <div className="space-y-4">
-                    {equipmentItems.map((item, index) => (
-                      <div key={item.id || index} className="border p-4 rounded-md">
-                        <div className="font-medium">{item.title}</div>
-                        <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
-                          <div>
-                            <span className="text-gray-500">Prix d'achat:</span> {formatCurrency(item.purchasePrice || 0)}
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Quantité:</span> {item.quantity || 1}
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Marge:</span> {item.margin || 0}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-500">{contract.equipment_description || "Aucun équipement trouvé"}</div>
-                )}
-              </div>
             </CardContent>
           </Card>
           
+          {/* Historique */}
           <Card>
             <CardHeader>
               <CardTitle>Historique</CardTitle>
@@ -479,6 +413,19 @@ const ContractDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Section Équipements */}
+        <ContractEquipmentSection 
+          equipment={equipment} 
+          onRefresh={refetch}
+        />
+
+        {/* Section Documents */}
+        <ContractDocumentsSection 
+          contractId={contract.id}
+          documents={documents}
+          onRefresh={refetch}
+        />
       </div>
       
       {/* Status Change Dialog */}

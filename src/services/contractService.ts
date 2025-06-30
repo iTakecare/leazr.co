@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getOfferEquipment } from "./offers/offerEquipment";
 
 export const contractStatuses = {
   CONTRACT_SENT: "contract_sent",
@@ -37,6 +38,37 @@ export interface Contract {
   delivery_carrier?: string;
 }
 
+export interface ContractEquipment {
+  id: string;
+  contract_id: string;
+  title: string;
+  purchase_price: number;
+  quantity: number;
+  margin: number;
+  monthly_payment?: number;
+  serial_number?: string;
+  attributes: Array<{ key: string; value: string }>;
+  specifications: Array<{ key: string; value: string }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContractDocument {
+  id: string;
+  contract_id: string;
+  document_type: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by?: string;
+  status: string;
+  admin_notes?: string;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ContractCreateData {
   offer_id: string;
   client_name: string;
@@ -47,6 +79,174 @@ export interface ContractCreateData {
   leaser_logo?: string;
   user_id: string;
 }
+
+// Nouvelle fonction pour récupérer un contrat par ID avec toutes ses données
+export const getContractById = async (contractId: string): Promise<Contract | null> => {
+  try {
+    console.log("🔍 Récupération du contrat:", contractId);
+
+    const { data, error } = await supabase
+      .from('contracts')
+      .select('*, clients(name, email, company)')
+      .eq('id', contractId)
+      .single();
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération du contrat:", error);
+      return null;
+    }
+
+    if (!data) {
+      console.error("❌ Contrat non trouvé:", contractId);
+      return null;
+    }
+
+    console.log("✅ Contrat récupéré avec succès:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération du contrat:", error);
+    return null;
+  }
+};
+
+// Nouvelle fonction pour récupérer les équipements d'un contrat
+export const getContractEquipment = async (contractId: string): Promise<ContractEquipment[]> => {
+  try {
+    console.log("🔍 Récupération des équipements du contrat:", contractId);
+
+    const { data: equipmentData, error: equipmentError } = await supabase
+      .from('contract_equipment')
+      .select(`
+        *,
+        contract_equipment_attributes(key, value),
+        contract_equipment_specifications(key, value)
+      `)
+      .eq('contract_id', contractId)
+      .order('created_at', { ascending: true });
+
+    if (equipmentError) {
+      console.error("❌ Erreur lors de la récupération des équipements:", equipmentError);
+      return [];
+    }
+
+    const formattedEquipment = equipmentData?.map(item => ({
+      ...item,
+      attributes: item.contract_equipment_attributes || [],
+      specifications: item.contract_equipment_specifications || []
+    })) || [];
+
+    console.log("✅ Équipements du contrat récupérés:", formattedEquipment);
+    return formattedEquipment;
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des équipements:", error);
+    return [];
+  }
+};
+
+// Nouvelle fonction pour récupérer les documents d'un contrat
+export const getContractDocuments = async (contractId: string): Promise<ContractDocument[]> => {
+  try {
+    console.log("🔍 Récupération des documents du contrat:", contractId);
+
+    const { data, error } = await supabase
+      .from('contract_documents')
+      .select('*')
+      .eq('contract_id', contractId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération des documents:", error);
+      return [];
+    }
+
+    console.log("✅ Documents du contrat récupérés:", data || []);
+    return data || [];
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des documents:", error);
+    return [];
+  }
+};
+
+// Fonction pour créer les équipements du contrat depuis l'offre
+const createContractEquipmentFromOffer = async (contractId: string, offerId: string): Promise<boolean> => {
+  try {
+    console.log("🔧 Création des équipements du contrat depuis l'offre:", { contractId, offerId });
+
+    // Récupérer les équipements de l'offre
+    const offerEquipment = await getOfferEquipment(offerId);
+    
+    if (offerEquipment.length === 0) {
+      console.log("ℹ️ Aucun équipement trouvé dans l'offre");
+      return true;
+    }
+
+    for (const equipment of offerEquipment) {
+      console.log("📝 Création de l'équipement:", equipment.title);
+
+      // Créer l'équipement du contrat
+      const { data: contractEquipmentData, error: equipmentError } = await supabase
+        .from('contract_equipment')
+        .insert({
+          contract_id: contractId,
+          title: equipment.title,
+          purchase_price: equipment.purchase_price,
+          quantity: equipment.quantity,
+          margin: equipment.margin,
+          monthly_payment: equipment.monthly_payment,
+          serial_number: equipment.serial_number
+        })
+        .select()
+        .single();
+
+      if (equipmentError) {
+        console.error("❌ Erreur lors de la création de l'équipement:", equipmentError);
+        continue;
+      }
+
+      const contractEquipmentId = contractEquipmentData.id;
+
+      // Créer les attributs
+      if (equipment.attributes && equipment.attributes.length > 0) {
+        const attributesData = equipment.attributes.map(attr => ({
+          equipment_id: contractEquipmentId,
+          key: attr.key,
+          value: attr.value
+        }));
+
+        const { error: attributesError } = await supabase
+          .from('contract_equipment_attributes')
+          .insert(attributesData);
+
+        if (attributesError) {
+          console.error("❌ Erreur lors de la création des attributs:", attributesError);
+        }
+      }
+
+      // Créer les spécifications
+      if (equipment.specifications && equipment.specifications.length > 0) {
+        const specificationsData = equipment.specifications.map(spec => ({
+          equipment_id: contractEquipmentId,
+          key: spec.key,
+          value: spec.value
+        }));
+
+        const { error: specificationsError } = await supabase
+          .from('contract_equipment_specifications')
+          .insert(specificationsData);
+
+        if (specificationsError) {
+          console.error("❌ Erreur lors de la création des spécifications:", specificationsError);
+        }
+      }
+    }
+
+    console.log("✅ Équipements du contrat créés avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la création des équipements:", error);
+    return false;
+  }
+};
 
 export const createContractFromOffer = async (
   offerId: string,
@@ -84,7 +284,7 @@ export const createContractFromOffer = async (
       leaser_logo: leaserLogo || null,
       status: contractStatuses.CONTRACT_SENT,
       user_id: offerData.user_id,
-      company_id: offerData.company_id // 🔧 AJOUT du company_id manquant
+      company_id: offerData.company_id
     };
 
     console.log("💾 Données du contrat à créer:", contractData);
@@ -102,6 +302,12 @@ export const createContractFromOffer = async (
 
     console.log("✅ Contrat créé avec succès:", data?.[0]);
 
+    const contractId = data?.[0]?.id;
+    if (contractId) {
+      // Créer les équipements détaillés du contrat
+      await createContractEquipmentFromOffer(contractId, offerId);
+    }
+
     const { error: updateError } = await supabase
       .from('offers')
       .update({ converted_to_contract: true })
@@ -111,11 +317,96 @@ export const createContractFromOffer = async (
       console.error("Erreur lors de la mise à jour de l'offre:", updateError);
     }
 
-    return data?.[0]?.id || null;
+    return contractId || null;
   } catch (error) {
     console.error("Erreur lors de la création du contrat:", error);
     toast.error("Erreur lors de la création du contrat");
     return null;
+  }
+};
+
+// Fonction pour mettre à jour le numéro de série d'un équipement
+export const updateEquipmentSerialNumber = async (
+  equipmentId: string,
+  serialNumber: string
+): Promise<boolean> => {
+  try {
+    console.log("🔧 Mise à jour du numéro de série:", { equipmentId, serialNumber });
+
+    const { error } = await supabase
+      .from('contract_equipment')
+      .update({ 
+        serial_number: serialNumber,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', equipmentId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la mise à jour du numéro de série:", error);
+      return false;
+    }
+
+    console.log("✅ Numéro de série mis à jour avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la mise à jour du numéro de série:", error);
+    return false;
+  }
+};
+
+// Fonction pour uploader un document de contrat
+export const uploadContractDocument = async (
+  contractId: string,
+  file: File,
+  documentType: string
+): Promise<boolean> => {
+  try {
+    console.log("📤 Upload d'un document de contrat:", { contractId, fileName: file.name, documentType });
+
+    // Upload du fichier vers Supabase Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${contractId}_${documentType}_${Date.now()}.${fileExt}`;
+    const filePath = `contracts/${contractId}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('company-assets')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("❌ Erreur lors de l'upload du fichier:", uploadError);
+      toast.error("Erreur lors de l'upload du fichier");
+      return false;
+    }
+
+    // Créer l'entrée dans la base de données
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error: dbError } = await supabase
+      .from('contract_documents')
+      .insert({
+        contract_id: contractId,
+        document_type: documentType,
+        file_name: file.name,
+        file_path: filePath,
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_by: user?.id,
+        status: 'pending'
+      });
+
+    if (dbError) {
+      console.error("❌ Erreur lors de l'enregistrement du document:", dbError);
+      toast.error("Erreur lors de l'enregistrement du document");
+      return false;
+    }
+
+    console.log("✅ Document uploadé avec succès");
+    toast.success("Document uploadé avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de l'upload du document:", error);
+    toast.error("Erreur lors de l'upload du document");
+    return false;
   }
 };
 
