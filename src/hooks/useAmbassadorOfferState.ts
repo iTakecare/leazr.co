@@ -22,6 +22,7 @@ export const useAmbassadorOfferState = () => {
   useEffect(() => {
     const loadAmbassadorData = async () => {
       if (!user?.id || !isAmbassador()) {
+        console.log("🔍 useAmbassadorOfferState - User not authenticated or not ambassador");
         setLoading(false);
         return;
       }
@@ -40,22 +41,23 @@ export const useAmbassadorOfferState = () => {
             commission_levels (
               id,
               name,
-              percentage,
-              fixed_amount
+              type
             )
           `)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("❌ useAmbassadorOfferState - Error loading ambassador:", error);
           toast.error("Impossible de charger les données de l'ambassadeur");
+          setLoading(false);
           return;
         }
 
         if (!ambassadorData) {
           console.error("❌ useAmbassadorOfferState - No ambassador found for user:", user.id);
-          toast.error("Aucun profil ambassadeur trouvé");
+          toast.error("Aucun profil ambassadeur trouvé pour cet utilisateur");
+          setLoading(false);
           return;
         }
 
@@ -63,6 +65,7 @@ export const useAmbassadorOfferState = () => {
         if (!ambassadorData.company_id) {
           console.error("❌ useAmbassadorOfferState - Ambassador without company_id:", ambassadorData);
           toast.error("Erreur: L'ambassadeur n'a pas de company_id assigné. Contactez l'administrateur.");
+          setLoading(false);
           return;
         }
 
@@ -77,7 +80,7 @@ export const useAmbassadorOfferState = () => {
         setAmbassadorId(ambassadorData.id);
       } catch (error) {
         console.error("❌ useAmbassadorOfferState - Unexpected error:", error);
-        toast.error("Erreur lors du chargement des données");
+        toast.error("Erreur lors du chargement des données de l'ambassadeur");
       } finally {
         setLoading(false);
       }
@@ -90,12 +93,18 @@ export const useAmbassadorOfferState = () => {
   useEffect(() => {
     const loadLeasers = async () => {
       try {
+        console.log("🔍 useAmbassadorOfferState - Loading leasers...");
         const leasers = await getLeasers();
+        
         if (leasers && leasers.length > 0) {
+          console.log("✅ useAmbassadorOfferState - Leasers loaded:", leasers.length);
           setSelectedLeaser(leasers[0]);
+        } else {
+          console.warn("⚠️ useAmbassadorOfferState - No leasers found");
         }
       } catch (error) {
         console.error("❌ useAmbassadorOfferState - Error loading leasers:", error);
+        toast.error("Erreur lors du chargement des leasers");
       } finally {
         setLoadingLeasers(false);
       }
