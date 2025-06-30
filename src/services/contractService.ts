@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getOfferEquipment } from "./offers/offerEquipment";
 
 export const contractStatuses = {
   CONTRACT_SENT: "contract_sent",
@@ -167,18 +166,54 @@ export const getContractDocuments = async (contractId: string): Promise<Contract
   }
 };
 
+// Fonction corrigée pour récupérer les équipements de l'offre
+const getOfferEquipmentForTransfer = async (offerId: string) => {
+  try {
+    console.log("🔍 Récupération des équipements de l'offre:", offerId);
+
+    const { data: equipmentData, error: equipmentError } = await supabase
+      .from('offer_equipment')
+      .select(`
+        *,
+        offer_equipment_attributes(key, value),
+        offer_equipment_specifications(key, value)
+      `)
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: true });
+
+    if (equipmentError) {
+      console.error("❌ Erreur lors de la récupération des équipements de l'offre:", equipmentError);
+      return [];
+    }
+
+    const formattedEquipment = equipmentData?.map(item => ({
+      ...item,
+      attributes: item.offer_equipment_attributes || [],
+      specifications: item.offer_equipment_specifications || []
+    })) || [];
+
+    console.log("✅ Équipements de l'offre récupérés:", formattedEquipment);
+    return formattedEquipment;
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des équipements de l'offre:", error);
+    return [];
+  }
+};
+
 // Fonction pour créer les équipements du contrat depuis l'offre
 const createContractEquipmentFromOffer = async (contractId: string, offerId: string): Promise<boolean> => {
   try {
     console.log("🔧 Création des équipements du contrat depuis l'offre:", { contractId, offerId });
 
-    // Récupérer les équipements de l'offre
-    const offerEquipment = await getOfferEquipment(offerId);
+    // Récupérer les équipements de l'offre avec leurs attributs et spécifications
+    const offerEquipment = await getOfferEquipmentForTransfer(offerId);
     
     if (offerEquipment.length === 0) {
       console.log("ℹ️ Aucun équipement trouvé dans l'offre");
       return true;
     }
+
+    console.log(`📦 ${offerEquipment.length} équipement(s) à transférer`);
 
     for (const equipment of offerEquipment) {
       console.log("📝 Création de l'équipement:", equipment.title);
@@ -204,9 +239,11 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
       }
 
       const contractEquipmentId = contractEquipmentData.id;
+      console.log("✅ Équipement créé avec l'ID:", contractEquipmentId);
 
       // Créer les attributs
       if (equipment.attributes && equipment.attributes.length > 0) {
+        console.log(`📋 Import de ${equipment.attributes.length} attribut(s)`);
         const attributesData = equipment.attributes.map(attr => ({
           equipment_id: contractEquipmentId,
           key: attr.key,
@@ -219,11 +256,14 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
 
         if (attributesError) {
           console.error("❌ Erreur lors de la création des attributs:", attributesError);
+        } else {
+          console.log("✅ Attributs créés avec succès");
         }
       }
 
       // Créer les spécifications
       if (equipment.specifications && equipment.specifications.length > 0) {
+        console.log(`🔧 Import de ${equipment.specifications.length} spécification(s)`);
         const specificationsData = equipment.specifications.map(spec => ({
           equipment_id: contractEquipmentId,
           key: spec.key,
@@ -236,11 +276,13 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
 
         if (specificationsError) {
           console.error("❌ Erreur lors de la création des spécifications:", specificationsError);
+        } else {
+          console.log("✅ Spécifications créées avec succès");
         }
       }
     }
 
-    console.log("✅ Équipements du contrat créés avec succès");
+    console.log("✅ Tous les équipements du contrat ont été créés avec succès");
     return true;
   } catch (error) {
     console.error("❌ Exception lors de la création des équipements:", error);
@@ -254,6 +296,8 @@ export const createContractFromOffer = async (
   leaserLogo?: string
 ): Promise<string | null> => {
   try {
+    console.log("📋 Début de création du contrat depuis l'offre:", offerId);
+
     const { data: offerData, error: offerError } = await supabase
       .from('offers')
       .select('*, clients(name, email, company)')
@@ -289,10 +333,12 @@ export const createContractFromOffer = async (
 
     console.log("💾 Données du contrat à créer:", contractData);
 
+    // Créer le contrat
     const { data, error } = await supabase
       .from('contracts')
       .insert(contractData)
-      .select();
+      .select()
+      .single();
 
     if (error) {
       console.error("Erreur lors de la création du contrat:", error);
@@ -300,14 +346,19 @@ export const createContractFromOffer = async (
       return null;
     }
 
-    console.log("✅ Contrat créé avec succès:", data?.[0]);
+    console.log("✅ Contrat créé avec succès:", data);
 
-    const contractId = data?.[0]?.id;
-    if (contractId) {
-      // Créer les équipements détaillés du contrat
-      await createContractEquipmentFromOffer(contractId, offerId);
+    const contractId = data.id;
+    
+    // Créer les équipements détaillés du contrat
+    console.log("🔄 Transfert des équipements vers le contrat...");
+    const equipmentTransferred = await createContractEquipmentFromOffer(contractId, offerId);
+    
+    if (!equipmentTransferred) {
+      console.warn("⚠️ Échec du transfert des équipements, mais le contrat est créé");
     }
 
+    // Marquer l'offre comme convertie (mais ne pas la supprimer)
     const { error: updateError } = await supabase
       .from('offers')
       .update({ converted_to_contract: true })
@@ -315,9 +366,12 @@ export const createContractFromOffer = async (
 
     if (updateError) {
       console.error("Erreur lors de la mise à jour de l'offre:", updateError);
+    } else {
+      console.log("✅ Offre marquée comme convertie");
     }
 
-    return contractId || null;
+    console.log("🎉 Contrat créé avec succès avec ID:", contractId);
+    return contractId;
   } catch (error) {
     console.error("Erreur lors de la création du contrat:", error);
     toast.error("Erreur lors de la création du contrat");
