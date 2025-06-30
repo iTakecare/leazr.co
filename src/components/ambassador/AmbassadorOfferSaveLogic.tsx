@@ -72,18 +72,8 @@ export const useAmbassadorOfferSave = ({
     try {
       setIsSubmitting(true);
       
-      // Create equipment description with attributes for backward compatibility
-      const equipmentDescription = JSON.stringify(
-        equipmentList.map(eq => ({
-          id: eq.id,
-          title: eq.title,
-          purchasePrice: eq.purchasePrice,
-          quantity: eq.quantity,
-          margin: eq.margin,
-          monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-          attributes: eq.attributes || {} // Include attributes in JSON
-        }))
-      );
+      // IMPORTANT: Ne plus créer equipment_description JSON pour éviter la duplication
+      // Le matériel sera sauvegardé uniquement via la table offer_equipment
       
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
@@ -119,17 +109,17 @@ export const useAmbassadorOfferSave = ({
         client_id: client.id,
         client_name: client.name,
         client_email: client.email,
-        equipment_description: equipmentDescription,
+        // SUPPRIMÉ: equipment_description pour éviter la duplication
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
-        commission: calculatedCommission, // Utiliser la commission calculée uniformément
+        commission: calculatedCommission,
         financed_amount: financedAmount,
         workflow_status: "draft",
         type: "ambassador_offer",
         user_id: userId,
         ambassador_id: ambassadorId,
-        company_id: ambassador.company_id, // CORRECTION: Ajouter le company_id de l'ambassadeur
+        company_id: ambassador.company_id,
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifference,
         margin: marginAmount
@@ -148,9 +138,9 @@ export const useAmbassadorOfferSave = ({
         return;
       }
       
-      // Save each equipment individually with attributes using the offer equipment service
+      // Sauvegarder chaque équipement individuellement avec leurs attributs
       if (data && data.id) {
-        console.log("Saving individual equipment items for offer:", data.id);
+        console.log("💾 AmbassadorOfferSaveLogic - Saving individual equipment items for offer:", data.id);
         
         for (const equipmentItem of equipmentList) {
           try {
@@ -170,12 +160,12 @@ export const useAmbassadorOfferSave = ({
             );
             
             if (savedEquipment) {
-              console.log("Equipment saved successfully:", savedEquipment.id);
+              console.log("✅ AmbassadorOfferSaveLogic - Equipment saved successfully:", savedEquipment.id);
             } else {
-              console.error("Failed to save equipment:", equipmentItem.title);
+              console.error("❌ AmbassadorOfferSaveLogic - Failed to save equipment:", equipmentItem.title);
             }
           } catch (equipmentError) {
-            console.error("Error saving equipment:", equipmentItem.title, equipmentError);
+            console.error("❌ AmbassadorOfferSaveLogic - Error saving equipment:", equipmentItem.title, equipmentError);
             // Continue with other equipment even if one fails
           }
         }
@@ -185,7 +175,7 @@ export const useAmbassadorOfferSave = ({
       navigate("/ambassador/offers");
       
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de l'offre:", error);
+      console.error("❌ AmbassadorOfferSaveLogic - Erreur lors de la sauvegarde de l'offre:", error);
       toast.error("Impossible de sauvegarder l'offre");
     } finally {
       setIsSubmitting(false);
