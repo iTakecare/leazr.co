@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Circle, Clock, ArrowRight, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { useAuth } from "@/context/AuthContext";
 
 interface InteractiveWorkflowStepperProps {
@@ -62,38 +62,29 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     try {
       setUpdating(true);
 
-      const { error } = await supabase
-        .from('offers')
-        .update({ 
-          workflow_status: targetStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', offerId);
+      // Utiliser le service updateOfferStatus qui contient la logique de conversion automatique
+      const success = await updateOfferStatus(
+        offerId,
+        targetStatus,
+        currentStatus,
+        targetStatus === 'financed' 
+          ? `Finalisation manuelle - Conversion en contrat`
+          : `Changement manuel depuis le stepper`
+      );
 
-      if (error) throw error;
+      if (success) {
+        if (onStatusChange) {
+          onStatusChange(targetStatus);
+        }
 
-      // Log du changement de statut
-      await supabase
-        .from('offer_workflow_logs')
-        .insert({
-          offer_id: offerId,
-          user_id: user?.id,
-          previous_status: currentStatus,
-          new_status: targetStatus,
-          reason: targetStatus === 'financed' 
-            ? `Finalisation manuelle - Conversion en contrat`
-            : `Changement manuel depuis le stepper`
-        });
-
-      if (onStatusChange) {
-        onStatusChange(targetStatus);
-      }
-
-      // Message de succès spécial pour la finalisation
-      if (targetStatus === 'financed') {
-        toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
+        // Message de succès spécial pour la finalisation
+        if (targetStatus === 'financed') {
+          toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
+        } else {
+          toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
+        }
       } else {
-        toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
+        toast.error("Erreur lors du changement de statut");
       }
     } catch (error) {
       console.error("Erreur lors du changement de statut:", error);
