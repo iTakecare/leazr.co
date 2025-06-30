@@ -105,6 +105,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   // Only admins can see the margin column
   const showMarginColumn = isAdmin();
+  
+  // Check if we have any ambassador offers to show commission column
+  const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
 
   // Function to calculate and display the correct margin
   const getDisplayMargin = (offer: any) => {
@@ -189,6 +192,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="w-[120px]">Type</TableHead>
                 <TableHead className="max-w-[120px]">Équipement</TableHead>
                 {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
+                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right">Commission</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead>Status</TableHead>
@@ -231,6 +235,18 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       <div className="font-medium text-green-600">
                         {getDisplayMargin(offer)}
                       </div>
+                    </TableCell>
+                  )}
+                  {/* Show commission column only for ambassador offers and admins */}
+                  {hasAmbassadorOffers && showMarginColumn && (
+                    <TableCell className="text-right">
+                      {offer.type === 'ambassador_offer' && offer.commission ? (
+                        <div className="font-medium text-blue-600">
+                          {formatCurrency(offer.commission)}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </TableCell>
                   )}
                   {!isAmbassador() && (
