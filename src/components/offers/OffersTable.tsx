@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -109,30 +108,27 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Check if we have any ambassador offers to show commission column
   const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
 
-  // Function to calculate and display the correct margin
+  // Function to calculate and display the correct margin - Updated to match FinancialSection logic
   const getDisplayMargin = (offer: any) => {
     console.log("🔍 DEBUGGING MARGIN for offer:", offer.id);
     console.log("📊 Raw offer data:", {
-      total_margin_with_difference: offer.total_margin_with_difference,
-      total_margin_with_difference_type: typeof offer.total_margin_with_difference,
       margin: offer.margin,
-      margin_difference: offer.margin_difference,
+      margin_type: typeof offer.margin,
+      total_margin_with_difference: offer.total_margin_with_difference,
       amount: offer.amount,
       financed_amount: offer.financed_amount,
       monthly_payment: offer.monthly_payment,
       coefficient: offer.coefficient
     });
 
-    // Vérifier total_margin_with_difference en premier
-    if (offer.total_margin_with_difference !== null && offer.total_margin_with_difference !== undefined) {
-      const marginValue = Number(offer.total_margin_with_difference);
-      console.log("✅ Using total_margin_with_difference:", marginValue);
-      if (!isNaN(marginValue)) {
-        return formatCurrency(marginValue);
-      }
+    // Utiliser offer.margin en priorité (même logique que FinancialSection)
+    if (offer.margin !== null && offer.margin !== undefined && !isNaN(Number(offer.margin))) {
+      const marginValue = Number(offer.margin);
+      console.log("✅ Using offer.margin:", marginValue);
+      return formatCurrency(marginValue);
     }
 
-    // Calculer la marge basée sur amount - financed_amount
+    // Fallback: Calculer la marge basée sur amount - financed_amount
     if (offer.amount && offer.financed_amount) {
       const amount = Number(offer.amount);
       const financedAmount = Number(offer.financed_amount);
@@ -149,7 +145,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
       }
     }
 
-    // Sinon, calculer la marge basée sur le montant et la mensualité
+    // Fallback: calculer la marge basée sur le montant et la mensualité
     if (offer.amount && offer.monthly_payment && offer.coefficient) {
       const amount = Number(offer.amount);
       const monthlyPayment = Number(offer.monthly_payment);
@@ -168,12 +164,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
       if (!isNaN(calculatedMargin) && calculatedMargin > 0) {
         return formatCurrency(calculatedMargin);
       }
-    }
-
-    // Fallback sur la marge simple si elle existe
-    if (offer.margin && !isNaN(Number(offer.margin))) {
-      console.log("⚠️ Using fallback margin:", offer.margin);
-      return formatCurrency(offer.margin);
     }
 
     console.log("❌ No valid margin found, returning N/A");
