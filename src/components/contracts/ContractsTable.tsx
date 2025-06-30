@@ -31,6 +31,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({ contracts, onRefresh })
 
   const handleViewDetails = (contractId: string) => {
     console.log("🔍 Navigation vers les détails du contrat:", contractId);
+    // Navigation corrigée vers les routes admin
     navigate(`/admin/contracts/${contractId}`);
   };
 

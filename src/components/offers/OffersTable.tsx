@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
@@ -83,7 +84,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
     if (isAmbassador()) {
       navigate(`/ambassador/offers/${offerId}`);
     } else {
-      navigate(`/offers/${offerId}`);
+      // Navigation corrigée vers les routes admin
+      navigate(`/admin/offers/${offerId}`);
     }
   };
 
