@@ -20,7 +20,6 @@ export const useContractDetail = (contractId: string) => {
 
   const fetchContractDetails = async () => {
     if (!contractId) {
-      console.error("❌ ID de contrat manquant");
       setError("ID de contrat manquant");
       setLoading(false);
       return;
@@ -40,14 +39,7 @@ export const useContractDetail = (contractId: string) => {
         getContractWorkflowLogs(contractId)
       ]);
       
-      console.log("📊 Données récupérées:");
-      console.log("- Contrat:", contractData);
-      console.log("- Équipements:", equipmentData);
-      console.log("- Documents:", documentsData);
-      console.log("- Logs:", logsData);
-      
       if (!contractData) {
-        console.error("❌ Contrat non trouvé");
         setError("Contrat non trouvé");
         return;
       }
@@ -67,7 +59,6 @@ export const useContractDetail = (contractId: string) => {
   };
 
   useEffect(() => {
-    console.log("🔄 useContractDetail - contractId:", contractId);
     fetchContractDetails();
   }, [contractId]);
 

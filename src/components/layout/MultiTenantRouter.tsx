@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -50,8 +48,9 @@ import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
 import ClientEditPage from "@/pages/ClientEditPage";
 import CreateOffer from "@/pages/CreateOffer";
+import Offers from "@/pages/Offers";
+import OfferDetail from "@/pages/OfferDetail";
 import Contracts from "@/pages/Contracts";
-import ContractDetail from "@/pages/ContractDetail";
 import Settings from "@/pages/Settings";
 import CompanySettingsPage from "@/pages/CompanySettingsPage";
 import CRMPage from "@/pages/CRMPage";
@@ -158,11 +157,13 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/clients/edit/:id" element={<ClientEditPage />} />
+        <Route path="/admin/offers" element={<Offers />} />
+        <Route path="/offers" element={<Offers />} />
+        <Route path="/offers/:id" element={<OfferDetail />} />
+        <Route path="/admin/offers/:id" element={<OfferDetail />} />
         <Route path="/create-offer" element={<CreateOffer />} />
         <Route path="/admin/create-offer" element={<CreateOffer />} />
         <Route path="/admin/contracts" element={<Contracts />} />
-        <Route path="/admin/contracts/:id" element={<ContractDetail />} />
-        <Route path="/contracts/:id" element={<ContractDetail />} />
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
