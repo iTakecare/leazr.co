@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
@@ -96,6 +97,8 @@ export const updateOfferStatus = async (
 
     // Si le statut est financed, créer automatiquement un contrat
     if (newStatus === 'financed') {
+      console.log("🔄 Démarrage de la conversion automatique en contrat...");
+      
       try {
         // Récupérer les infos nécessaires pour créer le contrat
         const { data: offerData, error: offerDataError } = await supabase
@@ -108,14 +111,22 @@ export const updateOfferStatus = async (
           throw new Error("Impossible de récupérer les détails de l'offre");
         }
         
-        // Récupérer le bailleur (ici, on utilise une valeur par défaut)
-        const leaserName = "Grenke"; // Par défaut, devrait idéalement être récupéré depuis l'offre
+        console.log("📋 Données de l'offre récupérées:", {
+          id: offerData.id,
+          client_name: offerData.client_name,
+          monthly_payment: offerData.monthly_payment
+        });
+        
+        // Utiliser un bailleur par défaut (pourrait être amélioré pour permettre le choix)
+        const leaserName = "Grenke";
         const leaserLogo = "https://logo.clearbit.com/grenke.com";
+        
+        console.log("🏢 Création du contrat avec le bailleur:", leaserName);
         
         const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
         
         if (contractId) {
-          console.log("Contrat créé avec l'ID:", contractId);
+          console.log("✅ Contrat créé avec succès - ID:", contractId);
           
           // Marquer l'offre comme convertie en contrat
           const { error: conversionError } = await supabase
@@ -124,14 +135,21 @@ export const updateOfferStatus = async (
             .eq('id', offerId);
             
           if (conversionError) {
-            console.error("Erreur lors de la mise à jour du statut de conversion:", conversionError);
+            console.error("❌ Erreur lors de la mise à jour du statut de conversion:", conversionError);
+            toast.error("Le contrat a été créé mais l'offre n'a pas pu être marquée comme convertie");
           } else {
-            toast.success("L'offre a été convertie en contrat");
+            console.log("✅ Offre marquée comme convertie en contrat");
+            toast.success(`Offre finalisée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
           }
+        } else {
+          throw new Error("Échec de la création du contrat");
         }
       } catch (contractError) {
-        console.error("Erreur lors de la création du contrat:", contractError);
-        toast.error("L'offre a été marquée comme financée mais nous n'avons pas pu créer le contrat");
+        console.error("❌ Erreur lors de la création du contrat:", contractError);
+        toast.error(`L'offre a été finalisée mais nous n'avons pas pu créer le contrat: ${contractError.message}`);
+        
+        // Optionnel : revenir au statut précédent en cas d'échec
+        // await supabase.from('offers').update({ workflow_status: safePreviousStatus }).eq('id', offerId);
       }
     }
     

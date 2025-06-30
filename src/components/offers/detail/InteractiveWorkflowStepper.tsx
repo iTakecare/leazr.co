@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     { key: 'info_requested', label: 'Infos demandées', icon: HelpCircle },
     { key: 'signed', label: 'Signée', icon: CheckCircle },
     { key: 'approved', label: 'Approuvée', icon: CheckCircle },
-    { key: 'completed', label: 'Finalisée', icon: CheckCircle }
+    { key: 'financed', label: 'Finalisée', icon: CheckCircle }
   ];
 
   const getCurrentStepIndex = () => {
@@ -47,9 +48,12 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       return; // Pas de changement nécessaire
     }
 
-    const confirmMessage = targetIndex > currentIndex 
-      ? `Confirmer le passage à l'étape "${steps[targetIndex].label}" ?`
-      : `Confirmer le retour à l'étape "${steps[targetIndex].label}" ?`;
+    // Confirmation spéciale pour la finalisation (conversion en contrat)
+    const confirmMessage = targetStatus === 'financed' 
+      ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
+      : targetIndex > currentIndex 
+        ? `Confirmer le passage à l'étape "${steps[targetIndex].label}" ?`
+        : `Confirmer le retour à l'étape "${steps[targetIndex].label}" ?`;
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -76,14 +80,21 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
           user_id: user?.id,
           previous_status: currentStatus,
           new_status: targetStatus,
-          reason: `Changement manuel depuis le stepper`
+          reason: targetStatus === 'financed' 
+            ? `Finalisation manuelle - Conversion en contrat`
+            : `Changement manuel depuis le stepper`
         });
 
       if (onStatusChange) {
         onStatusChange(targetStatus);
       }
 
-      toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
+      // Message de succès spécial pour la finalisation
+      if (targetStatus === 'financed') {
+        toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
+      } else {
+        toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
+      }
     } catch (error) {
       console.error("Erreur lors du changement de statut:", error);
       toast.error("Erreur lors du changement de statut");
@@ -150,7 +161,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
               <div className="mt-2 text-center">
                 <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
-                  className="text-xs whitespace-nowrap px-2 py-1"
+                  className={`text-xs whitespace-nowrap px-2 py-1 ${
+                    step.key === 'financed' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
+                  }`}
                 >
                   {step.label}
                 </Badge>
@@ -162,6 +175,11 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       
       <div className="mt-4 text-center text-sm text-gray-500">
         Cliquez sur une étape pour modifier le statut
+        {currentIndex === steps.length - 2 && (
+          <div className="mt-2 text-orange-600 font-medium">
+            ⚠️ L'étape "Finalisée" convertira automatiquement l'offre en contrat
+          </div>
+        )}
       </div>
     </div>
   );
