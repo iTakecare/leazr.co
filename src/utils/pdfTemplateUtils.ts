@@ -17,7 +17,9 @@ export const DEFAULT_MODEL = {
   headerText: 'OFFRE N° {offer_id}',
   footerText: 'Cette offre est valable 30 jours à compter de sa date d\'émission.',
   templateImages: [],
-  fields: []
+  fields: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
 };
 
 // Fonction pour sauvegarder un modèle PDF
