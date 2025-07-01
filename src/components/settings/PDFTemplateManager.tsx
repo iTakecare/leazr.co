@@ -4,27 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PDFTemplateControls from "./pdf-template/PDFTemplateControls";
 import PDFTemplateContent from "./pdf-template/PDFTemplateContent";
 import { usePDFTemplate } from "@/hooks/usePDFTemplate";
+import { PDFTemplate } from "@/types/pdfTemplate";
 import { toast } from "sonner";
-
-// Interface pour le modèle PDF
-export interface PDFTemplate {
-  id: string;
-  name: string;
-  companyName: string;
-  companyAddress: string;
-  companyContact: string;
-  companySiret: string;
-  logoURL: string;
-  primaryColor: string;
-  secondaryColor: string;
-  headerText: string;
-  footerText: string;
-  templateImages: any[];
-  fields: any[];
-  created_at?: string;
-  updated_at?: string;
-  [key: string]: any;
-}
 
 interface PDFTemplateManagerProps {
   templateId?: string;

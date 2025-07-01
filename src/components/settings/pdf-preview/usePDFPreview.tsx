@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { PDFTemplate } from "@/components/settings/PDFTemplateManager";
+import { PDFTemplate } from "@/types/pdfTemplate";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 

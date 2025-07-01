@@ -5,7 +5,7 @@ import { AlertCircle } from "lucide-react";
 import PDFTemplateError from "./PDFTemplateError";
 import PDFTemplateLoading from "./PDFTemplateLoading";
 import PDFTemplateTabs from "./PDFTemplateTabs";
-import { PDFTemplate } from "@/components/settings/PDFTemplateManager";
+import { PDFTemplate } from "@/types/pdfTemplate";
 
 interface PDFTemplateContentProps {
   loading: boolean;

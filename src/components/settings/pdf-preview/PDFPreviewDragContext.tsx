@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { PDFTemplate } from "@/components/settings/PDFTemplateManager";
+import { PDFTemplate } from "@/types/pdfTemplate";
 
 interface DragContextState {
   isDragging: boolean;

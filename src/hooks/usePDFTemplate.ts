@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
-import { PDFTemplate } from "@/components/settings/PDFTemplateManager";
+import { PDFTemplate } from "@/types/pdfTemplate";
 
 export const usePDFTemplate = (templateId: string = 'default') => {
   const [loading, setLoading] = useState(true);
