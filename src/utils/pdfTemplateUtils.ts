@@ -86,9 +86,9 @@ export const loadPDFTemplate = async (id: string = 'default'): Promise<any> => {
       .eq('id', id)
       .maybeSingle();
     
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error("Erreur lors du chargement depuis Supabase:", error);
-      throw new Error("Erreur de base de données");
+      throw new Error(`Erreur de base de données: ${error.message}`);
     }
     
     if (data) {
@@ -96,23 +96,8 @@ export const loadPDFTemplate = async (id: string = 'default'): Promise<any> => {
       return data;
     }
     
-    // Si le modèle n'existe pas dans Supabase et c'est le modèle par défaut
-    if (id === 'default') {
-      console.log("Création du modèle par défaut dans Supabase");
-      
-      // Insérer le modèle par défaut dans Supabase
-      const { error: insertError } = await supabase
-        .from('pdf_templates')
-        .insert([DEFAULT_MODEL]);
-      
-      if (insertError) {
-        console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-        throw new Error("Erreur d'insertion");
-      }
-      
-      return DEFAULT_MODEL;
-    }
-    
+    // Si le modèle n'existe pas
+    console.log(`Modèle ${id} non trouvé`);
     return null;
   } catch (error) {
     console.error("Erreur lors du chargement du modèle:", error);

@@ -117,18 +117,30 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
         />
       </CardHeader>
       <CardContent>
-        <PDFTemplateContent
-          loading={loading}
-          error={error}
-          template={template}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onCompanyInfoUpdate={handleCompanyInfoUpdate}
-          onTemplateUpdate={handleTemplateUpdate}
-          saving={saving}
-          onRetry={handleRetry}
-          isNewTemplate={false}
-        />
+        {error ? (
+          <div className="text-center py-8">
+            <div className="text-destructive mb-4">{error}</div>
+            <button 
+              onClick={handleRetry}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <PDFTemplateContent
+            loading={loading}
+            error={error}
+            template={template}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onCompanyInfoUpdate={handleCompanyInfoUpdate}
+            onTemplateUpdate={handleTemplateUpdate}
+            saving={saving}
+            onRetry={handleRetry}
+            isNewTemplate={false}
+          />
+        )}
       </CardContent>
     </Card>
   );

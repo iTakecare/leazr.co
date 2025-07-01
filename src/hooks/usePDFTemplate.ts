@@ -51,9 +51,11 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       }
     } catch (err) {
       console.error("Erreur lors du chargement du modèle:", err);
-      setError("Erreur lors du chargement du modèle");
-      toast.error("Erreur lors du chargement du modèle");
+      const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
+      setError(`Erreur lors du chargement du modèle: ${errorMessage}`);
+      toast.error(`Erreur lors du chargement du modèle: ${errorMessage}`);
       
+      // Fallback au modèle par défaut en cas d'erreur
       setTemplate({
         ...DEFAULT_MODEL,
         templateImages: [],
