@@ -456,17 +456,34 @@ export const updateContractStatus = async (
       return false;
     }
 
-    // Créer un log de workflow avec la nouvelle fonction sécurisée
-    const { error: logError } = await supabase
-      .rpc('create_contract_workflow_log', {
-        p_contract_id: contractId,
-        p_previous_status: previousStatus,
-        p_new_status: newStatus,
-        p_reason: reason || null
-      });
+    // Créer un log de workflow - essayer d'abord avec RPC, sinon insertion directe
+    try {
+      const { error: logError } = await supabase
+        .rpc('create_contract_workflow_log', {
+          p_contract_id: contractId,
+          p_previous_status: previousStatus,
+          p_new_status: newStatus,
+          p_reason: reason || null
+        });
 
-    if (logError) {
-      console.error("Erreur lors de la création du log de workflow:", logError);
+      if (logError) {
+        console.warn("RPC non disponible, création du log directement");
+        // Fallback: créer le log directement
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase
+          .from('contract_workflow_logs')
+          .insert({
+            contract_id: contractId,
+            user_id: user?.id,
+            previous_status: previousStatus,
+            new_status: newStatus,
+            reason: reason || null,
+            user_name: 'Utilisateur système'
+          });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création du log de workflow:", error);
       // Ne pas bloquer l'opération si le log échoue
     }
 
@@ -501,16 +518,33 @@ export const addTrackingNumber = async (
     }
 
     // Créer un log pour l'ajout du tracking
-    const { error: logError } = await supabase
-      .rpc('create_contract_workflow_log', {
-        p_contract_id: contractId,
-        p_previous_status: 'equipment_ordered',
-        p_new_status: 'equipment_ordered',
-        p_reason: `Numéro de suivi ajouté: ${trackingNumber}${carrier ? ` (${carrier})` : ''}${estimatedDelivery ? ` - Livraison estimée: ${estimatedDelivery}` : ''}`
-      });
+    try {
+      const { error: logError } = await supabase
+        .rpc('create_contract_workflow_log', {
+          p_contract_id: contractId,
+          p_previous_status: 'equipment_ordered',
+          p_new_status: 'equipment_ordered',
+          p_reason: `Numéro de suivi ajouté: ${trackingNumber}${carrier ? ` (${carrier})` : ''}${estimatedDelivery ? ` - Livraison estimée: ${estimatedDelivery}` : ''}`
+        });
 
-    if (logError) {
-      console.error("Erreur lors de la création du log de workflow:", logError);
+      if (logError) {
+        console.warn("RPC non disponible, création du log de tracking directement");
+        // Fallback: créer le log directement
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase
+          .from('contract_workflow_logs')
+          .insert({
+            contract_id: contractId,
+            user_id: user?.id,
+            previous_status: 'equipment_ordered',
+            new_status: 'equipment_ordered',
+            reason: `Numéro de suivi ajouté: ${trackingNumber}${carrier ? ` (${carrier})` : ''}${estimatedDelivery ? ` - Livraison estimée: ${estimatedDelivery}` : ''}`,
+            user_name: 'Utilisateur système'
+          });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création du log de workflow:", error);
       // Ne pas bloquer l'opération si le log échoue
     }
 
@@ -525,8 +559,30 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
   try {
     console.log("🔍 Récupération des logs de workflow du contrat:", contractId);
 
-    const { data, error } = await supabase
-      .rpc('get_contract_workflow_logs', { p_contract_id: contractId });
+    // Essayer d'abord la fonction RPC, sinon utiliser une requête directe
+    let data, error;
+    
+    try {
+      ({ data, error } = await supabase
+        .rpc('get_contract_workflow_logs', { p_contract_id: contractId }));
+    } catch (rpcError) {
+      console.log("RPC non disponible, utilisation de la requête directe");
+      ({ data, error } = await supabase
+        .from('contract_workflow_logs')
+        .select(`
+          id,
+          contract_id,
+          user_id,
+          previous_status,
+          new_status,
+          reason,
+          created_at,
+          user_name,
+          profiles:user_id(first_name, last_name)
+        `)
+        .eq('contract_id', contractId)
+        .order('created_at', { ascending: false }));
+    }
 
     if (error) {
       console.error("❌ Erreur lors de la récupération des logs:", error);
