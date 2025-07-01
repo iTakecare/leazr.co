@@ -13,9 +13,11 @@ export const usePDFTemplate = (templateId: string = 'default') => {
   const [templateName, setTemplateName] = useState<string | undefined>(undefined);
 
   const loadTemplate = useCallback(async (id: string = 'default') => {
-    // Éviter les chargements multiples simultanés
-    if (loading) {
-      console.log("Chargement déjà en cours, ignore la demande");
+    console.log("loadTemplate appelé avec id:", id, "loading actuel:", loading);
+    
+    // Éviter les chargements multiples simultanés seulement si déjà en cours de chargement
+    if (loading && template !== null) {
+      console.log("Chargement déjà en cours et template existe, ignore la demande");
       return;
     }
     
