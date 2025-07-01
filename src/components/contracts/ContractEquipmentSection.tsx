@@ -19,24 +19,59 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
   equipment, 
   onRefresh 
 }) => {
-  const [editingSerials, setEditingSerials] = useState<{ [key: string]: string }>({});
+  const [editingSerials, setEditingSerials] = useState<{ [key: string]: string[] }>({});
   const [savingSerials, setSavingSerials] = useState<{ [key: string]: boolean }>({});
 
-  const handleEditSerial = (equipmentId: string, currentSerial: string) => {
+  const getSerialNumbers = (item: ContractEquipment): string[] => {
+    if (!item.serial_number) return Array(item.quantity).fill('');
+    try {
+      const parsed = JSON.parse(item.serial_number);
+      if (Array.isArray(parsed)) {
+        // S'assurer qu'on a le bon nombre d'éléments
+        const result = [...parsed];
+        while (result.length < item.quantity) {
+          result.push('');
+        }
+        return result.slice(0, item.quantity);
+      }
+    } catch {
+      // Si ce n'est pas du JSON valide, traiter comme un seul numéro
+      const result = Array(item.quantity).fill('');
+      result[0] = item.serial_number;
+      return result;
+    }
+    return Array(item.quantity).fill('');
+  };
+
+  const handleEditSerial = (equipmentId: string, item: ContractEquipment) => {
     setEditingSerials(prev => ({
       ...prev,
-      [equipmentId]: currentSerial || ""
+      [equipmentId]: getSerialNumbers(item)
     }));
   };
 
+  const handleSerialChange = (equipmentId: string, index: number, value: string) => {
+    setEditingSerials(prev => {
+      const current = prev[equipmentId] || [];
+      const updated = [...current];
+      updated[index] = value;
+      return {
+        ...prev,
+        [equipmentId]: updated
+      };
+    });
+  };
+
   const handleSaveSerial = async (equipmentId: string) => {
-    const newSerial = editingSerials[equipmentId];
-    if (newSerial === undefined) return;
+    const newSerials = editingSerials[equipmentId];
+    if (!newSerials) return;
 
     setSavingSerials(prev => ({ ...prev, [equipmentId]: true }));
 
     try {
-      const success = await updateEquipmentSerialNumber(equipmentId, newSerial);
+      // Stocker les numéros de série comme JSON
+      const serialsToSave = JSON.stringify(newSerials.filter(s => s.trim() !== ''));
+      const success = await updateEquipmentSerialNumber(equipmentId, serialsToSave);
       
       if (success) {
         setEditingSerials(prev => {
@@ -44,13 +79,13 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
           return rest;
         });
         onRefresh();
-        toast.success("Numéro de série mis à jour");
+        toast.success("Numéros de série mis à jour");
       } else {
-        toast.error("Erreur lors de la mise à jour du numéro de série");
+        toast.error("Erreur lors de la mise à jour des numéros de série");
       }
     } catch (error) {
       console.error("Erreur:", error);
-      toast.error("Erreur lors de la mise à jour du numéro de série");
+      toast.error("Erreur lors de la mise à jour des numéros de série");
     } finally {
       setSavingSerials(prev => ({ ...prev, [equipmentId]: false }));
     }
@@ -85,9 +120,12 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
           Équipements ({equipment.length})
-          {equipment.some(item => !item.serial_number) && (
+          {equipment.some(item => {
+            const serials = getSerialNumbers(item);
+            return serials.some(s => !s);
+          }) && (
             <Badge variant="outline" className="ml-2 text-orange-600 border-orange-200">
-              ⚠️ {equipment.filter(item => !item.serial_number).length} sans N° série
+              ⚠️ Numéros de série manquants
             </Badge>
           )}
         </CardTitle>
@@ -121,53 +159,70 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
               </div>
             </div>
 
-            {/* Numéro de série */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground min-w-[100px]">N° de série:</span>
+            {/* Numéros de série */}
+            <div className="space-y-2">
+              <span className="text-sm text-muted-foreground">Numéros de série:</span>
               {editingSerials[item.id] !== undefined ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <Input
-                    value={editingSerials[item.id]}
-                    onChange={(e) => setEditingSerials(prev => ({
-                      ...prev,
-                      [item.id]: e.target.value
-                    }))}
-                    placeholder="Entrez le numéro de série"
-                    className="flex-1"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => handleSaveSerial(item.id)}
-                    disabled={savingSerials[item.id]}
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCancelEdit(item.id)}
-                    disabled={savingSerials[item.id]}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2">
+                  {editingSerials[item.id].map((serial, serialIndex) => (
+                    <div key={serialIndex} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground min-w-[60px]">
+                        Unité {serialIndex + 1}:
+                      </span>
+                      <Input
+                        value={serial}
+                        onChange={(e) => handleSerialChange(item.id, serialIndex, e.target.value)}
+                        placeholder={`Numéro de série unité ${serialIndex + 1}`}
+                        className="flex-1"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveSerial(item.id)}
+                      disabled={savingSerials[item.id]}
+                    >
+                      <Save className="h-4 w-4" />
+                      Sauvegarder
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCancelEdit(item.id)}
+                      disabled={savingSerials[item.id]}
+                    >
+                      <X className="h-4 w-4" />
+                      Annuler
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 flex-1">
-                  <div className={`text-sm px-2 py-1 rounded-md ${
-                    item.serial_number 
-                      ? 'bg-green-50 text-green-700 border border-green-200' 
-                      : 'bg-orange-50 text-orange-700 border border-orange-200'
-                  }`}>
-                    {item.serial_number || "⚠️ Non défini"}
-                  </div>
+                <div className="space-y-2">
+                  {getSerialNumbers(item).map((serial, serialIndex) => (
+                    <div key={serialIndex} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground min-w-[60px]">
+                        Unité {serialIndex + 1}:
+                      </span>
+                      <div className={`text-sm px-2 py-1 rounded-md flex-1 ${
+                        serial 
+                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                          : 'bg-orange-50 text-orange-700 border border-orange-200'
+                      }`}>
+                        {serial || "⚠️ Non défini"}
+                      </div>
+                    </div>
+                  ))}
                   <Button
                     size="sm"
-                    variant={item.serial_number ? "ghost" : "outline"}
-                    onClick={() => handleEditSerial(item.id, item.serial_number || "")}
-                    className={!item.serial_number ? "border-orange-300 text-orange-700 hover:bg-orange-50" : ""}
+                    variant={getSerialNumbers(item).some(s => s) ? "ghost" : "outline"}
+                    onClick={() => handleEditSerial(item.id, item)}
+                    className={!getSerialNumbers(item).some(s => s) ? "border-orange-300 text-orange-700 hover:bg-orange-50" : ""}
                   >
                     <Edit className="h-4 w-4" />
-                    {!item.serial_number && <span className="ml-1 text-xs">Ajouter</span>}
+                    <span className="ml-1 text-xs">
+                      {getSerialNumbers(item).some(s => s) ? "Modifier" : "Ajouter"}
+                    </span>
                   </Button>
                 </div>
               )}
