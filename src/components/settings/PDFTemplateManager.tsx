@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PDFTemplateControls from "./pdf-template/PDFTemplateControls";
 import PDFTemplateContent from "./pdf-template/PDFTemplateContent";
 import { usePDFTemplate } from "@/hooks/usePDFTemplate";
-import { useStorageConnection } from "@/hooks/useStorageConnection";
+import { toast } from "sonner";
 
 // Interface pour le modèle PDF
 export interface PDFTemplate {
@@ -32,36 +32,27 @@ interface PDFTemplateManagerProps {
 
 const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'default' }) => {
   const [activeTab, setActiveTab] = useState("company");
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const {
     loading,
     saving,
     template,
-    error: templateError,
+    error,
     templateExists,
     templateName,
     loadTemplate,
     saveTemplate
   } = usePDFTemplate(templateId);
 
-  const handleLoadTemplate = async () => {
-    await loadTemplate(templateId);
-  };
-
-  const { 
-    error: connectionError, 
-    reconnecting, 
-    initializeStorage, 
-    retryConnection 
-  } = useStorageConnection(handleLoadTemplate);
-
-  // Combine errors
-  const error = connectionError || templateError;
-  
+  // Charger le template une seule fois au montage
   useEffect(() => {
-    console.log(`Initialisation du gestionnaire pour le modèle: ${templateId}`);
-    initializeStorage();
-  }, [templateId, initializeStorage]);
+    if (!isInitialized) {
+      console.log(`Chargement initial du modèle: ${templateId}`);
+      loadTemplate(templateId);
+      setIsInitialized(true);
+    }
+  }, [templateId, isInitialized, loadTemplate]);
 
   const handleCompanyInfoUpdate = async (companyInfo: Partial<PDFTemplate>): Promise<void> => {
     if (template) {
@@ -88,9 +79,10 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     return saveTemplate(sanitizedTemplate);
   };
   
-  const handleRetry = () => {
-    initializeStorage();
-  };
+  const handleRetry = useCallback(() => {
+    setIsInitialized(false);
+    toast.info("Rechargement du modèle...");
+  }, []);
 
   const handleSaveAction = async () => {
     if (template) {
@@ -109,10 +101,10 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
           </CardTitle>
         </div>
         <PDFTemplateControls
-          saving={saving || reconnecting}
+          saving={saving}
           loading={loading}
           onSave={handleSaveAction}
-          onRefresh={retryConnection}
+          onRefresh={handleRetry}
           hasTemplate={!!template}
         />
       </CardHeader>

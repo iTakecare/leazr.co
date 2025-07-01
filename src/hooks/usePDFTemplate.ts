@@ -13,6 +13,12 @@ export const usePDFTemplate = (templateId: string = 'default') => {
   const [templateName, setTemplateName] = useState<string | undefined>(undefined);
 
   const loadTemplate = useCallback(async (id: string = 'default') => {
+    // Éviter les chargements multiples simultanés
+    if (loading) {
+      console.log("Chargement déjà en cours, ignore la demande");
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -22,12 +28,12 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        console.log("Modèle par défaut:", DEFAULT_MODEL);
-        setTemplate({
+        const defaultTemplate = {
           ...DEFAULT_MODEL,
           templateImages: [],
           fields: []
-        });
+        };
+        setTemplate(defaultTemplate);
         setTemplateExists(false);
         setTemplateName("Modèle par défaut");
         toast.info("Modèle par défaut chargé");
@@ -39,10 +45,6 @@ export const usePDFTemplate = (templateId: string = 'default') => {
           templateImages: Array.isArray(data.templateImages) ? data.templateImages : [],
           fields: Array.isArray(data.fields) ? data.fields : []
         };
-        
-        console.log("Modèle sanitisé:", sanitizedTemplate);
-        console.log("Nombre d'images:", sanitizedTemplate.templateImages ? sanitizedTemplate.templateImages.length : 0);
-        console.log("Nombre de champs:", sanitizedTemplate.fields ? sanitizedTemplate.fields.length : 0);
         
         setTemplate(sanitizedTemplate);
         setTemplateExists(true);
@@ -56,17 +58,18 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       toast.error(`Erreur lors du chargement du modèle: ${errorMessage}`);
       
       // Fallback au modèle par défaut en cas d'erreur
-      setTemplate({
+      const fallbackTemplate = {
         ...DEFAULT_MODEL,
         templateImages: [],
         fields: []
-      });
+      };
+      setTemplate(fallbackTemplate);
       setTemplateExists(false);
       setTemplateName("Modèle par défaut (fallback)");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   const saveTemplate = useCallback(async (updatedTemplate: PDFTemplate): Promise<void> => {
     setSaving(true);
