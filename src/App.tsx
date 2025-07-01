@@ -58,6 +58,7 @@ import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
 import ClientEditPage from "@/pages/ClientEditPage";
 import Contracts from "@/pages/Contracts";
+import ContractDetail from "@/pages/ContractDetail";
 import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -275,10 +276,24 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
+                  <Route path="/contracts/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ContractDetail />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
                   <Route path="/admin/contracts" element={
                     <PrivateRoute>
                       <Layout>
                         <Contracts />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/contracts/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <ContractDetail />
                       </Layout>
                     </PrivateRoute>
                   } />
