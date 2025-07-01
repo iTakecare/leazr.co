@@ -21,17 +21,15 @@ const Layout = ({ children }: LayoutProps) => {
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+    <div className="h-screen bg-background flex w-full overflow-hidden">
       {shouldUseLeazrSaaSSidebar ? (
         <LeazrSaaSSidebar />
       ) : (
         <Sidebar />
       )}
       
-      <main className="flex-1 overflow-auto">
-        <div className="min-h-full">
-          {children}
-        </div>
+      <main className="flex-1 overflow-y-auto">
+        {children}
       </main>
     </div>
   );
