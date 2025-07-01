@@ -112,6 +112,15 @@ const ContractDetail = () => {
     
     const actions = [];
     
+    // Ajouter le tracking pour plusieurs statuts
+    if ([contractStatuses.CONTRACT_SIGNED, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status)) {
+      actions.push({
+        label: contract.tracking_number ? "Modifier suivi" : "Ajouter suivi",
+        icon: Send,
+        onClick: openTrackingDialog,
+      });
+    }
+    
     switch (contract.status) {
       case contractStatuses.CONTRACT_SENT:
         actions.push({
@@ -130,12 +139,6 @@ const ContractDetail = () => {
         break;
         
       case contractStatuses.EQUIPMENT_ORDERED:
-        actions.push({
-          label: "Ajouter numéro de suivi",
-          icon: Send,
-          onClick: openTrackingDialog,
-        });
-        
         if (contract.tracking_number) {
           actions.push({
             label: "Marquer comme livré",
@@ -383,22 +386,28 @@ const ContractDetail = () => {
             <CardContent>
               {logs.length > 0 ? (
                 <div className="space-y-4">
-                  {logs.map((log) => (
-                    <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
+                  {logs.map((log, index) => (
+                    <div key={`${log.id}-${index}`} className="border-l-2 border-blue-200 pl-4 py-2">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="font-medium">
-                          {log.profiles?.first_name} {log.profiles?.last_name}
+                          {log.profiles?.first_name || log.user_name || 'Utilisateur'}
                         </div>
                         <div className="text-xs text-gray-500">
                           {formatDate(log.created_at)}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm flex-wrap">
-                        <span>Statut changé de</span>
-                        <ContractStatusBadge status={log.previous_status} />
-                        <span>à</span>
-                        <ContractStatusBadge status={log.new_status} />
-                      </div>
+                      {log.previous_status !== log.new_status ? (
+                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                          <span>Statut changé de</span>
+                          <ContractStatusBadge status={log.previous_status} />
+                          <span>à</span>
+                          <ContractStatusBadge status={log.new_status} />
+                        </div>
+                      ) : (
+                        <div className="text-sm text-blue-600">
+                          ℹ️ Action sur le contrat
+                        </div>
+                      )}
                       {log.reason && (
                         <div className="mt-2 text-sm text-gray-600">
                           {log.reason}

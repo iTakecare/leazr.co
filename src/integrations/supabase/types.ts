@@ -2658,6 +2658,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_contract_workflow_log: {
+        Args: {
+          p_contract_id: string
+          p_previous_status: string
+          p_new_status: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       create_storage_bucket: {
         Args: { bucket_name: string }
         Returns: undefined
@@ -2816,6 +2825,20 @@ export type Database = {
           created_at: string
           last_sign_in_at: string
           has_user_account: boolean
+        }[]
+      }
+      get_contract_workflow_logs: {
+        Args: { p_contract_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          user_id: string
+          previous_status: string
+          new_status: string
+          reason: string
+          created_at: string
+          user_name: string
+          profiles: Json
         }[]
       }
       get_current_user_role: {

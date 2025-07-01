@@ -85,6 +85,11 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
           Équipements ({equipment.length})
+          {equipment.some(item => !item.serial_number) && (
+            <Badge variant="outline" className="ml-2 text-orange-600 border-orange-200">
+              ⚠️ {equipment.filter(item => !item.serial_number).length} sans N° série
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -148,15 +153,21 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-sm">
-                    {item.serial_number || "Non défini"}
-                  </span>
+                  <div className={`text-sm px-2 py-1 rounded-md ${
+                    item.serial_number 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-orange-50 text-orange-700 border border-orange-200'
+                  }`}>
+                    {item.serial_number || "⚠️ Non défini"}
+                  </div>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant={item.serial_number ? "ghost" : "outline"}
                     onClick={() => handleEditSerial(item.id, item.serial_number || "")}
+                    className={!item.serial_number ? "border-orange-300 text-orange-700 hover:bg-orange-50" : ""}
                   >
                     <Edit className="h-4 w-4" />
+                    {!item.serial_number && <span className="ml-1 text-xs">Ajouter</span>}
                   </Button>
                 </div>
               )}

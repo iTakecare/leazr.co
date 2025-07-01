@@ -442,34 +442,32 @@ export const updateContractStatus = async (
   try {
     console.log(`Mise à jour du contrat ${contractId} de ${previousStatus} à ${newStatus} avec raison: ${reason || 'Aucune'}`);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("Utilisateur non authentifié");
-    }
-
-    const { error: logError } = await supabase
-      .from('contract_workflow_logs')
-      .insert({
-        contract_id: contractId,
-        user_id: user.id,
-        previous_status: previousStatus,
-        new_status: newStatus,
-        reason: reason || null
-      });
-
-    if (logError) {
-      console.error("Erreur lors de l'enregistrement du log :", logError);
-    }
-
+    // Mettre à jour le statut du contrat
     const { error } = await supabase
       .from('contracts')
-      .update({ status: newStatus })
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', contractId);
 
     if (error) {
       console.error("Erreur lors de la mise à jour du contrat:", error);
       return false;
+    }
+
+    // Créer un log de workflow avec la nouvelle fonction sécurisée
+    const { error: logError } = await supabase
+      .rpc('create_contract_workflow_log', {
+        p_contract_id: contractId,
+        p_previous_status: previousStatus,
+        p_new_status: newStatus,
+        p_reason: reason || null
+      });
+
+    if (logError) {
+      console.error("Erreur lors de la création du log de workflow:", logError);
+      // Ne pas bloquer l'opération si le log échoue
     }
 
     return true;
@@ -492,13 +490,28 @@ export const addTrackingNumber = async (
         tracking_number: trackingNumber,
         estimated_delivery: estimatedDelivery,
         delivery_carrier: carrier,
-        delivery_status: 'en_attente'
+        delivery_status: 'en_attente',
+        updated_at: new Date().toISOString()
       })
       .eq('id', contractId);
 
     if (error) {
       console.error("Erreur lors de l'ajout du numéro de suivi:", error);
       return false;
+    }
+
+    // Créer un log pour l'ajout du tracking
+    const { error: logError } = await supabase
+      .rpc('create_contract_workflow_log', {
+        p_contract_id: contractId,
+        p_previous_status: 'equipment_ordered',
+        p_new_status: 'equipment_ordered',
+        p_reason: `Numéro de suivi ajouté: ${trackingNumber}${carrier ? ` (${carrier})` : ''}${estimatedDelivery ? ` - Livraison estimée: ${estimatedDelivery}` : ''}`
+      });
+
+    if (logError) {
+      console.error("Erreur lors de la création du log de workflow:", logError);
+      // Ne pas bloquer l'opération si le log échoue
     }
 
     return true;
@@ -510,23 +523,20 @@ export const addTrackingNumber = async (
 
 export const getContractWorkflowLogs = async (contractId: string): Promise<any[]> => {
   try {
+    console.log("🔍 Récupération des logs de workflow du contrat:", contractId);
+
     const { data, error } = await supabase
-      .from('contract_workflow_logs')
-      .select(`
-        *,
-        profiles:user_id (first_name, last_name, email, avatar_url)
-      `)
-      .eq('contract_id', contractId)
-      .order('created_at', { ascending: false });
+      .rpc('get_contract_workflow_logs', { p_contract_id: contractId });
 
     if (error) {
-      console.error("Erreur lors de la récupération des logs:", error);
+      console.error("❌ Erreur lors de la récupération des logs:", error);
       return [];
     }
 
+    console.log("✅ Logs de workflow récupérés:", data || []);
     return data || [];
   } catch (error) {
-    console.error("Erreur lors de la récupération des logs:", error);
+    console.error("❌ Exception lors de la récupération des logs:", error);
     return [];
   }
 };
