@@ -198,7 +198,8 @@ const ContractDetail = () => {
   
   return (
     <PageTransition>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="min-h-screen">
+        <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigate('/contracts')}>
@@ -435,6 +436,7 @@ const ContractDetail = () => {
           documents={documents}
           onRefresh={refetch}
         />
+        </div>
       </div>
       
       {/* Status Change Dialog */}
