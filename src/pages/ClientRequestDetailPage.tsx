@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +23,23 @@ import { useClientOffers } from "@/hooks/useClientOffers";
 import { RequestHeroSection } from "@/components/client/RequestHeroSection";
 import { RequestStatusTimeline } from "@/components/client/RequestStatusTimeline";
 import { EquipmentShowcase } from "@/components/client/EquipmentShowcase";
+import { DetailedEquipmentSection } from "@/components/client/DetailedEquipmentSection";
+import { DocumentUploadSection } from "@/components/client/DocumentUploadSection";
+import { ContractSignatureSection } from "@/components/client/ContractSignatureSection";
+import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import { useOfferDocuments } from "@/hooks/useOfferDocuments";
 
 const ClientRequestDetailPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { offers, loading, error } = useClientOffers(user?.email);
-
+  
   const offer = offers.find(o => o.id === id);
+  
+  // Additional hooks for detailed data
+  const { equipment, loading: equipmentLoading } = useOfferEquipment(id);
+  const { documents, uploadLinks, loading: documentsLoading } = useOfferDocuments(id);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -172,46 +182,60 @@ const ClientRequestDetailPage = () => {
               </Card>
             </motion.div>
 
-            {/* Equipment Showcase */}
+            {/* Equipment Showcase - Legacy */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <EquipmentShowcase equipmentList={equipmentList} />
+              <EquipmentShowcase 
+                equipmentList={equipmentList} 
+                showLegacyNotice={equipment.length > 0}
+              />
             </motion.div>
 
-            {/* Actions rapides */}
-            {offer.status === 'sent' && (
+            {/* Detailed Equipment Section */}
+            {equipment.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-primary">
-                      <Bell className="h-5 w-5" />
-                      Action requise
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Votre demande a été approuvée ! Vous pouvez maintenant consulter votre offre personnalisée.
-                    </p>
-                    <div className="flex gap-3">
-                      <Button className="flex-1">
-                        Consulter l'offre
-                      </Button>
-                      <Button variant="outline">
-                        <Download className="h-4 w-4 mr-2" />
-                        Télécharger
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <DetailedEquipmentSection 
+                  equipment={equipment}
+                  loading={equipmentLoading}
+                />
               </motion.div>
             )}
+
+            {/* Document Upload Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <DocumentUploadSection 
+                documents={documents}
+                uploadLinks={uploadLinks}
+                loading={documentsLoading}
+              />
+            </motion.div>
+
+            {/* Contract Signature Section */}
+            {(offer.status === 'sent' || offer.signed_at) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <ContractSignatureSection 
+                  offer={offer}
+                  onViewContract={() => window.open(`/client/offer/${offer.id}`, '_blank')}
+                  onSignContract={() => window.open(`/client/offer/${offer.id}/sign`, '_blank')}
+                />
+              </motion.div>
+            )}
+
           </div>
 
           {/* Right Column - Information Panel */}

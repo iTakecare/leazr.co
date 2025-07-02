@@ -1,14 +1,17 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Package, Monitor, Cpu, HardDrive } from "lucide-react";
+import { Package, Monitor, Cpu, HardDrive, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface EquipmentShowcaseProps {
   equipmentList: string[] | string;
+  showLegacyNotice?: boolean;
 }
 
 export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({
-  equipmentList
+  equipmentList,
+  showLegacyNotice = false
 }) => {
   const getEquipmentIcon = (equipment: string) => {
     const lower = equipment.toLowerCase();
@@ -35,6 +38,15 @@ export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {showLegacyNotice && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              Affichage simplifié. Pour plus de détails (quantités, prix unitaires, spécifications), 
+              consultez la section "Détail des équipements" ci-dessous.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="grid gap-4">
           {equipments.map((equipment, index) => {
             const IconComponent = getEquipmentIcon(equipment);
