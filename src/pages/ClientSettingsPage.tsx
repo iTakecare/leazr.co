@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { Settings, User, Shield, Bell, CreditCard } from "lucide-react";
+import { Settings, User, Shield, Bell } from "lucide-react";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
@@ -29,7 +29,8 @@ const ClientSettingsPage = () => {
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" defaultValue={user?.email || ""} type="email" />
+            <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
+            <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
           </div>
           <div>
             <Label htmlFor="phone">Téléphone</Label>
@@ -88,38 +89,6 @@ const ClientSettingsPage = () => {
             </div>
             <Button variant="outline">Désactivé</Button>
           </div>
-        </div>
-      )
-    },
-    {
-      title: "Facturation",
-      description: "Gérez vos informations de facturation",
-      icon: CreditCard,
-      content: (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="company">Société</Label>
-            <Input id="company" placeholder="Nom de votre société" />
-          </div>
-          <div>
-            <Label htmlFor="address">Adresse</Label>
-            <Input id="address" placeholder="Adresse de facturation" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="city">Ville</Label>
-              <Input id="city" placeholder="Ville" />
-            </div>
-            <div>
-              <Label htmlFor="postalCode">Code postal</Label>
-              <Input id="postalCode" placeholder="Code postal" />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="vatNumber">Numéro TVA</Label>
-            <Input id="vatNumber" placeholder="BE0123456789" />
-          </div>
-          <Button>Mettre à jour</Button>
         </div>
       )
     }
