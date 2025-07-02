@@ -25,16 +25,22 @@ const ForgotPassword: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+      console.log("Envoi de la demande de réinitialisation pour:", email);
+      
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+        body: { email }
       });
 
       if (error) {
         console.error('Erreur lors de l\'envoi de l\'email:', error);
         toast.error('Erreur lors de l\'envoi de l\'email: ' + error.message);
-      } else {
+      } else if (data?.success) {
         setEmailSent(true);
         toast.success('Email de réinitialisation envoyé !');
+        console.log("Email de réinitialisation envoyé avec succès");
+      } else {
+        console.error('Réponse inattendue:', data);
+        toast.error('Erreur lors de l\'envoi de l\'email');
       }
     } catch (error) {
       console.error('Erreur inattendue:', error);
