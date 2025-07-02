@@ -274,61 +274,6 @@ const ClientSettingsPage = () => {
 
         <TabsContent value="profile">
           <div className="space-y-6">
-            {/* Section Identité Personnelle */}
-            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-              <CardHeader className="bg-muted/50 pb-4 border-b">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-primary" />
-                  Identité
-                </CardTitle>
-                <CardDescription>Vos informations personnelles de connexion</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input 
-                        id="firstName" 
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Nom de famille</Label>
-                      <Input 
-                        id="lastName" 
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
-                      <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Téléphone</Label>
-                      <Input 
-                        id="phone" 
-                        placeholder="+33 1 23 45 67 89"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleSavePersonalInfo}
-                    disabled={personalInfoLoading}
-                    className="w-full md:w-auto"
-                  >
-                    {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Section Informations Professionnelles */}
             {clientData && (
