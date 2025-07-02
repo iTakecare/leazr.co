@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 
 interface CompactEquipmentSectionProps {
   offer: any;
+  hideFinancialColumns?: boolean;
 }
 
-const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer }) => {
+const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer, hideFinancialColumns = false }) => {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   
   let equipmentItems = [];
@@ -78,12 +79,12 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
         {equipmentItems.length > 0 ? (
           <div className="overflow-hidden">
             {/* En-tête du tableau */}
-            <div className="bg-gray-50 border-b grid grid-cols-12 gap-2 px-4 py-2 text-sm font-medium text-gray-700">
-              <div className="col-span-4">Équipement</div>
+            <div className={`bg-gray-50 border-b grid gap-2 px-4 py-2 text-sm font-medium text-gray-700 ${hideFinancialColumns ? 'grid-cols-8' : 'grid-cols-12'}`}>
+              <div className={hideFinancialColumns ? "col-span-6" : "col-span-4"}>Équipement</div>
               <div className="col-span-1 text-center">Qté</div>
-              <div className="col-span-2 text-right">Prix d'achat</div>
+              {!hideFinancialColumns && <div className="col-span-2 text-right">Prix d'achat</div>}
               <div className="col-span-2 text-right">Mensualité</div>
-              <div className="col-span-2 text-right">Marge</div>
+              {!hideFinancialColumns && <div className="col-span-2 text-right">Marge</div>}
               <div className="col-span-1"></div>
             </div>
             
@@ -101,8 +102,8 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
               return (
                 <div key={index} className="border-b last:border-b-0">
                   {/* Ligne principale */}
-                  <div className="grid grid-cols-12 gap-2 px-4 py-3 text-sm hover:bg-gray-50">
-                    <div className="col-span-4">
+                  <div className={`grid gap-2 px-4 py-3 text-sm hover:bg-gray-50 ${hideFinancialColumns ? 'grid-cols-8' : 'grid-cols-12'}`}>
+                    <div className={hideFinancialColumns ? "col-span-6" : "col-span-4"}>
                       <div className="font-medium truncate">{item.title || `Équipement ${index + 1}`}</div>
                       {item.description && (
                         <div className="text-xs text-gray-500 truncate mt-1">{item.description}</div>
@@ -111,15 +112,19 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
                     <div className="col-span-1 text-center font-medium">
                       {item.quantity || 1}
                     </div>
-                    <div className="col-span-2 text-right font-medium">
-                      {item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}
-                    </div>
+                    {!hideFinancialColumns && (
+                      <div className="col-span-2 text-right font-medium">
+                        {item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}
+                      </div>
+                    )}
                     <div className="col-span-2 text-right font-medium text-green-600">
                       {item.monthlyPayment ? formatCurrency(item.monthlyPayment) : '-'}
                     </div>
-                    <div className="col-span-2 text-right font-medium text-purple-600">
-                      {formatCurrency(proportionalMargin)}
-                    </div>
+                    {!hideFinancialColumns && (
+                      <div className="col-span-2 text-right font-medium text-purple-600">
+                        {formatCurrency(proportionalMargin)}
+                      </div>
+                    )}
                     <div className="col-span-1 text-center">
                       {hasAttributes && (
                         <Button
@@ -154,20 +159,24 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
             
             {/* Ligne de total */}
             {equipmentItems.length > 1 && (
-              <div className="bg-gray-100 border-t-2 grid grid-cols-12 gap-2 px-4 py-3 text-sm font-semibold">
-                <div className="col-span-4">TOTAL</div>
+              <div className={`bg-gray-100 border-t-2 grid gap-2 px-4 py-3 text-sm font-semibold ${hideFinancialColumns ? 'grid-cols-8' : 'grid-cols-12'}`}>
+                <div className={hideFinancialColumns ? "col-span-6" : "col-span-4"}>TOTAL</div>
                 <div className="col-span-1 text-center">
                   {equipmentItems.reduce((sum: number, item: any) => sum + (parseInt(item.quantity) || 1), 0)}
                 </div>
-                <div className="col-span-2 text-right text-blue-600">
-                  {formatCurrency(calculateTotal())}
-                </div>
+                {!hideFinancialColumns && (
+                  <div className="col-span-2 text-right text-blue-600">
+                    {formatCurrency(calculateTotal())}
+                  </div>
+                )}
                 <div className="col-span-2 text-right text-green-600">
                   {formatCurrency(calculateTotalMonthly())}
                 </div>
-                <div className="col-span-2 text-right text-purple-600">
-                  {formatCurrency(calculateTotalMargin())}
-                </div>
+                {!hideFinancialColumns && (
+                  <div className="col-span-2 text-right text-purple-600">
+                    {formatCurrency(calculateTotalMargin())}
+                  </div>
+                )}
                 <div className="col-span-1"></div>
               </div>
             )}

@@ -304,7 +304,7 @@ const AmbassadorOfferDetail = () => {
               margin={offer.margin || calculatedMargin}
               marginPercentage={marginPercentage}
               showCommission={shouldShowCommission}
-              showMargin={isAdmin()}
+              showMargin={false}
             />
 
             {/* Layout principal */}
@@ -321,6 +321,7 @@ const AmbassadorOfferDetail = () => {
                 <EquipmentInfoCard 
                   equipmentDescription={offer.equipment_description}
                   equipmentItems={offer.equipmentItems || offer.parsedEquipment}
+                  hideFinancialInfo={true}
                 />
                 
                 <AmbassadorWorkflowTimeline 
