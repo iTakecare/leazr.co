@@ -7,10 +7,10 @@ import ClientContractDetailHeader from "@/components/contracts/ClientContractDet
 import ClientContractEquipmentSection from "@/components/contracts/ClientContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
-import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
+
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users } from "lucide-react";
+import { Package } from "lucide-react";
 
 const ClientContractDetailPage = () => {
   const { id } = useParams<{ id: string }>();
