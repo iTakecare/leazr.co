@@ -7,7 +7,7 @@ import ClientContractDetailHeader from "@/components/contracts/ClientContractDet
 import ClientContractEquipmentSection from "@/components/contracts/ClientContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
-import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
+import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users } from "lucide-react";
@@ -69,22 +69,12 @@ const ClientContractDetailPage = () => {
                 onRefresh={refetch}
               />
 
-              {/* Gestion des assignations d'équipements */}
+              {/* Gestion des assignations d'équipements avec drag & drop */}
               {clientData && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      Assignation des équipements
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <EquipmentAssignmentManager 
-                      clientId={clientData.id}
-                      readOnly={false}
-                    />
-                  </CardContent>
-                </Card>
+                <EquipmentDragDropManager 
+                  clientId={clientData.id}
+                  readOnly={false}
+                />
               )}
             </div>
 

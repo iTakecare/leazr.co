@@ -155,24 +155,15 @@ export const collaboratorEquipmentService = {
         if (clientData) {
           console.log('📋 Données client récupérées:', clientData);
           
-          // Vérifier si la table collaborators existe
-          const { error: checkTableError } = await supabase
-            .from('collaborators')
-            .select('id')
-            .limit(1);
-            
-          if (checkTableError && checkTableError.code === '42P01') {
-            console.warn('⚠️ Table collaborators inexistante, on continue sans créer de collaborateur');
-            // La table n'existe pas, on continue sans collaborateurs
-          } else {
+          try {
             // Créer automatiquement un collaborateur principal
             const { data: newCollaborator, error: createError } = await supabase
               .from('collaborators')
               .insert({
                 client_id: clientId,
-                name: clientData.contact_name || clientData.name || 'Responsable principal',
+                name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
                 email: clientData.email || '',
-                role: 'Responsable',
+                role: 'Responsable Principal',
                 is_primary: true
               })
               .select('id, name, email')
@@ -180,10 +171,24 @@ export const collaboratorEquipmentService = {
 
             if (createError) {
               console.warn('⚠️ Impossible de créer le collaborateur principal:', createError);
+              // Créer un collaborateur virtuel pour l'interface
+              finalCollaborators = [{
+                id: 'virtual-primary',
+                name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
+                email: clientData.email || ''
+              }];
             } else if (newCollaborator) {
               console.log('✅ Collaborateur principal créé:', newCollaborator);
               finalCollaborators = [newCollaborator];
             }
+          } catch (error) {
+            console.warn('⚠️ Erreur lors de la création du collaborateur:', error);
+            // Créer un collaborateur virtuel pour l'interface
+            finalCollaborators = [{
+              id: 'virtual-primary',
+              name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
+              email: clientData.email || ''
+            }];
           }
         }
       }
