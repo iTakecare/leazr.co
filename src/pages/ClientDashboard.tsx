@@ -192,29 +192,39 @@ const ClientDashboard = () => {
                 recentActivity.map((activity) => {
                   const IconComponent = getActivityIcon(activity.type);
                   return (
-                    <div key={activity.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-                      <div className="flex items-center gap-3 flex-1">
-                        <IconComponent className={`h-5 w-5 ${getStatusColor(activity.status)}`} />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{activity.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{formatDate(activity.date)}</p>
-                        </div>
+                  <div 
+                    key={activity.id} 
+                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (activity.type === 'offer') {
+                        navigate('/client/requests');
+                      } else if (activity.type === 'contract') {
+                        navigate('/client/contracts');
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <IconComponent className={`h-5 w-5 ${getStatusColor(activity.status)}`} />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(activity.date)}</p>
                       </div>
-                      {activity.status && (
-                        <Badge 
-                          variant="outline" 
-                          className={`ml-2 text-xs ${getStatusColor(activity.status)} border-current`}
-                        >
-                          {activity.status === 'pending' && '⏳ En attente'}
-                          {activity.status === 'approved' && '✅ Approuvée'}
-                          {activity.status === 'rejected' && '❌ Refusée'}
-                          {activity.status === 'active' && '🔥 Actif'}
-                          {activity.status === 'completed' && '✔️ Terminé'}
-                          {!['pending', 'approved', 'rejected', 'active', 'completed'].includes(activity.status) && activity.status}
-                        </Badge>
-                      )}
                     </div>
+                    {activity.status && (
+                      <Badge 
+                        variant="outline" 
+                        className={`ml-2 text-xs ${getStatusColor(activity.status)} border-current`}
+                      >
+                        {activity.status === 'pending' && '⏳ En attente'}
+                        {activity.status === 'approved' && '✅ Approuvée'}
+                        {activity.status === 'rejected' && '❌ Refusée'}
+                        {activity.status === 'active' && '🔥 Actif'}
+                        {activity.status === 'completed' && '✔️ Terminé'}
+                        {!['pending', 'approved', 'rejected', 'active', 'completed'].includes(activity.status) && activity.status}
+                      </Badge>
+                    )}
+                  </div>
                   );
                 })
               ) : (
