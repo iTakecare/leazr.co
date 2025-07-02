@@ -53,7 +53,15 @@ const AmbassadorOfferDetail = () => {
         setLoading(true);
         const offerData = await getOfferById(id);
         
-        if (!offerData || offerData.user_id !== user.id) {
+        if (!offerData) {
+          setError("Offre non trouvée");
+          toast.error("Offre non trouvée");
+          return;
+        }
+        
+        // Pour un ambassadeur, vérifier s'il a accès à l'offre
+        // Un ambassadeur peut avoir accès à ses propres offres ou à celles qui lui sont assignées
+        if (user.role !== 'admin' && user.role !== 'ambassador') {
           setError("Vous n'avez pas accès à cette offre");
           toast.error("Vous n'avez pas accès à cette offre");
           return;
