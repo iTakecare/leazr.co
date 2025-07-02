@@ -36,6 +36,8 @@ export const collaboratorEquipmentService = {
   // Récupérer tous les équipements d'un client
   async getClientEquipment(clientId: string): Promise<EquipmentItem[]> {
     try {
+      console.log('🔍 Recherche d\'équipements pour le client:', clientId);
+      
       // Récupérer les équipements des offres
       const { data: offerEquipment, error: offerError } = await supabase
         .from('offer_equipment')
@@ -50,7 +52,12 @@ export const collaboratorEquipmentService = {
         `)
         .eq('offers.client_id', clientId);
 
-      if (offerError) throw offerError;
+      if (offerError) {
+        console.error('❌ Erreur récupération équipements offres:', offerError);
+        throw offerError;
+      }
+
+      console.log('📋 Équipements des offres trouvés:', offerEquipment?.length || 0);
 
       // Récupérer les équipements des contrats
       const { data: contractEquipment, error: contractError } = await supabase
@@ -67,7 +74,17 @@ export const collaboratorEquipmentService = {
         `)
         .eq('contracts.client_id', clientId);
 
-      if (contractError) throw contractError;
+      if (contractError) {
+        console.error('❌ Erreur récupération équipements contrats:', contractError);
+        throw contractError;
+      }
+
+      console.log('📋 Équipements des contrats trouvés:', contractEquipment?.length || 0);
+
+      // Debug: vérifier les IDs des contrats trouvés
+      if (contractEquipment && contractEquipment.length > 0) {
+        console.log('🔍 IDs des contrats avec équipements:', contractEquipment.map(e => e.contracts.id));
+      }
 
       // Combiner et formater les données
       const allEquipment: EquipmentItem[] = [

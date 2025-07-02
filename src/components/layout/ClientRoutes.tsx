@@ -10,6 +10,7 @@ import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
 import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
+import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
 
 const ClientRoutes = () => {
   return (
@@ -19,6 +20,7 @@ const ClientRoutes = () => {
         <Routes>
           <Route path="dashboard" element={<ClientDashboard />} />
           <Route path="contracts" element={<ClientContractsPage />} />
+          <Route path="contracts/:id" element={<ClientContractDetailPage />} />
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />

@@ -6,9 +6,11 @@ import { FileText, Download, Eye, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useClientContracts } from "@/hooks/useClientContracts";
+import { useNavigate } from "react-router-dom";
 
 const ClientContractsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { contracts, loading, error } = useClientContracts(user?.email);
 
   const formatAmount = (amount: number) => {
@@ -129,7 +131,12 @@ const ClientContractsPage = () => {
                   <p className="text-sm">{contract.delivery_status || 'En attente'}</p>
                 </div>
                 <div className="flex items-end space-x-2">
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => navigate(`/client/contracts/${contract.id}`)}
+                  >
                     <Eye className="h-4 w-4" />
                     Voir
                   </Button>
