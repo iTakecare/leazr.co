@@ -250,23 +250,21 @@ const EquipmentList = ({
       </Card>
       
       {/* Show appropriate financial summary based on mode */}
-      {equipmentList.length > 0 && totalMonthlyPayment > 0 && (
+      {equipmentList.length > 0 && totalMonthlyPayment > 0 && !hideFinancialDetails && calculations && (
         <>
           {isAdminCreatingAmbassadorOffer ? (
             // Admin creating ambassador offer: show full admin summary + commission
-            !hideFinancialDetails && calculations && (
-              <FinancialSummary 
-                calculations={calculations}
-                useGlobalAdjustment={globalMarginAdjustment.active}
-                onToggleAdjustment={toggleAdaptMonthlyPayment}
-                commissionData={{
-                  amount: commissionData.amount,
-                  rate: commissionData.rate,
-                  levelName: commissionData.levelName
-                }}
-                showCommission={true}
-              />
-            )
+            <FinancialSummary 
+              calculations={calculations}
+              useGlobalAdjustment={globalMarginAdjustment.active}
+              onToggleAdjustment={toggleAdaptMonthlyPayment}
+              commissionData={{
+                amount: commissionData.amount,
+                rate: commissionData.rate,
+                levelName: commissionData.levelName
+              }}
+              showCommission={true}
+            />
           ) : isAmbassadorMode ? (
             // Ambassador creating their own offer: show simplified summary
             <AmbassadorFinancialSummary
@@ -277,14 +275,12 @@ const EquipmentList = ({
               totalMargin={totalMargin}
             />
           ) : (
-            // Standard admin offer: show full admin summary
-            !hideFinancialDetails && calculations && (
-              <FinancialSummary 
-                calculations={calculations}
-                useGlobalAdjustment={globalMarginAdjustment.active}
-                onToggleAdjustment={toggleAdaptMonthlyPayment}
-              />
-            )
+            // Internal/admin offers: show full admin summary without commission
+            <FinancialSummary 
+              calculations={calculations}
+              useGlobalAdjustment={globalMarginAdjustment.active}
+              onToggleAdjustment={toggleAdaptMonthlyPayment}
+            />
           )}
         </>
       )}
