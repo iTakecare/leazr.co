@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 
 interface CompactEquipmentSectionProps {
   offer: any;
-  hideFinancialColumns?: boolean;
 }
 
-const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer, hideFinancialColumns = false }) => {
+const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer }) => {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   
   let equipmentItems = [];
@@ -79,14 +78,13 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
         {equipmentItems.length > 0 ? (
           <div className="overflow-hidden">
             {/* En-tête du tableau */}
-            <div className="bg-gray-50 border-b grid gap-2 px-4 py-2 text-sm font-medium text-gray-700" 
-                 style={{ gridTemplateColumns: hideFinancialColumns ? '5fr 1fr 2fr 1fr' : '4fr 1fr 2fr 2fr 2fr 1fr' }}>
-              <div>Équipement</div>
-              <div className="text-center">Qté</div>
-              {!hideFinancialColumns && <div className="text-right">Prix d'achat</div>}
-              <div className="text-right">Mensualité</div>
-              {!hideFinancialColumns && <div className="text-right">Marge</div>}
-              <div></div>
+            <div className="bg-gray-50 border-b grid grid-cols-12 gap-2 px-4 py-2 text-sm font-medium text-gray-700">
+              <div className="col-span-4">Équipement</div>
+              <div className="col-span-1 text-center">Qté</div>
+              <div className="col-span-2 text-right">Prix d'achat</div>
+              <div className="col-span-2 text-right">Mensualité</div>
+              <div className="col-span-2 text-right">Marge</div>
+              <div className="col-span-1"></div>
             </div>
             
             {/* Lignes des équipements */}
@@ -103,31 +101,26 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
               return (
                 <div key={index} className="border-b last:border-b-0">
                   {/* Ligne principale */}
-                  <div className="grid gap-2 px-4 py-3 text-sm hover:bg-gray-50"
-                       style={{ gridTemplateColumns: hideFinancialColumns ? '5fr 1fr 2fr 1fr' : '4fr 1fr 2fr 2fr 2fr 1fr' }}>
-                    <div>
+                  <div className="grid grid-cols-12 gap-2 px-4 py-3 text-sm hover:bg-gray-50">
+                    <div className="col-span-4">
                       <div className="font-medium truncate">{item.title || `Équipement ${index + 1}`}</div>
                       {item.description && (
                         <div className="text-xs text-gray-500 truncate mt-1">{item.description}</div>
                       )}
                     </div>
-                    <div className="text-center font-medium">
+                    <div className="col-span-1 text-center font-medium">
                       {item.quantity || 1}
                     </div>
-                    {!hideFinancialColumns && (
-                      <div className="text-right font-medium">
-                        {item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}
-                      </div>
-                    )}
-                    <div className="text-right font-medium text-green-600">
+                    <div className="col-span-2 text-right font-medium">
+                      {item.purchasePrice ? formatCurrency(item.purchasePrice) : '-'}
+                    </div>
+                    <div className="col-span-2 text-right font-medium text-green-600">
                       {item.monthlyPayment ? formatCurrency(item.monthlyPayment) : '-'}
                     </div>
-                    {!hideFinancialColumns && (
-                      <div className="text-right font-medium text-purple-600">
-                        {formatCurrency(proportionalMargin)}
-                      </div>
-                    )}
-                    <div className="text-center">
+                    <div className="col-span-2 text-right font-medium text-purple-600">
+                      {formatCurrency(proportionalMargin)}
+                    </div>
+                    <div className="col-span-1 text-center">
                       {hasAttributes && (
                         <Button
                           variant="ghost"
@@ -161,26 +154,21 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
             
             {/* Ligne de total */}
             {equipmentItems.length > 1 && (
-              <div className="bg-gray-100 border-t-2 grid gap-2 px-4 py-3 text-sm font-semibold"
-                   style={{ gridTemplateColumns: hideFinancialColumns ? '5fr 1fr 2fr 1fr' : '4fr 1fr 2fr 2fr 2fr 1fr' }}>
-                <div>TOTAL</div>
-                <div className="text-center">
+              <div className="bg-gray-100 border-t-2 grid grid-cols-12 gap-2 px-4 py-3 text-sm font-semibold">
+                <div className="col-span-4">TOTAL</div>
+                <div className="col-span-1 text-center">
                   {equipmentItems.reduce((sum: number, item: any) => sum + (parseInt(item.quantity) || 1), 0)}
                 </div>
-                {!hideFinancialColumns && (
-                  <div className="text-right text-blue-600">
-                    {formatCurrency(calculateTotal())}
-                  </div>
-                )}
-                <div className="text-right text-green-600">
+                <div className="col-span-2 text-right text-blue-600">
+                  {formatCurrency(calculateTotal())}
+                </div>
+                <div className="col-span-2 text-right text-green-600">
                   {formatCurrency(calculateTotalMonthly())}
                 </div>
-                {!hideFinancialColumns && (
-                  <div className="text-right text-purple-600">
-                    {formatCurrency(calculateTotalMargin())}
-                  </div>
-                )}
-                <div></div>
+                <div className="col-span-2 text-right text-purple-600">
+                  {formatCurrency(calculateTotalMargin())}
+                </div>
+                <div className="col-span-1"></div>
               </div>
             )}
           </div>

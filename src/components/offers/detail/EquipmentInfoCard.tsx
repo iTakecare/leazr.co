@@ -6,13 +6,11 @@ import { Package, Hash } from "lucide-react";
 interface EquipmentInfoCardProps {
   equipmentDescription: string;
   equipmentItems?: any[];
-  hideFinancialColumns?: boolean;
 }
 
 const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
   equipmentDescription,
-  equipmentItems = [],
-  hideFinancialColumns = false
+  equipmentItems = []
 }) => {
   // Essayer de parser l'equipment_description si c'est du JSON
   let parsedEquipment = equipmentItems;
