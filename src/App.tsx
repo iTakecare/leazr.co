@@ -115,8 +115,8 @@ function App() {
                   {/* Public Authentication Routes */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
-                  <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
-                  <Route path="/mettre-a-jour-mot-de-passe" element={<UpdatePassword />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   
                   {/* Public Catalog and Commerce Routes */}
