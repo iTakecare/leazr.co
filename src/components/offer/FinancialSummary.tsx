@@ -152,6 +152,21 @@ const FinancialSummary = ({
                   </div>
                 )}
               </div>
+              
+              {/* Marge nette après commission */}
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 mt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-800">
+                    Marge nette après commission :
+                  </span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {formatCurrency(displayedMarginAmount - commissionData.amount)} ({((displayedMarginAmount - commissionData.amount) / totalPurchasePrice * 100).toFixed(2)}%)
+                  </span>
+                </div>
+                <div className="text-xs text-blue-700 mt-1">
+                  Marge réelle conservée par l'entreprise
+                </div>
+              </div>
             </div>
           )}
         </div>
