@@ -91,10 +91,45 @@ export const collaboratorEquipmentService = {
   // Récupérer les équipements groupés par collaborateur
   async getEquipmentByCollaborator(clientId: string): Promise<CollaboratorEquipment[]> {
     try {
+      // 🚨 DEBUGGING: Vérifier l'état d'authentification
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 DEBUG - Utilisateur authentifié:', {
+        userId: user?.id,
+        email: user?.email,
+        authError
+      });
+
+      // 🚨 DEBUGGING: Vérifier l'association client/utilisateur
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('id, name, email, user_id, company_id')
+        .eq('id', clientId)
+        .single();
+
+      console.log('🏢 DEBUG - Données client:', {
+        clientId,
+        clientData,
+        clientError,
+        userMatch: clientData?.user_id === user?.id
+      });
+
       console.log('🔍 Récupération équipements pour client:', clientId);
       const equipment = await this.getClientEquipment(clientId);
       console.log('📋 Équipements trouvés:', equipment.length);
       
+      // 🚨 DEBUGGING: Test direct des politiques RLS sur collaborateurs
+      const { data: collaboratorsTest, error: collabTestError } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('client_id', clientId);
+
+      console.log('🧪 DEBUG - Test collaborateurs RLS:', {
+        clientId,
+        collaboratorsFound: collaboratorsTest?.length || 0,
+        collaboratorsTest,
+        collabTestError
+      });
+
       // Récupérer les collaborateurs (le trigger auto-create se charge de créer un collaborateur principal si nécessaire)
       const { data: collaborators, error: collabError } = await supabase
         .from('collaborators')
