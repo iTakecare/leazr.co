@@ -93,11 +93,31 @@ export const useClientData = () => {
               }
             };
 
+            // Formatage de la description d'équipement
+            let equipmentDesc = 'Équipement non spécifié';
+            if (offer.equipment_description) {
+              try {
+                // Si c'est du JSON, essayer de le parser et extraire les informations utiles
+                const equipmentData = JSON.parse(offer.equipment_description);
+                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+                  const titles = equipmentData.map(item => item.title).filter(Boolean);
+                  if (titles.length > 0) {
+                    equipmentDesc = titles.length > 1 
+                      ? `${titles[0]} et ${titles.length - 1} autre(s) équipement(s)`
+                      : titles[0];
+                  }
+                }
+              } catch {
+                // Si ce n'est pas du JSON, utiliser tel quel
+                equipmentDesc = offer.equipment_description;
+              }
+            }
+
             activities.push({
               id: offer.id,
               type: 'offer',
               title: `Demande de financement ${getStatusText(offer.status)}`,
-              description: offer.equipment_description || `Demande ${offer.client_name || 'client'}`,
+              description: equipmentDesc,
               date: offer.created_at,
               status: offer.status
             });
@@ -124,11 +144,29 @@ export const useClientData = () => {
               }
             };
 
+            // Formatage de la description d'équipement pour les contrats aussi
+            let equipmentDesc = 'Équipement non spécifié';
+            if (contract.equipment_description) {
+              try {
+                const equipmentData = JSON.parse(contract.equipment_description);
+                if (Array.isArray(equipmentData) && equipmentData.length > 0) {
+                  const titles = equipmentData.map(item => item.title).filter(Boolean);
+                  if (titles.length > 0) {
+                    equipmentDesc = titles.length > 1 
+                      ? `${titles[0]} et ${titles.length - 1} autre(s) équipement(s)`
+                      : titles[0];
+                  }
+                }
+              } catch {
+                equipmentDesc = contract.equipment_description;
+              }
+            }
+
             activities.push({
               id: contract.id,
               type: 'contract',
               title: `Contrat de financement ${getContractStatusText(contract.status)}`,
-              description: contract.equipment_description || `Contrat ${contract.client_name || 'client'}`,
+              description: equipmentDesc,
               date: contract.created_at,
               status: contract.status
             });
