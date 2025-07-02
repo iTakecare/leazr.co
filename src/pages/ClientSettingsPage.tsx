@@ -273,15 +273,57 @@ const ClientSettingsPage = () => {
         </TabsList>
 
         <TabsContent value="profile">
-          <div className="space-y-6">
-            <div className="text-center py-12">
-              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Profil utilisateur</h3>
-              <p className="text-muted-foreground">
-                Gérez vos paramètres personnels dans l'onglet Sécurité
-              </p>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Informations personnelles
+              </CardTitle>
+              <CardDescription>Gérez vos informations de profil</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">Prénom</Label>
+                    <Input 
+                      id="firstName" 
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Nom</Label>
+                    <Input 
+                      id="lastName" 
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
+                </div>
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="+33 1 23 45 67 89"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  onClick={handleSavePersonalInfo}
+                  disabled={personalInfoLoading}
+                >
+                  {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="security">
