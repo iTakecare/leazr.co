@@ -6,13 +6,89 @@ import {
 } from "@/types/offerEquipment";
 
 /**
+ * Parse JSON equipment data and convert to OfferEquipment format
+ */
+const parseEquipmentFromJson = (equipmentJson: string): OfferEquipment[] => {
+  try {
+    const data = JSON.parse(equipmentJson);
+    if (!Array.isArray(data)) return [];
+    
+    return data.map((item, index) => ({
+      id: `temp-${index}`,
+      offer_id: 'temp',
+      title: item.title || "Produit sans nom",
+      purchase_price: Number(item.purchasePrice || item.purchase_price) || 0,
+      quantity: Number(item.quantity) || 1,
+      margin: Number(item.margin) || 0,
+      monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
+      serial_number: item.serialNumber || item.serial_number,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      attributes: item.attributes ? Object.entries(item.attributes).map(([key, value]) => ({
+        equipment_id: `temp-${index}`,
+        key,
+        value: String(value)
+      })) : [],
+      specifications: item.specifications ? Object.entries(item.specifications).map(([key, value]) => ({
+        equipment_id: `temp-${index}`,
+        key,
+        value: String(value)
+      })) : []
+    }));
+  } catch (error) {
+    console.error("Error parsing equipment JSON:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetch equipment with their attributes and specifications
+ */
+const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEquipment[]> => {
+  const equipmentWithDetails: OfferEquipment[] = [];
+  
+  // Pour chaque équipement, récupérer ses attributs et spécifications
+  for (const equipment of equipmentData) {
+    // Récupérer les attributs
+    const { data: attributesData, error: attributesError } = await supabase
+      .from('offer_equipment_attributes')
+      .select('*')
+      .eq('equipment_id', equipment.id);
+    
+    if (attributesError) {
+      console.error("Erreur lors de la récupération des attributs:", attributesError);
+    }
+    
+    // Récupérer les spécifications
+    const { data: specificationsData, error: specificationsError } = await supabase
+      .from('offer_equipment_specifications')
+      .select('*')
+      .eq('equipment_id', equipment.id);
+    
+    if (specificationsError) {
+      console.error("Erreur lors de la récupération des spécifications:", specificationsError);
+    }
+    
+    equipmentWithDetails.push({
+      ...equipment,
+      attributes: attributesData || [],
+      specifications: specificationsData || []
+    });
+  }
+  
+  console.log("Offer equipment fetched successfully with details");
+  return equipmentWithDetails;
+};
+
+/**
  * Récupère tous les équipements d'une offre avec leurs attributs et spécifications
+ * Avec migration automatique depuis JSON si les nouvelles tables sont vides
  */
 export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment[]> => {
   try {
     console.log("Fetching offer equipment for offer:", offerId);
     
-    // Récupérer les équipements
+    // Récupérer les équipements depuis les nouvelles tables
     const { data: equipmentData, error: equipmentError } = await supabase
       .from('offer_equipment')
       .select('*')
@@ -23,46 +99,58 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       return [];
     }
     
+    // Si aucun équipement dans les nouvelles tables, essayer de migrer depuis le JSON
     if (!equipmentData || equipmentData.length === 0) {
-      console.log("No equipment found for offer:", offerId);
+      console.log("No equipment found in new tables, checking JSON data for offer:", offerId);
+      
+      // Récupérer les données JSON depuis l'offre
+      const { data: offer, error: offerError } = await supabase
+        .from('offers')
+        .select('equipment_description')
+        .eq('id', offerId)
+        .single();
+      
+      if (offerError) {
+        console.error("Erreur lors de la récupération de l'offre:", offerError);
+        return [];
+      }
+      
+      if (offer?.equipment_description) {
+        console.log("Found JSON equipment data, attempting migration...");
+        
+        // Tenter la migration automatique
+        const migrationSuccess = await migrateEquipmentFromJson(offerId, offer.equipment_description);
+        
+        if (migrationSuccess) {
+          // Récupérer les données migrées
+          const { data: migratedData, error: migratedError } = await supabase
+            .from('offer_equipment')
+            .select('*')
+            .eq('offer_id', offerId);
+          
+          if (migratedError) {
+            console.error("Erreur lors de la récupération des données migrées:", migratedError);
+            return parseEquipmentFromJson(offer.equipment_description);
+          }
+          
+          if (migratedData && migratedData.length > 0) {
+            console.log("Migration successful, using migrated data");
+            // Récupérer avec les détails
+            return await fetchEquipmentWithDetails(migratedData);
+          }
+        }
+        
+        // Si la migration échoue, parser directement le JSON
+        console.log("Migration failed, parsing JSON directly");
+        return parseEquipmentFromJson(offer.equipment_description);
+      }
+      
+      console.log("No equipment data found");
       return [];
     }
     
     console.log("Equipment found:", equipmentData.length, "items");
-    
-    const equipmentWithDetails: OfferEquipment[] = [];
-    
-    // Pour chaque équipement, récupérer ses attributs et spécifications
-    for (const equipment of equipmentData) {
-      // Récupérer les attributs
-      const { data: attributesData, error: attributesError } = await supabase
-        .from('offer_equipment_attributes')
-        .select('*')
-        .eq('equipment_id', equipment.id);
-      
-      if (attributesError) {
-        console.error("Erreur lors de la récupération des attributs:", attributesError);
-      }
-      
-      // Récupérer les spécifications
-      const { data: specificationsData, error: specificationsError } = await supabase
-        .from('offer_equipment_specifications')
-        .select('*')
-        .eq('equipment_id', equipment.id);
-      
-      if (specificationsError) {
-        console.error("Erreur lors de la récupération des spécifications:", specificationsError);
-      }
-      
-      equipmentWithDetails.push({
-        ...equipment,
-        attributes: attributesData || [],
-        specifications: specificationsData || []
-      });
-    }
-    
-    console.log("Offer equipment fetched successfully with details");
-    return equipmentWithDetails;
+    return await fetchEquipmentWithDetails(equipmentData);
   } catch (error) {
     console.error("Erreur lors de la récupération des équipements:", error);
     return [];
