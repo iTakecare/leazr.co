@@ -34,11 +34,34 @@ const AmbassadorOffersPage = () => {
       
       try {
         setLoading(true);
+        
+        // D'abord récupérer l'ID de l'ambassadeur
+        const { data: ambassadorData, error: ambassadorError } = await supabase
+          .from("ambassadors")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+          
+        if (ambassadorError) {
+          console.error("Erreur récupération ambassadeur:", ambassadorError);
+          throw ambassadorError;
+        }
+        
+        if (!ambassadorData?.id) {
+          console.warn("Aucun profil ambassadeur trouvé pour cet utilisateur");
+          setOffers([]);
+          setFilteredOffers([]);
+          setLoading(false);
+          return;
+        }
+        
+        console.log("🔍 Recherche des offres pour ambassador_id:", ambassadorData.id);
+        
+        // Ensuite récupérer les offres avec l'ambassador_id
         const { data, error } = await supabase
           .from('offers')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('type', 'ambassador_offer')
+          .eq('ambassador_id', ambassadorData.id)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
@@ -86,11 +109,23 @@ const AmbassadorOffersPage = () => {
     }
     
     try {
+      // Récupérer l'ambassador_id pour la sécurité
+      const { data: ambassadorData } = await supabase
+        .from("ambassadors")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      if (!ambassadorData?.id) {
+        toast.error("Profil ambassadeur non trouvé");
+        return;
+      }
+      
       const { error } = await supabase
         .from('offers')
         .delete()
         .eq('id', id)
-        .eq('user_id', user?.id); // Sécurité supplémentaire
+        .eq('ambassador_id', ambassadorData.id); // Sécurité supplémentaire
         
       if (error) throw error;
       
@@ -117,11 +152,23 @@ const AmbassadorOffersPage = () => {
         return;
       }
       
+      // Récupérer l'ambassador_id pour la sécurité
+      const { data: ambassadorData } = await supabase
+        .from("ambassadors")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      if (!ambassadorData?.id) {
+        toast.error("Profil ambassadeur non trouvé");
+        return;
+      }
+      
       const { error } = await supabase
         .from('offers')
         .update({ workflow_status: newStatus })
         .eq('id', offerId)
-        .eq('user_id', user?.id); // Sécurité supplémentaire
+        .eq('ambassador_id', ambassadorData.id); // Sécurité supplémentaire
         
       if (error) throw error;
       
