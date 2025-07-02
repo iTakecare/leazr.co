@@ -83,11 +83,21 @@ export const useClientData = () => {
 
         if (!offersError && offers) {
           offers.forEach(offer => {
+            const getStatusText = (status: string) => {
+              switch(status) {
+                case 'pending': return 'en attente de validation';
+                case 'approved': return 'approuvée';
+                case 'rejected': return 'refusée';
+                case 'sent': return 'envoyée au client';
+                default: return status;
+              }
+            };
+
             activities.push({
               id: offer.id,
               type: 'offer',
-              title: `Demande ${offer.status === 'pending' ? 'en attente' : offer.status === 'approved' ? 'approuvée' : 'soumise'}`,
-              description: offer.equipment_description || 'Équipement non spécifié',
+              title: `Demande de financement ${getStatusText(offer.status)}`,
+              description: offer.equipment_description || `Demande ${offer.client_name || 'client'}`,
               date: offer.created_at,
               status: offer.status
             });
@@ -104,11 +114,21 @@ export const useClientData = () => {
 
         if (!contractsError && contracts) {
           contracts.forEach(contract => {
+            const getContractStatusText = (status: string) => {
+              switch(status) {
+                case 'active': return 'actif';
+                case 'contract_sent': return 'envoyé pour signature';
+                case 'equipment_ordered': return 'équipement commandé';
+                case 'completed': return 'terminé';
+                default: return status;
+              }
+            };
+
             activities.push({
               id: contract.id,
               type: 'contract',
-              title: `Contrat ${contract.status === 'active' ? 'actif' : contract.status}`,
-              description: contract.equipment_description || 'Équipement non spécifié',
+              title: `Contrat de financement ${getContractStatusText(contract.status)}`,
+              description: contract.equipment_description || `Contrat ${contract.client_name || 'client'}`,
               date: contract.created_at,
               status: contract.status
             });

@@ -80,6 +80,17 @@ const ClientDashboard = () => {
     }
   };
 
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'pending': return 'text-orange-600';
+      case 'approved': return 'text-green-600';
+      case 'rejected': return 'text-red-600';
+      case 'active': return 'text-blue-600';
+      case 'completed': return 'text-gray-600';
+      default: return 'text-muted-foreground';
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -181,22 +192,28 @@ const ClientDashboard = () => {
                 recentActivity.map((activity) => {
                   const IconComponent = getActivityIcon(activity.type);
                   return (
-                    <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <IconComponent className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{activity.title}</p>
-                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                    <div key={activity.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                      <div className="flex items-center gap-3 flex-1">
+                        <IconComponent className={`h-5 w-5 ${getStatusColor(activity.status)}`} />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{formatDate(activity.date)}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm text-muted-foreground">{formatDate(activity.date)}</span>
-                        {activity.status && (
-                          <Badge variant="outline" className="ml-2 text-xs">
-                            {activity.status}
-                          </Badge>
-                        )}
-                      </div>
+                      {activity.status && (
+                        <Badge 
+                          variant="outline" 
+                          className={`ml-2 text-xs ${getStatusColor(activity.status)} border-current`}
+                        >
+                          {activity.status === 'pending' && '⏳ En attente'}
+                          {activity.status === 'approved' && '✅ Approuvée'}
+                          {activity.status === 'rejected' && '❌ Refusée'}
+                          {activity.status === 'active' && '🔥 Actif'}
+                          {activity.status === 'completed' && '✔️ Terminé'}
+                          {!['pending', 'approved', 'rejected', 'active', 'completed'].includes(activity.status) && activity.status}
+                        </Badge>
+                      )}
                     </div>
                   );
                 })
