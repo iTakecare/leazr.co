@@ -274,61 +274,13 @@ const ClientSettingsPage = () => {
 
         <TabsContent value="profile">
           <div className="space-y-6">
-
-            {/* Section Informations Professionnelles */}
-            {clientData && (
-              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-                <CardHeader className="bg-muted/50 pb-4 border-b">
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    Informations professionnelles
-                  </CardTitle>
-                  <CardDescription>
-                    Vos données client et informations d'entreprise
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {clientLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-muted-foreground">Chargement...</p>
-                    </div>
-                  ) : clientError ? (
-                    <div className="text-center py-8">
-                      <p className="text-destructive">{clientError}</p>
-                    </div>
-                  ) : (
-                    <UnifiedClientView 
-                      client={clientData} 
-                      readOnly={true}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {!clientData && !clientLoading && (
-              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-                <CardHeader className="bg-muted/50 pb-4 border-b">
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    Informations professionnelles
-                  </CardTitle>
-                  <CardDescription>
-                    Aucun profil client associé à votre compte
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucun profil client</h3>
-                    <p className="text-muted-foreground">
-                      Votre compte n'est pas encore associé à un profil client d'entreprise
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <div className="text-center py-12">
+              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Profil utilisateur</h3>
+              <p className="text-muted-foreground">
+                Gérez vos paramètres personnels dans l'onglet Sécurité
+              </p>
+            </div>
           </div>
         </TabsContent>
 
