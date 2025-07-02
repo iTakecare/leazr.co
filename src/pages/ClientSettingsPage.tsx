@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { Settings, User, Shield, Bell, Users, Package } from "lucide-react";
+import { Settings, User, Shield, Bell, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateClientFromProfile } from "@/services/clientService";
 import { useClientData } from "@/hooks/useClientData";
 import UnifiedClientView from "@/components/clients/UnifiedClientView";
-import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
@@ -262,7 +261,7 @@ const ClientSettingsPage = () => {
       </div>
 
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Personnel
@@ -270,10 +269,6 @@ const ClientSettingsPage = () => {
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Mon Profil
-          </TabsTrigger>
-          <TabsTrigger value="equipment" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Équipements
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
@@ -360,41 +355,6 @@ const ClientSettingsPage = () => {
                 <UnifiedClientView 
                   client={clientData} 
                   readOnly={true}
-                />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Aucune information client trouvée</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="equipment">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Gestion des Équipements
-              </CardTitle>
-              <CardDescription>
-                Gérez l'assignation de vos équipements aux collaborateurs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {clientLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement...</p>
-                </div>
-              ) : clientError ? (
-                <div className="text-center py-8">
-                  <p className="text-destructive">{clientError}</p>
-                </div>
-              ) : clientData ? (
-                <EquipmentAssignmentManager 
-                  clientId={clientData.id}
-                  readOnly={false}
                 />
               ) : (
                 <div className="text-center py-8">
