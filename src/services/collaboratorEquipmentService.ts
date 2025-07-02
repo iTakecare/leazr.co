@@ -139,24 +139,15 @@ export const collaboratorEquipmentService = {
 
             if (createError) {
               console.warn('⚠️ Impossible de créer le collaborateur principal:', createError);
-              // Créer un collaborateur virtuel pour l'interface
-              finalCollaborators = [{
-                id: 'virtual-primary',
-                name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
-                email: clientData.email || ''
-              }];
+              // Ne pas créer de collaborateur virtuel, laisser la liste vide
+              console.log('📝 Continuons sans collaborateur pour le moment');
             } else if (newCollaborator) {
               console.log('✅ Collaborateur principal créé:', newCollaborator);
               finalCollaborators = [newCollaborator];
             }
           } catch (error) {
             console.warn('⚠️ Erreur lors de la création du collaborateur:', error);
-            // Créer un collaborateur virtuel pour l'interface
-            finalCollaborators = [{
-              id: 'virtual-primary',
-              name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
-              email: clientData.email || ''
-            }];
+            // Ne pas créer de collaborateur virtuel en cas d'erreur
           }
         }
       }
@@ -206,6 +197,14 @@ export const collaboratorEquipmentService = {
     collaboratorId: string | null
   ): Promise<void> {
     try {
+      console.log('🔧 Assignation équipement:', { equipmentId, equipmentType, collaboratorId });
+      
+      // Vérifier que le collaboratorId est valide (UUID) ou null
+      if (collaboratorId && (collaboratorId === 'virtual-primary' || collaboratorId === 'unassigned')) {
+        console.warn('⚠️ Tentative d\'assignation à un collaborateur virtuel:', collaboratorId);
+        collaboratorId = null; // Assigner à null au lieu d'un ID virtuel
+      }
+      
       const tableName = equipmentType === 'offer' ? 'offer_equipment' : 'contract_equipment';
       
       const { error } = await supabase
@@ -213,7 +212,12 @@ export const collaboratorEquipmentService = {
         .update({ collaborator_id: collaboratorId })
         .eq('id', equipmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur SQL lors de l\'assignation:', error);
+        throw error;
+      }
+      
+      console.log('✅ Assignation réussie');
     } catch (error) {
       console.error('Erreur lors de l\'assignation d\'équipement:', error);
       throw error;
