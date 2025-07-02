@@ -35,9 +35,17 @@ const EquipmentAssignmentManager: React.FC<EquipmentAssignmentManagerProps> = ({
       
       setEquipment(equipmentData);
       setCollaboratorGroups(collaboratorData);
+      
+      // Afficher un message informatif si aucun équipement n'est trouvé
+      if (equipmentData.length === 0) {
+        console.log('Aucun équipement trouvé pour ce client');
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
-      toast.error('Erreur lors du chargement des équipements');
+      // Ne pas afficher d'erreur si c'est juste qu'il n'y a pas de données
+      if (error instanceof Error && !error.message.includes('No rows')) {
+        toast.error('Erreur lors du chargement des équipements');
+      }
     } finally {
       setLoading(false);
     }

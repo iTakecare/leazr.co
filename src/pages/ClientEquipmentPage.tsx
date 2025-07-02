@@ -46,7 +46,12 @@ const ClientEquipmentPage = () => {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">Aucune information client trouvée</p>
+              <div className="text-center">
+                <p className="text-muted-foreground mb-2">Aucune information client trouvée</p>
+                <p className="text-sm text-muted-foreground">
+                  Veuillez contacter l'administrateur pour créer votre fiche client.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
