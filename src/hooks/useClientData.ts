@@ -1,16 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-
-interface ClientData {
-  id: string;
-  name: string;
-  email: string;
-  company?: string;
-  phone?: string;
-  status: string;
-  created_at: string;
-}
+import { Client } from '@/types/client';
 
 interface RecentActivity {
   id: string;
@@ -23,7 +14,7 @@ interface RecentActivity {
 
 export const useClientData = () => {
   const { user } = useAuth();
-  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [clientData, setClientData] = useState<Client | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

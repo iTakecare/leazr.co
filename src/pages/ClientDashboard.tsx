@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import UnifiedClientView from "@/components/clients/UnifiedClientView";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -236,46 +237,17 @@ const ClientDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Informations du Compte</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p>{clientData?.email || user?.email}</p>
-              </div>
-              {clientData?.name && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Nom</p>
-                  <p>{clientData.name}</p>
-                </div>
-              )}
-              {clientData?.company && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Société</p>
-                  <p>{clientData.company}</p>
-                </div>
-              )}
-              {clientData?.phone && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Téléphone</p>
-                  <p>{clientData.phone}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Statut</p>
-                <Badge variant="outline" className="text-green-600 border-green-200">
-                  {clientData?.status === 'active' ? 'Client Actif' : 
-                   clientData?.status === 'lead' ? 'Prospect' : 'Inactif'}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </motion.div>
+
+      {/* Fiche client complète en lecture seule */}
+      {clientData && (
+        <motion.div variants={itemVariants}>
+          <UnifiedClientView 
+            client={clientData} 
+            readOnly={true}
+          />
+        </motion.div>
+      )}
     </motion.div>
   );
 };
