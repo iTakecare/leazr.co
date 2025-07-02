@@ -1,14 +1,114 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { Settings, User, Shield, Bell } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
+  
+  // États pour les informations personnelles
+  const [firstName, setFirstName] = useState(user?.user_metadata?.first_name || user?.first_name || "");
+  const [lastName, setLastName] = useState(user?.user_metadata?.last_name || user?.last_name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [personalInfoLoading, setPersonalInfoLoading] = useState(false);
+  
+  // États pour le mot de passe
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handleSavePersonalInfo = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Le prénom et le nom sont obligatoires");
+      return;
+    }
+
+    setPersonalInfoLoading(true);
+    try {
+      // Mettre à jour les métadonnées utilisateur
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim()
+        }
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Mettre à jour également la table profiles si elle existe
+      if (user?.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: phone.trim()
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.warn("Erreur lors de la mise à jour du profil:", profileError);
+        }
+      }
+
+      toast.success("Informations personnelles mises à jour avec succès !");
+    } catch (error: any) {
+      console.error("Erreur lors de la mise à jour:", error);
+      toast.error("Erreur lors de la mise à jour: " + error.message);
+    } finally {
+      setPersonalInfoLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Tous les champs du mot de passe sont obligatoires");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("Le nouveau mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Réinitialiser les champs
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      
+      toast.success("Mot de passe modifié avec succès !");
+    } catch (error: any) {
+      console.error("Erreur lors du changement de mot de passe:", error);
+      toast.error("Erreur lors du changement de mot de passe: " + error.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const settingSections = [
     {
@@ -20,11 +120,19 @@ const ClientSettingsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">Prénom</Label>
-              <Input id="firstName" defaultValue={user?.first_name || ""} />
+              <Input 
+                id="firstName" 
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="lastName">Nom</Label>
-              <Input id="lastName" defaultValue={user?.last_name || ""} />
+              <Input 
+                id="lastName" 
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
             </div>
           </div>
           <div>
@@ -34,9 +142,19 @@ const ClientSettingsPage = () => {
           </div>
           <div>
             <Label htmlFor="phone">Téléphone</Label>
-            <Input id="phone" placeholder="+33 1 23 45 67 89" />
+            <Input 
+              id="phone" 
+              placeholder="+33 1 23 45 67 89"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
           </div>
-          <Button>Enregistrer les modifications</Button>
+          <Button 
+            onClick={handleSavePersonalInfo}
+            disabled={personalInfoLoading}
+          >
+            {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+          </Button>
         </div>
       )
     },
@@ -48,17 +166,37 @@ const ClientSettingsPage = () => {
         <div className="space-y-4">
           <div>
             <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-            <Input id="currentPassword" type="password" />
+            <Input 
+              id="currentPassword" 
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-            <Input id="newPassword" type="password" />
+            <Input 
+              id="newPassword" 
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
-            <Input id="confirmPassword" type="password" />
+            <Input 
+              id="confirmPassword" 
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
           </div>
-          <Button>Changer le mot de passe</Button>
+          <Button 
+            onClick={handleChangePassword}
+            disabled={passwordLoading}
+          >
+            {passwordLoading ? "Modification..." : "Changer le mot de passe"}
+          </Button>
         </div>
       )
     },
