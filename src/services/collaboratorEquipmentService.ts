@@ -113,68 +113,92 @@ export const collaboratorEquipmentService = {
 
       console.log('👥 Collaborateurs trouvés:', collaborators?.length || 0, collaborators);
 
-      // Si aucun collaborateur n'existe, essayer de créer un collaborateur principal
+      // TOUJOURS créer un collaborateur principal si aucun n'existe
       let finalCollaborators = collaborators || [];
+      
       if (!finalCollaborators.length) {
-        console.log('🔧 Aucun collaborateur trouvé, tentative de création automatique...');
+        console.log('🔧 Aucun collaborateur trouvé, création automatique du collaborateur principal...');
         
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('name, email, contact_name, company_id')
-          .eq('id', clientId)
-          .single();
+        try {
+          // Récupérer les données du client de manière robuste
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select('name, email, contact_name, company_id')
+            .eq('id', clientId)
+            .maybeSingle();
 
-        if (clientError) {
-          console.error('❌ Erreur récupération données client:', clientError);
-          console.log('📝 Détails erreur client:', { 
-            code: clientError.code, 
-            message: clientError.message 
-          });
-        } else if (clientData) {
+          if (clientError) {
+            console.error('❌ Erreur récupération client:', clientError);
+            throw new Error(`Impossible de récupérer les données du client: ${clientError.message}`);
+          }
+
+          if (!clientData) {
+            console.error('❌ Client introuvable avec l\'ID:', clientId);
+            throw new Error('Client introuvable');
+          }
+
           console.log('📋 Données client récupérées:', clientData);
           
-          try {
-            // Vérifier les permissions avant création
-            const { data: authUser } = await supabase.auth.getUser();
-            console.log('👤 Utilisateur authentifié:', authUser?.user?.id);
-            
-            const collaboratorName = clientData.contact_name || clientData.name || 'Collaborateur Principal';
-            console.log('📝 Tentative création collaborateur:', {
+          // Déterminer le nom du collaborateur principal (priorité: contact_name > name > fallback)
+          const collaboratorName = clientData.contact_name?.trim() || 
+                                 clientData.name?.trim() || 
+                                 'Responsable Principal';
+          
+          const collaboratorEmail = clientData.email?.trim() || '';
+          
+          console.log('👤 Création collaborateur principal:', {
+            client_id: clientId,
+            name: collaboratorName,
+            email: collaboratorEmail,
+            role: 'Responsable Principal',
+            is_primary: true
+          });
+
+          // Tentative de création avec gestion d'erreur robuste
+          const { data: newCollaborator, error: createError } = await supabase
+            .from('collaborators')
+            .insert({
               client_id: clientId,
               name: collaboratorName,
-              email: clientData.email || '',
+              email: collaboratorEmail,
               role: 'Responsable Principal',
               is_primary: true
+            })
+            .select('id, name, email')
+            .maybeSingle();
+
+          if (createError) {
+            console.error('❌ Échec création collaborateur principal:', createError);
+            console.log('📝 Détails erreur création:', {
+              code: createError.code,
+              message: createError.message,
+              details: createError.details,
+              hint: createError.hint
             });
-
-            // Créer automatiquement un collaborateur principal
-            const { data: newCollaborator, error: createError } = await supabase
+            
+            // En cas d'échec, vérifier si un collaborateur existe maintenant (race condition possible)
+            const { data: existingCollaborators } = await supabase
               .from('collaborators')
-              .insert({
-                client_id: clientId,
-                name: collaboratorName,
-                email: clientData.email || '',
-                role: 'Responsable Principal',
-                is_primary: true
-              })
               .select('id, name, email')
-              .single();
-
-            if (createError) {
-              console.error('❌ Impossible de créer le collaborateur principal:', createError);
-              console.log('📝 Détails erreur création:', { 
-                code: createError.code, 
-                message: createError.message,
-                details: createError.details,
-                hint: createError.hint 
-              });
-            } else if (newCollaborator) {
-              console.log('✅ Collaborateur principal créé avec succès:', newCollaborator);
-              finalCollaborators = [newCollaborator];
+              .eq('client_id', clientId)
+              .limit(5);
+            
+            if (existingCollaborators && existingCollaborators.length > 0) {
+              console.log('🔍 Collaborateurs trouvés après échec création:', existingCollaborators);
+              finalCollaborators = existingCollaborators;
+            } else {
+              console.warn('⚠️ Aucun collaborateur créé et aucun existant trouvé');
             }
-          } catch (error) {
-            console.error('⚠️ Erreur lors de la création du collaborateur:', error);
+          } else if (newCollaborator) {
+            console.log('✅ Collaborateur principal créé avec succès:', newCollaborator);
+            finalCollaborators = [newCollaborator];
+          } else {
+            console.warn('⚠️ Création réussie mais aucune donnée retournée');
           }
+          
+        } catch (error) {
+          console.error('🚨 Erreur critique lors de la création du collaborateur principal:', error);
+          // Ne pas laisser l'application planter, continuer avec une liste vide
         }
       }
 
