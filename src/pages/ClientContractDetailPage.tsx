@@ -4,7 +4,7 @@ import { useContractDetail } from "@/hooks/useContractDetail";
 import { useClientData } from "@/hooks/useClientData";
 import PageTransition from "@/components/layout/PageTransition";
 import ContractDetailHeader from "@/components/contracts/ContractDetailHeader";
-import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSection";
+import ClientContractEquipmentSection from "@/components/contracts/ClientContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
 import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
@@ -57,9 +57,8 @@ const ClientContractDetailPage = () => {
             {/* Colonne principale */}
             <div className="lg:col-span-2 space-y-6">
               {/* Section Équipements */}
-              <ContractEquipmentSection 
+              <ClientContractEquipmentSection 
                 equipment={equipment} 
-                onRefresh={refetch}
               />
 
               {/* Section Documents */}

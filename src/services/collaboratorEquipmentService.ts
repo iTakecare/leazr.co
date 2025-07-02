@@ -131,37 +131,59 @@ export const collaboratorEquipmentService = {
         .select('id, name, email')
         .eq('client_id', clientId);
 
-      if (collabError) throw collabError;
+      if (collabError) {
+        console.log('⚠️ Erreur récupération collaborateurs ou table inexistante:', collabError);
+        // Si la table collaborators n'existe pas, on continue sans collaborateurs
+      }
 
       // Si aucun collaborateur n'existe, créer un collaborateur principal avec les infos du client
       let finalCollaborators = collaborators || [];
       if (!finalCollaborators.length) {
+        console.log('🔧 Aucun collaborateur trouvé, création automatique...');
+        
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('name, email, contact_name')
           .eq('id', clientId)
           .single();
 
-        if (clientError) throw clientError;
+        if (clientError) {
+          console.error('❌ Erreur récupération données client:', clientError);
+          throw clientError;
+        }
 
         if (clientData) {
-          // Créer automatiquement un collaborateur principal
-          const { data: newCollaborator, error: createError } = await supabase
+          console.log('📋 Données client récupérées:', clientData);
+          
+          // Vérifier si la table collaborators existe
+          const { error: checkTableError } = await supabase
             .from('collaborators')
-            .insert({
-              client_id: clientId,
-              name: clientData.contact_name || clientData.name || 'Responsable principal',
-              email: clientData.email || '',
-              role: 'Responsable',
-              is_primary: true
-            })
-            .select('id, name, email')
-            .single();
+            .select('id')
+            .limit(1);
+            
+          if (checkTableError && checkTableError.code === '42P01') {
+            console.warn('⚠️ Table collaborators inexistante, on continue sans créer de collaborateur');
+            // La table n'existe pas, on continue sans collaborateurs
+          } else {
+            // Créer automatiquement un collaborateur principal
+            const { data: newCollaborator, error: createError } = await supabase
+              .from('collaborators')
+              .insert({
+                client_id: clientId,
+                name: clientData.contact_name || clientData.name || 'Responsable principal',
+                email: clientData.email || '',
+                role: 'Responsable',
+                is_primary: true
+              })
+              .select('id, name, email')
+              .single();
 
-          if (createError) {
-            console.warn('Impossible de créer le collaborateur principal:', createError);
-          } else if (newCollaborator) {
-            finalCollaborators = [newCollaborator];
+            if (createError) {
+              console.warn('⚠️ Impossible de créer le collaborateur principal:', createError);
+            } else if (newCollaborator) {
+              console.log('✅ Collaborateur principal créé:', newCollaborator);
+              finalCollaborators = [newCollaborator];
+            }
           }
         }
       }
