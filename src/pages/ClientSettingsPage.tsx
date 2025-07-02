@@ -261,13 +261,9 @@ const ClientSettingsPage = () => {
       </div>
 
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            Personnel
-          </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
             Mon Profil
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
@@ -277,92 +273,95 @@ const ClientSettingsPage = () => {
         </TabsList>
 
         <TabsContent value="personal">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Informations Personnelles
-              </CardTitle>
-              <CardDescription>Gérez vos informations de profil</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">Prénom</Label>
-                    <Input 
-                      id="firstName" 
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                    />
+          <div className="space-y-6">
+            {/* Section Informations Personnelles */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Informations Personnelles
+                </CardTitle>
+                <CardDescription>Gérez vos informations de profil et de connexion</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">Prénom</Label>
+                      <Input 
+                        id="firstName" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Nom</Label>
+                      <Input 
+                        id="lastName" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Nom</Label>
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
+                    <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Téléphone</Label>
                     <Input 
-                      id="lastName" 
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
+                      id="phone" 
+                      placeholder="+33 1 23 45 67 89"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
+                  <Button 
+                    onClick={handleSavePersonalInfo}
+                    disabled={personalInfoLoading}
+                    className="w-full md:w-auto"
+                  >
+                    {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
-                </div>
-                <div>
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input 
-                    id="phone" 
-                    placeholder="+33 1 23 45 67 89"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-                <Button 
-                  onClick={handleSavePersonalInfo}
-                  disabled={personalInfoLoading}
-                >
-                  {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
 
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Mon Profil Client
-              </CardTitle>
-              <CardDescription>
-                Informations détaillées de votre profil client (lecture seule)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {clientLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement...</p>
-                </div>
-              ) : clientError ? (
-                <div className="text-center py-8">
-                  <p className="text-destructive">{clientError}</p>
-                </div>
-              ) : clientData ? (
-                <UnifiedClientView 
-                  client={clientData} 
-                  readOnly={true}
-                />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Aucune information client trouvée</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* Section Profil Client */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Profil Client
+                </CardTitle>
+                <CardDescription>
+                  Informations détaillées de votre profil client
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {clientLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Chargement...</p>
+                  </div>
+                ) : clientError ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive">{clientError}</p>
+                  </div>
+                ) : clientData ? (
+                  <UnifiedClientView 
+                    client={clientData} 
+                    readOnly={true}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Aucune information client trouvée</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="security">
