@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { Settings, User, Shield, Bell, Users } from "lucide-react";
+import { Settings, User, Shield, Bell, Users, Building2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -260,9 +260,9 @@ const ClientSettingsPage = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="personal" className="space-y-6">
+      <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="personal" className="flex items-center gap-2">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Mon Profil
           </TabsTrigger>
@@ -272,18 +272,18 @@ const ClientSettingsPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="personal">
+        <TabsContent value="profile">
           <div className="space-y-6">
-            {/* Section Informations Personnelles */}
-            <Card>
-              <CardHeader>
+            {/* Section Identité Personnelle */}
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Informations Personnelles
+                  <User className="h-5 w-5 text-primary" />
+                  Identité
                 </CardTitle>
-                <CardDescription>Gérez vos informations de profil et de connexion</CardDescription>
+                <CardDescription>Vos informations personnelles de connexion</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -295,7 +295,7 @@ const ClientSettingsPage = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Nom</Label>
+                      <Label htmlFor="lastName">Nom de famille</Label>
                       <Input 
                         id="lastName" 
                         value={lastName}
@@ -303,19 +303,21 @@ const ClientSettingsPage = () => {
                       />
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
-                    <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input 
-                      id="phone" 
-                      placeholder="+33 1 23 45 67 89"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
+                      <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Téléphone</Label>
+                      <Input 
+                        id="phone" 
+                        placeholder="+33 1 23 45 67 89"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <Button 
                     onClick={handleSavePersonalInfo}
@@ -328,39 +330,60 @@ const ClientSettingsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Section Profil Client */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Profil Client
-                </CardTitle>
-                <CardDescription>
-                  Informations détaillées de votre profil client
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {clientLoading ? (
+            {/* Section Informations Professionnelles */}
+            {clientData && (
+              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+                <CardHeader className="bg-muted/50 pb-4 border-b">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    Informations professionnelles
+                  </CardTitle>
+                  <CardDescription>
+                    Vos données client et informations d'entreprise
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {clientLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="mt-2 text-muted-foreground">Chargement...</p>
+                    </div>
+                  ) : clientError ? (
+                    <div className="text-center py-8">
+                      <p className="text-destructive">{clientError}</p>
+                    </div>
+                  ) : (
+                    <UnifiedClientView 
+                      client={clientData} 
+                      readOnly={true}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {!clientData && !clientLoading && (
+              <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+                <CardHeader className="bg-muted/50 pb-4 border-b">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    Informations professionnelles
+                  </CardTitle>
+                  <CardDescription>
+                    Aucun profil client associé à votre compte
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Chargement...</p>
+                    <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Aucun profil client</h3>
+                    <p className="text-muted-foreground">
+                      Votre compte n'est pas encore associé à un profil client d'entreprise
+                    </p>
                   </div>
-                ) : clientError ? (
-                  <div className="text-center py-8">
-                    <p className="text-destructive">{clientError}</p>
-                  </div>
-                ) : clientData ? (
-                  <UnifiedClientView 
-                    client={clientData} 
-                    readOnly={true}
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Aucune information client trouvée</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
