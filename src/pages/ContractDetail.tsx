@@ -64,9 +64,6 @@ const ContractDetail = () => {
             <div className="space-y-6">
               {/* Historique */}
               <ContractHistoryPanel logs={logs} />
-
-              {/* Détails additionnels */}
-              {contract.equipment_description}
             </div>
           </div>
         </div>
