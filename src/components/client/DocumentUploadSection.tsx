@@ -83,6 +83,22 @@ export const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
   const hasUploadLinks = uploadLinks.length > 0;
   const hasDocuments = documents.length > 0;
 
+  // Vérifier si tous les documents requis ont été fournis et approuvés
+  const areAllDocumentsApproved = () => {
+    if (!hasUploadLinks) return false;
+    
+    // Collecter tous les documents requis de tous les liens d'upload
+    const allRequestedDocs = uploadLinks.flatMap(link => link.requested_documents);
+    
+    // Vérifier que chaque document requis a été fourni et approuvé
+    return allRequestedDocs.every(docType => {
+      const correspondingDoc = documents.find(doc => doc.document_type === docType);
+      return correspondingDoc && correspondingDoc.status === 'approved';
+    });
+  };
+
+  const shouldShowUploadSection = hasUploadLinks && !areAllDocumentsApproved();
+
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -93,7 +109,7 @@ export const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Upload Links */}
-        {hasUploadLinks && (
+        {shouldShowUploadSection && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
