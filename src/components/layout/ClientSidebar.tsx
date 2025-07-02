@@ -59,8 +59,8 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   // Tous les éléments de menu possibles avec leurs modules associés
   const allSidebarItems: MenuItem[] = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
+    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
     { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts" },
-    { label: "Équipements", icon: Laptop, href: "/client/equipment", moduleSlug: "fleet_generator" },
     { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm" },
     { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog" },
     { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support" },
