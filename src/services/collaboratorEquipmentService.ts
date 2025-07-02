@@ -95,120 +95,25 @@ export const collaboratorEquipmentService = {
       const equipment = await this.getClientEquipment(clientId);
       console.log('📋 Équipements trouvés:', equipment.length);
       
-      // Récupérer les collaborateurs
+      // Récupérer les collaborateurs (le trigger auto-create se charge de créer un collaborateur principal si nécessaire)
       const { data: collaborators, error: collabError } = await supabase
         .from('collaborators')
-        .select('id, name, email')
-        .eq('client_id', clientId);
+        .select('id, name, email, is_primary')
+        .eq('client_id', clientId)
+        .order('is_primary', { ascending: false }); // Collaborateur principal en premier
 
       if (collabError) {
         console.error('❌ Erreur récupération collaborateurs:', collabError);
-        console.log('📝 Détails de l\'erreur:', { 
-          code: collabError.code, 
-          message: collabError.message, 
-          details: collabError.details,
-          hint: collabError.hint 
-        });
+        throw collabError;
       }
 
       console.log('👥 Collaborateurs trouvés:', collaborators?.length || 0, collaborators);
-
-      // TOUJOURS créer un collaborateur principal si aucun n'existe
-      let finalCollaborators = collaborators || [];
-      
-      if (!finalCollaborators.length) {
-        console.log('🔧 Aucun collaborateur trouvé, création automatique du collaborateur principal...');
-        
-        try {
-          // Récupérer les données du client de manière robuste
-          const { data: clientData, error: clientError } = await supabase
-            .from('clients')
-            .select('name, email, contact_name, company_id')
-            .eq('id', clientId)
-            .maybeSingle();
-
-          if (clientError) {
-            console.error('❌ Erreur récupération client:', clientError);
-            throw new Error(`Impossible de récupérer les données du client: ${clientError.message}`);
-          }
-
-          if (!clientData) {
-            console.error('❌ Client introuvable avec l\'ID:', clientId);
-            throw new Error('Client introuvable');
-          }
-
-          console.log('📋 Données client récupérées:', clientData);
-          
-          // Déterminer le nom du collaborateur principal (priorité: contact_name > name > fallback)
-          const collaboratorName = clientData.contact_name?.trim() || 
-                                 clientData.name?.trim() || 
-                                 'Responsable Principal';
-          
-          const collaboratorEmail = clientData.email?.trim() || '';
-          
-          console.log('👤 Création collaborateur principal:', {
-            client_id: clientId,
-            name: collaboratorName,
-            email: collaboratorEmail,
-            role: 'Responsable Principal',
-            is_primary: true
-          });
-
-          // Tentative de création avec gestion d'erreur robuste
-          const { data: newCollaborator, error: createError } = await supabase
-            .from('collaborators')
-            .insert({
-              client_id: clientId,
-              name: collaboratorName,
-              email: collaboratorEmail,
-              role: 'Responsable Principal',
-              is_primary: true
-            })
-            .select('id, name, email')
-            .maybeSingle();
-
-          if (createError) {
-            console.error('❌ Échec création collaborateur principal:', createError);
-            console.log('📝 Détails erreur création:', {
-              code: createError.code,
-              message: createError.message,
-              details: createError.details,
-              hint: createError.hint
-            });
-            
-            // En cas d'échec, vérifier si un collaborateur existe maintenant (race condition possible)
-            const { data: existingCollaborators } = await supabase
-              .from('collaborators')
-              .select('id, name, email')
-              .eq('client_id', clientId)
-              .limit(5);
-            
-            if (existingCollaborators && existingCollaborators.length > 0) {
-              console.log('🔍 Collaborateurs trouvés après échec création:', existingCollaborators);
-              finalCollaborators = existingCollaborators;
-            } else {
-              console.warn('⚠️ Aucun collaborateur créé et aucun existant trouvé');
-            }
-          } else if (newCollaborator) {
-            console.log('✅ Collaborateur principal créé avec succès:', newCollaborator);
-            finalCollaborators = [newCollaborator];
-          } else {
-            console.warn('⚠️ Création réussie mais aucune donnée retournée');
-          }
-          
-        } catch (error) {
-          console.error('🚨 Erreur critique lors de la création du collaborateur principal:', error);
-          // Ne pas laisser l'application planter, continuer avec une liste vide
-        }
-      }
-
-      console.log('👥 Collaborateurs finaux:', finalCollaborators.length, finalCollaborators);
 
       // Grouper les équipements par collaborateur
       const collaboratorMap = new Map<string, CollaboratorEquipment>();
       
       // Initialiser avec tous les collaborateurs
-      finalCollaborators.forEach(collab => {
+      (collaborators || []).forEach(collab => {
         collaboratorMap.set(collab.id, {
           collaborator_id: collab.id,
           collaborator_name: collab.name,

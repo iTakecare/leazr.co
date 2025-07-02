@@ -127,7 +127,14 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
               <div key={group.collaborator_id} className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div>
-                    <h3 className="font-medium text-sm">{group.collaborator_name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-sm">{group.collaborator_name}</h3>
+                      {group.collaborator_id !== 'unassigned' && (
+                        <Badge variant="secondary" className="text-xs">
+                          Principal
+                        </Badge>
+                      )}
+                    </div>
                     {group.collaborator_email && (
                       <p className="text-xs text-muted-foreground">{group.collaborator_email}</p>
                     )}
