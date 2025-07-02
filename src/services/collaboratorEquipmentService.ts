@@ -33,33 +33,12 @@ export interface EquipmentAssignmentHistory {
 }
 
 export const collaboratorEquipmentService = {
-  // Récupérer tous les équipements d'un client
+  // Récupérer tous les équipements d'un client (UNIQUEMENT LES CONTRATS pour l'assignation)
   async getClientEquipment(clientId: string): Promise<EquipmentItem[]> {
     try {
-      console.log('🔍 Recherche d\'équipements pour le client:', clientId);
+      console.log('🔍 Recherche d\'équipements de contrats pour le client:', clientId);
       
-      // Récupérer les équipements des offres
-      const { data: offerEquipment, error: offerError } = await supabase
-        .from('offer_equipment')
-        .select(`
-          id,
-          title,
-          collaborator_id,
-          purchase_price,
-          quantity,
-          serial_number,
-          offers!inner(id, client_name, client_id)
-        `)
-        .eq('offers.client_id', clientId);
-
-      if (offerError) {
-        console.error('❌ Erreur récupération équipements offres:', offerError);
-        throw offerError;
-      }
-
-      console.log('📋 Équipements des offres trouvés:', offerEquipment?.length || 0);
-
-      // Récupérer les équipements des contrats
+      // Récupérer UNIQUEMENT les équipements des contrats (les offres ne sont pas assignables)
       const { data: contractEquipment, error: contractError } = await supabase
         .from('contract_equipment')
         .select(`
@@ -86,19 +65,8 @@ export const collaboratorEquipmentService = {
         console.log('🔍 IDs des contrats avec équipements:', contractEquipment.map(e => e.contracts.id));
       }
 
-      // Combiner et formater les données
+      // Formater uniquement les équipements de contrats
       const allEquipment: EquipmentItem[] = [
-        ...(offerEquipment || []).map(item => ({
-          id: item.id,
-          title: item.title,
-          collaborator_id: item.collaborator_id,
-          equipment_type: 'offer' as const,
-          source_id: item.offers.id,
-          source_name: `Offre - ${item.offers.client_name}`,
-          purchase_price: item.purchase_price,
-          quantity: item.quantity,
-          serial_number: item.serial_number,
-        })),
         ...(contractEquipment || []).map(item => ({
           id: item.id,
           title: item.title,

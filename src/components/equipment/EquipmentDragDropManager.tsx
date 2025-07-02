@@ -87,11 +87,6 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
     }
   };
 
-  const getEquipmentTypeColor = (type: 'offer' | 'contract') => {
-    return type === 'offer' 
-      ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' 
-      : 'bg-green-100 text-green-800 hover:bg-green-100';
-  };
 
   if (loading) {
     return (
@@ -108,10 +103,10 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
-          Gestion des équipements par collaborateur
+          Assignation des équipements contractuels
         </CardTitle>
         <CardDescription>
-          Glissez-déposez les équipements pour les assigner aux collaborateurs
+          Glissez-déposez les équipements de contrats pour les assigner aux collaborateurs (numéros de série disponibles)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -169,11 +164,11 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
                                         <Package className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                         <span className="font-medium text-xs truncate">{item.title}</span>
                                       </div>
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <Badge className={`text-xs ${getEquipmentTypeColor(item.equipment_type)}`}>
-                                          {item.equipment_type === 'offer' ? 'Offre' : 'Contrat'}
-                                        </Badge>
-                                      </div>
+                                       <div className="flex items-center gap-1 mb-1">
+                                         <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100">
+                                           Contrat
+                                         </Badge>
+                                       </div>
                                       <p className="text-xs text-muted-foreground truncate">
                                         {item.source_name}
                                       </p>

@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users } from "lucide-react";
 import { useClientData } from "@/hooks/useClientData";
-import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
+import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 
 const ClientEquipmentPage = () => {
   const { clientData, loading, error } = useClientData();
@@ -82,15 +82,15 @@ const ClientEquipmentPage = () => {
               À propos de la gestion des équipements
             </CardTitle>
             <CardDescription>
-              Vous pouvez assigner vos équipements provenant de vos offres et contrats à vos collaborateurs. 
-              Cela vous permet de suivre qui utilise quoi dans votre organisation.
+              Vous pouvez assigner vos équipements contractuels à vos collaborateurs une fois que les numéros de série sont disponibles. 
+              Les équipements d'offres ne peuvent pas encore être assignés car ils n'ont pas de numéro de série.
             </CardDescription>
           </CardHeader>
         </Card>
 
         {/* Gestionnaire d'équipements */}
         <div className="lg:col-span-4">
-          <EquipmentAssignmentManager 
+          <EquipmentDragDropManager 
             clientId={clientData.id}
             readOnly={false}
           />

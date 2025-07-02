@@ -69,13 +69,6 @@ const ClientContractDetailPage = () => {
                 onRefresh={refetch}
               />
 
-              {/* Gestion des assignations d'équipements avec drag & drop */}
-              {clientData && (
-                <EquipmentDragDropManager 
-                  clientId={clientData.id}
-                  readOnly={false}
-                />
-              )}
             </div>
 
             {/* Sidebar */}
