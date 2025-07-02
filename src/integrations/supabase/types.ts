@@ -415,6 +415,7 @@ export type Database = {
           department: string | null
           email: string | null
           id: string
+          is_primary: boolean | null
           name: string
           phone: string | null
           role: string
@@ -426,6 +427,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           id?: string
+          is_primary?: boolean | null
           name: string
           phone?: string | null
           role: string
@@ -437,6 +439,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           id?: string
+          is_primary?: boolean | null
           name?: string
           phone?: string | null
           role?: string
