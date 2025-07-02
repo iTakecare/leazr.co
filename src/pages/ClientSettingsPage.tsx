@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Settings, User, Shield, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { updateClientFromProfile } from "@/services/clientService";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
@@ -58,6 +59,20 @@ const ClientSettingsPage = () => {
 
         if (profileError) {
           console.warn("Erreur lors de la mise à jour du profil:", profileError);
+        }
+
+        // Mettre à jour aussi la table clients si l'utilisateur a une fiche client
+        const clientUpdateSuccess = await updateClientFromProfile(
+          user.id,
+          firstName.trim(),
+          lastName.trim(),
+          phone.trim()
+        );
+
+        if (clientUpdateSuccess) {
+          console.log("Fiche client mise à jour avec succès");
+        } else {
+          console.log("Aucune fiche client à mettre à jour ou erreur lors de la mise à jour");
         }
       }
 

@@ -458,6 +458,62 @@ export const getCollaboratorsByClientId = async (clientId: string): Promise<Coll
 };
 
 /**
+ * Met à jour les informations d'un client depuis les données de profil utilisateur
+ * @param userId ID de l'utilisateur
+ * @param firstName Prénom
+ * @param lastName Nom de famille  
+ * @param phone Téléphone
+ * @returns true si la mise à jour a réussi
+ */
+export const updateClientFromProfile = async (
+  userId: string, 
+  firstName: string, 
+  lastName: string, 
+  phone?: string
+): Promise<boolean> => {
+  try {
+    console.log(`Mise à jour du client pour l'utilisateur ${userId}:`, { firstName, lastName, phone });
+    
+    // Construire le nom complet
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    
+    // Préparer les données de mise à jour
+    const updateData: any = {
+      name: fullName,
+      contact_name: fullName
+    };
+    
+    // Ajouter le téléphone s'il est fourni
+    if (phone && phone.trim()) {
+      updateData.phone = phone.trim();
+    }
+    
+    // Mettre à jour le client associé à cet utilisateur
+    const { data, error } = await supabase
+      .from('clients')
+      .update(updateData)
+      .eq('user_id', userId)
+      .select();
+    
+    if (error) {
+      console.error("Erreur lors de la mise à jour du client:", error);
+      return false;
+    }
+    
+    if (data && data.length > 0) {
+      console.log("Client mis à jour avec succès:", data[0]);
+      return true;
+    } else {
+      console.log("Aucun client trouvé pour cet utilisateur");
+      return false;
+    }
+  } catch (error) {
+    console.error("Exception lors de la mise à jour du client depuis le profil:", error);
+    return false;
+  }
+};
+
+/**
  * Corrige l'état du compte utilisateur d'un client
  */
 export const syncClientUserAccountStatus = async (clientId: string): Promise<boolean> => {
