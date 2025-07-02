@@ -23,6 +23,7 @@ interface EquipmentDisplayProps {
   clientPostalCode?: string;
   clientCountry?: string;
   offerId?: string;
+  hideFinancialColumns?: boolean;
 }
 
 interface EquipmentItem {
@@ -38,7 +39,8 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
   equipmentDisplay,
   monthlyPayment,
   remarks,
-  offerId
+  offerId,
+  hideFinancialColumns = false
 }) => {
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -255,9 +257,11 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                 <th className="text-center py-4 px-4 font-semibold text-gray-700 w-24">
                   Qté
                 </th>
-                <th className="text-right py-4 px-4 font-semibold text-gray-700 w-40">
-                  Prix d'achat HT
-                </th>
+                {!hideFinancialColumns && (
+                  <th className="text-right py-4 px-4 font-semibold text-gray-700 w-40">
+                    Prix d'achat HT
+                  </th>
+                )}
                 <th className="text-right py-4 px-4 font-semibold text-gray-700 w-40">
                   Mensualité HT
                 </th>
@@ -305,9 +309,11 @@ const EquipmentDisplay: React.FC<EquipmentDisplayProps> = ({
                       {item.quantity}
                     </span>
                   </td>
-                  <td className="py-6 px-4 text-right font-semibold text-gray-800">
-                    {item.purchasePrice > 0 ? formatCurrency(item.purchasePrice) : '-'}
-                  </td>
+                  {!hideFinancialColumns && (
+                    <td className="py-6 px-4 text-right font-semibold text-gray-800">
+                      {item.purchasePrice > 0 ? formatCurrency(item.purchasePrice) : '-'}
+                    </td>
+                  )}
                   <td className="py-6 px-4 text-right font-semibold text-blue-700">
                     {formatCurrency(item.monthlyPayment * item.quantity)}
                   </td>
