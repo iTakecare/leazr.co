@@ -8,6 +8,8 @@ import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import FinancialSummary from "@/components/offer/FinancialSummary";
 import AmbassadorFinancialSummary from "@/components/ambassador/AmbassadorFinancialSummary";
+import { useAuth } from "@/context/AuthContext";
+import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 
 interface GlobalMarginAdjustment {
   amount: number;
@@ -47,6 +49,7 @@ const EquipmentList = ({
   calculations,
   hidePriceColumn = false
 }: EquipmentListProps) => {
+  const { user } = useAuth();
   const handleQuantityChange = (id: string, newQuantity: number) => {
     updateQuantity(id, newQuantity);
   };
@@ -56,8 +59,21 @@ const EquipmentList = ({
                           Boolean(commissionLevelId) || 
                           window.location.pathname.includes('/ambassador');
 
+  // Detect if this is an admin creating an ambassador offer (external ambassador offer)
+  const isAdminCreatingAmbassadorOffer = user?.role === 'admin' && Boolean(ambassadorId) && Boolean(commissionLevelId);
+
   // Calculate total margin for ambassador commission - USE THE CORRECT MARGIN
   const totalMargin = calculations?.normalMarginAmount || 0;
+
+  // Calculate commission for admin creating ambassador offers
+  const commissionData = useOfferCommissionCalculator({
+    isInternalOffer: false,
+    selectedAmbassadorId: ambassadorId,
+    commissionLevelId: commissionLevelId,
+    totalMargin: totalMargin,
+    equipmentListLength: equipmentList.length,
+    totalMonthlyPayment: totalMonthlyPayment
+  });
 
   console.log("EquipmentList - Ambassador mode debug:", {
     ambassadorId,
@@ -236,7 +252,23 @@ const EquipmentList = ({
       {/* Show appropriate financial summary based on mode */}
       {equipmentList.length > 0 && totalMonthlyPayment > 0 && (
         <>
-          {isAmbassadorMode ? (
+          {isAdminCreatingAmbassadorOffer ? (
+            // Admin creating ambassador offer: show full admin summary + commission
+            !hideFinancialDetails && calculations && (
+              <FinancialSummary 
+                calculations={calculations}
+                useGlobalAdjustment={globalMarginAdjustment.active}
+                onToggleAdjustment={toggleAdaptMonthlyPayment}
+                commissionData={{
+                  amount: commissionData.amount,
+                  rate: commissionData.rate,
+                  levelName: commissionData.levelName
+                }}
+                showCommission={true}
+              />
+            )
+          ) : isAmbassadorMode ? (
+            // Ambassador creating their own offer: show simplified summary
             <AmbassadorFinancialSummary
               totalMonthlyPayment={totalMonthlyPayment}
               ambassadorId={ambassadorId}
@@ -245,6 +277,7 @@ const EquipmentList = ({
               totalMargin={totalMargin}
             />
           ) : (
+            // Standard admin offer: show full admin summary
             !hideFinancialDetails && calculations && (
               <FinancialSummary 
                 calculations={calculations}

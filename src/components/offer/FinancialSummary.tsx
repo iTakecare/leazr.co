@@ -5,16 +5,26 @@ import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/utils/formatters";
 import { CalculationResult } from "@/utils/equipmentCalculations";
 
+interface CommissionData {
+  amount: number;
+  rate: number;
+  levelName: string;
+}
+
 interface FinancialSummaryProps {
   calculations: CalculationResult;
   useGlobalAdjustment: boolean;
   onToggleAdjustment: () => void;
+  commissionData?: CommissionData;
+  showCommission?: boolean;
 }
 
 const FinancialSummary = ({ 
   calculations, 
   useGlobalAdjustment, 
-  onToggleAdjustment 
+  onToggleAdjustment,
+  commissionData,
+  showCommission = false
 }: FinancialSummaryProps) => {
   const {
     totalPurchasePrice,
@@ -120,6 +130,27 @@ const FinancialSummary = ({
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {marginDifference > 0 ? 'Perte de marge' : 'Gain de marge'} avec le coefficient global
+              </div>
+            </div>
+          )}
+
+          {/* Commission (si affichée) */}
+          {showCommission && commissionData && commissionData.amount > 0 && (
+            <div className="pt-3 border-t border-gray-200">
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-green-800">
+                    Commission ambassadeur :
+                  </span>
+                  <span className="text-lg font-bold text-green-900">
+                    {formatCurrency(commissionData.amount)}
+                  </span>
+                </div>
+                {commissionData.levelName && (
+                  <div className="text-xs text-green-700">
+                    Niveau : {commissionData.levelName} ({commissionData.rate.toFixed(2)}%)
+                  </div>
+                )}
               </div>
             </div>
           )}
