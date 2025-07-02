@@ -25,7 +25,7 @@ import AmbassadorActionButtons from "@/components/offers/detail/AmbassadorAction
 import AmbassadorWorkflowTimeline from "@/components/offers/detail/AmbassadorWorkflowTimeline";
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
-import EquipmentInfoCard from "@/components/offers/detail/EquipmentInfoCard";
+import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 
@@ -318,10 +318,9 @@ const AmbassadorOfferDetail = () => {
                   clientPhone={offer.client_phone}
                 />
                 
-                <EquipmentInfoCard 
-                  equipmentDescription={offer.equipment_description}
-                  equipmentItems={offer.equipmentItems || offer.parsedEquipment}
-                  hideFinancialInfo={true}
+                <CompactEquipmentSection 
+                  offer={offer}
+                  hideFinancialColumns={true}
                 />
                 
                 <AmbassadorWorkflowTimeline 
