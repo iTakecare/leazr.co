@@ -39,6 +39,7 @@ export const useClientOffers = (clientEmail?: string, clientId?: string | null) 
       let query = supabase
         .from('offers')
         .select('*')
+        .eq('converted_to_contract', false) // Exclure les offres converties en contrats
         .order('created_at', { ascending: false });
 
       // Apply filters based on available parameters
