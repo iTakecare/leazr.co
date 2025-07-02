@@ -9,6 +9,7 @@ import {
   type EquipmentItem, 
   type CollaboratorEquipment 
 } from "@/services/collaboratorEquipmentService";
+import CollaboratorCreationDialog from "./CollaboratorCreationDialog";
 
 interface EquipmentDragDropManagerProps {
   clientId: string;
@@ -101,13 +102,23 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          Assignation des équipements contractuels
-        </CardTitle>
-        <CardDescription>
-          Glissez-déposez les équipements de contrats pour les assigner aux collaborateurs (numéros de série disponibles)
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Assignation des équipements contractuels
+            </CardTitle>
+            <CardDescription className="mt-2">
+              Glissez-déposez les équipements de contrats pour les assigner aux collaborateurs (numéros de série disponibles)
+            </CardDescription>
+          </div>
+          {!readOnly && (
+            <CollaboratorCreationDialog 
+              clientId={clientId} 
+              onCollaboratorCreated={fetchData}
+            />
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>

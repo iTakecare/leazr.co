@@ -91,7 +91,9 @@ export const collaboratorEquipmentService = {
   // Récupérer les équipements groupés par collaborateur
   async getEquipmentByCollaborator(clientId: string): Promise<CollaboratorEquipment[]> {
     try {
+      console.log('🔍 Récupération équipements pour client:', clientId);
       const equipment = await this.getClientEquipment(clientId);
+      console.log('📋 Équipements trouvés:', equipment.length);
       
       // Récupérer les collaborateurs
       const { data: collaborators, error: collabError } = await supabase
@@ -100,36 +102,57 @@ export const collaboratorEquipmentService = {
         .eq('client_id', clientId);
 
       if (collabError) {
-        console.log('⚠️ Erreur récupération collaborateurs ou table inexistante:', collabError);
-        // Si la table collaborators n'existe pas, on continue sans collaborateurs
+        console.error('❌ Erreur récupération collaborateurs:', collabError);
+        console.log('📝 Détails de l\'erreur:', { 
+          code: collabError.code, 
+          message: collabError.message, 
+          details: collabError.details,
+          hint: collabError.hint 
+        });
       }
 
-      // Si aucun collaborateur n'existe, créer un collaborateur principal avec les infos du client
+      console.log('👥 Collaborateurs trouvés:', collaborators?.length || 0, collaborators);
+
+      // Si aucun collaborateur n'existe, essayer de créer un collaborateur principal
       let finalCollaborators = collaborators || [];
       if (!finalCollaborators.length) {
-        console.log('🔧 Aucun collaborateur trouvé, création automatique...');
+        console.log('🔧 Aucun collaborateur trouvé, tentative de création automatique...');
         
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
-          .select('name, email, contact_name')
+          .select('name, email, contact_name, company_id')
           .eq('id', clientId)
           .single();
 
         if (clientError) {
           console.error('❌ Erreur récupération données client:', clientError);
-          throw clientError;
-        }
-
-        if (clientData) {
+          console.log('📝 Détails erreur client:', { 
+            code: clientError.code, 
+            message: clientError.message 
+          });
+        } else if (clientData) {
           console.log('📋 Données client récupérées:', clientData);
           
           try {
+            // Vérifier les permissions avant création
+            const { data: authUser } = await supabase.auth.getUser();
+            console.log('👤 Utilisateur authentifié:', authUser?.user?.id);
+            
+            const collaboratorName = clientData.contact_name || clientData.name || 'Collaborateur Principal';
+            console.log('📝 Tentative création collaborateur:', {
+              client_id: clientId,
+              name: collaboratorName,
+              email: clientData.email || '',
+              role: 'Responsable Principal',
+              is_primary: true
+            });
+
             // Créer automatiquement un collaborateur principal
             const { data: newCollaborator, error: createError } = await supabase
               .from('collaborators')
               .insert({
                 client_id: clientId,
-                name: clientData.contact_name || clientData.name || 'Collaborateur Principal',
+                name: collaboratorName,
                 email: clientData.email || '',
                 role: 'Responsable Principal',
                 is_primary: true
@@ -138,19 +161,24 @@ export const collaboratorEquipmentService = {
               .single();
 
             if (createError) {
-              console.warn('⚠️ Impossible de créer le collaborateur principal:', createError);
-              // Ne pas créer de collaborateur virtuel, laisser la liste vide
-              console.log('📝 Continuons sans collaborateur pour le moment');
+              console.error('❌ Impossible de créer le collaborateur principal:', createError);
+              console.log('📝 Détails erreur création:', { 
+                code: createError.code, 
+                message: createError.message,
+                details: createError.details,
+                hint: createError.hint 
+              });
             } else if (newCollaborator) {
-              console.log('✅ Collaborateur principal créé:', newCollaborator);
+              console.log('✅ Collaborateur principal créé avec succès:', newCollaborator);
               finalCollaborators = [newCollaborator];
             }
           } catch (error) {
-            console.warn('⚠️ Erreur lors de la création du collaborateur:', error);
-            // Ne pas créer de collaborateur virtuel en cas d'erreur
+            console.error('⚠️ Erreur lors de la création du collaborateur:', error);
           }
         }
       }
+
+      console.log('👥 Collaborateurs finaux:', finalCollaborators.length, finalCollaborators);
 
       // Grouper les équipements par collaborateur
       const collaboratorMap = new Map<string, CollaboratorEquipment>();
@@ -172,21 +200,31 @@ export const collaboratorEquipmentService = {
         }
       });
 
-      // Ajouter une entrée pour les équipements non assignés
+      // Toujours ajouter une entrée pour les équipements non assignés
       const unassignedEquipment = equipment.filter(item => !item.collaborator_id);
-      if (unassignedEquipment.length > 0 || finalCollaborators.length === 0) {
-        collaboratorMap.set('unassigned', {
-          collaborator_id: 'unassigned',
-          collaborator_name: 'Non assigné',
-          collaborator_email: '',
-          equipment: unassignedEquipment
-        });
-      }
+      console.log('📦 Équipements non assignés:', unassignedEquipment.length);
+      
+      // TOUJOURS afficher la zone "Non assigné" pour permettre l'assignation
+      collaboratorMap.set('unassigned', {
+        collaborator_id: 'unassigned',
+        collaborator_name: 'Non assigné',
+        collaborator_email: '',
+        equipment: unassignedEquipment
+      });
 
-      return Array.from(collaboratorMap.values());
+      const result = Array.from(collaboratorMap.values());
+      console.log('📊 Résultat final - groupes de collaborateurs:', result.length, result.map(g => ({ name: g.collaborator_name, equipmentCount: g.equipment.length })));
+      
+      return result;
     } catch (error) {
       console.error('Erreur lors de la récupération des équipements par collaborateur:', error);
-      throw error;
+      // En cas d'erreur, au moins retourner la zone "Non assigné"
+      return [{
+        collaborator_id: 'unassigned',
+        collaborator_name: 'Non assigné',
+        collaborator_email: '',
+        equipment: []
+      }];
     }
   },
 
