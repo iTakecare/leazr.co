@@ -116,11 +116,44 @@ export const collaboratorEquipmentService = {
 
       if (collabError) throw collabError;
 
+      // Si aucun collaborateur n'existe, créer un collaborateur principal avec les infos du client
+      let finalCollaborators = collaborators || [];
+      if (!finalCollaborators.length) {
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('name, email, contact_name')
+          .eq('id', clientId)
+          .single();
+
+        if (clientError) throw clientError;
+
+        if (clientData) {
+          // Créer automatiquement un collaborateur principal
+          const { data: newCollaborator, error: createError } = await supabase
+            .from('collaborators')
+            .insert({
+              client_id: clientId,
+              name: clientData.contact_name || clientData.name || 'Responsable principal',
+              email: clientData.email || '',
+              role: 'Responsable',
+              is_primary: true
+            })
+            .select('id, name, email')
+            .single();
+
+          if (createError) {
+            console.warn('Impossible de créer le collaborateur principal:', createError);
+          } else if (newCollaborator) {
+            finalCollaborators = [newCollaborator];
+          }
+        }
+      }
+
       // Grouper les équipements par collaborateur
       const collaboratorMap = new Map<string, CollaboratorEquipment>();
       
       // Initialiser avec tous les collaborateurs
-      collaborators?.forEach(collab => {
+      finalCollaborators.forEach(collab => {
         collaboratorMap.set(collab.id, {
           collaborator_id: collab.id,
           collaborator_name: collab.name,
@@ -138,7 +171,7 @@ export const collaboratorEquipmentService = {
 
       // Ajouter une entrée pour les équipements non assignés
       const unassignedEquipment = equipment.filter(item => !item.collaborator_id);
-      if (unassignedEquipment.length > 0) {
+      if (unassignedEquipment.length > 0 || finalCollaborators.length === 0) {
         collaboratorMap.set('unassigned', {
           collaborator_id: 'unassigned',
           collaborator_name: 'Non assigné',
