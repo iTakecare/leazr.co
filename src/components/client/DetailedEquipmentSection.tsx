@@ -81,6 +81,15 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
                     <Badge variant="outline" className="text-xs">
                       Quantité: {item.quantity}
                     </Badge>
+                    {item.monthly_payment && (
+                      <Badge variant="default" className="text-xs bg-primary">
+                        Mensualité: {new Intl.NumberFormat('fr-FR', {
+                          style: 'currency',
+                          currency: 'EUR',
+                          minimumFractionDigits: 0
+                        }).format(item.monthly_payment)}
+                      </Badge>
+                    )}
                     {item.serial_number && (
                       <Badge variant="secondary" className="text-xs">
                         S/N: {item.serial_number}
@@ -90,16 +99,15 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
                 </div>
               </div>
 
-
-              {/* Specifications */}
-              {item.specifications && item.specifications.length > 0 && (
+              {/* Attributs */}
+              {item.attributes && item.attributes.length > 0 && (
                 <div className="border-t pt-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Spécifications:</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Attributs:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
-                    {item.specifications.map((spec, specIndex) => (
-                      <div key={specIndex} className="flex justify-between">
-                        <span className="text-muted-foreground">{spec.key}:</span>
-                        <span className="font-medium">{spec.value}</span>
+                    {item.attributes.map((attr, attrIndex) => (
+                      <div key={attrIndex} className="flex justify-between">
+                        <span className="text-muted-foreground">{attr.key}:</span>
+                        <span className="font-medium">{attr.value}</span>
                       </div>
                     ))}
                   </div>
