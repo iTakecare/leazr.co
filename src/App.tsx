@@ -138,12 +138,6 @@ function App() {
                     </PrivateRoute>
                   } />
                   
-                  {/* Client Request Detail Route */}
-                  <Route path="/client/requests/:id" element={
-                    <PrivateRoute>
-                      <ClientRequestDetailPage />
-                    </PrivateRoute>
-                  } />
                   
                   {/* Client Public Access Routes */}
                   <Route path="/client/offer/:id" element={<PublicOfferView />} />

@@ -5,6 +5,7 @@ import ClientSidebar from "./ClientSidebar";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientContractsPage from "@/pages/ClientContractsPage";
 import ClientRequestsPage from "@/pages/ClientRequestsPage";
+import ClientRequestDetailPage from "@/pages/ClientRequestDetailPage";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
@@ -19,6 +20,7 @@ const ClientRoutes = () => {
           <Route path="dashboard" element={<ClientDashboard />} />
           <Route path="contracts" element={<ClientContractsPage />} />
           <Route path="requests" element={<ClientRequestsPage />} />
+          <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
           <Route path="catalog" element={<PublicCatalogMultiTenant />} />
           <Route path="support" element={<ClientSupportPage />} />

@@ -1,15 +1,31 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, CheckCircle, AlertCircle, XCircle, FileText } from "lucide-react";
+import { 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  XCircle, 
+  FileText, 
+  Calendar,
+  User,
+  Mail,
+  Building,
+  Download,
+  MessageSquare,
+  Bell
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
+import { RequestHeroSection } from "@/components/client/RequestHeroSection";
+import { RequestStatusTimeline } from "@/components/client/RequestStatusTimeline";
+import { EquipmentShowcase } from "@/components/client/EquipmentShowcase";
 
 const ClientRequestDetailPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { offers, loading, error } = useClientOffers(user?.email);
 
@@ -41,28 +57,28 @@ const ClientRequestDetailPage = () => {
     switch (status) {
       case 'pending':
         return {
-          badge: <Badge variant="outline" className="border-orange-300 text-orange-600">En attente</Badge>,
-          icon: <Clock className="h-5 w-5 text-orange-500" />
+          badge: <Badge variant="outline" className="border-orange-300 text-orange-600 bg-orange-50/80">En attente de validation</Badge>,
+          icon: <Clock className="h-6 w-6 text-orange-500" />
         };
       case 'approved':
         return {
-          badge: <Badge variant="default" className="bg-green-500">Approuvée</Badge>,
-          icon: <CheckCircle className="h-5 w-5 text-green-500" />
+          badge: <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Demande approuvée</Badge>,
+          icon: <CheckCircle className="h-6 w-6 text-emerald-500" />
         };
       case 'rejected':
         return {
-          badge: <Badge variant="destructive">Rejetée</Badge>,
-          icon: <XCircle className="h-5 w-5 text-red-500" />
+          badge: <Badge variant="destructive" className="bg-red-500 hover:bg-red-600">Demande refusée</Badge>,
+          icon: <XCircle className="h-6 w-6 text-red-500" />
         };
       case 'sent':
         return {
-          badge: <Badge variant="outline" className="border-blue-300 text-blue-600">Envoyée</Badge>,
-          icon: <AlertCircle className="h-5 w-5 text-blue-500" />
+          badge: <Badge variant="outline" className="border-blue-300 text-blue-600 bg-blue-50/80">Offre transmise</Badge>,
+          icon: <AlertCircle className="h-6 w-6 text-blue-500" />
         };
       default:
         return {
           badge: <Badge variant="secondary">{status}</Badge>,
-          icon: <Clock className="h-5 w-5 text-gray-500" />
+          icon: <Clock className="h-6 w-6 text-muted-foreground" />
         };
     }
   };
@@ -70,9 +86,18 @@ const ClientRequestDetailPage = () => {
   if (loading) {
     return (
       <div className="p-6 space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+        <div className="animate-pulse space-y-6">
+          <div className="h-32 bg-muted/50 rounded-2xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-64 bg-muted/50 rounded-xl"></div>
+              <div className="h-48 bg-muted/50 rounded-xl"></div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-32 bg-muted/50 rounded-xl"></div>
+              <div className="h-48 bg-muted/50 rounded-xl"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -80,16 +105,25 @@ const ClientRequestDetailPage = () => {
 
   if (error || !offer) {
     return (
-      <div className="p-6">
-        <Card className="border-red-200 bg-red-50">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6"
+      >
+        <Card className="border-destructive/20 bg-destructive/5">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-800">
+            <div className="flex items-center gap-3 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              <p>{error || "Demande introuvable"}</p>
+              <div>
+                <p className="font-medium">Erreur de chargement</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {error || "La demande demandée est introuvable"}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     );
   }
 
@@ -97,141 +131,203 @@ const ClientRequestDetailPage = () => {
   const equipmentList = formatEquipmentDescription(offer.equipment_description);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => navigate('/client/requests')}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Détail de la demande</h1>
-          <p className="text-muted-foreground">
-            Informations détaillées de votre demande de financement
-          </p>
-        </div>
-      </div>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-background"
+    >
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <RequestHeroSection 
+          offer={offer}
+          statusInfo={statusInfo}
+          formatAmount={formatAmount}
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Informations principales */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {statusInfo.icon}
-                  <div>
-                    <CardTitle>Demande de financement</CardTitle>
-                    <CardDescription>
-                      Soumise le {new Date(offer.created_at).toLocaleDateString('fr-FR')}
-                    </CardDescription>
-                  </div>
-                </div>
-                {statusInfo.badge}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Mensualité</p>
-                  <p className="text-2xl font-bold">{formatAmount(offer.monthly_payment)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Type de demande</p>
-                  <p className="text-lg">
-                    {offer.type === 'client_request' ? 'Demande client' : 'Offre admin'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Status Timeline */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Suivi de votre demande
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RequestStatusTimeline 
+                    currentStatus={offer.status}
+                    workflowStatus={offer.workflow_status}
+                    createdAt={offer.created_at}
+                    signedAt={offer.signed_at}
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          {/* Équipements */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Équipements demandés
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Array.isArray(equipmentList) ? (
-                  equipmentList.map((equipment, index) => (
-                    <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                      <p className="font-medium">{equipment}</p>
+            {/* Equipment Showcase */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <EquipmentShowcase equipmentList={equipmentList} />
+            </motion.div>
+
+            {/* Actions rapides */}
+            {offer.status === 'sent' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                      <Bell className="h-5 w-5" />
+                      Action requise
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Votre demande a été approuvée ! Vous pouvez maintenant consulter votre offre personnalisée.
+                    </p>
+                    <div className="flex gap-3">
+                      <Button className="flex-1">
+                        Consulter l'offre
+                      </Button>
+                      <Button variant="outline">
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger
+                      </Button>
                     </div>
-                  ))
-                ) : (
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="font-medium">{equipmentList}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right Column - Information Panel */}
+          <div className="space-y-6">
+            {/* Contact Information */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" />
+                    Informations contact
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{offer.client_name}</p>
+                      <p className="text-xs text-muted-foreground">Demandeur</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  
+                  {offer.client_email && (
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{offer.client_email}</p>
+                        <p className="text-xs text-muted-foreground">Email de contact</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {new Date(offer.created_at).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Date de soumission</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Sidebar avec informations supplémentaires */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations de la demande</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">ID de la demande</p>
-                <p className="text-sm font-mono">{offer.id}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Client</p>
-                <p className="text-sm">{offer.client_name}</p>
-              </div>
-              {offer.client_email && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Email</p>
-                  <p className="text-sm">{offer.client_email}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Date de création</p>
-                <p className="text-sm">{new Date(offer.created_at).toLocaleDateString('fr-FR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
-              </div>
-              {offer.coefficient && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Coefficient</p>
-                  <p className="text-sm">{offer.coefficient}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* Technical Details */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Détails techniques
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">Référence</span>
+                    <span className="text-sm font-mono">{offer.id.slice(0, 8)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">Type</span>
+                    <span className="text-sm">
+                      {offer.type === 'client_request' ? 'Demande client' : 'Offre partenaire'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-muted-foreground">Statut workflow</span>
+                    <Badge variant="outline" className="text-xs">
+                      {offer.workflow_status || 'Initial'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          {/* Actions */}
-          {offer.status === 'sent' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions disponibles</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full">
-                  Consulter l'offre
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            {/* Support */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="border-muted-foreground/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    Besoin d'aide ?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Notre équipe est là pour vous accompagner dans votre demande de financement.
+                  </p>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Contacter le support
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
