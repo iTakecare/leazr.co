@@ -43,8 +43,8 @@ import PublicRequestPage from "@/pages/PublicRequestPage";
 import RequestSentPage from "@/pages/RequestSentPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 
-// Client pages
-import ClientDashboard from "@/pages/ClientDashboard";
+// Client pages and routes
+import ClientRoutes from "@/components/layout/ClientRoutes";
 import PublicOfferView from "@/pages/client/PublicOfferView";
 import SignOffer from "@/pages/client/SignOffer";
 
@@ -130,10 +130,10 @@ function App() {
                   <Route path="/request-sent" element={<RequestSentPage />} />
                   <Route path="/company/:companyId" element={<PublicCompanyLanding />} />
                   
-                  {/* Client Dashboard Route */}
-                  <Route path="/client/dashboard" element={
+                  {/* Client Routes */}
+                  <Route path="/client/*" element={
                     <PrivateRoute>
-                      <ClientDashboard />
+                      <ClientRoutes />
                     </PrivateRoute>
                   } />
                   
