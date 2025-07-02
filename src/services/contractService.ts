@@ -495,6 +495,29 @@ export const updateContractStatus = async (
 };
 
 
+export const deleteContract = async (contractId: string): Promise<boolean> => {
+  try {
+    console.log("🗑️ Suppression du contrat:", contractId);
+
+    // Supprimer le contrat - les logs seront supprimés automatiquement grâce à CASCADE
+    const { error } = await supabase
+      .from('contracts')
+      .delete()
+      .eq('id', contractId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la suppression du contrat:", error);
+      return false;
+    }
+
+    console.log("✅ Contrat supprimé avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la suppression du contrat:", error);
+    return false;
+  }
+};
+
 export const addTrackingNumber = async (
   contractId: string,
   trackingNumber: string,
@@ -598,62 +621,3 @@ export const getContractWorkflowLogs = async (contractId: string): Promise<any[]
   }
 };
 
-export const deleteContract = async (contractId: string): Promise<boolean> => {
-  try {
-    console.log("Début de la suppression du contrat:", contractId);
-    
-    // First, get the contract to find the associated offer
-    const { data: contract, error: fetchError } = await supabase
-      .from('contracts')
-      .select('id, offer_id')
-      .eq('id', contractId)
-      .single();
-    
-    if (fetchError) {
-      console.error("Erreur lors de la récupération des informations du contrat:", fetchError);
-      return false;
-    }
-    
-    // Delete workflow logs first (they have foreign key constraints)
-    const { error: logsError } = await supabase
-      .from('contract_workflow_logs')
-      .delete()
-      .eq('contract_id', contractId);
-    
-    if (logsError) {
-      console.error("Erreur lors de la suppression des logs du contrat:", logsError);
-      // Continue with deletion even if log deletion fails
-    }
-    
-    // Delete the actual contract
-    const { error: deleteError } = await supabase
-      .from('contracts')
-      .delete()
-      .eq('id', contractId);
-    
-    if (deleteError) {
-      console.error("Erreur critique lors de la suppression du contrat:", deleteError);
-      return false;
-    }
-    
-    // Update the associated offer if it exists
-    if (contract?.offer_id) {
-      console.log("Mise à jour de l'offre associée:", contract.offer_id);
-      const { error: offerError } = await supabase
-        .from('offers')
-        .update({ converted_to_contract: false })
-        .eq('id', contract.offer_id);
-      
-      if (offerError) {
-        console.error("Erreur lors de la mise à jour de l'offre associée:", offerError);
-        // We still consider the deletion successful even if the offer update fails
-      }
-    }
-    
-    console.log("Contrat supprimé avec succès");
-    return true;
-  } catch (error) {
-    console.error("Exception non gérée lors de la suppression du contrat:", error);
-    return false;
-  }
-};
