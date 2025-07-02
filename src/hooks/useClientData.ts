@@ -34,7 +34,7 @@ export const useClientData = () => {
           .from('clients')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (clientError) {
           console.error('Erreur lors de la récupération du client:', clientError);
@@ -50,7 +50,25 @@ export const useClientData = () => {
           // Récupérer l'activité récente du client
           await fetchRecentActivity(client.id);
         } else {
-          setError('Aucun client associé à ce compte');
+          console.log('Aucun client trouvé pour user_id:', user.id);
+          
+          // Essayer aussi de chercher par email si aucun client n'est trouvé par user_id
+          const { data: clientByEmail, error: emailError } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('email', user.email)
+            .maybeSingle();
+
+          if (emailError) {
+            console.error('Erreur lors de la recherche par email:', emailError);
+            setError('Impossible de récupérer les informations du client');
+          } else if (clientByEmail) {
+            setClientData(clientByEmail);
+            console.log('Client trouvé par email:', clientByEmail);
+            await fetchRecentActivity(clientByEmail.id);
+          } else {
+            setError('Aucun client associé à ce compte. Veuillez contacter l\'administrateur pour créer votre fiche client.');
+          }
         }
       } catch (err) {
         console.error('Erreur lors du chargement des données client:', err);
