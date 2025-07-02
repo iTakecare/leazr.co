@@ -5,13 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { Settings, User, Shield, Bell } from "lucide-react";
+import { Settings, User, Shield, Bell, Users, Package } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateClientFromProfile } from "@/services/clientService";
+import { useClientData } from "@/hooks/useClientData";
+import UnifiedClientView from "@/components/clients/UnifiedClientView";
+import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
 
 const ClientSettingsPage = () => {
   const { user } = useAuth();
+  const { clientData, loading: clientLoading, error: clientError } = useClientData();
   
   // États pour les informations personnelles
   const [firstName, setFirstName] = useState(user?.user_metadata?.first_name || user?.first_name || "");
@@ -256,22 +261,199 @@ const ClientSettingsPage = () => {
         </p>
       </div>
 
-      <div className="space-y-6">
-        {settingSections.map((section) => (
-          <Card key={section.title}>
+      <Tabs defaultValue="personal" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="personal" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Personnel
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Mon Profil
+          </TabsTrigger>
+          <TabsTrigger value="equipment" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Équipements
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Sécurité
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personal">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <section.icon className="h-5 w-5" />
-                {section.title}
+                <User className="h-5 w-5" />
+                Informations Personnelles
               </CardTitle>
-              <CardDescription>{section.description}</CardDescription>
+              <CardDescription>Gérez vos informations de profil</CardDescription>
             </CardHeader>
             <CardContent>
-              {section.content}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">Prénom</Label>
+                    <Input 
+                      id="firstName" 
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Nom</Label>
+                    <Input 
+                      id="lastName" 
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" defaultValue={user?.email || ""} type="email" disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié</p>
+                </div>
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="+33 1 23 45 67 89"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  onClick={handleSavePersonalInfo}
+                  disabled={personalInfoLoading}
+                >
+                  {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Mon Profil Client
+              </CardTitle>
+              <CardDescription>
+                Informations détaillées de votre profil client (lecture seule)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {clientLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Chargement...</p>
+                </div>
+              ) : clientError ? (
+                <div className="text-center py-8">
+                  <p className="text-destructive">{clientError}</p>
+                </div>
+              ) : clientData ? (
+                <UnifiedClientView 
+                  client={clientData} 
+                  readOnly={true}
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Aucune information client trouvée</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="equipment">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Gestion des Équipements
+              </CardTitle>
+              <CardDescription>
+                Gérez l'assignation de vos équipements aux collaborateurs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {clientLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Chargement...</p>
+                </div>
+              ) : clientError ? (
+                <div className="text-center py-8">
+                  <p className="text-destructive">{clientError}</p>
+                </div>
+              ) : clientData ? (
+                <EquipmentAssignmentManager 
+                  clientId={clientData.id}
+                  readOnly={false}
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Aucune information client trouvée</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Sécurité
+              </CardTitle>
+              <CardDescription>Modifiez votre mot de passe et gérez la sécurité</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                  <Input 
+                    id="currentPassword" 
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                  <Input 
+                    id="newPassword" 
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  onClick={handleChangePassword}
+                  disabled={passwordLoading}
+                >
+                  {passwordLoading ? "Modification..." : "Changer le mot de passe"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

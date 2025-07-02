@@ -748,6 +748,7 @@ export type Database = {
       }
       contract_equipment: {
         Row: {
+          collaborator_id: string | null
           contract_id: string
           created_at: string
           id: string
@@ -760,6 +761,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          collaborator_id?: string | null
           contract_id: string
           created_at?: string
           id?: string
@@ -772,6 +774,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          collaborator_id?: string | null
           contract_id?: string
           created_at?: string
           id?: string
@@ -784,6 +787,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_equipment_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contract_equipment_contract_id_fkey"
             columns: ["contract_id"]
@@ -1015,6 +1025,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      equipment_assignments_history: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          collaborator_id: string | null
+          created_at: string
+          equipment_id: string
+          equipment_type: string
+          id: string
+          notes: string | null
+          unassigned_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          collaborator_id?: string | null
+          created_at?: string
+          equipment_id: string
+          equipment_type: string
+          id?: string
+          notes?: string | null
+          unassigned_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          collaborator_id?: string | null
+          created_at?: string
+          equipment_id?: string
+          equipment_type?: string
+          id?: string
+          notes?: string | null
+          unassigned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_assignments_history_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       error_logs: {
         Row: {
@@ -1291,6 +1345,7 @@ export type Database = {
       }
       offer_equipment: {
         Row: {
+          collaborator_id: string | null
           created_at: string
           id: string
           margin: number
@@ -1303,6 +1358,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          collaborator_id?: string | null
           created_at?: string
           id?: string
           margin?: number
@@ -1315,6 +1371,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          collaborator_id?: string | null
           created_at?: string
           id?: string
           margin?: number
@@ -1327,6 +1384,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "offer_equipment_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "offer_equipment_offer_id_fkey"
             columns: ["offer_id"]

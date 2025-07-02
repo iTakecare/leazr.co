@@ -10,7 +10,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import UnifiedClientView from "@/components/clients/UnifiedClientView";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -46,6 +45,13 @@ const ClientDashboard = () => {
       icon: Eye,
       href: "/client/catalog",
       color: "bg-purple-500"
+    },
+    {
+      title: "Paramètres",
+      description: "Gérez votre profil, collaborateurs et équipements",
+      icon: Settings,
+      href: "/client/settings",
+      color: "bg-gray-500"
     }
   ];
 
@@ -238,16 +244,6 @@ const ClientDashboard = () => {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Fiche client complète en lecture seule */}
-      {clientData && (
-        <motion.div variants={itemVariants}>
-          <UnifiedClientView 
-            client={clientData} 
-            readOnly={true}
-          />
-        </motion.div>
-      )}
     </motion.div>
   );
 };
