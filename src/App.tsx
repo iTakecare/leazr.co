@@ -45,6 +45,7 @@ import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 
 // Client pages and routes
 import ClientRoutes from "@/components/layout/ClientRoutes";
+import ClientRequestDetailPage from "@/pages/ClientRequestDetailPage";
 import PublicOfferView from "@/pages/client/PublicOfferView";
 import SignOffer from "@/pages/client/SignOffer";
 
@@ -134,6 +135,13 @@ function App() {
                   <Route path="/client/*" element={
                     <PrivateRoute>
                       <ClientRoutes />
+                    </PrivateRoute>
+                  } />
+                  
+                  {/* Client Request Detail Route */}
+                  <Route path="/client/requests/:id" element={
+                    <PrivateRoute>
+                      <ClientRequestDetailPage />
                     </PrivateRoute>
                   } />
                   

@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
+import { useNavigate } from "react-router-dom";
 
 const ClientRequestsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { offers, loading, error } = useClientOffers(user?.email);
 
   const formatAmount = (amount: number) => {
@@ -111,7 +113,11 @@ const ClientRequestsPage = () => {
         {offers.map((offer) => {
           const statusInfo = getStatusInfo(offer.status);
           return (
-            <Card key={offer.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={offer.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(`/client/requests/${offer.id}`)}
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -129,11 +135,7 @@ const ClientRequestsPage = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Montant financé</p>
-                    <p className="text-lg font-semibold">{formatAmount(offer.financed_amount || offer.amount)}</p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Mensualité</p>
                     <p className="text-lg font-semibold">{formatAmount(offer.monthly_payment)}</p>
