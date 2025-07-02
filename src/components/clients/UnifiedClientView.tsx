@@ -12,12 +12,14 @@ import { Client } from "@/types/client";
 import { updateClient } from "@/services/clientService";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
-  AlertCircle, Info, Loader2, Save, Edit3, Calendar
+  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "./CollaboratorForm";
 import CollaboratorsList from "./CollaboratorsList";
+import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -277,149 +279,177 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Informations principales */}
-        <Card className="lg:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Informations générales
-            </CardTitle>
-            <CardDescription>Coordonnées et détails du client</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderField("Nom", "name", client.name)}
-              {renderField("Email", "email", client.email, "email")}
-              {renderField("Société", "company", client.company)}
-              {renderField("Téléphone", "phone", client.phone, "tel")}
-              {renderField("Nom du contact", "contact_name", client.contact_name)}
-              {renderField("Numéro de TVA", "vat_number", client.vat_number)}
-              {renderField("Statut", "status", client.status, "select", [
-                { value: "active", label: "Actif" },
-                { value: "inactive", label: "Inactif" },
-                { value: "lead", label: "Prospect" }
-              ])}
-            </div>
-            
-            {/* Adresse de facturation */}
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                Adresse de facturation
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderField("Adresse", "address", client.address)}
-                {renderField("Ville", "city", client.city)}
-                {renderField("Code postal", "postal_code", client.postal_code)}
-                {renderField("Pays", "country", client.country)}
-              </div>
-            </div>
+      {/* Onglets avec contenu principal */}
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Informations générales
+          </TabsTrigger>
+          <TabsTrigger value="collaborators" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Collaborateurs
+          </TabsTrigger>
+          <TabsTrigger value="equipment" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Équipements
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Adresse de livraison */}
-            <div className="border-t pt-4">
-              <div className="mb-3">
-                {renderField("Adresse de livraison différente", "has_different_shipping_address", client.has_different_shipping_address, "switch")}
-              </div>
-              
-              {(isEditing ? formData.has_different_shipping_address : client.has_different_shipping_address) && (
-                <>
+        <TabsContent value="general" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Informations principales */}
+            <Card className="lg:col-span-2 shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  Informations générales
+                </CardTitle>
+                <CardDescription>Coordonnées et détails du client</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {renderField("Nom", "name", client.name)}
+                  {renderField("Email", "email", client.email, "email")}
+                  {renderField("Société", "company", client.company)}
+                  {renderField("Téléphone", "phone", client.phone, "tel")}
+                  {renderField("Nom du contact", "contact_name", client.contact_name)}
+                  {renderField("Numéro de TVA", "vat_number", client.vat_number)}
+                  {renderField("Statut", "status", client.status, "select", [
+                    { value: "active", label: "Actif" },
+                    { value: "inactive", label: "Inactif" },
+                    { value: "lead", label: "Prospect" }
+                  ])}
+                </div>
+                
+                {/* Adresse de facturation */}
+                <div className="border-t pt-4">
                   <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    Adresse de livraison
+                    Adresse de facturation
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderField("Adresse de livraison", "shipping_address", client.shipping_address)}
-                    {renderField("Ville de livraison", "shipping_city", client.shipping_city)}
-                    {renderField("Code postal de livraison", "shipping_postal_code", client.shipping_postal_code)}
-                    {renderField("Pays de livraison", "shipping_country", client.shipping_country)}
+                    {renderField("Adresse", "address", client.address)}
+                    {renderField("Ville", "city", client.city)}
+                    {renderField("Code postal", "postal_code", client.postal_code)}
+                    {renderField("Pays", "country", client.country)}
                   </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            {/* Notes */}
-            <div className="border-t pt-4">
-              {renderField("Notes", "notes", client.notes, "textarea")}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informations système */}
-        <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Informations système
-            </CardTitle>
-            <CardDescription>Dates et statuts</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-              <Calendar className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium">Créé le</h3>
-                <p className="text-sm">{formatDate(client.created_at)}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
-              <Clock className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium">Dernière mise à jour</h3>
-                <p className="text-sm">{formatDate(client.updated_at)}</p>
-              </div>
-            </div>
-
-            {client.has_user_account && (
-              <div className="flex items-start space-x-3 bg-green-50 p-3 rounded-md border border-green-200">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium text-green-800">Compte utilisateur actif</h3>
-                  {client.user_account_created_at && (
-                    <p className="text-xs text-green-700">
-                      Créé le {formatDate(client.user_account_created_at)}
-                    </p>
-                  )}
-                  {client.user_id && (
-                    <p className="text-xs text-green-700">
-                      ID: {client.user_id}
-                    </p>
+                {/* Adresse de livraison */}
+                <div className="border-t pt-4">
+                  <div className="mb-3">
+                    {renderField("Adresse de livraison différente", "has_different_shipping_address", client.has_different_shipping_address, "switch")}
+                  </div>
+                  
+                  {(isEditing ? formData.has_different_shipping_address : client.has_different_shipping_address) && (
+                    <>
+                      <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        Adresse de livraison
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {renderField("Adresse de livraison", "shipping_address", client.shipping_address)}
+                        {renderField("Ville de livraison", "shipping_city", client.shipping_city)}
+                        {renderField("Code postal de livraison", "shipping_postal_code", client.shipping_postal_code)}
+                        {renderField("Pays de livraison", "shipping_country", client.shipping_country)}
+                      </div>
+                    </>
                   )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Collaborateurs */}
-        <Card className="lg:col-span-3 shadow-md border-none bg-gradient-to-br from-card to-background">
-          <CardHeader className="bg-muted/50 border-b">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Collaborateurs
-            </CardTitle>
-            <CardDescription>Personnes à contacter chez ce client</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {!readOnly && (
-              <CollaboratorForm 
+                {/* Notes */}
+                <div className="border-t pt-4">
+                  {renderField("Notes", "notes", client.notes, "textarea")}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informations système */}
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Informations système
+                </CardTitle>
+                <CardDescription>Dates et statuts</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <Calendar className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium">Créé le</h3>
+                    <p className="text-sm">{formatDate(client.created_at)}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3 bg-muted/20 p-3 rounded-md">
+                  <Clock className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium">Dernière mise à jour</h3>
+                    <p className="text-sm">{formatDate(client.updated_at)}</p>
+                  </div>
+                </div>
+
+                {client.has_user_account && (
+                  <div className="flex items-start space-x-3 bg-green-50 p-3 rounded-md border border-green-200">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium text-green-800">Compte utilisateur actif</h3>
+                      {client.user_account_created_at && (
+                        <p className="text-xs text-green-700">
+                          Créé le {formatDate(client.user_account_created_at)}
+                        </p>
+                      )}
+                      {client.user_id && (
+                        <p className="text-xs text-green-700">
+                          ID: {client.user_id}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="collaborators">
+          <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+            <CardHeader className="bg-muted/50 border-b">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Collaborateurs
+              </CardTitle>
+              <CardDescription>Personnes à contacter chez ce client</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {!readOnly && (
+                <CollaboratorForm 
+                  clientId={client.id} 
+                  onSuccess={() => {
+                    toast.success("Collaborateur ajouté avec succès");
+                  }} 
+                />
+              )}
+              <CollaboratorsList 
                 clientId={client.id} 
-                onSuccess={() => {
-                  toast.success("Collaborateur ajouté avec succès");
-                }} 
+                initialCollaborators={client.collaborators}
+                onRefreshNeeded={() => {
+                  // Rafraîchir si nécessaire
+                }}
               />
-            )}
-            <CollaboratorsList 
-              clientId={client.id} 
-              initialCollaborators={client.collaborators}
-              onRefreshNeeded={() => {
-                // Rafraîchir si nécessaire
-              }}
-            />
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="equipment">
+          <EquipmentDragDropManager 
+            clientId={client.id} 
+            readOnly={readOnly}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
