@@ -78,6 +78,7 @@ import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
 import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
 import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
+import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
 
 import "./App.css";
 
@@ -165,7 +166,7 @@ function App() {
                   <Route path="/ambassador/offers/:id" element={
                     <PrivateRoute>
                       <AmbassadorLayout>
-                        <AdminOfferDetail />
+                        <AmbassadorOfferDetail />
                       </AmbassadorLayout>
                     </PrivateRoute>
                   } />
