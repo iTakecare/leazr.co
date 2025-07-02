@@ -281,7 +281,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -289,10 +289,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="collaborators" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Collaborateurs
-          </TabsTrigger>
-          <TabsTrigger value="equipment" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Équipements
           </TabsTrigger>
         </TabsList>
 
@@ -443,12 +439,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           </Card>
         </TabsContent>
 
-        <TabsContent value="equipment">
-          <EquipmentDragDropManager 
-            clientId={client.id} 
-            readOnly={readOnly}
-          />
-        </TabsContent>
       </Tabs>
     </div>
   );
