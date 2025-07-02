@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Package, TrendingUp, Calculator } from "lucide-react";
+import { Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OfferEquipment } from "@/types/offerEquipment";
@@ -14,19 +14,6 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
   equipment,
   loading
 }) => {
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const calculateTotals = () => {
-    const totalValue = equipment.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
-    const totalMonthly = equipment.reduce((sum, item) => sum + (item.monthly_payment || 0) * item.quantity, 0);
-    return { totalValue, totalMonthly };
-  };
 
   if (loading) {
     return (
@@ -66,7 +53,7 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
     );
   }
 
-  const { totalValue, totalMonthly } = calculateTotals();
+  
 
   return (
     <Card className="overflow-hidden">
@@ -103,25 +90,6 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
                 </div>
               </div>
 
-              {/* Pricing Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Prix unitaire</p>
-                  <p className="font-semibold text-sm">{formatAmount(item.purchase_price)}</p>
-                </div>
-                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Total</p>
-                  <p className="font-semibold text-sm">{formatAmount(item.purchase_price * item.quantity)}</p>
-                </div>
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Mensualité unitaire</p>
-                  <p className="font-semibold text-sm text-primary">{formatAmount(item.monthly_payment || 0)}</p>
-                </div>
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Mensualité totale</p>
-                  <p className="font-semibold text-sm text-primary">{formatAmount((item.monthly_payment || 0) * item.quantity)}</p>
-                </div>
-              </div>
 
               {/* Specifications */}
               {item.specifications && item.specifications.length > 0 && (
@@ -140,36 +108,6 @@ export const DetailedEquipmentSection: React.FC<DetailedEquipmentSectionProps> =
             </motion.div>
           ))}
         </div>
-
-        {/* Summary */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="border-t pt-6"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-secondary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Valeur totale des équipements</p>
-                <p className="text-xl font-bold">{formatAmount(totalValue)}</p>
-              </div>
-            </div>
-            
-            <div className="bg-primary/10 rounded-lg p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                <Calculator className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Mensualité totale</p>
-                <p className="text-xl font-bold text-primary">{formatAmount(totalMonthly)}</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </CardContent>
     </Card>
   );

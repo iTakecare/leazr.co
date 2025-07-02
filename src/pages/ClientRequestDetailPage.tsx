@@ -22,7 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { RequestHeroSection } from "@/components/client/RequestHeroSection";
 import { RequestStatusTimeline } from "@/components/client/RequestStatusTimeline";
-import { EquipmentShowcase } from "@/components/client/EquipmentShowcase";
+
 import { DetailedEquipmentSection } from "@/components/client/DetailedEquipmentSection";
 import { DocumentUploadSection } from "@/components/client/DocumentUploadSection";
 import { ContractSignatureSection } from "@/components/client/ContractSignatureSection";
@@ -182,24 +182,13 @@ const ClientRequestDetailPage = () => {
               </Card>
             </motion.div>
 
-            {/* Equipment Showcase - Legacy */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <EquipmentShowcase 
-                equipmentList={equipmentList} 
-                showLegacyNotice={equipment.length > 0}
-              />
-            </motion.div>
 
             {/* Detailed Equipment Section */}
             {equipment.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.3 }}
               >
                 <DetailedEquipmentSection 
                   equipment={equipment}
@@ -212,7 +201,7 @@ const ClientRequestDetailPage = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
             >
               <DocumentUploadSection 
                 documents={documents}
@@ -226,7 +215,7 @@ const ClientRequestDetailPage = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+                transition={{ delay: 0.5 }}
               >
                 <ContractSignatureSection 
                   offer={offer}
