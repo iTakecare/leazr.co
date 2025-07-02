@@ -10,43 +10,38 @@ import { useContractDetail } from "@/hooks/useContractDetail";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
-
 const ContractDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const { 
-    contract, 
-    equipment, 
-    documents, 
-    logs, 
-    loading, 
-    error, 
-    refetch 
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
+  const {
+    contract,
+    equipment,
+    documents,
+    logs,
+    loading,
+    error,
+    refetch
   } = useContractDetail(id || "");
-  
   if (loading) {
-    return (
-      <PageTransition>
+    return <PageTransition>
         <div className="flex justify-center items-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
-      </PageTransition>
-    );
+      </PageTransition>;
   }
-  
   if (error || !contract) {
-    return (
-      <PageTransition>
+    return <PageTransition>
         <div className="container mx-auto p-6">
           <div className="flex flex-col items-center justify-center h-96 gap-4">
             <div className="text-destructive font-medium">{error || "Le contrat n'a pas été trouvé."}</div>
           </div>
         </div>
-      </PageTransition>
-    );
+      </PageTransition>;
   }
-  
-  return (
-    <PageTransition>
+  return <PageTransition>
       <div className="min-h-screen bg-background">
         {/* Header modernisé */}
         <ContractDetailHeader contract={contract} />
@@ -56,23 +51,13 @@ const ContractDetail = () => {
             {/* Colonne principale */}
             <div className="lg:col-span-2 space-y-6">
               {/* Workflow Panel */}
-              <ContractWorkflowPanel 
-                contract={contract} 
-                onRefresh={refetch} 
-              />
+              <ContractWorkflowPanel contract={contract} onRefresh={refetch} />
 
               {/* Section Équipements */}
-              <ContractEquipmentSection 
-                equipment={equipment} 
-                onRefresh={refetch}
-              />
+              <ContractEquipmentSection equipment={equipment} onRefresh={refetch} />
 
               {/* Section Documents */}
-              <ContractDocumentsSection 
-                contractId={contract.id}
-                documents={documents}
-                onRefresh={refetch}
-              />
+              <ContractDocumentsSection contractId={contract.id} documents={documents} onRefresh={refetch} />
             </div>
 
             {/* Sidebar */}
@@ -81,24 +66,11 @@ const ContractDetail = () => {
               <ContractHistoryPanel logs={logs} />
 
               {/* Détails additionnels */}
-              {contract.equipment_description && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Description de l'équipement</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {contract.equipment_description}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+              {contract.equipment_description}
             </div>
           </div>
         </div>
       </div>
-    </PageTransition>
-  );
+    </PageTransition>;
 };
-
 export default ContractDetail;
