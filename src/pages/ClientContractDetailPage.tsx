@@ -3,11 +3,12 @@ import { useParams } from "react-router-dom";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useClientData } from "@/hooks/useClientData";
 import PageTransition from "@/components/layout/PageTransition";
-import ContractDetailHeader from "@/components/contracts/ContractDetailHeader";
+import ClientContractDetailHeader from "@/components/contracts/ClientContractDetailHeader";
 import ClientContractEquipmentSection from "@/components/contracts/ClientContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
 import EquipmentAssignmentManager from "@/components/equipment/EquipmentAssignmentManager";
+import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users } from "lucide-react";
 
@@ -50,7 +51,7 @@ const ClientContractDetailPage = () => {
     <PageTransition>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <ContractDetailHeader contract={contract} />
+        <ClientContractDetailHeader contract={contract} />
         
         <div className="container mx-auto p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -96,11 +97,11 @@ const ClientContractDetailPage = () => {
               {contract.equipment_description && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Description de l'équipement</CardTitle>
+                    <CardTitle>Résumé des équipements</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      {contract.equipment_description}
+                      {formatEquipmentForClient(contract.equipment_description)}
                     </p>
                   </CardContent>
                 </Card>
