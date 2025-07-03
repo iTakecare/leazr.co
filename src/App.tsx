@@ -63,6 +63,7 @@ import Contracts from "@/pages/Contracts";
 import ContractDetail from "@/pages/ContractDetail";
 import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
+import InvoicingPage from "@/pages/InvoicingPage";
 import CatalogManagement from "@/pages/CatalogManagement";
 import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
