@@ -238,6 +238,7 @@ serve(async (req) => {
     let billitResponse;
     let billitInvoice;
     let billitSuccess = false;
+    let invoiceSent = false;
 
     try {
       billitResponse = await fetch(billitUrl, {
@@ -261,6 +262,37 @@ serve(async (req) => {
         billitInvoice = await billitResponse.json();
         billitSuccess = true;
         console.log("✅ Facture créée dans Billit:", billitInvoice);
+
+        // Tentative d'envoi automatique de la facture
+        try {
+          console.log("📤 Tentative d'envoi automatique de la facture...");
+          const sendUrl = `${credentials.baseUrl}/v1/orders/commands/send`;
+          const sendData = {
+            Transporttype: "Peppol",
+            OrderIDs: [billitInvoice.id]
+          };
+
+          const sendResponse = await fetch(sendUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${credentials.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData)
+          });
+
+          if (sendResponse.ok) {
+            invoiceSent = true;
+            console.log("✅ Facture envoyée avec succès via Billit");
+          } else {
+            const sendErrorText = await sendResponse.text();
+            console.log(`⚠️ Impossible d'envoyer la facture automatiquement (${sendResponse.status}):`, sendErrorText);
+            console.log("📋 La facture a été créée mais devra être envoyée manuellement");
+          }
+        } catch (sendError) {
+          console.log("⚠️ Erreur lors de l'envoi automatique:", sendError);
+          console.log("📋 La facture a été créée mais devra être envoyée manuellement");
+        }
       }
     } catch (fetchError) {
       console.error("❌ Erreur de connexion à Billit:", fetchError);
@@ -278,9 +310,9 @@ serve(async (req) => {
         external_invoice_id: billitInvoice.id,
         invoice_number: billitInvoice.number || billitInvoice.id,
         amount: totalAmount,
-        status: billitSuccess ? 'sent' : 'draft',
+        status: invoiceSent ? 'sent' : (billitSuccess ? 'created' : 'draft'),
         generated_at: new Date().toISOString(),
-        sent_at: billitSuccess ? new Date().toISOString() : null,
+        sent_at: invoiceSent ? new Date().toISOString() : null,
         due_date: billitInvoiceData.ExpiryDate,
         billing_data: {
           ...billitInvoiceData,
@@ -323,7 +355,7 @@ serve(async (req) => {
         external_id: billitInvoice.id,
         number: billitInvoice.number || billitInvoice.id,
         amount: totalAmount,
-        status: billitSuccess ? 'sent' : 'draft',
+        status: invoiceSent ? 'sent' : (billitSuccess ? 'created' : 'draft'),
         billit_success: billitSuccess
       },
       message: billitSuccess ? 
