@@ -64,6 +64,8 @@ import ContractDetail from "@/pages/ContractDetail";
 import Settings from "@/pages/Settings";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import InvoicingPage from "@/pages/InvoicingPage";
+import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
+import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import CatalogManagement from "@/pages/CatalogManagement";
 import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
@@ -313,6 +315,20 @@ function App() {
                     <PrivateRoute>
                       <Layout>
                         <InvoicingPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/invoicing/:id" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <InvoiceDetailPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/invoicing/:id/edit" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <InvoiceEditPage />
                       </Layout>
                     </PrivateRoute>
                   } />

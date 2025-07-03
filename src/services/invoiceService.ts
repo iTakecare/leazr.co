@@ -242,3 +242,28 @@ export const disableBillitIntegration = async (companyId: string) => {
     throw error;
   }
 };
+
+// Générer et télécharger le PDF d'une facture
+export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
+  const { downloadInvoicePdf } = await import('@/utils/invoicePdfGenerator');
+  
+  try {
+    // Récupérer la facture
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
+
+    if (error || !invoice) {
+      throw new Error('Facture non trouvée');
+    }
+
+    // Générer et télécharger le PDF
+    const filename = await downloadInvoicePdf(invoice);
+    return filename;
+  } catch (error) {
+    console.error('Erreur lors de la génération du PDF de facture:', error);
+    throw error;
+  }
+};

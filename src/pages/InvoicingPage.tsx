@@ -80,7 +80,8 @@ const InvoicingPage = () => {
           </Card>
         ) : (
           invoices.map((invoice) => (
-            <Card key={invoice.id} className="hover:shadow-md transition-shadow">
+            <Card key={invoice.id} className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => window.location.href = `/admin/invoicing/${invoice.id}`}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
@@ -114,6 +115,17 @@ const InvoicingPage = () => {
                         Échéance: {formatDate(invoice.due_date)}
                       </div>
                     )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/admin/invoicing/${invoice.id}`;
+                      }}
+                    >
+                      Voir détails
+                    </Button>
                   </div>
                 </div>
               </CardContent>
