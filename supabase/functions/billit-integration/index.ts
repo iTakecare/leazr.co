@@ -95,11 +95,11 @@ serve(async (req) => {
       throw new Error("URL de base Billit manquante dans la configuration");
     }
 
-    // Vérifier si une facture existe déjà pour ce contrat et la supprimer si nécessaire
+    // Vérifier si une facture existe déjà pour ce contrat
     console.log("🔍 Vérification facture existante...");
     const { data: existingInvoices, error: invoiceCheckError } = await supabase
       .from('invoices')
-      .select('id, status, external_invoice_id')
+      .select('id, status, external_invoice_id, invoice_number, amount')
       .eq('contract_id', contractId);
 
     if (invoiceCheckError) {
@@ -107,22 +107,37 @@ serve(async (req) => {
       throw new Error(`Erreur lors de la vérification des factures: ${invoiceCheckError.message}`);
     }
 
+    let existingInvoiceId = null;
+    let shouldUpdateExisting = false;
+
     if (existingInvoices && existingInvoices.length > 0) {
-      const existingInvoice = existingInvoices[0];
-      console.log("⚠️ Facture existante trouvée, suppression en cours:", existingInvoice.id);
-      
-      // Supprimer l'ancienne facture pour permettre la régénération
-      const { error: deleteError } = await supabase
-        .from('invoices')
-        .delete()
-        .eq('id', existingInvoice.id);
-      
-      if (deleteError) {
-        console.error("❌ Erreur lors de la suppression de l'ancienne facture:", deleteError);
-        throw new Error(`Impossible de supprimer l'ancienne facture: ${deleteError.message}`);
+      // Si plusieurs factures existent, nettoyer les doublons en gardant la première
+      if (existingInvoices.length > 1) {
+        console.log(`⚠️ ${existingInvoices.length} factures trouvées, nettoyage des doublons...`);
+        
+        // Détacher les contrats des factures supplémentaires pour éviter les contraintes FK
+        for (let i = 1; i < existingInvoices.length; i++) {
+          const duplicateInvoice = existingInvoices[i];
+          console.log(`🧹 Suppression du doublon: ${duplicateInvoice.id}`);
+          
+          // Mettre à jour les contrats qui référencent cette facture
+          await supabase
+            .from('contracts')
+            .update({ invoice_id: null, invoice_generated: false })
+            .eq('invoice_id', duplicateInvoice.id);
+          
+          // Supprimer la facture dupliquée
+          await supabase
+            .from('invoices')
+            .delete()
+            .eq('id', duplicateInvoice.id);
+        }
       }
       
-      console.log("✅ Ancienne facture supprimée avec succès");
+      const existingInvoice = existingInvoices[0];
+      existingInvoiceId = existingInvoice.id;
+      shouldUpdateExisting = true;
+      console.log(`📝 Facture existante trouvée (${existingInvoice.id}), mise à jour au lieu de suppression`);
     }
 
     // Récupérer les données du contrat et équipements
@@ -428,33 +443,74 @@ serve(async (req) => {
       console.log("⚠️ Erreur lors de la récupération des détails:", detailsError);
     }
 
-    // Enregistrer la facture dans notre base avec les informations complètes
-    console.log("💾 Enregistrement facture locale...");
-    const { data: invoice, error: invoiceError } = await supabase
-      .from('invoices')
-      .insert({
-        contract_id: contractId,
-        company_id: companyId,
-        leaser_name: contract.leaser_name,
-        external_invoice_id: billitInvoice.id,
-        invoice_number: billitInvoice.number || billitInvoice.id,
-        amount: totalAmount,
-        status: realStatus,
-        generated_at: new Date().toISOString(),
-        sent_at: (realStatus === 'sent' || realStatus === 'paid') ? new Date().toISOString() : null,
-        paid_at: realStatus === 'paid' ? new Date().toISOString() : null,
-        due_date: billitInvoiceData.ExpiryDate,
-        pdf_url: billitPdfUrl,
-        billing_data: {
-          ...billitInvoiceData,
-          billit_response: billitInvoice,
-          billit_details: fullInvoiceDetails,
-          success: billitSuccess
-        },
-        integration_type: 'billit'
-      })
-      .select()
-      .single();
+    // Enregistrer ou mettre à jour la facture dans notre base
+    console.log("💾 Enregistrement/mise à jour facture locale...");
+    let invoice;
+    let invoiceError;
+
+    if (shouldUpdateExisting && existingInvoiceId) {
+      // Mise à jour de la facture existante
+      console.log(`📝 Mise à jour facture existante: ${existingInvoiceId}`);
+      const { data: updatedInvoice, error: updateError } = await supabase
+        .from('invoices')
+        .update({
+          external_invoice_id: billitInvoice.id,
+          invoice_number: billitInvoice.number || billitInvoice.id,
+          amount: totalAmount,
+          status: realStatus,
+          generated_at: new Date().toISOString(),
+          sent_at: (realStatus === 'sent' || realStatus === 'paid') ? new Date().toISOString() : null,
+          paid_at: realStatus === 'paid' ? new Date().toISOString() : null,
+          due_date: billitInvoiceData.ExpiryDate,
+          pdf_url: billitPdfUrl,
+          billing_data: {
+            ...billitInvoiceData,
+            billit_response: billitInvoice,
+            billit_details: fullInvoiceDetails,
+            success: billitSuccess,
+            updated_at: new Date().toISOString()
+          },
+          integration_type: 'billit',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingInvoiceId)
+        .select()
+        .single();
+      
+      invoice = updatedInvoice;
+      invoiceError = updateError;
+    } else {
+      // Création d'une nouvelle facture
+      console.log("🆕 Création nouvelle facture");
+      const { data: newInvoice, error: insertError } = await supabase
+        .from('invoices')
+        .insert({
+          contract_id: contractId,
+          company_id: companyId,
+          leaser_name: contract.leaser_name,
+          external_invoice_id: billitInvoice.id,
+          invoice_number: billitInvoice.number || billitInvoice.id,
+          amount: totalAmount,
+          status: realStatus,
+          generated_at: new Date().toISOString(),
+          sent_at: (realStatus === 'sent' || realStatus === 'paid') ? new Date().toISOString() : null,
+          paid_at: realStatus === 'paid' ? new Date().toISOString() : null,
+          due_date: billitInvoiceData.ExpiryDate,
+          pdf_url: billitPdfUrl,
+          billing_data: {
+            ...billitInvoiceData,
+            billit_response: billitInvoice,
+            billit_details: fullInvoiceDetails,
+            success: billitSuccess
+          },
+          integration_type: 'billit'
+        })
+        .select()
+        .single();
+      
+      invoice = newInvoice;
+      invoiceError = insertError;
+    }
 
     if (invoiceError) {
       console.error("❌ Erreur lors de l'enregistrement de la facture:", invoiceError);
