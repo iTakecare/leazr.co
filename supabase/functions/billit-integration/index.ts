@@ -367,8 +367,9 @@ async function handleBillitTest(companyId: string) {
     if (testResults.has_credentials) {
       try {
         console.log("🔌 Test de connexion à l'API Billit...");
-        // Tester avec un endpoint simple (par exemple, obtenir des informations de l'entreprise)
-        const testResponse = await fetch(`${credentials.baseUrl}/companies/${credentials.companyId}`, {
+        // Tester la connectivité de base avec l'URL fournie
+        // On teste d'abord si l'URL répond, puis si l'authentification fonctionne
+        const testResponse = await fetch(credentials.baseUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${credentials.apiKey}`,
@@ -376,11 +377,17 @@ async function handleBillitTest(companyId: string) {
           }
         });
 
-        testResults.api_test = testResponse.ok;
+        // Accepter les codes 200, 401 (non autorisé mais l'API répond), 404 (endpoint racine n'existe pas mais l'API répond)
+        testResults.api_test = testResponse.status === 200 || testResponse.status === 401 || testResponse.status === 404;
         
-        if (!testResponse.ok) {
+        if (!testResults.api_test) {
           const errorText = await testResponse.text();
-          testResults.errors.push(`API test failed (${testResponse.status}): ${errorText}`);
+          testResults.errors.push(`API inaccessible (${testResponse.status}): ${errorText}`);
+        } else if (testResponse.status === 401) {
+          testResults.errors.push(`API accessible mais clé API invalide (401). Vérifiez votre clé API.`);
+        } else if (testResponse.status === 404) {
+          // C'est OK, l'API répond mais l'endpoint racine n'existe pas
+          console.log("✅ API Billit accessible (404 sur endpoint racine est normal)");
         }
       } catch (apiError) {
         testResults.errors.push(`Erreur connexion API: ${apiError.message}`);

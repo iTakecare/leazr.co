@@ -278,7 +278,7 @@ const BillitIntegrationSettings = () => {
           <div className="flex gap-2 pt-4 border-t">
             <Button 
               onClick={handleTest} 
-              disabled={testing || !integration?.is_enabled}
+              disabled={testing || !formData.apiKey || !formData.baseUrl}
               variant="outline"
             >
               <TestTube className="h-4 w-4 mr-2" />
