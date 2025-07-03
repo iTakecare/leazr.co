@@ -669,7 +669,19 @@ async function handleBillitTest(companyId: string) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const testResults = {
+      integration_found: false,
+      integration_enabled: false,
+      has_credentials: false,
+      api_test: false,
+      auth_test: false,
+      company_access: false,
+      errors: [] as string[],
+      warnings: [] as string[]
+    };
+
     // Test 1: Vérifier l'intégration
+    console.log("🔍 Test 1: Recherche intégration...");
     const { data: integration, error: integrationError } = await supabase
       .from('company_integrations')
       .select('api_credentials, settings, is_enabled')
@@ -677,74 +689,171 @@ async function handleBillitTest(companyId: string) {
       .eq('integration_type', 'billit')
       .single();
 
-    const testResults = {
-      integration_found: !integrationError,
-      integration_enabled: integration?.is_enabled || false,
-      has_credentials: false,
-      api_test: false,
-      errors: [] as string[]
-    };
-
     if (integrationError) {
       testResults.errors.push(`Intégration non trouvée: ${integrationError.message}`);
       return new Response(JSON.stringify({
         success: false,
         test_results: testResults,
-        message: "Intégration Billit non configurée"
+        message: "❌ Intégration Billit non configurée"
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
 
-    const credentials = integration.api_credentials as BillitCredentials;
-    testResults.has_credentials = !!(credentials.apiKey && credentials.baseUrl);
+    testResults.integration_found = true;
+    console.log("✅ Intégration trouvée");
 
-    if (!testResults.has_credentials) {
-      testResults.errors.push("Credentials manquantes (apiKey ou baseUrl)");
+    // Test 2: Vérifier si l'intégration est activée
+    if (integration.is_enabled) {
+      testResults.integration_enabled = true;
+      console.log("✅ Intégration activée");
+    } else {
+      testResults.errors.push("Intégration désactivée");
+      console.log("❌ Intégration désactivée");
     }
 
-    // Test 2: Test API Billit si credentials disponibles
-    if (testResults.has_credentials) {
+    // Test 3: Vérifier les credentials
+    const credentials = integration.api_credentials as BillitCredentials;
+    if (credentials && credentials.apiKey && credentials.baseUrl && credentials.companyId) {
+      testResults.has_credentials = true;
+      console.log("✅ Credentials configurées");
+      
+      // Valider le format des credentials
+      if (!credentials.apiKey.trim()) {
+        testResults.errors.push("API Key vide ou invalide");
+      }
+      if (!credentials.baseUrl.startsWith('http')) {
+        testResults.errors.push("URL de base invalide (doit commencer par http/https)");
+      }
+      if (!credentials.companyId.toString().match(/^\d+$/)) {
+        testResults.warnings.push("Company ID doit être numérique");
+      }
+      
+      // Test 4: Tester l'authentification
+      console.log("🧪 Test 4: Test d'authentification...");
       try {
-        console.log("🔌 Test de connexion à l'API Billit...");
-        // Tester la connectivité de base avec l'URL fournie
-        // On teste d'abord si l'URL répond, puis si l'authentification fonctionne
-        const testResponse = await fetch(credentials.baseUrl, {
+        const authUrl = `${credentials.baseUrl}/v1/account`;
+        console.log("🔗 URL auth test:", authUrl);
+        
+        const authResponse = await fetch(authUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${credentials.apiKey}`,
             'Content-Type': 'application/json',
           }
         });
-
-        // Accepter les codes 200, 401 (non autorisé mais l'API répond), 404 (endpoint racine n'existe pas mais l'API répond)
-        testResults.api_test = testResponse.status === 200 || testResponse.status === 401 || testResponse.status === 404;
         
-        if (!testResults.api_test) {
-          const errorText = await testResponse.text();
-          testResults.errors.push(`API inaccessible (${testResponse.status}): ${errorText}`);
-        } else if (testResponse.status === 401) {
-          testResults.errors.push(`API accessible mais clé API invalide (401). Vérifiez votre clé API.`);
-        } else if (testResponse.status === 404) {
-          // C'est OK, l'API répond mais l'endpoint racine n'existe pas
-          console.log("✅ API Billit accessible (404 sur endpoint racine est normal)");
+        console.log("📡 Status auth test:", authResponse.status);
+        
+        if (authResponse.ok) {
+          testResults.auth_test = true;
+          console.log("✅ Authentification réussie");
+          
+          // Test 5: Vérifier l'accès à la company
+          console.log("🧪 Test 5: Test accès company...");
+          try {
+            const companyUrl = `${credentials.baseUrl}/v1/companies/${credentials.companyId}`;
+            console.log("🔗 URL company test:", companyUrl);
+            
+            const companyResponse = await fetch(companyUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${credentials.apiKey}`,
+                'Content-Type': 'application/json',
+              }
+            });
+            
+            console.log("📡 Status company test:", companyResponse.status);
+            
+            if (companyResponse.ok) {
+              testResults.company_access = true;
+              testResults.api_test = true;
+              console.log("✅ Accès company confirmé");
+            } else {
+              const errorText = await companyResponse.text();
+              let errorMsg = `Accès company refusé (${companyResponse.status})`;
+              try {
+                const errorData = JSON.parse(errorText);
+                if (errorData.message || errorData.Message) {
+                  errorMsg += `: ${errorData.message || errorData.Message}`;
+                }
+              } catch {
+                errorMsg += `: ${errorText}`;
+              }
+              testResults.errors.push(errorMsg);
+              console.error("❌ Accès company refusé:", errorText);
+              
+              // Diagnostics spécifiques
+              if (companyResponse.status === 404) {
+                testResults.errors.push("Company ID inexistant ou incorrect");
+              } else if (companyResponse.status === 403) {
+                testResults.errors.push("Permissions insuffisantes pour cette company");
+              }
+            }
+          } catch (companyError) {
+            testResults.errors.push(`Erreur test company: ${companyError.message}`);
+            console.error("❌ Erreur company test:", companyError);
+          }
+        } else {
+          const errorText = await authResponse.text();
+          let errorMsg = `Authentification échouée (${authResponse.status})`;
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.message || errorData.Message) {
+              errorMsg += `: ${errorData.message || errorData.Message}`;
+            }
+          } catch {
+            errorMsg += `: ${errorText}`;
+          }
+          testResults.errors.push(errorMsg);
+          console.error("❌ Authentification échouée:", errorText);
+          
+          // Diagnostics spécifiques
+          if (authResponse.status === 401) {
+            testResults.errors.push("API Key invalide ou expirée");
+          } else if (authResponse.status === 403) {
+            testResults.errors.push("API Key valide mais permissions insuffisantes");
+          } else if (authResponse.status === 404) {
+            testResults.errors.push("Endpoint API introuvable - vérifiez l'URL de base");
+          } else if (authResponse.status === 500) {
+            testResults.errors.push("Erreur serveur Billit - réessayez plus tard");
+          }
         }
       } catch (apiError) {
-        testResults.errors.push(`Erreur connexion API: ${apiError.message}`);
+        testResults.errors.push(`Erreur de connexion API: ${apiError.message}`);
+        console.error("❌ Erreur API:", apiError);
+        
+        // Diagnostics réseau
+        if (apiError.message?.includes('fetch') || apiError.message?.includes('network')) {
+          testResults.errors.push("Problème de réseau - vérifiez l'URL et la connectivité");
+        }
+        if (apiError.message?.includes('SSL') || apiError.message?.includes('certificate')) {
+          testResults.errors.push("Problème de certificat SSL - vérifiez l'URL HTTPS");
+        }
       }
+    } else {
+      const missing = [];
+      if (!credentials?.apiKey) missing.push("apiKey");
+      if (!credentials?.baseUrl) missing.push("baseUrl"); 
+      if (!credentials?.companyId) missing.push("companyId");
+      testResults.errors.push(`Credentials incomplètes: ${missing.join(', ')} manquant(s)`);
+      console.log("❌ Credentials incomplètes");
     }
 
     const allTestsPassed = testResults.integration_found && 
                           testResults.integration_enabled && 
                           testResults.has_credentials && 
-                          testResults.api_test;
+                          testResults.auth_test && 
+                          testResults.company_access;
+
+    console.log("🎯 Résultats test:", { success: allTestsPassed, testResults });
 
     return new Response(JSON.stringify({
       success: allTestsPassed,
       test_results: testResults,
       message: allTestsPassed ? 
-        "✅ Intégration Billit fonctionnelle" : 
+        "✅ Tous les tests sont passés avec succès !" : 
         "❌ Problèmes détectés avec l'intégration Billit"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -755,6 +864,16 @@ async function handleBillitTest(companyId: string) {
     console.error("❌ Erreur test Billit:", error);
     return new Response(JSON.stringify({
       success: false,
+      test_results: {
+        integration_found: false,
+        integration_enabled: false,
+        has_credentials: false,
+        api_test: false,
+        auth_test: false,
+        company_access: false,
+        errors: [`Erreur système: ${error.message}`],
+        warnings: []
+      },
       message: "Erreur lors du test de l'intégration",
       error: error.message
     }), {

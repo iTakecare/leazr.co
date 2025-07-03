@@ -311,10 +311,29 @@ const BillitIntegrationSettings = () => {
                             <span>Credentials configurées</span>
                           </div>
                           <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.auth_test ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>Authentification</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.company_access ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>Accès company</span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <div className={`w-3 h-3 rounded-full ${testResults.results.api_test ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <span>API accessible</span>
+                            <span>API fonctionnelle</span>
                           </div>
                         </div>
+                        
+                        {testResults.results.warnings && testResults.results.warnings.length > 0 && (
+                          <div className="mt-3 p-3 bg-yellow-100 rounded-md">
+                            <div className="font-medium text-yellow-800 mb-1">Avertissements:</div>
+                            <ul className="list-disc list-inside space-y-1 text-yellow-700 text-xs">
+                              {testResults.results.warnings.map((warning: string, index: number) => (
+                                <li key={index}>{warning}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         
                         {testResults.results.errors && testResults.results.errors.length > 0 && (
                           <div className="mt-3 p-3 bg-red-100 rounded-md">
