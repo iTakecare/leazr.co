@@ -25,18 +25,27 @@ interface BillitCredentials {
 }
 
 serve(async (req) => {
+  console.log("🚀 Edge Function démarrée - Billit Integration");
+
   if (req.method === 'OPTIONS') {
+    console.log("✅ OPTIONS request handled");
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Méthode non supportée' }), {
+    console.error("❌ Méthode non supportée:", req.method);
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: 'Méthode non supportée',
+      method: req.method 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405
     });
   }
 
   try {
+    console.log("📥 Parsing request body...");
     const requestData: BillitInvoiceRequest | BillitTestRequest = await req.json();
     console.log("🔄 Début requête Billit:", JSON.stringify(requestData, null, 2));
 
@@ -556,12 +565,45 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("❌ Erreur dans billit-integration:", error);
+    console.error("📚 Stack trace:", error.stack);
+    
+    // Déterminer le type d'erreur pour un meilleur diagnostic
+    let errorCategory = "unknown";
+    let userMessage = "Erreur lors de la génération de la facture";
+    
+    if (error.message?.includes("Variables d'environnement")) {
+      errorCategory = "environment";
+      userMessage = "Configuration serveur manquante";
+    } else if (error.message?.includes("Intégration Billit")) {
+      errorCategory = "integration";
+      userMessage = "Intégration Billit non configurée ou désactivée";
+    } else if (error.message?.includes("Contrat non trouvé") || error.message?.includes("Client non trouvé")) {
+      errorCategory = "data";
+      userMessage = "Données manquantes pour générer la facture";
+    } else if (error.message?.includes("Numéros de série")) {
+      errorCategory = "serial_numbers";
+      userMessage = "Numéros de série manquants sur les équipements";
+    } else if (error.message?.includes("API Billit") || error.message?.includes("Connexion à Billit")) {
+      errorCategory = "billit_api";
+      userMessage = "Erreur de communication avec Billit";
+    } else if (error.message?.includes("unique constraint")) {
+      errorCategory = "database";
+      userMessage = "Contrainte de base de données violée";
+    }
+    
+    console.error(`🏷️ Catégorie d'erreur: ${errorCategory}`);
     
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message || String(error),
-      message: "Erreur lors de la génération de la facture",
-      details: String(error)
+      message: userMessage,
+      error_category: errorCategory,
+      timestamp: new Date().toISOString(),
+      details: {
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
