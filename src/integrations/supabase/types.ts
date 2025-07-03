@@ -1199,6 +1199,7 @@ export type Database = {
           invoice_number: string | null
           leaser_name: string
           paid_at: string | null
+          pdf_url: string | null
           sent_at: string | null
           status: string
           updated_at: string
@@ -1217,6 +1218,7 @@ export type Database = {
           invoice_number?: string | null
           leaser_name: string
           paid_at?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           status?: string
           updated_at?: string
@@ -1235,6 +1237,7 @@ export type Database = {
           invoice_number?: string | null
           leaser_name?: string
           paid_at?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           status?: string
           updated_at?: string
