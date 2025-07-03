@@ -282,6 +282,79 @@ export const disableBillitIntegration = async (companyId: string) => {
   }
 };
 
+// Synchroniser les statuts des factures avec Billit
+export const syncBillitInvoiceStatuses = async (companyId: string, invoiceId?: string) => {
+  try {
+    console.log('🔄 Synchronisation statuts Billit pour companyId:', companyId);
+    
+    const { data, error } = await supabase.functions.invoke('billit-sync-status', {
+      body: {
+        companyId,
+        invoiceId
+      }
+    });
+
+    if (error) {
+      console.error('❌ Erreur synchronisation:', error);
+      throw new Error(`Erreur du serveur: ${error.message}`);
+    }
+
+    if (!data.success) {
+      console.error('❌ Échec synchronisation:', data);
+      throw new Error(data.error || data.message || 'Erreur lors de la synchronisation');
+    }
+
+    console.log('✅ Synchronisation réussie:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Erreur lors de la synchronisation:', error);
+    throw error;
+  }
+};
+
+// Télécharger le PDF d'une facture depuis Billit
+export const downloadBillitInvoicePdf = async (invoiceId: string) => {
+  try {
+    // Récupérer la facture avec son URL PDF
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('id, external_invoice_id, pdf_url, invoice_number, company_id')
+      .eq('id', invoiceId)
+      .single();
+
+    if (error || !invoice) {
+      throw new Error('Facture non trouvée');
+    }
+
+    if (!invoice.pdf_url) {
+      // Essayer de synchroniser d'abord pour récupérer l'URL PDF
+      await syncBillitInvoiceStatuses(invoice.company_id, invoiceId);
+      
+      // Récupérer à nouveau la facture
+      const { data: updatedInvoice, error: updateError } = await supabase
+        .from('invoices')
+        .select('pdf_url, invoice_number')
+        .eq('id', invoiceId)
+        .single();
+
+      if (updateError || !updatedInvoice?.pdf_url) {
+        throw new Error('URL PDF non disponible pour cette facture');
+      }
+
+      // Ouvrir l'URL PDF dans un nouvel onglet
+      window.open(updatedInvoice.pdf_url, '_blank');
+      return updatedInvoice.invoice_number;
+    }
+
+    // Ouvrir l'URL PDF dans un nouvel onglet
+    window.open(invoice.pdf_url, '_blank');
+    return invoice.invoice_number;
+  } catch (error) {
+    console.error('Erreur lors du téléchargement du PDF Billit:', error);
+    throw error;
+  }
+};
+
 // Générer et télécharger le PDF d'une facture
 export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
   const { downloadInvoicePdf } = await import('@/utils/invoicePdfGenerator');

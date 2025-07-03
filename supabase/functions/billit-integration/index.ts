@@ -384,7 +384,51 @@ serve(async (req) => {
       throw new Error(`Connexion à Billit impossible: ${fetchError.message}`);
     }
 
-    // Enregistrer la facture dans notre base seulement si Billit a réussi
+    // Récupérer les détails complets de la facture depuis Billit
+    console.log("🔍 Récupération détails facture Billit...");
+    let fullInvoiceDetails = null;
+    let billitPdfUrl = null;
+    let realStatus = invoiceSent ? 'sent' : (billitSuccess ? 'created' : 'draft');
+    
+    try {
+      const detailsResponse = await fetch(`${credentials.baseUrl}/v1/orders/${billitInvoice.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${credentials.apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (detailsResponse.ok) {
+        fullInvoiceDetails = await detailsResponse.json();
+        console.log("✅ Détails Billit récupérés:", {
+          OrderStatus: fullInvoiceDetails.OrderStatus,
+          IsSent: fullInvoiceDetails.IsSent,
+          Paid: fullInvoiceDetails.Paid,
+          hasPDF: !!fullInvoiceDetails.OrderPDF
+        });
+
+        // Déterminer le statut réel basé sur les données Billit
+        if (fullInvoiceDetails.Paid) {
+          realStatus = 'paid';
+        } else if (fullInvoiceDetails.IsSent) {
+          realStatus = 'sent';
+        } else if (fullInvoiceDetails.OrderStatus === 'ToSend') {
+          realStatus = 'created';
+        }
+
+        // Récupérer l'URL du PDF si disponible
+        if (fullInvoiceDetails.OrderPDF && fullInvoiceDetails.OrderPDF.FileID) {
+          billitPdfUrl = `${credentials.baseUrl}/v1/files/${fullInvoiceDetails.OrderPDF.FileID}`;
+        }
+      } else {
+        console.log("⚠️ Impossible de récupérer les détails Billit, utilisation des données de base");
+      }
+    } catch (detailsError) {
+      console.log("⚠️ Erreur lors de la récupération des détails:", detailsError);
+    }
+
+    // Enregistrer la facture dans notre base avec les informations complètes
     console.log("💾 Enregistrement facture locale...");
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
@@ -395,13 +439,16 @@ serve(async (req) => {
         external_invoice_id: billitInvoice.id,
         invoice_number: billitInvoice.number || billitInvoice.id,
         amount: totalAmount,
-        status: invoiceSent ? 'sent' : (billitSuccess ? 'created' : 'draft'),
+        status: realStatus,
         generated_at: new Date().toISOString(),
-        sent_at: invoiceSent ? new Date().toISOString() : null,
+        sent_at: (realStatus === 'sent' || realStatus === 'paid') ? new Date().toISOString() : null,
+        paid_at: realStatus === 'paid' ? new Date().toISOString() : null,
         due_date: billitInvoiceData.ExpiryDate,
+        pdf_url: billitPdfUrl,
         billing_data: {
           ...billitInvoiceData,
           billit_response: billitInvoice,
+          billit_details: fullInvoiceDetails,
           success: billitSuccess
         },
         integration_type: 'billit'
