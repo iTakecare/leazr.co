@@ -20,7 +20,10 @@ const BillitIntegrationSettings = () => {
     apiKey: "",
     baseUrl: "",
     companyId: "",
-    leaserEmail: ""
+    leaserEmail: "",
+    supplierName: "",
+    supplierEmail: "",
+    supplierPhone: ""
   });
 
   useEffect(() => {
@@ -38,7 +41,10 @@ const BillitIntegrationSettings = () => {
           apiKey: data.api_credentials?.apiKey || "",
           baseUrl: data.api_credentials?.baseUrl || "",
           companyId: data.api_credentials?.companyId || "",
-          leaserEmail: data.settings?.leaser_email || ""
+          leaserEmail: data.settings?.leaser_email || "",
+          supplierName: data.settings?.supplier_contact?.name || "",
+          supplierEmail: data.settings?.supplier_contact?.email || "",
+          supplierPhone: data.settings?.supplier_contact?.phone || ""
         });
       }
     } catch (error) {
@@ -61,7 +67,14 @@ const BillitIntegrationSettings = () => {
         formData.apiKey,
         formData.baseUrl,
         formData.companyId,
-        { leaser_email: formData.leaserEmail }
+        { 
+          leaser_email: formData.leaserEmail,
+          supplier_contact: {
+            name: formData.supplierName,
+            email: formData.supplierEmail,
+            phone: formData.supplierPhone
+          }
+        }
       );
       
       toast.success("Configuration Billit sauvegardée");
@@ -219,6 +232,53 @@ const BillitIntegrationSettings = () => {
                 onChange={(e) => setFormData(prev => ({ ...prev, leaserEmail: e.target.value }))}
                 placeholder="email@bailleur.com"
               />
+            </div>
+
+            {/* Section Contact Fournisseur */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3">Contact Fournisseur (pour les factures)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplierName">
+                    Nom du contact
+                  </Label>
+                  <Input
+                    id="supplierName"
+                    value={formData.supplierName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, supplierName: e.target.value }))}
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="supplierEmail">
+                    Email du contact
+                  </Label>
+                  <Input
+                    id="supplierEmail"
+                    type="email"
+                    value={formData.supplierEmail}
+                    onChange={(e) => setFormData(prev => ({ ...prev, supplierEmail: e.target.value }))}
+                    placeholder="contact@entreprise.com"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="supplierPhone">
+                    Téléphone du contact
+                  </Label>
+                  <Input
+                    id="supplierPhone"
+                    type="tel"
+                    value={formData.supplierPhone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, supplierPhone: e.target.value }))}
+                    placeholder="+32 2 123 45 67"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Ces informations apparaîtront dans les factures Billit comme contact du fournisseur
+              </p>
             </div>
           </div>
 
