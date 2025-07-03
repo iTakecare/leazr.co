@@ -26,19 +26,43 @@ const UpdatePassword = () => {
       console.log("UpdatePassword - Début de l'initialisation");
       console.log("UpdatePassword - URL complète:", window.location.href);
       console.log("UpdatePassword - Search params:", window.location.search);
+      console.log("UpdatePassword - Hash:", window.location.hash);
       
-      // Vérifier si nous avons les paramètres nécessaires pour la réinitialisation
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const type = searchParams.get('type');
-      const token = searchParams.get('token');
+      // Extraire les paramètres depuis les query params ou les fragments
+      const getParams = () => {
+        const params = new URLSearchParams();
+        
+        // D'abord, récupérer les paramètres de l'URL normale
+        searchParams.forEach((value, key) => {
+          params.set(key, value);
+        });
+        
+        // Puis vérifier les fragments dans le hash (pour les redirections Supabase)
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+          hash.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            if (key && value) {
+              params.set(key, decodeURIComponent(value));
+            }
+          });
+        }
+        
+        return params;
+      };
+
+      const params = getParams();
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+      const token = params.get('token');
       
       console.log("UpdatePassword - Paramètres détectés:", {
         accessToken: !!accessToken,
         refreshToken: !!refreshToken,
         type,
         token: !!token,
-        allParams: Object.fromEntries(searchParams.entries())
+        allParams: Object.fromEntries(params.entries())
       });
 
       // Vérifier la session actuelle

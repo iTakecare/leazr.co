@@ -60,7 +60,7 @@ serve(async (req) => {
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: `${new URL(req.url).origin}/update-password`
+        redirectTo: `${new URL(req.url).origin}/auth/callback`
       }
     });
 
