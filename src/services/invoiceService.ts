@@ -60,6 +60,8 @@ export const areAllSerialNumbersComplete = (equipment: any[]): boolean => {
 // Générer une facture via Billit
 export const generateBillitInvoice = async (contractId: string, companyId: string) => {
   try {
+    console.log('🚀 Génération facture Billit - contractId:', contractId, 'companyId:', companyId);
+    
     const { data, error } = await supabase.functions.invoke('billit-integration', {
       body: {
         contractId,
@@ -67,17 +69,52 @@ export const generateBillitInvoice = async (contractId: string, companyId: strin
       }
     });
 
+    console.log('📡 Réponse Edge Function:', { data, error });
+
     if (error) {
-      throw error;
+      console.error('❌ Erreur Edge Function:', error);
+      throw new Error(`Erreur du serveur: ${error.message}`);
     }
 
     if (!data.success) {
-      throw new Error(data.message || 'Erreur lors de la génération de la facture');
+      console.error('❌ Échec génération:', data);
+      throw new Error(data.error || data.message || 'Erreur lors de la génération de la facture');
     }
 
+    console.log('✅ Facture générée avec succès:', data.invoice);
     return data.invoice;
   } catch (error) {
-    console.error('Erreur lors de la génération de la facture:', error);
+    console.error('❌ Erreur lors de la génération de la facture:', error);
+    throw error;
+  }
+};
+
+// Tester l'intégration Billit
+export const testBillitIntegration = async (companyId: string) => {
+  try {
+    console.log('🧪 Test intégration Billit pour companyId:', companyId);
+    
+    const { data, error } = await supabase.functions.invoke('billit-integration', {
+      body: {
+        companyId,
+        testMode: true
+      }
+    });
+
+    console.log('📊 Résultats test:', { data, error });
+
+    if (error) {
+      console.error('❌ Erreur test:', error);
+      throw new Error(`Erreur du serveur: ${error.message}`);
+    }
+
+    return {
+      success: data.success,
+      results: data.test_results,
+      message: data.message
+    };
+  } catch (error) {
+    console.error('❌ Erreur lors du test:', error);
     throw error;
   }
 };

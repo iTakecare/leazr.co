@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Key, Globe, TestTube, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration } from "@/services/invoiceService";
+import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration, testBillitIntegration } from "@/services/invoiceService";
 import { toast } from "sonner";
 
 const BillitIntegrationSettings = () => {
@@ -15,6 +15,7 @@ const BillitIntegrationSettings = () => {
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [integration, setIntegration] = useState<any>(null);
+  const [testResults, setTestResults] = useState<any>(null);
   const [formData, setFormData] = useState({
     apiKey: "",
     baseUrl: "",
@@ -65,6 +66,8 @@ const BillitIntegrationSettings = () => {
       
       toast.success("Configuration Billit sauvegardée");
       await loadIntegration();
+      // Effacer les résultats de test après sauvegarde
+      setTestResults(null);
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error(error.message || "Erreur lors de la sauvegarde");
@@ -90,30 +93,32 @@ const BillitIntegrationSettings = () => {
   };
 
   const handleTest = async () => {
-    if (!formData.apiKey || !formData.baseUrl) {
-      toast.error("Veuillez d'abord configurer l'API Key et l'URL de base");
+    if (!companyId) {
+      toast.error("Company ID manquant");
       return;
     }
 
     setTesting(true);
+    setTestResults(null);
+    
     try {
-      // Test simple de connexion à l'API Billit
-      const response = await fetch(`${formData.baseUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${formData.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        toast.success("Connexion à l'API Billit réussie !");
+      console.log("🧪 Démarrage test intégration Billit...");
+      const results = await testBillitIntegration(companyId);
+      setTestResults(results);
+      
+      if (results.success) {
+        toast.success("✅ Test de l'intégration réussi !");
       } else {
-        toast.error(`Erreur de connexion: ${response.status} ${response.statusText}`);
+        toast.error("❌ Problèmes détectés avec l'intégration");
       }
     } catch (error: any) {
       console.error("Erreur lors du test:", error);
-      toast.error("Impossible de se connecter à l'API Billit");
+      toast.error("Erreur lors du test de l'intégration");
+      setTestResults({
+        success: false,
+        message: "Erreur lors du test",
+        results: { errors: [error.message] }
+      });
     } finally {
       setTesting(false);
     }
@@ -204,15 +209,67 @@ const BillitIntegrationSettings = () => {
             </div>
           </div>
 
+          {/* Résultats du test */}
+          {testResults && (
+            <Alert className={`${testResults.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+              <div className="flex items-start gap-3">
+                {testResults.success ? (
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <AlertDescription>
+                    <div className="font-medium mb-2">{testResults.message}</div>
+                    
+                    {testResults.results && (
+                      <div className="space-y-3 text-sm">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.integration_found ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>Intégration trouvée</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.integration_enabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>Intégration activée</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.has_credentials ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>Credentials configurées</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${testResults.results.api_test ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span>API accessible</span>
+                          </div>
+                        </div>
+                        
+                        {testResults.results.errors && testResults.results.errors.length > 0 && (
+                          <div className="mt-3 p-3 bg-red-100 rounded-md">
+                            <div className="font-medium text-red-800 mb-1">Erreurs détectées:</div>
+                            <ul className="list-disc list-inside space-y-1 text-red-700 text-xs">
+                              {testResults.results.errors.map((error: string, index: number) => (
+                                <li key={index}>{error}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </div>
+              </div>
+            </Alert>
+          )}
+
           {/* Actions */}
           <div className="flex gap-2 pt-4 border-t">
             <Button 
               onClick={handleTest} 
-              disabled={testing || !formData.apiKey || !formData.baseUrl}
+              disabled={testing || !integration?.is_enabled}
               variant="outline"
             >
               <TestTube className="h-4 w-4 mr-2" />
-              {testing ? "Test en cours..." : "Tester la connexion"}
+              {testing ? "Test en cours..." : "Tester l'intégration"}
             </Button>
             
             <Button onClick={handleSave} disabled={loading}>

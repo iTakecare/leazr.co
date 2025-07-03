@@ -10,6 +10,12 @@ const corsHeaders = {
 interface BillitInvoiceRequest {
   contractId: string;
   companyId: string;
+  testMode?: boolean;
+}
+
+interface BillitTestRequest {
+  companyId: string;
+  testMode: true;
 }
 
 interface BillitCredentials {
@@ -31,8 +37,16 @@ serve(async (req) => {
   }
 
   try {
-    const { contractId, companyId }: BillitInvoiceRequest = await req.json();
-    console.log("Génération facture Billit pour contrat:", contractId);
+    const requestData: BillitInvoiceRequest | BillitTestRequest = await req.json();
+    console.log("🔄 Début requête Billit:", JSON.stringify(requestData, null, 2));
+
+    // Mode test de l'intégration
+    if (requestData.testMode) {
+      return await handleBillitTest(requestData.companyId);
+    }
+
+    const { contractId, companyId } = requestData as BillitInvoiceRequest;
+    console.log("📋 Génération facture Billit pour contrat:", contractId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -44,6 +58,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Récupérer les identifiants Billit pour cette entreprise
+    console.log("🔍 Recherche intégration Billit pour company_id:", companyId);
     const { data: integration, error: integrationError } = await supabase
       .from('company_integrations')
       .select('api_credentials, settings, is_enabled')
@@ -51,16 +66,37 @@ serve(async (req) => {
       .eq('integration_type', 'billit')
       .single();
 
-    if (integrationError || !integration?.is_enabled) {
-      throw new Error("Intégration Billit non configurée ou désactivée");
+    console.log("📡 Résultat intégration:", { integration, error: integrationError });
+
+    if (integrationError) {
+      console.error("❌ Erreur récupération intégration:", integrationError);
+      throw new Error(`Intégration Billit non trouvée: ${integrationError.message}`);
+    }
+
+    if (!integration?.is_enabled) {
+      console.error("❌ Intégration Billit désactivée");
+      throw new Error("Intégration Billit désactivée");
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
+    console.log("🔑 Vérification credentials:", {
+      hasApiKey: !!credentials.apiKey,
+      baseUrl: credentials.baseUrl,
+      companyId: credentials.companyId
+    });
+
     if (!credentials.apiKey) {
-      throw new Error("Clé API Billit manquante");
+      console.error("❌ Clé API Billit manquante");
+      throw new Error("Clé API Billit manquante dans la configuration");
+    }
+
+    if (!credentials.baseUrl) {
+      console.error("❌ URL de base Billit manquante");
+      throw new Error("URL de base Billit manquante dans la configuration");
     }
 
     // Récupérer les données du contrat et équipements
+    console.log("📄 Récupération contrat:", contractId);
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select(`
@@ -77,29 +113,59 @@ serve(async (req) => {
       .eq('id', contractId)
       .single();
 
-    if (contractError || !contract) {
-      throw new Error("Contrat non trouvé");
+    console.log("📄 Données contrat:", { contract, error: contractError });
+
+    if (contractError) {
+      console.error("❌ Erreur récupération contrat:", contractError);
+      throw new Error(`Contrat non trouvé: ${contractError.message}`);
+    }
+
+    if (!contract) {
+      console.error("❌ Contrat vide");
+      throw new Error("Aucune donnée trouvée pour ce contrat");
     }
 
     // Vérifier que tous les numéros de série sont renseignés
+    console.log("🔢 Vérification numéros de série...");
     const equipmentWithoutSerial = contract.contract_equipment?.filter(
       (eq: any) => !eq.serial_number || eq.serial_number.trim() === ''
     );
 
+    console.log("📦 Équipements sans numéro de série:", equipmentWithoutSerial);
+
     if (equipmentWithoutSerial && equipmentWithoutSerial.length > 0) {
-      throw new Error("Tous les numéros de série doivent être renseignés avant de générer la facture");
+      const missingEquipment = equipmentWithoutSerial.map((eq: any) => eq.title).join(', ');
+      console.error("❌ Numéros de série manquants pour:", missingEquipment);
+      throw new Error(`Numéros de série manquants pour: ${missingEquipment}`);
     }
 
-    // Préparer les données pour Billit
+    // Récupérer les données client pour la facturation
+    console.log("👥 Récupération données client...");
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', contract.client_id)
+      .single();
+
+    console.log("👥 Données client:", { client, error: clientError });
+
+    // Préparer les données pour Billit - CORRECTION: facturer au CLIENT, pas au bailleur
     const billitInvoiceData = {
       client: {
-        name: contract.leaser_name,
-        email: integration.settings.leaser_email || '',
+        name: client?.name || contract.client_name,
+        email: client?.email || '',
+        company: client?.company || '',
+        address: client?.address || '',
+        city: client?.city || '',
+        postal_code: client?.postal_code || '',
+        country: client?.country || '',
+        vat_number: client?.vat_number || ''
       },
       invoice: {
         description: `Facture de leasing - Contrat ${contract.id}`,
         date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        reference: contract.id,
         items: contract.contract_equipment?.map((equipment: any) => ({
           description: `${equipment.title} - SN: ${equipment.serial_number}`,
           quantity: equipment.quantity,
@@ -109,17 +175,24 @@ serve(async (req) => {
       }
     };
 
+    console.log("📋 Données Billit préparées:", JSON.stringify(billitInvoiceData, null, 2));
+
     // Calculer le montant total
     const totalAmount = billitInvoiceData.invoice.items.reduce(
       (sum: number, item: any) => sum + item.total, 0
     );
 
     // Appel à l'API Billit avec gestion d'erreur améliorée
+    console.log("🚀 Envoi à l'API Billit...");
+    const billitUrl = `${credentials.baseUrl}/invoices`;
+    console.log("🔗 URL Billit:", billitUrl);
+
     let billitResponse;
     let billitInvoice;
+    let billitSuccess = false;
 
     try {
-      billitResponse = await fetch(`${credentials.baseUrl}/invoices`, {
+      billitResponse = await fetch(billitUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${credentials.apiKey}`,
@@ -128,34 +201,26 @@ serve(async (req) => {
         body: JSON.stringify(billitInvoiceData)
       });
 
+      console.log("📡 Réponse Billit status:", billitResponse.status);
+      
       if (!billitResponse.ok) {
         const errorText = await billitResponse.text();
-        console.error(`Erreur API Billit (${billitResponse.status}):`, errorText);
+        console.error(`❌ Erreur API Billit (${billitResponse.status}):`, errorText);
         
-        // Créer une facture locale même si l'API Billit échoue
-        billitInvoice = {
-          id: `local_${Date.now()}`,
-          number: `BILL-${Date.now()}`,
-          status: 'draft',
-          error: `API Billit indisponible (${billitResponse.status}): ${errorText}`
-        };
+        // NE PAS créer de facture locale si Billit échoue
+        throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText}`);
       } else {
         billitInvoice = await billitResponse.json();
+        billitSuccess = true;
+        console.log("✅ Facture créée dans Billit:", billitInvoice);
       }
     } catch (fetchError) {
-      console.error("Erreur de connexion à Billit:", fetchError);
-      
-      // Créer une facture locale en cas d'erreur de connexion
-      billitInvoice = {
-        id: `local_${Date.now()}`,
-        number: `BILL-${Date.now()}`,
-        status: 'draft',
-        error: `Connexion à Billit impossible: ${fetchError.message}`
-      };
+      console.error("❌ Erreur de connexion à Billit:", fetchError);
+      throw new Error(`Connexion à Billit impossible: ${fetchError.message}`);
     }
-    console.log("Facture créée dans Billit:", billitInvoice);
 
-    // Enregistrer la facture dans notre base
+    // Enregistrer la facture dans notre base seulement si Billit a réussi
+    console.log("💾 Enregistrement facture locale...");
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -163,24 +228,31 @@ serve(async (req) => {
         company_id: companyId,
         leaser_name: contract.leaser_name,
         external_invoice_id: billitInvoice.id,
-        invoice_number: billitInvoice.number,
+        invoice_number: billitInvoice.number || billitInvoice.id,
         amount: totalAmount,
-        status: 'sent',
+        status: billitSuccess ? 'sent' : 'draft',
         generated_at: new Date().toISOString(),
-        sent_at: new Date().toISOString(),
+        sent_at: billitSuccess ? new Date().toISOString() : null,
         due_date: billitInvoiceData.invoice.due_date,
-        billing_data: billitInvoiceData,
+        billing_data: {
+          ...billitInvoiceData,
+          billit_response: billitInvoice,
+          success: billitSuccess
+        },
         integration_type: 'billit'
       })
       .select()
       .single();
 
     if (invoiceError) {
-      console.error("Erreur lors de l'enregistrement de la facture:", invoiceError);
-      throw new Error("Erreur lors de l'enregistrement de la facture");
+      console.error("❌ Erreur lors de l'enregistrement de la facture:", invoiceError);
+      throw new Error(`Erreur lors de l'enregistrement de la facture: ${invoiceError.message}`);
     }
 
+    console.log("✅ Facture enregistrée:", invoice.id);
+
     // Mettre à jour le contrat
+    console.log("📝 Mise à jour contrat...");
     const { error: updateError } = await supabase
       .from('contracts')
       .update({
@@ -190,35 +262,142 @@ serve(async (req) => {
       .eq('id', contractId);
 
     if (updateError) {
-      console.error("Erreur lors de la mise à jour du contrat:", updateError);
+      console.error("❌ Erreur lors de la mise à jour du contrat:", updateError);
+      // Ne pas bloquer le processus pour cette erreur
     }
 
-    console.log("Facture générée avec succès");
+    console.log("✅ Facture générée avec succès dans Billit!");
 
     return new Response(JSON.stringify({
       success: true,
       invoice: {
         id: invoice.id,
         external_id: billitInvoice.id,
-        number: billitInvoice.number,
+        number: billitInvoice.number || billitInvoice.id,
         amount: totalAmount,
-        status: 'sent'
-      }
+        status: billitSuccess ? 'sent' : 'draft',
+        billit_success: billitSuccess
+      },
+      message: billitSuccess ? 
+        "Facture créée avec succès dans Billit" : 
+        "Facture créée localement, mais erreur Billit"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     });
 
   } catch (error) {
-    console.error("Erreur dans billit-integration:", error);
+    console.error("❌ Erreur dans billit-integration:", error);
     
     return new Response(JSON.stringify({ 
       success: false, 
-      error: String(error),
-      message: "Erreur lors de la génération de la facture"
+      error: error.message || String(error),
+      message: "Erreur lors de la génération de la facture",
+      details: String(error)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
     });
   }
 });
+
+// Fonction de test de l'intégration Billit
+async function handleBillitTest(companyId: string) {
+  try {
+    console.log("🧪 Test de l'intégration Billit pour company_id:", companyId);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Variables d'environnement Supabase manquantes");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Test 1: Vérifier l'intégration
+    const { data: integration, error: integrationError } = await supabase
+      .from('company_integrations')
+      .select('api_credentials, settings, is_enabled')
+      .eq('company_id', companyId)
+      .eq('integration_type', 'billit')
+      .single();
+
+    const testResults = {
+      integration_found: !integrationError,
+      integration_enabled: integration?.is_enabled || false,
+      has_credentials: false,
+      api_test: false,
+      errors: [] as string[]
+    };
+
+    if (integrationError) {
+      testResults.errors.push(`Intégration non trouvée: ${integrationError.message}`);
+      return new Response(JSON.stringify({
+        success: false,
+        test_results: testResults,
+        message: "Intégration Billit non configurée"
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
+    const credentials = integration.api_credentials as BillitCredentials;
+    testResults.has_credentials = !!(credentials.apiKey && credentials.baseUrl);
+
+    if (!testResults.has_credentials) {
+      testResults.errors.push("Credentials manquantes (apiKey ou baseUrl)");
+    }
+
+    // Test 2: Test API Billit si credentials disponibles
+    if (testResults.has_credentials) {
+      try {
+        console.log("🔌 Test de connexion à l'API Billit...");
+        const testResponse = await fetch(`${credentials.baseUrl}/ping`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${credentials.apiKey}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        testResults.api_test = testResponse.ok;
+        
+        if (!testResponse.ok) {
+          const errorText = await testResponse.text();
+          testResults.errors.push(`API test failed (${testResponse.status}): ${errorText}`);
+        }
+      } catch (apiError) {
+        testResults.errors.push(`Erreur connexion API: ${apiError.message}`);
+      }
+    }
+
+    const allTestsPassed = testResults.integration_found && 
+                          testResults.integration_enabled && 
+                          testResults.has_credentials && 
+                          testResults.api_test;
+
+    return new Response(JSON.stringify({
+      success: allTestsPassed,
+      test_results: testResults,
+      message: allTestsPassed ? 
+        "✅ Intégration Billit fonctionnelle" : 
+        "❌ Problèmes détectés avec l'intégration Billit"
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+
+  } catch (error) {
+    console.error("❌ Erreur test Billit:", error);
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Erreur lors du test de l'intégration",
+      error: error.message
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    });
+  }
+}
