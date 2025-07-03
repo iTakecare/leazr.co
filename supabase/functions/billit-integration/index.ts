@@ -114,22 +114,45 @@ serve(async (req) => {
       (sum: number, item: any) => sum + item.total, 0
     );
 
-    // Appel à l'API Billit (simulation pour l'exemple)
-    const billitResponse = await fetch(`${credentials.baseUrl}/invoices`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${credentials.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(billitInvoiceData)
-    });
+    // Appel à l'API Billit avec gestion d'erreur améliorée
+    let billitResponse;
+    let billitInvoice;
 
-    if (!billitResponse.ok) {
-      const error = await billitResponse.text();
-      throw new Error(`Erreur Billit: ${error}`);
+    try {
+      billitResponse = await fetch(`${credentials.baseUrl}/invoices`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${credentials.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(billitInvoiceData)
+      });
+
+      if (!billitResponse.ok) {
+        const errorText = await billitResponse.text();
+        console.error(`Erreur API Billit (${billitResponse.status}):`, errorText);
+        
+        // Créer une facture locale même si l'API Billit échoue
+        billitInvoice = {
+          id: `local_${Date.now()}`,
+          number: `BILL-${Date.now()}`,
+          status: 'draft',
+          error: `API Billit indisponible (${billitResponse.status}): ${errorText}`
+        };
+      } else {
+        billitInvoice = await billitResponse.json();
+      }
+    } catch (fetchError) {
+      console.error("Erreur de connexion à Billit:", fetchError);
+      
+      // Créer une facture locale en cas d'erreur de connexion
+      billitInvoice = {
+        id: `local_${Date.now()}`,
+        number: `BILL-${Date.now()}`,
+        status: 'draft',
+        error: `Connexion à Billit impossible: ${fetchError.message}`
+      };
     }
-
-    const billitInvoice = await billitResponse.json();
     console.log("Facture créée dans Billit:", billitInvoice);
 
     // Enregistrer la facture dans notre base

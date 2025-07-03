@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Users, Shield } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Users, Shield, Zap } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
@@ -17,6 +17,7 @@ import ContractSettings from '@/components/settings/ContractSettings';
 import DataImporter from '@/components/settings/DataImporter';
 import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager';
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
+import BillitIntegrationSettings from '@/components/settings/BillitIntegrationSettings';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -72,7 +73,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -104,6 +105,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Intégrations
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -160,6 +165,10 @@ const Settings: React.FC = () => {
               <PermissionProfilesManager />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="mt-6">
+          <BillitIntegrationSettings />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
