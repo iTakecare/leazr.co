@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,26 @@ const ClientSettingsPage = () => {
   const [lastName, setLastName] = useState(user?.user_metadata?.last_name || user?.last_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [personalInfoLoading, setPersonalInfoLoading] = useState(false);
+
+  // États pour les informations business
+  const [company, setCompany] = useState(clientData?.company || "");
+  const [address, setAddress] = useState(clientData?.address || "");
+  const [city, setCity] = useState(clientData?.city || "");
+  const [postalCode, setPostalCode] = useState(clientData?.postal_code || "");
+  const [country, setCountry] = useState(clientData?.country || "");
+  const [vatNumber, setVatNumber] = useState(clientData?.vat_number || "");
+
+  // Mettre à jour les états quand clientData change
+  useEffect(() => {
+    if (clientData) {
+      setCompany(clientData.company || "");
+      setAddress(clientData.address || "");
+      setCity(clientData.city || "");
+      setPostalCode(clientData.postal_code || "");
+      setCountry(clientData.country || "");
+      setVatNumber(clientData.vat_number || "");
+    }
+  }, [clientData]);
   
   // États pour le mot de passe
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,17 +86,40 @@ const ClientSettingsPage = () => {
         }
 
         // Mettre à jour aussi la table clients si l'utilisateur a une fiche client
-        const clientUpdateSuccess = await updateClientFromProfile(
-          user.id,
-          firstName.trim(),
-          lastName.trim(),
-          phone.trim()
-        );
+        if (clientData?.id) {
+          const { error: clientError } = await supabase
+            .from('clients')
+            .update({
+              name: `${firstName.trim()} ${lastName.trim()}`,
+              company: company.trim(),
+              phone: phone.trim(),
+              address: address.trim(),
+              city: city.trim(),
+              postal_code: postalCode.trim(),
+              country: country.trim(),
+              vat_number: vatNumber.trim()
+            })
+            .eq('id', clientData.id);
 
-        if (clientUpdateSuccess) {
-          console.log("Fiche client mise à jour avec succès");
+          if (clientError) {
+            console.warn("Erreur lors de la mise à jour du client:", clientError);
+          } else {
+            console.log("Fiche client mise à jour avec succès");
+          }
         } else {
-          console.log("Aucune fiche client à mettre à jour ou erreur lors de la mise à jour");
+          // Fallback vers l'ancienne méthode si pas de clientData
+          const clientUpdateSuccess = await updateClientFromProfile(
+            user.id,
+            firstName.trim(),
+            lastName.trim(),
+            phone.trim()
+          );
+
+          if (clientUpdateSuccess) {
+            console.log("Fiche client mise à jour avec succès");
+          } else {
+            console.log("Aucune fiche client à mettre à jour ou erreur lors de la mise à jour");
+          }
         }
       }
 
@@ -315,9 +358,76 @@ const ClientSettingsPage = () => {
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
+
+                {/* Informations business en continuité */}
+                <div className="pt-4 border-t border-border/40 space-y-4">
+                  <div>
+                    <Label htmlFor="company">Société</Label>
+                    <Input 
+                      id="company" 
+                      placeholder="Nom de votre société"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="address">Adresse</Label>
+                      <Input 
+                        id="address" 
+                        placeholder="123 rue de la Paix"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">Ville</Label>
+                      <Input 
+                        id="city" 
+                        placeholder="Paris"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="postalCode">Code postal</Label>
+                      <Input 
+                        id="postalCode" 
+                        placeholder="75001"
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="country">Pays</Label>
+                      <Input 
+                        id="country" 
+                        placeholder="France"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="vatNumber">Numéro de TVA / SIRET</Label>
+                    <Input 
+                      id="vatNumber" 
+                      placeholder="FR 12 345 678 901"
+                      value={vatNumber}
+                      onChange={(e) => setVatNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 <Button 
                   onClick={handleSavePersonalInfo}
                   disabled={personalInfoLoading}
+                  className="mt-6"
                 >
                   {personalInfoLoading ? "Enregistrement..." : "Enregistrer les modifications"}
                 </Button>
