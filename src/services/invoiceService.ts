@@ -83,36 +83,95 @@ export const generateBillitInvoice = async (contractId: string, companyId: strin
 };
 
 // Récupérer toutes les factures d'une entreprise
-export const getCompanyInvoices = async (companyId: string): Promise<Invoice[]> => {
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
+export const getCompanyInvoices = async (companyId?: string): Promise<Invoice[]> => {
+  try {
+    let targetCompanyId = companyId;
+    
+    // Si pas de companyId fourni, le récupérer depuis le profil utilisateur
+    if (!targetCompanyId) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Erreur lors de la récupération du profil:', profileError);
+        throw profileError;
+      }
+      
+      targetCompanyId = profile?.company_id;
+    }
 
-  if (error) {
-    console.error('Erreur lors de la récupération des factures:', error);
+    if (!targetCompanyId) {
+      console.error('Aucun company_id trouvé');
+      return [];
+    }
+
+    console.log('Récupération des factures pour company_id:', targetCompanyId);
+    
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('company_id', targetCompanyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erreur lors de la récupération des factures:', error);
+      throw error;
+    }
+
+    console.log('Factures récupérées:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Erreur dans getCompanyInvoices:', error);
     throw error;
   }
-
-  return data || [];
 };
 
 // Récupérer les factures par statut
 export const getInvoicesByStatus = async (companyId: string, status: string): Promise<Invoice[]> => {
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('status', status)
-    .order('created_at', { ascending: false });
+  try {
+    let targetCompanyId = companyId;
+    
+    // Si pas de companyId fourni, le récupérer depuis le profil utilisateur
+    if (!targetCompanyId) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Erreur lors de la récupération du profil:', profileError);
+        throw profileError;
+      }
+      
+      targetCompanyId = profile?.company_id;
+    }
 
-  if (error) {
-    console.error('Erreur lors de la récupération des factures par statut:', error);
+    if (!targetCompanyId) {
+      console.error('Aucun company_id trouvé');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('company_id', targetCompanyId)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erreur lors de la récupération des factures par statut:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erreur dans getInvoicesByStatus:', error);
     throw error;
   }
-
-  return data || [];
 };
 
 // Mettre à jour le statut d'une facture

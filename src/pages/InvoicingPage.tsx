@@ -14,10 +14,11 @@ const InvoicingPage = () => {
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      if (!companyId) return;
-      
       try {
+        console.log('Chargement des factures, companyId:', companyId);
+        // On n'a plus besoin de vérifier companyId, la fonction getCompanyInvoices le gère
         const data = await getCompanyInvoices(companyId);
+        console.log('Factures chargées:', data);
         setInvoices(data);
       } catch (error) {
         console.error("Erreur lors du chargement des factures:", error);
