@@ -95,7 +95,7 @@ serve(async (req) => {
       throw new Error("URL de base Billit manquante dans la configuration");
     }
 
-    // Vérifier si une facture existe déjà pour ce contrat
+    // Vérifier si une facture existe déjà pour ce contrat et la supprimer si nécessaire
     console.log("🔍 Vérification facture existante...");
     const { data: existingInvoices, error: invoiceCheckError } = await supabase
       .from('invoices')
@@ -109,8 +109,20 @@ serve(async (req) => {
 
     if (existingInvoices && existingInvoices.length > 0) {
       const existingInvoice = existingInvoices[0];
-      console.log("⚠️ Facture déjà existante:", existingInvoice);
-      throw new Error(`Une facture existe déjà pour ce contrat (ID: ${existingInvoice.id}). Supprimez-la d'abord si vous souhaitez la régénérer.`);
+      console.log("⚠️ Facture existante trouvée, suppression en cours:", existingInvoice.id);
+      
+      // Supprimer l'ancienne facture pour permettre la régénération
+      const { error: deleteError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', existingInvoice.id);
+      
+      if (deleteError) {
+        console.error("❌ Erreur lors de la suppression de l'ancienne facture:", deleteError);
+        throw new Error(`Impossible de supprimer l'ancienne facture: ${deleteError.message}`);
+      }
+      
+      console.log("✅ Ancienne facture supprimée avec succès");
     }
 
     // Récupérer les données du contrat et équipements
@@ -146,7 +158,13 @@ serve(async (req) => {
     // Vérifier que tous les numéros de série sont renseignés
     console.log("🔢 Vérification numéros de série...");
     const equipmentWithoutSerial = contract.contract_equipment?.filter(
-      (eq: any) => !eq.serial_number || eq.serial_number.trim() === ''
+      (eq: any) => {
+        // Gérer les serial_number qui peuvent être des arrays ou des strings
+        const serialNumber = Array.isArray(eq.serial_number) 
+          ? eq.serial_number[0] || '' 
+          : eq.serial_number || '';
+        return !serialNumber || serialNumber.trim() === '';
+      }
     );
 
     console.log("📦 Équipements sans numéro de série:", equipmentWithoutSerial);
@@ -176,26 +194,33 @@ serve(async (req) => {
       ExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       Reference: contract.id,
       Customer: {
-        Name: client?.name || contract.client_name,
+        Name: client?.name || contract.client_name || "Client non spécifié",
         VATNumber: client?.vat_number || '',
         PartyType: "Customer",
         Addresses: [
           {
             AddressType: "InvoiceAddress",
-            Name: client?.name || contract.client_name,
-            Street: client?.address || '',
-            City: client?.city || '',
-            PostalCode: client?.postal_code || '',
+            Name: client?.name || contract.client_name || "Client non spécifié",
+            Street: client?.address || "Adresse non spécifiée",
+            City: client?.city || "Ville non spécifiée",
+            PostalCode: client?.postal_code || "0000",
             CountryCode: client?.country || 'BE'
           }
         ]
       },
-      OrderLines: contract.contract_equipment?.map((equipment: any) => ({
-        Quantity: equipment.quantity,
-        UnitPriceExcl: equipment.purchase_price + equipment.margin,
-        Description: `${equipment.title}${equipment.serial_number ? ` - SN: ${equipment.serial_number}` : ''}`,
-        VATPercentage: 21 // TVA par défaut en Belgique
-      })) || []
+      OrderLines: contract.contract_equipment?.map((equipment: any) => {
+        // Gérer les serial_number qui peuvent être des arrays ou des strings
+        const serialNumber = Array.isArray(equipment.serial_number) 
+          ? equipment.serial_number[0] || '' 
+          : equipment.serial_number || '';
+        
+        return {
+          Quantity: equipment.quantity,
+          UnitPriceExcl: equipment.purchase_price + equipment.margin,
+          Description: `${equipment.title}${serialNumber ? ` - SN: ${serialNumber}` : ''}`,
+          VATPercentage: 21 // TVA par défaut en Belgique
+        };
+      }) || []
     };
 
     console.log("📋 Données Billit préparées:", JSON.stringify(billitInvoiceData, null, 2));
