@@ -167,42 +167,47 @@ serve(async (req) => {
 
     console.log("👥 Données client:", { client, error: clientError });
 
-    // Préparer les données pour Billit - CORRECTION: facturer au CLIENT, pas au bailleur
+    // Préparer les données pour Billit selon la documentation officielle
     const billitInvoiceData = {
-      client: {
-        name: client?.name || contract.client_name,
-        email: client?.email || '',
-        company: client?.company || '',
-        address: client?.address || '',
-        city: client?.city || '',
-        postal_code: client?.postal_code || '',
-        country: client?.country || '',
-        vat_number: client?.vat_number || ''
+      OrderType: "Invoice",
+      OrderDirection: "Income",
+      OrderNumber: `CON-${contract.id.slice(0, 8)}`,
+      OrderDate: new Date().toISOString().split('T')[0],
+      ExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      Reference: contract.id,
+      Customer: {
+        Name: client?.name || contract.client_name,
+        VATNumber: client?.vat_number || '',
+        PartyType: "Customer",
+        Addresses: [
+          {
+            AddressType: "InvoiceAddress",
+            Name: client?.name || contract.client_name,
+            Street: client?.address || '',
+            City: client?.city || '',
+            PostalCode: client?.postal_code || '',
+            CountryCode: client?.country || 'BE'
+          }
+        ]
       },
-      invoice: {
-        description: `Facture de leasing - Contrat ${contract.id}`,
-        date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        reference: contract.id,
-        items: contract.contract_equipment?.map((equipment: any) => ({
-          description: `${equipment.title} - SN: ${equipment.serial_number}`,
-          quantity: equipment.quantity,
-          unit_price: equipment.purchase_price + equipment.margin,
-          total: (equipment.purchase_price + equipment.margin) * equipment.quantity
-        })) || []
-      }
+      OrderLines: contract.contract_equipment?.map((equipment: any) => ({
+        Quantity: equipment.quantity,
+        UnitPriceExcl: equipment.purchase_price + equipment.margin,
+        Description: `${equipment.title}${equipment.serial_number ? ` - SN: ${equipment.serial_number}` : ''}`,
+        VATPercentage: 21 // TVA par défaut en Belgique
+      })) || []
     };
 
     console.log("📋 Données Billit préparées:", JSON.stringify(billitInvoiceData, null, 2));
 
     // Calculer le montant total
-    const totalAmount = billitInvoiceData.invoice.items.reduce(
-      (sum: number, item: any) => sum + item.total, 0
+    const totalAmount = billitInvoiceData.OrderLines.reduce(
+      (sum: number, item: any) => sum + (item.UnitPriceExcl * item.Quantity), 0
     );
 
-    // Appel à l'API Billit avec gestion d'erreur améliorée
+    // Appel à l'API Billit avec le bon endpoint selon la documentation
     console.log("🚀 Envoi à l'API Billit...");
-    const billitUrl = `${credentials.baseUrl}/invoices`;
+    const billitUrl = `${credentials.baseUrl}/v1/orders`;
     console.log("🔗 URL Billit:", billitUrl);
 
     let billitResponse;
@@ -251,7 +256,7 @@ serve(async (req) => {
         status: billitSuccess ? 'sent' : 'draft',
         generated_at: new Date().toISOString(),
         sent_at: billitSuccess ? new Date().toISOString() : null,
-        due_date: billitInvoiceData.invoice.due_date,
+        due_date: billitInvoiceData.ExpiryDate,
         billing_data: {
           ...billitInvoiceData,
           billit_response: billitInvoice,
