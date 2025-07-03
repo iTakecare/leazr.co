@@ -1,18 +1,61 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar, User, Building2, Euro } from "lucide-react";
+import { ChevronLeft, Calendar, User, Building2, Euro, FileText, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
+import { areAllSerialNumbersComplete, generateBillitInvoice, getBillitIntegration } from "@/services/invoiceService";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { toast } from "sonner";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
+  onRefresh?: () => void;
 }
 
-const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract }) => {
+const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, onRefresh }) => {
   const navigate = useNavigate();
+  const { companyId } = useMultiTenant();
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [billitEnabled, setBillitEnabled] = useState(false);
+  const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
+
+  useEffect(() => {
+    const checkBillitIntegration = async () => {
+      if (!companyId) return;
+      
+      const integration = await getBillitIntegration(companyId);
+      setBillitEnabled(integration?.is_enabled || false);
+    };
+
+    checkBillitIntegration();
+  }, [companyId]);
+
+  useEffect(() => {
+    // Pour maintenant, simplifier la vérification - on ajoutera invoice_generated dans useContractDetail
+    const canGenerate = billitEnabled && 
+                       contract.status === 'active';
+    
+    setCanGenerateInvoice(canGenerate);
+  }, [billitEnabled, contract]);
+
+  const handleGenerateInvoice = async () => {
+    if (!companyId || !canGenerateInvoice) return;
+
+    setIsGeneratingInvoice(true);
+    try {
+      await generateBillitInvoice(contract.id, companyId);
+      toast.success("Facture générée avec succès !");
+      onRefresh?.();
+    } catch (error: any) {
+      console.error("Erreur lors de la génération de la facture:", error);
+      toast.error(error.message || "Erreur lors de la génération de la facture");
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
 
   return (
     <div className="bg-gradient-to-r from-primary/5 to-accent/5 border-b">
@@ -39,7 +82,20 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract })
               </div>
             </div>
           </div>
-          <ContractStatusBadge status={contract.status} />
+          
+          <div className="flex items-center gap-4">
+            {canGenerateInvoice && (
+              <Button 
+                onClick={handleGenerateInvoice}
+                disabled={isGeneratingInvoice}
+                className="flex items-center gap-2"
+              >
+                <Receipt className="h-4 w-4" />
+                {isGeneratingInvoice ? "Génération..." : "Générer la facture"}
+              </Button>
+            )}
+            <ContractStatusBadge status={contract.status} />
+          </div>
         </div>
 
         {/* Quick Stats */}

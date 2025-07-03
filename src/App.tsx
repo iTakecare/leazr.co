@@ -308,6 +308,13 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
+                  <Route path="/admin/invoicing" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <InvoicingPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
                   <Route path="/admin/catalog" element={
                     <PrivateRoute>
                       <Layout>

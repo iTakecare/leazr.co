@@ -630,6 +630,47 @@ export type Database = {
           },
         ]
       }
+      company_integrations: {
+        Row: {
+          api_credentials: Json
+          company_id: string
+          created_at: string
+          id: string
+          integration_type: string
+          is_enabled: boolean
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          api_credentials?: Json
+          company_id: string
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_enabled?: boolean
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          api_credentials?: Json
+          company_id?: string
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_enabled?: boolean
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_modules: {
         Row: {
           activated_at: string | null
@@ -922,6 +963,8 @@ export type Database = {
           equipment_description: string | null
           estimated_delivery: string | null
           id: string
+          invoice_generated: boolean
+          invoice_id: string | null
           leaser_logo: string | null
           leaser_name: string
           monthly_payment: number
@@ -941,6 +984,8 @@ export type Database = {
           equipment_description?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_generated?: boolean
+          invoice_id?: string | null
           leaser_logo?: string | null
           leaser_name: string
           monthly_payment?: number
@@ -960,6 +1005,8 @@ export type Database = {
           equipment_description?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_generated?: boolean
+          invoice_id?: string | null
           leaser_logo?: string | null
           leaser_name?: string
           monthly_payment?: number
@@ -982,6 +1029,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
@@ -1129,6 +1183,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number
+          billing_data: Json
+          company_id: string
+          contract_id: string
+          created_at: string
+          due_date: string | null
+          external_invoice_id: string | null
+          generated_at: string | null
+          id: string
+          integration_type: string
+          invoice_number: string | null
+          leaser_name: string
+          paid_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          billing_data?: Json
+          company_id: string
+          contract_id: string
+          created_at?: string
+          due_date?: string | null
+          external_invoice_id?: string | null
+          generated_at?: string | null
+          id?: string
+          integration_type?: string
+          invoice_number?: string | null
+          leaser_name: string
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_data?: Json
+          company_id?: string
+          contract_id?: string
+          created_at?: string
+          due_date?: string | null
+          external_invoice_id?: string | null
+          generated_at?: string | null
+          id?: string
+          integration_type?: string
+          invoice_number?: string | null
+          leaser_name?: string
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leaser_ranges: {
         Row: {

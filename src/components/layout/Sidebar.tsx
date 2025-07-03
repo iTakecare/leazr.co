@@ -14,7 +14,8 @@ import {
   ChevronRight,
   X,
   Calculator,
-  Crown
+  Crown,
+  Receipt
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -79,6 +80,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Offres", icon: FileText, href: "/admin/offers" },
     { label: "Calculateur", icon: Calculator, href: "/admin/create-offer" },
     { label: "Contrats", icon: FileText, href: "/admin/contracts" },
+    { label: "Facturation", icon: Receipt, href: "/admin/invoicing" },
     { label: "Catalogue", icon: Package, href: "/admin/catalog" },
   ];
 
