@@ -86,17 +86,16 @@ const InvoiceDetailPage = () => {
 
     setIsGeneratingPdf(true);
     try {
-      // TODO: Implémenter la génération PDF pour les factures
       toast.info("Génération PDF en cours...");
       
-      // Simulation pour le moment
-      setTimeout(() => {
-        toast.success("PDF généré avec succès");
-        setIsGeneratingPdf(false);
-      }, 2000);
+      const { generateAndDownloadInvoicePdf } = await import('@/services/invoiceService');
+      await generateAndDownloadInvoicePdf(invoice.id);
+      
+      toast.success("PDF généré avec succès");
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
       toast.error("Erreur lors de la génération du PDF");
+    } finally {
       setIsGeneratingPdf(false);
     }
   };

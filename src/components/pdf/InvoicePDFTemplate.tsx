@@ -1,26 +1,21 @@
 import React from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Invoice } from "@/services/invoiceService";
+import type { CompanyInvoiceData } from "@/services/invoiceCompanyService";
 
 interface InvoicePDFTemplateProps {
   invoice: Invoice;
-  companyInfo?: {
-    name: string;
-    address?: string;
-    email?: string;
-    phone?: string;
-    vat?: string;
-  };
+  companyInfo?: CompanyInvoiceData;
 }
 
 const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({ 
   invoice, 
   companyInfo = {
-    name: "iTakecare",
-    address: "Avenue du Général Michel 1E, 6000 Charleroi, Belgique",
-    email: "info@itakecare.be",
-    phone: "+32 71 123 456",
-    vat: "BE 0795.642.894"
+    name: "Entreprise",
+    address: "Adresse non renseignée",
+    email: "contact@entreprise.com",
+    phone: "Téléphone non renseigné",
+    vat: "TVA non renseignée"
   }
 }) => {
   const invoiceNumber = invoice.invoice_number || `FAC-${invoice.id.slice(0, 8).toUpperCase()}`;
@@ -28,6 +23,12 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
   // Parse les données de facturation
   const billingData = invoice.billing_data || {};
   const items = billingData.invoice?.items || [];
+  const vatSummary = billingData.vatSummary || [];
+  const totals = billingData.totals || {
+    totalExclVat: invoice.amount * 0.826, // Approximation si pas de détail
+    totalVat: invoice.amount * 0.174,
+    totalInclVat: invoice.amount
+  };
 
   const getStatusLabel = (status: string) => {
     const statusLabels = {
@@ -75,11 +76,24 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
         backgroundColor: "#1A2C3A",
         color: "white"
       }}>
-        <img 
-          src="/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png" 
-          alt="iTakecare Logo" 
-          style={{ height: "10mm" }} 
-        />
+        {companyInfo.logo_url ? (
+          <img 
+            src={companyInfo.logo_url} 
+            alt={`${companyInfo.name} Logo`} 
+            style={{ height: "10mm" }} 
+          />
+        ) : (
+          <div style={{ 
+            height: "10mm", 
+            display: "flex", 
+            alignItems: "center",
+            fontSize: "10pt",
+            fontWeight: "bold",
+            color: "white"
+          }}>
+            {companyInfo.name}
+          </div>
+        )}
         <div style={{ textAlign: "right" }}>
           <span style={{ 
             fontSize: "12pt", 
@@ -215,33 +229,49 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
                   padding: "2mm", 
                   textAlign: "left", 
                   border: "0.2mm solid #e5e7eb", 
-                  width: "50%" 
+                  width: "35%" 
                 }}>
-                  Description
+                  DESCRIPTION
+                </th>
+                <th style={{ 
+                  padding: "2mm", 
+                  textAlign: "right", 
+                  border: "0.2mm solid #e5e7eb", 
+                  width: "13%" 
+                }}>
+                  P.U.
                 </th>
                 <th style={{ 
                   padding: "2mm", 
                   textAlign: "center", 
                   border: "0.2mm solid #e5e7eb", 
-                  width: "15%" 
+                  width: "8%" 
                 }}>
-                  Quantité
+                  QTÉ
                 </th>
                 <th style={{ 
                   padding: "2mm", 
                   textAlign: "right", 
                   border: "0.2mm solid #e5e7eb", 
-                  width: "20%" 
+                  width: "13%" 
                 }}>
-                  Prix unitaire
+                  EXCL.
+                </th>
+                <th style={{ 
+                  padding: "2mm", 
+                  textAlign: "center", 
+                  border: "0.2mm solid #e5e7eb", 
+                  width: "8%" 
+                }}>
+                  TVA
                 </th>
                 <th style={{ 
                   padding: "2mm", 
                   textAlign: "right", 
                   border: "0.2mm solid #e5e7eb", 
-                  width: "15%" 
+                  width: "13%" 
                 }}>
-                  Total
+                  INCL.
                 </th>
               </tr>
             </thead>
@@ -259,6 +289,13 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
                     </td>
                     <td style={{ 
                       padding: "2mm", 
+                      textAlign: "right", 
+                      border: "0.2mm solid #e5e7eb" 
+                    }}>
+                      {formatCurrency(item.unit_price_excl_vat || item.unit_price || 0)}
+                    </td>
+                    <td style={{ 
+                      padding: "2mm", 
                       textAlign: "center", 
                       border: "0.2mm solid #e5e7eb" 
                     }}>
@@ -269,14 +306,21 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
                       textAlign: "right", 
                       border: "0.2mm solid #e5e7eb" 
                     }}>
-                      {formatCurrency(item.unit_price || 0)}
+                      {formatCurrency(item.total_excl_vat || item.total || 0)}
+                    </td>
+                    <td style={{ 
+                      padding: "2mm", 
+                      textAlign: "center", 
+                      border: "0.2mm solid #e5e7eb" 
+                    }}>
+                      {item.vat_rate || 21}%
                     </td>
                     <td style={{ 
                       padding: "2mm", 
                       textAlign: "right", 
                       border: "0.2mm solid #e5e7eb" 
                     }}>
-                      {formatCurrency(item.total || 0)}
+                      {formatCurrency(item.total_incl_vat || item.total || 0)}
                     </td>
                   </tr>
                 ))
@@ -284,6 +328,13 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
                 <tr>
                   <td style={{ padding: "2mm", border: "0.2mm solid #e5e7eb" }}>
                     Service de leasing - Contrat {invoice.contract_id}
+                  </td>
+                  <td style={{ 
+                    padding: "2mm", 
+                    textAlign: "right", 
+                    border: "0.2mm solid #e5e7eb" 
+                  }}>
+                    {formatCurrency(totals.totalExclVat)}
                   </td>
                   <td style={{ 
                     padding: "2mm", 
@@ -297,14 +348,21 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
                     textAlign: "right", 
                     border: "0.2mm solid #e5e7eb" 
                   }}>
-                    {formatCurrency(invoice.amount)}
+                    {formatCurrency(totals.totalExclVat)}
+                  </td>
+                  <td style={{ 
+                    padding: "2mm", 
+                    textAlign: "center", 
+                    border: "0.2mm solid #e5e7eb" 
+                  }}>
+                    21%
                   </td>
                   <td style={{ 
                     padding: "2mm", 
                     textAlign: "right", 
                     border: "0.2mm solid #e5e7eb" 
                   }}>
-                    {formatCurrency(invoice.amount)}
+                    {formatCurrency(totals.totalInclVat)}
                   </td>
                 </tr>
               )}
@@ -312,7 +370,7 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
           </table>
         </div>
 
-        {/* Total */}
+        {/* Récapitulatif TVA */}
         <div style={{ 
           margin: "0 0 5mm 0",
           padding: "3mm",
@@ -320,29 +378,78 @@ const InvoicePDFTemplate: React.FC<InvoicePDFTemplateProps> = ({
           borderRadius: "1mm",
           border: "0.2mm solid #e5e7eb"
         }}>
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center" 
+          <h3 style={{ 
+            fontSize: "9pt", 
+            fontWeight: "bold", 
+            margin: "0 0 2mm 0",
+            color: "#1A2C3A"
           }}>
-            <div>
-              <h3 style={{ fontSize: "9pt", fontWeight: "bold", margin: "0 0 1mm 0" }}>
-                Total de la facture
-              </h3>
-              {invoice.integration_type && (
-                <p style={{ fontSize: "8pt", margin: "0" }}>
-                  Via {invoice.integration_type}
-                </p>
+            Récapitulatif TVA
+          </h3>
+          
+          <table style={{ 
+            width: "100%", 
+            borderCollapse: "collapse", 
+            fontSize: "8pt"
+          }}>
+            <thead>
+              <tr style={{ backgroundColor: "#e5e7eb" }}>
+                <th style={{ padding: "1mm", textAlign: "left", border: "0.2mm solid #d1d5db" }}>Taux TVA</th>
+                <th style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>EXCL. TVA</th>
+                <th style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>TVA</th>
+                <th style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>INCL. TVA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vatSummary.length > 0 ? (
+                vatSummary.map((vat: any, index: number) => (
+                  <tr key={index}>
+                    <td style={{ padding: "1mm", border: "0.2mm solid #d1d5db" }}>{vat.rate}%</td>
+                    <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                      {formatCurrency(vat.totalExclVat)}
+                    </td>
+                    <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                      {formatCurrency(vat.vatAmount)}
+                    </td>
+                    <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                      {formatCurrency(vat.totalInclVat)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td style={{ padding: "1mm", border: "0.2mm solid #d1d5db" }}>21%</td>
+                  <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                    {formatCurrency(totals.totalExclVat)}
+                  </td>
+                  <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                    {formatCurrency(totals.totalVat)}
+                  </td>
+                  <td style={{ padding: "1mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                    {formatCurrency(totals.totalInclVat)}
+                  </td>
+                </tr>
               )}
-            </div>
-            <div style={{ 
-              fontSize: "14pt", 
-              fontWeight: "bold", 
-              color: "#2563EB" 
-            }}>
-              {formatCurrency(invoice.amount)}
-            </div>
-          </div>
+              <tr style={{ backgroundColor: "#f3f4f6", fontWeight: "bold" }}>
+                <td style={{ padding: "2mm", border: "0.2mm solid #d1d5db" }}>TOTAUX</td>
+                <td style={{ padding: "2mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                  {formatCurrency(totals.totalExclVat)}
+                </td>
+                <td style={{ padding: "2mm", textAlign: "right", border: "0.2mm solid #d1d5db" }}>
+                  {formatCurrency(totals.totalVat)}
+                </td>
+                <td style={{ padding: "2mm", textAlign: "right", border: "0.2mm solid #d1d5db", fontSize: "10pt", color: "#2563EB" }}>
+                  {formatCurrency(totals.totalInclVat)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          
+          {invoice.integration_type && (
+            <p style={{ fontSize: "8pt", margin: "2mm 0 0 0", textAlign: "center" }}>
+              Facture générée via {invoice.integration_type}
+            </p>
+          )}
         </div>
 
         {/* Informations de paiement */}

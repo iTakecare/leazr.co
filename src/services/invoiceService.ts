@@ -246,6 +246,7 @@ export const disableBillitIntegration = async (companyId: string) => {
 // Générer et télécharger le PDF d'une facture
 export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
   const { downloadInvoicePdf } = await import('@/utils/invoicePdfGenerator');
+  const { getCompanyInvoiceData } = await import('./invoiceCompanyService');
   
   try {
     // Récupérer la facture
@@ -259,8 +260,11 @@ export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
       throw new Error('Facture non trouvée');
     }
 
+    // Récupérer les données de l'entreprise
+    const companyInfo = await getCompanyInvoiceData(invoice.company_id);
+
     // Générer et télécharger le PDF
-    const filename = await downloadInvoicePdf(invoice);
+    const filename = await downloadInvoicePdf(invoice, companyInfo);
     return filename;
   } catch (error) {
     console.error('Erreur lors de la génération du PDF de facture:', error);
