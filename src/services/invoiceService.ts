@@ -217,6 +217,8 @@ export const setupBillitIntegration = async (
         companyId: billitCompanyId
       },
       settings
+    }, {
+      onConflict: 'company_id,integration_type'
     })
     .select()
     .single();
