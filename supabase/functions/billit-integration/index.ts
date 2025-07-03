@@ -97,13 +97,18 @@ serve(async (req) => {
 
     // Vérifier si une facture existe déjà pour ce contrat
     console.log("🔍 Vérification facture existante...");
-    const { data: existingInvoice, error: invoiceCheckError } = await supabase
+    const { data: existingInvoices, error: invoiceCheckError } = await supabase
       .from('invoices')
       .select('id, status, external_invoice_id')
-      .eq('contract_id', contractId)
-      .single();
+      .eq('contract_id', contractId);
 
-    if (existingInvoice && !invoiceCheckError) {
+    if (invoiceCheckError) {
+      console.error("❌ Erreur lors de la vérification des factures existantes:", invoiceCheckError);
+      throw new Error(`Erreur lors de la vérification des factures: ${invoiceCheckError.message}`);
+    }
+
+    if (existingInvoices && existingInvoices.length > 0) {
+      const existingInvoice = existingInvoices[0];
       console.log("⚠️ Facture déjà existante:", existingInvoice);
       throw new Error(`Une facture existe déjà pour ce contrat (ID: ${existingInvoice.id}). Supprimez-la d'abord si vous souhaitez la régénérer.`);
     }
