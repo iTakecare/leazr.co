@@ -199,15 +199,34 @@ serve(async (req) => {
       throw new Error(`Numéros de série manquants pour: ${missingEquipment}`);
     }
 
-    // Récupérer les données du leaser pour la facturation (c'est le leaser qui sera facturé)
+    // Récupérer les données du leaser pour la facturation avec recherche flexible
     console.log("🏢 Récupération données leaser...");
     const leaserName = contract.leaser_name;
     
-    const { data: leaser, error: leaserError } = await supabase
+    // Essayer d'abord une correspondance exacte
+    let { data: leaser, error: leaserError } = await supabase
       .from('leasers')
       .select('*')
       .eq('name', leaserName)
       .single();
+
+    // Si pas de correspondance exacte, essayer une recherche partielle
+    if (leaserError || !leaser) {
+      console.log("🔍 Recherche partielle pour leaser:", leaserName);
+      const partialResult = await supabase
+        .from('leasers')
+        .select('*')
+        .ilike('name', `%${leaserName}%`)
+        .single();
+        
+      if (partialResult.data) {
+        leaser = partialResult.data;
+        leaserError = null;
+        console.log("✅ Leaser trouvé avec recherche partielle:", leaser.name);
+      } else {
+        leaserError = partialResult.error;
+      }
+    }
 
     console.log("🏢 Données leaser:", { leaser, error: leaserError });
 
