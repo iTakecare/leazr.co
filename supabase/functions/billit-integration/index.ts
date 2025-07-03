@@ -263,63 +263,13 @@ serve(async (req) => {
     const serviceStartDate = contractDate.toISOString().split('T')[0];
     const serviceEndDate = new Date(contractDate.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 1 an par défaut
 
-    // Préparer les CustomFields pour le header
-    const customFields: any = {
-      // Informations contractuelles
-      "Invoice.ContractDocumentReference.ID.Text": contract.id,
-      "Invoice.ProjectReference.ID.Text": `LEASING-${contract.id.slice(0, 8)}`,
-      "Invoice.AccountingCost": `LEASE-${contract.leaser_name}`,
-      
-      // Période de service
-      "Invoice.InvoicePeriod.StartDate": serviceStartDate,
-      "Invoice.InvoicePeriod.EndDate": serviceEndDate,
-      
-      // Notes avec contexte complet
-      "Invoice.Note": `Contrat de leasing pour ${contract.equipment_description || 'équipements divers'}. ` +
-                     `Référence offre: ${contract.offer_id}. ` +
-                     `Client final: ${client?.name || contract.client_name}${client?.company ? ` (${client.company})` : ''}. ` +
-                     `Bailleur: ${contract.leaser_name}. ` +
-                     `Paiement mensuel: €${contract.monthly_payment}`,
-    };
-
-    // Contact leaser (qui sera facturé)
-    if (leaser?.email) {
-      customFields["Invoice.AccountingCustomerParty.Party.Contact.ElectronicMail"] = leaser.email;
-    }
-    if (leaser?.phone) {
-      customFields["Invoice.AccountingCustomerParty.Party.Contact.Telephone"] = leaser.phone;
-    }
-    customFields["Invoice.AccountingCustomerParty.Party.Contact.Name"] = leaser.name;
-
-    // Contact fournisseur (leaser/entreprise)
-    if (supplierContact.email) {
-      customFields["Invoice.AccountingSupplierParty.Party.Contact.ElectronicMail"] = supplierContact.email;
-    }
-    if (supplierContact.phone) {
-      customFields["Invoice.AccountingSupplierParty.Party.Contact.Telephone"] = supplierContact.phone;
-    }
-    if (supplierContact.name) {
-      customFields["Invoice.AccountingSupplierParty.Party.Contact.Name"] = supplierContact.name;
-    }
-
-    // Informations de livraison si disponibles
-    if (contract.tracking_number) {
-      customFields["Invoice.Delivery.DeliveryLocation.ID.Text"] = contract.tracking_number;
-    }
-    
-    // Termes de paiement personnalisés
-    customFields["PaymentTerms"] = "Paiement selon termes du contrat de leasing";
-    customFields["PaymentMeansCode"] = "58"; // Code pour prélèvement automatique
-
-    // Préparer les données pour Billit selon la documentation officielle
+    // Préparer les données pour Billit selon la documentation officielle et l'exemple Postman
     const billitInvoiceData = {
       OrderType: "Invoice",
       OrderDirection: "Income",
       OrderNumber: `CON-${contract.id.slice(0, 8)}`,
       OrderDate: new Date().toISOString().split('T')[0],
       ExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      Reference: contract.id,
-      CustomFields: customFields,
       Customer: {
         Name: leaser.name,
         VATNumber: leaser.vat_number || '',
@@ -329,49 +279,18 @@ serve(async (req) => {
             AddressType: "InvoiceAddress",
             Name: leaser.name,
             Street: leaser.address,
-            StreetNumber: "", // Pourrait être extrait de l'adresse si besoin
             City: leaser.city,
             PostalCode: leaser.postal_code,
             CountryCode: leaser.country || 'BE'
           }
         ]
       },
-      OrderLines: contract.contract_equipment?.map((equipment: any, index: number) => {
-        // Gérer les serial_number qui peuvent être des arrays ou des strings
-        const serialNumber = Array.isArray(equipment.serial_number) 
-          ? equipment.serial_number[0] || '' 
-          : equipment.serial_number || '';
-        
-        // Préparer les CustomFields pour cette ligne
-        const lineCustomFields: any = {
-          "PeppolUnitCode": "C62", // Code pour "unité" dans Peppol
-          "PeppolLineID": (index + 1).toString(),
-          "InvoiceLine.InvoicePeriod.StartDate": serviceStartDate,
-          "InvoiceLine.InvoicePeriod.EndDate": serviceEndDate,
-        };
-
-        // Ajouter les informations détaillées dans les notes de ligne
-        let lineNote = `Équipement: ${equipment.title}`;
-        if (serialNumber) {
-          lineNote += ` | Numéro de série: ${serialNumber}`;
-        }
-        if (equipment.collaborator_id) {
-          lineNote += ` | Assigné au collaborateur ID: ${equipment.collaborator_id}`;
-        }
-        lineNote += ` | Prix d'achat: €${equipment.purchase_price} | Marge: €${equipment.margin}`;
-        
-        lineCustomFields["InvoiceLine.Note"] = lineNote;
-
-        // Classification produit générique pour équipements IT
-        lineCustomFields["InvoiceLine.Item.CommodityClassification.ItemClassificationCode.Text"] = "43210000";
-        lineCustomFields["InvoiceLine.Item.CommodityClassification.ItemClassificationCode.ListID"] = "CPV";
-        
+      OrderLines: contract.contract_equipment?.map((equipment: any) => {
         return {
           Quantity: equipment.quantity,
-          UnitPriceExcl: equipment.purchase_price + equipment.margin,
+          UnitPriceExcl: parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
           Description: equipment.title,
-          CustomFields: lineCustomFields,
-          VATPercentage: 21 // TVA par défaut en Belgique
+          VATPercentage: 21
         };
       }) || []
     };
@@ -397,7 +316,7 @@ serve(async (req) => {
       billitResponse = await fetch(billitUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${credentials.apiKey}`,
+          'ApiKey': credentials.apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(billitInvoiceData)
@@ -428,7 +347,7 @@ serve(async (req) => {
           const sendResponse = await fetch(sendUrl, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${credentials.apiKey}`,
+              'ApiKey': credentials.apiKey,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(sendData)
