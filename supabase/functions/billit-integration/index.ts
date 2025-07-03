@@ -95,6 +95,19 @@ serve(async (req) => {
       throw new Error("URL de base Billit manquante dans la configuration");
     }
 
+    // Vérifier si une facture existe déjà pour ce contrat
+    console.log("🔍 Vérification facture existante...");
+    const { data: existingInvoice, error: invoiceCheckError } = await supabase
+      .from('invoices')
+      .select('id, status, external_invoice_id')
+      .eq('contract_id', contractId)
+      .single();
+
+    if (existingInvoice && !invoiceCheckError) {
+      console.log("⚠️ Facture déjà existante:", existingInvoice);
+      throw new Error(`Une facture existe déjà pour ce contrat (ID: ${existingInvoice.id}). Supprimez-la d'abord si vous souhaitez la régénérer.`);
+    }
+
     // Récupérer les données du contrat et équipements
     console.log("📄 Récupération contrat:", contractId);
     const { data: contract, error: contractError } = await supabase
@@ -354,7 +367,8 @@ async function handleBillitTest(companyId: string) {
     if (testResults.has_credentials) {
       try {
         console.log("🔌 Test de connexion à l'API Billit...");
-        const testResponse = await fetch(`${credentials.baseUrl}/ping`, {
+        // Tester avec un endpoint simple (par exemple, obtenir des informations de l'entreprise)
+        const testResponse = await fetch(`${credentials.baseUrl}/companies/${credentials.companyId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${credentials.apiKey}`,

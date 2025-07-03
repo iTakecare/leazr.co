@@ -178,9 +178,19 @@ const BillitIntegrationSettings = () => {
               <Input
                 id="baseUrl"
                 value={formData.baseUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
+                onChange={(e) => {
+                  let url = e.target.value;
+                  // Ajouter automatiquement https:// si manquant
+                  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                  }
+                  setFormData(prev => ({ ...prev, baseUrl: url }));
+                }}
                 placeholder="https://api.billit.be/v1"
               />
+              <p className="text-xs text-muted-foreground">
+                L'URL doit commencer par https://
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -191,8 +201,11 @@ const BillitIntegrationSettings = () => {
                 id="companyId"
                 value={formData.companyId}
                 onChange={(e) => setFormData(prev => ({ ...prev, companyId: e.target.value }))}
-                placeholder="Votre Company ID Billit"
+                placeholder="123456 (ID numérique uniquement)"
               />
+              <p className="text-xs text-muted-foreground">
+                Utilisez votre ID numérique d'entreprise Billit, pas votre email
+              </p>
             </div>
 
             <div className="space-y-2">
