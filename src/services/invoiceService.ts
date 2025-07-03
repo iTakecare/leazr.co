@@ -355,6 +355,85 @@ export const downloadBillitInvoicePdf = async (invoiceId: string) => {
   }
 };
 
+// Supprimer une facture (suppression physique)
+export const deleteInvoice = async (invoiceId: string) => {
+  try {
+    console.log('🗑️ Suppression de la facture:', invoiceId);
+    
+    // Récupérer la facture pour vérifier son statut
+    const { data: invoice, error: fetchError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
+
+    if (fetchError || !invoice) {
+      throw new Error('Facture non trouvée');
+    }
+
+    // Empêcher la suppression des factures payées
+    if (invoice.status === 'paid') {
+      throw new Error('Impossible de supprimer une facture payée');
+    }
+
+    // Détacher le contrat de la facture
+    if (invoice.contract_id) {
+      await supabase
+        .from('contracts')
+        .update({ 
+          invoice_id: null, 
+          invoice_generated: false 
+        })
+        .eq('id', invoice.contract_id);
+    }
+
+    // Supprimer la facture
+    const { error: deleteError } = await supabase
+      .from('invoices')
+      .delete()
+      .eq('id', invoiceId);
+
+    if (deleteError) {
+      console.error('❌ Erreur lors de la suppression:', deleteError);
+      throw new Error(`Erreur lors de la suppression: ${deleteError.message}`);
+    }
+
+    console.log('✅ Facture supprimée avec succès');
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression de la facture:', error);
+    throw error;
+  }
+};
+
+// Annuler une facture (suppression logique)
+export const cancelInvoice = async (invoiceId: string, reason?: string) => {
+  try {
+    console.log('🚫 Annulation de la facture:', invoiceId);
+    
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .update({ 
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Erreur lors de l\'annulation:', error);
+      throw new Error(`Erreur lors de l'annulation: ${error.message}`);
+    }
+
+    console.log('✅ Facture annulée avec succès');
+    return invoice;
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'annulation de la facture:', error);
+    throw error;
+  }
+};
+
 // Générer et télécharger le PDF d'une facture
 export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
   const { downloadInvoicePdf } = await import('@/utils/invoicePdfGenerator');

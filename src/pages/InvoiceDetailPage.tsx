@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2 } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, generateBillitInvoice, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ const InvoiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -97,6 +99,22 @@ const InvoiceDetailPage = () => {
       toast.error("Erreur lors de la génération du PDF");
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDeleteInvoice = async () => {
+    if (!invoice) return;
+
+    setIsDeletingInvoice(true);
+    try {
+      await deleteInvoice(invoice.id);
+      toast.success("Facture supprimée avec succès");
+      navigate("/admin/invoicing");
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
+    } finally {
+      setIsDeletingInvoice(false);
     }
   };
 
@@ -303,6 +321,46 @@ const InvoiceDetailPage = () => {
                   Annuler la facture
                 </Button>
               )}
+
+              <Separator />
+
+              {/* Bouton de suppression avec confirmation */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full"
+                    disabled={isDeletingInvoice || invoice.status === 'paid'}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer définitivement
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer la facture</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir supprimer définitivement cette facture ? 
+                      Cette action est irréversible et détachera le contrat associé.
+                      {invoice.status === 'paid' && (
+                        <span className="text-red-600 font-medium block mt-2">
+                          Les factures payées ne peuvent pas être supprimées.
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteInvoice}
+                      disabled={isDeletingInvoice || invoice.status === 'paid'}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeletingInvoice ? "Suppression..." : "Supprimer définitivement"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
 
