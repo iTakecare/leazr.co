@@ -16,6 +16,13 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         id, 
         name,
         logo_url,
+        address,
+        city,
+        postal_code,
+        country,
+        vat_number,
+        phone,
+        email,
         ranges:leaser_ranges(
           id,
           min,
@@ -41,6 +48,13 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       id: leaser.id,
       name: leaser.name,
       logo_url: leaser.logo_url,
+      address: leaser.address,
+      city: leaser.city,
+      postal_code: leaser.postal_code,
+      country: leaser.country,
+      vat_number: leaser.vat_number,
+      phone: leaser.phone,
+      email: leaser.email,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -67,6 +81,13 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         id, 
         name,
         logo_url,
+        address,
+        city,
+        postal_code,
+        country,
+        vat_number,
+        phone,
+        email,
         ranges:leaser_ranges(
           id,
           min,
@@ -90,6 +111,13 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       id: data.id,
       name: data.name,
       logo_url: data.logo_url,
+      address: data.address,
+      city: data.city,
+      postal_code: data.postal_code,
+      country: data.country,
+      vat_number: data.vat_number,
+      phone: data.phone,
+      email: data.email,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     };
   } catch (error) {
@@ -129,6 +157,13 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       .insert({
         name: leaser.name,
         logo_url: leaser.logo_url || null,
+        address: leaser.address || null,
+        city: leaser.city || null,
+        postal_code: leaser.postal_code || null,
+        country: leaser.country || null,
+        vat_number: leaser.vat_number || null,
+        phone: leaser.phone || null,
+        email: leaser.email || null,
         company_id: companyId
       })
       .select()
@@ -187,7 +222,14 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
       .from('leasers')
       .update({
         name: leaser.name,
-        logo_url: leaser.logo_url || null
+        logo_url: leaser.logo_url || null,
+        address: leaser.address || null,
+        city: leaser.city || null,
+        postal_code: leaser.postal_code || null,
+        country: leaser.country || null,
+        vat_number: leaser.vat_number || null,
+        phone: leaser.phone || null,
+        email: leaser.email || null
       })
       .eq('id', id);
     

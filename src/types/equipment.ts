@@ -15,6 +15,13 @@ export interface Leaser {
   name: string;
   logo_url?: string;
   ranges: LeasingRange[];
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  vat_number?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface LeasingRange {

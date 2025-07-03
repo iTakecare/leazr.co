@@ -199,7 +199,33 @@ serve(async (req) => {
       throw new Error(`Numéros de série manquants pour: ${missingEquipment}`);
     }
 
-    // Récupérer les données client pour la facturation
+    // Récupérer les données du leaser pour la facturation (c'est le leaser qui sera facturé)
+    console.log("🏢 Récupération données leaser...");
+    const leaserName = contract.leaser_name;
+    
+    const { data: leaser, error: leaserError } = await supabase
+      .from('leasers')
+      .select('*')
+      .eq('name', leaserName)
+      .single();
+
+    console.log("🏢 Données leaser:", { leaser, error: leaserError });
+
+    if (leaserError || !leaser) {
+      console.error("❌ Leaser non trouvé:", leaserError);
+      throw new Error(`Leaser "${leaserName}" non trouvé pour ce contrat`);
+    }
+
+    // Valider que les données du leaser sont complètes pour la facturation
+    const requiredLeaserFields = ['address', 'city', 'postal_code', 'email'];
+    const missingLeaserFields = requiredLeaserFields.filter(field => !leaser[field]);
+    
+    if (missingLeaserFields.length > 0) {
+      console.error("❌ Données leaser incomplètes:", missingLeaserFields);
+      throw new Error(`Données leaser incomplètes: ${missingLeaserFields.join(', ')} manquant(s). Veuillez compléter l'adresse du leaser dans les paramètres.`);
+    }
+
+    // Récupérer les données client pour information (affiché dans les notes)
     console.log("👥 Récupération données client...");
     const { data: client, error: clientError } = await supabase
       .from('clients')
@@ -232,20 +258,19 @@ serve(async (req) => {
       // Notes avec contexte complet
       "Invoice.Note": `Contrat de leasing pour ${contract.equipment_description || 'équipements divers'}. ` +
                      `Référence offre: ${contract.offer_id}. ` +
+                     `Client final: ${client?.name || contract.client_name}${client?.company ? ` (${client.company})` : ''}. ` +
                      `Bailleur: ${contract.leaser_name}. ` +
                      `Paiement mensuel: €${contract.monthly_payment}`,
     };
 
-    // Contact client si disponible
-    if (client?.email) {
-      customFields["Invoice.AccountingCustomerParty.Party.Contact.ElectronicMail"] = client.email;
+    // Contact leaser (qui sera facturé)
+    if (leaser?.email) {
+      customFields["Invoice.AccountingCustomerParty.Party.Contact.ElectronicMail"] = leaser.email;
     }
-    if (client?.phone) {
-      customFields["Invoice.AccountingCustomerParty.Party.Contact.Telephone"] = client.phone;
+    if (leaser?.phone) {
+      customFields["Invoice.AccountingCustomerParty.Party.Contact.Telephone"] = leaser.phone;
     }
-    if (client?.contact_name || client?.name) {
-      customFields["Invoice.AccountingCustomerParty.Party.Contact.Name"] = client.contact_name || client.name;
-    }
+    customFields["Invoice.AccountingCustomerParty.Party.Contact.Name"] = leaser.name;
 
     // Contact fournisseur (leaser/entreprise)
     if (supplierContact.email) {
@@ -277,18 +302,18 @@ serve(async (req) => {
       Reference: contract.id,
       CustomFields: customFields,
       Customer: {
-        Name: client?.name || contract.client_name || "Client non spécifié",
-        VATNumber: client?.vat_number || '',
+        Name: leaser.name,
+        VATNumber: leaser.vat_number || '',
         PartyType: "Customer",
         Addresses: [
           {
             AddressType: "InvoiceAddress",
-            Name: client?.name || contract.client_name || "Client non spécifié",
-            Street: client?.address || "Adresse non spécifiée",
+            Name: leaser.name,
+            Street: leaser.address,
             StreetNumber: "", // Pourrait être extrait de l'adresse si besoin
-            City: client?.city || "Ville non spécifiée",
-            PostalCode: client?.postal_code || "0000",
-            CountryCode: client?.country || 'BE'
+            City: leaser.city,
+            PostalCode: leaser.postal_code,
+            CountryCode: leaser.country || 'BE'
           }
         ]
       },

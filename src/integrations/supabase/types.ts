@@ -1299,28 +1299,49 @@ export type Database = {
       }
       leasers: {
         Row: {
+          address: string | null
+          city: string | null
           company_id: string
+          country: string | null
           created_at: string | null
+          email: string | null
           id: string
           logo_url: string | null
           name: string
+          phone: string | null
+          postal_code: string | null
           updated_at: string | null
+          vat_number: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           company_id: string
+          country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           logo_url?: string | null
           name: string
+          phone?: string | null
+          postal_code?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           company_id?: string
+          country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
           logo_url?: string | null
           name?: string
+          phone?: string | null
+          postal_code?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Relationships: [
           {

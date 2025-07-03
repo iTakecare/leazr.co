@@ -146,6 +146,13 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       const leaserData: Omit<Leaser, "id"> = {
         name: formData.get("name") as string,
         logo_url: previewUrl,
+        address: formData.get("address") as string || undefined,
+        city: formData.get("city") as string || undefined,
+        postal_code: formData.get("postal_code") as string || undefined,
+        country: formData.get("country") as string || undefined,
+        vat_number: formData.get("vat_number") as string || undefined,
+        phone: formData.get("phone") as string || undefined,
+        email: formData.get("email") as string || undefined,
         ranges: tempRanges
       };
       
@@ -160,20 +167,23 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nom du leaser</Label>
-          <Input 
-            id="name" 
-            name="name" 
-            defaultValue={currentLeaser?.name || ""}
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="logo_url">Logo du leaser</Label>
-          <div className="mt-2">
+      <div className="space-y-6">
+        {/* Informations générales */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Informations générales</h3>
+          <div className="space-y-2">
+            <Label htmlFor="name">Nom du leaser</Label>
+            <Input 
+              id="name" 
+              name="name" 
+              defaultValue={currentLeaser?.name || ""}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="logo_url">Logo du leaser</Label>
+            <div className="mt-2">
             {previewUrl ? (
               <div className="relative w-full h-32 border rounded-md overflow-hidden mb-2 bg-white p-4 flex items-center justify-center">
                 <img 
@@ -211,6 +221,80 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
               onChange={handleLogoChange}
               className="hidden"
             />
+            </div>
+          </div>
+        </div>
+        
+        {/* Informations de contact */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Informations de contact</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                name="email" 
+                type="email"
+                defaultValue={currentLeaser?.email || ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input 
+                id="phone" 
+                name="phone" 
+                defaultValue={currentLeaser?.phone || ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vat_number">Numéro de TVA</Label>
+              <Input 
+                id="vat_number" 
+                name="vat_number" 
+                defaultValue={currentLeaser?.vat_number || ""}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Adresse */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Adresse</h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse complète</Label>
+              <Input 
+                id="address" 
+                name="address" 
+                defaultValue={currentLeaser?.address || ""}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Ville</Label>
+                <Input 
+                  id="city" 
+                  name="city" 
+                  defaultValue={currentLeaser?.city || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="postal_code">Code postal</Label>
+                <Input 
+                  id="postal_code" 
+                  name="postal_code" 
+                  defaultValue={currentLeaser?.postal_code || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Pays</Label>
+                <Input 
+                  id="country" 
+                  name="country" 
+                  defaultValue={currentLeaser?.country || ""}
+                />
+              </div>
+            </div>
           </div>
         </div>
         
