@@ -79,7 +79,7 @@ const integrations: Integration[] = [
     id: 'cegid',
     name: 'Cegid',
     description: 'Solution comptable et de gestion intégrée',
-    logoUrl: '/lovable-uploads/e77a5e2d-5045-4f90-ac7c-a7f90e45cbc8.png',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Cegid_logo_20182.png',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
