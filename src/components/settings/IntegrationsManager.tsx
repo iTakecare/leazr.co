@@ -50,7 +50,7 @@ const integrations: Integration[] = [
     id: 'sap',
     name: 'SAP Business One',
     description: 'ERP pour petites et moyennes entreprises',
-    logoUrl: '/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png',
+    logoUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0jOSrHlXnK_ohV9pqRJVAeA3-Ts3D0TuOwA&s',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
