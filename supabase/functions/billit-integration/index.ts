@@ -806,3 +806,160 @@ async function handleBillitTest(companyId: string) {
     });
   }
 }
+
+// Fonction pour gérer l'envoi d'une facture existante
+async function handleSendExistingInvoice(invoiceId: string) {
+  try {
+    console.log('📤 Envoi facture existante vers Billit - invoiceId:', invoiceId);
+    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Variables d'environnement Supabase manquantes");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Récupérer la facture existante
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .select('*, billing_data')
+      .eq('id', invoiceId)
+      .single();
+
+    if (invoiceError || !invoice) {
+      throw new Error('Facture non trouvée');
+    }
+
+    if (invoice.status !== 'draft') {
+      throw new Error('Seules les factures en brouillon peuvent être envoyées');
+    }
+
+    // Récupérer l'intégration Billit
+    const { data: integration, error: integrationError } = await supabase
+      .from('company_integrations')
+      .select('api_credentials, settings, is_enabled')
+      .eq('company_id', invoice.company_id)
+      .eq('integration_type', 'billit')
+      .single();
+
+    if (integrationError || !integration?.is_enabled) {
+      throw new Error('Intégration Billit non configurée ou désactivée');
+    }
+
+    const credentials = integration.api_credentials as BillitCredentials;
+    
+    if (!credentials.apiKey || !credentials.baseUrl) {
+      throw new Error('Credentials Billit manquantes');
+    }
+
+    // Récupérer les données du contrat et équipements depuis le billing_data
+    const contractData = invoice.billing_data?.contract_data;
+    const equipmentData = invoice.billing_data?.equipment_data;
+
+    if (!contractData || !equipmentData) {
+      throw new Error('Données de facturation incomplètes');
+    }
+
+    // Créer la facture dans Billit en utilisant les données existantes
+    const billitInvoiceId = await createBillitInvoiceFromData(credentials, contractData, equipmentData);
+    
+    // Mettre à jour la facture avec les informations Billit
+    const { error: updateError } = await supabase
+      .from('invoices')
+      .update({
+        external_invoice_id: billitInvoiceId,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId);
+
+    if (updateError) {
+      throw new Error('Erreur lors de la mise à jour de la facture');
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Facture envoyée vers Billit avec succès',
+      invoice: {
+        id: invoiceId,
+        external_invoice_id: billitInvoiceId,
+        status: 'sent'
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'envoi vers Billit:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || 'Erreur lors de l\'envoi vers Billit'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    });
+  }
+}
+
+// Fonction pour créer une facture Billit à partir de données existantes
+async function createBillitInvoiceFromData(credentials: BillitCredentials, contractData: any, equipmentData: any[]) {
+  // Préparer les données pour Billit
+  const billitInvoiceData = {
+    OrderType: "Invoice",
+    OrderDirection: "Income",
+    OrderNumber: `CON-${contractData.id.slice(0, 8)}`,
+    OrderDate: new Date().toISOString().split('T')[0],
+    ExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    Customer: {
+      Name: contractData.leaser_name,
+      PartyType: "Customer",
+      Addresses: [
+        {
+          AddressType: "InvoiceAddress",
+          Name: contractData.leaser_name,
+          Street: contractData.client_name, // Simplified
+          City: "Ville",
+          PostalCode: "1000",
+          CountryCode: 'BE'
+        }
+      ]
+    },
+    OrderLines: equipmentData?.map((equipment: any) => {
+      return {
+        Quantity: equipment.quantity,
+        UnitPriceExcl: parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
+        Description: equipment.title,
+        VATPercentage: 21
+      };
+    }) || []
+  };
+
+  console.log("📋 Données Billit préparées:", JSON.stringify(billitInvoiceData, null, 2));
+
+  // Appel à l'API Billit
+  const billitUrl = `${credentials.baseUrl}/v1/orders`;
+  
+  const billitResponse = await fetch(billitUrl, {
+    method: 'POST',
+    headers: {
+      'ApiKey': credentials.apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(billitInvoiceData)
+  });
+
+  if (!billitResponse.ok) {
+    const errorText = await billitResponse.text();
+    console.error(`❌ Erreur API Billit (${billitResponse.status}):`, errorText);
+    throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText}`);
+  }
+
+  const billitInvoice = await billitResponse.json();
+  console.log("✅ Facture créée dans Billit:", billitInvoice);
+
+  return billitInvoice.id;
+}
