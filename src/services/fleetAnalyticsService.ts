@@ -51,7 +51,7 @@ export class FleetAnalyticsService {
       // Calculs de base
       const totalCostGenerated = configs.reduce((sum, config) => sum + (Number(config.total_cost) || 0), 0);
       const averageTeamSize = configs.reduce((sum, config) => sum + Number(config.team_size), 0) / totalConfigurations;
-      const averageOptimizationScore = configs.reduce((sum, config) => sum + (config.optimization_score || 0), 0) / totalConfigurations;
+      const averageOptimizationScore = configs.reduce((sum, config) => sum + (Number(config.optimization_score) || 0), 0) / totalConfigurations;
       
       // Analyse des secteurs populaires
       const sectorCounts = configs.reduce((acc, config) => {
@@ -64,8 +64,8 @@ export class FleetAnalyticsService {
       const popularSectors = Object.entries(sectorCounts)
         .map(([sector, count]) => ({
           sector,
-          count,
-          percentage: (count / totalConfigurations) * 100
+          count: Number(count),
+          percentage: (Number(count) / totalConfigurations) * 100
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
@@ -100,8 +100,8 @@ export class FleetAnalyticsService {
       const templateUsage = Object.entries(templateCounts)
         .map(([template_name, usage_count]) => ({
           template_name,
-          usage_count,
-          percentage: (usage_count / totalConfigurations) * 100
+          usage_count: Number(usage_count),
+          percentage: (Number(usage_count) / totalConfigurations) * 100
         }))
         .sort((a, b) => b.usage_count - a.usage_count)
         .slice(0, 10);
@@ -169,19 +169,19 @@ export class FleetAnalyticsService {
       }, {} as Record<string, number>);
       
       const templatesUsed = Object.entries(templateCounts)
-        .map(([template_name, count]) => ({ template_name, count }))
+        .map(([template_name, count]) => ({ template_name, count: Number(count) }))
         .sort((a, b) => b.count - a.count);
       
       // Secteurs explorés
       const sectorsExplored = [...new Set(configs
         .map(config => config.business_sector)
         .filter(Boolean)
-      )];
+      )] as string[];
       
       // Calculs
       const configurationsCreated = configs.length;
-      const averageTeamSize = configs.reduce((sum, config) => sum + config.team_size, 0) / configurationsCreated;
-      const totalCostConfigured = configs.reduce((sum, config) => sum + (config.total_cost || 0), 0);
+      const averageTeamSize = configs.reduce((sum, config) => sum + Number(config.team_size), 0) / configurationsCreated;
+      const totalCostConfigured = configs.reduce((sum, config) => sum + (Number(config.total_cost) || 0), 0);
       const lastActivity = configs
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
         ?.created_at || '';
@@ -247,7 +247,7 @@ export class FleetAnalyticsService {
       // Temps moyen de génération
       const generationLogs = logs.filter(log => log.action === 'generate_configuration');
       const averageGenerationTime = generationLogs.length > 0
-        ? generationLogs.reduce((sum, log) => sum + (log.execution_time_ms || 0), 0) / generationLogs.length
+        ? generationLogs.reduce((sum, log) => sum + (Number(log.execution_time_ms) || 0), 0) / generationLogs.length
         : 0;
       
       // Taux de succès (estimation basée sur les logs)
@@ -261,7 +261,7 @@ export class FleetAnalyticsService {
       }, {} as Record<string, number>);
       
       const mostCommonActions = Object.entries(actionCounts)
-        .map(([action, count]) => ({ action, count }))
+        .map(([action, count]) => ({ action, count: Number(count) }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
       

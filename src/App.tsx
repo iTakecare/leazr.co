@@ -71,6 +71,7 @@ import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
 import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+import FleetGenerator from "@/pages/FleetGenerator";
 
 // Ambassador pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -410,13 +411,20 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
-                  <Route path="/settings" element={
-                    <PrivateRoute>
-                      <Layout>
-                        <Settings />
-                      </Layout>
-                    </PrivateRoute>
-                  } />
+                   <Route path="/settings" element={
+                     <PrivateRoute>
+                       <Layout>
+                         <Settings />
+                       </Layout>
+                     </PrivateRoute>
+                   } />
+                   <Route path="/fleet-generator" element={
+                     <PrivateRoute>
+                       <Layout>
+                         <FleetGenerator />
+                       </Layout>
+                     </PrivateRoute>
+                   } />
                   <Route path="/admin/settings" element={
                     <PrivateRoute>
                       <Layout>

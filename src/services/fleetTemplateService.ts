@@ -191,7 +191,7 @@ export class FleetTemplateService {
     
     // Récupérer les templates les plus utilisés
     const popularTemplateIds = Object.entries(usageCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([,a], [,b]) => Number(b) - Number(a))
       .slice(0, limit)
       .map(([id]) => id);
     
@@ -251,8 +251,8 @@ export class FleetTemplateService {
       if (criteria.budget && template.estimated_budget) {
         if (template.estimated_budget <= criteria.budget) {
           score += 20;
-          // Bonus si utilise bien le budget (80-100% du budget)
-          const budgetUsage = template.estimated_budget / criteria.budget;
+        // Bonus si utilise bien le budget (80-100% du budget)
+        const budgetUsage = (template.estimated_budget || 0) / (criteria.budget || 1);
           if (budgetUsage >= 0.8) {
             score += 10;
           }

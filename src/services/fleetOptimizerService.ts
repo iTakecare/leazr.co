@@ -241,7 +241,7 @@ export class FleetOptimizerService {
     
     const optimizedEquipment = configuration.equipment_list.map((item, index) => ({
       ...item,
-      condition: (index / configuration.equipment_list.length) < optimalMix.new_ratio ? 'new' : 'refurbished',
+      condition: ((index / configuration.equipment_list.length) < optimalMix.new_ratio ? 'new' : 'refurbished') as 'new' | 'refurbished',
       specs: this.balanceSpecs(item.specs, configuration.requirements)
     }));
     
