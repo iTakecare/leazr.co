@@ -204,7 +204,27 @@ const integrations: Integration[] = [
     comingSoon: true
   },
   
-  // Paie & RH
+  // Vérification d'entreprises
+  {
+    id: 'graydon-creditsafe',
+    name: 'Graydon-CreditSafe',
+    description: 'Vérification de solvabilité et données d\'entreprises (Belgique/France)',
+    logoUrl: 'https://logo.clearbit.com/creditsafe.com',
+    status: 'inactive',
+    category: 'Vérification',
+    comingSoon: true
+  },
+  {
+    id: 'companyweb',
+    name: 'Companyweb',
+    description: 'Informations commerciales et analyse de fiabilité (Belgique)',
+    logoUrl: 'https://logo.clearbit.com/companyweb.be',
+    status: 'inactive',
+    category: 'Vérification',
+    comingSoon: true
+  },
+  
+  // RH & Paie
   {
     id: 'lucca',
     name: 'Lucca',
@@ -300,19 +320,24 @@ const IntegrationsManager = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                       <img 
-                         src={integration.logoUrl} 
-                         alt={`${integration.name} logo`} 
-                         className="w-8 h-8 object-contain"
-                         onError={(e) => {
-                           const target = e.target as HTMLImageElement;
-                           target.style.display = 'none';
-                           target.nextElementSibling?.classList.remove('hidden');
-                         }}
-                       />
-                       <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-bold text-sm hidden">
-                         {integration.name.charAt(0)}
-                       </div>
+                       <div className="w-8 h-8 flex items-center justify-center relative">
+                         <img 
+                           src={integration.logoUrl} 
+                           alt={`${integration.name} logo`} 
+                           className="w-8 h-8 object-contain"
+                           onError={(e) => {
+                             const img = e.target as HTMLImageElement;
+                             img.style.display = 'none';
+                             const fallback = img.nextElementSibling as HTMLElement;
+                             if (fallback) {
+                               fallback.style.display = 'flex';
+                             }
+                           }}
+                         />
+                          <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-bold text-sm absolute top-0 left-0" style={{ display: 'none' }}>
+                            {integration.name.charAt(0)}
+                          </div>
+                        </div>
                        <div>
                         <CardTitle className="text-base">{integration.name}</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
