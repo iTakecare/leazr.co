@@ -308,9 +308,14 @@ export const createContractFromOffer = async (
       await createContractEquipmentFromOffer(contractId, offerId);
     }
 
+    // Marquer l'offre comme convertie en contrat avec le statut "accepted"
     const { error: updateError } = await supabase
       .from('offers')
-      .update({ converted_to_contract: true })
+      .update({ 
+        converted_to_contract: true,
+        status: 'accepted',
+        workflow_status: 'accepted'
+      })
       .eq('id', offerId);
 
     if (updateError) {
