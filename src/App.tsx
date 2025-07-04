@@ -137,6 +137,7 @@ function App() {
                   <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
                   <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+                  <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
                   <Route path="/request" element={<PublicRequestPage />} />
                   <Route path="/request-sent" element={<RequestSentPage />} />
                   <Route path="/company/:companyId" element={<PublicCompanyLanding />} />

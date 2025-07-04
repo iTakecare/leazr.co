@@ -91,7 +91,7 @@ const PublicCartPage: React.FC = () => {
                 asChild
                 className="flex items-center gap-2"
               >
-                <Link to={`/public/${companyId}/catalog`}>
+                <Link to={`/catalog/anonymous/${companyId}`}>
                   <ArrowLeft className="h-4 w-4" />
                   Continuer mes achats
                 </Link>
@@ -114,7 +114,7 @@ const PublicCartPage: React.FC = () => {
               Parcourez notre catalogue pour trouver des équipements à louer.
             </p>
             <Button asChild>
-              <Link to={`/public/${companyId}/catalog`}>Voir le catalogue</Link>
+              <Link to={`/catalog/anonymous/${companyId}`}>Voir le catalogue</Link>
             </Button>
           </div>
         ) : (
@@ -233,7 +233,7 @@ const PublicCartPage: React.FC = () => {
                   
                   <Button className="w-full mt-6" size="lg" asChild>
                     <Link to={`/public/${companyId}/demande`}>
-                      Passer ma demande
+                      Introduire une demande
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
