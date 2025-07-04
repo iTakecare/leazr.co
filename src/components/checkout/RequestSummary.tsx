@@ -43,7 +43,29 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   
   // Calculer le montant total d'achat (prix d'achat des produits)
   const totalPurchaseAmount = items.reduce((total, item) => {
-    const purchasePrice = item.product.currentPrice || item.product.price || 0;
+    // Try to get purchase price from variant combination or fallback to currentPrice
+    let purchasePrice = 0;
+    
+    if (item.product.variant_combination_prices && item.selectedOptions) {
+      const matchingCombo = item.product.variant_combination_prices.find(combo => {
+        if (!combo.attributes) return false;
+        return Object.entries(item.selectedOptions || {}).every(([key, value]) => 
+          combo.attributes[key] === value
+        );
+      });
+      
+      if (matchingCombo && matchingCombo.purchase_price) {
+        purchasePrice = typeof matchingCombo.purchase_price === 'number' ? 
+                       matchingCombo.purchase_price : 
+                       parseFloat(String(matchingCombo.purchase_price) || '0');
+      }
+    }
+    
+    // Fallback to currentPrice or price if no variant price found
+    if (purchasePrice <= 0) {
+      purchasePrice = item.product.currentPrice || item.product.price || 0;
+    }
+    
     return total + (purchasePrice * item.quantity);
   }, 0);
   
@@ -63,7 +85,28 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
           .map(([key, value]) => `${key}: ${value}`)
           .join(', ');
         
-        const purchasePrice = item.product.currentPrice || item.product.price || 0;
+        // Get purchase price from variant combination if available
+        let purchasePrice = 0;
+        if (item.product.variant_combination_prices && item.selectedOptions) {
+          const matchingCombo = item.product.variant_combination_prices.find(combo => {
+            if (!combo.attributes) return false;
+            return Object.entries(item.selectedOptions || {}).every(([key, value]) => 
+              combo.attributes[key] === value
+            );
+          });
+          
+          if (matchingCombo && matchingCombo.purchase_price) {
+            purchasePrice = typeof matchingCombo.purchase_price === 'number' ? 
+                           matchingCombo.purchase_price : 
+                           parseFloat(String(matchingCombo.purchase_price) || '0');
+          }
+        }
+        
+        // Fallback to currentPrice or price if no variant price found
+        if (purchasePrice <= 0) {
+          purchasePrice = item.product.currentPrice || item.product.price || 0;
+        }
+        
         const monthlyPrice = item.product.monthly_price || 0;
           
         return `${item.product.name} - Prix: ${formatCurrency(purchasePrice)} (${formatCurrency(monthlyPrice)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;

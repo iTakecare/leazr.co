@@ -124,11 +124,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       validPrice = 0;
     }
     
-    // If price is still invalid or zero, set a default value for debugging
+    // If price is still invalid or zero, try variant_combination_prices as fallback
     if (isNaN(validPrice) || validPrice <= 0) {
-      console.warn(`CartContext: Could not find valid price for ${productToAdd.name}`, productToAdd);
-      // Set a default monthly price for testing
-      validPrice = 39.99;
+      if (productToAdd.variant_combination_prices && productToAdd.variant_combination_prices.length > 0) {
+        // Try to find matching variant price based on selected options
+        const matchingCombo = productToAdd.variant_combination_prices.find(combo => {
+          if (!combo.attributes || !newItem.selectedOptions) return false;
+          return Object.entries(newItem.selectedOptions).every(([key, value]) => 
+            combo.attributes[key] === value
+          );
+        });
+        
+        if (matchingCombo && matchingCombo.monthly_price && matchingCombo.monthly_price > 0) {
+          validPrice = typeof matchingCombo.monthly_price === 'number' ? 
+                       matchingCombo.monthly_price : 
+                       parseFloat(String(matchingCombo.monthly_price));
+          // Also set the purchase price from the combination
+          if (matchingCombo.purchase_price && matchingCombo.purchase_price > 0) {
+            productToAdd.currentPrice = typeof matchingCombo.purchase_price === 'number' ? 
+                                       matchingCombo.purchase_price : 
+                                       parseFloat(String(matchingCombo.purchase_price));
+          }
+        }
+      }
+      
+      if (isNaN(validPrice) || validPrice <= 0) {
+        console.warn(`CartContext: Could not find valid price for ${productToAdd.name}`, productToAdd);
+        validPrice = 0; // Set to 0 instead of hardcoded fallback
+      }
     }
     
     console.log(`CartContext: Setting final price for ${productToAdd.name}: ${validPrice}`);
