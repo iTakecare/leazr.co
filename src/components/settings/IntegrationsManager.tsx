@@ -115,7 +115,7 @@ const integrations: Integration[] = [
     id: 'yuki',
     name: 'Yuki',
     description: 'Logiciel de comptabilité en ligne populaire en Belgique et Pays-Bas',
-    logoUrl: 'https://logo.clearbit.com/yukisoftware.com',
+    logoUrl: 'https://www.bouwsoft.be/sites/default/files/styles/logo/public/uploads/images/logo-yuki.png?itok=m1ZZcqa8',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
