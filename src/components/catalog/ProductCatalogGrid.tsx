@@ -97,11 +97,30 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         
         <div className="flex justify-between items-center">
           <div className="text-sm">
-            <span className="text-gray-600">dès </span>
-            <span className="font-semibold text-blue-600">
-              {formatCurrency(product.monthly_price || 0)}
-            </span>
-            <span className="text-gray-600"> par mois</span>
+            {(() => {
+              const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+              let displayPrice = product.monthly_price || 0;
+              
+              if (hasVariants) {
+                const variantPrices = product.variant_combination_prices
+                  .map(variant => variant.monthly_price || 0)
+                  .filter(price => price > 0);
+                  
+                if (variantPrices.length > 0) {
+                  displayPrice = Math.min(...variantPrices);
+                }
+              }
+              
+              return (
+                <>
+                  <span className="text-gray-600">{hasVariants ? "à partir de " : "dès "}</span>
+                  <span className="font-semibold text-blue-600">
+                    {formatCurrency(displayPrice)}
+                  </span>
+                  <span className="text-gray-600"> par mois</span>
+                </>
+              );
+            })()}
           </div>
           <button className="p-1.5 rounded-full bg-blue-100 text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
             {editMode ? <Edit className="h-4 w-4" /> : <span>+</span>}
