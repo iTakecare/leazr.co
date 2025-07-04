@@ -132,6 +132,7 @@ function App() {
                   <Route path="/catalog/:companyId" element={<PublicCatalogMultiTenant />} />
                   <Route path="/public/:companyId/catalog" element={<PublicCatalogMultiTenant />} />
                   <Route path="/product/:id" element={<PublicProductDetailPage />} />
+                  <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
                   <Route path="/request" element={<PublicRequestPage />} />
                   <Route path="/request-sent" element={<RequestSentPage />} />
