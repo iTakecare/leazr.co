@@ -32,7 +32,7 @@ const integrations: Integration[] = [
     id: 'odoo',
     name: 'Odoo',
     description: 'ERP complet pour la gestion d\'entreprise et CRM',
-    logoUrl: '/lovable-uploads/54095bc7-f532-4937-a97d-37632e757fee.png',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a7/Odoo_Official_Logo.png',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
