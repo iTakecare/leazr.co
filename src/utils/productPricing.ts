@@ -17,14 +17,23 @@ export const getProductPrice = (
   let monthlyPrice = 0;
   let purchasePrice = 0;
 
+  console.log(`getProductPrice: Processing ${product.name}`, {
+    selectedOptions,
+    hasVariantCombinationPrices: !!(product.variant_combination_prices && product.variant_combination_prices.length > 0)
+  });
+
   // 1. Try to get price from variant combination prices (highest priority)
   if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && selectedOptions) {
+    console.log(`getProductPrice: Found ${product.variant_combination_prices.length} variant combinations`);
+    
     const matchingCombo = product.variant_combination_prices.find(combo => {
       if (!combo.attributes) return false;
       return Object.entries(selectedOptions).every(([key, value]) => 
         combo.attributes[key] === value
       );
     });
+
+    console.log(`getProductPrice: Matching combo found:`, matchingCombo);
 
     if (matchingCombo) {
       if (matchingCombo.monthly_price && matchingCombo.monthly_price > 0) {
@@ -39,6 +48,8 @@ export const getProductPrice = (
                        matchingCombo.price : 
                        parseFloat(String(matchingCombo.price) || '0');
       }
+      
+      console.log(`getProductPrice: From variant combo - Monthly: ${monthlyPrice}, Purchase: ${purchasePrice}`);
     }
   }
 
