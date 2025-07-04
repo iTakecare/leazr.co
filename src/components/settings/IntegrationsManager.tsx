@@ -50,7 +50,25 @@ const integrations: Integration[] = [
     id: 'sap',
     name: 'SAP Business One',
     description: 'ERP pour petites et moyennes entreprises',
-    logoUrl: 'https://logo.clearbit.com/sap.com',
+    logoUrl: '/lovable-uploads/fd238acc-acf0-4045-8257-a57d72209f2c.png',
+    status: 'inactive',
+    category: 'ERP',
+    comingSoon: true
+  },
+  {
+    id: 'teamleader',
+    name: 'Teamleader',
+    description: 'CRM, facturation et gestion de projets pour PME (très populaire en Belgique)',
+    logoUrl: 'https://logo.clearbit.com/teamleader.eu',
+    status: 'inactive',
+    category: 'ERP',
+    comingSoon: true
+  },
+  {
+    id: 'horus',
+    name: 'Horus',
+    description: 'Logiciel comptable innovant pour fiduciaires et entreprises',
+    logoUrl: 'https://www.horussoftware.be/themes/horus/assets/images/logo.png',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
@@ -89,6 +107,15 @@ const integrations: Integration[] = [
     name: 'QuickBooks',
     description: 'Comptabilité simplifiée pour PME',
     logoUrl: '/lovable-uploads/4e8b6089-26ce-40c6-8a44-46a8d28cc2cb.png',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'yuki',
+    name: 'Yuki',
+    description: 'Logiciel de comptabilité en ligne populaire en Belgique et Pays-Bas',
+    logoUrl: 'https://logo.clearbit.com/yukisoftware.com',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
