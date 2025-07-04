@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, ExternalLink, Zap, Building2, Calculator } from 'lucide-react';
+import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database } from 'lucide-react';
 import BillitIntegrationSettings from './BillitIntegrationSettings';
 
 interface Integration {
@@ -282,6 +282,51 @@ const getStatusIcon = (status: string) => {
   }
 };
 
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'Facturation':
+      return <FileText className="h-6 w-6 text-blue-600" />;
+    case 'ERP':
+      return <Building2 className="h-6 w-6 text-purple-600" />;
+    case 'Comptabilité':
+      return <Calculator className="h-6 w-6 text-green-600" />;
+    case 'CRM':
+      return <Users className="h-6 w-6 text-orange-600" />;
+    case 'Vérification':
+      return <Shield className="h-6 w-6 text-indigo-600" />;
+    case 'RH & Paie':
+      return <CreditCard className="h-6 w-6 text-pink-600" />;
+    default:
+      return <Database className="h-6 w-6 text-gray-600" />;
+  }
+};
+
+const getIntegrationIcon = (integration: Integration) => {
+  // Pour certaines intégrations spécifiques, on peut retourner des icônes personnalisées
+  switch (integration.id) {
+    case 'billit':
+      return <FileText className="h-6 w-6 text-blue-600" />;
+    case 'microsoft-dynamics':
+      return <Building2 className="h-6 w-6 text-blue-600" />;
+    case 'salesforce':
+      return <Users className="h-6 w-6 text-blue-500" />;
+    case 'odoo':
+      return <Building2 className="h-6 w-6 text-purple-600" />;
+    case 'sage':
+    case 'sage-bob':
+      return <Calculator className="h-6 w-6 text-green-600" />;
+    case 'quickbooks':
+      return <Calculator className="h-6 w-6 text-blue-500" />;
+    case 'teamleader':
+      return <Users className="h-6 w-6 text-teal-600" />;
+    case 'graydon-creditsafe':
+    case 'companyweb':
+      return <Shield className="h-6 w-6 text-indigo-600" />;
+    default:
+      return getCategoryIcon(integration.category);
+  }
+};
+
 const IntegrationsManager = () => {
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
@@ -325,7 +370,16 @@ const IntegrationsManager = () => {
                            src={integration.logoUrl} 
                            alt={`${integration.name} logo`} 
                            className="w-8 h-8 object-contain"
+                           onLoad={(e) => {
+                             // Image chargée avec succès, masquer l'icône de fallback
+                             const img = e.target as HTMLImageElement;
+                             const fallback = img.nextElementSibling as HTMLElement;
+                             if (fallback) {
+                               fallback.style.display = 'none';
+                             }
+                           }}
                            onError={(e) => {
+                             // Image failed to load, show fallback icon
                              const img = e.target as HTMLImageElement;
                              img.style.display = 'none';
                              const fallback = img.nextElementSibling as HTMLElement;
@@ -334,10 +388,10 @@ const IntegrationsManager = () => {
                              }
                            }}
                          />
-                          <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-bold text-sm absolute top-0 left-0" style={{ display: 'none' }}>
-                            {integration.name.charAt(0)}
-                          </div>
-                        </div>
+                         <div className="w-8 h-8 flex items-center justify-center absolute top-0 left-0">
+                           {getIntegrationIcon(integration)}
+                         </div>
+                       </div>
                        <div>
                         <CardTitle className="text-base">{integration.name}</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
