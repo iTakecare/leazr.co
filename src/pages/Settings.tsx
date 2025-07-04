@@ -17,7 +17,7 @@ import ContractSettings from '@/components/settings/ContractSettings';
 import DataImporter from '@/components/settings/DataImporter';
 import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager';
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
-import BillitIntegrationSettings from '@/components/settings/BillitIntegrationSettings';
+import IntegrationsManager from '@/components/settings/IntegrationsManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -168,7 +168,7 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="integrations" className="mt-6">
-          <BillitIntegrationSettings />
+          <IntegrationsManager />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
