@@ -17,6 +17,7 @@ export interface Invoice {
   integration_type: string;
   created_at: string;
   updated_at: string;
+  pdf_url?: string;
 }
 
 export interface CompanyIntegration {
@@ -57,15 +58,88 @@ export const areAllSerialNumbersComplete = (equipment: any[]): boolean => {
   );
 };
 
-// Générer une facture via Billit
-export const generateBillitInvoice = async (contractId: string, companyId: string) => {
+// Générer une facture en local (brouillon)
+export const generateLocalInvoice = async (contractId: string, companyId: string) => {
   try {
-    console.log('🚀 Génération facture Billit - contractId:', contractId, 'companyId:', companyId);
+    console.log('📝 Génération facture locale - contractId:', contractId, 'companyId:', companyId);
+    
+    // Récupérer les données du contrat
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select(`
+        *,
+        client_id,
+        client_name,
+        monthly_payment,
+        leaser_name
+      `)
+      .eq('id', contractId)
+      .single();
+
+    if (contractError || !contract) {
+      throw new Error('Contrat non trouvé');
+    }
+
+    // Récupérer les équipements du contrat
+    const { data: equipment, error: equipmentError } = await supabase
+      .from('contract_equipment')
+      .select('*')
+      .eq('contract_id', contractId);
+
+    if (equipmentError) {
+      throw new Error('Erreur lors de la récupération des équipements');
+    }
+
+    // Créer la facture en brouillon
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        contract_id: contractId,
+        company_id: companyId,
+        leaser_name: contract.leaser_name,
+        amount: contract.monthly_payment || 0,
+        status: 'draft',
+        integration_type: 'billit',
+        billing_data: {
+          contract_data: contract,
+          equipment_data: equipment,
+          generated_locally: true,
+          created_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (invoiceError) {
+      throw new Error('Erreur lors de la création de la facture');
+    }
+
+    // Marquer le contrat comme ayant une facture générée
+    await supabase
+      .from('contracts')
+      .update({ 
+        invoice_generated: true,
+        invoice_id: invoice.id 
+      })
+      .eq('id', contractId);
+
+    console.log('✅ Facture locale générée avec succès:', invoice);
+    return invoice;
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération de la facture locale:', error);
+    throw error;
+  }
+};
+
+// Envoyer une facture existante vers Billit
+export const sendInvoiceToBillit = async (invoiceId: string) => {
+  try {
+    console.log('📤 Envoi facture vers Billit - invoiceId:', invoiceId);
     
     const { data, error } = await supabase.functions.invoke('billit-integration', {
       body: {
-        contractId,
-        companyId
+        invoiceId,
+        action: 'send'
       }
     });
 
@@ -77,14 +151,14 @@ export const generateBillitInvoice = async (contractId: string, companyId: strin
     }
 
     if (!data.success) {
-      console.error('❌ Échec génération:', data);
-      throw new Error(data.error || data.message || 'Erreur lors de la génération de la facture');
+      console.error('❌ Échec envoi:', data);
+      throw new Error(data.error || data.message || 'Erreur lors de l\'envoi de la facture');
     }
 
-    console.log('✅ Facture générée avec succès:', data.invoice);
+    console.log('✅ Facture envoyée avec succès:', data.invoice);
     return data.invoice;
   } catch (error) {
-    console.error('❌ Erreur lors de la génération de la facture:', error);
+    console.error('❌ Erreur lors de l\'envoi de la facture:', error);
     throw error;
   }
 };
@@ -234,6 +308,19 @@ export const updateInvoiceStatus = async (invoiceId: string, status: string, pai
   return data;
 };
 
+// Supprimer une facture
+export const deleteInvoice = async (invoiceId: string) => {
+  const { error } = await supabase
+    .from('invoices')
+    .delete()
+    .eq('id', invoiceId);
+
+  if (error) {
+    console.error('Erreur lors de la suppression de la facture:', error);
+    throw error;
+  }
+};
+
 // Configurer l'intégration Billit pour une entreprise
 export const setupBillitIntegration = async (
   companyId: string, 
@@ -333,132 +420,46 @@ export const downloadBillitInvoicePdf = async (invoiceId: string) => {
       // Récupérer à nouveau la facture
       const { data: updatedInvoice, error: updateError } = await supabase
         .from('invoices')
-        .select('pdf_url, invoice_number')
+        .select('pdf_url')
         .eq('id', invoiceId)
         .single();
 
       if (updateError || !updatedInvoice?.pdf_url) {
-        throw new Error('URL PDF non disponible pour cette facture');
+        throw new Error('URL PDF non disponible');
       }
-
-      // Ouvrir l'URL PDF dans un nouvel onglet
-      window.open(updatedInvoice.pdf_url, '_blank');
-      return updatedInvoice.invoice_number;
+      
+      invoice.pdf_url = updatedInvoice.pdf_url;
     }
 
-    // Ouvrir l'URL PDF dans un nouvel onglet
-    window.open(invoice.pdf_url, '_blank');
-    return invoice.invoice_number;
-  } catch (error) {
-    console.error('Erreur lors du téléchargement du PDF Billit:', error);
-    throw error;
-  }
-};
-
-// Supprimer une facture (suppression physique)
-export const deleteInvoice = async (invoiceId: string) => {
-  try {
-    console.log('🗑️ Suppression de la facture:', invoiceId);
-    
-    // Récupérer la facture pour vérifier son statut
-    const { data: invoice, error: fetchError } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('id', invoiceId)
-      .single();
-
-    if (fetchError || !invoice) {
-      throw new Error('Facture non trouvée');
+    // Télécharger le PDF
+    const response = await fetch(invoice.pdf_url);
+    if (!response.ok) {
+      throw new Error('Erreur lors du téléchargement du PDF');
     }
 
-    // Empêcher la suppression des factures payées
-    if (invoice.status === 'paid') {
-      throw new Error('Impossible de supprimer une facture payée');
-    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `facture-${invoice.invoice_number || invoice.id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
 
-    // Détacher le contrat de la facture
-    if (invoice.contract_id) {
-      await supabase
-        .from('contracts')
-        .update({ 
-          invoice_id: null, 
-          invoice_generated: false 
-        })
-        .eq('id', invoice.contract_id);
-    }
-
-    // Supprimer la facture
-    const { error: deleteError } = await supabase
-      .from('invoices')
-      .delete()
-      .eq('id', invoiceId);
-
-    if (deleteError) {
-      console.error('❌ Erreur lors de la suppression:', deleteError);
-      throw new Error(`Erreur lors de la suppression: ${deleteError.message}`);
-    }
-
-    console.log('✅ Facture supprimée avec succès');
     return true;
   } catch (error) {
-    console.error('❌ Erreur lors de la suppression de la facture:', error);
-    throw error;
-  }
-};
-
-// Annuler une facture (suppression logique)
-export const cancelInvoice = async (invoiceId: string, reason?: string) => {
-  try {
-    console.log('🚫 Annulation de la facture:', invoiceId);
-    
-    const { data: invoice, error } = await supabase
-      .from('invoices')
-      .update({ 
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', invoiceId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Erreur lors de l\'annulation:', error);
-      throw new Error(`Erreur lors de l'annulation: ${error.message}`);
-    }
-
-    console.log('✅ Facture annulée avec succès');
-    return invoice;
-  } catch (error) {
-    console.error('❌ Erreur lors de l\'annulation de la facture:', error);
+    console.error('❌ Erreur lors du téléchargement:', error);
     throw error;
   }
 };
 
 // Générer et télécharger le PDF d'une facture
 export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
-  const { downloadInvoicePdf } = await import('@/utils/invoicePdfGenerator');
-  const { getCompanyInvoiceData } = await import('./invoiceCompanyService');
-  
   try {
-    // Récupérer la facture
-    const { data: invoice, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('id', invoiceId)
-      .single();
-
-    if (error || !invoice) {
-      throw new Error('Facture non trouvée');
-    }
-
-    // Récupérer les données de l'entreprise
-    const companyInfo = await getCompanyInvoiceData(invoice.company_id);
-
-    // Générer et télécharger le PDF
-    const filename = await downloadInvoicePdf(invoice, companyInfo);
-    return filename;
+    await downloadBillitInvoicePdf(invoiceId);
   } catch (error) {
-    console.error('Erreur lors de la génération du PDF de facture:', error);
+    console.error('Erreur lors de la génération du PDF:', error);
     throw error;
   }
 };

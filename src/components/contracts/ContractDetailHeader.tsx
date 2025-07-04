@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
-import { areAllSerialNumbersComplete, generateBillitInvoice, getBillitIntegration } from "@/services/invoiceService";
+import { areAllSerialNumbersComplete, generateLocalInvoice, getBillitIntegration } from "@/services/invoiceService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { toast } from "sonner";
 
@@ -46,8 +46,12 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
 
     setIsGeneratingInvoice(true);
     try {
-      await generateBillitInvoice(contract.id, companyId);
-      toast.success("Facture générée avec succès !");
+      const invoice = await generateLocalInvoice(contract.id, companyId);
+      toast.success("Facture générée en brouillon avec succès !");
+      
+      // Rediriger vers la page de facturation
+      navigate(`/admin/invoicing/${invoice.id}`);
+      
       onRefresh?.();
     } catch (error: any) {
       console.error("Erreur lors de la génération de la facture:", error);

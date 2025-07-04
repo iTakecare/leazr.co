@@ -46,7 +46,7 @@ serve(async (req) => {
 
   try {
     console.log("📥 Parsing request body...");
-    const requestData: BillitInvoiceRequest | BillitTestRequest = await req.json();
+    const requestData: any = await req.json();
     console.log("🔄 Début requête Billit:", JSON.stringify(requestData, null, 2));
 
     // Mode test de l'intégration
@@ -54,7 +54,12 @@ serve(async (req) => {
       return await handleBillitTest(requestData.companyId);
     }
 
-    const { contractId, companyId } = requestData as BillitInvoiceRequest;
+    // Action d'envoi d'une facture existante
+    if (requestData.action === 'send' && requestData.invoiceId) {
+      return await handleSendExistingInvoice(requestData.invoiceId);
+    }
+
+    const { contractId, companyId } = requestData;
     console.log("📋 Génération facture Billit pour contrat:", contractId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");

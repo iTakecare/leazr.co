@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2 } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ const InvoiceDetailPage = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
+  const [isSendingToBillit, setIsSendingToBillit] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -99,6 +100,29 @@ const InvoiceDetailPage = () => {
       toast.error("Erreur lors de la génération du PDF");
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleSendToBillit = async () => {
+    if (!invoice) return;
+
+    setIsSendingToBillit(true);
+    try {
+      const updatedInvoice = await sendInvoiceToBillit(invoice.id);
+      toast.success("Facture envoyée vers Billit avec succès !");
+      
+      // Mettre à jour la facture locale
+      setInvoice({ 
+        ...invoice, 
+        status: 'sent',
+        external_invoice_id: updatedInvoice.external_invoice_id,
+        sent_at: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("Erreur lors de l'envoi vers Billit:", error);
+      toast.error(error.message || "Erreur lors de l'envoi vers Billit");
+    } finally {
+      setIsSendingToBillit(false);
     }
   };
 
@@ -289,14 +313,30 @@ const InvoiceDetailPage = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {invoice.status === 'draft' && (
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleStatusChange('sent')}
-                  disabled={isUpdatingStatus}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Marquer comme envoyée
-                </Button>
+                <>
+                  <Button 
+                    className="w-full" 
+                    onClick={handleSendToBillit}
+                    disabled={isSendingToBillit}
+                  >
+                    {isSendingToBillit ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Envoyer vers Billit
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    className="w-full" 
+                    onClick={() => handleStatusChange('sent')}
+                    disabled={isUpdatingStatus}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Marquer manuellement comme envoyée
+                  </Button>
+                </>
               )}
               
               {invoice.status === 'sent' && (
