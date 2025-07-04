@@ -15,8 +15,8 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ onAddNewProduct }) => {
   
   const handleViewPublicCatalog = () => {
     if (companyId) {
-      // Ouvrir le catalogue public de l'entreprise actuelle
-      window.open(`/public/${companyId}/catalog`, "_blank");
+      // Ouvrir le catalogue anonyme de l'entreprise actuelle
+      window.open(`/catalog/anonymous/${companyId}`, "_blank");
     } else {
       // Fallback vers le catalogue multi-tenant authentifié
       window.open("/catalog", "_blank");
