@@ -105,9 +105,19 @@ export const useProductDetails = (productId: string | undefined) => {
                       parseFloat(String(product.monthly_price) || '0')) : 0;
     
     if (isNaN(basePrice) || basePrice <= 0) {
-      // If we still don't have a valid price, set a default for testing
+      // Try to get price from variant_combination_prices if no valid base price
+      if (product && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+        const firstValidPrice = product.variant_combination_prices.find(combo => combo.monthly_price && combo.monthly_price > 0);
+        if (firstValidPrice) {
+          const variantPrice = typeof firstValidPrice.monthly_price === 'number' ? 
+                               firstValidPrice.monthly_price : 
+                               parseFloat(String(firstValidPrice.monthly_price) || '0');
+          console.log(`useProductDetails: Using first variant price for ${product?.name}:`, variantPrice);
+          return variantPrice;
+        }
+      }
       console.warn(`useProductDetails: Could not find valid price for ${product?.name}`, product);
-      return 39.99; // Default price for testing
+      return 0; // Return 0 instead of hardcoded default
     }
     
     console.log(`useProductDetails: Using base product price for ${product?.name}:`, basePrice);
@@ -148,9 +158,8 @@ export const useProductDetails = (productId: string | undefined) => {
     const parsedPrice = typeof basePrice === 'number' ? basePrice : parseFloat(String(basePrice) || '0');
     
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      // If we still don't have a valid price, set a default for testing
       console.warn(`useProductDetails: Could not find valid minMonthlyPrice for ${product?.name}`, product);
-      return 39.99; // Default price for testing
+      return 0; // Return 0 instead of hardcoded default
     }
     
     return parsedPrice;
