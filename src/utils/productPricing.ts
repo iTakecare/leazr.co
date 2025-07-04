@@ -33,10 +33,11 @@ export const getProductPrice = (
                       parseFloat(String(matchingCombo.monthly_price) || '0');
       }
       
-      if (matchingCombo.purchase_price && matchingCombo.purchase_price > 0) {
-        purchasePrice = typeof matchingCombo.purchase_price === 'number' ? 
-                       matchingCombo.purchase_price : 
-                       parseFloat(String(matchingCombo.purchase_price) || '0');
+      // Le champ pour le prix d'achat s'appelle 'price' dans product_variant_prices
+      if (matchingCombo.price && matchingCombo.price > 0) {
+        purchasePrice = typeof matchingCombo.price === 'number' ? 
+                       matchingCombo.price : 
+                       parseFloat(String(matchingCombo.price) || '0');
       }
     }
   }

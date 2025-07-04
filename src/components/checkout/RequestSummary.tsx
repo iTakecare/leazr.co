@@ -68,6 +68,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         
         // Utiliser la logique centralisée pour obtenir les prix corrects
         const priceData = getProductPrice(item.product, item.selectedOptions);
+        
+        console.log(`RequestSummary: Product ${item.product.name} - Purchase: ${priceData.purchasePrice}, Monthly: ${priceData.monthlyPrice}`);
           
         return `${item.product.name} - Prix: ${formatCurrency(priceData.purchasePrice)} (${formatCurrency(priceData.monthlyPrice)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
