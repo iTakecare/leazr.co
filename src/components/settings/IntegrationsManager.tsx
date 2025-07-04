@@ -77,7 +77,7 @@ const integrations: Integration[] = [
     id: 'axonaut',
     name: 'Axonaut',
     description: 'Logiciel de gestion d\'entreprise français tout-en-un (CRM, facturation, devis)',
-    logoUrl: 'https://www.axonaut.com/wp-content/uploads/2019/05/logo-axonaut-1.png',
+    logoUrl: 'https://axonaut.com/content/uploaded_images/_e04c-ca62-113b-af2a-fb34/axonaut-logopng.webp',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
