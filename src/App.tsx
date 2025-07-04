@@ -41,6 +41,7 @@ import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
+import PublicRequestStepsPage from "@/pages/PublicRequestStepsPage";
 import RequestSentPage from "@/pages/RequestSentPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 
@@ -137,7 +138,7 @@ function App() {
                   <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
                   <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
-                  <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+                  <Route path="/public/:companyId/demande" element={<PublicRequestStepsPage />} />
                   <Route path="/request" element={<PublicRequestPage />} />
                   <Route path="/request-sent" element={<RequestSentPage />} />
                   <Route path="/company/:companyId" element={<PublicCompanyLanding />} />
