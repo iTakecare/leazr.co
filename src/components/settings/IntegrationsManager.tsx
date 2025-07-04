@@ -464,8 +464,16 @@ const IntegrationsManager = () => {
                             src={integration.logoUrl} 
                             alt={`${integration.name} logo`} 
                             className="w-8 h-8 object-contain"
+                            onLoad={(e) => {
+                              console.log(`Logo loaded successfully for ${integration.name}:`, integration.logoUrl);
+                              const img = e.target as HTMLImageElement;
+                              const fallback = img.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'none';
+                              }
+                            }}
                             onError={(e) => {
-                              // Image failed to load, show fallback icon
+                              console.error(`Logo failed to load for ${integration.name}:`, integration.logoUrl);
                               const img = e.target as HTMLImageElement;
                               img.style.display = 'none';
                               const fallback = img.nextElementSibling as HTMLElement;
