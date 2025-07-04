@@ -10,35 +10,58 @@ interface Integration {
   id: string;
   name: string;
   description: string;
-  logo: React.ReactNode;
+  logoUrl: string;
   status: 'active' | 'inactive' | 'available';
   category: string;
   comingSoon?: boolean;
 }
 
 const integrations: Integration[] = [
+  // Facturation
   {
     id: 'billit',
     name: 'Billit',
     description: 'Automatisez votre facturation et synchronisez vos données comptables',
-    logo: <img src="/lovable-uploads/a420f98e-637d-4a5d-8b09-e62a8c610218.png" alt="Billit logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/a420f98e-637d-4a5d-8b09-e62a8c610218.png',
     status: 'available',
     category: 'Facturation'
   },
+  
+  // ERP
   {
     id: 'odoo',
     name: 'Odoo',
     description: 'ERP complet pour la gestion d\'entreprise et CRM',
-    logo: <img src="/lovable-uploads/54095bc7-f532-4937-a97d-37632e757fee.png" alt="Odoo logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/54095bc7-f532-4937-a97d-37632e757fee.png',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
   },
   {
+    id: 'microsoft-dynamics',
+    name: 'Microsoft Dynamics 365',
+    description: 'Suite ERP et CRM intégrée de Microsoft',
+    logoUrl: 'https://logo.clearbit.com/microsoft.com',
+    status: 'inactive',
+    category: 'ERP',
+    comingSoon: true
+  },
+  {
+    id: 'sap',
+    name: 'SAP Business One',
+    description: 'ERP pour petites et moyennes entreprises',
+    logoUrl: 'https://logo.clearbit.com/sap.com',
+    status: 'inactive',
+    category: 'ERP',
+    comingSoon: true
+  },
+  
+  // Comptabilité
+  {
     id: 'cegid',
     name: 'Cegid',
     description: 'Solution comptable et de gestion intégrée',
-    logo: <img src="/lovable-uploads/e77a5e2d-5045-4f90-ac7c-a7f90e45cbc8.png" alt="Cegid logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/e77a5e2d-5045-4f90-ac7c-a7f90e45cbc8.png',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
@@ -47,7 +70,16 @@ const integrations: Integration[] = [
     id: 'sage',
     name: 'Sage',
     description: 'Logiciel de comptabilité et paie pour entreprises',
-    logo: <img src="/lovable-uploads/80687613-504c-4f0a-bc2a-bd3c6eda03cc.png" alt="Sage logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/80687613-504c-4f0a-bc2a-bd3c6eda03cc.png',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'sage-bob',
+    name: 'Sage BOB',
+    description: 'Solution comptable très populaire en Belgique et Luxembourg',
+    logoUrl: '/lovable-uploads/80687613-504c-4f0a-bc2a-bd3c6eda03cc.png',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
@@ -56,18 +88,121 @@ const integrations: Integration[] = [
     id: 'quickbooks',
     name: 'QuickBooks',
     description: 'Comptabilité simplifiée pour PME',
-    logo: <img src="/lovable-uploads/4e8b6089-26ce-40c6-8a44-46a8d28cc2cb.png" alt="QuickBooks logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/4e8b6089-26ce-40c6-8a44-46a8d28cc2cb.png',
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
   },
   {
+    id: 'ebp',
+    name: 'EBP',
+    description: 'Logiciels de gestion français très populaires auprès des PME',
+    logoUrl: 'https://logo.clearbit.com/ebp.com',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'ciel',
+    name: 'Ciel',
+    description: 'Solutions de comptabilité et paie françaises',
+    logoUrl: 'https://logo.clearbit.com/sage.com',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'exact',
+    name: 'Exact',
+    description: 'Solutions ERP et comptables populaires en Belgique',
+    logoUrl: 'https://logo.clearbit.com/exact.com',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'pennylane',
+    name: 'Pennylane',
+    description: 'Comptabilité automatisée nouvelle génération',
+    logoUrl: 'https://logo.clearbit.com/pennylane.com',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  {
+    id: 'inextens',
+    name: 'Inextens',
+    description: 'Gestion comptable et administrative française',
+    logoUrl: 'https://logo.clearbit.com/inextens.fr',
+    status: 'inactive',
+    category: 'Comptabilité',
+    comingSoon: true
+  },
+  
+  // CRM
+  {
     id: 'salesforce',
     name: 'Salesforce',
     description: 'CRM et gestion de la relation client',
-    logo: <img src="/lovable-uploads/191b6bd3-c372-4888-82b7-3ce6e54d97b5.png" alt="Salesforce logo" className="w-8 h-8 object-contain" />,
+    logoUrl: '/lovable-uploads/191b6bd3-c372-4888-82b7-3ce6e54d97b5.png',
     status: 'inactive',
     category: 'CRM',
+    comingSoon: true
+  },
+  {
+    id: 'hubspot',
+    name: 'HubSpot',
+    description: 'CRM et marketing automation',
+    logoUrl: 'https://logo.clearbit.com/hubspot.com',
+    status: 'inactive',
+    category: 'CRM',
+    comingSoon: true
+  },
+  {
+    id: 'pipedrive',
+    name: 'Pipedrive',
+    description: 'CRM simple et efficace pour équipes commerciales',
+    logoUrl: 'https://logo.clearbit.com/pipedrive.com',
+    status: 'inactive',
+    category: 'CRM',
+    comingSoon: true
+  },
+  {
+    id: 'zoho',
+    name: 'Zoho CRM',
+    description: 'Suite CRM complète pour entreprises',
+    logoUrl: 'https://logo.clearbit.com/zoho.com',
+    status: 'inactive',
+    category: 'CRM',
+    comingSoon: true
+  },
+  
+  // Paie & RH
+  {
+    id: 'lucca',
+    name: 'Lucca',
+    description: 'SIRH français pour gestion des talents et paie',
+    logoUrl: 'https://logo.clearbit.com/lucca.fr',
+    status: 'inactive',
+    category: 'RH & Paie',
+    comingSoon: true
+  },
+  {
+    id: 'silae',
+    name: 'Silae',
+    description: 'Solution de paie française populaire',
+    logoUrl: 'https://logo.clearbit.com/silae.fr',
+    status: 'inactive',
+    category: 'RH & Paie',
+    comingSoon: true
+  },
+  {
+    id: 'payfit',
+    name: 'PayFit',
+    description: 'Gestion de paie simplifiée pour PME',
+    logoUrl: 'https://logo.clearbit.com/payfit.com',
+    status: 'inactive',
+    category: 'RH & Paie',
     comingSoon: true
   }
 ];
@@ -138,8 +273,20 @@ const IntegrationsManager = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      {integration.logo}
-                      <div>
+                       <img 
+                         src={integration.logoUrl} 
+                         alt={`${integration.name} logo`} 
+                         className="w-8 h-8 object-contain"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement;
+                           target.style.display = 'none';
+                           target.nextElementSibling?.classList.remove('hidden');
+                         }}
+                       />
+                       <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-bold text-sm hidden">
+                         {integration.name.charAt(0)}
+                       </div>
+                       <div>
                         <CardTitle className="text-base">{integration.name}</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
                           {getStatusIcon(integration.status)}
