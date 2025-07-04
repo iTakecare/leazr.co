@@ -234,27 +234,78 @@ async function handleSendExistingInvoice(invoiceId: string) {
 async function createBillitInvoiceFromData(invoice: any, credentials: BillitCredentials, supabase: any) {
   console.log("🏗️ Création facture Billit depuis données locales");
   
-  const contract = invoice.contracts;
-  if (!contract) {
-    throw new Error("Contrat associé non trouvé");
+  // Récupérer les données depuis billing_data
+  const contractData = invoice.billing_data?.contract_data;
+  const equipmentData = invoice.billing_data?.equipment_data;
+
+  if (!contractData || !equipmentData) {
+    throw new Error("Données de contrat ou équipement manquantes");
   }
 
-  // Récupérer les données du leaser
+  // Récupérer les données du leaser avec toutes ses informations
   const { data: leaser, error: leaserError } = await supabase
     .from('leasers')
     .select('*')
-    .eq('name', contract.leaser_name)
+    .eq('name', contractData.leaser_name)
     .single();
 
   if (leaserError || !leaser) {
-    throw new Error(`Leaser "${contract.leaser_name}" non trouvé`);
+    throw new Error(`Leaser "${contractData.leaser_name}" non trouvé`);
   }
 
-  // Préparer les données Billit
+  // Valider les données du leaser
+  if (!leaser.address || !leaser.city || !leaser.postal_code) {
+    throw new Error("Adresse du leaser incomplète");
+  }
+
+  // Regrouper les équipements par titre et rassembler les numéros de série
+  const groupedEquipment = new Map();
+  
+  equipmentData.forEach((equipment: any) => {
+    const key = equipment.title;
+    const serialNumber = Array.isArray(equipment.serial_number) 
+      ? equipment.serial_number[0] 
+      : equipment.serial_number;
+    
+    if (groupedEquipment.has(key)) {
+      const existing = groupedEquipment.get(key);
+      existing.quantity += equipment.quantity;
+      existing.serialNumbers.push(serialNumber);
+    } else {
+      groupedEquipment.set(key, {
+        title: equipment.title,
+        quantity: equipment.quantity,
+        unitPriceExcl: parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
+        serialNumbers: [serialNumber]
+      });
+    }
+  });
+
+  // Créer les lignes de commande avec numéros de série dans la description
+  const orderLines = Array.from(groupedEquipment.values()).map((item: any) => {
+    let description = item.title;
+    
+    // Ajouter les numéros de série à la description
+    if (item.serialNumbers.length > 0 && item.serialNumbers[0]) {
+      const validSerialNumbers = item.serialNumbers.filter((sn: string) => sn && sn.trim() !== '');
+      if (validSerialNumbers.length > 0) {
+        description += ` - SN: ${validSerialNumbers.join(', ')}`;
+      }
+    }
+    
+    return {
+      Quantity: item.quantity,
+      UnitPriceExcl: item.unitPriceExcl,
+      Description: description,
+      VATPercentage: 21
+    };
+  });
+
+  // Préparer les données simplifiées pour Billit
   const billitInvoiceData = {
     OrderType: "Invoice",
     OrderDirection: "Income",
-    OrderNumber: invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`,
+    // Ne pas spécifier OrderNumber pour laisser Billit le générer
     OrderDate: new Date().toISOString().split('T')[0],
     ExpiryDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     Customer: {
@@ -272,15 +323,10 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
         }
       ]
     },
-    OrderLines: contract.contract_equipment?.map((equipment: any) => {
-      return {
-        Quantity: equipment.quantity,
-        UnitPriceExcl: parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
-        Description: equipment.title,
-        VATPercentage: 21
-      };
-    }) || []
+    OrderLines: orderLines
   };
+
+  console.log("📋 Données Billit simplifiées:", JSON.stringify(billitInvoiceData, null, 2));
 
   // Envoyer à Billit
   const billitUrl = `${credentials.baseUrl}/v1/orders`;
