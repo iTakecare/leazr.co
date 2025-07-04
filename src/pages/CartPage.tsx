@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
+import { getProductPrice } from '@/utils/productPricing';
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import MainNavigation from '@/components/layout/MainNavigation';
 
@@ -83,7 +84,7 @@ const CartPage: React.FC = () => {
                             
                             <div className="text-right">
                               <p className="font-medium text-blue-600">
-                                {formatCurrency(item.product.monthly_price)} / mois
+                                {formatCurrency(getProductPrice(item.product, item.selectedOptions).monthlyPrice)} / mois
                               </p>
                               <div className="flex items-center mt-1">
                                 <button 
@@ -117,7 +118,7 @@ const CartPage: React.FC = () => {
                             </Button>
                             
                             <p className="text-sm text-gray-500">
-                              Sous-total: <span className="font-medium">{formatCurrency(item.product.monthly_price * item.quantity)}</span>
+                              Sous-total: <span className="font-medium">{formatCurrency(getProductPrice(item.product, item.selectedOptions).monthlyPrice * item.quantity)}</span>
                             </p>
                           </div>
                         </div>

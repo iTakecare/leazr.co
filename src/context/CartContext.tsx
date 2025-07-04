@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/types/catalog';
+import { getProductPrice } from '@/utils/productPricing';
 import { toast } from 'sonner';
 
 type CartItem = {
@@ -81,83 +82,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ensure we're making a deep copy of the product to avoid reference issues
     const productToAdd = JSON.parse(JSON.stringify(newItem.product));
     
-    // Ensure the product has a valid numerical price
-    let validPrice: number;
+    // Use centralized pricing logic
+    const priceData = getProductPrice(productToAdd, newItem.selectedOptions);
     
-    // First check if the product already has a monthly_price that is a number
-    if (typeof productToAdd.monthly_price === 'number' && !isNaN(productToAdd.monthly_price) && productToAdd.monthly_price > 0) {
-      validPrice = productToAdd.monthly_price;
-    } 
-    // Then check if it's a string that can be converted to a number
-    else if (typeof productToAdd.monthly_price === 'string') {
-      validPrice = parseFloat(productToAdd.monthly_price);
-      if (isNaN(validPrice) || validPrice <= 0) {
-        // If monthly_price is invalid, try to get price from selectedVariant or variant_combination_prices
-        if (productToAdd.selectedVariant && typeof productToAdd.selectedVariant.monthly_price === 'number' && productToAdd.selectedVariant.monthly_price > 0) {
-          validPrice = productToAdd.selectedVariant.monthly_price;
-        } else if (productToAdd.currentPrice && !isNaN(productToAdd.currentPrice) && productToAdd.currentPrice > 0) {
-          validPrice = productToAdd.currentPrice;
-        } else {
-          // Fallback to regular price if available
-          if (typeof productToAdd.price === 'number' && productToAdd.price > 0) {
-            validPrice = productToAdd.price;
-          } else {
-            validPrice = 0;
-          }
-        }
-      }
-    } 
-    // If no monthly_price, check for selectedVariant price
-    else if (productToAdd.selectedVariant && typeof productToAdd.selectedVariant.monthly_price === 'number' && productToAdd.selectedVariant.monthly_price > 0) {
-      validPrice = productToAdd.selectedVariant.monthly_price;
-    } 
-    // Check for currentPrice from useProductDetails hook
-    else if (productToAdd.currentPrice && !isNaN(productToAdd.currentPrice) && productToAdd.currentPrice > 0) {
-      validPrice = productToAdd.currentPrice;
-    }
-    // Fallback to regular price
-    else if (typeof productToAdd.price === 'number' && productToAdd.price > 0) {
-      validPrice = productToAdd.price;
-    } 
-    // Last resort - set to 0 if we couldn't find a valid price
-    else {
-      validPrice = 0;
+    // Update the product with the validated prices
+    productToAdd.monthly_price = priceData.monthlyPrice;
+    if (priceData.purchasePrice > 0) {
+      productToAdd.currentPrice = priceData.purchasePrice;
     }
     
-    // If price is still invalid or zero, try variant_combination_prices as fallback
-    if (isNaN(validPrice) || validPrice <= 0) {
-      if (productToAdd.variant_combination_prices && productToAdd.variant_combination_prices.length > 0) {
-        // Try to find matching variant price based on selected options
-        const matchingCombo = productToAdd.variant_combination_prices.find(combo => {
-          if (!combo.attributes || !newItem.selectedOptions) return false;
-          return Object.entries(newItem.selectedOptions).every(([key, value]) => 
-            combo.attributes[key] === value
-          );
-        });
-        
-        if (matchingCombo && matchingCombo.monthly_price && matchingCombo.monthly_price > 0) {
-          validPrice = typeof matchingCombo.monthly_price === 'number' ? 
-                       matchingCombo.monthly_price : 
-                       parseFloat(String(matchingCombo.monthly_price));
-          // Also set the purchase price from the combination
-          if (matchingCombo.purchase_price && matchingCombo.purchase_price > 0) {
-            productToAdd.currentPrice = typeof matchingCombo.purchase_price === 'number' ? 
-                                       matchingCombo.purchase_price : 
-                                       parseFloat(String(matchingCombo.purchase_price));
-          }
-        }
-      }
-      
-      if (isNaN(validPrice) || validPrice <= 0) {
-        console.warn(`CartContext: Could not find valid price for ${productToAdd.name}`, productToAdd);
-        validPrice = 0; // Set to 0 instead of hardcoded fallback
-      }
-    }
-    
-    console.log(`CartContext: Setting final price for ${productToAdd.name}: ${validPrice}`);
-    
-    // Update the product with the validated price
-    productToAdd.monthly_price = validPrice;
+    console.log(`CartContext: Setting prices for ${productToAdd.name}: monthly=${priceData.monthlyPrice}, purchase=${priceData.purchasePrice}`);
     
     setItems(prevItems => {
       // Check if this product is already in the cart
@@ -183,7 +117,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Adding to cart product with details:', {
           id: productToAdd.id,
           name: productToAdd.name,
-          price: validPrice,
+          price: priceData.monthlyPrice,
           quantity: newItem.quantity
         });
         
@@ -217,26 +151,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const cartCount = items.reduce((total, item) => total + item.quantity, 0);
   
-  // Calculate the cart total, ensuring we normalize any price values to numbers
+  // Calculate the cart total using centralized pricing logic
   const cartTotal = items.reduce((total, item) => {
-    // Always ensure we're using a valid number for calculations
-    let itemPrice: number;
-    
-    if (typeof item.product.monthly_price === 'number') {
-      itemPrice = item.product.monthly_price;
-    } else if (typeof item.product.monthly_price === 'string') {
-      itemPrice = parseFloat(item.product.monthly_price);
-      if (isNaN(itemPrice)) {
-        itemPrice = 0;
-      }
-    } else {
-      itemPrice = 0;
-    }
-    
-    const subtotal = itemPrice * item.quantity;
+    const priceData = getProductPrice(item.product, item.selectedOptions);
+    const subtotal = priceData.monthlyPrice * item.quantity;
     
     // Log detailed information about each item in cart total calculation
-    console.log(`Cart total calculation - Item: ${item.product.name}, Raw Price: ${item.product.monthly_price}, Parsed Price: ${itemPrice}, Quantity: ${item.quantity}, Subtotal: ${subtotal}`);
+    console.log(`Cart total calculation - Item: ${item.product.name}, Monthly Price: ${priceData.monthlyPrice}, Quantity: ${item.quantity}, Subtotal: ${subtotal}`);
     
     return total + subtotal;
   }, 0);

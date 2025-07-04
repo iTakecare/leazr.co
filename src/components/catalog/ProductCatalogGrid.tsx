@@ -10,6 +10,7 @@ import {
 import { Product } from "@/types/catalog";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/utils/formatters";
+import { getMinimumMonthlyPrice, hasVariantPricing } from "@/utils/productPricing";
 
 interface ProductGridProps {
   products: Product[];
@@ -98,18 +99,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <div className="flex justify-between items-center">
           <div className="text-sm">
             {(() => {
-              const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
-              let displayPrice = product.monthly_price || 0;
-              
-              if (hasVariants) {
-                const variantPrices = product.variant_combination_prices
-                  .map(variant => variant.monthly_price || 0)
-                  .filter(price => price > 0);
-                  
-                if (variantPrices.length > 0) {
-                  displayPrice = Math.min(...variantPrices);
-                }
-              }
+              const hasVariants = hasVariantPricing(product);
+              const displayPrice = hasVariants ? getMinimumMonthlyPrice(product) : (product.monthly_price || 0);
               
               return (
                 <>

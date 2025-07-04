@@ -19,7 +19,7 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
     
     return {
       displayCurrentPrice: isValidPrice(currentPrice) ? currentPrice : null,
-      displayMinPrice: isValidPrice(minimumPrice) ? minimumPrice : 46.95 // Prix minimum correct pour MacBook Air 13 M3
+      displayMinPrice: isValidPrice(minimumPrice) ? minimumPrice : 0 // Remove hardcoded fallback
     };
   }, [currentPrice, minimumPrice]);
   

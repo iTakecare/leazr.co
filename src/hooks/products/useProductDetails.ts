@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useProductById } from './useProductById';
 import { Product } from '@/types/catalog';
+import { getProductPrice, getMinimumMonthlyPrice } from '@/utils/productPricing';
 
 export const useProductDetails = (productId: string | undefined) => {
   const { product, isLoading, error } = useProductById(productId);
@@ -66,103 +67,22 @@ export const useProductDetails = (productId: string | undefined) => {
     }) || null;
   }, [product, selectedOptions]);
 
-  // Calculate current price based on selected variant or base product
+  // Calculate current price using centralized logic
   const currentPrice = useMemo(() => {
-    if (selectedVariant && selectedVariant.monthly_price) {
-      const price = typeof selectedVariant.monthly_price === 'number' ? 
-                     selectedVariant.monthly_price : 
-                     parseFloat(String(selectedVariant.monthly_price) || '0');
-      
-      console.log(`useProductDetails: Selected variant price for ${selectedVariant.name}:`, price);
-      return price;
-    }
+    if (!product) return 0;
     
-    // If no variant is selected but we have a parent with variant combination prices
-    if (product && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      // Try to find a price that matches the selected options
-      const matchingPrice = product.variant_combination_prices.find(combo => {
-        if (!combo.attributes) return false;
-        
-        return Object.entries(selectedOptions).every(([key, value]) => 
-          combo.attributes[key] === value
-        );
-      });
-      
-      if (matchingPrice && matchingPrice.monthly_price) {
-        const price = typeof matchingPrice.monthly_price === 'number' ? 
-                       matchingPrice.monthly_price : 
-                       parseFloat(String(matchingPrice.monthly_price) || '0');
-        
-        console.log(`useProductDetails: Matching combination price:`, price);
-        return price;
-      }
-    }
-    
-    // Fallback to product's base price
-    const basePrice = product?.monthly_price ? 
-                     (typeof product.monthly_price === 'number' ? 
-                      product.monthly_price : 
-                      parseFloat(String(product.monthly_price) || '0')) : 0;
-    
-    if (isNaN(basePrice) || basePrice <= 0) {
-      // Try to get price from variant_combination_prices if no valid base price
-      if (product && product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-        const firstValidPrice = product.variant_combination_prices.find(combo => combo.monthly_price && combo.monthly_price > 0);
-        if (firstValidPrice) {
-          const variantPrice = typeof firstValidPrice.monthly_price === 'number' ? 
-                               firstValidPrice.monthly_price : 
-                               parseFloat(String(firstValidPrice.monthly_price) || '0');
-          console.log(`useProductDetails: Using first variant price for ${product?.name}:`, variantPrice);
-          return variantPrice;
-        }
-      }
-      console.warn(`useProductDetails: Could not find valid price for ${product?.name}`, product);
-      return 0; // Return 0 instead of hardcoded default
-    }
-    
-    console.log(`useProductDetails: Using base product price for ${product?.name}:`, basePrice);
-    return basePrice;
-  }, [product, selectedVariant, selectedOptions]);
+    const priceData = getProductPrice(product, selectedOptions);
+    console.log(`useProductDetails: Current price for ${product.name}:`, priceData.monthlyPrice);
+    return priceData.monthlyPrice;
+  }, [product, selectedOptions]);
 
-  // Calculate the minimum monthly price for display
+  // Calculate the minimum monthly price using centralized logic
   const minMonthlyPrice = useMemo(() => {
     if (!product) return 0;
     
-    if (product.variants && product.variants.length > 0) {
-      const prices = product.variants
-        .map(variant => {
-          const price = variant.monthly_price || 0;
-          return typeof price === 'number' ? price : parseFloat(String(price) || '0');
-        })
-        .filter(price => price > 0);
-      
-      if (prices.length > 0) {
-        return Math.min(...prices);
-      }
-    }
-    
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      const prices = product.variant_combination_prices
-        .map(combo => {
-          const price = combo.monthly_price || 0;
-          return typeof price === 'number' ? price : parseFloat(String(price) || '0');
-        })
-        .filter(price => price > 0);
-      
-      if (prices.length > 0) {
-        return Math.min(...prices);
-      }
-    }
-    
-    const basePrice = product.monthly_price || 0;
-    const parsedPrice = typeof basePrice === 'number' ? basePrice : parseFloat(String(basePrice) || '0');
-    
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      console.warn(`useProductDetails: Could not find valid minMonthlyPrice for ${product?.name}`, product);
-      return 0; // Return 0 instead of hardcoded default
-    }
-    
-    return parsedPrice;
+    const minPrice = getMinimumMonthlyPrice(product);
+    console.log(`useProductDetails: Min monthly price for ${product.name}:`, minPrice);
+    return minPrice;
   }, [product]);
 
   // Calculate total price based on quantity and duration (duration is now fixed)
