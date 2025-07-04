@@ -172,7 +172,7 @@ const integrations: Integration[] = [
     id: 'grenke',
     name: 'Grenke',
     description: 'Solutions de location financière pour équipements IT et professionnels',
-    logoUrl: 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.supabase.co/storage/v1/object/public/leaser-logos/aa3535be-654f-4770-8d28-2397939fcb5c.png',
+    logoUrl: 'https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/leaser-logos/aa3535be-654f-4770-8d28-2397939fcb5c.png',
     status: 'inactive',
     category: 'Leasing',
     comingSoon: true
@@ -181,7 +181,7 @@ const integrations: Integration[] = [
     id: 'atlance',
     name: 'Atlance',
     description: 'Spécialisé dans le leasing ICT et équipements numériques (Belgique, Pays-Bas, France)',
-    logoUrl: 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.supabase.co/storage/v1/object/public/leaser-logos/2f7890fe-8be1-4435-ae4e-1a6717064066.gif',
+    logoUrl: 'https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/leaser-logos/2f7890fe-8be1-4435-ae4e-1a6717064066.gif',
     status: 'inactive',
     category: 'Leasing',
     comingSoon: true
