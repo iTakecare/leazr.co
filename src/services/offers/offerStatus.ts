@@ -95,8 +95,8 @@ export const updateOfferStatus = async (
       console.log("Log created successfully:", logData);
     }
 
-    // Si le statut est financed, créer automatiquement un contrat
-    if (newStatus === 'financed') {
+    // Si le statut est accepted, créer automatiquement un contrat
+    if (newStatus === 'accepted') {
       console.log("🔄 Démarrage de la conversion automatique en contrat...");
       
       try {
@@ -128,18 +128,21 @@ export const updateOfferStatus = async (
         if (contractId) {
           console.log("✅ Contrat créé avec succès - ID:", contractId);
           
-          // Marquer l'offre comme convertie en contrat
+          // Marquer l'offre comme convertie en contrat mais garder le statut "accepted"
           const { error: conversionError } = await supabase
             .from('offers')
-            .update({ converted_to_contract: true })
+            .update({ 
+              converted_to_contract: true,
+              status: 'accepted' // Explicitement définir le statut comme accepté
+            })
             .eq('id', offerId);
             
           if (conversionError) {
             console.error("❌ Erreur lors de la mise à jour du statut de conversion:", conversionError);
             toast.error("Le contrat a été créé mais l'offre n'a pas pu être marquée comme convertie");
           } else {
-            console.log("✅ Offre marquée comme convertie en contrat");
-            toast.success(`Offre finalisée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
+            console.log("✅ Offre marquée comme convertie en contrat avec statut accepté");
+            toast.success(`Offre acceptée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
           }
         } else {
           throw new Error("Échec de la création du contrat");

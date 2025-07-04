@@ -19,7 +19,7 @@ export const useFetchOffers = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
-  const [includeConverted, setIncludeConverted] = useState(false);
+  const [includeConverted, setIncludeConverted] = useState(true);
 
   const fetchOffers = async () => {
     setLoading(true);
