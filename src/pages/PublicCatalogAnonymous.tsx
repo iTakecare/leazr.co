@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Product } from "@/types/catalog";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
@@ -203,7 +204,7 @@ const PublicCatalogAnonymous = () => {
                 product={product}
                 onClick={() => {
                   // Navigate to product detail in public context
-                  window.location.href = `/public/${companyId}/products/${product.id}`;
+                  navigate(`/public/${companyId}/products/${product.id}`);
                 }}
               />
             ))}
