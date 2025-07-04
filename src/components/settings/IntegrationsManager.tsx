@@ -21,7 +21,7 @@ const integrations: Integration[] = [
     id: 'billit',
     name: 'Billit',
     description: 'Automatisez votre facturation et synchronisez vos données comptables',
-    logo: <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">B</div>,
+    logo: <img src="/lovable-uploads/a420f98e-637d-4a5d-8b09-e62a8c610218.png" alt="Billit logo" className="w-8 h-8 object-contain" />,
     status: 'available',
     category: 'Facturation'
   },
@@ -29,7 +29,7 @@ const integrations: Integration[] = [
     id: 'odoo',
     name: 'Odoo',
     description: 'ERP complet pour la gestion d\'entreprise et CRM',
-    logo: <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">O</div>,
+    logo: <img src="/lovable-uploads/54095bc7-f532-4937-a97d-37632e757fee.png" alt="Odoo logo" className="w-8 h-8 object-contain" />,
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
@@ -38,7 +38,7 @@ const integrations: Integration[] = [
     id: 'cegid',
     name: 'Cegid',
     description: 'Solution comptable et de gestion intégrée',
-    logo: <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">C</div>,
+    logo: <img src="/lovable-uploads/e77a5e2d-5045-4f90-ac7c-a7f90e45cbc8.png" alt="Cegid logo" className="w-8 h-8 object-contain" />,
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
@@ -47,7 +47,7 @@ const integrations: Integration[] = [
     id: 'sage',
     name: 'Sage',
     description: 'Logiciel de comptabilité et paie pour entreprises',
-    logo: <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>,
+    logo: <img src="/lovable-uploads/80687613-504c-4f0a-bc2a-bd3c6eda03cc.png" alt="Sage logo" className="w-8 h-8 object-contain" />,
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
@@ -56,7 +56,7 @@ const integrations: Integration[] = [
     id: 'quickbooks',
     name: 'QuickBooks',
     description: 'Comptabilité simplifiée pour PME',
-    logo: <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">Q</div>,
+    logo: <img src="/lovable-uploads/4e8b6089-26ce-40c6-8a44-46a8d28cc2cb.png" alt="QuickBooks logo" className="w-8 h-8 object-contain" />,
     status: 'inactive',
     category: 'Comptabilité',
     comingSoon: true
@@ -65,7 +65,7 @@ const integrations: Integration[] = [
     id: 'salesforce',
     name: 'Salesforce',
     description: 'CRM et gestion de la relation client',
-    logo: <div className="w-8 h-8 bg-blue-400 rounded-lg flex items-center justify-center text-white font-bold text-sm">SF</div>,
+    logo: <img src="/lovable-uploads/191b6bd3-c372-4888-82b7-3ce6e54d97b5.png" alt="Salesforce logo" className="w-8 h-8 object-contain" />,
     status: 'inactive',
     category: 'CRM',
     comingSoon: true
