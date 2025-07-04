@@ -15,6 +15,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       .select(`
         id, 
         name,
+        company_name,
         logo_url,
         address,
         city,
@@ -47,6 +48,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     const formattedLeasers: Leaser[] = data.map((leaser) => ({
       id: leaser.id,
       name: leaser.name,
+      company_name: leaser.company_name,
       logo_url: leaser.logo_url,
       address: leaser.address,
       city: leaser.city,

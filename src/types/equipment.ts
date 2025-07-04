@@ -13,6 +13,7 @@ export interface Equipment {
 export interface Leaser {
   id: string;
   name: string;
+  company_name?: string;
   logo_url?: string;
   ranges: LeasingRange[];
   address?: string;

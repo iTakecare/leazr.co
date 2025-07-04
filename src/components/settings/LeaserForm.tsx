@@ -145,6 +145,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       
       const leaserData: Omit<Leaser, "id"> = {
         name: formData.get("name") as string,
+        company_name: formData.get("company_name") as string || undefined,
         logo_url: previewUrl,
         address: formData.get("address") as string || undefined,
         city: formData.get("city") as string || undefined,
@@ -178,7 +179,21 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
               name="name" 
               defaultValue={currentLeaser?.name || ""}
               required
+              placeholder="ex: 1. Grenke Lease SRL"
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="company_name">Nom commercial</Label>
+            <Input 
+              id="company_name" 
+              name="company_name" 
+              defaultValue={currentLeaser?.company_name || ""}
+              placeholder="ex: Grenke"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nom utilisé pour la correspondance avec les contrats
+            </p>
           </div>
           
           <div className="space-y-2">
