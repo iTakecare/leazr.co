@@ -95,8 +95,8 @@ export const updateOfferStatus = async (
       console.log("Log created successfully:", logData);
     }
 
-    // Si le statut est accepted, créer automatiquement un contrat
-    if (newStatus === 'accepted') {
+    // Si le statut est financed, créer automatiquement un contrat
+    if (newStatus === 'financed') {
       console.log("🔄 Démarrage de la conversion automatique en contrat...");
       
       try {
