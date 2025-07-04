@@ -292,6 +292,48 @@ export type Database = {
         }
         Relationships: []
       }
+      business_profiles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          requirements: Json | null
+          sector: string
+          typical_budget_max: number | null
+          typical_budget_min: number | null
+          typical_team_size_max: number | null
+          typical_team_size_min: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          requirements?: Json | null
+          sector: string
+          typical_budget_max?: number | null
+          typical_budget_min?: number | null
+          typical_team_size_max?: number | null
+          typical_team_size_min?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          requirements?: Json | null
+          sector?: string
+          typical_budget_max?: number | null
+          typical_budget_min?: number | null
+          typical_team_size_max?: number | null
+          typical_team_size_min?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -1153,6 +1195,229 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      fleet_configurations: {
+        Row: {
+          budget: number | null
+          business_sector: string | null
+          client_id: string | null
+          company_id: string | null
+          created_at: string | null
+          equipment_list: Json
+          generated_configuration: Json
+          id: string
+          monthly_cost: number | null
+          name: string
+          optimization_score: number | null
+          requirements: Json | null
+          status: string | null
+          team_size: number
+          template_id: string | null
+          total_cost: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          budget?: number | null
+          business_sector?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          equipment_list?: Json
+          generated_configuration?: Json
+          id?: string
+          monthly_cost?: number | null
+          name: string
+          optimization_score?: number | null
+          requirements?: Json | null
+          status?: string | null
+          team_size: number
+          template_id?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          budget?: number | null
+          business_sector?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          equipment_list?: Json
+          generated_configuration?: Json
+          id?: string
+          monthly_cost?: number | null
+          name?: string
+          optimization_score?: number | null
+          requirements?: Json | null
+          status?: string | null
+          team_size?: number
+          template_id?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_configurations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_configurations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_generation_logs: {
+        Row: {
+          action: string
+          configuration_id: string | null
+          created_at: string | null
+          data: Json | null
+          execution_time_ms: number | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          configuration_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          configuration_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_generation_logs_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_recommendations: {
+        Row: {
+          configuration_id: string | null
+          cost_impact: number | null
+          created_at: string | null
+          data: Json | null
+          description: string | null
+          id: string
+          impact_score: number | null
+          is_applied: boolean | null
+          recommendation_type: string
+          title: string
+        }
+        Insert: {
+          configuration_id?: string | null
+          cost_impact?: number | null
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string
+          impact_score?: number | null
+          is_applied?: boolean | null
+          recommendation_type: string
+          title: string
+        }
+        Update: {
+          configuration_id?: string | null
+          cost_impact?: number | null
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string
+          impact_score?: number | null
+          is_applied?: boolean | null
+          recommendation_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_recommendations_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_templates: {
+        Row: {
+          business_profile_id: string | null
+          configuration: Json
+          created_at: string | null
+          description: string | null
+          equipment_list: Json
+          estimated_budget: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          team_size_max: number | null
+          team_size_min: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_profile_id?: string | null
+          configuration?: Json
+          created_at?: string | null
+          description?: string | null
+          equipment_list?: Json
+          estimated_budget?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          team_size_max?: number | null
+          team_size_min?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_profile_id?: string | null
+          configuration?: Json
+          created_at?: string | null
+          description?: string | null
+          equipment_list?: Json
+          estimated_budget?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          team_size_max?: number | null
+          team_size_min?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_templates_business_profile_id_fkey"
+            columns: ["business_profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hero_cms: {
         Row: {
