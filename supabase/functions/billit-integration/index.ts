@@ -532,28 +532,42 @@ serve(async (req) => {
     console.log("🏢 Récupération données leaser...");
     const leaserName = contract.leaser_name;
     
-    // Essayer d'abord une correspondance exacte
+    // Essayer d'abord une correspondance par company_name (nouveau système)
     let { data: leaser, error: leaserError } = await supabase
       .from('leasers')
       .select('*')
-      .eq('name', leaserName)
+      .ilike('company_name', leaserName)
       .single();
 
-    // Si pas de correspondance exacte, essayer une recherche partielle
+    // Si pas de correspondance par company_name, essayer par name (ancien système)
     if (leaserError || !leaser) {
-      console.log("🔍 Recherche partielle pour leaser:", leaserName);
-      const partialResult = await supabase
+      console.log("🔍 Recherche par nom complet pour leaser:", leaserName);
+      const nameResult = await supabase
         .from('leasers')
         .select('*')
-        .ilike('name', `%${leaserName}%`)
+        .eq('name', leaserName)
         .single();
         
-      if (partialResult.data) {
-        leaser = partialResult.data;
+      if (nameResult.data) {
+        leaser = nameResult.data;
         leaserError = null;
-        console.log("✅ Leaser trouvé avec recherche partielle:", leaser.name);
+        console.log("✅ Leaser trouvé avec nom complet:", leaser.name);
       } else {
-        leaserError = partialResult.error;
+        // Dernier recours: recherche partielle par name
+        console.log("🔍 Recherche partielle pour leaser:", leaserName);
+        const partialResult = await supabase
+          .from('leasers')
+          .select('*')
+          .ilike('name', `%${leaserName}%`)
+          .single();
+          
+        if (partialResult.data) {
+          leaser = partialResult.data;
+          leaserError = null;
+          console.log("✅ Leaser trouvé avec recherche partielle:", leaser.name);
+        } else {
+          leaserError = partialResult.error;
+        }
       }
     }
 
