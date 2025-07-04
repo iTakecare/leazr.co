@@ -460,32 +460,24 @@ const IntegrationsManager = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 flex items-center justify-center relative">
-                         <img 
-                           src={integration.logoUrl} 
-                           alt={`${integration.name} logo`} 
-                           className="w-8 h-8 object-contain"
-                           onLoad={(e) => {
-                             // Image chargée avec succès, masquer l'icône de fallback
-                             const img = e.target as HTMLImageElement;
-                             const fallback = img.nextElementSibling as HTMLElement;
-                             if (fallback) {
-                               fallback.style.display = 'none';
-                             }
-                           }}
-                           onError={(e) => {
-                             // Image failed to load, show fallback icon
-                             const img = e.target as HTMLImageElement;
-                             img.style.display = 'none';
-                             const fallback = img.nextElementSibling as HTMLElement;
-                             if (fallback) {
-                               fallback.style.display = 'flex';
-                             }
-                           }}
-                         />
-                         <div className="w-8 h-8 flex items-center justify-center absolute top-0 left-0">
-                           {getIntegrationIcon(integration)}
-                         </div>
-                       </div>
+                          <img 
+                            src={integration.logoUrl} 
+                            alt={`${integration.name} logo`} 
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              // Image failed to load, show fallback icon
+                              const img = e.target as HTMLImageElement;
+                              img.style.display = 'none';
+                              const fallback = img.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                          />
+                          <div className="w-8 h-8 flex items-center justify-center absolute top-0 left-0" style={{ display: 'none' }}>
+                            {getIntegrationIcon(integration)}
+                          </div>
+                        </div>
                        <div>
                         <CardTitle className="text-base">{integration.name}</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
