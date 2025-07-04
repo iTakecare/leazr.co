@@ -166,6 +166,89 @@ const integrations: Integration[] = [
     category: 'Comptabilité',
     comingSoon: true
   },
+  
+  // Leasing
+  {
+    id: 'grenke',
+    name: 'Grenke',
+    description: 'Solutions de location financière pour équipements IT et professionnels',
+    logoUrl: 'https://www.grenke.fr/favicon.ico',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'atlance',
+    name: 'Atlance',
+    description: 'Spécialisé dans le leasing ICT et équipements numériques (Belgique, Pays-Bas, France)',
+    logoUrl: 'https://logo.clearbit.com/atlance.be',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'locam',
+    name: 'Locam',
+    description: 'Solutions de location et financement d\'équipements professionnels',
+    logoUrl: 'https://logo.clearbit.com/locam.fr',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'bnp-paribas-leasing',
+    name: 'BNP Paribas Leasing Solutions',
+    description: 'Solutions de financement et leasing sur mesure pour entreprises',
+    logoUrl: 'https://logo.clearbit.com/bnpparibas.com',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'bpce-equipment',
+    name: 'BPCE Equipment Solutions',
+    description: 'Financement locatif d\'équipements industriels (ex-SGEF)',
+    logoUrl: 'https://logo.clearbit.com/groupebpce.fr',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'nbb-lease',
+    name: 'NBB Lease',
+    description: 'Acteur indépendant français du financement locatif (groupe Leasecom)',
+    logoUrl: 'https://www.nbb-lease.fr/favicon.ico',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'leasecom',
+    name: 'Leasecom',
+    description: 'Créateur du Leasing Circulaire, location financière évolutive et responsable',
+    logoUrl: 'https://www.leasecom.fr/favicon.ico',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'nanceo',
+    name: 'Nanceo',
+    description: 'Place de marché dédiée au financement des ventes B2B en leasing',
+    logoUrl: 'https://logo.clearbit.com/nanceo.fr',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
+  {
+    id: 'lease-material',
+    name: 'Lease Material',
+    description: 'Spécialisé dans le financement locatif d\'équipements et matériels',
+    logoUrl: 'https://leasematerial.com/favicon.ico',
+    status: 'inactive',
+    category: 'Leasing',
+    comingSoon: true
+  },
   {
     id: 'inextens',
     name: 'Inextens',
@@ -303,6 +386,8 @@ const getCategoryIcon = (category: string) => {
       return <Users className="h-6 w-6 text-orange-600" />;
     case 'Vérification':
       return <Shield className="h-6 w-6 text-indigo-600" />;
+    case 'Leasing':
+      return <CreditCard className="h-6 w-6 text-emerald-600" />;
     case 'RH & Paie':
       return <CreditCard className="h-6 w-6 text-pink-600" />;
     default:
