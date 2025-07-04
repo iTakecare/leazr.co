@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
+import { CartProvider } from "@/context/CartContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import Layout from "@/components/layout/Layout";
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
@@ -98,7 +99,8 @@ function App() {
         <BrowserRouter>
           <AuthProvider>
             <CompanyBrandingProvider>
-              <Suspense fallback={<div>Loading...</div>}>
+              <CartProvider>
+                <Suspense fallback={<div>Loading...</div>}>
                 <Routes>
                   {/* Public Website Routes - Landing and showcase pages */}
                   <Route path="/" element={<LandingPage />} />
@@ -437,6 +439,7 @@ function App() {
                   } />
                 </Routes>
               </Suspense>
+              </CartProvider>
             </CompanyBrandingProvider>
           </AuthProvider>
         </BrowserRouter>
