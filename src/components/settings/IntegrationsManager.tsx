@@ -73,6 +73,15 @@ const integrations: Integration[] = [
     category: 'ERP',
     comingSoon: true
   },
+  {
+    id: 'axonaut',
+    name: 'Axonaut',
+    description: 'Logiciel de gestion d\'entreprise français tout-en-un (CRM, facturation, devis)',
+    logoUrl: 'https://www.axonaut.com/wp-content/uploads/2019/05/logo-axonaut-1.png',
+    status: 'inactive',
+    category: 'ERP',
+    comingSoon: true
+  },
   
   // Comptabilité
   {
