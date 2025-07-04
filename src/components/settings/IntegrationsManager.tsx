@@ -22,7 +22,7 @@ const integrations: Integration[] = [
     id: 'billit',
     name: 'Billit',
     description: 'Automatisez votre facturation et synchronisez vos données comptables',
-    logoUrl: '/lovable-uploads/a420f98e-637d-4a5d-8b09-e62a8c610218.png',
+    logoUrl: 'https://www.billit.eu/media/zyrdvyth/billit_logo.png',
     status: 'available',
     category: 'Facturation'
   },
