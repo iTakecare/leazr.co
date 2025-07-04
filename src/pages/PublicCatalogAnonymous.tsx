@@ -5,18 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search, Filter, SlidersHorizontal, Phone, Mail, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
+import { useCart } from "@/context/CartContext";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
+  const { cartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
+
+  const handleCartClick = () => {
+    navigate(`/public/${companyId}/panier`);
+  };
 
   // Fetch company info with branding
   const { data: company } = useQuery({
@@ -105,6 +111,71 @@ const PublicCatalogAnonymous = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Company Header */}
+      <header className="bg-white border-b shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {company?.logo_url && (
+                <img 
+                  src={company.logo_url} 
+                  alt={company.name}
+                  className="h-10 w-auto"
+                />
+              )}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  {company?.contact_phone && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      <span>{company.contact_phone}</span>
+                    </div>
+                  )}
+                  {company?.contact_email && (
+                    <div className="flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      <span>{company.contact_email}</span>
+                    </div>
+                  )}
+                  {company?.website_url && (
+                    <div className="flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" />
+                      <a 
+                        href={company.website_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="hover:text-primary"
+                      >
+                        Site web
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCartClick}
+                className="relative flex items-center gap-2"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Panier
+                {cartCount > 0 && (
+                  <Badge 
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
+                    {cartCount}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+      
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}
         <CatalogHeader />
