@@ -68,7 +68,7 @@ const integrations: Integration[] = [
     id: 'horus',
     name: 'Horus',
     description: 'Logiciel comptable innovant pour fiduciaires et entreprises',
-    logoUrl: 'https://www.horussoftware.be/themes/horus/assets/images/logo.png',
+    logoUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIUNkdJWoL7UaRtVwYEOj4Bpgkw4NPQ8WbkQ&s',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
