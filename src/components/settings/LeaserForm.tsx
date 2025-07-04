@@ -3,10 +3,11 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Image as ImageIcon, Loader2, X, Plus, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Loader2, X, Plus, Trash2, Search, Check, AlertCircle } from "lucide-react";
 import { Leaser } from "@/types/equipment";
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { verifyVatNumber } from "@/services/clientService";
 
 interface Range {
   id: string;
@@ -31,7 +32,10 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
+  const [isVerifyingVies, setIsVerifyingVies] = useState(false);
+  const [viesData, setViesData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleRangeChange = (index: number, field: keyof Range, value: number) => {
     const newRanges = [...tempRanges];
@@ -133,6 +137,94 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const handleRemoveLogo = () => {
     setPreviewUrl(null);
   };
+
+  const handleViesVerification = async () => {
+    if (!formRef.current) return;
+    
+    const formData = new FormData(formRef.current);
+    const vatNumber = formData.get("vat_number") as string;
+    const country = formData.get("country") as string || 'BE';
+    
+    if (!vatNumber || vatNumber.trim() === '') {
+      toast.error("Veuillez saisir un numéro de TVA");
+      return;
+    }
+
+    setIsVerifyingVies(true);
+    
+    try {
+      const result = await verifyVatNumber(vatNumber.trim(), country);
+      
+      if (result.valid && result.companyName) {
+        setViesData(result);
+        
+        // Parse address if available
+        let addressData = { streetAddress: '', city: '', postalCode: '', country: '' };
+        if (result.addressParsed) {
+          addressData = result.addressParsed;
+        } else if (result.address) {
+          // Simple parsing fallback
+          const addressParts = result.address.split(',').map((part: string) => part.trim());
+          if (addressParts.length >= 2) {
+            addressData.streetAddress = addressParts[0];
+            const postalMatch = result.address.match(/\b\d{4,6}\b/);
+            if (postalMatch) {
+              addressData.postalCode = postalMatch[0];
+              addressData.city = result.address.replace(addressData.streetAddress, '').replace(addressData.postalCode, '').replace(/[,\s]+/g, ' ').trim();
+            } else {
+              addressData.city = addressParts[1];
+            }
+          }
+        }
+
+        // Update form fields
+        if (formRef.current) {
+          const form = formRef.current;
+          
+          // Company name from VIES
+          const companyNameField = form.querySelector('[name="company_name"]') as HTMLInputElement;
+          if (companyNameField && result.companyName) {
+            companyNameField.value = result.companyName;
+          }
+          
+          // Address fields
+          if (addressData.streetAddress) {
+            const addressField = form.querySelector('[name="address"]') as HTMLInputElement;
+            if (addressField) addressField.value = addressData.streetAddress;
+          }
+          
+          if (addressData.city) {
+            const cityField = form.querySelector('[name="city"]') as HTMLInputElement;
+            if (cityField) cityField.value = addressData.city;
+          }
+          
+          if (addressData.postalCode) {
+            const postalField = form.querySelector('[name="postal_code"]') as HTMLInputElement;
+            if (postalField) postalField.value = addressData.postalCode;
+          }
+          
+          if (addressData.country) {
+            const countryField = form.querySelector('[name="country"]') as HTMLInputElement;
+            if (countryField) countryField.value = addressData.country;
+          }
+        }
+        
+        toast.success(`Données VIES récupérées pour ${result.companyName}`);
+      } else if (!result.valid) {
+        toast.error("Numéro de TVA invalide selon VIES");
+        setViesData(null);
+      } else {
+        toast.error("Aucune donnée d'entreprise trouvée");
+        setViesData(null);
+      }
+    } catch (error) {
+      console.error('Erreur VIES:', error);
+      toast.error("Erreur lors de la vérification VIES");
+      setViesData(null);
+    } finally {
+      setIsVerifyingVies(false);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +259,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="mt-6 space-y-6">
       <div className="space-y-6">
         {/* Informations générales */}
         <div className="space-y-4">
@@ -263,11 +355,44 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
             </div>
             <div className="space-y-2">
               <Label htmlFor="vat_number">Numéro de TVA</Label>
-              <Input 
-                id="vat_number" 
-                name="vat_number" 
-                defaultValue={currentLeaser?.vat_number || ""}
-              />
+              <div className="flex gap-2">
+                <Input 
+                  id="vat_number" 
+                  name="vat_number" 
+                  defaultValue={currentLeaser?.vat_number || ""}
+                  placeholder="BE1234567890"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleViesVerification}
+                  disabled={isVerifyingVies}
+                  className="flex-shrink-0"
+                >
+                  {isVerifyingVies ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : viesData?.valid ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">
+                    {isVerifyingVies ? "Vérification..." : "VIES"}
+                  </span>
+                </Button>
+              </div>
+              {viesData?.valid && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  Numéro de TVA valide - {viesData.companyName}
+                </p>
+              )}
+              {viesData?.valid === false && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Numéro de TVA invalide
+                </p>
+              )}
             </div>
           </div>
         </div>
