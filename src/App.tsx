@@ -129,6 +129,7 @@ function App() {
                   <Route path="/catalog" element={<PublicCatalog />} />
                   <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
                   <Route path="/catalog/:companyId" element={<PublicCatalogMultiTenant />} />
+                  <Route path="/public/:companyId/catalog" element={<PublicCatalogMultiTenant />} />
                   <Route path="/product/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
                   <Route path="/request" element={<PublicRequestPage />} />

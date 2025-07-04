@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,17 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 const PublicCatalogMultiTenant = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
-  const { companyId, loading: companyLoading } = useMultiTenant();
+  const { companyId: urlCompanyId } = useParams<{ companyId: string }>();
+  const { companyId: contextCompanyId, loading: companyLoading } = useMultiTenant();
+  
+  // Use URL parameter if available, otherwise fallback to context
+  const companyId = urlCompanyId || contextCompanyId;
+  const loading = !urlCompanyId && companyLoading;
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products", "public", companyId],
     queryFn: () => getProducts({ includeAdminOnly: false }),
-    enabled: !companyLoading && !!companyId,
+    enabled: !loading && !!companyId,
   });
 
   // Filtrer par recherche et catégorie
@@ -40,7 +46,7 @@ const PublicCatalogMultiTenant = () => {
     { name: "printer", icon: Printer, count: products.filter(p => p.category === "printer").length }
   ];
 
-  if (companyLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
