@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database } from 'lucide-react';
 import BillitIntegrationSettings from './BillitIntegrationSettings';
+import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 
 interface Integration {
   id: string;
@@ -228,9 +229,8 @@ const integrations: Integration[] = [
     name: 'Companyweb',
     description: 'Informations commerciales et analyse de fiabilité (Belgique)',
     logoUrl: 'https://logo.clearbit.com/companyweb.be',
-    status: 'inactive',
-    category: 'Vérification',
-    comingSoon: true
+    status: 'available',
+    category: 'Vérification'
   },
   
   // RH & Paie
@@ -456,7 +456,11 @@ const IntegrationsManager = () => {
               <BillitIntegrationSettings />
             )}
             
-            {selectedIntegration && selectedIntegration !== 'billit' && (
+            {selectedIntegration === 'companyweb' && (
+              <CompanyWebIntegrationSettings />
+            )}
+            
+            {selectedIntegration && selectedIntegration !== 'billit' && selectedIntegration !== 'companyweb' && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
