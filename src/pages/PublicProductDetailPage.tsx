@@ -85,7 +85,7 @@ const PublicProductDetailPage = () => {
   } = attributeHelpers;
   
   const handleBackToCatalog = () => {
-    navigate(`/public/${companyId}/catalog`);
+    navigate(`/catalog/anonymous/${companyId}`);
   };
   
   const handleCartClick = () => {
