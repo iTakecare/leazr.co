@@ -234,28 +234,13 @@ async function handleSendExistingInvoice(invoiceId: string) {
 async function createBillitInvoiceFromData(invoice: any, credentials: BillitCredentials, supabase: any) {
   console.log("🏗️ Création facture Billit depuis données locales");
   
-  // Récupérer les données depuis billing_data
+  // Utiliser les données enrichies depuis billing_data
   const contractData = invoice.billing_data?.contract_data;
   const equipmentData = invoice.billing_data?.equipment_data;
+  const leaserData = invoice.billing_data?.leaser_data;
 
-  if (!contractData || !equipmentData) {
-    throw new Error("Données de contrat ou équipement manquantes");
-  }
-
-  // Récupérer les données du leaser avec toutes ses informations
-  const { data: leaser, error: leaserError } = await supabase
-    .from('leasers')
-    .select('*')
-    .eq('name', contractData.leaser_name)
-    .single();
-
-  if (leaserError || !leaser) {
-    throw new Error(`Leaser "${contractData.leaser_name}" non trouvé`);
-  }
-
-  // Valider les données du leaser
-  if (!leaser.address || !leaser.city || !leaser.postal_code) {
-    throw new Error("Adresse du leaser incomplète");
+  if (!contractData || !equipmentData || !leaserData) {
+    throw new Error("Données de contrat, équipement ou leaser manquantes dans billing_data");
   }
 
   // Regrouper les équipements par titre et rassembler les numéros de série
@@ -263,20 +248,37 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
   
   equipmentData.forEach((equipment: any) => {
     const key = equipment.title;
-    const serialNumber = Array.isArray(equipment.serial_number) 
-      ? equipment.serial_number[0] 
-      : equipment.serial_number;
+    let serialNumbers = [];
+    
+    if (equipment.serial_number) {
+      if (Array.isArray(equipment.serial_number)) {
+        serialNumbers = equipment.serial_number.filter((sn: string) => sn && sn.trim() !== '');
+      } else if (typeof equipment.serial_number === 'string' && equipment.serial_number.trim() !== '') {
+        try {
+          // Essayer de parser si c'est du JSON
+          const parsed = JSON.parse(equipment.serial_number);
+          if (Array.isArray(parsed)) {
+            serialNumbers = parsed.filter((sn: string) => sn && sn.trim() !== '');
+          } else {
+            serialNumbers = [equipment.serial_number.trim()];
+          }
+        } catch {
+          // Si ce n'est pas du JSON, traiter comme string
+          serialNumbers = [equipment.serial_number.trim()];
+        }
+      }
+    }
     
     if (groupedEquipment.has(key)) {
       const existing = groupedEquipment.get(key);
       existing.quantity += equipment.quantity;
-      existing.serialNumbers.push(serialNumber);
+      existing.serialNumbers.push(...serialNumbers);
     } else {
       groupedEquipment.set(key, {
         title: equipment.title,
         quantity: equipment.quantity,
-        unitPriceExcl: parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
-        serialNumbers: [serialNumber]
+        unitPriceExcl: equipment.selling_price_excl_vat || parseFloat((equipment.purchase_price + equipment.margin).toFixed(2)),
+        serialNumbers: serialNumbers
       });
     }
   });
@@ -286,11 +288,8 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
     let description = item.title;
     
     // Ajouter les numéros de série à la description
-    if (item.serialNumbers.length > 0 && item.serialNumbers[0]) {
-      const validSerialNumbers = item.serialNumbers.filter((sn: string) => sn && sn.trim() !== '');
-      if (validSerialNumbers.length > 0) {
-        description += ` - SN: ${validSerialNumbers.join(', ')}`;
-      }
+    if (item.serialNumbers.length > 0) {
+      description += ` - SN: ${item.serialNumbers.join(', ')}`;
     }
     
     return {
@@ -301,7 +300,7 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
     };
   });
 
-  // Préparer les données simplifiées pour Billit
+  // Préparer les données simplifiées pour Billit avec l'adresse du leaser
   const billitInvoiceData = {
     OrderType: "Invoice",
     OrderDirection: "Income",
@@ -309,24 +308,24 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
     OrderDate: new Date().toISOString().split('T')[0],
     ExpiryDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     Customer: {
-      Name: leaser.name,
-      VATNumber: leaser.vat_number || '',
+      Name: leaserData.name,
+      VATNumber: leaserData.vat_number || '',
       PartyType: "Customer",
       Addresses: [
         {
           AddressType: "InvoiceAddress",
-          Name: leaser.name,
-          Street: leaser.address,
-          City: leaser.city,
-          PostalCode: leaser.postal_code,
-          CountryCode: leaser.country || 'BE'
+          Name: leaserData.name,
+          Street: leaserData.address,
+          City: leaserData.city,
+          PostalCode: leaserData.postal_code,
+          CountryCode: leaserData.country === "Belgique" ? "BE" : leaserData.country || "BE"
         }
       ]
     },
     OrderLines: orderLines
   };
 
-  console.log("📋 Données Billit simplifiées:", JSON.stringify(billitInvoiceData, null, 2));
+  console.log("📋 Données Billit avec leaser enrichi:", JSON.stringify(billitInvoiceData, null, 2));
 
   // Envoyer à Billit
   const billitUrl = `${credentials.baseUrl}/v1/orders`;

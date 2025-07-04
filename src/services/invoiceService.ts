@@ -80,7 +80,23 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       throw new Error('Contrat non trouvé');
     }
 
-    // Récupérer les équipements du contrat
+    // Récupérer les données complètes du leaser
+    const { data: leaser, error: leaserError } = await supabase
+      .from('leasers')
+      .select('*')
+      .eq('name', contract.leaser_name)
+      .single();
+
+    if (leaserError || !leaser) {
+      throw new Error(`Leaser "${contract.leaser_name}" non trouvé`);
+    }
+
+    // Vérifier que le leaser a toutes les données nécessaires
+    if (!leaser.address || !leaser.city || !leaser.postal_code) {
+      throw new Error('Données du leaser incomplètes (adresse, ville, code postal manquants)');
+    }
+
+    // Récupérer les équipements du contrat avec numéros de série
     const { data: equipment, error: equipmentError } = await supabase
       .from('contract_equipment')
       .select('*')
@@ -90,19 +106,52 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       throw new Error('Erreur lors de la récupération des équipements');
     }
 
-    // Créer la facture en brouillon
+    // Vérifier que tous les équipements ont des numéros de série
+    const missingSerialNumbers = equipment.filter(item => !item.serial_number);
+    if (missingSerialNumbers.length > 0) {
+      throw new Error(`Numéros de série manquants pour certains équipements: ${missingSerialNumbers.map(e => e.title).join(', ')}`);
+    }
+
+    // Calculer le prix total de vente (avec marge)
+    const totalSellingPrice = equipment.reduce((total, item) => {
+      const sellingPrice = item.purchase_price + item.margin;
+      return total + (sellingPrice * item.quantity);
+    }, 0);
+
+    // Préparer les données d'équipement enrichies avec prix de vente
+    const enrichedEquipment = equipment.map(item => ({
+      ...item,
+      selling_price_excl_vat: parseFloat((item.purchase_price + item.margin).toFixed(2))
+    }));
+
+    // Créer la facture en brouillon avec toutes les données nécessaires
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
         contract_id: contractId,
         company_id: companyId,
         leaser_name: contract.leaser_name,
-        amount: contract.monthly_payment || 0,
+        amount: totalSellingPrice,
         status: 'draft',
         integration_type: 'billit',
         billing_data: {
           contract_data: contract,
-          equipment_data: equipment,
+          equipment_data: enrichedEquipment,
+          leaser_data: {
+            name: leaser.name,
+            address: leaser.address,
+            city: leaser.city,
+            postal_code: leaser.postal_code,
+            country: leaser.country || 'Belgique',
+            vat_number: leaser.vat_number,
+            email: leaser.email,
+            phone: leaser.phone
+          },
+          invoice_totals: {
+            total_excl_vat: totalSellingPrice,
+            vat_amount: totalSellingPrice * 0.21,
+            total_incl_vat: totalSellingPrice * 1.21
+          },
           generated_locally: true,
           created_at: new Date().toISOString()
         }
