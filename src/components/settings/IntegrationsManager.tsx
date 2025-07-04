@@ -59,7 +59,7 @@ const integrations: Integration[] = [
     id: 'teamleader',
     name: 'Teamleader',
     description: 'CRM, facturation et gestion de projets pour PME (très populaire en Belgique)',
-    logoUrl: 'https://assets.teamleader.eu/img/teamleader-logo.svg',
+    logoUrl: '/lovable-uploads/52ac938f-82c5-49f9-907b-41009e38278b.png',
     status: 'inactive',
     category: 'ERP',
     comingSoon: true
@@ -209,7 +209,7 @@ const integrations: Integration[] = [
     id: 'graydon-creditsafe',
     name: 'Graydon-CreditSafe',
     description: 'Vérification de solvabilité et données d\'entreprises (Belgique/France)',
-    logoUrl: 'https://www.creditsafe.com/themes/creditsafe/images/creditsafe-logo.svg',
+    logoUrl: '/lovable-uploads/1aa14a0c-93f6-43b7-acbc-d219bbd9c46e.png',
     status: 'inactive',
     category: 'Vérification',
     comingSoon: true
@@ -218,7 +218,7 @@ const integrations: Integration[] = [
     id: 'companyweb',
     name: 'Companyweb',
     description: 'Informations commerciales et analyse de fiabilité (Belgique)',
-    logoUrl: 'https://www.companyweb.be/images/logo-companyweb.svg',
+    logoUrl: '/lovable-uploads/325be1db-cf46-4253-90e1-4c26f02b267b.png',
     status: 'inactive',
     category: 'Vérification',
     comingSoon: true
@@ -247,7 +247,7 @@ const integrations: Integration[] = [
     id: 'payfit',
     name: 'PayFit',
     description: 'Gestion de paie simplifiée pour PME',
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/PayFit_logo.svg',
+    logoUrl: '/lovable-uploads/56939bad-b11e-421e-8dca-13f8a485973b.png',
     status: 'inactive',
     category: 'RH & Paie',
     comingSoon: true
