@@ -41,9 +41,16 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
+  // Calculer le montant total d'achat (prix d'achat des produits)
+  const totalPurchaseAmount = items.reduce((total, item) => {
+    const purchasePrice = item.product.currentPrice || item.product.price || 0;
+    return total + (purchasePrice * item.quantity);
+  }, 0);
+  
+  // Calculer le total des mensualités
   const totalMonthly = items.reduce((total, item) => {
-    const price = item.product.currentPrice || item.product.monthly_price || 0;
-    return total + (price * item.quantity);
+    const monthlyPrice = item.product.monthly_price || 0;
+    return total + (monthlyPrice * item.quantity);
   }, 0);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,15 +62,20 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         const options = Object.entries(item.selectedOptions || {})
           .map(([key, value]) => `${key}: ${value}`)
           .join(', ');
+        
+        const purchasePrice = item.product.currentPrice || item.product.price || 0;
+        const monthlyPrice = item.product.monthly_price || 0;
           
-        return `${item.product.name} (${formatCurrency(item.product.monthly_price || 0)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
+        return `${item.product.name} - Prix: ${formatCurrency(purchasePrice)} (${formatCurrency(monthlyPrice)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
       
       let formattedPhone = contactData.phone || '';
       formattedPhone = formattedPhone.replace(/^\+(\d+)\s0/, '+$1 ');
       
-      const defaultCoefficient = 3.27;
-      const financedAmount = (totalMonthly * 100) / defaultCoefficient;
+      const defaultCoefficient = 35.5;  // Coefficient correct pour le calcul du financement
+      const financedAmount = totalPurchaseAmount / defaultCoefficient; // Montant financé = Prix d'achat / Coefficient
+      const marginAmount = totalPurchaseAmount - financedAmount; // Marge = Prix d'achat - Montant financé
+      const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
       
       const requestData = {
         client_name: contactData.name,
@@ -74,10 +86,11 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         client_vat_number: companyData.vat_number,
         client_is_vat_exempt: companyData.is_vat_exempt,
         equipment_description: equipmentDescription,
-        amount: totalMonthly * 36,
-        monthly_payment: totalMonthly,
+        amount: totalPurchaseAmount, // Montant total d'achat
+        monthly_payment: totalMonthly, // Mensualité totale
         financed_amount: financedAmount,
         coefficient: defaultCoefficient,
+        margin: marginPercentage,
         quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         duration: 36,
         address: contactData.address,
@@ -220,17 +233,24 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
                       ))}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">{formatCurrency(item.product.monthly_price)} / mois</p>
-                    <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
-                  </div>
+                   <div className="text-right">
+                     <p className="font-medium text-sm">Prix: {formatCurrency(item.product.currentPrice || item.product.price || 0)}</p>
+                     <p className="font-medium">{formatCurrency(item.product.monthly_price || 0)} / mois</p>
+                     <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
+                   </div>
                 </div>
               </div>
             ))}
             
-            <div className="pt-2 flex justify-between text-sm">
-              <span className="font-medium">Total mensuel:</span>
-              <span className="font-bold text-blue-700">{formatCurrency(totalMonthly)} / mois</span>
+            <div className="pt-2 space-y-1 text-sm border-t border-gray-300">
+              <div className="flex justify-between">
+                <span className="font-medium">Total d'achat:</span>
+                <span className="font-bold">{formatCurrency(totalPurchaseAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Total mensuel:</span>
+                <span className="font-bold text-blue-700">{formatCurrency(totalMonthly)} / mois</span>
+              </div>
             </div>
           </div>
         </div>

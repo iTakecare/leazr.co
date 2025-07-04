@@ -16,6 +16,9 @@ export interface ProductRequestData {
   message?: string;
   amount: number;
   monthly_payment: number;
+  financed_amount?: number;
+  coefficient?: number;
+  margin?: number;
   quantity: number;
   duration: number;
   address?: string;

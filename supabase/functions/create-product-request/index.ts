@@ -75,19 +75,15 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Calculer le montant financé basé sur la mensualité et le coefficient
+    // Calculer le montant financé basé sur le prix d'achat et le coefficient
     const coefficient = data.coefficient || 35.5; // Coefficient par défaut si non fourni
     const monthlyPayment = Number(data.monthly_payment) || 0;
-    const financedAmount = parseFloat((monthlyPayment * coefficient).toFixed(2));
+    const totalAmount = Number(data.amount) || 0; // Prix d'achat total
+    const financedAmount = totalAmount > 0 ? parseFloat((totalAmount / coefficient).toFixed(2)) : 0;
     
-    // Calculer la marge si le montant total est fourni
-    let marginAmount = 0;
-    let marginPercentage = 0;
-    
-    if (data.amount && data.amount > financedAmount) {
-      marginAmount = data.amount - financedAmount;
-      marginPercentage = (marginAmount / data.amount) * 100;
-    }
+    // Calculer la marge
+    const marginAmount = totalAmount - financedAmount;
+    const marginPercentage = totalAmount > 0 ? parseFloat(((marginAmount / totalAmount) * 100).toFixed(2)) : 0;
 
     // Préparer les données de l'offre
     const offerData = {
@@ -96,11 +92,11 @@ serve(async (req) => {
       client_name: data.client_name,
       client_email: data.client_email,
       equipment_description: data.equipment_description,
-      amount: data.amount || 0,
-      monthly_payment: monthlyPayment,
+      amount: totalAmount, // Prix d'achat total
+      monthly_payment: monthlyPayment, // Mensualité totale
       coefficient: coefficient,
       financed_amount: financedAmount,
-      margin: parseFloat(marginPercentage.toFixed(2)),
+      margin: marginPercentage,
       commission: 0,
       type: "client_request",
       workflow_status: "requested",
