@@ -112,16 +112,17 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       throw new Error(`Numéros de série manquants pour certains équipements: ${missingSerialNumbers.map(e => e.title).join(', ')}`);
     }
 
-    // Calculer le prix total de vente (avec marge)
+    // Calculer le prix total de vente (avec marge en pourcentage)
     const totalSellingPrice = equipment.reduce((total, item) => {
-      const sellingPrice = item.purchase_price + item.margin;
+      const sellingPrice = item.purchase_price * (1 + item.margin / 100);
       return total + (sellingPrice * item.quantity);
     }, 0);
 
     // Préparer les données d'équipement enrichies avec prix de vente
+    // La marge est stockée en pourcentage, il faut la convertir en montant
     const enrichedEquipment = equipment.map(item => ({
       ...item,
-      selling_price_excl_vat: parseFloat((item.purchase_price + item.margin).toFixed(2))
+      selling_price_excl_vat: parseFloat((item.purchase_price * (1 + item.margin / 100)).toFixed(2))
     }));
 
     // Créer la facture en brouillon avec toutes les données nécessaires
