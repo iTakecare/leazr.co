@@ -87,7 +87,7 @@ const integrations: Integration[] = [
   {
     id: 'cegid',
     name: 'Cegid',
-    description: 'Solution comptable et de gestion intégrée',
+    description: 'Logiciel de facturation et gestion commerciale',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Cegid_logo_20182.png',
     status: 'inactive',
     category: 'Facturation',
