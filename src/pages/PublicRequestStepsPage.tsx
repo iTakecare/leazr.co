@@ -119,7 +119,7 @@ const PublicRequestStepsPage: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <RequestSteps />
+          <RequestSteps companyId={companyId} />
         )}
       </div>
     </div>

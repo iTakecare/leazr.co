@@ -57,7 +57,8 @@ serve(async (req) => {
       postal_code: data.postal_code || '',
       country: data.country || 'BE',
       status: 'active',
-      contact_name: data.client_name
+      contact_name: data.client_name,
+      company_id: data.company_id
     };
 
     console.log("Création du client avec les données:", clientData);
@@ -105,7 +106,8 @@ serve(async (req) => {
       workflow_status: "requested",
       status: "pending",
       remarks: data.message || '',
-      user_id: null
+      user_id: null,
+      company_id: data.company_id
     };
 
     console.log("Création de l'offre avec les données:", offerData);

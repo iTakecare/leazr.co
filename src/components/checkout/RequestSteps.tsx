@@ -5,7 +5,11 @@ import CompanyInfoForm from './CompanyInfoForm';
 import ContactInfoForm from './ContactInfoForm';
 import RequestSummary from './RequestSummary';
 
-const RequestSteps = () => {
+interface RequestStepsProps {
+  companyId?: string;
+}
+
+const RequestSteps = ({ companyId }: RequestStepsProps) => {
   const [step, setStep] = useState(1);
   
   const [companyFormData, setCompanyFormData] = useState({
@@ -117,6 +121,7 @@ const RequestSteps = () => {
             companyData={companyFormData}
             contactData={contactFormData}
             onBack={handlePrevStep}
+            companyId={companyId}
           />
         )}
       </div>

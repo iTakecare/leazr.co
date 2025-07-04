@@ -28,6 +28,7 @@ export interface ProductRequestData {
   shipping_postal_code?: string;
   shipping_country?: string;
   phone?: string;
+  company_id?: string;
 }
 
 export interface RequestInfoData {

@@ -32,9 +32,10 @@ interface RequestSummaryProps {
     email?: string;
   };
   onBack: () => void;
+  companyId?: string;
 }
 
-const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack }) => {
+const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack, companyId }) => {
   const { items, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -88,7 +89,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         shipping_city: contactData.shipping_city,
         shipping_postal_code: contactData.shipping_postal_code,
         shipping_country: contactData.shipping_country,
-        phone: formattedPhone
+        phone: formattedPhone,
+        company_id: companyId
       };
 
       console.log("Submitting request with data:", requestData);
