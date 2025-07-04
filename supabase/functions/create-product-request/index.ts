@@ -75,15 +75,15 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Calculer le montant financé basé sur le prix d'achat et le coefficient
-    const coefficient = data.coefficient || 35.5; // Coefficient par défaut si non fourni
+    // Utiliser les données correctement calculées depuis le client
+    const coefficient = Number(data.coefficient) || 3.55; // Coefficient correct
     const monthlyPayment = Number(data.monthly_payment) || 0;
     const totalAmount = Number(data.amount) || 0; // Prix d'achat total
-    const financedAmount = totalAmount > 0 ? parseFloat((totalAmount / coefficient).toFixed(2)) : 0;
+    const financedAmount = Number(data.financed_amount) || 0; // Montant financé déjà calculé
     
-    // Calculer la marge
-    const marginAmount = totalAmount - financedAmount;
-    const marginPercentage = totalAmount > 0 ? parseFloat(((marginAmount / totalAmount) * 100).toFixed(2)) : 0;
+    // Calculer la marge correcte
+    const marginAmount = financedAmount - totalAmount;
+    const marginPercentage = totalAmount > 0 ? parseFloat(((marginAmount / totalAmount) * 100).toFixed(2)) : 82;
 
     // Préparer les données de l'offre
     const offerData = {

@@ -6,6 +6,9 @@ import { formatCurrency } from '@/utils/formatters';
 import { useNavigate } from 'react-router-dom';
 import { createProductRequest } from '@/services/requestInfoService';
 import { useToast } from '@/hooks/use-toast';
+import { getProductPrice } from '@/utils/productPricing';
+import { findCoefficientForAmount } from '@/utils/equipmentCalculations';
+import { defaultLeasers } from '@/data/leasers';
 
 interface RequestSummaryProps {
   companyData: {
@@ -41,38 +44,16 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
-  // Calculer le montant total d'achat (prix d'achat des produits)
+  // Utiliser la logique centralisée pour obtenir les prix corrects
   const totalPurchaseAmount = items.reduce((total, item) => {
-    // Try to get purchase price from variant combination or fallback to currentPrice
-    let purchasePrice = 0;
-    
-    if (item.product.variant_combination_prices && item.selectedOptions) {
-      const matchingCombo = item.product.variant_combination_prices.find(combo => {
-        if (!combo.attributes) return false;
-        return Object.entries(item.selectedOptions || {}).every(([key, value]) => 
-          combo.attributes[key] === value
-        );
-      });
-      
-      if (matchingCombo && matchingCombo.purchase_price) {
-        purchasePrice = typeof matchingCombo.purchase_price === 'number' ? 
-                       matchingCombo.purchase_price : 
-                       parseFloat(String(matchingCombo.purchase_price) || '0');
-      }
-    }
-    
-    // Fallback to currentPrice or price if no variant price found
-    if (purchasePrice <= 0) {
-      purchasePrice = item.product.currentPrice || item.product.price || 0;
-    }
-    
-    return total + (purchasePrice * item.quantity);
+    const priceData = getProductPrice(item.product, item.selectedOptions);
+    return total + (priceData.purchasePrice * item.quantity);
   }, 0);
   
-  // Calculer le total des mensualités
+  // Calculer le total des mensualités avec la logique centralisée
   const totalMonthly = items.reduce((total, item) => {
-    const monthlyPrice = item.product.monthly_price || 0;
-    return total + (monthlyPrice * item.quantity);
+    const priceData = getProductPrice(item.product, item.selectedOptions);
+    return total + (priceData.monthlyPrice * item.quantity);
   }, 0);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,68 +66,52 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
           .map(([key, value]) => `${key}: ${value}`)
           .join(', ');
         
-        // Get purchase price from variant combination if available
-        let purchasePrice = 0;
-        if (item.product.variant_combination_prices && item.selectedOptions) {
-          const matchingCombo = item.product.variant_combination_prices.find(combo => {
-            if (!combo.attributes) return false;
-            return Object.entries(item.selectedOptions || {}).every(([key, value]) => 
-              combo.attributes[key] === value
-            );
-          });
+        // Utiliser la logique centralisée pour obtenir les prix corrects
+        const priceData = getProductPrice(item.product, item.selectedOptions);
           
-          if (matchingCombo && matchingCombo.purchase_price) {
-            purchasePrice = typeof matchingCombo.purchase_price === 'number' ? 
-                           matchingCombo.purchase_price : 
-                           parseFloat(String(matchingCombo.purchase_price) || '0');
-          }
-        }
-        
-        // Fallback to currentPrice or price if no variant price found
-        if (purchasePrice <= 0) {
-          purchasePrice = item.product.currentPrice || item.product.price || 0;
-        }
-        
-        const monthlyPrice = item.product.monthly_price || 0;
-          
-        return `${item.product.name} - Prix: ${formatCurrency(purchasePrice)} (${formatCurrency(monthlyPrice)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
+        return `${item.product.name} - Prix: ${formatCurrency(priceData.purchasePrice)} (${formatCurrency(priceData.monthlyPrice)}/mois) x ${item.quantity}${options ? ` - Options: ${options}` : ''}`;
       }).join('\n');
       
       let formattedPhone = contactData.phone || '';
       formattedPhone = formattedPhone.replace(/^\+(\d+)\s0/, '+$1 ');
       
-      const defaultCoefficient = 35.5;  // Coefficient correct pour le calcul du financement
-      const financedAmount = totalPurchaseAmount / defaultCoefficient; // Montant financé = Prix d'achat / Coefficient
-      const marginAmount = totalPurchaseAmount - financedAmount; // Marge = Prix d'achat - Montant financé
+      // Utiliser la logique du calculateur pour les calculs financiers corrects
+      const defaultMargin = 82; // Marge par défaut de 82% comme dans le calculateur
+      const financedAmount = totalPurchaseAmount * (1 + defaultMargin / 100); // Montant financé = Prix d'achat × (1 + marge/100)
+      const coefficient = findCoefficientForAmount(financedAmount, defaultLeasers[0]); // Trouver le coefficient basé sur le montant financé
+      const calculatedMonthlyPayment = (financedAmount * coefficient) / 100; // Mensualité = Montant financé × coefficient ÷ 100
+      const marginAmount = financedAmount - totalPurchaseAmount; // Marge = Montant financé - Prix d'achat
       const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
       
       const requestData = {
-        client_name: contactData.name,
-        client_email: contactData.email || companyData.email,
+        company_id: companyId,
+        client_name: companyData.company,
+        client_email: companyData.email,
         client_company: companyData.company,
-        client_contact_email: contactData.email,
-        client_country: companyData.country,
         client_vat_number: companyData.vat_number,
-        client_is_vat_exempt: companyData.is_vat_exempt,
-        equipment_description: equipmentDescription,
-        amount: totalPurchaseAmount, // Montant total d'achat
-        monthly_payment: totalMonthly, // Mensualité totale
-        financed_amount: financedAmount,
-        coefficient: defaultCoefficient,
-        margin: marginPercentage,
-        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
-        duration: 36,
-        address: contactData.address,
-        city: contactData.city,
-        postal_code: contactData.postal_code,
-        country: contactData.country,
-        has_different_shipping_address: contactData.has_different_shipping_address,
-        shipping_address: contactData.shipping_address,
-        shipping_city: contactData.shipping_city,
-        shipping_postal_code: contactData.shipping_postal_code,
-        shipping_country: contactData.shipping_country,
+        client_is_vat_exempt: companyData.is_vat_exempt || false,
+        client_country: companyData.country,
+        client_contact_email: contactData.email || companyData.email,
         phone: formattedPhone,
-        company_id: companyId
+        address: contactData.address || '',
+        city: contactData.city || '',
+        postal_code: contactData.postal_code || '',
+        country: contactData.country || 'BE',
+        has_different_shipping_address: contactData.has_different_shipping_address || false,
+        shipping_address: contactData.shipping_address || '',
+        shipping_city: contactData.shipping_city || '',
+        shipping_postal_code: contactData.shipping_postal_code || '',
+        shipping_country: contactData.shipping_country || '',
+        equipment_description: equipmentDescription,
+        amount: totalPurchaseAmount, // Prix d'achat total correct
+        monthly_payment: calculatedMonthlyPayment, // Mensualité calculée avec la logique du calculateur
+        coefficient: coefficient, // Coefficient calculé correctement
+        financed_amount: financedAmount, // Montant financé correct
+        margin: defaultMargin, // Marge en pourcentage
+        quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        duration: 36, // Durée fixe de 36 mois
+        has_client_account: contactData.has_client_account,
+        message: `Financement demandé pour ${formatCurrency(financedAmount)} avec une marge de ${formatCurrency(marginAmount)} (${defaultMargin}%)`
       };
 
       console.log("Submitting request with data:", requestData);
@@ -277,8 +242,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
                     </div>
                   </div>
                    <div className="text-right">
-                     <p className="font-medium text-sm">Prix: {formatCurrency(item.product.currentPrice || item.product.price || 0)}</p>
-                     <p className="font-medium">{formatCurrency(item.product.monthly_price || 0)} / mois</p>
+                     <p className="font-medium text-sm">Prix: {formatCurrency(getProductPrice(item.product, item.selectedOptions).purchasePrice)}</p>
+                     <p className="font-medium">{formatCurrency(getProductPrice(item.product, item.selectedOptions).monthlyPrice)} / mois</p>
                      <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
                    </div>
                 </div>
