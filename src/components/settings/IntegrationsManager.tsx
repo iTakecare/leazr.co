@@ -90,7 +90,7 @@ const integrations: Integration[] = [
     description: 'Solution comptable et de gestion intégrée',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Cegid_logo_20182.png',
     status: 'inactive',
-    category: 'Comptabilité',
+    category: 'Facturation',
     comingSoon: true
   },
   {
