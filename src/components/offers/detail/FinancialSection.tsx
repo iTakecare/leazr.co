@@ -48,17 +48,18 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     // Sinon, utiliser les données de l'offre comme fallback
     return {
       totalPurchasePrice: offer.amount || 0, // Utiliser amount (prix d'achat) au lieu de financed_amount
-      totalMonthlyPayment: offer.monthly_payment || 0
+      totalMonthlyPayment: Math.round((offer.monthly_payment || 0) * 100) / 100 // Arrondir correctement
     };
   };
   const totals = calculateEquipmentTotals();
   const financedAmount = offer.financed_amount || totals.totalPurchasePrice + (offer.margin || 0);
 
-  // Calculer le pourcentage de marge
-  const marginPercentage = totals.totalPurchasePrice > 0 ? (offer.margin || 0) / totals.totalPurchasePrice * 100 : 0;
+  // Calculer la marge en montant : financed_amount - purchase_price
+  const displayMargin = financedAmount - totals.totalPurchasePrice;
+  
+  // Calculer le pourcentage de marge basé sur le montant réel
+  const marginPercentage = totals.totalPurchasePrice > 0 ? (displayMargin / totals.totalPurchasePrice) * 100 : 0;
 
-  // La marge est toujours affichée, seule la commission est conditionnelle
-  const displayMargin = offer.margin || 0;
   const displayCommission = shouldShowCommission ? offer.commission || 0 : 0;
   return <Card className="border-gray-200 shadow-sm">
       <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
