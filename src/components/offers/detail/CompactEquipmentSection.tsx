@@ -54,17 +54,19 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
   };
 
   const calculateTotalMonthly = () => {
-    return equipmentItems.reduce((total: number, item: any) => {
+    const total = equipmentItems.reduce((total: number, item: any) => {
       const monthly = parseFloat(item.monthlyPayment) || 0;
       const qty = parseInt(item.quantity) || 1;
       return total + (monthly * qty);
     }, 0);
+    return Math.round(total * 100) / 100; // Arrondir correctement
   };
 
-  // Calculer la marge totale à partir du résumé financier de l'offre plutôt que des items individuels
+  // Calculer la marge totale réelle : financed_amount - amount
   const calculateTotalMargin = () => {
-    // Utiliser la marge de l'offre qui est correcte
-    return offer.margin || offer.total_margin_with_difference || 0;
+    const financedAmount = offer.financed_amount || 0;
+    const purchaseAmount = offer.amount || 0;
+    return financedAmount - purchaseAmount;
   };
 
   return (
@@ -183,13 +185,6 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
           </div>
         ) : (
           <div className="text-gray-500 text-center py-8 px-4">Aucun équipement spécifié</div>
-        )}
-        
-        {offer.remarks && (
-          <div className="px-4 py-3 border-t bg-yellow-50">
-            <div className="text-sm font-medium text-gray-700 mb-1">Remarques:</div>
-            <div className="text-sm text-gray-600">{offer.remarks}</div>
-          </div>
         )}
       </CardContent>
     </Card>
