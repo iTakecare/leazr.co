@@ -254,10 +254,6 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
             
             <div className="pt-2 space-y-1 text-sm border-t border-gray-300">
               <div className="flex justify-between">
-                <span className="font-medium">Total d'achat:</span>
-                <span className="font-bold">{formatCurrency(totalPurchaseAmount)}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="font-medium">Total mensuel:</span>
                 <span className="font-bold text-blue-700">{formatCurrency(totalMonthly)} / mois</span>
               </div>
