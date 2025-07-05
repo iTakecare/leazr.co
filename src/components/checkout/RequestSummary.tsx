@@ -242,9 +242,8 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
                         </span>
                       ))}
                     </div>
-                  </div>
+                   </div>
                    <div className="text-right">
-                     <p className="font-medium text-sm">Prix: {formatCurrency(getProductPrice(item.product, item.selectedOptions).purchasePrice)}</p>
                      <p className="font-medium">{formatCurrency(getProductPrice(item.product, item.selectedOptions).monthlyPrice)} / mois</p>
                      <p className="text-sm text-gray-600">Quantité: {item.quantity}</p>
                    </div>

@@ -80,9 +80,37 @@ const RequestSentPage: React.FC = () => {
           
           <h1 className="text-3xl font-bold mb-2">Demande envoyée avec succès!</h1>
           
-          <p className="text-lg text-gray-600 mb-6">
+          <p className="text-lg text-gray-600 mb-8">
             Merci {state.name} pour votre demande. Notre équipe commerciale vous contactera prochainement.
           </p>
+          
+          {/* Section Prochaines étapes */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 w-full">
+            <h2 className="text-xl font-semibold mb-4 text-blue-900">Prochaines étapes</h2>
+            <div className="space-y-3 text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <p className="font-medium text-blue-900">Analyse de votre demande</p>
+                  <p className="text-sm text-blue-700">Notre équipe étudie votre dossier (sous 24h ouvrables)</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <p className="font-medium text-blue-900">Soumission au partenaire financier</p>
+                  <p className="text-sm text-blue-700">Validation du financement selon votre profil</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                <div>
+                  <p className="font-medium text-blue-900">Prise de contact</p>
+                  <p className="text-sm text-blue-700">Nous vous contactons pour finaliser votre dossier</p>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {requestData && (
             <div className="bg-gray-50 p-6 rounded-lg shadow-sm w-full mb-8 text-left">
@@ -145,12 +173,12 @@ const RequestSentPage: React.FC = () => {
             Si vous avez des questions, n'hésitez pas à nous contacter.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="outline" asChild>
-              <Link to="/">Retour à l'accueil</Link>
+              <Link to="/contact">Nous contacter</Link>
             </Button>
-            <Button asChild>
-              <Link to="/catalogue">Continuer vos achats</Link>
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Link to="/catalogue">Retour au catalogue</Link>
             </Button>
           </div>
         </div>
