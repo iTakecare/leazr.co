@@ -67,11 +67,38 @@ const RequestSentPage: React.FC = () => {
     }
   };
 
+  const parseEquipmentDescription = (description: string) => {
+    // Parse format: "Product Name - Prix: XX,XX € (YY,YY €/mois) x Quantity - Options: Option1: Value1, Option2: Value2"
+    const items = description.split('\n').map(line => {
+      // Extract product name (before " - Prix:")
+      const productMatch = line.match(/^(.+?)\s*-\s*Prix:/);
+      const productName = productMatch ? productMatch[1].trim() : line;
+
+      // Extract monthly price (between parentheses)
+      const monthlyMatch = line.match(/\(([0-9,]+\s*€)\/mois\)/);
+      const monthlyPrice = monthlyMatch ? monthlyMatch[1] : '';
+
+      // Extract quantity (after " x ")
+      const quantityMatch = line.match(/x\s*(\d+)/);
+      const quantity = quantityMatch ? quantityMatch[1] : '1';
+
+      // Extract options (after "Options: ")
+      const optionsMatch = line.match(/Options:\s*(.+)$/);
+      const options = optionsMatch ? optionsMatch[1].replace(/:\s*/g, ' ').replace(/,\s*/g, '  -  ') : '';
+
+      return {
+        productName,
+        quantity,
+        options,
+        monthlyPrice
+      };
+    });
+
+    return items;
+  };
+
   return (
     <>
-      <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
-      </div>
       <Container>
         <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-2xl mx-auto text-center">
           <div className="mb-6 bg-green-100 p-4 rounded-full">
@@ -147,8 +174,38 @@ const RequestSentPage: React.FC = () => {
                 )}
                 
                 <div>
-                  <p className="text-sm text-gray-500">Équipement demandé</p>
-                  <p className="font-medium whitespace-pre-line">{requestData.equipment_description}</p>
+                  <p className="text-sm text-gray-500 mb-3">Équipement demandé</p>
+                  {parseEquipmentDescription(requestData.equipment_description).map((item, index) => (
+                    <div key={index} className="mb-4 last:mb-0">
+                      <div className="grid grid-cols-2 gap-4 mb-2">
+                        <div>
+                          <span className="text-sm text-gray-500">Équipement :</span>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-500">Quantité:</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-2">
+                        <div>
+                          <span className="font-medium">{item.productName}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">{item.quantity}</span>
+                        </div>
+                      </div>
+                      {item.options && (
+                        <div className="mb-2">
+                          <p className="text-sm text-gray-500 mb-1">Options:</p>
+                          <p className="font-medium">{item.options}</p>
+                        </div>
+                      )}
+                      {item.monthlyPrice && (
+                        <div>
+                          <span className="font-medium text-blue-600">Mensualité: {item.monthlyPrice} HTVA</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
