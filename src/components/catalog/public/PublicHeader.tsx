@@ -182,10 +182,10 @@ const PublicHeader = () => {
 
                 <NavigationMenuItem>
                   <Link
-                    to="/catalogue" 
+                     to="/catalog/anonymous" 
                     className={cn(
                       "flex select-none items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      location.pathname === "/catalogue" || location.pathname.startsWith("/produits")
+                      location.pathname === "/catalog/anonymous" || location.pathname.startsWith("/produits")
                         ? "text-[#33638E]" 
                         : "text-gray-700 hover:text-[#33658E]"
                     )}
@@ -330,7 +330,7 @@ const PublicHeader = () => {
               </Link>
               
               <Link 
-                to="/catalogue" 
+                to="/catalog/anonymous" 
                 className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 onClick={() => setMobileMenuOpen(false)}
               >

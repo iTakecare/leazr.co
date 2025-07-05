@@ -35,9 +35,7 @@ import UpdatePassword from "@/pages/UpdatePassword";
 import AuthCallback from "@/pages/AuthCallback";
 
 // Public catalog and product pages
-import PublicCatalog from "@/pages/PublicCatalog";
 import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
-import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
 import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
@@ -128,12 +126,9 @@ function App() {
                   <Route path="/update-password" element={<UpdatePassword />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   
-                  {/* Public Catalog and Commerce Routes */}
-                  <Route path="/catalog" element={<PublicCatalog />} />
-                  <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
-                  <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-                  <Route path="/catalog/:companyId" element={<PublicCatalogMultiTenant />} />
-                  <Route path="/public/:companyId/catalog" element={<PublicCatalogMultiTenant />} />
+                   {/* Public Catalog and Commerce Routes */}
+                   <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
+                   <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
                   <Route path="/product/:id" element={<PublicProductDetailPage />} />
                   <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />

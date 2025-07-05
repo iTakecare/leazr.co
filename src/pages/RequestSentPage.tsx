@@ -46,7 +46,7 @@ const RequestSentPage: React.FC = () => {
               <Link to="/contact">Nous contacter</Link>
             </Button>
             <Button asChild>
-              <Link to="/catalog">Retour au catalogue</Link>
+              <Link to="/catalog/anonymous">Retour au catalogue</Link>
             </Button>
           </div>
         </div>
@@ -235,7 +235,7 @@ const RequestSentPage: React.FC = () => {
               <Link to="/contact">Nous contacter</Link>
             </Button>
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link to="/catalog">Retour au catalogue</Link>
+              <Link to="/catalog/anonymous">Retour au catalogue</Link>
             </Button>
           </div>
         </div>

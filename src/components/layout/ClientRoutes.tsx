@@ -9,7 +9,8 @@ import ClientRequestDetailPage from "@/pages/ClientRequestDetailPage";
 import ClientEquipmentPage from "@/pages/ClientEquipmentPage";
 import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
-import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
+
+import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
 import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
 
 const ClientRoutes = () => {
@@ -24,7 +25,7 @@ const ClientRoutes = () => {
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
-          <Route path="catalog" element={<PublicCatalogMultiTenant />} />
+          <Route path="catalog" element={<PublicCatalogAnonymous />} />
           <Route path="support" element={<ClientSupportPage />} />
           <Route path="settings" element={<ClientSettingsPage />} />
           {/* Redirection par défaut vers le dashboard */}

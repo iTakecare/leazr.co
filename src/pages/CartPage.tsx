@@ -40,7 +40,7 @@ const CartPage: React.FC = () => {
               Parcourez notre catalogue pour trouver des équipements à louer.
             </p>
             <Button asChild>
-              <Link to="/catalogue">Voir le catalogue</Link>
+              <Link to="/catalog/anonymous">Voir le catalogue</Link>
             </Button>
           </div>
         ) : (
@@ -166,7 +166,7 @@ const CartPage: React.FC = () => {
                   
                   <div className="mt-4 text-center">
                     <Button variant="link" asChild>
-                      <Link to="/catalogue">Continuer mes achats</Link>
+                      <Link to="/catalog/anonymous">Continuer mes achats</Link>
                     </Button>
                   </div>
                 </div>

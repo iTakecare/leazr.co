@@ -54,7 +54,7 @@ const ProductDetailPage = () => {
   } = attributeHelpers;
   
   const handleBackToCatalog = () => {
-    navigate("/catalogue");
+    navigate("/catalog/anonymous");
   };
   
   if (isLoading) {
@@ -102,16 +102,16 @@ const ProductDetailPage = () => {
           
           <Breadcrumb className="mb-4">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/catalogue">Catalogue</BreadcrumbLink>
+              <BreadcrumbLink href="/catalog/anonymous">Catalogue</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/catalogue?category=${productCategory}`}>
+              <BreadcrumbLink href={`/catalog/anonymous?category=${productCategory}`}>
                 {productCategory}
               </BreadcrumbLink>
             </BreadcrumbItem>
             {productBrand && (
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/catalogue?brand=${productBrand}`}>
+                <BreadcrumbLink href={`/catalog/anonymous?brand=${productBrand}`}>
                   {productBrand}
                 </BreadcrumbLink>
               </BreadcrumbItem>

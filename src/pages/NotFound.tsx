@@ -206,7 +206,7 @@ const NotFound = () => {
               asChild
               className="flex items-center gap-2 w-full"
             >
-              <Link to="/catalogue">
+              <Link to="/catalog/anonymous">
                 <Package className="h-4 w-4" /> 
                 Catalogue
               </Link>

@@ -43,7 +43,7 @@ import AmbassadorDetail from "@/pages/AmbassadorDetail";
 import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
 import AmbassadorsList from "@/pages/AmbassadorsList";
 import PartnerDetail from "@/pages/PartnerDetail";
-import PublicCatalogMultiTenant from "@/pages/PublicCatalogMultiTenant";
+
 import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
 import ClientEditPage from "@/pages/ClientEditPage";
@@ -167,7 +167,7 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
-        <Route path="/catalog" element={<PublicCatalogMultiTenant />} />
+                   <Route path="/catalog" element={<PublicCatalogAnonymous />} />
         <Route path="/admin/catalog" element={<CatalogManagement />} />
         <Route path="/catalog/edit/:id" element={<ProductEditPage />} />
         <Route path="/admin/catalog/edit/:id" element={<ProductEditPage />} />

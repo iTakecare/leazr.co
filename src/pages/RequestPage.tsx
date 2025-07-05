@@ -43,7 +43,7 @@ const RequestPage: React.FC = () => {
               Vous devez ajouter des produits à votre panier avant de faire une demande.
             </p>
             <Button asChild>
-              <Link to="/catalogue">Voir le catalogue</Link>
+              <Link to="/catalog/anonymous">Voir le catalogue</Link>
             </Button>
           </div>
         ) : (

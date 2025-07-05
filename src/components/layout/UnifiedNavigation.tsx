@@ -205,7 +205,7 @@ const UnifiedNavigation = () => {
                   </Button>
                 </Link>
               )}
-              <Link to="/catalogue">
+               <Link to="/catalog/anonymous">
                 <Button className="w-full bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[20px] md:rounded-[50px] font-bold text-sm">
                   Catalogue
                 </Button>
@@ -387,7 +387,7 @@ const UnifiedNavigation = () => {
             </Link>
           )}
 
-          <Link to="/catalogue">
+          <Link to="/catalog/anonymous">
             <Button className="bg-[#48b5c3] hover:bg-[#3da6b4] rounded-[50px] font-bold text-sm transition-all duration-300 hover:shadow-md">
               Catalogue
             </Button>

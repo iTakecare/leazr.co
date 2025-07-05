@@ -56,7 +56,7 @@ const HubPage = () => {
                 <h3 className="text-xl font-bold mb-3">Catalogue de Produits</h3>
                 <p className="text-gray-600 mb-4">Découvrez notre gamme complète de produits et solutions informatiques.</p>
                 <a 
-                  href="/catalogue" 
+                  href="/catalog/anonymous" 
                   className="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
                 >
                   Parcourir
