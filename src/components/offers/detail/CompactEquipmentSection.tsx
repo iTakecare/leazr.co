@@ -26,7 +26,7 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
         description: offer.equipment_description,
         quantity: 1,
         purchasePrice: offer.amount || 0,
-        monthlyPayment: offer.monthly_payment || 0,
+        monthlyPayment: offer.monthly_payment || 0, // Prix fixe du catalogue (pour demandes clients)
         margin: 0
       }];
     }

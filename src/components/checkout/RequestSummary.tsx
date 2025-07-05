@@ -77,11 +77,14 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       let formattedPhone = contactData.phone || '';
       formattedPhone = formattedPhone.replace(/^\+(\d+)\s0/, '+$1 ');
       
-      // Utiliser la logique du calculateur pour les calculs financiers corrects
+      // CORRECTION: Utiliser les prix fixes du catalogue au lieu des calculs
+      // Les mensualités sont des prix fixes définis dans le catalogue, pas des estimations
+      const catalogMonthlyPayment = totalMonthly; // Utiliser la somme des prix catalogue fixes
+      
+      // Calculer le montant financé basé sur les prix catalogue
       const defaultMargin = 82; // Marge par défaut de 82% comme dans le calculateur
       const financedAmount = totalPurchaseAmount * (1 + defaultMargin / 100); // Montant financé = Prix d'achat × (1 + marge/100)
-      const coefficient = findCoefficientForAmount(financedAmount, defaultLeasers[0]); // Trouver le coefficient basé sur le montant financé
-      const calculatedMonthlyPayment = (financedAmount * coefficient) / 100; // Mensualité = Montant financé × coefficient ÷ 100
+      const coefficient = findCoefficientForAmount(financedAmount, defaultLeasers[0]); // Coefficient basé sur le montant financé
       const marginAmount = financedAmount - totalPurchaseAmount; // Marge = Montant financé - Prix d'achat
       const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
       
@@ -106,7 +109,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
         shipping_country: contactData.shipping_country || '',
         equipment_description: equipmentDescription,
         amount: totalPurchaseAmount, // Prix d'achat total correct
-        monthly_payment: calculatedMonthlyPayment, // Mensualité calculée avec la logique du calculateur
+        monthly_payment: catalogMonthlyPayment, // Mensualité fixe du catalogue (pas calculée)
         coefficient: coefficient, // Coefficient calculé correctement
         financed_amount: financedAmount, // Montant financé correct
         margin: defaultMargin, // Marge en pourcentage

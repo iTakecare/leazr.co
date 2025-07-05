@@ -75,9 +75,9 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Utiliser les données correctement calculées depuis le client
+    // CORRECTION: Utiliser les prix fixes du catalogue
     const coefficient = Number(data.coefficient) || 3.55; // Coefficient correct
-    const monthlyPayment = Number(data.monthly_payment) || 0;
+    const monthlyPayment = Number(data.monthly_payment) || 0; // Prix fixe du catalogue (pas calculé)
     const totalAmount = Number(data.amount) || 0; // Prix d'achat total
     const financedAmount = Number(data.financed_amount) || 0; // Montant financé déjà calculé
     

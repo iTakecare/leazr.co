@@ -48,7 +48,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     // Sinon, utiliser les données de l'offre comme fallback
     return {
       totalPurchasePrice: offer.amount || 0, // Utiliser amount (prix d'achat) au lieu de financed_amount
-      totalMonthlyPayment: Math.round((offer.monthly_payment || 0) * 100) / 100 // Arrondir correctement
+      totalMonthlyPayment: offer.monthly_payment || 0 // Prix fixe du catalogue (pour les demandes clients)
     };
   };
   const totals = calculateEquipmentTotals();
