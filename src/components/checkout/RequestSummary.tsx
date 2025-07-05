@@ -90,7 +90,7 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       
       const requestData = {
         company_id: companyId,
-        client_name: companyData.company,
+        client_name: contactData.name,
         client_email: companyData.email,
         client_company: companyData.company,
         client_vat_number: companyData.vat_number,

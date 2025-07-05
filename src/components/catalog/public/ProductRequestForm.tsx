@@ -10,6 +10,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon, Loader2 } from "lucide-react";
 
 interface ProductRequestFormProps {
@@ -38,14 +39,16 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
     email: "",
     phone: "",
     company: "",
-    message: ""
+    message: "",
+    hasClientAccount: false
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -88,7 +91,8 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
         coefficient: defaultCoefficient,
         quantity: quantity,
         duration: duration,
-        phone: formData.phone
+        phone: formData.phone,
+        has_client_account: formData.hasClientAccount
       };
       
       console.log("Envoi de la demande de produit...", requestData);
@@ -228,6 +232,17 @@ const ProductRequestForm: React.FC<ProductRequestFormProps> = ({
                 placeholder="Précisez ici toute information complémentaire concernant votre demande..."
                 rows={3}
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="hasClientAccount"
+                checked={formData.hasClientAccount}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasClientAccount: !!checked }))}
+              />
+              <Label htmlFor="hasClientAccount" className="text-sm">
+                Je souhaite créer un compte client pour suivre mes demandes
+              </Label>
             </div>
           </div>
 

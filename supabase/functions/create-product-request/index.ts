@@ -196,13 +196,9 @@ serve(async (req) => {
         console.log("L'utilisateur a demandé la création d'un compte client");
         
         try {
-          // Générer un mot de passe aléatoire temporaire
-          const tempPassword = Math.random().toString(36).slice(-12);
-          
-          // Créer un compte utilisateur
+          // Créer un compte utilisateur sans mot de passe (il définira le sien)
           const { data: userData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
             email: data.client_email,
-            password: tempPassword,
             email_confirm: true,
             user_metadata: { 
               name: data.client_name,
@@ -235,8 +231,8 @@ serve(async (req) => {
               console.log("Client mis à jour avec l'ID utilisateur");
             }
             
-            // Envoyer un email de réinitialisation de mot de passe
-            const { error: resetPasswordError } = await supabaseAdmin.auth.admin.generateLink({
+            // Générer un lien pour définir le mot de passe
+            const { data: passwordLinkData, error: passwordLinkError } = await supabaseAdmin.auth.admin.generateLink({
               type: "recovery",
               email: data.client_email,
               options: {
@@ -244,10 +240,41 @@ serve(async (req) => {
               }
             });
             
-            if (resetPasswordError) {
-              console.error("Erreur lors de la génération du lien de réinitialisation:", resetPasswordError);
+            if (passwordLinkError) {
+              console.error("Erreur lors de la génération du lien de mot de passe:", passwordLinkError);
             } else {
-              console.log("Email de réinitialisation de mot de passe envoyé");
+              console.log("Lien de définition de mot de passe généré");
+              
+              // Modifier le template d'email pour inclure les instructions de création de compte
+              const passwordLink = passwordLinkData?.properties?.action_link || '';
+              
+              // Template spécial pour création de compte
+              htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
+                  <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+                  <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+                  
+                  <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="color: #2d618f; margin-top: 0;">🎉 Votre compte client a été créé !</h3>
+                    <p>Pour finaliser la création de votre compte et définir votre mot de passe, cliquez sur le bouton ci-dessous :</p>
+                    <div style="text-align: center; margin: 20px 0;">
+                      <a href="${passwordLink}" style="background-color: #2d618f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Définir mon mot de passe</a>
+                    </div>
+                    <p style="font-size: 12px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${passwordLink}</p>
+                  </div>
+                  
+                  <p>Voici un récapitulatif de votre demande :</p>
+                  <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
+                    <li>Équipement : ${data.equipment_description}</li>
+                    <li>Montant total : ${data.amount} €</li>
+                    <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+                  </ul>
+                  <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+                  <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+                </div>
+              `;
+              
+              subject = `Bienvenue sur iTakecare - Créez votre mot de passe`;
             }
           }
         } catch (accountError) {
@@ -256,26 +283,6 @@ serve(async (req) => {
         }
       } else {
         console.log("L'utilisateur n'a pas demandé de création de compte client");
-        
-        // Générer un lien d'inscription pour l'utilisateur qui souhaiterait créer un compte plus tard
-        // (ce lien sera inclus dans l'email, même s'il n'a pas coché la case)
-        const { data: signupLinkData, error: signupLinkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'signup',
-          email: data.client_email,
-          options: {
-            redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
-          }
-        });
-        
-        if (signupLinkError) {
-          console.error("Erreur lors de la génération du lien de création de compte:", signupLinkError);
-        } else {
-          const accountCreationLink = signupLinkData?.properties?.action_link || `${Deno.env.get('SITE_URL') || ''}/auth/signup?email=${encodeURIComponent(data.client_email)}`;
-          console.log("Lien d'inscription généré:", accountCreationLink);
-          
-          // Remplacer la variable du lien dans le template d'email
-          htmlContent = htmlContent.replace(/{{account_creation_link}}/g, accountCreationLink);
-        }
       }
       
       // Texte brut pour les clients qui ne peuvent pas afficher le HTML
