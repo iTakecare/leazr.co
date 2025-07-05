@@ -128,19 +128,19 @@ const OffersTable: React.FC<OffersTableProps> = ({
       return formatCurrency(marginValue);
     }
 
-    // Fallback: Calculer la marge basée sur amount - financed_amount
+    // Fallback: Calculer la marge basée sur financed_amount - amount
     if (offer.amount && offer.financed_amount) {
       const amount = Number(offer.amount);
       const financedAmount = Number(offer.financed_amount);
-      const calculatedMargin = amount - financedAmount;
+      const calculatedMargin = financedAmount - amount;
       
-      console.log("💰 Calculating margin from amount - financed_amount:", {
+      console.log("💰 Calculating margin from financed_amount - amount:", {
         amount,
         financedAmount,
         calculatedMargin
       });
       
-      if (!isNaN(calculatedMargin) && calculatedMargin > 0) {
+      if (!isNaN(calculatedMargin)) {
         return formatCurrency(calculatedMargin);
       }
     }
@@ -151,7 +151,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
       const monthlyPayment = Number(offer.monthly_payment);
       const coefficient = Number(offer.coefficient);
       const financedAmount = monthlyPayment * coefficient;
-      const calculatedMargin = amount - financedAmount;
+      const calculatedMargin = financedAmount - amount;
       
       console.log("🧮 Calculated margin from formula:", {
         amount,
@@ -161,7 +161,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
         calculatedMargin
       });
       
-      if (!isNaN(calculatedMargin) && calculatedMargin > 0) {
+      if (!isNaN(calculatedMargin)) {
         return formatCurrency(calculatedMargin);
       }
     }
