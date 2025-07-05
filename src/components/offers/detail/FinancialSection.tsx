@@ -47,8 +47,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
 
     // Sinon, utiliser les données de l'offre comme fallback
     return {
-      totalPurchasePrice: offer.financed_amount || 0,
-      // Utiliser financed_amount au lieu de amount
+      totalPurchasePrice: offer.amount || 0, // Utiliser amount (prix d'achat) au lieu de financed_amount
       totalMonthlyPayment: offer.monthly_payment || 0
     };
   };
