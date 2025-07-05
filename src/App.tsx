@@ -141,6 +141,7 @@ function App() {
                   <Route path="/public/:companyId/demande" element={<PublicRequestStepsPage />} />
                   <Route path="/request" element={<PublicRequestPage />} />
                   <Route path="/request-sent" element={<RequestSentPage />} />
+                  <Route path="/demande-envoyee" element={<RequestSentPage />} />
                   <Route path="/company/:companyId" element={<PublicCompanyLanding />} />
                   
                   {/* Client Routes */}
