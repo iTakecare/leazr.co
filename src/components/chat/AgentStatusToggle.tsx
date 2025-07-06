@@ -69,7 +69,7 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
           <div className="flex items-center gap-2">
             <motion.div
               animate={{ 
-                backgroundColor: isOnline ? 'hsl(var(--success))' : 'hsl(var(--muted))',
+                backgroundColor: isOnline ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
                 scale: isOnline ? 1 : 0.8
               }}
               className="w-3 h-3 rounded-full"
