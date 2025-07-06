@@ -111,11 +111,31 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
 
   // Utility functions for serial number formatting
   const getSerialNumberDisplay = (serialNumber: any) => {
+    console.log('🔍 getSerialNumberDisplay input:', serialNumber, 'type:', typeof serialNumber);
+    
     if (!serialNumber) return '';
+    
+    // Handle stringified JSON array
+    if (typeof serialNumber === 'string' && serialNumber.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(serialNumber);
+        console.log('📋 Parsed serial number:', parsed);
+        if (Array.isArray(parsed)) {
+          return parsed.length > 0 ? parsed.join(', ') : '';
+        }
+      } catch (e) {
+        console.log('❌ Failed to parse serial number JSON:', e);
+      }
+    }
+    
     if (Array.isArray(serialNumber)) {
+      console.log('📋 Array serial number:', serialNumber);
       return serialNumber.length > 0 ? serialNumber.join(', ') : '';
     }
-    return serialNumber.toString();
+    
+    const result = serialNumber.toString();
+    console.log('📋 Final display result:', result);
+    return result;
   };
 
   const setSerialNumberValue = (value: string) => {
