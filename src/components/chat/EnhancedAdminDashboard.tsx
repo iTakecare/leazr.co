@@ -18,14 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { 
   MessageCircle, 
   Users, 
@@ -34,11 +26,6 @@ import {
   User,
   CheckCircle,
   AlertCircle,
-  Settings,
-  Bell,
-  BellOff,
-  Volume2,
-  VolumeX,
   Trash2,
   Phone,
   Video,
@@ -428,76 +415,6 @@ export const EnhancedAdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Settings Sheet */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Paramètres
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Paramètres de notification</SheetTitle>
-              <SheetDescription>
-                Configurez vos préférences de notification pour le chat
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="space-y-6 mt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium">Sons activés</label>
-                    <p className="text-xs text-muted-foreground">
-                      Jouer des sons pour les notifications
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.soundEnabled}
-                    onCheckedChange={(checked) => updateSettings({ soundEnabled: checked })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Volume</label>
-                  <Slider
-                    value={[settings.volume * 100]}
-                    onValueChange={([value]) => updateSettings({ volume: value / 100 })}
-                    max={100}
-                    step={10}
-                    disabled={!settings.soundEnabled}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium">Notifications navigateur</label>
-                    <p className="text-xs text-muted-foreground">
-                      Afficher les notifications système
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.browserNotifications}
-                    onCheckedChange={(checked) => updateSettings({ browserNotifications: checked })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => playSound('message')}
-                    disabled={!settings.soundEnabled}
-                  >
-                    <Volume2 className="h-4 w-4 mr-2" />
-                    Tester le son
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">

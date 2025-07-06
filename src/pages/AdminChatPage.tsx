@@ -2,6 +2,7 @@ import React from 'react'
 import { EnhancedAdminDashboard } from '@/components/chat/EnhancedAdminDashboard'
 import { AgentStatusToggle } from '@/components/chat/AgentStatusToggle'
 import { ChatAvailabilityManager } from '@/components/chat/ChatAvailabilityManager'
+import { ChatNotificationSettings } from '@/components/chat/ChatNotificationSettings'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MessageCircle, Settings, Users } from 'lucide-react'
@@ -47,7 +48,7 @@ const AdminChatPage: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               {/* Agent Status Card */}
               <Card className="border-0 shadow-lg bg-background/95 backdrop-blur-sm">
                 <CardContent className="p-6">
@@ -61,6 +62,9 @@ const AdminChatPage: React.FC = () => {
                   <ChatAvailabilityManager />
                 </CardContent>
               </Card>
+
+              {/* Notification Settings Card */}
+              <ChatNotificationSettings />
             </div>
           </TabsContent>
         </Tabs>
