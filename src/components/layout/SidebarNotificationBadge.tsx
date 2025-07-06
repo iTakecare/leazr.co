@@ -45,20 +45,43 @@ export const SidebarNotificationBadge: React.FC<SidebarNotificationBadgeProps> =
 
     const loadUnreadCount = async () => {
       try {
-        // Count conversations waiting for response
+        // Check if company is available first
+        const { data: isAvailable } = await supabase.rpc('is_company_chat_available', {
+          p_company_id: companyId
+        });
+
+        // Count conversations waiting for response only if company is available
         const { count } = await supabase
           .from('chat_conversations')
           .select('*', { count: 'exact', head: true })
           .eq('company_id', companyId)
           .eq('status', 'waiting');
 
-        setUnreadCount(count || 0);
+        // Show notification only if agents are available but there are waiting conversations
+        setUnreadCount(isAvailable && count ? count : 0);
       } catch (error) {
         console.error('Error loading unread count:', error);
       }
     };
 
     loadUnreadCount();
+
+    // Subscribe to agent status changes to update notification
+    const statusChannel = supabase
+      .channel(`sidebar_agent_status_${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_agent_status',
+          filter: `company_id=eq.${companyId}`
+        },
+        () => {
+          loadUnreadCount();
+        }
+      )
+      .subscribe();
 
     // Subscribe to new conversations and messages
     const conversationsChannel = supabase
@@ -71,23 +94,8 @@ export const SidebarNotificationBadge: React.FC<SidebarNotificationBadgeProps> =
           table: 'chat_conversations',
           filter: `company_id=eq.${companyId}`
         },
-        (payload) => {
-          console.log('📢 Sidebar: Conversation change detected:', payload);
-          
-          if (payload.eventType === 'INSERT' && payload.new?.status === 'waiting') {
-            setUnreadCount(prev => prev + 1);
-          } else if (payload.eventType === 'UPDATE') {
-            const oldStatus = payload.old?.status;
-            const newStatus = payload.new?.status;
-            
-            if (oldStatus === 'waiting' && newStatus !== 'waiting') {
-              setUnreadCount(prev => Math.max(0, prev - 1));
-            } else if (oldStatus !== 'waiting' && newStatus === 'waiting') {
-              setUnreadCount(prev => prev + 1);
-            }
-          } else if (payload.eventType === 'DELETE' && payload.old?.status === 'waiting') {
-            setUnreadCount(prev => Math.max(0, prev - 1));
-          }
+        () => {
+          loadUnreadCount();
         }
       )
       .subscribe();
@@ -102,15 +110,14 @@ export const SidebarNotificationBadge: React.FC<SidebarNotificationBadgeProps> =
           schema: 'public',
           table: 'chat_messages'
         },
-        (payload) => {
-          console.log('📢 Sidebar: New message detected:', payload);
-          // Refresh unread count when new messages arrive
+        () => {
           loadUnreadCount();
         }
       )
       .subscribe();
 
     return () => {
+      supabase.removeChannel(statusChannel);
       supabase.removeChannel(conversationsChannel);
       supabase.removeChannel(messagesChannel);
     };

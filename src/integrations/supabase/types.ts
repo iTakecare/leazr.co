@@ -412,6 +412,39 @@ export type Database = {
           },
         ]
       }
+      chat_availability_hours: {
+        Row: {
+          company_id: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           agent_id: string | null
@@ -3832,6 +3865,10 @@ export type Database = {
       }
       is_company_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_company_chat_available: {
+        Args: { p_company_id: string }
         Returns: boolean
       }
       is_same_company: {

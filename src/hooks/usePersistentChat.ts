@@ -269,10 +269,19 @@ export const usePersistentChat = (): PersistentChatHook => {
     }
   }, [wsRef, state.visitorInfo, state.conversationId, playNotificationSound]);
 
-  const initializeChat = useCallback(async (companyId: string, visitorName: string, visitorEmail?: string) => {
+const initializeChat = useCallback(async (companyId: string, visitorName: string, visitorEmail?: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      // First check if company is available for chat
+      const { data: isAvailable, error: availabilityError } = await supabase.rpc('is_company_chat_available', {
+        p_company_id: companyId
+      });
+
+      if (availabilityError) {
+        console.error('Error checking availability:', availabilityError);
+      }
+
       let conversationId = state.conversationId;
       
       // Check if we already have a conversation for this visitor
@@ -289,7 +298,7 @@ export const usePersistentChat = (): PersistentChatHook => {
             visitor_id: visitorId,
             visitor_name: visitorName,
             visitor_email: visitorEmail,
-            status: 'waiting'
+            status: isAvailable ? 'waiting' : 'offline_queue'
           });
 
         if (error) {
@@ -299,18 +308,23 @@ export const usePersistentChat = (): PersistentChatHook => {
         setState(prev => ({
           ...prev,
           conversationId,
-          visitorInfo: { name: visitorName, email: visitorEmail }
+          visitorInfo: { name: visitorName, email: visitorEmail },
+          isConnected: isAvailable || false
         }));
 
-        // Connect to WebSocket
-        connectWebSocket(conversationId, companyId, visitorId);
+        // Connect to WebSocket if available
+        if (isAvailable) {
+          connectWebSocket(conversationId, companyId, visitorId);
+        }
         
         // Load messages
         await loadMessages(conversationId);
       } else {
         // Reconnect to existing conversation
         const visitorId = crypto.randomUUID(); // This should ideally be persisted too
-        connectWebSocket(conversationId, companyId, visitorId);
+        if (isAvailable) {
+          connectWebSocket(conversationId, companyId, visitorId);
+        }
       }
 
       setState(prev => ({ ...prev, isLoading: false }));

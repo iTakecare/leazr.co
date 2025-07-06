@@ -180,7 +180,7 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                           En ligne
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-xs bg-orange-500 text-white gap-1">
+                        <Badge variant="secondary" className="text-xs bg-red-500 text-white gap-1">
                           <WifiOff className="h-3 w-3" />
                           Hors ligne
                         </Badge>
@@ -333,8 +333,8 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                         )}
                         
                         {!isConnected && (
-                          <div className="text-xs text-orange-600 mb-2 p-2 bg-orange-50 rounded">
-                            Connexion en cours... Les messages seront envoyés automatiquement.
+                          <div className="text-xs text-red-600 mb-2 p-2 bg-red-50 rounded">
+                            Aucun opérateur disponible. Votre message sera traité dès qu'un agent sera en ligne.
                           </div>
                         )}
                         
