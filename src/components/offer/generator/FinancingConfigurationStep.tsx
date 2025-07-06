@@ -31,7 +31,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
   const [selectedLeaser, setSelectedLeaser] = useState<any>(null);
 
   // Fetch leasers
-  const { data: leasers = [] } = useQuery({
+  const { data: leasers = [], isLoading: leasersLoading, error: leasersError } = useQuery({
     queryKey: ['leasers'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,8 +39,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
         .select(`
           *,
           leaser_ranges (*)
-        `)
-        .eq('company_id', 'current'); // This would need proper company filtering
+        `);
 
       if (error) throw error;
       return data || [];
@@ -179,9 +178,14 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
             <Select
               value={financing.leaserId}
               onValueChange={handleLeaserChange}
+              disabled={leasersLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choisir un bailleur" />
+                <SelectValue placeholder={
+                  leasersLoading ? "Chargement..." : 
+                  leasers.length === 0 ? "Aucun bailleur disponible" :
+                  "Choisir un bailleur"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {leasers.map((leaser) => (
@@ -200,6 +204,18 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
                 ))}
               </SelectContent>
             </Select>
+            
+            {leasersError && (
+              <div className="p-3 bg-red-50 rounded-lg text-sm text-red-700">
+                Erreur lors du chargement des bailleurs. Veuillez réessayer.
+              </div>
+            )}
+            
+            {!leasersLoading && leasers.length === 0 && (
+              <div className="p-3 bg-yellow-50 rounded-lg text-sm text-yellow-700">
+                Aucun bailleur de financement configuré. Contactez votre administrateur.
+              </div>
+            )}
             
             {selectedLeaser && (
               <div className="p-3 bg-blue-50 rounded-lg text-sm">

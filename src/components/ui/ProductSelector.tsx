@@ -40,7 +40,8 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
-        .eq("active", true);
+        .eq("active", true)
+        .gt("price", 0);
       
       if (productsError) {
         console.error("Error fetching products:", productsError);
@@ -236,8 +237,13 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 ) : filteredProducts.length === 0 ? (
                   <div className="text-center p-8 text-gray-500 flex flex-col items-center">
                     <Info className="h-12 w-12 text-gray-400 mb-2" />
-                    <p className="text-lg font-medium">Aucun produit trouvé</p>
-                    <p className="text-sm mt-1">Essayez de modifier vos critères de recherche</p>
+                    <p className="text-lg font-medium">Aucun produit disponible</p>
+                    <p className="text-sm mt-1">
+                      {searchQuery ? 
+                        "Essayez de modifier vos critères de recherche" : 
+                        "Aucun produit avec prix configuré dans le catalogue"
+                      }
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
