@@ -337,28 +337,28 @@ export const EnhancedAdminDashboard: React.FC = () => {
     switch (status) {
       case 'waiting':
         return (
-          <Badge variant="outline" className="text-orange-600 border-orange-600 bg-orange-50">
+          <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100">
             <Clock className="h-3 w-3 mr-1" />
             En attente
           </Badge>
         );
       case 'active':
         return (
-          <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
+          <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
             <CheckCircle className="h-3 w-3 mr-1" />
             Actif
           </Badge>
         );
       case 'closed':
         return (
-          <Badge variant="outline" className="text-gray-600 border-gray-600 bg-gray-50">
+          <Badge variant="secondary" className="bg-muted text-muted-foreground border-muted hover:bg-muted">
             <CheckCircle className="h-3 w-3 mr-1" />
             Fermé
           </Badge>
         );
       case 'abandoned':
         return (
-          <Badge variant="outline" className="text-red-600 border-red-600 bg-red-50">
+          <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
             <AlertCircle className="h-3 w-3 mr-1" />
             Abandonné
           </Badge>
@@ -400,22 +400,31 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
   return (
     <div className="h-full max-h-[90vh]">
-      {/* Header with notifications */}
+      {/* Status Bar */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <MessageCircle className="h-8 w-8 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-sm font-medium">
+                {isConnected ? 'Connecté' : 'Déconnecté'}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {conversations.length} conversations
+              </span>
+            </div>
             {unreadCount > 0 && (
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Badge>
+              <>
+                <div className="h-4 w-px bg-border" />
+                <Badge variant="destructive" className="h-6 px-2 text-xs animate-bounce">
+                  {unreadCount} non lues
+                </Badge>
+              </>
             )}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Chat en direct</h1>
-            <p className="text-muted-foreground">
-              {isConnected ? 'Connecté' : 'Déconnecté'} • {conversations.length} conversations
-            </p>
           </div>
         </div>
 
@@ -492,25 +501,33 @@ export const EnhancedAdminDashboard: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="waiting" className="relative">
+        <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+          <TabsTrigger value="waiting" className="relative data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Clock className="h-4 w-4 mr-2" />
             En attente
             {conversations.filter(c => c.status === 'waiting').length > 0 && (
-              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-orange-500 text-xs">
+              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-orange-500 text-white text-xs animate-pulse">
                 {conversations.filter(c => c.status === 'waiting').length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active">
+          <TabsTrigger value="active" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <CheckCircle className="h-4 w-4 mr-2" />
             Actives
             {conversations.filter(c => c.status === 'active').length > 0 && (
-              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-green-500 text-xs">
+              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-green-500 text-white text-xs">
                 {conversations.filter(c => c.status === 'active').length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="closed">Fermées</TabsTrigger>
-          <TabsTrigger value="all">Toutes</TabsTrigger>
+          <TabsTrigger value="closed" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Fermées
+          </TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Users className="h-4 w-4 mr-2" />
+            Toutes
+          </TabsTrigger>
         </TabsList>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 h-[calc(100%-80px)]">
@@ -613,10 +630,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
                       
                       <div className="flex gap-1">
                         {selectedConversation.status === 'waiting' && (
-                          <Button
+                           <Button
                             size="sm"
                             onClick={() => updateConversationStatus(selectedConversation.id, 'active')}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white animate-pulse"
                           >
                             <Zap className="h-4 w-4 mr-1" />
                             Prendre en charge
