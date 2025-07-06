@@ -73,10 +73,19 @@ const PDFModelManager = () => {
       await savePDFModel(updatedModel);
       
       setModel(updatedModel);
-      toast.success("Modèle sauvegardé avec succès");
+      toast.success("Modèle sauvegardé avec succès ! Vos modifications ont été appliquées.");
     } catch (err: any) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);
-      const errorMessage = err.message || "Erreur lors de la sauvegarde du modèle";
+      let errorMessage = "Erreur lors de la sauvegarde du modèle";
+      
+      if (err.message?.includes('permission denied')) {
+        errorMessage = "Vous n'avez pas les permissions nécessaires pour sauvegarder ce modèle";
+      } else if (err.message?.includes('invalid input')) {
+        errorMessage = "Les données saisies ne sont pas valides. Vérifiez tous les champs obligatoires.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
