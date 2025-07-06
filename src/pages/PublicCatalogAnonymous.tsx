@@ -26,30 +26,44 @@ const PublicCatalogAnonymous = () => {
     navigate(`/public/${companyId}/panier`);
   };
 
-  // Fetch company info with branding
+  // Fetch company info with branding and customizations
   const { data: company } = useQuery({
     queryKey: ["company", companyId],
     queryFn: async () => {
       if (!companyId) return null;
-      const { data, error } = await supabase
+      
+      // Get company data
+      const { data: companyData, error: companyError } = await supabase
         .from("companies")
         .select("*")
         .eq("id", companyId)
         .single();
-      if (error) throw error;
+      
+      if (companyError) throw companyError;
+      
+      // Try to get custom company name from customizations
+      const customization = await CompanyCustomizationService.getCompanyBranding(companyId);
+      
+      // Determine display name: custom name > clean company name > "Catalogue"
+      const displayName = customization?.company_name || 
+        (companyData.name && !companyData.name.includes("(Default)") ? companyData.name : null) || 
+        "Catalogue";
       
       // Apply company branding
-      if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
+      if (companyData && (companyData.primary_color || companyData.secondary_color || companyData.accent_color)) {
         CompanyCustomizationService.applyCompanyBranding({
           company_id: companyId,
-          primary_color: data.primary_color || "#3b82f6",
-          secondary_color: data.secondary_color || "#64748b",
-          accent_color: data.accent_color || "#8b5cf6",
-          logo_url: data.logo_url || ""
+          primary_color: companyData.primary_color || "#3b82f6",
+          secondary_color: companyData.secondary_color || "#64748b",
+          accent_color: companyData.accent_color || "#8b5cf6",
+          logo_url: companyData.logo_url || ""
         });
       }
       
-      return data;
+      return {
+        ...companyData,
+        displayName
+      };
     },
     enabled: !!companyId,
   });
@@ -123,7 +137,7 @@ const PublicCatalogAnonymous = () => {
                 className="h-10"
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
+                <h1 className="text-xl font-bold text-gray-900">{company?.displayName}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   {company?.contact_phone && (
                     <div className="flex items-center gap-1">
@@ -178,7 +192,7 @@ const PublicCatalogAnonymous = () => {
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}
         <CatalogHeader 
-          companyName={company?.name}
+          companyName={company?.displayName}
           companyLogo={company?.logo_url}
         />
 
@@ -286,7 +300,7 @@ const PublicCatalogAnonymous = () => {
 
         {/* Footer */}
         <footer className="text-center py-8 text-muted-foreground">
-          <p>© {new Date().getFullYear()} {company?.name}. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} {company?.displayName}. Tous droits réservés.</p>
         </footer>
       </div>
 
