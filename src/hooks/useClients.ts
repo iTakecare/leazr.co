@@ -51,8 +51,6 @@ export const useClients = () => {
 
   // Make sure filteredClients is always initialized as an array
   const filteredClients = clients ? clients.filter((client) => {
-    // Ne plus filtrer par statut "duplicate" - afficher tous les clients
-    
     const matchesSearch = 
       searchTerm === "" ||
       (client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -63,7 +61,14 @@ export const useClients = () => {
       selectedStatus === "all" ||
       client.status === selectedStatus;
     
-    return matchesSearch && matchesStatus;
+    // Filter based on ambassador clients toggle
+    const matchesAmbassadorFilter = showAmbassadorClients 
+      ? client.is_ambassador_client === true 
+      : (client.is_ambassador_client === false || client.is_ambassador_client == null);
+    
+    console.log(`Client ${client.name}: is_ambassador_client=${client.is_ambassador_client}, showAmbassadorClients=${showAmbassadorClients}, matches=${matchesAmbassadorFilter}`);
+    
+    return matchesSearch && matchesStatus && matchesAmbassadorFilter;
   }) : [];
 
   console.log('Clients filtrés:', filteredClients.length);
