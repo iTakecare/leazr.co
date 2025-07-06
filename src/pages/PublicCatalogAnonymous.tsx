@@ -292,8 +292,6 @@ const PublicCatalogAnonymous = () => {
 
       {/* Chat Widget */}
       {companyId && <ChatWidget companyId={companyId} />}
-      {/* Chat Widget */}
-      {companyId && <ChatWidget companyId={companyId} />}
     </div>
   );
 };

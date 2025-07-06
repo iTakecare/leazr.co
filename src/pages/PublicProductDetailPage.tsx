@@ -15,6 +15,7 @@ import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
 import { useCart } from "@/context/CartContext";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const PublicProductDetailPage = () => {
   const { companyId, id } = useParams<{ companyId: string; id: string }>();
@@ -329,6 +330,9 @@ const PublicProductDetailPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Chat Widget */}
+      {companyId && <ChatWidget companyId={companyId} />}
     </div>
   );
 };
