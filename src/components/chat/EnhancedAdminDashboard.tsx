@@ -401,6 +401,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
                 {agentStatus?.is_online ? 'En ligne' : 'Hors ligne'}
               </span>
             </div>
+            <OnlineStatusSwitch />
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
