@@ -18,6 +18,23 @@ export interface PDFModel {
   updated_at?: string;
 }
 
+// Validation des champs obligatoires
+const validatePDFModel = (model: Partial<PDFModel>): string[] => {
+  const errors: string[] = [];
+  const requiredFields = [
+    'id', 'name', 'companyName', 'companyAddress', 'companyContact', 
+    'companySiret', 'primaryColor', 'secondaryColor', 'headerText', 'footerText'
+  ];
+  
+  for (const field of requiredFields) {
+    if (!model[field as keyof PDFModel] || model[field as keyof PDFModel] === '') {
+      errors.push(`Le champ '${field}' est obligatoire`);
+    }
+  }
+  
+  return errors;
+};
+
 // Modèle par défaut
 export const DEFAULT_MODEL: PDFModel = {
   id: 'default',
@@ -109,32 +126,54 @@ export const loadPDFModel = async (id: string = 'default') => {
 export const savePDFModel = async (model: PDFModel) => {
   try {
     console.log("Début de la sauvegarde du modèle PDF:", model.id);
+    
+    // Valider le modèle avant sauvegarde
+    const validationErrors = validatePDFModel(model);
+    if (validationErrors.length > 0) {
+      throw new Error(`Données invalides: ${validationErrors.join(', ')}`);
+    }
+    
     const supabase = getSupabaseClient();
     
-    // Préparer le modèle à sauvegarder
+    // Préparer les données à sauvegarder avec nettoyage
     const modelToSave = {
-      ...model,
+      id: model.id.trim(),
+      name: model.name.trim(),
+      companyName: model.companyName.trim(),
+      companyAddress: model.companyAddress.trim(),
+      companyContact: model.companyContact.trim(),
+      companySiret: model.companySiret.trim(),
+      logoURL: model.logoURL || '',
+      primaryColor: model.primaryColor.trim(),
+      secondaryColor: model.secondaryColor.trim(),
+      headerText: model.headerText.trim(),
+      footerText: model.footerText.trim(),
+      templateImages: Array.isArray(model.templateImages) ? model.templateImages : [],
+      fields: Array.isArray(model.fields) ? model.fields : [],
       updated_at: new Date().toISOString()
     };
     
+    console.log("Données à sauvegarder:", modelToSave);
+    
     // Sauvegarder le modèle
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('pdf_models')
       .upsert(modelToSave, { 
         onConflict: 'id',
         ignoreDuplicates: false 
-      });
+      })
+      .select();
     
     if (error) {
-      console.error("Erreur lors de la sauvegarde du modèle:", error);
-      throw new Error(`Erreur lors de la sauvegarde du modèle: ${error.message}`);
+      console.error("Erreur Supabase lors de la sauvegarde:", error);
+      throw new Error(`Erreur de sauvegarde: ${error.message || error.details || 'Erreur inconnue'}`);
     }
     
-    console.log("Modèle sauvegardé avec succès:", model.id);
+    console.log("Modèle sauvegardé avec succès:", data);
     return true;
   } catch (error: any) {
     console.error("Exception lors de la sauvegarde du modèle:", error);
-    throw error;
+    throw new Error(`Sauvegarde échouée: ${error.message || 'Erreur inconnue'}`);
   }
 };
 

@@ -51,19 +51,34 @@ const PDFModelManager = () => {
   
   // Fonction pour sauvegarder le modèle
   const handleSaveModel = async (updatedModel: PDFModel) => {
+    if (!updatedModel) {
+      toast.error("Aucun modèle à sauvegarder");
+      return;
+    }
+
     setSaving(true);
     setError(null);
     
     try {
       console.log("Sauvegarde du modèle:", updatedModel);
+      
+      // Vérifier que tous les champs obligatoires sont présents
+      if (!updatedModel.name?.trim()) {
+        throw new Error("Le nom du modèle est obligatoire");
+      }
+      if (!updatedModel.companyName?.trim()) {
+        throw new Error("Le nom de l'entreprise est obligatoire");
+      }
+      
       await savePDFModel(updatedModel);
       
       setModel(updatedModel);
       toast.success("Modèle sauvegardé avec succès");
     } catch (err: any) {
       console.error("Erreur lors de la sauvegarde du modèle:", err);
-      setError(err.message || "Erreur lors de la sauvegarde du modèle");
-      toast.error("Erreur lors de la sauvegarde du modèle");
+      const errorMessage = err.message || "Erreur lors de la sauvegarde du modèle";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
