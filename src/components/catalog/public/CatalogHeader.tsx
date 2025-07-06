@@ -15,14 +15,12 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ companyName, companyLogo 
     <div className="rounded-2xl bg-gradient-to-br from-[#275D8C] via-[#4196b4] to-[#48B5C3] shadow-xl overflow-visible">
       <div className="relative flex flex-col md:flex-row max-h-[460px] md:max-h-[380px]">
         <div className="z-10 p-6 md:p-8 md:w-3/5">
-          {companyLogo && (
-            <div className="mb-4">
-              <CompanyLogo 
-                logoSize="lg" 
-                className="filter brightness-0 invert"
-              />
-            </div>
-          )}
+          <div className="mb-4">
+            <CompanyLogo 
+              logoSize="lg" 
+              className="filter brightness-0 invert"
+            />
+          </div>
           
           <h1 className="font-bold text-2xl md:text-3xl lg:text-4xl text-white leading-tight mb-3">
             {companyName ? 
