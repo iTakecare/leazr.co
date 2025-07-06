@@ -43,14 +43,15 @@ export const useWebRTCChat = (
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Use the correct WebRTC signaling server URL
-      const wsUrl = `wss://ad498fde-39d4-4047-b0b8-05fb528da9c9.supabase.co/functions/v1/webrtc-signaling`;
-      console.log('Connecting to WebRTC signaling server:', wsUrl);
+      // Use the correct WebRTC signaling server URL with the right project ID
+      const wsUrl = `wss://cifbetjefyfocafanlhv.supabase.co/functions/v1/webrtc-signaling`;
+      console.log('🔗 Connecting to WebRTC signaling server:', wsUrl);
+      console.log('🏢 Company ID:', companyId, 'Visitor ID:', visitorId, 'Agent ID:', agentId);
       
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('WebRTC signaling connected');
+        console.log('✅ WebRTC signaling connected successfully');
         setState(prev => ({ ...prev, isConnected: true, isLoading: false }));
         
         // Join conversation
@@ -77,7 +78,7 @@ export const useWebRTCChat = (
       };
 
       wsRef.current.onclose = () => {
-        console.log('WebRTC signaling disconnected');
+        console.log('❌ WebRTC signaling disconnected');
         setState(prev => ({ ...prev, isConnected: false }));
         
         // Auto-reconnect after 3 seconds
@@ -89,7 +90,8 @@ export const useWebRTCChat = (
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebRTC signaling error:', error);
+        console.error('🚨 WebRTC signaling error:', error);
+        console.error('📊 Connection state:', wsRef.current?.readyState);
         setState(prev => ({ 
           ...prev, 
           error: 'Erreur de connexion au chat',

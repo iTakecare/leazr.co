@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'join' | 'leave' | 'message' | 'typing' | 'agent-status';
@@ -16,6 +17,12 @@ interface SignalingMessage {
 const connections = new Map<string, WebSocket>();
 const conversationParticipants = new Map<string, Set<string>>();
 const agentsByCompany = new Map<string, Set<string>>();
+
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 serve(async (req) => {
   const upgrade = req.headers.get("upgrade") || "";
@@ -236,21 +243,19 @@ serve(async (req) => {
 
   async function saveMessage(messageData: any) {
     try {
-      const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/chat_messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-        },
-        body: JSON.stringify(messageData)
-      });
+      console.log('💾 Saving message to database:', messageData);
+      
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert([messageData]);
 
-      if (!response.ok) {
-        console.error('Failed to save message:', await response.text());
+      if (error) {
+        console.error('❌ Failed to save message:', error);
+      } else {
+        console.log('✅ Message saved successfully:', data);
       }
     } catch (error) {
-      console.error('Error saving message:', error);
+      console.error('🚨 Error saving message:', error);
     }
   }
 
