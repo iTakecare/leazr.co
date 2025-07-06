@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit3, Save, X, Eye, EyeOff } from 'lucide-react';
+import { Edit3, Save, X, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EditableBillingDataTableProps {
@@ -24,8 +24,21 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
 
   const handleSave = async () => {
     try {
-      // Update the billing data
-      onUpdate(editedData);
+      // Recalculate totals before saving
+      const updatedData = { ...editedData };
+      if (updatedData.equipment_data && Array.isArray(updatedData.equipment_data)) {
+        const totalExclVat = updatedData.equipment_data.reduce((sum: number, item: any) => {
+          return sum + (item.selling_price_excl_vat * item.quantity);
+        }, 0);
+        
+        updatedData.invoice_totals = {
+          total_excl_vat: totalExclVat,
+          vat_amount: totalExclVat * 0.21,
+          total_incl_vat: totalExclVat * 1.21
+        };
+      }
+      
+      onUpdate(updatedData);
       setEditMode(false);
       toast.success('Données de facturation mises à jour');
     } catch (error) {
@@ -38,7 +51,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
     setEditMode(false);
   };
 
-  const updateField = (path: string, value: string) => {
+  const updateField = (path: string, value: string | number) => {
     const pathArray = path.split('.');
     const newData = { ...editedData };
     let current = newData;
@@ -54,6 +67,38 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
     setEditedData(newData);
   };
 
+  const updateEquipmentField = (index: number, field: string, value: string | number) => {
+    const newData = { ...editedData };
+    if (!newData.equipment_data) newData.equipment_data = [];
+    if (!newData.equipment_data[index]) newData.equipment_data[index] = {};
+    
+    newData.equipment_data[index][field] = value;
+    setEditedData(newData);
+  };
+
+  const addEquipmentLine = () => {
+    const newData = { ...editedData };
+    if (!newData.equipment_data) newData.equipment_data = [];
+    
+    newData.equipment_data.push({
+      title: '',
+      selling_price_excl_vat: 0,
+      quantity: 1,
+      margin: 0,
+      purchase_price: 0
+    });
+    
+    setEditedData(newData);
+  };
+
+  const removeEquipmentLine = (index: number) => {
+    const newData = { ...editedData };
+    if (newData.equipment_data && newData.equipment_data.length > 1) {
+      newData.equipment_data.splice(index, 1);
+      setEditedData(newData);
+    }
+  };
+
   const getNestedValue = (obj: any, path: string) => {
     return path.split('.').reduce((o, key) => o?.[key], obj) || '';
   };
@@ -63,13 +108,13 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
     
     return (
       <TableRow key={path}>
-        <TableCell className="font-medium">{label}</TableCell>
+        <TableCell className="font-medium w-1/3">{label}</TableCell>
         <TableCell>
           {editMode ? (
             <Input
               type={type}
               value={value}
-              onChange={(e) => updateField(path, e.target.value)}
+              onChange={(e) => updateField(path, type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
               className="w-full"
             />
           ) : (
@@ -154,14 +199,14 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
             <h3 className="text-lg font-semibold mb-3">Informations du bailleur</h3>
             <Table>
               <TableBody>
-                {renderEditableField('Nom du bailleur', 'leaser.name')}
-                {renderEditableField('Adresse', 'leaser.address')}
-                {renderEditableField('Ville', 'leaser.city')}
-                {renderEditableField('Code postal', 'leaser.postal_code')}
-                {renderEditableField('Pays', 'leaser.country')}
-                {renderEditableField('Email', 'leaser.email', 'email')}
-                {renderEditableField('Téléphone', 'leaser.phone')}
-                {renderEditableField('Numéro TVA', 'leaser.vat_number')}
+                {renderEditableField('Nom du bailleur', 'leaser_data.name')}
+                {renderEditableField('Adresse', 'leaser_data.address')}
+                {renderEditableField('Ville', 'leaser_data.city')}
+                {renderEditableField('Code postal', 'leaser_data.postal_code')}
+                {renderEditableField('Pays', 'leaser_data.country')}
+                {renderEditableField('Email', 'leaser_data.email', 'email')}
+                {renderEditableField('Téléphone', 'leaser_data.phone')}
+                {renderEditableField('Numéro TVA', 'leaser_data.vat_number')}
               </TableBody>
             </Table>
           </div>
@@ -171,49 +216,153 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
             <h3 className="text-lg font-semibold mb-3">Informations du client</h3>
             <Table>
               <TableBody>
-                {renderEditableField('Nom du client', 'client.name')}
-                {renderEditableField('Entreprise', 'client.company')}
-                {renderEditableField('Adresse', 'client.address')}
-                {renderEditableField('Ville', 'client.city')}
-                {renderEditableField('Code postal', 'client.postal_code')}
-                {renderEditableField('Pays', 'client.country')}
-                {renderEditableField('Email', 'client.email', 'email')}
-                {renderEditableField('Téléphone', 'client.phone')}
-                {renderEditableField('Numéro TVA', 'client.vat_number')}
+                {renderEditableField('Nom du client', 'contract_data.client_name')}
+                {renderEditableField('Email', 'contract_data.client_email', 'email')}
+                {renderEditableField('Adresse', 'contract_data.address')}
+                {renderEditableField('Ville', 'contract_data.city')}
+                {renderEditableField('Code postal', 'contract_data.postal_code')}
+                {renderEditableField('Pays', 'contract_data.country')}
+                {renderEditableField('Téléphone', 'contract_data.phone')}
+                {renderEditableField('Numéro TVA', 'contract_data.vat_number')}
               </TableBody>
             </Table>
           </div>
 
-          {/* Détails du contrat */}
+          {/* Équipements - Lignes de commande */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Détails du contrat</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Lignes de commande</h3>
+              {editMode && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={addEquipmentLine}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter une ligne
+                </Button>
+              )}
+            </div>
+            
             <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Prix unitaire HT</TableHead>
+                  <TableHead className="text-center">Quantité</TableHead>
+                  <TableHead className="text-right">Total HT</TableHead>
+                  {editMode && <TableHead className="w-[50px]"></TableHead>}
+                </TableRow>
+              </TableHeader>
               <TableBody>
-                {renderEditableField('Numéro de contrat', 'contract.number')}
-                {renderEditableField('Date de début', 'contract.start_date')}
-                {renderEditableField('Date de fin', 'contract.end_date')}
-                {renderEditableField('Durée (mois)', 'contract.duration', 'number')}
-                {renderEditableField('Mensualité', 'contract.monthly_payment', 'number')}
-                {renderEditableField('Montant total', 'contract.total_amount', 'number')}
+                {editedData.equipment_data && Array.isArray(editedData.equipment_data) ? 
+                  editedData.equipment_data.map((item: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        {editMode ? (
+                          <Input
+                            value={item.title || ''}
+                            onChange={(e) => updateEquipmentField(index, 'title', e.target.value)}
+                            className="w-full"
+                          />
+                        ) : (
+                          item.title || 'Non renseigné'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.selling_price_excl_vat || 0}
+                            onChange={(e) => updateEquipmentField(index, 'selling_price_excl_vat', parseFloat(e.target.value) || 0)}
+                            className="w-24 text-right"
+                          />
+                        ) : (
+                          `${(item.selling_price_excl_vat || 0).toFixed(2)} €`
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity || 1}
+                            onChange={(e) => updateEquipmentField(index, 'quantity', parseInt(e.target.value) || 1)}
+                            className="w-20 text-center"
+                          />
+                        ) : (
+                          item.quantity || 1
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {((item.selling_price_excl_vat || 0) * (item.quantity || 1)).toFixed(2)} €
+                      </TableCell>
+                      {editMode && (
+                        <TableCell>
+                          {editedData.equipment_data.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeEquipmentLine(index)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={editMode ? 5 : 4} className="text-center text-muted-foreground">
+                        Aucun équipement trouvé
+                      </TableCell>
+                    </TableRow>
+                  )
+                }
+                
+                {/* Totaux */}
+                {editedData.equipment_data && Array.isArray(editedData.equipment_data) && editedData.equipment_data.length > 0 && (
+                  <>
+                    <TableRow>
+                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-medium">
+                        Total HT:
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {editedData.equipment_data.reduce((sum: number, item: any) => 
+                          sum + ((item.selling_price_excl_vat || 0) * (item.quantity || 1)), 0
+                        ).toFixed(2)} €
+                      </TableCell>
+                      {editMode && <TableCell></TableCell>}
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-medium">
+                        TVA (21%):
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {(editedData.equipment_data.reduce((sum: number, item: any) => 
+                          sum + ((item.selling_price_excl_vat || 0) * (item.quantity || 1)), 0
+                        ) * 0.21).toFixed(2)} €
+                      </TableCell>
+                      {editMode && <TableCell></TableCell>}
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-bold">
+                        Total TTC:
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-lg">
+                        {(editedData.equipment_data.reduce((sum: number, item: any) => 
+                          sum + ((item.selling_price_excl_vat || 0) * (item.quantity || 1)), 0
+                        ) * 1.21).toFixed(2)} €
+                      </TableCell>
+                      {editMode && <TableCell></TableCell>}
+                    </TableRow>
+                  </>
+                )}
               </TableBody>
             </Table>
           </div>
-
-          {/* Équipement */}
-          {editedData.equipment && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Équipement</h3>
-              <Table>
-                <TableBody>
-                  {renderEditableField('Description', 'equipment.description')}
-                  {renderEditableField('Marque', 'equipment.brand')}
-                  {renderEditableField('Modèle', 'equipment.model')}
-                  {renderEditableField('Numéro de série', 'equipment.serial_number')}
-                  {renderEditableField('Prix d\'achat', 'equipment.purchase_price', 'number')}
-                </TableBody>
-              </Table>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
