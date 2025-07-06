@@ -10,6 +10,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import EditableBillingDataTable from "@/components/invoices/EditableBillingDataTable";
 
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -123,6 +124,21 @@ const InvoiceDetailPage = () => {
       toast.error(error.message || "Erreur lors de l'envoi vers Billit");
     } finally {
       setIsSendingToBillit(false);
+    }
+  };
+
+  const handleBillingDataUpdate = async (updatedData: any) => {
+    if (!invoice) return;
+
+    try {
+      const { updateInvoiceBillingData } = await import('@/services/invoiceService');
+      await updateInvoiceBillingData(invoice.id, updatedData);
+      
+      setInvoice({ ...invoice, billing_data: updatedData });
+      toast.success("Données de facturation mises à jour");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour des données de facturation:", error);
+      toast.error("Erreur lors de la mise à jour des données");
     }
   };
 
@@ -291,16 +307,11 @@ const InvoiceDetailPage = () => {
 
           {/* Données de facturation */}
           {invoice.billing_data && Object.keys(invoice.billing_data).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Données de facturation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto">
-                  {JSON.stringify(invoice.billing_data, null, 2)}
-                </pre>
-              </CardContent>
-            </Card>
+            <EditableBillingDataTable
+              billingData={invoice.billing_data}
+              invoiceId={invoice.id}
+              onUpdate={handleBillingDataUpdate}
+            />
           )}
         </div>
 

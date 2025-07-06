@@ -335,6 +335,23 @@ export const getInvoicesByStatus = async (companyId: string, status: string): Pr
   }
 };
 
+// Mettre à jour les données de facturation d'une facture
+export const updateInvoiceBillingData = async (invoiceId: string, billingData: any) => {
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ billing_data: billingData })
+    .eq('id', invoiceId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour des données de facturation:', error);
+    throw error;
+  }
+
+  return data;
+};
+
 // Mettre à jour le statut d'une facture
 export const updateInvoiceStatus = async (invoiceId: string, status: string, paidAt?: string) => {
   const updateData: any = { status };
