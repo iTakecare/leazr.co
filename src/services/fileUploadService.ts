@@ -56,30 +56,67 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
 
     // Si c'est déjà un File, pas de problème
     if (data instanceof File) {
+      console.log("✅ Fichier déjà valide (File)");
       return data;
+    }
+
+    // Si c'est un Blob, le convertir en File
+    if (data instanceof Blob) {
+      console.log("✅ Conversion Blob vers File");
+      return new File([data], 'recovered-file', { type: data.type });
     }
 
     // Si c'est un objet avec des propriétés de File
     if (data && typeof data === 'object' && data.name && data.type) {
       console.log("Tentative de reconstruction du File depuis l'objet");
       
-      // Essayer de récupérer le contenu du fichier
-      if (data.stream && typeof data.stream === 'function') {
-        // Créer un nouveau File à partir du stream
-        return new File([data.stream()], data.name, { type: data.type });
+      // Vérifier si on a des données binaires encodées
+      if (data._data || data.data) {
+        const binaryData = data._data || data.data;
+        console.log("Données binaires trouvées:", typeof binaryData);
+        
+        if (typeof binaryData === 'string') {
+          // Si les données sont en base64
+          try {
+            const binaryString = atob(binaryData);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            return new File([bytes], data.name, { type: data.type });
+          } catch (e) {
+            console.error("Erreur décodage base64:", e);
+          }
+        }
+        
+        if (binaryData instanceof ArrayBuffer || binaryData instanceof Uint8Array) {
+          return new File([binaryData], data.name, { type: data.type });
+        }
       }
       
-      // Si on a un ArrayBuffer ou Uint8Array
+      // Essayer de récupérer le contenu du fichier via stream
+      if (data.stream && typeof data.stream === 'function') {
+        console.log("Tentative de récupération via stream");
+        try {
+          return new File([data.stream()], data.name, { type: data.type });
+        } catch (e) {
+          console.error("Erreur lors de l'utilisation du stream:", e);
+        }
+      }
+      
+      // Si on a un ArrayBuffer ou buffer direct
       if (data.arrayBuffer || data.buffer) {
         const buffer = data.arrayBuffer || data.buffer;
+        console.log("Utilisation du buffer direct");
         return new File([buffer], data.name, { type: data.type });
       }
     }
 
-    console.error("Impossible de récupérer le fichier depuis les données corrompues");
+    console.error("❌ Impossible de récupérer le fichier depuis les données corrompues");
+    console.error("Structure de l'objet:", Object.keys(data || {}));
     return null;
   } catch (error) {
-    console.error("Erreur lors de la récupération du fichier:", error);
+    console.error("❌ Erreur lors de la récupération du fichier:", error);
     return null;
   }
 };
@@ -145,25 +182,43 @@ export const uploadImage = async (
     // ÉTAPE 1: Validation et récupération du fichier
     let validFile: File = file;
     
-    // Tentative de récupération si le fichier n'est pas valide
+    // Vérification stricte du type File
     if (!(file instanceof File)) {
-      console.warn("ALERTE: L'objet reçu n'est PAS un File natif");
+      console.warn("⚠️ ALERTE: L'objet reçu n'est PAS un File natif");
+      console.log("Type reçu:", typeof file);
+      console.log("Constructor:", (file as any)?.constructor?.name);
       console.log("Tentative de récupération...");
       
       const recoveredFile = recoverFileFromCorruptedData(file);
       if (recoveredFile) {
         validFile = recoveredFile;
-        console.log("Fichier récupéré avec succès!");
+        console.log("✅ Fichier récupéré avec succès!");
       } else {
-        console.error("ERREUR CRITIQUE: Impossible de récupérer le fichier:", {
+        console.error("❌ ERREUR CRITIQUE: Impossible de récupérer le fichier:", {
           typeOf: typeof file,
           isArray: Array.isArray(file),
-          stringified: JSON.stringify(file).substring(0, 200)
+          constructor: (file as any)?.constructor?.name,
+          keys: file ? Object.keys(file as any) : 'N/A',
+          stringified: JSON.stringify(file).substring(0, 500)
         });
-        toast.error("Erreur: Le fichier n'est pas au bon format");
+        toast.error("Erreur: Le fichier n'est pas au bon format. Veuillez réessayer.");
         return null;
       }
     }
+    
+    // Vérification finale que nous avons un File valide
+    if (!validFile || !(validFile instanceof File)) {
+      console.error("❌ ÉCHEC FINAL: Pas de File valide après récupération");
+      toast.error("Erreur: Impossible de traiter le fichier");
+      return null;
+    }
+    
+    console.log("✅ File validé:", {
+      name: validFile.name,
+      type: validFile.type,
+      size: validFile.size,
+      constructor: validFile.constructor.name
+    });
     
     // ÉTAPE 2: Validation approfondie du type MIME
     if (!validateMimeType(validFile)) {
@@ -214,10 +269,33 @@ export const uploadImage = async (
     // ÉTAPE 6: UPLOAD VERS SUPABASE
     console.log(`=== UPLOAD VERS SUPABASE ===`);
     console.log(`Tentative d'upload du fichier (${validFile.size} bytes) vers ${bucketName}/${filePath}`);
+    console.log("Paramètres d'upload:", {
+      bucketName,
+      filePath,
+      fileType: validFile.type,
+      correctedContentType: correctedMimeType,
+      fileSize: validFile.size,
+      cacheControl: '3600',
+      upsert: true
+    });
+    
+    // Créer un nouveau File propre pour éviter tout problème de sérialisation
+    const cleanFileBuffer = await validFile.arrayBuffer();
+    const cleanFile = new File([cleanFileBuffer], fileName, {
+      type: correctedMimeType,
+      lastModified: Date.now()
+    });
+    
+    console.log("Fichier nettoyé pour upload:", {
+      name: cleanFile.name,
+      type: cleanFile.type,
+      size: cleanFile.size,
+      constructor: cleanFile.constructor.name
+    });
     
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, validFile, {
+      .upload(filePath, cleanFile, {
         cacheControl: '3600',
         upsert: true,
         contentType: correctedMimeType

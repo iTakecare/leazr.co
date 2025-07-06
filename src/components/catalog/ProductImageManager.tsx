@@ -148,6 +148,9 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
+    console.log("=== DÉBUT UPLOAD IMAGE ===");
+    console.log("Nombre de fichiers sélectionnés:", files.length);
+    
     setIsUploading(true);
     let uploadedCount = 0;
     
@@ -155,14 +158,49 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
+        console.log(`=== FICHIER ${i + 1}/${files.length} ===`);
+        console.log("Propriétés du fichier original:", {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified,
+          constructor: file.constructor.name,
+          isInstanceOfFile: file instanceof File,
+          isInstanceOfBlob: file instanceof Blob,
+          keys: Object.keys(file)
+        });
+        
+        // Validation du type de fichier
         if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+          console.error(`Fichier ${file.name} rejeté - type non valide:`, file.type);
           toast.error(`Le fichier ${file.name} n'est pas une image valide`);
           continue;
         }
         
-        const imageUrl = await uploadImage(file, "product-images", productId);
+        console.log(`Tentative d'upload pour ${file.name} vers product-images/${productId}`);
+        
+        // Créer une copie du fichier pour éviter la sérialisation
+        const fileBlob = new Blob([file], { type: file.type });
+        const cleanFile = new File([fileBlob], file.name, {
+          type: file.type,
+          lastModified: file.lastModified
+        });
+        
+        console.log("Propriétés du fichier nettoyé:", {
+          name: cleanFile.name,
+          type: cleanFile.type,
+          size: cleanFile.size,
+          constructor: cleanFile.constructor.name,
+          isInstanceOfFile: cleanFile instanceof File,
+          isInstanceOfBlob: cleanFile instanceof Blob
+        });
+        
+        const imageUrl = await uploadImage(cleanFile, "product-images", productId);
         if (imageUrl) {
           uploadedCount++;
+          console.log(`✅ Upload réussi pour ${file.name}:`, imageUrl);
+        } else {
+          console.error(`❌ Échec upload pour ${file.name}`);
         }
       }
       
