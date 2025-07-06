@@ -68,7 +68,7 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
     margin: 20
   });
 
-  const { equipment } = formData;
+  const { equipment = [] } = formData;
 
   const handleAddEquipment = (equipmentData: any) => {
     const equipment = {
@@ -82,7 +82,7 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
       specifications: equipmentData.specifications || {}
     };
 
-    updateFormData('equipment', [...formData.equipment, equipment]);
+    updateFormData('equipment', [...(formData.equipment || []), equipment]);
     resetNewEquipment();
   };
 
@@ -100,13 +100,13 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
   };
 
   const handleRemoveEquipment = (index: number) => {
-    const newEquipment = [...formData.equipment];
+    const newEquipment = [...(formData.equipment || [])];
     newEquipment.splice(index, 1);
     updateFormData('equipment', newEquipment);
   };
 
   const handleUpdateEquipment = (index: number, field: string, value: any) => {
-    const newEquipment = [...formData.equipment];
+    const newEquipment = [...(formData.equipment || [])];
     newEquipment[index] = { ...newEquipment[index], [field]: value };
     updateFormData('equipment', newEquipment);
   };
@@ -123,7 +123,7 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
       specifications: {}
     }));
 
-    updateFormData('equipment', [...formData.equipment, ...bundleEquipment]);
+    updateFormData('equipment', [...(formData.equipment || []), ...bundleEquipment]);
     toast.success(`${bundle.name} ajouté à la sélection`);
   };
 
@@ -146,7 +146,7 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
     toast.success('Équipement ajouté manuellement');
   };
 
-  const totalValue = equipment.reduce((sum, eq) => 
+  const totalValue = (equipment || []).reduce((sum, eq) => 
     sum + (eq.purchasePrice * eq.quantity), 0
   );
 
@@ -163,18 +163,18 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Résumé */}
-        {equipment.length > 0 && (
+        {(equipment || []).length > 0 && (
           <div className="p-4 bg-primary/5 rounded-lg">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-medium">{equipment.length} équipement(s) sélectionné(s)</p>
+                <p className="font-medium">{(equipment || []).length} équipement(s) sélectionné(s)</p>
                 <p className="text-sm text-muted-foreground">
                   Valeur totale: {totalValue.toLocaleString('fr-FR')} €
                 </p>
               </div>
               <Badge variant="secondary">
                 <ShoppingCart className="h-3 w-3 mr-1" />
-                {equipment.length}
+                {(equipment || []).length}
               </Badge>
             </div>
           </div>
@@ -241,11 +241,11 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
         </div>
 
         {/* Liste des équipements sélectionnés */}
-        {equipment.length > 0 && (
+        {(equipment || []).length > 0 && (
           <div className="space-y-4">
             <h3 className="font-medium">Équipements Sélectionnés</h3>
             <div className="space-y-3">
-              {equipment.map((eq, index) => (
+              {(equipment || []).map((eq, index) => (
                 <Card key={eq.id || index}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
