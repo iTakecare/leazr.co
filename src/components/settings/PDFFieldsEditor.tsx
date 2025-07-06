@@ -108,7 +108,8 @@ const PDFFieldsEditor = ({
   onDeleteField,
   onAddField,
   onDuplicateField,
-  onRemoveFieldFromPage
+  onRemoveFieldFromPage,
+  onAddFieldToPage
 }) => {
   const [activeCategory, setActiveCategory] = useState("client");
   const [positionedField, setPositionedField] = useState(null);
@@ -885,19 +886,20 @@ const PDFFieldsEditor = ({
                   
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-2 flex justify-between items-center">
-                      <span>Autres champs disponibles</span>
+                      <span>Champs {category.label} disponibles</span>
                       <Button 
                         variant="ghost" 
                         size="sm"
                         className="h-7 text-xs"
                         onClick={() => {
                           const fieldsToAdd = fieldsByCategory[category.id]
-                            ?.filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
-                            ?.filter(field => !getCurrentPageFields().some(f => f.id === field.id));
+                            ?.filter(field => field.page === -1); // Seulement les champs disponibles
                           
                           if (fieldsToAdd && fieldsToAdd.length > 0) {
                             fieldsToAdd.forEach(field => {
-                              onDuplicateField(field.id, activePage);
+                              if (onAddFieldToPage) {
+                                onAddFieldToPage(field);
+                              }
                             });
                             
                             toast.success(`${fieldsToAdd.length} champs ajoutés à la page ${activePage + 1}`);
@@ -911,18 +913,17 @@ const PDFFieldsEditor = ({
                       </Button>
                     </h4>
                     
-                    {!fieldsByCategory[category.id] || 
-                     !fieldsByCategory[category.id].filter(field => 
-                        field.page !== activePage && 
-                        !(activePage === 0 && field.page === undefined)
-                      ).length ? (
-                      <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
-                        Aucun autre champ disponible
-                      </div>
+                     {!fieldsByCategory[category.id] || 
+                      !fieldsByCategory[category.id].filter(field => 
+                         field.page === -1 // Vérifier les champs disponibles
+                       ).length ? (
+                       <div className="text-sm text-muted-foreground text-center p-4 bg-gray-50 rounded-md">
+                         Aucun champ {category.label} disponible
+                       </div>
                     ) : (
                       <div className="space-y-1">
-                        {fieldsByCategory[category.id]
-                          .filter(field => field.page !== activePage && !(activePage === 0 && field.page === undefined))
+                         {fieldsByCategory[category.id]
+                          .filter(field => field.page === -1) // Afficher SEULEMENT les champs disponibles (page -1)
                           .map((field) => (
                             <div 
                               key={`all_${field.id}`} 
@@ -934,14 +935,18 @@ const PDFFieldsEditor = ({
                                   {field.label}
                                 </span>
                                 <span className="text-xs text-gray-400">
-                                  (page {field.page + 1})
+                                  (disponible)
                                 </span>
                               </div>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-7 px-2 text-xs"
-                                onClick={() => handleOpenDuplicateDialog(field)}
+                                onClick={() => {
+                                  if (onAddFieldToPage) {
+                                    onAddFieldToPage(field);
+                                  }
+                                }}
                               >
                                 <Plus className="h-3 w-3 mr-1" />
                                 Ajouter

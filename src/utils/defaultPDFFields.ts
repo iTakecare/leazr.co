@@ -39,7 +39,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "client_name",
       position: { x: 20, y: 80 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -50,7 +50,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "client_email",
       position: { x: 20, y: 100 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -61,7 +61,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "client_phone",
       position: { x: 20, y: 120 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -72,7 +72,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "client_company",
       position: { x: 20, y: 140 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -83,7 +83,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "client_address",
       position: { x: 20, y: 160 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
 
@@ -96,7 +96,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "offer_id",
       position: { x: 120, y: 80 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -107,7 +107,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "created_at",
       position: { x: 120, y: 100 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -118,7 +118,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "amount",
       position: { x: 120, y: 120 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
     {
@@ -129,7 +129,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "monthly_payment",
       position: { x: 120, y: 140 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
 
@@ -142,7 +142,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "equipment_description",
       position: { x: 20, y: 200 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
 
@@ -155,7 +155,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "user_name",
       position: { x: 120, y: 200 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     },
 
@@ -168,7 +168,7 @@ export const generateDefaultPDFFields = (): PDFField[] => {
       isVisible: true,
       value: "current_date",
       position: { x: 20, y: 240 },
-      page: 0,
+      page: -1, // Champs disponibles par défaut
       style: defaultStyle
     }
   ];

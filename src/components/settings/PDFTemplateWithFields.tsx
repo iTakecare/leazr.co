@@ -402,9 +402,17 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       ? localTemplate.fields 
       : [];
     
-    const updatedFields = existingFields.filter(field => 
-      !(field.id === fieldId && field.page === page)
-    );
+    // Au lieu de supprimer le champ, le rendre disponible en le déplaçant sur page -1
+    const updatedFields = existingFields.map(field => {
+      if (field.id === fieldId && field.page === page) {
+        return {
+          ...field,
+          page: -1, // Page virtuelle pour les champs disponibles
+          position: { x: 20, y: 80 } // Position par défaut pour les champs disponibles
+        };
+      }
+      return field;
+    });
     
     const updatedTemplate = {
       ...localTemplate,
@@ -413,7 +421,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
-    toast.success(`Champ retiré de la page ${page + 1}`);
+    toast.success(`Champ retiré de la page ${page + 1} et rendu disponible`);
   };
   
   // Initialiser les champs par défaut
@@ -428,6 +436,63 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     setLocalTemplate(updatedTemplate);
     onSave(updatedTemplate);
     toast.success("Champs par défaut réinitialisés");
+  };
+
+  // Ajouter un champ disponible à la page active
+  const handleAddFieldToPage = (field: PDFField) => {
+    const existingFields = Array.isArray(localTemplate.fields) 
+      ? localTemplate.fields 
+      : [];
+    
+    // Vérifier si le champ existe déjà sur cette page
+    const fieldExists = existingFields.some(f => 
+      f.id === field.id && f.page === selectedPage
+    );
+    
+    if (fieldExists) {
+      toast.error("Ce champ est déjà sur cette page");
+      return;
+    }
+    
+    // Si le champ est disponible (page -1), le déplacer sur la page active
+    const updatedFields = existingFields.map(f => {
+      if (f.id === field.id && f.page === -1) {
+        return {
+          ...f,
+          page: selectedPage,
+          position: { x: 20, y: 80 + (getFieldsOnPage(selectedPage).length * 20) }
+        };
+      }
+      return f;
+    });
+    
+    // Si le champ n'était pas disponible, créer une nouvelle instance
+    if (!updatedFields.some(f => f.id === field.id && f.page === selectedPage)) {
+      const newField: PDFField = {
+        ...field,
+        id: uuidv4(), // Nouvelle instance avec un nouvel ID
+        page: selectedPage,
+        position: { x: 20, y: 80 + (getFieldsOnPage(selectedPage).length * 20) }
+      };
+      updatedFields.push(newField);
+    }
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: updatedFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champ ajouté à la page");
+  };
+
+  // Obtenir les champs sur une page donnée
+  const getFieldsOnPage = (page: number) => {
+    const allFields = Array.isArray(localTemplate.fields) ? localTemplate.fields : [];
+    return allFields.filter(field => 
+      field.page === page || (page === 0 && field.page === undefined)
+    ).filter(field => field.page !== -1); // Exclure les champs en attente (page -1)
   };
 
   // Ajout d'un champ simple pour débogage
@@ -650,8 +715,9 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
           template={safeTemplate}
           onDeleteField={handleDeleteField}
           onAddField={handleAddField}
-          onDuplicateField={handleDuplicateField}
-          onRemoveFieldFromPage={handleRemoveFieldFromPage}
+            onDuplicateField={handleDuplicateField}
+            onRemoveFieldFromPage={handleRemoveFieldFromPage}
+            onAddFieldToPage={handleAddFieldToPage}
         />
       </div>
     );
