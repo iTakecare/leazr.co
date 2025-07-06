@@ -55,6 +55,7 @@ import {
   Clock,
   Share2,
 } from "lucide-react";
+import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
 
 interface ContractsTableProps {
   contracts: Contract[];
@@ -226,9 +227,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>{contract.client_name}</TableCell>
-                <TableCell className="max-w-[200px] truncate">
-                  {contract.equipment_description || "Non spécifié"}
-                </TableCell>
+                 <TableCell className="max-w-[200px] truncate">
+                   {formatEquipmentForClient(contract.equipment_description)}
+                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     {contract.leaser_logo && (
