@@ -2464,57 +2464,89 @@ export type Database = {
       }
       pdf_templates: {
         Row: {
+          company_id: string | null
           companyAddress: string
           companyContact: string
           companyName: string
           companySiret: string
           created_at: string
+          field_mappings: Json
           fields: Json
           footerText: string
           headerText: string
           id: string
+          is_active: boolean
+          is_default: boolean
           logoURL: string | null
           name: string
           primaryColor: string
           secondaryColor: string
+          supported_offer_types: string[] | null
+          template_category: string | null
+          template_file_url: string | null
+          template_type: string
           templateImages: Json | null
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           companyAddress: string
           companyContact: string
           companyName: string
           companySiret: string
           created_at?: string
+          field_mappings?: Json
           fields: Json
           footerText: string
           headerText: string
           id: string
+          is_active?: boolean
+          is_default?: boolean
           logoURL?: string | null
           name: string
           primaryColor: string
           secondaryColor: string
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_file_url?: string | null
+          template_type?: string
           templateImages?: Json | null
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           companyAddress?: string
           companyContact?: string
           companyName?: string
           companySiret?: string
           created_at?: string
+          field_mappings?: Json
           fields?: Json
           footerText?: string
           headerText?: string
           id?: string
+          is_active?: boolean
+          is_default?: boolean
           logoURL?: string | null
           name?: string
           primaryColor?: string
           secondaryColor?: string
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_file_url?: string | null
+          template_type?: string
           templateImages?: Json | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pdf_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       permission_profiles: {
         Row: {
@@ -3479,19 +3511,27 @@ export type Database = {
       get_pdf_templates: {
         Args: Record<PropertyKey, never>
         Returns: {
+          company_id: string | null
           companyAddress: string
           companyContact: string
           companyName: string
           companySiret: string
           created_at: string
+          field_mappings: Json
           fields: Json
           footerText: string
           headerText: string
           id: string
+          is_active: boolean
+          is_default: boolean
           logoURL: string | null
           name: string
           primaryColor: string
           secondaryColor: string
+          supported_offer_types: string[] | null
+          template_category: string | null
+          template_file_url: string | null
+          template_type: string
           templateImages: Json | null
           updated_at: string
         }[]
@@ -3516,6 +3556,20 @@ export type Database = {
           slug: string
           title: string
           updated_at: string
+        }[]
+      }
+      get_template_for_offer: {
+        Args: {
+          p_company_id: string
+          p_offer_type?: string
+          p_template_category?: string
+        }
+        Returns: {
+          template_id: string
+          template_name: string
+          template_file_url: string
+          field_mappings: Json
+          company_data: Json
         }[]
       }
       get_user_client_associations: {
