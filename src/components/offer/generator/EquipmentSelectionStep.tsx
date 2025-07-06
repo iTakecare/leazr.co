@@ -1,59 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Laptop, Package, Plus, Edit, Trash2, ShoppingCart } from 'lucide-react';
+import { Laptop, Package, Plus, Edit, Trash2, ShoppingCart, Loader2 } from 'lucide-react';
 import { OfferFormData } from '@/hooks/useCustomOfferGenerator';
 import ProductSelector from '@/components/ui/ProductSelector';
 import { Product } from '@/types/catalog';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EquipmentSelectionStepProps {
   formData: OfferFormData;
   updateFormData: (section: keyof OfferFormData, data: any) => void;
 }
-
-const EQUIPMENT_BUNDLES = [
-  {
-    id: 'startup',
-    name: 'Pack Startup',
-    description: 'Idéal pour les petites équipes (1-5 personnes)',
-    items: [
-      { name: 'MacBook Air M2', price: 1200, quantity: 1 },
-      { name: 'Écran externe 24"', price: 300, quantity: 1 },
-      { name: 'Clavier + Souris', price: 80, quantity: 1 }
-    ],
-    totalPrice: 1580,
-    icon: '🚀'
-  },
-  {
-    id: 'creative',
-    name: 'Pack Créatif',
-    description: 'Pour les designers et créateurs de contenu',
-    items: [
-      { name: 'MacBook Pro 16"', price: 2500, quantity: 1 },
-      { name: 'Écran 4K 32"', price: 800, quantity: 1 },
-      { name: 'Tablette graphique', price: 400, quantity: 1 }
-    ],
-    totalPrice: 3700,
-    icon: '🎨'
-  },
-  {
-    id: 'business',
-    name: 'Pack Business',
-    description: 'Configuration complète pour l\'entreprise',
-    items: [
-      { name: 'Dell Latitude', price: 1000, quantity: 1 },
-      { name: 'Station d\'accueil', price: 200, quantity: 1 },
-      { name: 'Écran dual 24"', price: 600, quantity: 2 }
-    ],
-    totalPrice: 2400,
-    icon: '💼'
-  }
-];
 
 export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
   formData,
@@ -69,6 +32,93 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
   });
 
   const { equipment = [] } = formData;
+
+  // Récupérer les produits du catalogue pour créer des packs réels
+  const { data: catalogProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['catalog-products-bundles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('active', true)
+        .gt('price', 0)
+        .order('price', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Créer des packs basés sur les vrais produits du catalogue
+  const createRealProductBundles = () => {
+    if (!catalogProducts || catalogProducts.length === 0) return [];
+
+    const ecrans = catalogProducts.filter(p => 
+      p.category === 'monitor' || 
+      p.name?.toLowerCase().includes('écran') || 
+      p.name?.toLowerCase().includes('ecran')
+    );
+
+    const bundles = [];
+
+    // Pack Écrans Basic - basé sur vos vrais écrans Samsung
+    if (ecrans.length >= 1) {
+      const basicScreens = ecrans.slice(0, 1);
+      bundles.push({
+        id: 'ecrans-basic',
+        name: 'Pack Écrans Basic',
+        description: 'Configuration écran simple pour bureautique',
+        items: basicScreens.map(screen => ({
+          id: screen.id,
+          name: screen.name,
+          price: screen.price,
+          quantity: 1
+        })),
+        totalPrice: basicScreens.reduce((sum, screen) => sum + screen.price, 0),
+        icon: '🖥️'
+      });
+    }
+
+    // Pack Multi-Écrans - plusieurs écrans du catalogue
+    if (ecrans.length >= 2) {
+      const multiScreens = ecrans.slice(0, 2);
+      bundles.push({
+        id: 'multi-ecrans',
+        name: 'Pack Multi-Écrans',
+        description: 'Configuration double écran pour productivité',
+        items: multiScreens.map(screen => ({
+          id: screen.id,
+          name: screen.name,
+          price: screen.price,
+          quantity: 1
+        })),
+        totalPrice: multiScreens.reduce((sum, screen) => sum + screen.price, 0),
+        icon: '🖥️🖥️'
+      });
+    }
+
+    // Pack Complet - mélange de produits disponibles
+    if (catalogProducts.length >= 3) {
+      const mixedProducts = catalogProducts.slice(0, 3);
+      bundles.push({
+        id: 'pack-complet',
+        name: 'Pack Équipement Complet',
+        description: 'Sélection variée d\'équipements du catalogue',
+        items: mixedProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: 1
+        })),
+        totalPrice: mixedProducts.reduce((sum, product) => sum + product.price, 0),
+        icon: '📦'
+      });
+    }
+
+    return bundles;
+  };
+
+  const realBundles = createRealProductBundles();
 
   const handleAddEquipment = (equipmentData: any) => {
     const equipment = {
@@ -205,39 +255,51 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
 
         {/* Packs suggérés */}
         <div className="space-y-4">
-          <h3 className="font-medium">Packs Suggérés</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {EQUIPMENT_BUNDLES.map((bundle) => (
-              <Card key={bundle.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="text-center space-y-3">
-                    <div className="text-3xl">{bundle.icon}</div>
-                    <div>
-                      <h4 className="font-medium">{bundle.name}</h4>
-                      <p className="text-xs text-muted-foreground">{bundle.description}</p>
+          <h3 className="font-medium">Packs Suggérés du Catalogue</h3>
+          {productsLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Chargement des packs...</span>
+            </div>
+          ) : realBundles.length === 0 ? (
+            <div className="text-center p-8 text-gray-500">
+              <p className="text-sm">Aucun pack disponible actuellement</p>
+              <p className="text-xs mt-1">Ajoutez des produits au catalogue pour générer des packs automatiquement</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {realBundles.map((bundle) => (
+                <Card key={bundle.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="text-center space-y-3">
+                      <div className="text-3xl">{bundle.icon}</div>
+                      <div>
+                        <h4 className="font-medium">{bundle.name}</h4>
+                        <p className="text-xs text-muted-foreground">{bundle.description}</p>
+                      </div>
+                      <div className="space-y-1">
+                        {bundle.items.map((item, index) => (
+                          <p key={index} className="text-xs">
+                            {item.quantity}x {item.name} - {item.price.toLocaleString('fr-FR')} €
+                          </p>
+                        ))}
+                      </div>
+                      <div className="font-bold text-primary">
+                        Total: {bundle.totalPrice.toLocaleString('fr-FR')} €
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddBundle(bundle)}
+                        className="w-full"
+                      >
+                        Ajouter ce pack
+                      </Button>
                     </div>
-                    <div className="space-y-1">
-                      {bundle.items.map((item, index) => (
-                        <p key={index} className="text-xs">
-                          {item.quantity}x {item.name}
-                        </p>
-                      ))}
-                    </div>
-                    <div className="font-bold text-primary">
-                      {bundle.totalPrice.toLocaleString('fr-FR')} €
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddBundle(bundle)}
-                      className="w-full"
-                    >
-                      Ajouter ce pack
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Liste des équipements sélectionnés */}
