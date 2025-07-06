@@ -44,6 +44,8 @@ export interface WebSocketMessage {
   conversationId?: string
   companyId?: string
   visitorId?: string
+  visitorName?: string
+  visitorEmail?: string
   agentId?: string
   message?: string
   senderName?: string

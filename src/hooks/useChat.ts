@@ -15,12 +15,13 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
     isLoading: false,
     error: null
   })
+  const [visitorInfo, setVisitorInfo] = useState<{name?: string, email?: string}>({})
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
   const typingTimeoutRef = useRef<NodeJS.Timeout>()
 
-  const connect = useCallback((conversationId: string) => {
+  const connect = useCallback((conversationId: string, visitorName?: string, visitorEmail?: string) => {
     // If already using realtime, delegate to it
     if (useRealtime) {
       return realtimeChat.connect(conversationId)
@@ -47,6 +48,8 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
           conversationId,
           companyId,
           visitorId,
+          visitorName: visitorName || visitorInfo.name,
+          visitorEmail: visitorEmail || visitorInfo.email,
           agentId
         }))
       }
@@ -67,7 +70,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
         // Tentative de reconnexion après 3 secondes
         reconnectTimeoutRef.current = setTimeout(() => {
           if (wsRef.current?.readyState !== WebSocket.OPEN) {
-            connect(conversationId)
+            connect(conversationId, visitorName, visitorEmail)
           }
         }, 3000)
       }
@@ -92,7 +95,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       setState(prev => ({ ...prev, error: null, isLoading: false }))
       realtimeChat.connect(conversationId)
     }
-  }, [companyId, visitorId, agentId])
+  }, [companyId, visitorId, agentId, visitorInfo])
 
   const handleWebSocketMessage = (data: WebSocketMessage) => {
     switch (data.type) {
@@ -169,6 +172,9 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
   }, [])
 
   const createConversation = useCallback(async (visitorName: string, visitorEmail?: string) => {
+    // Store visitor info for future use
+    setVisitorInfo({ name: visitorName, email: visitorEmail })
+    
     // If using realtime, delegate to it
     if (useRealtime) {
       return realtimeChat.createConversation(visitorName, visitorEmail)
@@ -178,9 +184,6 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       const conversationId = crypto.randomUUID()
       
       setState(prev => ({ ...prev, isLoading: true }))
-
-      // Store visitor info for WebSocket connection
-      const visitorData = { visitorName, visitorEmail }
       
       // Connect to WebSocket with visitor info
       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -194,7 +197,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
           agentId
         }))
       } else {
-        connect(conversationId)
+        connect(conversationId, visitorName, visitorEmail)
       }
 
       return conversationId
@@ -206,6 +209,11 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
   }, [connect, useRealtime, realtimeChat, companyId, visitorId, agentId])
 
   const loadMessages = useCallback(async (conversationId: string) => {
+    // If using realtime, delegate to it
+    if (useRealtime) {
+      return realtimeChat.loadMessages(conversationId)
+    }
+
     try {
       const { data: messages, error } = await supabase
         .from('chat_messages')
@@ -225,7 +233,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
     } catch (error) {
       console.error('Error loading messages:', error)
     }
-  }, [])
+  }, [useRealtime, realtimeChat])
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
