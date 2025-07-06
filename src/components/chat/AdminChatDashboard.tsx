@@ -5,6 +5,16 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { 
   MessageCircle, 
   Users, 
@@ -13,7 +23,8 @@ import {
   User,
   CheckCircle,
   AlertCircle,
-  Pause
+  Pause,
+  Trash2
 } from 'lucide-react'
 import { useChat } from '@/hooks/useChat'
 import { supabase } from '@/integrations/supabase/client'
@@ -27,6 +38,7 @@ export const AdminChatDashboard: React.FC = () => {
   const [currentMessage, setCurrentMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [companyId, setCompanyId] = useState<string>('')
+  const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null)
 
   // Récupérer le company_id depuis le profil utilisateur
   useEffect(() => {
@@ -184,6 +196,44 @@ export const AdminChatDashboard: React.FC = () => {
     }
   }
 
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      // Supprimer tous les messages de la conversation
+      const { error: messagesError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('conversation_id', conversationId)
+
+      if (messagesError) {
+        console.error('Error deleting messages:', messagesError)
+        return
+      }
+
+      // Supprimer la conversation
+      const { error: conversationError } = await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('id', conversationId)
+
+      if (conversationError) {
+        console.error('Error deleting conversation:', conversationError)
+        return
+      }
+
+      // Recharger les conversations
+      loadConversations()
+      
+      // Si c'était la conversation sélectionnée, la désélectionner
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null)
+      }
+
+      setConversationToDelete(null)
+    } catch (error) {
+      console.error('Error deleting conversation:', error)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'waiting':
@@ -299,28 +349,36 @@ export const AdminChatDashboard: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(selectedConversation.status)}
-                      <div className="flex gap-1">
-                        {selectedConversation.status === 'waiting' && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateConversationStatus(selectedConversation.id, 'active')}
-                          >
-                            Prendre en charge
-                          </Button>
-                        )}
-                        {selectedConversation.status === 'active' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateConversationStatus(selectedConversation.id, 'closed')}
-                          >
-                            Fermer
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                     <div className="flex items-center gap-2">
+                       {getStatusBadge(selectedConversation.status)}
+                       <div className="flex gap-1">
+                         {selectedConversation.status === 'waiting' && (
+                           <Button
+                             size="sm"
+                             onClick={() => updateConversationStatus(selectedConversation.id, 'active')}
+                           >
+                             Prendre en charge
+                           </Button>
+                         )}
+                         {selectedConversation.status === 'active' && (
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={() => updateConversationStatus(selectedConversation.id, 'closed')}
+                           >
+                             Fermer
+                           </Button>
+                         )}
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => setConversationToDelete(selectedConversation)}
+                           className="text-destructive hover:text-destructive"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </div>
                   </div>
                 </CardHeader>
 
@@ -407,6 +465,30 @@ export const AdminChatDashboard: React.FC = () => {
           </div>
         </div>
       </Tabs>
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={!!conversationToDelete} onOpenChange={() => setConversationToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette conversation avec{' '}
+              <strong>{conversationToDelete?.visitor_name || 'Visiteur anonyme'}</strong> ?
+              <br />
+              Cette action est irréversible et supprimera tous les messages associés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => conversationToDelete && deleteConversation(conversationToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
