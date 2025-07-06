@@ -211,19 +211,17 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
             </Table>
           </div>
 
-          {/* Informations du client */}
+          {/* Informations du contrat et de l'offre */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Informations du client</h3>
+            <h3 className="text-lg font-semibold mb-3">Informations du contrat et de l'offre</h3>
             <Table>
               <TableBody>
+                {renderEditableField('Numéro de contrat', 'contract_data.id')}
+                {renderEditableField('Numéro d\'offre', 'contract_data.offer_id')}
+                {renderEditableField('Date de création', 'contract_data.created_at')}
+                {renderEditableField('Statut du contrat', 'contract_data.status')}
                 {renderEditableField('Nom du client', 'contract_data.client_name')}
-                {renderEditableField('Email', 'contract_data.client_email', 'email')}
-                {renderEditableField('Adresse', 'contract_data.address')}
-                {renderEditableField('Ville', 'contract_data.city')}
-                {renderEditableField('Code postal', 'contract_data.postal_code')}
-                {renderEditableField('Pays', 'contract_data.country')}
-                {renderEditableField('Téléphone', 'contract_data.phone')}
-                {renderEditableField('Numéro TVA', 'contract_data.vat_number')}
+                {renderEditableField('Email du client', 'contract_data.client_email', 'email')}
               </TableBody>
             </Table>
           </div>
@@ -248,6 +246,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
               <TableHeader>
                 <TableRow>
                   <TableHead>Description</TableHead>
+                  <TableHead>Numéro de série</TableHead>
                   <TableHead className="text-right">Prix unitaire HT</TableHead>
                   <TableHead className="text-center">Quantité</TableHead>
                   <TableHead className="text-right">Total HT</TableHead>
@@ -267,6 +266,18 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                           />
                         ) : (
                           item.title || 'Non renseigné'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editMode ? (
+                          <Input
+                            value={item.serial_number || ''}
+                            onChange={(e) => updateEquipmentField(index, 'serial_number', e.target.value)}
+                            className="w-full"
+                            placeholder="Numéro de série"
+                          />
+                        ) : (
+                          item.serial_number || 'Non renseigné'
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -315,7 +326,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={editMode ? 5 : 4} className="text-center text-muted-foreground">
+                      <TableCell colSpan={editMode ? 6 : 5} className="text-center text-muted-foreground">
                         Aucun équipement trouvé
                       </TableCell>
                     </TableRow>
@@ -326,7 +337,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                 {editedData.equipment_data && Array.isArray(editedData.equipment_data) && editedData.equipment_data.length > 0 && (
                   <>
                     <TableRow>
-                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-medium">
+                      <TableCell colSpan={editMode ? 5 : 4} className="text-right font-medium">
                         Total HT:
                       </TableCell>
                       <TableCell className="text-right font-bold">
@@ -337,7 +348,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                       {editMode && <TableCell></TableCell>}
                     </TableRow>
                     <TableRow>
-                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-medium">
+                      <TableCell colSpan={editMode ? 5 : 4} className="text-right font-medium">
                         TVA (21%):
                       </TableCell>
                       <TableCell className="text-right font-bold">
@@ -348,7 +359,7 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                       {editMode && <TableCell></TableCell>}
                     </TableRow>
                     <TableRow>
-                      <TableCell colSpan={editMode ? 4 : 3} className="text-right font-bold">
+                      <TableCell colSpan={editMode ? 5 : 4} className="text-right font-bold">
                         Total TTC:
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
