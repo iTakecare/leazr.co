@@ -266,39 +266,17 @@ export const uploadImage = async (
       fileExtension: fileExt
     });
 
-    // ÉTAPE 6: UPLOAD VERS SUPABASE
-    console.log(`=== UPLOAD VERS SUPABASE ===`);
-    console.log(`Tentative d'upload du fichier (${validFile.size} bytes) vers ${bucketName}/${filePath}`);
-    console.log("Paramètres d'upload:", {
-      bucketName,
-      filePath,
-      fileType: validFile.type,
-      correctedContentType: correctedMimeType,
-      fileSize: validFile.size,
-      cacheControl: '3600',
-      upsert: true
-    });
+    // ÉTAPE 6: UPLOAD VERS SUPABASE - VERSION SIMPLIFIÉE
+    console.log(`=== UPLOAD VERS SUPABASE (VERSION SIMPLIFIÉE) ===`);
+    console.log(`Upload direct sans contentType explicite pour ${fileName}`);
     
-    // Créer un nouveau File propre pour éviter tout problème de sérialisation
-    const cleanFileBuffer = await validFile.arrayBuffer();
-    const cleanFile = new File([cleanFileBuffer], fileName, {
-      type: correctedMimeType,
-      lastModified: Date.now()
-    });
-    
-    console.log("Fichier nettoyé pour upload:", {
-      name: cleanFile.name,
-      type: cleanFile.type,
-      size: cleanFile.size,
-      constructor: cleanFile.constructor.name
-    });
-    
+    // Upload direct avec les paramètres minimaux - laisser Supabase détecter le type MIME
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, cleanFile, {
+      .upload(filePath, validFile, {
         cacheControl: '3600',
-        upsert: true,
-        contentType: correctedMimeType
+        upsert: true
+        // Pas de contentType explicite - laisser Supabase détecter automatiquement
       });
 
     if (error) {
