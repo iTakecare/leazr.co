@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 /**
  * Récupère tous les produits avec leurs variantes et prix de variantes
@@ -359,6 +360,10 @@ export const addProduct = async (product: Partial<Product>) => {
     console.log("=== DEBUG: Adding product ===");
     console.log("Input product:", product);
     
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    console.log("Company ID récupéré:", company_id);
+    
     // Transformation des propriétés pour correspondre au schéma de la table
     const productData = {
       name: product.name,
@@ -375,7 +380,8 @@ export const addProduct = async (product: Partial<Product>) => {
       active: product.active !== undefined ? product.active : true,
       specifications: product.specifications || {},
       attributes: product.attributes || {},
-      admin_only: product.admin_only || false
+      admin_only: product.admin_only || false,
+      company_id: company_id
     };
     
     console.log("Transformed product data:", productData);
@@ -415,9 +421,18 @@ export const addProduct = async (product: Partial<Product>) => {
  */
 export const createProduct = async (productData: Partial<Product>): Promise<Product> => {
   try {
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    
+    // Ajouter le company_id aux données du produit
+    const productWithCompany = {
+      ...productData,
+      company_id: company_id
+    };
+    
     const { data, error } = await supabase
       .from("products")
-      .insert([productData])
+      .insert([productWithCompany])
       .select()
       .single();
     
@@ -636,6 +651,9 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
       throw new Error(`Product with ID ${productId} not found`);
     }
     
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    
     // 2. Préparer les données du nouveau produit
     const duplicatedProductData = {
       ...originalProduct,
@@ -643,6 +661,7 @@ export const duplicateProduct = async (productId: string): Promise<Product> => {
       name: `${originalProduct.name} (copie)`,
       created_at: undefined, // Supabase définira la date actuelle
       updated_at: undefined, // Supabase définira la date actuelle
+      company_id: company_id // Utiliser le company_id de l'utilisateur actuel
     };
     
     // Remove any undefined/null fields that might cause issues
