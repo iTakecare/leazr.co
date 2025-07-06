@@ -16,7 +16,8 @@ import {
   Calculator,
   Crown,
   Receipt,
-  Zap
+  Zap,
+  MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -84,6 +85,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Contrats", icon: FileText, href: "/admin/contracts" },
     { label: "Facturation", icon: Receipt, href: "/admin/invoicing" },
     { label: "Catalogue", icon: Package, href: "/admin/catalog" },
+    { label: "Chat en direct", icon: MessageCircle, href: "/admin/chat" },
   ];
 
   const bottomItems = [

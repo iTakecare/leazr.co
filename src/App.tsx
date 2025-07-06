@@ -73,6 +73,7 @@ import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import FleetGenerator from "@/pages/FleetGenerator";
 import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
+import AdminChatPage from "@/pages/AdminChatPage";
 
 // Ambassador pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -448,6 +449,13 @@ function App() {
                     <PrivateRoute>
                       <Layout>
                         <Settings />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/chat" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <AdminChatPage />
                       </Layout>
                     </PrivateRoute>
                   } />
