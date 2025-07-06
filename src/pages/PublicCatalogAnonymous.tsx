@@ -13,6 +13,7 @@ import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
 import { useCart } from "@/context/CartContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -288,6 +289,9 @@ const PublicCatalogAnonymous = () => {
           <p>© {new Date().getFullYear()} {company?.name}. Tous droits réservés.</p>
         </footer>
       </div>
+
+      {/* Chat Widget */}
+      {companyId && <ChatWidget companyId={companyId} />}
     </div>
   );
 };

@@ -358,6 +358,174 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_agent_status: {
+        Row: {
+          agent_id: string
+          company_id: string
+          created_at: string
+          current_conversations: number
+          id: string
+          is_available: boolean
+          is_online: boolean
+          last_seen_at: string
+          max_conversations: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          company_id: string
+          created_at?: string
+          current_conversations?: number
+          id?: string
+          is_available?: boolean
+          is_online?: boolean
+          last_seen_at?: string
+          max_conversations?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          company_id?: string
+          created_at?: string
+          current_conversations?: number
+          id?: string
+          is_available?: boolean
+          is_online?: boolean
+          last_seen_at?: string
+          max_conversations?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_agent_status_agent"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_agent_status_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_conversations: {
+        Row: {
+          agent_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          started_at: string
+          status: string
+          updated_at: string
+          visitor_context: Json | null
+          visitor_email: string | null
+          visitor_id: string | null
+          visitor_name: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          visitor_context?: Json | null
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_name?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          visitor_context?: Json | null
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_conversations_agent"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_conversations_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_conversations_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message: string
+          message_type: string
+          metadata: Json | null
+          sender_id: string | null
+          sender_name: string
+          sender_type: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message: string
+          message_type?: string
+          metadata?: Json | null
+          sender_id?: string | null
+          sender_name: string
+          sender_type: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          message_type?: string
+          metadata?: Json | null
+          sender_id?: string | null
+          sender_name?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_messages_conversation"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
