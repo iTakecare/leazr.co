@@ -41,6 +41,7 @@ import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
+import { calculateOfferMargin, formatMarginDisplay } from "@/utils/marginCalculations";
 
 interface OffersTableProps {
   offers: any[];
@@ -108,66 +109,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Check if we have any ambassador offers to show commission column
   const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
 
-  // Function to calculate and display the correct margin - Updated to match FinancialSection logic
+  // Function to calculate and display the correct margin - Using consistent logic with FinancialSection
   const getDisplayMargin = (offer: any) => {
-    console.log("🔍 DEBUGGING MARGIN for offer:", offer.id);
-    console.log("📊 Raw offer data:", {
-      margin: offer.margin,
-      margin_type: typeof offer.margin,
-      total_margin_with_difference: offer.total_margin_with_difference,
-      amount: offer.amount,
-      financed_amount: offer.financed_amount,
-      monthly_payment: offer.monthly_payment,
-      coefficient: offer.coefficient
-    });
-
-    // Utiliser offer.margin en priorité (même logique que FinancialSection)
-    if (offer.margin !== null && offer.margin !== undefined && !isNaN(Number(offer.margin))) {
-      const marginValue = Number(offer.margin);
-      console.log("✅ Using offer.margin:", marginValue);
-      return formatCurrency(marginValue);
-    }
-
-    // Fallback: Calculer la marge basée sur financed_amount - amount
-    if (offer.amount && offer.financed_amount) {
-      const amount = Number(offer.amount);
-      const financedAmount = Number(offer.financed_amount);
-      const calculatedMargin = financedAmount - amount;
-      
-      console.log("💰 Calculating margin from financed_amount - amount:", {
-        amount,
-        financedAmount,
-        calculatedMargin
-      });
-      
-      if (!isNaN(calculatedMargin)) {
-        return formatCurrency(calculatedMargin);
-      }
-    }
-
-    // Fallback: calculer la marge basée sur le montant et la mensualité
-    if (offer.amount && offer.monthly_payment && offer.coefficient) {
-      const amount = Number(offer.amount);
-      const monthlyPayment = Number(offer.monthly_payment);
-      const coefficient = Number(offer.coefficient);
-      const financedAmount = monthlyPayment * coefficient;
-      const calculatedMargin = financedAmount - amount;
-      
-      console.log("🧮 Calculated margin from formula:", {
-        amount,
-        monthlyPayment,
-        coefficient,
-        financedAmount,
-        calculatedMargin
-      });
-      
-      if (!isNaN(calculatedMargin)) {
-        return formatCurrency(calculatedMargin);
-      }
-    }
-
-    console.log("❌ No valid margin found, returning N/A");
-    return "N/A";
+    const margin = calculateOfferMargin(offer);
+    return formatMarginDisplay(margin);
   };
 
   return (

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
+import { calculateOfferMargin } from "@/utils/marginCalculations";
 interface FinancialSectionProps {
   offer: any;
 }
@@ -54,8 +55,12 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   const totals = calculateEquipmentTotals();
   const financedAmount = offer.financed_amount || totals.totalPurchasePrice + (offer.margin || 0);
 
-  // Calculer la marge en montant : financed_amount - purchase_price
-  const displayMargin = financedAmount - totals.totalPurchasePrice;
+  // Calculer la marge en montant avec fonction utilitaire consistante
+  const displayMargin = calculateOfferMargin({
+    amount: totals.totalPurchasePrice,
+    financed_amount: financedAmount,
+    margin: offer.margin
+  }) || 0;
   
   // Calculer le pourcentage de marge basé sur le montant réel
   const marginPercentage = totals.totalPurchasePrice > 0 ? (displayMargin / totals.totalPurchasePrice) * 100 : 0;
