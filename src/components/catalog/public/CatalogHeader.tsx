@@ -18,7 +18,7 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ companyName, companyLogo 
           {companyLogo && (
             <div className="mb-4">
               <CompanyLogo 
-                logoSize="md" 
+                logoSize="lg" 
                 className="filter brightness-0 invert"
               />
             </div>
