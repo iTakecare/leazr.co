@@ -46,6 +46,83 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
 };
 
 /**
+ * Récupère un fichier File à partir de données potentiellement corrompues/sérialisées
+ */
+const recoverFileFromCorruptedData = (data: any): File | null => {
+  try {
+    console.log("=== TENTATIVE DE RÉCUPÉRATION DE FICHIER ===");
+    console.log("Type de données reçues:", typeof data);
+    console.log("Données:", data);
+
+    // Si c'est déjà un File, pas de problème
+    if (data instanceof File) {
+      return data;
+    }
+
+    // Si c'est un objet avec des propriétés de File
+    if (data && typeof data === 'object' && data.name && data.type) {
+      console.log("Tentative de reconstruction du File depuis l'objet");
+      
+      // Essayer de récupérer le contenu du fichier
+      if (data.stream && typeof data.stream === 'function') {
+        // Créer un nouveau File à partir du stream
+        return new File([data.stream()], data.name, { type: data.type });
+      }
+      
+      // Si on a un ArrayBuffer ou Uint8Array
+      if (data.arrayBuffer || data.buffer) {
+        const buffer = data.arrayBuffer || data.buffer;
+        return new File([buffer], data.name, { type: data.type });
+      }
+    }
+
+    console.error("Impossible de récupérer le fichier depuis les données corrompues");
+    return null;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du fichier:", error);
+    return null;
+  }
+};
+
+/**
+ * Validation approfondie du type MIME
+ */
+const validateMimeType = (file: File): boolean => {
+  const allowedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 
+    'image/gif', 'image/webp', 'image/svg+xml'
+  ];
+  
+  const fileExtension = file.name.toLowerCase().split('.').pop();
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+  
+  console.log("=== VALIDATION MIME TYPE ===");
+  console.log("Type MIME du fichier:", file.type);
+  console.log("Extension du fichier:", fileExtension);
+  
+  // Vérifier d'abord le type MIME
+  if (allowedTypes.includes(file.type)) {
+    console.log("Type MIME valide:", file.type);
+    return true;
+  }
+  
+  // Si le type MIME n'est pas correct, vérifier l'extension
+  if (allowedExtensions.includes(fileExtension || '')) {
+    console.log("Extension valide, MIME type sera corrigé:", fileExtension);
+    return true;
+  }
+  
+  // Cas spécial: certains navigateurs peuvent avoir des types MIME incorrects
+  if (file.type === 'application/json' && allowedExtensions.includes(fileExtension || '')) {
+    console.warn("ATTENTION: Type MIME application/json détecté pour un fichier image");
+    console.warn("Ceci indique un problème de sérialisation du fichier");
+    return false; // Retourner false pour déclencher une récupération
+  }
+  
+  return false;
+};
+
+/**
  * Télécharge une image vers Supabase Storage
  */
 export const uploadImage = async (
@@ -56,79 +133,94 @@ export const uploadImage = async (
   try {
     console.log(`=== DÉBUT UPLOAD IMAGE ===`);
     console.log(`Fichier original reçu:`, {
-      name: file.name,
-      type: file.type,
-      size: file.size,
+      name: file?.name,
+      type: file?.type,
+      size: file?.size,
       isFile: file instanceof File,
-      isBlob: file instanceof Blob
+      isBlob: file instanceof Blob,
+      constructor: file?.constructor?.name,
+      keys: file ? Object.keys(file) : 'N/A'
     });
     
-    // VALIDATION CRITIQUE : Vérifier que c'est bien un objet File natif
+    // ÉTAPE 1: Validation et récupération du fichier
+    let validFile: File = file;
+    
+    // Tentative de récupération si le fichier n'est pas valide
     if (!(file instanceof File)) {
-      console.error("ERREUR CRITIQUE: L'objet reçu n'est PAS un File:", {
-        typeOf: typeof file,
-        isArray: Array.isArray(file),
-        stringified: JSON.stringify(file).substring(0, 100)
+      console.warn("ALERTE: L'objet reçu n'est PAS un File natif");
+      console.log("Tentative de récupération...");
+      
+      const recoveredFile = recoverFileFromCorruptedData(file);
+      if (recoveredFile) {
+        validFile = recoveredFile;
+        console.log("Fichier récupéré avec succès!");
+      } else {
+        console.error("ERREUR CRITIQUE: Impossible de récupérer le fichier:", {
+          typeOf: typeof file,
+          isArray: Array.isArray(file),
+          stringified: JSON.stringify(file).substring(0, 200)
+        });
+        toast.error("Erreur: Le fichier n'est pas au bon format");
+        return null;
+      }
+    }
+    
+    // ÉTAPE 2: Validation approfondie du type MIME
+    if (!validateMimeType(validFile)) {
+      console.error(`Type de fichier non autorisé:`, {
+        fileName: validFile.name,
+        fileType: validFile.type,
+        extension: validFile.name.toLowerCase().split('.').pop()
       });
-      toast.error("Erreur: Le fichier n'est pas au bon format");
+      toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
       return null;
     }
     
-    // S'assurer que le bucket existe
+    // ÉTAPE 3: S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
       toast.error("Erreur: Impossible d'accéder au stockage");
       return null;
     }
     
-    // Validation des types de fichiers
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    const fileExtension = file.name.toLowerCase().split('.').pop();
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-    
-    console.log(`Validation fichier:`, {
-      fileType: file.type,
-      extension: fileExtension,
-      typeValid: allowedTypes.includes(file.type),
-      extensionValid: allowedExtensions.includes(fileExtension || '')
-    });
-    
-    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
-      console.error(`Type de fichier non autorisé: ${file.type}, extension: ${fileExtension}`);
-      toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
-      return null;
-    }
-    
-    // Vérifier la taille (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // ÉTAPE 4: Vérifier la taille (max 5MB)
+    if (validFile.size > 5 * 1024 * 1024) {
       toast.error("Le fichier est trop volumineux. Taille maximum: 5MB");
       return null;
     }
     
-    // Créer un nom de fichier unique avec l'extension correcte
+    // ÉTAPE 5: Créer un nom de fichier unique avec l'extension correcte
+    const fileExtension = validFile.name.toLowerCase().split('.').pop();
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 15);
-    const fileExt = fileExtension || (file.type.includes('jpeg') ? 'jpg' : file.type.split('/')[1]);
-    const fileName = `logo-${timestamp}-${randomId}.${fileExt}`;
+    const fileExt = fileExtension || (validFile.type.includes('jpeg') ? 'jpg' : validFile.type.split('/')[1]);
+    const fileName = `image-${timestamp}-${randomId}.${fileExt}`;
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
-    console.log(`Informations d'upload:`, {
+    // Corriger le type MIME si nécessaire
+    const correctedMimeType = validFile.type && validFile.type !== 'application/json' 
+      ? validFile.type 
+      : getMimeType(fileExt);
+
+    console.log(`=== INFORMATIONS D'UPLOAD FINALES ===`, {
       fileName,
       filePath,
-      fileSize: file.size,
-      contentType: file.type
+      fileSize: validFile.size,
+      originalContentType: validFile.type,
+      correctedContentType: correctedMimeType,
+      fileExtension: fileExt
     });
 
-    // UPLOAD CRITIQUE : Passer le File object RAW directement
+    // ÉTAPE 6: UPLOAD VERS SUPABASE
     console.log(`=== UPLOAD VERS SUPABASE ===`);
-    console.log(`Tentative d'upload du fichier File brut (${file.size} bytes) vers ${bucketName}/${filePath}`);
+    console.log(`Tentative d'upload du fichier (${validFile.size} bytes) vers ${bucketName}/${filePath}`);
     
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
+      .upload(filePath, validFile, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type || getMimeType(fileExt)
+        contentType: correctedMimeType
       });
 
     if (error) {
