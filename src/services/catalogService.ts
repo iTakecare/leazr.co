@@ -356,6 +356,9 @@ export const deleteBrand = async ({ name }: { name: string }) => {
  */
 export const addProduct = async (product: Partial<Product>) => {
   try {
+    console.log("=== DEBUG: Adding product ===");
+    console.log("Input product:", product);
+    
     // Transformation des propriétés pour correspondre au schéma de la table
     const productData = {
       name: product.name,
@@ -371,8 +374,11 @@ export const addProduct = async (product: Partial<Product>) => {
       stock: product.stock || 0,
       active: product.active !== undefined ? product.active : true,
       specifications: product.specifications || {},
-      attributes: product.attributes || {}
+      attributes: product.attributes || {},
+      admin_only: product.admin_only || false
     };
+    
+    console.log("Transformed product data:", productData);
     
     const { data, error } = await supabase
       .from("products")
@@ -380,7 +386,18 @@ export const addProduct = async (product: Partial<Product>) => {
       .select()
       .single();
     
-    if (error) throw error;
+    console.log("Supabase response - data:", data);
+    console.log("Supabase response - error:", error);
+    
+    if (error) {
+      console.error("Supabase error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw error;
+    }
     
     return {
       ...data,
