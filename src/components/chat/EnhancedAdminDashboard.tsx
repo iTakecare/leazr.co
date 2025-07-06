@@ -39,6 +39,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
 import { useAuth } from '@/context/AuthContext';
+import { OnlineStatusSwitch } from './OnlineStatusSwitch';
 
 export const EnhancedAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -397,6 +398,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
                 {isConnected ? 'Connecté' : 'Déconnecté'}
               </span>
             </div>
+            <div className="h-4 w-px bg-border" />
+            <OnlineStatusSwitch />
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
