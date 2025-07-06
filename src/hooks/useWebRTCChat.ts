@@ -81,12 +81,16 @@ export const useWebRTCChat = (
         console.log('❌ WebRTC signaling disconnected');
         setState(prev => ({ ...prev, isConnected: false }));
         
-        // Auto-reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (wsRef.current?.readyState !== WebSocket.OPEN) {
-            connect(conversationId, visitorName, visitorEmail);
-          }
-        }, 3000);
+      // Auto-reconnect with exponential backoff
+        if (!reconnectTimeoutRef.current) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectTimeoutRef.current = undefined;
+            if (wsRef.current?.readyState !== WebSocket.OPEN) {
+              console.log('🔄 Tentative de reconnexion...');
+              connect(conversationId, visitorName, visitorEmail);
+            }
+          }, 5000);
+        }
       };
 
       wsRef.current.onerror = (error) => {
@@ -119,25 +123,37 @@ export const useWebRTCChat = (
       case 'message':
         if (data.conversationId && data.message) {
           const newMessage: ChatMessage = {
-            id: data.messageId,
+            id: data.messageId || crypto.randomUUID(),
             conversation_id: data.conversationId,
             sender_type: data.senderType,
             sender_name: data.senderName,
             message: data.message,
             message_type: 'text',
-            created_at: data.timestamp
+            created_at: data.timestamp || new Date().toISOString()
           };
 
-          setState(prev => ({
-            ...prev,
-            messages: {
-              ...prev.messages,
-              [data.conversationId]: [
-                ...(prev.messages[data.conversationId] || []),
-                newMessage
-              ]
+          setState(prev => {
+            const existingMessages = prev.messages[data.conversationId] || [];
+            // Avoid duplicates
+            const messageExists = existingMessages.some(msg => 
+              msg.id === newMessage.id || 
+              (msg.message === newMessage.message && 
+               msg.sender_name === newMessage.sender_name &&
+               Math.abs(new Date(msg.created_at!).getTime() - new Date(newMessage.created_at!).getTime()) < 1000)
+            );
+            
+            if (messageExists) {
+              return prev;
             }
-          }));
+
+            return {
+              ...prev,
+              messages: {
+                ...prev.messages,
+                [data.conversationId]: [...existingMessages, newMessage]
+              }
+            };
+          });
         }
         break;
 

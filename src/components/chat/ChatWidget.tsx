@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MessageCircle, Send, Minimize2, X, User } from 'lucide-react'
-import { useChat } from '@/hooks/useChat'
+import { useWebRTCChat } from '@/hooks/useWebRTCChat'
 import { ChatMessage } from '@/types/chat'
 
 interface ChatWidgetProps {
@@ -35,7 +35,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ companyId, className = '
     sendMessage,
     createConversation,
     loadMessages
-  } = useChat(companyId, visitorId)
+  } = useWebRTCChat(companyId, visitorId)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
