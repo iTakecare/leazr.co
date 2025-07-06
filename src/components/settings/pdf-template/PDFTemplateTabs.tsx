@@ -6,14 +6,14 @@ import NewPDFTemplateEditor from "../NewPDFTemplateEditor";
 import SimplePDFPreview from "../SimplePDFPreview";
 import PDFTemplateWithFields from "../PDFTemplateWithFields";
 import PDFPreview from "../PDFPreview";
-import { PDFTemplate } from "@/utils/templateManager";
+import { PDFModel } from "@/utils/pdfModelUtils";
 
 interface PDFTemplateTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  template: PDFTemplate;
-  onCompanyInfoUpdate: (companyInfo: Partial<PDFTemplate>) => void;
-  onTemplateUpdate: (template: PDFTemplate) => Promise<void>;
+  template: PDFModel;
+  onCompanyInfoUpdate: (companyInfo: Partial<PDFModel>) => void;
+  onTemplateUpdate: (template: PDFModel) => Promise<void>;
   saving: boolean;
   isNewTemplate?: boolean;
 }
@@ -30,7 +30,7 @@ const PDFTemplateTabs: React.FC<PDFTemplateTabsProps> = ({
   if (!template) return null;
 
   // Create Promise-returning wrappers for the update functions to ensure type compatibility
-  const handleTemplateUpdate = async (updatedTemplate: PDFTemplate): Promise<void> => {
+  const handleTemplateUpdate = async (updatedTemplate: PDFModel): Promise<void> => {
     return onTemplateUpdate(updatedTemplate);
   };
 

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PDFModel } from "@/utils/pdfModelUtils";
+import { PDFModelImage } from "@/services/pdfModelImageService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,14 +16,6 @@ import { generateDefaultPDFFields, hasDefaultFields, PDFField } from "@/utils/de
 interface PDFTemplateWithFieldsProps {
   template: PDFModel;
   onSave: (template: PDFModel) => void;
-}
-
-// Interface pour les images du template
-interface TemplateImage {
-  id: string;
-  name: string;
-  data: string; // Données base64
-  page: number;
 }
 
 // Interface PDFField is now imported from @/utils/defaultPDFFields
@@ -106,7 +99,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   };
   
   // Gestionnaire d'images
-  const handleImagesChange = useCallback((images: TemplateImage[]) => {
+  const handleImagesChange = useCallback((images: PDFModelImage[]) => {
     console.log("Images mises à jour:", images);
     console.log("Nombre d'images:", images.length);
     
@@ -166,8 +159,9 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         : [];
       
       // Créer une nouvelle entrée d'image
-      const newImage: TemplateImage = {
+      const newImage: PDFModelImage = {
         id: uuidv4(),
+        image_id: uuidv4(),
         name: file.name,
         data: base64Data,
         page: existingImages.length

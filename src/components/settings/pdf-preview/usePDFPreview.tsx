@@ -192,11 +192,13 @@ export const usePDFPreview = (template: PDFModel, onSave: (template: PDFModel) =
       const pageImage = localTemplate.templateImages.find(img => img.page === currentPage);
       
       if (pageImage) {
-        if (pageImage.url) {
-          return `${pageImage.url}?t=${new Date().getTime()}`;
-        }
-        else if (pageImage.data) {
+        // Use data property for base64 data (new format)
+        if (pageImage.data) {
           return pageImage.data;
+        }
+        // Keep compatibility with old url property if it exists
+        if ('url' in pageImage && pageImage.url) {
+          return `${pageImage.url}?t=${new Date().getTime()}`;
         }
       }
     }

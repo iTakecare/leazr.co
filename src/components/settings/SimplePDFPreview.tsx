@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
-import { PDFTemplate } from "@/utils/templateManager";
+import { PDFModel } from "@/utils/pdfModelUtils";
 import PreviewControls from "./pdf-preview/PreviewControls";
 import PDFPage from "./pdf-preview/PDFPage";
 import PageNavigation from "./pdf-preview/PageNavigation";
@@ -10,8 +10,8 @@ import { usePDFPreview } from "./pdf-preview/usePDFPreview";
 import { PDFPreviewDragProvider, useDragState, useDragActions } from "./pdf-preview/PDFPreviewDragContext";
 
 interface SimplePDFPreviewProps {
-  template: PDFTemplate;
-  onSave: (template: PDFTemplate) => Promise<void>;
+  template: PDFModel;
+  onSave: (template: PDFModel) => Promise<void>;
 }
 
 const PreviewContainer: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {

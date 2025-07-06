@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { pdfModelImageService, PDFModelImage } from "@/services/pdfModelImageService";
 
 export interface PDFModel {
   id: string;
@@ -12,7 +13,7 @@ export interface PDFModel {
   secondaryColor: string;
   headerText: string;
   footerText: string;
-  templateImages: any[];
+  templateImages: PDFModelImage[];
   fields: any[];
   created_at?: string;
   updated_at?: string;
@@ -127,7 +128,7 @@ export const ensureDefaultModel = async (): Promise<void> => {
 /**
  * Charge un modèle PDF depuis la base de données
  */
-export const loadPDFModel = async (id: string = 'default') => {
+export const loadPDFModel = async (id: string = 'default'): Promise<PDFModel> => {
   try {
     console.log("Chargement du modèle PDF:", id);
     const supabase = getSupabaseClient();
@@ -135,10 +136,10 @@ export const loadPDFModel = async (id: string = 'default') => {
     // Assurer que le modèle par défaut existe
     await ensureDefaultModel();
     
-    // Récupérer le modèle
+    // Récupérer le modèle de base (sans les images)
     const { data, error } = await supabase
       .from('pdf_models')
-      .select('*')
+      .select('id, name, "companyName", "companyAddress", "companyContact", "companySiret", "logoURL", "primaryColor", "secondaryColor", "headerText", "footerText", fields, created_at, updated_at')
       .eq('id', id)
       .maybeSingle();
     
@@ -153,8 +154,17 @@ export const loadPDFModel = async (id: string = 'default') => {
       return DEFAULT_MODEL;
     }
     
+    // Charger les images séparément
+    const templateImages = await pdfModelImageService.loadImages(id);
+    
+    const model: PDFModel = {
+      ...data,
+      templateImages,
+      fields: Array.isArray(data.fields) ? data.fields : []
+    };
+    
     console.log("Modèle chargé avec succès");
-    return data;
+    return model;
   } catch (error: any) {
     console.error("Exception lors du chargement du modèle:", error);
     throw error;
@@ -164,19 +174,20 @@ export const loadPDFModel = async (id: string = 'default') => {
 /**
  * Sauvegarde un modèle PDF dans la base de données
  */
-export const savePDFModel = async (model: PDFModel) => {
+export const savePDFModel = async (model: PDFModel): Promise<boolean> => {
   try {
     console.log("Début de la sauvegarde du modèle PDF:", model.id);
     
-    // Valider le modèle avant sauvegarde
-    const validationErrors = validatePDFModel(model);
+    // Valider le modèle avant sauvegarde (sans les images pour éviter les gros volumes)
+    const modelForValidation = { ...model, templateImages: [] };
+    const validationErrors = validatePDFModel(modelForValidation);
     if (validationErrors.length > 0) {
       throw new Error(`Données invalides: ${validationErrors.join(', ')}`);
     }
     
     const supabase = getSupabaseClient();
     
-    // Préparer les données à sauvegarder avec nettoyage
+    // Préparer les données à sauvegarder SANS les images (pour éviter les timeouts)
     const modelToSave = {
       id: model.id.trim(),
       name: model.name.trim(),
@@ -189,14 +200,14 @@ export const savePDFModel = async (model: PDFModel) => {
       secondaryColor: model.secondaryColor.trim(),
       headerText: model.headerText.trim(),
       footerText: model.footerText.trim(),
-      templateImages: Array.isArray(model.templateImages) ? model.templateImages : [],
+      // On ne sauvegarde plus templateImages ici, c'est dans la table séparée
       fields: Array.isArray(model.fields) ? model.fields : [],
       updated_at: new Date().toISOString()
     };
     
-    console.log("Données à sauvegarder:", modelToSave);
+    console.log("Sauvegarde du modèle de base...");
     
-    // Sauvegarder le modèle
+    // Sauvegarder le modèle de base (sans les images)
     const { data, error } = await supabase
       .from('pdf_models')
       .upsert(modelToSave, { 
@@ -206,11 +217,20 @@ export const savePDFModel = async (model: PDFModel) => {
       .select();
     
     if (error) {
-      console.error("Erreur Supabase lors de la sauvegarde:", error);
-      throw new Error(`Erreur de sauvegarde: ${error.message || error.details || 'Erreur inconnue'}`);
+      console.error("Erreur Supabase lors de la sauvegarde du modèle:", error);
+      throw new Error(`Erreur de sauvegarde du modèle: ${error.message || error.details || 'Erreur inconnue'}`);
     }
     
-    console.log("Modèle sauvegardé avec succès:", data);
+    console.log("Modèle de base sauvegardé avec succès");
+    
+    // Sauvegarder les images séparément (si elles existent)
+    if (Array.isArray(model.templateImages) && model.templateImages.length > 0) {
+      console.log(`Sauvegarde de ${model.templateImages.length} images...`);
+      await pdfModelImageService.saveImages(model.id, model.templateImages);
+      console.log("Images sauvegardées avec succès");
+    }
+    
+    console.log("Sauvegarde complète du modèle terminée avec succès");
     return true;
   } catch (error: any) {
     console.error("Exception lors de la sauvegarde du modèle:", error);

@@ -2375,6 +2375,39 @@ export type Database = {
           },
         ]
       }
+      pdf_model_images: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          image_id: string
+          model_id: string
+          name: string
+          page: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          image_id: string
+          model_id: string
+          name: string
+          page?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          image_id?: string
+          model_id?: string
+          name?: string
+          page?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pdf_models: {
         Row: {
           companyAddress: string
