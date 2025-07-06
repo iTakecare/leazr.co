@@ -34,7 +34,7 @@ import {
   Star,
   Eye
 } from 'lucide-react';
-import { useWebRTCChat } from '@/hooks/useWebRTCChat';
+import { useChatRealtime } from '@/hooks/useChatRealtime';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
@@ -52,6 +52,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState('waiting');
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
+  const [isConnected, setIsConnected] = useState(false);
 
   const { agentStatus } = useAgentStatus();
 
@@ -91,53 +93,61 @@ export const EnhancedAdminDashboard: React.FC = () => {
     fetchCompanyId();
   }, [user?.id]);
 
-  const {
-    messages,
-    isConnected,
-    connect,
-    sendMessage,
-    sendTyping,
-    loadMessages,
-    setOnNotificationCallback
-  } = useWebRTCChat(companyId, undefined, user?.id);
-
-  // Handle notifications from WebRTC
-  useEffect(() => {
-    if (setOnNotificationCallback) {
-      setOnNotificationCallback((notification: any) => {
-        if (!notification) return;
-        
-        switch (notification.type) {
-          case 'new-visitor':
-            playSound('visitor');
-            showNotification(
-              'Nouveau visiteur',
-              `${notification.visitorName} vient de rejoindre le chat`,
-              '/logo.png'
-            );
-            showToast(
-              'Nouveau visiteur',
-              `${notification.visitorName} attend une réponse`
-            );
-            setUnreadCount(unreadCount + 1);
-            loadConversations();
-            break;
-
-          case 'new-message':
-            if (notification.conversationId !== selectedConversation?.id) {
-              playSound('message');
-              showNotification(
-                'Nouveau message',
-                `${notification.senderName}: ${notification.message}`,
-                '/logo.png'
-              );
-              setUnreadCount(unreadCount + 1);
-            }
-            break;
-        }
-      });
+  // Simple message sending functionality
+  const sendMessage = async (conversationId: string, message: string, senderName: string, senderType: 'agent' | 'visitor') => {
+    try {
+      await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_type: senderType,
+          sender_id: senderType === 'agent' ? user?.id : null,
+          sender_name: senderName,
+          message,
+          message_type: 'text'
+        });
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
-  }, [setOnNotificationCallback, playSound, showNotification, showToast, selectedConversation?.id, setUnreadCount, unreadCount]);
+  };
+
+  // Handle notifications for new conversations and messages
+  useEffect(() => {
+    if (!companyId) return;
+    
+    // Monitor for new conversations
+    const conversationsChannel = supabase
+      .channel(`conversations_notifications_${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_conversations',
+          filter: `company_id=eq.${companyId}`
+        },
+        (payload) => {
+          const newConversation = payload.new as ChatConversation;
+          playSound('visitor');
+          showNotification(
+            'Nouveau visiteur',
+            `${newConversation.visitor_name} vient de rejoindre le chat`,
+            '/logo.png'
+          );
+          showToast(
+            'Nouveau visiteur',
+            `${newConversation.visitor_name} attend une réponse`
+          );
+          setUnreadCount(unreadCount + 1);
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(conversationsChannel);
+    };
+  }, [companyId, playSound, showNotification, showToast, setUnreadCount]);
 
   const loadConversations = async () => {
     if (!companyId) return;
@@ -187,10 +197,25 @@ export const EnhancedAdminDashboard: React.FC = () => {
     }
   }, [companyId]);
 
+  // Load messages for selected conversation
+  const loadMessages = async (conversationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(prev => ({ ...prev, [conversationId]: data || [] }));
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
   // Connect to selected conversation
   useEffect(() => {
     if (selectedConversation) {
-      connect(selectedConversation.id);
       loadMessages(selectedConversation.id);
       
       // Reset unread count for this conversation
@@ -217,7 +242,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
         supabase.removeChannel(messagesChannel);
       };
     }
-  }, [selectedConversation, connect, loadMessages, setUnreadCount]);
+  }, [selectedConversation, setUnreadCount]);
 
 
   const handleSendMessage = () => {
@@ -236,7 +261,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
     if (selectedConversation && value.trim() && !isTyping) {
       setIsTyping(true);
       const senderName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Agent';
-      sendTyping(selectedConversation.id, senderName, 'agent');
+      // sendTyping functionality not yet implemented
     }
 
     if (typingTimeoutRef.current) {

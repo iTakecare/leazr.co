@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MessageCircle, Send, Minimize2, X, User, Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react'
-import { usePersistentChat } from '@/hooks/usePersistentChat'
+import { useSimpleChat } from '@/hooks/useSimpleChat'
 import { ChatMessage } from '@/types/chat'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -39,10 +39,9 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
     error,
     initializeChat,
     sendMessage,
-    reconnect,
     clearChat,
     playNotificationSound
-  } = usePersistentChat()
+  } = useSimpleChat()
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -77,13 +76,13 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
     }
   }, [isOpen])
 
-  // Load existing conversation on mount if available
+  // Auto-initialize if we have visitor info but no conversation
   useEffect(() => {
-    if (conversationId && !visitorInfo) {
-      // Try to reconnect to existing conversation
-      reconnect()
+    if (visitorInfo && !conversationId) {
+      // Try to reconnect or create new conversation
+      initializeChat(companyId, visitorInfo.name, visitorInfo.email)
     }
-  }, [conversationId, visitorInfo, reconnect])
+  }, [visitorInfo, conversationId, companyId, initializeChat])
 
   const handleStartChat = async () => {
     if (!visitorForm.name.trim()) return
@@ -252,29 +251,14 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                       
                       {/* Show existing conversation option */}
                       {conversationId && (
-                        <div className="pt-2 border-t">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Vous avez une conversation en cours
-                          </p>
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={reconnect}
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                            >
-                              Reprendre
-                            </Button>
-                            <Button
-                              onClick={handleClearChat}
-                              variant="destructive"
-                              size="sm"
-                              className="flex-1"
-                            >
-                              Recommencer
-                            </Button>
-                          </div>
-                        </div>
+                        <Button
+                          onClick={handleClearChat}
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                        >
+                          Nouvelle conversation
+                        </Button>
                       )}
                     </div>
                   )}
