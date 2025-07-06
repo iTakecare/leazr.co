@@ -37,7 +37,14 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
     validateStep,
     generateOffer,
     isGenerating,
-    progress
+    progress,
+    // Client selection
+    clientSelectionMode,
+    selectedClientId,
+    isClientSelectorOpen,
+    setIsClientSelectorOpen,
+    loadClientData,
+    toggleClientMode,
   } = useCustomOfferGenerator();
 
   const currentStepIndex = STEPS.findIndex(step => step.id === currentStep);
@@ -77,7 +84,13 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
         return (
           <ClientInfoStep 
             formData={formData} 
-            updateFormData={updateFormData} 
+            updateFormData={updateFormData}
+            clientSelectionMode={clientSelectionMode}
+            selectedClientId={selectedClientId}
+            isClientSelectorOpen={isClientSelectorOpen}
+            setIsClientSelectorOpen={setIsClientSelectorOpen}
+            loadClientData={loadClientData}
+            toggleClientMode={toggleClientMode}
           />
         );
       case 'profile':

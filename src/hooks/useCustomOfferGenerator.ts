@@ -105,6 +105,11 @@ export const useCustomOfferGenerator = () => {
   const [formData, setFormData] = useState<OfferFormData>(initialFormData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  
+  // États pour la sélection de clients
+  const [clientSelectionMode, setClientSelectionMode] = useState<'new' | 'existing'>('new');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
 
   const updateFormData = useCallback((section: keyof OfferFormData, data: any) => {
     try {
@@ -244,9 +249,68 @@ export const useCustomOfferGenerator = () => {
     }
   }, [formData, calculateTotals]);
 
+  // Fonction pour charger les données d'un client sélectionné
+  const loadClientData = useCallback((client: {
+    id: string;
+    name: string;
+    email?: string;
+    company?: string;
+    companyName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    postal_code?: string;
+    country?: string;
+    vat_number?: string;
+    contact_name?: string;
+  }) => {
+    console.log('Loading client data:', client);
+    
+    updateFormData('clientInfo', {
+      name: client.name || '',
+      email: client.email || '',
+      company: client.company || client.companyName || '',
+      phone: client.phone || '',
+      address: client.address || '',
+      city: client.city || '',
+      postalCode: client.postal_code || '',
+      country: client.country || 'France',
+      vatNumber: client.vat_number || '',
+      contactName: client.contact_name || '',
+    });
+    
+    setSelectedClientId(client.id);
+    setIsClientSelectorOpen(false);
+    toast.success(`Client ${client.name} sélectionné`);
+  }, [updateFormData]);
+
+  // Fonction pour basculer entre nouveau/existant
+  const toggleClientMode = useCallback((mode: 'new' | 'existing') => {
+    setClientSelectionMode(mode);
+    if (mode === 'new') {
+      // Reset client data
+      setSelectedClientId(null);
+      updateFormData('clientInfo', {
+        name: '',
+        email: '',
+        company: '',
+        phone: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        country: 'France',
+        vatNumber: '',
+        contactName: '',
+      });
+    }
+  }, [updateFormData]);
+
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
     setCurrentStep('client');
+    setClientSelectionMode('new');
+    setSelectedClientId(null);
+    setIsClientSelectorOpen(false);
   }, []);
 
   return {
@@ -260,5 +324,12 @@ export const useCustomOfferGenerator = () => {
     progress,
     calculateTotals,
     resetForm,
+    // Client selection
+    clientSelectionMode,
+    selectedClientId,
+    isClientSelectorOpen,
+    setIsClientSelectorOpen,
+    loadClientData,
+    toggleClientMode,
   };
 };
