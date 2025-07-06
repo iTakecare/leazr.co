@@ -13,7 +13,7 @@ interface WebRTCChatHook {
   sendTyping: (conversationId: string, senderName: string, senderType: 'visitor' | 'agent') => void;
   createConversation: (visitorName: string, visitorEmail?: string) => Promise<string | null>;
   loadMessages: (conversationId: string) => Promise<void>;
-  onNotification?: (notification: any) => void;
+  setOnNotificationCallback: (callback: (notification: any) => void) => void;
 }
 
 export const useWebRTCChat = (
@@ -290,6 +290,6 @@ export const useWebRTCChat = (
     sendTyping,
     createConversation,
     loadMessages,
-    onNotification: setOnNotificationCallback
+    setOnNotificationCallback
   };
 };

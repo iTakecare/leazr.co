@@ -107,13 +107,15 @@ export const EnhancedAdminDashboard: React.FC = () => {
     sendMessage,
     sendTyping,
     loadMessages,
-    onNotification
+    setOnNotificationCallback
   } = useWebRTCChat(companyId, undefined, user?.id);
 
   // Handle notifications from WebRTC
   useEffect(() => {
-    if (onNotification) {
-      onNotification((notification: any) => {
+    if (setOnNotificationCallback) {
+      setOnNotificationCallback((notification: any) => {
+        if (!notification) return;
+        
         switch (notification.type) {
           case 'new-visitor':
             playSound('visitor');
@@ -144,7 +146,27 @@ export const EnhancedAdminDashboard: React.FC = () => {
         }
       });
     }
-  }, [onNotification, playSound, showNotification, showToast, selectedConversation?.id, setUnreadCount]);
+  }, [setOnNotificationCallback, playSound, showNotification, showToast, selectedConversation?.id, setUnreadCount, unreadCount]);
+
+  const loadConversations = async () => {
+    if (!companyId) return;
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Load conversations and subscribe to real-time updates
   useEffect(() => {
@@ -206,25 +228,6 @@ export const EnhancedAdminDashboard: React.FC = () => {
     }
   }, [selectedConversation, connect, loadMessages, setUnreadCount]);
 
-  const loadConversations = async () => {
-    if (!companyId) return;
-
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-      setConversations(data || []);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSendMessage = () => {
     if (!currentMessage.trim() || !selectedConversation || !user) return;
