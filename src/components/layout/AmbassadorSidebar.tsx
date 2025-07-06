@@ -13,6 +13,7 @@ import {
   Package,
   LogOut,
   FileText,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +50,12 @@ const AmbassadorSidebar = () => {
       icon: Calculator,
       href: `/ambassador/create-offer`,
       active: pathname === "/ambassador/create-offer",
+    },
+    {
+      title: "Générateur d'offres",
+      icon: Zap,
+      href: `/ambassador/custom-offer-generator`,
+      active: pathname === "/ambassador/custom-offer-generator",
     },
     {
       title: "Offres",

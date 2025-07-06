@@ -15,7 +15,8 @@ import {
   X,
   Calculator,
   Crown,
-  Receipt
+  Receipt,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -79,6 +80,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "CRM", icon: Users, href: "/admin/clients" },
     { label: "Offres", icon: FileText, href: "/admin/offers" },
     { label: "Calculateur", icon: Calculator, href: "/admin/create-offer" },
+    { label: "Générateur d'offres", icon: Zap, href: "/admin/custom-offer-generator" },
     { label: "Contrats", icon: FileText, href: "/admin/contracts" },
     { label: "Facturation", icon: Receipt, href: "/admin/invoicing" },
     { label: "Catalogue", icon: Package, href: "/admin/catalog" },

@@ -72,6 +72,7 @@ import PartnerEditPage from "@/pages/PartnerEditPage";
 import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import FleetGenerator from "@/pages/FleetGenerator";
+import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
 
 // Ambassador pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -258,6 +259,20 @@ function App() {
                       <Layout>
                         <CreateOffer />
                       </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/custom-offer-generator" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <CustomOfferGeneratorPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/ambassador/custom-offer-generator" element={
+                    <PrivateRoute>
+                      <AmbassadorLayout>
+                        <CustomOfferGeneratorPage />
+                      </AmbassadorLayout>
                     </PrivateRoute>
                   } />
                   <Route path="/clients" element={
