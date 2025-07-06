@@ -56,7 +56,7 @@ const InvoicingPage = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Facturation</h1>
           <p className="text-muted-foreground">
-            Gérez vos factures de leasing via Billit
+            Gérez vos factures de leasing automatisées
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ const InvoicingPage = () => {
                 <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Aucune facture</h3>
                 <p className="text-muted-foreground">
-                  Les factures générées via Billit apparaîtront ici.
+                  Les factures générées automatiquement apparaîtront ici.
                 </p>
               </div>
             </CardContent>
