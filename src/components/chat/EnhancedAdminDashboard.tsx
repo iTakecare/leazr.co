@@ -40,6 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
 import { useAuth } from '@/context/AuthContext';
 import { OnlineStatusSwitch } from './OnlineStatusSwitch';
+import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 export const EnhancedAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -51,6 +52,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState('waiting');
+
+  const { agentStatus } = useAgentStatus();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -393,13 +396,11 @@ export const EnhancedAdminDashboard: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`w-3 h-3 rounded-full ${agentStatus?.is_online ? 'bg-green-500' : 'bg-red-500'}`} />
               <span className="text-sm font-medium">
-                {isConnected ? 'Connecté' : 'Déconnecté'}
+                {agentStatus?.is_online ? 'En ligne' : 'Hors ligne'}
               </span>
             </div>
-            <div className="h-4 w-px bg-border" />
-            <OnlineStatusSwitch />
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
