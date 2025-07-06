@@ -1,2 +1,4 @@
-
 project_id = "cifbetjefyfocafanlhv"
+
+[functions.live-chat]
+verify_jwt = false

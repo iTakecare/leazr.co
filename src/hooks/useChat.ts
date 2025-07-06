@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { ChatMessage, ChatConversation, WebSocketMessage, ChatState } from '@/types/chat'
+import { useChatRealtime } from './useChatRealtime'
 
 export const useChat = (companyId: string, visitorId?: string, agentId?: string) => {
+  // Try WebSocket first, fallback to Realtime
+  const realtimeChat = useChatRealtime(companyId, visitorId, agentId)
+  const [useRealtime, setUseRealtime] = useState(false)
   const [state, setState] = useState<ChatState>({
     conversations: [],
     messages: {},
@@ -17,6 +21,11 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
   const typingTimeoutRef = useRef<NodeJS.Timeout>()
 
   const connect = useCallback((conversationId: string) => {
+    // If already using realtime, delegate to it
+    if (useRealtime) {
+      return realtimeChat.connect(conversationId)
+    }
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return
     }
@@ -66,13 +75,22 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error)
         console.error('WebSocket readyState:', wsRef.current?.readyState)
-        setState(prev => ({ ...prev, error: 'Erreur de connexion WebSocket', isLoading: false }))
+        console.warn('WebSocket failed, falling back to Supabase Realtime')
+        
+        // Fallback to Realtime
+        setUseRealtime(true)
+        setState(prev => ({ ...prev, error: null, isLoading: false }))
+        realtimeChat.connect(conversationId)
       }
 
     } catch (error) {
       console.error('Error connecting to WebSocket:', error)
-      console.error('Connection error details:', { error, wsUrl: `wss://cifbetjefyfocafanlhv.functions.supabase.co/live-chat` })
-      setState(prev => ({ ...prev, error: 'Impossible de se connecter au chat', isLoading: false }))
+      console.warn('WebSocket failed, falling back to Supabase Realtime')
+      
+      // Fallback to Realtime
+      setUseRealtime(true)
+      setState(prev => ({ ...prev, error: null, isLoading: false }))
+      realtimeChat.connect(conversationId)
     }
   }, [companyId, visitorId, agentId])
 
@@ -203,6 +221,11 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       disconnect()
     }
   }, [disconnect])
+
+  // Return realtime chat if using fallback, otherwise WebSocket chat
+  if (useRealtime) {
+    return realtimeChat
+  }
 
   return {
     ...state,
