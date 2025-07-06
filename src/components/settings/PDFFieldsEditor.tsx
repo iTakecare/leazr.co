@@ -191,6 +191,18 @@ const PDFFieldsEditor = ({
     return acc;
   }, {});
   
+  // Debug - Vérifier les champs et leurs catégories
+  console.log("🔍 DEBUG PDFFieldsEditor - Champs reçus:", {
+    totalFields: fields.length,
+    fieldsByCategory: Object.keys(fieldsByCategory).map(cat => ({
+      category: cat,
+      count: fieldsByCategory[cat].length,
+      fields: fieldsByCategory[cat].map(f => f.label)
+    })),
+    activeCategory,
+    fieldsInActiveCategory: fieldsByCategory[activeCategory]?.length || 0
+  });
+  
   const toggleFieldVisibility = (fieldId) => {
     const newFields = fields.map(field => 
       field.id === fieldId ? { ...field, isVisible: !field.isVisible } : field

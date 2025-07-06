@@ -44,6 +44,16 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     console.log("Images après vérification:", images.length);
     console.log("Champs après vérification:", fields.length);
     
+    // Debug spécifique pour les catégories
+    if (fields.length > 0) {
+      console.log("🔍 DEBUG - Catégories des champs:", fields.map(f => ({ 
+        label: f.label, 
+        category: f.category 
+      })));
+      const categories = [...new Set(fields.map(f => f.category))];
+      console.log("🔍 DEBUG - Catégories uniques trouvées:", categories);
+    }
+    
     // Si aucun champ n'existe et qu'on a des images, initialiser les champs par défaut
     if (fields.length === 0 && images.length > 0 && !hasDefaultFields(fields)) {
       console.log("Initialisation des champs par défaut");
