@@ -177,14 +177,32 @@ export const generateDefaultPDFFields = (): PDFField[] => {
 };
 
 /**
- * Vérifie si un template a des champs par défaut
+ * Vérifie si un template a un ensemble complet de champs par défaut
  */
 export const hasDefaultFields = (fields: PDFField[]): boolean => {
   if (!fields || fields.length === 0) return false;
   
-  // Vérifier qu'il y a au moins quelques champs de base
-  const requiredCategories = ['client', 'offer'];
+  // Vérifier qu'il y a au moins les catégories essentielles avec un nombre minimal de champs
+  const requiredCategories = ['client', 'offer', 'equipment', 'user', 'general'];
   const presentCategories = [...new Set(fields.map(f => f.category))];
   
-  return requiredCategories.every(cat => presentCategories.includes(cat));
+  // Au minimum, on doit avoir au moins 3 des 5 catégories essentielles
+  const foundCategories = requiredCategories.filter(cat => presentCategories.includes(cat));
+  
+  return foundCategories.length >= 3 && presentCategories.includes('client') && presentCategories.includes('offer');
+};
+
+/**
+ * Fusionne les champs existants avec les champs par défaut manquants
+ */
+export const mergeWithDefaultFields = (existingFields: PDFField[]): PDFField[] => {
+  const defaultFields = generateDefaultPDFFields();
+  const existingCategories = [...new Set(existingFields.map(f => f.category))];
+  
+  // Ajouter seulement les champs des catégories manquantes
+  const missingFields = defaultFields.filter(defaultField => 
+    !existingCategories.includes(defaultField.category)
+  );
+  
+  return [...existingFields, ...missingFields];
 };

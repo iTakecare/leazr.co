@@ -11,7 +11,7 @@ import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus } from "lucide-r
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
-import { generateDefaultPDFFields, hasDefaultFields, PDFField } from "@/utils/defaultPDFFields";
+import { generateDefaultPDFFields, hasDefaultFields, mergeWithDefaultFields, PDFField } from "@/utils/defaultPDFFields";
 
 interface PDFTemplateWithFieldsProps {
   template: PDFModel;
@@ -54,10 +54,23 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       console.log("🔍 DEBUG - Catégories uniques trouvées:", categories);
     }
     
-    // Si aucun champ n'existe et qu'on a des images, initialiser les champs par défaut
-    if (fields.length === 0 && images.length > 0 && !hasDefaultFields(fields)) {
-      console.log("Initialisation des champs par défaut");
-      fields = generateDefaultPDFFields();
+    // Si on n'a pas un ensemble complet de champs par défaut et qu'on a des images, initialiser/compléter les champs
+    if (images.length > 0 && !hasDefaultFields(fields)) {
+      console.log("⚠️ Champs par défaut incomplets détectés, initialisation...");
+      console.log("Champs existants avant fusion:", fields.length);
+      
+      if (fields.length === 0) {
+        // Aucun champ = générer tous les champs par défaut
+        fields = generateDefaultPDFFields();
+        console.log("✅ Génération complète des champs par défaut");
+      } else {
+        // Quelques champs existent = fusionner avec les champs manquants
+        fields = mergeWithDefaultFields(fields);
+        console.log("✅ Fusion avec les champs par défaut manquants");
+      }
+      
+      console.log("Champs après initialisation:", fields.length);
+      console.log("Catégories finales:", [...new Set(fields.map(f => f.category))]);
       
       // Sauvegarder automatiquement les champs par défaut
       const templateWithDefaults = {
@@ -68,7 +81,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
       
       setLocalTemplate(templateWithDefaults);
       onSave(templateWithDefaults);
-      toast.success("Champs par défaut initialisés");
+      toast.success("Champs par défaut initialisés/complétés");
       return;
     }
     
