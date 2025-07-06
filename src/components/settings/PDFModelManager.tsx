@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2 } from "lucide-react";
-import { loadPDFModel, savePDFModel, DEFAULT_MODEL, ensurePDFModelTableExists } from "@/utils/pdfModelUtils";
+import { loadPDFModel, savePDFModel, DEFAULT_MODEL } from "@/utils/pdfModelUtils";
 import PDFModelCompanyInfo from "./PDFModelCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
@@ -33,26 +33,17 @@ const PDFModelManager = () => {
     setError(null);
     
     try {
-      console.log("Initialisation du stockage et de la structure de données...");
+      console.log("Initialisation du stockage...");
       
       // Première étape: vérifier si le bucket de stockage existe
       const bucketCreated = await ensureStorageBucket('pdf-templates');
       
       if (bucketCreated) {
         console.log("Bucket de stockage vérifié avec succès");
+        setInitComplete(true);
         
-        // Deuxième étape: s'assurer que la table existe avant toute opération
-        const tableCreated = await ensurePDFModelTableExists();
-        
-        if (tableCreated) {
-          console.log("Table pdf_models vérifiée/créée avec succès");
-          setInitComplete(true);
-          
-          // Charger le modèle une fois l'initialisation terminée
-          await loadModelData();
-        } else {
-          throw new Error("Échec de la création/vérification de la table pdf_models");
-        }
+        // Charger le modèle une fois l'initialisation terminée
+        await loadModelData();
       } else {
         throw new Error("Échec de la création/vérification du bucket de stockage");
       }

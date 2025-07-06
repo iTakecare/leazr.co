@@ -173,9 +173,6 @@ export const loadPDFModel = async (id: string = 'default') => {
     console.log("Début du chargement du modèle PDF:", id);
     const supabase = getSupabaseClient();
     
-    // Assurez-vous que la table existe et contient au moins un modèle
-    await ensurePDFModelTableExists();
-    
     // Récupérer le modèle
     const { data, error } = await supabase
       .from('pdf_models')
@@ -209,9 +206,6 @@ export const savePDFModel = async (model: PDFModel) => {
   try {
     console.log("Début de la sauvegarde du modèle PDF:", model.id);
     const supabase = getSupabaseClient();
-    
-    // Assurez-vous que la table existe
-    await ensurePDFModelTableExists();
     
     // Préparer le modèle à sauvegarder
     const modelToSave = {
@@ -247,9 +241,6 @@ export const getAllPDFModels = async () => {
   try {
     console.log("Récupération de tous les modèles PDF");
     const supabase = getSupabaseClient();
-    
-    // Assurez-vous que la table existe et contient au moins un modèle
-    await ensurePDFModelTableExists();
     
     // Récupérer tous les modèles
     const { data, error } = await supabase
