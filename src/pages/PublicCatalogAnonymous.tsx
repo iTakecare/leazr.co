@@ -13,7 +13,7 @@ import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
 import { useCart } from "@/context/CartContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+import { EnhancedChatWidget } from "@/components/chat/EnhancedChatWidget";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -292,8 +292,15 @@ const PublicCatalogAnonymous = () => {
         </footer>
       </div>
 
-      {/* Chat Widget */}
-      {companyId && <ChatWidget companyId={companyId} />}
+      {/* Enhanced Chat Widget */}
+      {companyId && (
+        <EnhancedChatWidget 
+          companyId={companyId}
+          companyName={company?.name}
+          companyLogo={company?.logo_url}
+          primaryColor={company?.primary_color}
+        />
+      )}
     </div>
   );
 };

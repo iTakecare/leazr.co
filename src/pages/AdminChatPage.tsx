@@ -1,5 +1,5 @@
 import React from 'react'
-import { AdminChatDashboard } from '@/components/chat/AdminChatDashboard'
+import { EnhancedAdminDashboard } from '@/components/chat/EnhancedAdminDashboard'
 
 const AdminChatPage: React.FC = () => {
   return (
@@ -8,7 +8,7 @@ const AdminChatPage: React.FC = () => {
         <h1 className="text-3xl font-bold">Chat en direct</h1>
         <p className="text-muted-foreground">Gérez les conversations avec les visiteurs du catalogue</p>
       </div>
-      <AdminChatDashboard />
+      <EnhancedAdminDashboard />
     </div>
   )
 }
