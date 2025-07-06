@@ -24,7 +24,8 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
     setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      const wsUrl = `wss://cifbetjefyfocafanlhv.functions.supabase.co/functions/v1/live-chat`
+      const wsUrl = `wss://cifbetjefyfocafanlhv.functions.supabase.co/live-chat`
+      console.log('Tentative de connexion WebSocket vers:', wsUrl)
       wsRef.current = new WebSocket(wsUrl)
 
       wsRef.current.onopen = () => {
@@ -64,12 +65,14 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
 
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error)
-        setState(prev => ({ ...prev, error: 'Erreur de connexion', isLoading: false }))
+        console.error('WebSocket readyState:', wsRef.current?.readyState)
+        setState(prev => ({ ...prev, error: 'Erreur de connexion WebSocket', isLoading: false }))
       }
 
     } catch (error) {
       console.error('Error connecting to WebSocket:', error)
-      setState(prev => ({ ...prev, error: 'Impossible de se connecter', isLoading: false }))
+      console.error('Connection error details:', { error, wsUrl: `wss://cifbetjefyfocafanlhv.functions.supabase.co/live-chat` })
+      setState(prev => ({ ...prev, error: 'Impossible de se connecter au chat', isLoading: false }))
     }
   }, [companyId, visitorId, agentId])
 
