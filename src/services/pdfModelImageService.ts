@@ -16,7 +16,7 @@ export class PDFModelImageService {
   private supabase = getSupabaseClient();
 
   /**
-   * Charge toutes les images d'un modèle PDF
+   * Charge toutes les images d'un modèle PDF (avec dédoublonnage pour la sécurité)
    */
   async loadImages(modelId: string): Promise<PDFModelImage[]> {
     try {
@@ -31,7 +31,22 @@ export class PDFModelImageService {
         throw new Error(`Erreur lors du chargement des images: ${error.message}`);
       }
 
-      return data || [];
+      // Sécurité supplémentaire : dédoublonnage côté client au cas où
+      const uniqueImages = new Map<number, any>();
+      (data || []).forEach(image => {
+        if (!uniqueImages.has(image.page) || 
+            new Date(image.created_at || 0) > new Date(uniqueImages.get(image.page).created_at || 0)) {
+          uniqueImages.set(image.page, image);
+        }
+      });
+
+      return Array.from(uniqueImages.values()).map(image => ({
+        id: image.image_id,
+        image_id: image.image_id,
+        name: image.name,
+        data: image.data,
+        page: image.page
+      })).sort((a, b) => a.page - b.page);
     } catch (error: any) {
       console.error("Exception lors du chargement des images:", error);
       throw error;
@@ -39,20 +54,17 @@ export class PDFModelImageService {
   }
 
   /**
-   * Sauvegarde les images d'un modèle PDF (par petits chunks pour éviter les timeouts)
+   * Sauvegarde les images d'un modèle PDF (utilise upsert pour éviter les doublons)
    */
   async saveImages(modelId: string, images: PDFModelImage[]): Promise<void> {
     try {
-      // D'abord, supprimer toutes les images existantes du modèle
-      await this.clearImages(modelId);
-
-      // Ensuite, sauvegarder les nouvelles images par chunks
+      // Utiliser upsert pour chaque image pour éviter les doublons
       const chunkSize = 5; // Traiter 5 images à la fois pour éviter les timeouts
       
       for (let i = 0; i < images.length; i += chunkSize) {
         const chunk = images.slice(i, i + chunkSize);
         
-        const imagesToInsert = chunk.map(image => ({
+        const imagesToUpsert = chunk.map(image => ({
           model_id: modelId,
           image_id: image.id,
           name: image.name,
@@ -62,7 +74,10 @@ export class PDFModelImageService {
 
         const { error } = await this.supabase
           .from('pdf_model_images')
-          .insert(imagesToInsert);
+          .upsert(imagesToUpsert, {
+            onConflict: 'model_id,page',
+            ignoreDuplicates: false
+          });
 
         if (error) {
           console.error(`Erreur lors de la sauvegarde du chunk ${i}-${i + chunkSize}:`, error);
@@ -103,13 +118,13 @@ export class PDFModelImageService {
   }
 
   /**
-   * Ajoute une nouvelle image à un modèle PDF
+   * Ajoute une nouvelle image à un modèle PDF (utilise upsert pour éviter les doublons)
    */
   async addImage(modelId: string, image: Omit<PDFModelImage, 'id'>): Promise<PDFModelImage> {
     try {
       const newImage = {
         model_id: modelId,
-        image_id: uuidv4(),
+        image_id: image.image_id || uuidv4(),
         name: image.name,
         data: image.data,
         page: image.page
@@ -117,7 +132,10 @@ export class PDFModelImageService {
 
       const { data, error } = await this.supabase
         .from('pdf_model_images')
-        .insert(newImage)
+        .upsert(newImage, {
+          onConflict: 'model_id,page',
+          ignoreDuplicates: false
+        })
         .select()
         .single();
 
