@@ -12,6 +12,7 @@ import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import CatalogProductCard from "@/components/ui/CatalogProductCard";
 import { Product } from "@/types/catalog";
 import { useCart } from "@/context/CartContext";
+import CompanyLogo from "@/components/layout/CompanyLogo";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -116,13 +117,10 @@ const PublicCatalogAnonymous = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {company?.logo_url && (
-                <img 
-                  src={company.logo_url} 
-                  alt={company.name}
-                  className="h-10 w-auto"
-                />
-              )}
+              <CompanyLogo 
+                logoSize="sm" 
+                className="h-10"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -178,7 +176,10 @@ const PublicCatalogAnonymous = () => {
       
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}
-        <CatalogHeader />
+        <CatalogHeader 
+          companyName={company?.name}
+          companyLogo={company?.logo_url}
+        />
 
         {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
