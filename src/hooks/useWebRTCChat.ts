@@ -43,8 +43,8 @@ export const useWebRTCChat = (
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Use the new WebRTC signaling server
-      const wsUrl = `wss://cifbetjefyfocafanlhv.functions.supabase.co/webrtc-signaling`;
+      // Use the correct WebRTC signaling server URL
+      const wsUrl = `wss://ad498fde-39d4-4047-b0b8-05fb528da9c9.supabase.co/functions/v1/webrtc-signaling`;
       console.log('Connecting to WebRTC signaling server:', wsUrl);
       
       wsRef.current = new WebSocket(wsUrl);
