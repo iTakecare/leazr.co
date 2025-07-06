@@ -147,7 +147,7 @@ export const useAgentStatus = () => {
         .from('chat_agent_status')
         .update({
           is_online: newStatus,
-          is_available: newStatus, // When going offline, also set unavailable
+          is_available: newStatus, // Automatiquement disponible quand en ligne
           last_seen_at: new Date().toISOString()
         })
         .eq('id', agentStatus.id);
@@ -159,7 +159,7 @@ export const useAgentStatus = () => {
       setAgentStatus(prev => prev ? {
         ...prev,
         is_online: newStatus,
-        is_available: newStatus,
+        is_available: newStatus, // Automatiquement disponible quand en ligne
         last_seen_at: new Date().toISOString()
       } : null);
 
