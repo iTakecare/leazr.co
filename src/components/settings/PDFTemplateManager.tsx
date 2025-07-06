@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PDFTemplateControls from "./pdf-template/PDFTemplateControls";
 import PDFTemplateContent from "./pdf-template/PDFTemplateContent";
 import { usePDFTemplate } from "@/hooks/usePDFTemplate";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { PDFModel } from "@/utils/pdfModelUtils";
 import { toast } from "sonner";
 
 interface PDFTemplateManagerProps {
@@ -35,7 +35,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   }, [templateId, isInitialized, loadTemplate]);
 
-  const handleCompanyInfoUpdate = async (companyInfo: Partial<PDFTemplate>): Promise<void> => {
+  const handleCompanyInfoUpdate = async (companyInfo: Partial<PDFModel>): Promise<void> => {
     if (template) {
       const updatedTemplate = {
         ...template,
@@ -46,12 +46,12 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
     }
   };
   
-  const handleTemplateUpdate = async (updatedTemplate: PDFTemplate): Promise<void> => {
+  const handleTemplateUpdate = async (updatedTemplate: PDFModel): Promise<void> => {
     console.log("handleTemplateUpdate appelé avec:", updatedTemplate);
     console.log("Nombre d'images dans updatedTemplate:", updatedTemplate.templateImages?.length || 0);
     console.log("Nombre de champs dans updatedTemplate:", updatedTemplate.fields?.length || 0);
     
-    const sanitizedTemplate: PDFTemplate = {
+    const sanitizedTemplate: PDFModel = {
       ...updatedTemplate,
       templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
       fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : []

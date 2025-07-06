@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { PDFModel } from "@/utils/pdfModelUtils";
 
 interface PDFCompanyInfoProps {
-  template: PDFTemplate;
-  onSave: (data: Partial<PDFTemplate>) => void;
+  template: PDFModel;
+  onSave: (data: Partial<PDFModel>) => void;
   loading: boolean;
 }
 
@@ -20,7 +20,7 @@ const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
   const [logoPreview, setLogoPreview] = useState<string | null>(template.logoURL || null);
   
   // Configurer React Hook Form
-  const form = useForm<PDFTemplate>({
+  const form = useForm<PDFModel>({
     defaultValues: {
       name: template.name || "Modèle par défaut",
       companyName: template.companyName || "iTakeCare",
@@ -36,7 +36,7 @@ const PDFCompanyInfo = ({ template, onSave, loading }: PDFCompanyInfoProps) => {
   });
 
   // Gestionnaire de soumission du formulaire
-  const handleSubmit = (data: PDFTemplate) => {
+  const handleSubmit = (data: PDFModel) => {
     console.log("Soumission des informations de l'entreprise:", data);
     onSave(data);
   };

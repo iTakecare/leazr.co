@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { PDFModel } from "@/utils/pdfModelUtils";
 
 interface DragContextState {
   isDragging: boolean;
@@ -21,8 +21,8 @@ interface DragContextActions {
 
 interface DragContextProviderProps {
   children: React.ReactNode;
-  template: PDFTemplate;
-  onTemplateChange: (template: PDFTemplate) => void;
+  template: PDFModel;
+  onTemplateChange: (template: PDFModel) => void;
 }
 
 const DragContextState = createContext<DragContextState | undefined>(undefined);

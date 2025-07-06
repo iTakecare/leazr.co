@@ -1,13 +1,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { loadPDFTemplate, savePDFTemplate, DEFAULT_MODEL } from "@/utils/pdfTemplateUtils";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { loadPDFModel, savePDFModel, DEFAULT_MODEL } from "@/utils/pdfModelUtils";
+import { PDFModel } from "@/utils/pdfModelUtils";
 
 export const usePDFTemplate = (templateId: string = 'default') => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [template, setTemplate] = useState<PDFTemplate | null>(null);
+  const [template, setTemplate] = useState<PDFModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templateExists, setTemplateExists] = useState(false);
   const [templateName, setTemplateName] = useState<string | undefined>(undefined);
@@ -26,7 +26,7 @@ export const usePDFTemplate = (templateId: string = 'default') => {
     
     try {
       console.log(`Chargement du modèle PDF: ${id}`);
-      const data = await loadPDFTemplate(id);
+      const data = await loadPDFModel(id);
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
@@ -73,14 +73,14 @@ export const usePDFTemplate = (templateId: string = 'default') => {
     }
   }, [loading]);
 
-  const saveTemplate = useCallback(async (updatedTemplate: PDFTemplate): Promise<void> => {
+  const saveTemplate = useCallback(async (updatedTemplate: PDFModel): Promise<void> => {
     setSaving(true);
     setError(null);
     
     try {
       console.log(`Sauvegarde du modèle: ${updatedTemplate.id}`, updatedTemplate);
       
-      const sanitizedTemplate: PDFTemplate = {
+      const sanitizedTemplate: PDFModel = {
         ...updatedTemplate,
         templateImages: Array.isArray(updatedTemplate.templateImages) ? updatedTemplate.templateImages : [],
         fields: Array.isArray(updatedTemplate.fields) ? updatedTemplate.fields : [],
@@ -91,7 +91,7 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       console.log("Nombre d'images à sauvegarder:", sanitizedTemplate.templateImages.length);
       console.log("Nombre de champs à sauvegarder:", sanitizedTemplate.fields.length);
       
-      await savePDFTemplate(sanitizedTemplate);
+      await savePDFModel(sanitizedTemplate);
       
       setTemplate(sanitizedTemplate);
       setTemplateExists(true);

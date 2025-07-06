@@ -5,16 +5,16 @@ import { AlertCircle } from "lucide-react";
 import PDFTemplateError from "./PDFTemplateError";
 import PDFTemplateLoading from "./PDFTemplateLoading";
 import PDFTemplateTabs from "./PDFTemplateTabs";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { PDFModel } from "@/utils/pdfModelUtils";
 
 interface PDFTemplateContentProps {
   loading: boolean;
   error: string | null;
-  template: PDFTemplate | null;
+  template: PDFModel | null;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onCompanyInfoUpdate: (companyInfo: Partial<PDFTemplate>) => void;
-  onTemplateUpdate: (template: PDFTemplate) => Promise<void>;
+  onCompanyInfoUpdate: (companyInfo: Partial<PDFModel>) => void;
+  onTemplateUpdate: (template: PDFModel) => Promise<void>;
   saving: boolean;
   onRetry: () => void;
   isNewTemplate?: boolean;

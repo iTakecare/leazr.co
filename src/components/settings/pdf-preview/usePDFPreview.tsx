@@ -1,12 +1,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { PDFTemplate } from "@/types/pdfTemplate";
+import { PDFModel } from "@/utils/pdfModelUtils";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 
-export const usePDFPreview = (template: PDFTemplate, onSave: (template: PDFTemplate) => Promise<void>) => {
-  const [localTemplate, setLocalTemplate] = useState<PDFTemplate>({
+export const usePDFPreview = (template: PDFModel, onSave: (template: PDFModel) => Promise<void>) => {
+  const [localTemplate, setLocalTemplate] = useState<PDFModel>({
     ...template,
     templateImages: Array.isArray(template.templateImages) ? [...template.templateImages] : [],
     fields: Array.isArray(template.fields) ? [...template.fields] : []
