@@ -68,9 +68,9 @@ export const AdminChatDashboard: React.FC = () => {
     if (companyId) {
       loadConversations()
       
-      // S'abonner aux nouvelles conversations
+      // S'abonner aux nouvelles conversations pour cette entreprise
       const conversationsChannel = supabase
-        .channel(`conversations_${companyId}`)
+        .channel(`admin_conversations_${companyId}`)
         .on(
           'postgres_changes',
           {
@@ -80,44 +80,46 @@ export const AdminChatDashboard: React.FC = () => {
             filter: `company_id=eq.${companyId}`
           },
           (payload) => {
-            console.log('Conversation updated:', payload)
+            console.log('Admin: Conversation updated:', payload)
             loadConversations() // Recharger toutes les conversations
-          }
-        )
-        .subscribe()
-
-      // S'abonner aux nouveaux messages pour toutes les conversations
-      const messagesChannel = supabase
-        .channel(`messages_${companyId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_messages'
-          },
-          (payload) => {
-            console.log('New message received globally:', payload)
-            // Recharger les messages pour la conversation sélectionnée
-            if (selectedConversation) {
-              loadMessages(selectedConversation.id)
-            }
           }
         )
         .subscribe()
 
       return () => {
         supabase.removeChannel(conversationsChannel)
-        supabase.removeChannel(messagesChannel)
       }
     }
-  }, [companyId, selectedConversation, loadMessages])
+  }, [companyId])
 
-  // Se connecter à la conversation sélectionnée
+  // Se connecter à la conversation sélectionnée et s'abonner aux nouveaux messages
   useEffect(() => {
     if (selectedConversation) {
       connect(selectedConversation.id)
       loadMessages(selectedConversation.id)
+
+      // S'abonner aux nouveaux messages pour cette conversation spécifique
+      const messagesChannel = supabase
+        .channel(`admin_messages_${selectedConversation.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `conversation_id=eq.${selectedConversation.id}`
+          },
+          (payload) => {
+            console.log('Admin: New message received:', payload)
+            // Recharger les messages pour cette conversation
+            loadMessages(selectedConversation.id)
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(messagesChannel)
+      }
     }
   }, [selectedConversation, connect, loadMessages])
 

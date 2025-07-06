@@ -19,6 +19,9 @@ export const useChatRealtime = (companyId: string, visitorId?: string, agentId?:
     setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
+      // Disconnect previous channels
+      disconnect();
+
       // Subscribe to conversation changes
       conversationChannelRef.current = supabase
         .channel(`conversation_${conversationId}`)
@@ -47,7 +50,7 @@ export const useChatRealtime = (companyId: string, visitorId?: string, agentId?:
           }
         })
 
-      // Subscribe to new messages
+      // Subscribe to new messages for this specific conversation
       messagesChannelRef.current = supabase
         .channel(`messages_${conversationId}`)
         .on(
@@ -59,21 +62,33 @@ export const useChatRealtime = (companyId: string, visitorId?: string, agentId?:
             filter: `conversation_id=eq.${conversationId}`
           },
           (payload) => {
-            console.log('New message received:', payload)
+            console.log('New message received via Realtime:', payload)
             const newMessage = payload.new as ChatMessage
-            setState(prev => ({
-              ...prev,
-              messages: {
-                ...prev.messages,
-                [conversationId]: [
-                  ...(prev.messages[conversationId] || []),
-                  newMessage
-                ]
+            setState(prev => {
+              const existingMessages = prev.messages[conversationId] || []
+              // Avoid duplicates
+              const messageExists = existingMessages.some(msg => 
+                msg.id === newMessage.id || 
+                (msg.message === newMessage.message && msg.created_at === newMessage.created_at)
+              )
+              
+              if (messageExists) {
+                return prev
               }
-            }))
+
+              return {
+                ...prev,
+                messages: {
+                  ...prev.messages,
+                  [conversationId]: [...existingMessages, newMessage]
+                }
+              }
+            })
           }
         )
-        .subscribe()
+        .subscribe((status) => {
+          console.log('Messages subscription status:', status)
+        })
 
       // Load existing conversation and messages
       await loadMessages(conversationId)

@@ -11,11 +11,16 @@ interface WebSocketMessage {
   conversationId?: string;
   companyId?: string;
   visitorId?: string;
+  visitorName?: string;
+  visitorEmail?: string;
   agentId?: string;
   message?: string;
   senderName?: string;
   senderType?: 'visitor' | 'agent' | 'system';
 }
+
+// Store active connections per conversation
+const conversationConnections: Map<string, Set<WebSocket>> = new Map();
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -42,6 +47,8 @@ serve(async (req) => {
 
   console.log('WebSocket connection established');
 
+  let currentConversationId: string | null = null;
+
   socket.onopen = () => {
     console.log('WebSocket opened');
   };
@@ -53,7 +60,7 @@ serve(async (req) => {
 
       switch (data.type) {
         case 'join':
-          await handleJoin(data, socket, supabase);
+          currentConversationId = await handleJoin(data, socket, supabase);
           break;
         
         case 'message':
@@ -82,6 +89,16 @@ serve(async (req) => {
 
   socket.onclose = () => {
     console.log('WebSocket closed');
+    // Remove from conversation connections
+    if (currentConversationId) {
+      const connections = conversationConnections.get(currentConversationId);
+      if (connections) {
+        connections.delete(socket);
+        if (connections.size === 0) {
+          conversationConnections.delete(currentConversationId);
+        }
+      }
+    }
   };
 
   socket.onerror = (error) => {
@@ -91,17 +108,18 @@ serve(async (req) => {
   return response;
 });
 
-async function handleJoin(data: WebSocketMessage, socket: WebSocket, supabase: any) {
+async function handleJoin(data: WebSocketMessage, socket: WebSocket, supabase: any): Promise<string | null> {
   try {
     // Check if conversation exists, create if not
     let conversation;
+    const conversationId = data.conversationId || crypto.randomUUID();
     
     if (data.conversationId) {
       const { data: existingConv } = await supabase
         .from('chat_conversations')
         .select('*')
         .eq('id', data.conversationId)
-        .single();
+        .maybeSingle();
       
       conversation = existingConv;
     }
@@ -111,9 +129,11 @@ async function handleJoin(data: WebSocketMessage, socket: WebSocket, supabase: a
       const { data: newConv, error } = await supabase
         .from('chat_conversations')
         .insert({
-          id: data.conversationId || crypto.randomUUID(),
+          id: conversationId,
           company_id: data.companyId,
           visitor_id: data.visitorId,
+          visitor_name: data.visitorName,
+          visitor_email: data.visitorEmail,
           agent_id: data.agentId,
           status: 'waiting',
           started_at: new Date().toISOString()
@@ -127,11 +147,17 @@ async function handleJoin(data: WebSocketMessage, socket: WebSocket, supabase: a
           type: 'error',
           message: 'Failed to create conversation'
         }));
-        return;
+        return null;
       }
       
       conversation = newConv;
     }
+
+    // Add socket to conversation connections
+    if (!conversationConnections.has(conversationId)) {
+      conversationConnections.set(conversationId, new Set());
+    }
+    conversationConnections.get(conversationId)!.add(socket);
     
     socket.send(JSON.stringify({
       type: 'joined',
@@ -140,24 +166,36 @@ async function handleJoin(data: WebSocketMessage, socket: WebSocket, supabase: a
     }));
     
     console.log('Client joined conversation:', conversation?.id);
+    return conversationId;
   } catch (error) {
     console.error('Error in handleJoin:', error);
     socket.send(JSON.stringify({
       type: 'error',
       message: 'Failed to join conversation'
     }));
+    return null;
   }
 }
 
 async function handleMessage(data: WebSocketMessage, socket: WebSocket, supabase: any) {
   try {
+    if (!data.conversationId || !data.message) {
+      socket.send(JSON.stringify({
+        type: 'error',
+        message: 'Missing conversation ID or message'
+      }));
+      return;
+    }
+
     // Save message to database
+    const messageId = crypto.randomUUID();
     const { error } = await supabase
       .from('chat_messages')
       .insert({
+        id: messageId,
         conversation_id: data.conversationId,
         sender_type: data.senderType,
-        sender_id: data.agentId,
+        sender_id: data.senderType === 'agent' ? data.agentId : null,
         sender_name: data.senderName,
         message: data.message,
         message_type: 'text'
@@ -172,18 +210,27 @@ async function handleMessage(data: WebSocketMessage, socket: WebSocket, supabase
       return;
     }
     
-    // Broadcast message to other clients (in a real implementation, you'd maintain client connections)
-    socket.send(JSON.stringify({
+    // Broadcast message to all clients in the conversation
+    const messageData = {
       type: 'message',
       conversationId: data.conversationId,
-      messageId: crypto.randomUUID(),
+      messageId: messageId,
       message: data.message,
       senderName: data.senderName,
       senderType: data.senderType,
       timestamp: new Date().toISOString()
-    }));
+    };
+
+    const connections = conversationConnections.get(data.conversationId);
+    if (connections) {
+      connections.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(messageData));
+        }
+      });
+    }
     
-    console.log('Message processed for conversation:', data.conversationId);
+    console.log('Message broadcasted to conversation:', data.conversationId);
   } catch (error) {
     console.error('Error in handleMessage:', error);
     socket.send(JSON.stringify({

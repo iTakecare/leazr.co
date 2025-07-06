@@ -137,6 +137,11 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
   }
 
   const sendMessage = useCallback((conversationId: string, message: string, senderName: string, senderType: 'visitor' | 'agent') => {
+    // If using realtime, delegate to it
+    if (useRealtime) {
+      return realtimeChat.sendMessage(conversationId, message, senderName, senderType)
+    }
+
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       setState(prev => ({ ...prev, error: 'Connexion non établie' }))
       return
@@ -150,7 +155,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       senderType,
       agentId: senderType === 'agent' ? agentId : undefined
     }))
-  }, [agentId])
+  }, [agentId, useRealtime, realtimeChat])
 
   const sendTyping = useCallback((conversationId: string, senderName: string, senderType: 'visitor' | 'agent') => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
@@ -164,13 +169,33 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
   }, [])
 
   const createConversation = useCallback(async (visitorName: string, visitorEmail?: string) => {
+    // If using realtime, delegate to it
+    if (useRealtime) {
+      return realtimeChat.createConversation(visitorName, visitorEmail)
+    }
+
     try {
       const conversationId = crypto.randomUUID()
       
       setState(prev => ({ ...prev, isLoading: true }))
 
-      // La conversation sera créée automatiquement lors de la connexion WebSocket
-      connect(conversationId)
+      // Store visitor info for WebSocket connection
+      const visitorData = { visitorName, visitorEmail }
+      
+      // Connect to WebSocket with visitor info
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'join',
+          conversationId,
+          companyId,
+          visitorId,
+          visitorName,
+          visitorEmail,
+          agentId
+        }))
+      } else {
+        connect(conversationId)
+      }
 
       return conversationId
     } catch (error) {
@@ -178,7 +203,7 @@ export const useChat = (companyId: string, visitorId?: string, agentId?: string)
       setState(prev => ({ ...prev, error: 'Erreur lors de la création de la conversation' }))
       return null
     }
-  }, [connect])
+  }, [connect, useRealtime, realtimeChat, companyId, visitorId, agentId])
 
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
