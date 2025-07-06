@@ -52,36 +52,79 @@ const PDFModelManager = () => {
   // Fonction pour sauvegarder le modèle
   const handleSaveModel = async (updatedModel: PDFModel) => {
     if (!updatedModel) {
+      console.error("DÉBOGAGE: Aucun modèle fourni pour la sauvegarde");
       toast.error("Aucun modèle à sauvegarder");
       return;
     }
+
+    console.log("DÉBOGAGE: Début de la sauvegarde du modèle", {
+      modelId: updatedModel.id,
+      modelName: updatedModel.name,
+      companyName: updatedModel.companyName,
+      hasAllFields: !!(updatedModel.name && updatedModel.companyName && updatedModel.companyAddress)
+    });
 
     setSaving(true);
     setError(null);
     
     try {
-      console.log("Sauvegarde du modèle:", updatedModel);
+      // Validation détaillée avec logs de debugging
+      console.log("DÉBOGAGE: Validation des champs obligatoires...");
       
-      // Vérifier que tous les champs obligatoires sont présents
       if (!updatedModel.name?.trim()) {
+        console.error("DÉBOGAGE: Nom du modèle manquant:", updatedModel.name);
         throw new Error("Le nom du modèle est obligatoire");
       }
+      
       if (!updatedModel.companyName?.trim()) {
+        console.error("DÉBOGAGE: Nom de l'entreprise manquant:", updatedModel.companyName);
         throw new Error("Le nom de l'entreprise est obligatoire");
       }
       
-      await savePDFModel(updatedModel);
+      if (!updatedModel.companyAddress?.trim()) {
+        console.error("DÉBOGAGE: Adresse de l'entreprise manquante:", updatedModel.companyAddress);
+        throw new Error("L'adresse de l'entreprise est obligatoire");
+      }
       
+      if (!updatedModel.companyContact?.trim()) {
+        console.error("DÉBOGAGE: Contact de l'entreprise manquant:", updatedModel.companyContact);
+        throw new Error("Le contact de l'entreprise est obligatoire");
+      }
+      
+      console.log("DÉBOGAGE: Validation réussie, appel à savePDFModel...");
+      
+      // Tentative de sauvegarde avec timeout
+      const savePromise = savePDFModel(updatedModel);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout: La sauvegarde a pris trop de temps")), 30000)
+      );
+      
+      await Promise.race([savePromise, timeoutPromise]);
+      
+      console.log("DÉBOGAGE: Sauvegarde réussie !");
       setModel(updatedModel);
       toast.success("Modèle sauvegardé avec succès ! Vos modifications ont été appliquées.");
+      
     } catch (err: any) {
-      console.error("Erreur lors de la sauvegarde du modèle:", err);
+      console.error("DÉBOGAGE: Erreur détaillée lors de la sauvegarde:", {
+        error: err,
+        message: err?.message,
+        stack: err?.stack,
+        name: err?.name,
+        code: err?.code,
+        details: err?.details
+      });
+      
       let errorMessage = "Erreur lors de la sauvegarde du modèle";
       
-      if (err.message?.includes('permission denied')) {
+      if (err.message?.includes('permission denied') || err.message?.includes('insufficient_privilege')) {
         errorMessage = "Vous n'avez pas les permissions nécessaires pour sauvegarder ce modèle";
-      } else if (err.message?.includes('invalid input')) {
+      } else if (err.message?.includes('invalid input') || err.message?.includes('validation')) {
         errorMessage = "Les données saisies ne sont pas valides. Vérifiez tous les champs obligatoires.";
+      } else if (err.message?.includes('Timeout')) {
+        errorMessage = "La sauvegarde a pris trop de temps. Veuillez réessayer.";
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
       } else if (err.message) {
         errorMessage = err.message;
       }
