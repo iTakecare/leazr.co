@@ -107,10 +107,15 @@ export const useCustomOfferGenerator = () => {
   const [progress, setProgress] = useState(0);
 
   const updateFormData = useCallback((section: keyof OfferFormData, data: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: { ...prev[section], ...data }
-    }));
+    try {
+      setFormData(prev => ({
+        ...prev,
+        [section]: Array.isArray(data) ? data : { ...prev[section], ...data }
+      }));
+    } catch (error) {
+      console.error('Error updating form data:', error);
+      toast.error('Erreur lors de la mise à jour des données');
+    }
   }, []);
 
   const validateStep = useCallback((step: string): boolean => {
