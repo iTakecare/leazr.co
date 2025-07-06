@@ -43,8 +43,8 @@ export const useWebRTCChat = (
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Use the correct WebRTC signaling server URL with the right project ID
-      const wsUrl = `wss://cifbetjefyfocafanlhv.supabase.co/functions/v1/webrtc-signaling`;
+      // Use the correct WebRTC signaling server URL - corrected format
+      const wsUrl = `wss://ad498fde-39d4-4047-b0b8-05fb528da9c9.functions.supabase.co/webrtc-signaling`;
       console.log('🔗 Connecting to WebRTC signaling server:', wsUrl);
       console.log('🏢 Company ID:', companyId, 'Visitor ID:', visitorId, 'Agent ID:', agentId);
       
@@ -53,6 +53,9 @@ export const useWebRTCChat = (
       wsRef.current.onopen = () => {
         console.log('✅ WebRTC signaling connected successfully');
         setState(prev => ({ ...prev, isConnected: true, isLoading: false }));
+        
+        // Load existing messages first
+        loadMessages(conversationId);
         
         // Join conversation
         wsRef.current?.send(JSON.stringify({
@@ -275,6 +278,47 @@ export const useWebRTCChat = (
           [conversationId]: messages || []
         }
       }));
+
+      // Set up Realtime subscription for this conversation as fallback
+      const channel = supabase
+        .channel(`chat_messages_${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            console.log('📨 New message from Realtime:', payload.new);
+            const newMessage = payload.new as ChatMessage;
+            setState(prev => {
+              const existingMessages = prev.messages[conversationId] || [];
+              const messageExists = existingMessages.some(msg => 
+                msg.id === newMessage.id || 
+                (msg.message === newMessage.message && 
+                 msg.sender_name === newMessage.sender_name &&
+                 Math.abs(new Date(msg.created_at!).getTime() - new Date(newMessage.created_at!).getTime()) < 1000)
+              );
+              
+              if (messageExists) {
+                return prev;
+              }
+
+              return {
+                ...prev,
+                messages: {
+                  ...prev.messages,
+                  [conversationId]: [...existingMessages, newMessage]
+                }
+              };
+            });
+          }
+        )
+        .subscribe();
+
+      console.log('✅ Messages loaded and Realtime subscription setup for conversation:', conversationId);
     } catch (error) {
       console.error('Error loading messages:', error);
     }

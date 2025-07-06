@@ -60,7 +60,7 @@ export const SidebarNotificationBadge: React.FC<SidebarNotificationBadgeProps> =
 
     loadUnreadCount();
 
-    // Subscribe to new conversations
+    // Subscribe to new conversations and messages
     const conversationsChannel = supabase
       .channel(`sidebar_conversations_${companyId}`)
       .on(
@@ -92,8 +92,27 @@ export const SidebarNotificationBadge: React.FC<SidebarNotificationBadgeProps> =
       )
       .subscribe();
 
+    // Also subscribe to new messages for real-time notification updates
+    const messagesChannel = supabase
+      .channel(`sidebar_messages_${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages'
+        },
+        (payload) => {
+          console.log('📢 Sidebar: New message detected:', payload);
+          // Refresh unread count when new messages arrive
+          loadUnreadCount();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(conversationsChannel);
+      supabase.removeChannel(messagesChannel);
     };
   }, [companyId]);
 

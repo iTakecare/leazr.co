@@ -93,36 +93,46 @@ serve(async (req) => {
 
         case 'message':
           if (currentConversationId && message.message) {
-            // Save to database
-            await saveMessage({
-              conversation_id: currentConversationId,
-              sender_type: message.senderType!,
-              sender_id: message.senderType === 'agent' ? message.agentId : null,
-              sender_name: message.senderName!,
-              message: message.message,
-              message_type: 'text'
-            });
+            try {
+              // Save to database first
+              const savedMessage = await saveMessage({
+                conversation_id: currentConversationId,
+                sender_type: message.senderType!,
+                sender_id: message.senderType === 'agent' ? message.agentId : null,
+                sender_name: message.senderName!,
+                message: message.message,
+                message_type: 'text'
+              });
 
-            // Broadcast to conversation participants
-            broadcastToConversation(currentConversationId, {
-              type: 'message',
-              conversationId: currentConversationId,
-              message: message.message,
-              senderName: message.senderName,
-              senderType: message.senderType,
-              messageId: crypto.randomUUID(),
-              timestamp: new Date().toISOString()
-            }, clientId);
-
-            // Notify agents if message from visitor
-            if (message.senderType === 'visitor' && companyId) {
-              notifyAgents(companyId, {
-                type: 'new-message',
+              // Broadcast to conversation participants with saved message data
+              broadcastToConversation(currentConversationId, {
+                type: 'message',
                 conversationId: currentConversationId,
                 message: message.message,
                 senderName: message.senderName,
-                timestamp: new Date().toISOString()
-              });
+                senderType: message.senderType,
+                messageId: savedMessage.id,
+                timestamp: savedMessage.created_at
+              }, clientId);
+
+              // Notify agents if message from visitor
+              if (message.senderType === 'visitor' && companyId) {
+                notifyAgents(companyId, {
+                  type: 'new-message',
+                  conversationId: currentConversationId,
+                  message: message.message,
+                  senderName: message.senderName,
+                  timestamp: savedMessage.created_at
+                });
+              }
+
+              console.log('✅ Message processed and broadcasted successfully');
+            } catch (error) {
+              console.error('❌ Error processing message:', error);
+              socket.send(JSON.stringify({
+                type: 'error',
+                message: 'Erreur lors de la sauvegarde du message'
+              }));
             }
           }
           break;
@@ -245,17 +255,30 @@ serve(async (req) => {
     try {
       console.log('💾 Saving message to database:', messageData);
       
+      // Generate ID for the message
+      const messageId = crypto.randomUUID();
+      const messageWithId = {
+        id: messageId,
+        ...messageData,
+        created_at: new Date().toISOString()
+      };
+      
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert([messageData]);
+        .insert([messageWithId])
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ Failed to save message:', error);
+        throw error;
       } else {
         console.log('✅ Message saved successfully:', data);
+        return data;
       }
     } catch (error) {
       console.error('🚨 Error saving message:', error);
+      throw error;
     }
   }
 
