@@ -1,5 +1,4 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { ensureStorageBucket } from "@/services/storageService";
 
 export interface PDFModel {
   id: string;
@@ -37,131 +36,33 @@ export const DEFAULT_MODEL: PDFModel = {
 };
 
 /**
- * Vérifie et crée la table pdf_models et le bucket de stockage si nécessaire
+ * Assure que le modèle par défaut existe dans la base de données
  */
-export const ensurePDFModelTableExists = async (): Promise<boolean> => {
-  const supabase = getSupabaseClient();
-  
+export const ensureDefaultModel = async (): Promise<void> => {
   try {
-    console.log("Vérification de l'existence de la table pdf_models...");
+    const supabase = getSupabaseClient();
     
-    // 1. Vérifier si la table existe déjà via la fonction RPC
-    const { data: tableExists, error: checkError } = await supabase.rpc(
-      'check_table_exists',
-      { table_name: 'pdf_models' }
-    );
+    // Vérifier si le modèle par défaut existe déjà
+    const { data: existingModel } = await supabase
+      .from('pdf_models')
+      .select('id')
+      .eq('id', 'default')
+      .maybeSingle();
     
-    if (checkError) {
-      console.error("Erreur lors de la vérification de l'existence de la table:", checkError);
-      
-      // Fallback: création directe de la table via SQL
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_models (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT DEFAULT '',
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB DEFAULT '[]'::jsonb,
-            fields JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création directe de la table:", createError);
-        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
-      }
-      
-      console.log("Table pdf_models créée avec succès via SQL direct");
-    } else if (!tableExists) {
-      console.log("La table pdf_models n'existe pas, création...");
-      
-      const { error: createError } = await supabase.rpc('execute_sql', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS public.pdf_models (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            "companyName" TEXT NOT NULL,
-            "companyAddress" TEXT NOT NULL,
-            "companyContact" TEXT NOT NULL,
-            "companySiret" TEXT NOT NULL,
-            "logoURL" TEXT DEFAULT '',
-            "primaryColor" TEXT NOT NULL,
-            "secondaryColor" TEXT NOT NULL,
-            "headerText" TEXT NOT NULL,
-            "footerText" TEXT NOT NULL,
-            "templateImages" JSONB DEFAULT '[]'::jsonb,
-            fields JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-          );
-        `
-      });
-      
-      if (createError) {
-        console.error("Erreur lors de la création de la table:", createError);
-        throw new Error(`Erreur lors de la création de la table: ${createError.message}`);
-      }
-      
-      console.log("Table pdf_models créée avec succès");
-    } else {
-      console.log("La table pdf_models existe déjà");
-    }
-    
-    // Vérifier s'il y a au moins un enregistrement, sinon insérer le modèle par défaut
-    try {
-      const { count, error: countError } = await supabase
+    // S'il n'existe pas, l'insérer
+    if (!existingModel) {
+      const { error } = await supabase
         .from('pdf_models')
-        .select('*', { count: 'exact', head: true });
+        .insert(DEFAULT_MODEL);
       
-      if (countError) {
-        console.error("Erreur lors du comptage des modèles:", countError);
-        throw new Error(`Erreur lors du comptage des modèles: ${countError.message}`);
-      }
-      
-      if (count === 0) {
-        console.log("Aucun modèle trouvé, insertion du modèle par défaut...");
-        
-        const { error: insertError } = await supabase
-          .from('pdf_models')
-          .insert(DEFAULT_MODEL);
-        
-        if (insertError) {
-          console.error("Erreur lors de l'insertion du modèle par défaut:", insertError);
-          throw new Error(`Erreur lors de l'insertion du modèle par défaut: ${insertError.message}`);
-        }
-        
-        console.log("Modèle par défaut inséré avec succès");
-      }
-    } catch (countError) {
-      // Si on ne peut pas compter, on essaie d'insérer directement (en mode upsert)
-      console.log("Erreur de comptage, tentative d'insertion du modèle par défaut...");
-      
-      const { error: insertError } = await supabase
-        .from('pdf_models')
-        .upsert(DEFAULT_MODEL, { onConflict: 'id' });
-      
-      if (insertError) {
-        console.error("Erreur lors de l'insertion/mise à jour du modèle par défaut:", insertError);
+      if (error) {
+        console.error("Erreur lors de la création du modèle par défaut:", error);
       } else {
-        console.log("Modèle par défaut inséré/mis à jour avec succès");
+        console.log("Modèle par défaut créé avec succès");
       }
     }
-    
-    return true;
-  } catch (error: any) {
-    console.error("Exception lors de la vérification/création de la table:", error);
-    throw error;
+  } catch (error) {
+    console.error("Erreur lors de la vérification du modèle par défaut:", error);
   }
 };
 
@@ -170,8 +71,11 @@ export const ensurePDFModelTableExists = async (): Promise<boolean> => {
  */
 export const loadPDFModel = async (id: string = 'default') => {
   try {
-    console.log("Début du chargement du modèle PDF:", id);
+    console.log("Chargement du modèle PDF:", id);
     const supabase = getSupabaseClient();
+    
+    // Assurer que le modèle par défaut existe
+    await ensureDefaultModel();
     
     // Récupérer le modèle
     const { data, error } = await supabase
@@ -185,13 +89,13 @@ export const loadPDFModel = async (id: string = 'default') => {
       throw new Error(`Erreur lors du chargement du modèle: ${error.message}`);
     }
     
-    console.log("Réponse de la requête de chargement:", data ? "Modèle trouvé" : "Aucun modèle trouvé");
-    
     // Si aucun modèle n'est trouvé, retourner le modèle par défaut
     if (!data) {
+      console.log("Modèle non trouvé, utilisation du modèle par défaut");
       return DEFAULT_MODEL;
     }
     
+    console.log("Modèle chargé avec succès");
     return data;
   } catch (error: any) {
     console.error("Exception lors du chargement du modèle:", error);

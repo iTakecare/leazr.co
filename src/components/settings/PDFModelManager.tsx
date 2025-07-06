@@ -11,8 +11,6 @@ import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { PDFModel } from "@/utils/pdfModelUtils";
-import { getSupabaseClient } from "@/integrations/supabase/client";
-import { ensureStorageBucket } from "@/services/storageService";
 
 const PDFModelManager = () => {
   const [loading, setLoading] = useState(true);
@@ -20,40 +18,11 @@ const PDFModelManager = () => {
   const [model, setModel] = useState<PDFModel | null>(null);
   const [activeTab, setActiveTab] = useState("company");
   const [error, setError] = useState<string | null>(null);
-  const [initComplete, setInitComplete] = useState(false);
   
-  // Initialisation au montage du composant
+  // Chargement du modèle au montage du composant
   useEffect(() => {
-    initializeStorage();
+    loadModelData();
   }, []);
-  
-  // Fonction d'initialisation du stockage et de la table
-  const initializeStorage = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log("Initialisation du stockage...");
-      
-      // Première étape: vérifier si le bucket de stockage existe
-      const bucketCreated = await ensureStorageBucket('pdf-templates');
-      
-      if (bucketCreated) {
-        console.log("Bucket de stockage vérifié avec succès");
-        setInitComplete(true);
-        
-        // Charger le modèle une fois l'initialisation terminée
-        await loadModelData();
-      } else {
-        throw new Error("Échec de la création/vérification du bucket de stockage");
-      }
-    } catch (err: any) {
-      console.error("Erreur lors de l'initialisation:", err);
-      setError(err.message || "Erreur lors de l'initialisation");
-      toast.error("Erreur d'initialisation du gestionnaire de modèles PDF");
-      setLoading(false);
-    }
-  };
 
   // Fonction pour charger le modèle
   const loadModelData = async () => {
@@ -61,25 +30,19 @@ const PDFModelManager = () => {
     setError(null);
     
     try {
-      console.log("Tentative de chargement du modèle PDF...");
+      console.log("Chargement du modèle PDF...");
       
       // Charger le modèle
       const modelData = await loadPDFModel('default');
       
-      if (modelData) {
-        console.log("Modèle chargé avec succès:", modelData);
-        setModel(modelData);
-        toast.success("Modèle chargé avec succès");
-      } else {
-        console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        setModel(DEFAULT_MODEL);
-        toast.success("Modèle par défaut chargé");
-      }
+      console.log("Modèle chargé avec succès");
+      setModel(modelData);
+      toast.success("Modèle chargé avec succès");
     } catch (err: any) {
       console.error("Erreur lors du chargement du modèle:", err);
       setError(err.message || "Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
-      // En cas d'erreur, définir quand même un modèle par défaut
+      // En cas d'erreur, utiliser le modèle par défaut
       setModel(DEFAULT_MODEL);
     } finally {
       setLoading(false);
@@ -125,11 +88,7 @@ const PDFModelManager = () => {
 
   // Fonction pour réessayer le chargement en cas d'erreur
   const handleRetry = () => {
-    if (!initComplete) {
-      initializeStorage();
-    } else {
-      loadModelData();
-    }
+    loadModelData();
   };
 
   return (
@@ -178,7 +137,7 @@ const PDFModelManager = () => {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">
-              {!initComplete ? "Initialisation..." : "Chargement du modèle..."}
+              Chargement du modèle...
             </p>
           </div>
         ) : (
