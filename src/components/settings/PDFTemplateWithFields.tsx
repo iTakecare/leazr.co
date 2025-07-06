@@ -10,6 +10,7 @@ import { Upload, Trash2, Eye, ArrowUp, ArrowDown, Loader2, Plus } from "lucide-r
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import PDFFieldsEditor from "./PDFFieldsEditor";
+import { generateDefaultPDFFields, hasDefaultFields, PDFField } from "@/utils/defaultPDFFields";
 
 interface PDFTemplateWithFieldsProps {
   template: PDFModel;
@@ -24,23 +25,7 @@ interface TemplateImage {
   page: number;
 }
 
-// Interface pour les champs du PDF
-interface PDFField {
-  id: string;
-  label: string;
-  type: string;
-  category: string;
-  isVisible: boolean;
-  value: string;
-  position: { x: number; y: number };
-  page: number;
-  style?: {
-    fontSize: number;
-    fontWeight: string;
-    fontStyle: string;
-    textDecoration: string;
-  };
-}
+// Interface PDFField is now imported from @/utils/defaultPDFFields
 
 const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps) => {
   const [selectedPage, setSelectedPage] = useState(0);
@@ -52,7 +37,7 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
   });
   const [isUploading, setIsUploading] = useState(false);
   
-  // Debug lors du premier rendu
+  // Initialiser les champs par défaut si nécessaire
   useEffect(() => {
     console.log("PDFTemplateWithFields - Premier rendu");
     console.log("Template reçu:", template);
@@ -61,10 +46,28 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     
     // Vérifier et initialiser les tableaux si nécessaire
     const images = Array.isArray(template.templateImages) ? template.templateImages : [];
-    const fields = Array.isArray(template.fields) ? template.fields : [];
+    let fields = Array.isArray(template.fields) ? template.fields : [];
     
     console.log("Images après vérification:", images.length);
     console.log("Champs après vérification:", fields.length);
+    
+    // Si aucun champ n'existe et qu'on a des images, initialiser les champs par défaut
+    if (fields.length === 0 && images.length > 0 && !hasDefaultFields(fields)) {
+      console.log("Initialisation des champs par défaut");
+      fields = generateDefaultPDFFields();
+      
+      // Sauvegarder automatiquement les champs par défaut
+      const templateWithDefaults = {
+        ...template,
+        templateImages: images,
+        fields: fields
+      };
+      
+      setLocalTemplate(templateWithDefaults);
+      onSave(templateWithDefaults);
+      toast.success("Champs par défaut initialisés");
+      return;
+    }
     
     // Mettre à jour le template local avec des tableaux garantis
     setLocalTemplate({
@@ -396,6 +399,20 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
     toast.success(`Champ retiré de la page ${page + 1}`);
   };
   
+  // Initialiser les champs par défaut
+  const handleInitializeDefaultFields = () => {
+    const defaultFields = generateDefaultPDFFields();
+    
+    const updatedTemplate = {
+      ...localTemplate,
+      fields: defaultFields
+    };
+    
+    setLocalTemplate(updatedTemplate);
+    onSave(updatedTemplate);
+    toast.success("Champs par défaut réinitialisés");
+  };
+
   // Ajout d'un champ simple pour débogage
   const addDebugField = () => {
     // Récupérer les champs existants de façon sûre
@@ -594,6 +611,10 @@ const PDFTemplateWithFields = ({ template, onSave }: PDFTemplateWithFieldsProps)
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-medium">Champs du document ({existingFields.length})</h3>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleInitializeDefaultFields}>
+              <Plus className="h-4 w-4 mr-2" />
+              Réinitialiser les champs par défaut
+            </Button>
             <Button variant="outline" size="sm" onClick={addDebugField}>
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un champ test
