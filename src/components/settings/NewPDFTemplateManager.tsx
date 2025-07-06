@@ -194,9 +194,30 @@ const NewPDFTemplateManager = () => {
       );
     }
 
+    // Get the display URL - check both url and data properties
+    const getDisplayUrl = () => {
+      if (pageImage.url) {
+        return `${pageImage.url}?t=${new Date().getTime()}`;
+      }
+      if (pageImage.data) {
+        return pageImage.data;
+      }
+      return null;
+    };
+
+    const displayUrl = getDisplayUrl();
+    
+    if (!displayUrl) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-gray-400">No image data available</p>
+        </div>
+      );
+    }
+
     return (
       <img
-        src={pageImage.url}
+        src={displayUrl}
         alt={`Template page ${currentPage + 1}`}
         className="w-full h-full object-contain"
         onError={(e) => {

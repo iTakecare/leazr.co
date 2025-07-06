@@ -247,10 +247,13 @@ const PDFFieldsEditor = ({
     if (template?.templateImages && template.templateImages.length > 0) {
       const pageImage = template.templateImages.find(img => img.page === activePage);
       
-      if (pageImage && pageImage.url) {
-        return `${pageImage.url}?t=${new Date().getTime()}`;
-      } else {
-        return null;
+      if (pageImage) {
+        if (pageImage.url) {
+          return `${pageImage.url}?t=${new Date().getTime()}`;
+        }
+        else if (pageImage.data) {
+          return pageImage.data;
+        }
       }
     }
     return null;
