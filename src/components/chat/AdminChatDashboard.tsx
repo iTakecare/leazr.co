@@ -63,12 +63,55 @@ export const AdminChatDashboard: React.FC = () => {
     user?.id
   )
 
-  // Charger les conversations
+  // Charger les conversations et s'abonner aux mises à jour en temps réel
   useEffect(() => {
     if (companyId) {
       loadConversations()
+      
+      // S'abonner aux nouvelles conversations
+      const conversationsChannel = supabase
+        .channel(`conversations_${companyId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'chat_conversations',
+            filter: `company_id=eq.${companyId}`
+          },
+          (payload) => {
+            console.log('Conversation updated:', payload)
+            loadConversations() // Recharger toutes les conversations
+          }
+        )
+        .subscribe()
+
+      // S'abonner aux nouveaux messages pour toutes les conversations
+      const messagesChannel = supabase
+        .channel(`messages_${companyId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages'
+          },
+          (payload) => {
+            console.log('New message received globally:', payload)
+            // Recharger les messages pour la conversation sélectionnée
+            if (selectedConversation) {
+              loadMessages(selectedConversation.id)
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(conversationsChannel)
+        supabase.removeChannel(messagesChannel)
+      }
     }
-  }, [companyId])
+  }, [companyId, selectedConversation, loadMessages])
 
   // Se connecter à la conversation sélectionnée
   useEffect(() => {
