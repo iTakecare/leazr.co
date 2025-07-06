@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { getSoundGenerator } from '@/utils/SoundGenerator';
 
 interface NotificationSettings {
   soundEnabled: boolean;
@@ -18,12 +19,6 @@ interface NotificationHook {
   setUnreadCount: (count: number) => void;
 }
 
-const SOUND_URLS = {
-  message: '/sounds/message.mp3', // You'll need to add these files
-  visitor: '/sounds/visitor.mp3',
-  alert: '/sounds/alert.mp3'
-};
-
 export const useNotifications = (): NotificationHook => {
   const [settings, setSettings] = useState<NotificationSettings>({
     soundEnabled: true,
@@ -32,17 +27,10 @@ export const useNotifications = (): NotificationHook => {
   });
   
   const [unreadCount, setUnreadCount] = useState(0);
-  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
+  const soundGeneratorRef = useRef(getSoundGenerator());
 
-  // Initialize audio elements
+  // Load settings from localStorage on mount
   useEffect(() => {
-    Object.entries(SOUND_URLS).forEach(([type, url]) => {
-      const audio = new Audio(url);
-      audio.volume = settings.volume;
-      audioRefs.current[type] = audio;
-    });
-
-    // Load settings from localStorage
     const savedSettings = localStorage.getItem('chat-notifications');
     if (savedSettings) {
       try {
@@ -54,13 +42,8 @@ export const useNotifications = (): NotificationHook => {
     }
   }, []);
 
-  // Update volume when settings change
+  // Save settings to localStorage when they change
   useEffect(() => {
-    Object.values(audioRefs.current).forEach(audio => {
-      audio.volume = settings.volume;
-    });
-
-    // Save settings to localStorage
     localStorage.setItem('chat-notifications', JSON.stringify(settings));
   }, [settings]);
 
@@ -71,14 +54,10 @@ export const useNotifications = (): NotificationHook => {
   const playSound = useCallback((type: 'message' | 'visitor' | 'alert') => {
     if (!settings.soundEnabled) return;
 
-    const audio = audioRefs.current[type];
-    if (audio) {
-      audio.currentTime = 0; // Reset to start
-      audio.play().catch(error => {
-        console.error('Error playing sound:', error);
-      });
-    }
-  }, [settings.soundEnabled]);
+    soundGeneratorRef.current.playSound(type, settings.volume).catch(error => {
+      console.error('Error playing synthetic sound:', error);
+    });
+  }, [settings.soundEnabled, settings.volume]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!('Notification' in window)) {
