@@ -72,7 +72,13 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
     if (!newData.equipment_data) newData.equipment_data = [];
     if (!newData.equipment_data[index]) newData.equipment_data[index] = {};
     
-    newData.equipment_data[index][field] = value;
+    // Special handling for serial numbers to maintain JSON array format
+    if (field === 'serial_number') {
+      newData.equipment_data[index][field] = setSerialNumberValue(value as string);
+    } else {
+      newData.equipment_data[index][field] = value;
+    }
+    
     setEditedData(newData);
   };
 
@@ -101,6 +107,20 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
 
   const getNestedValue = (obj: any, path: string) => {
     return path.split('.').reduce((o, key) => o?.[key], obj) || '';
+  };
+
+  // Utility functions for serial number formatting
+  const getSerialNumberDisplay = (serialNumber: any) => {
+    if (!serialNumber) return '';
+    if (Array.isArray(serialNumber)) {
+      return serialNumber.length > 0 ? serialNumber.join(', ') : '';
+    }
+    return serialNumber.toString();
+  };
+
+  const setSerialNumberValue = (value: string) => {
+    if (!value || value.trim() === '') return [];
+    return [value.trim()];
   };
 
   const renderEditableField = (label: string, path: string, type: 'text' | 'number' | 'email' = 'text') => {
@@ -271,13 +291,13 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
                       <TableCell>
                         {editMode ? (
                           <Input
-                            value={item.serial_number || ''}
+                            value={getSerialNumberDisplay(item.serial_number)}
                             onChange={(e) => updateEquipmentField(index, 'serial_number', e.target.value)}
                             className="w-full"
                             placeholder="Numéro de série"
                           />
                         ) : (
-                          item.serial_number || 'Non renseigné'
+                          getSerialNumberDisplay(item.serial_number) || 'Non renseigné'
                         )}
                       </TableCell>
                       <TableCell className="text-right">
