@@ -54,6 +54,8 @@ export const usePersistentChat = (): PersistentChatHook => {
 
   const [wsRef, setWsRef] = useState<WebSocket | null>(null);
   const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
+  const [agentStatusChannel, setAgentStatusChannel] = useState<any>(null);
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -93,6 +95,71 @@ export const usePersistentChat = (): PersistentChatHook => {
   const playNotificationSound = useCallback(() => {
     generateNotificationSound();
   }, []);
+
+  // Check agent availability for a company
+  const checkAgentAvailability = useCallback(async (companyId: string) => {
+    try {
+      const { data: isAvailable, error } = await supabase.rpc('is_company_chat_available', {
+        p_company_id: companyId
+      });
+
+      if (error) {
+        console.error('Error checking agent availability:', error);
+        return false;
+      }
+
+      return isAvailable || false;
+    } catch (error) {
+      console.error('Error checking agent availability:', error);
+      return false;
+    }
+  }, []);
+
+  // Set up agent status monitoring
+  const setupAgentStatusMonitoring = useCallback((companyId: string) => {
+    // Clean up existing subscription
+    if (agentStatusChannel) {
+      supabase.removeChannel(agentStatusChannel);
+    }
+
+    const channel = supabase
+      .channel(`agent_status_monitoring_${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_agent_status',
+          filter: `company_id=eq.${companyId}`
+        },
+        async () => {
+          console.log('🟢 Agent status changed, checking availability...');
+          const isAvailable = await checkAgentAvailability(companyId);
+          setState(prev => ({ ...prev, isConnected: isAvailable }));
+        }
+      )
+      .subscribe();
+
+    setAgentStatusChannel(channel);
+  }, [agentStatusChannel, checkAgentAvailability]);
+
+  // Monitor agent status when company ID is set
+  useEffect(() => {
+    if (currentCompanyId) {
+      setupAgentStatusMonitoring(currentCompanyId);
+      
+      // Check availability immediately
+      checkAgentAvailability(currentCompanyId).then(isAvailable => {
+        setState(prev => ({ ...prev, isConnected: isAvailable }));
+      });
+    }
+
+    return () => {
+      if (agentStatusChannel) {
+        supabase.removeChannel(agentStatusChannel);
+      }
+    };
+  }, [currentCompanyId, setupAgentStatusMonitoring, checkAgentAvailability]);
 
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
@@ -271,16 +338,13 @@ export const usePersistentChat = (): PersistentChatHook => {
 
 const initializeChat = useCallback(async (companyId: string, visitorName: string, visitorEmail?: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    // Store company ID for agent status monitoring
+    setCurrentCompanyId(companyId);
 
     try {
       // First check if company is available for chat
-      const { data: isAvailable, error: availabilityError } = await supabase.rpc('is_company_chat_available', {
-        p_company_id: companyId
-      });
-
-      if (availabilityError) {
-        console.error('Error checking availability:', availabilityError);
-      }
+      const isAvailable = await checkAgentAvailability(companyId);
 
       let conversationId = state.conversationId;
       
@@ -309,7 +373,7 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
           ...prev,
           conversationId,
           visitorInfo: { name: visitorName, email: visitorEmail },
-          isConnected: isAvailable || false
+          isConnected: isAvailable
         }));
 
         // Connect to WebSocket if available
@@ -322,6 +386,7 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
       } else {
         // Reconnect to existing conversation
         const visitorId = crypto.randomUUID(); // This should ideally be persisted too
+        setState(prev => ({ ...prev, isConnected: isAvailable }));
         if (isAvailable) {
           connectWebSocket(conversationId, companyId, visitorId);
         }
@@ -336,7 +401,7 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
         isLoading: false 
       }));
     }
-  }, [state.conversationId, connectWebSocket, loadMessages]);
+  }, [state.conversationId, connectWebSocket, loadMessages, checkAgentAvailability]);
 
   const sendMessage = useCallback(async (message: string) => {
     if (!state.conversationId || !state.visitorInfo) {
@@ -394,6 +459,11 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
       supabase.removeChannel(realtimeChannel);
       setRealtimeChannel(null);
     }
+    if (agentStatusChannel) {
+      supabase.removeChannel(agentStatusChannel);
+      setAgentStatusChannel(null);
+    }
+    setCurrentCompanyId(null);
     setState({
       conversationId: null,
       visitorInfo: null,
@@ -402,7 +472,7 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
       isLoading: false,
       error: null
     });
-  }, [wsRef, realtimeChannel]);
+  }, [wsRef, realtimeChannel, agentStatusChannel]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -413,8 +483,11 @@ const initializeChat = useCallback(async (companyId: string, visitorName: string
       if (realtimeChannel) {
         supabase.removeChannel(realtimeChannel);
       }
+      if (agentStatusChannel) {
+        supabase.removeChannel(agentStatusChannel);
+      }
     };
-  }, [wsRef, realtimeChannel]);
+  }, [wsRef, realtimeChannel, agentStatusChannel]);
 
   return {
     ...state,
