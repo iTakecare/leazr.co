@@ -2,6 +2,9 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
+import { PDFGenerationEngine } from "../pdfGenerationEngine";
+import { PDFTemplateService } from "../pdfTemplateService";
+import { saveAs } from "file-saver";
 
 /**
  * Récupère une offre complète avec les données client pour générer un PDF
@@ -113,9 +116,16 @@ export const getOfferDataForPdf = async (offerId: string) => {
 };
 
 /**
- * Génère et télécharge un PDF pour une offre
+ * Génère et télécharge un PDF pour une offre avec le nouveau système de templates
  */
-export const generateAndDownloadOfferPdf = async (offerId: string) => {
+export const generateAndDownloadOfferPdf = async (
+  offerId: string, 
+  options?: {
+    templateType?: string;
+    templateId?: string;
+    useNewEngine?: boolean;
+  }
+) => {
   if (!offerId) {
     console.error("ID d'offre manquant pour la génération du PDF");
     toast.error("Impossible de générer le PDF: identifiant d'offre manquant");
@@ -142,10 +152,41 @@ export const generateAndDownloadOfferPdf = async (offerId: string) => {
       client_name: offerData.client_name,
       client_email: offerData.client_email,
       amount: offerData.amount,
-      monthly_payment: offerData.monthly_payment
+      monthly_payment: offerData.monthly_payment,
+      company_id: offerData.company_id
     });
+
+    // Utiliser le nouveau moteur si demandé et si un company_id est disponible
+    if (options?.useNewEngine && offerData.company_id) {
+      try {
+        console.log("Utilisation du nouveau moteur de génération PDF");
+        
+        const pdfBytes = await PDFGenerationEngine.generateOfferPDF({
+          offerId,
+          companyId: offerData.company_id,
+          templateType: options.templateType || 'standard',
+          templateId: options.templateId
+        });
+
+        // Créer un blob et télécharger
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const filename = `offre-${offerData.offer_id || offerId}.pdf`;
+        saveAs(blob, filename);
+        
+        console.log("PDF généré avec le nouveau moteur et téléchargé avec succès");
+        toast.success(`PDF généré avec succès: ${filename}`);
+        return filename;
+      } catch (engineError) {
+        console.warn("Erreur avec le nouveau moteur, fallback vers l'ancien:", engineError);
+        toast.warning("Utilisation du système classique suite à une erreur");
+        // Continuer avec l'ancien système en cas d'erreur
+      }
+    }
+
+    // Ancien système (fallback ou par défaut)
+    console.log("Utilisation de l'ancien système de génération PDF");
     
-    // Générer le PDF
+    // Générer le PDF avec l'ancien système
     const filename = await generateOfferPdf(offerData);
     
     if (!filename) {
