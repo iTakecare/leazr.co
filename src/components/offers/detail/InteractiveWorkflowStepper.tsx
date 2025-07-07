@@ -61,9 +61,18 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {
     const currentIndex = getCurrentStepIndex();
     
+    console.log("🔍 STEPPER DEBUG - Step clicked:", {
+      targetStatus,
+      targetIndex,
+      currentIndex,
+      currentStatus,
+      hasAnalysisClick: !!onAnalysisClick
+    });
+    
     // Gérer les clics sur les étapes d'analyse pour ouvrir la modale
     if ((targetStatus === 'internal_review' || targetStatus === 'leaser_review') && onAnalysisClick) {
       const analysisType = targetStatus === 'internal_review' ? 'internal' : 'leaser';
+      console.log("🎯 STEPPER DEBUG - Calling onAnalysisClick with:", analysisType);
       onAnalysisClick(analysisType);
       return;
     }
