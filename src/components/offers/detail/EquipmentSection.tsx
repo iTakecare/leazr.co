@@ -120,7 +120,7 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
                       <span className="w-4 h-4 text-gray-500">%</span>
                       <div>
                         <p className="text-gray-500">Marge (%)</p>
-                        <p className="font-medium">{((item.margin / item.purchasePrice) * 100).toFixed(1)}%</p>
+                        <p className="font-medium">{item.margin.toFixed(1)}%</p>
                       </div>
                     </div>
                   )}
