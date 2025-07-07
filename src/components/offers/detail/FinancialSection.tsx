@@ -46,23 +46,22 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
       });
     }
 
-    // Sinon, utiliser les données de l'offre comme fallback
+    // Fallback: essayer d'extraire le prix d'achat depuis les données de l'offre
+    // Si on n'a pas d'équipements détaillés, utiliser 0 pour éviter les erreurs
     return {
-      totalPurchasePrice: offer.amount || 0, // Utiliser amount (prix d'achat) au lieu de financed_amount
-      totalMonthlyPayment: offer.monthly_payment || 0 // Prix fixe du catalogue (pour les demandes clients)
+      totalPurchasePrice: 0,
+      totalMonthlyPayment: offer.monthly_payment || 0
     };
   };
   const totals = calculateEquipmentTotals();
-  const financedAmount = offer.financed_amount || totals.totalPurchasePrice + (offer.margin || 0);
-
-  // Calculer la marge en montant avec fonction utilitaire consistante
-  const displayMargin = calculateOfferMargin({
-    amount: totals.totalPurchasePrice,
-    financed_amount: financedAmount,
-    margin: offer.margin
-  }) || 0;
   
-  // Calculer le pourcentage de marge basé sur le montant réel
+  // Utiliser offer.amount comme montant financé (10639,44€) au lieu de offer.financed_amount
+  const financedAmount = offer.amount || 0;
+
+  // Calculer la marge directement : montant financé - prix d'achat total
+  const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
+  
+  // Calculer le pourcentage de marge basé sur le prix d'achat
   const marginPercentage = totals.totalPurchasePrice > 0 ? (displayMargin / totals.totalPurchasePrice) * 100 : 0;
 
   const displayCommission = shouldShowCommission ? offer.commission || 0 : 0;
