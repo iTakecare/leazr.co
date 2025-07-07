@@ -97,10 +97,12 @@ export const updateOfferStatus = async (
 
     // Si le statut est financed, créer automatiquement un contrat
     if (newStatus === 'financed') {
-      console.log("🔄 Démarrage de la conversion automatique en contrat...");
+      console.log("🔄 DÉBUT: Conversion automatique vers contrat pour l'offre:", offerId);
+      console.log("🔄 Statut précédent:", safePreviousStatus, "-> Nouveau statut:", newStatus);
       
       try {
         // Récupérer les infos nécessaires pour créer le contrat
+        console.log("📋 ÉTAPE 1: Récupération des données de l'offre...");
         const { data: offerData, error: offerDataError } = await supabase
           .from('offers')
           .select('*')
@@ -108,51 +110,48 @@ export const updateOfferStatus = async (
           .single();
         
         if (offerDataError || !offerData) {
+          console.error("❌ ERREUR ÉTAPE 1: Impossible de récupérer l'offre:", offerDataError);
           throw new Error("Impossible de récupérer les détails de l'offre");
         }
         
-        console.log("📋 Données de l'offre récupérées:", {
+        console.log("✅ ÉTAPE 1: Données de l'offre récupérées:", {
           id: offerData.id,
           client_name: offerData.client_name,
-          monthly_payment: offerData.monthly_payment
+          monthly_payment: offerData.monthly_payment,
+          client_id: offerData.client_id,
+          company_id: offerData.company_id,
+          user_id: offerData.user_id
         });
         
         // Utiliser un bailleur par défaut (pourrait être amélioré pour permettre le choix)
         const leaserName = "Grenke";
         const leaserLogo = "https://logo.clearbit.com/grenke.com";
         
-        console.log("🏢 Création du contrat avec le bailleur:", leaserName);
+        console.log("🏢 ÉTAPE 2: Création du contrat avec le bailleur:", leaserName);
         
         const contractId = await createContractFromOffer(offerId, leaserName, leaserLogo);
         
         if (contractId) {
-          console.log("✅ Contrat créé avec succès - ID:", contractId);
-          
-          // Marquer l'offre comme convertie en contrat mais garder le statut "accepted"
-          const { error: conversionError } = await supabase
-            .from('offers')
-            .update({ 
-              converted_to_contract: true,
-              status: 'accepted' // Explicitement définir le statut comme accepté
-            })
-            .eq('id', offerId);
-            
-          if (conversionError) {
-            console.error("❌ Erreur lors de la mise à jour du statut de conversion:", conversionError);
-            toast.error("Le contrat a été créé mais l'offre n'a pas pu être marquée comme convertie");
-          } else {
-            console.log("✅ Offre marquée comme convertie en contrat avec statut accepté");
-            toast.success(`Offre acceptée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
-          }
+          console.log("✅ ÉTAPE 2: Contrat créé avec succès - ID:", contractId);
+          console.log("✅ SUCCÈS: Conversion automatique terminée avec succès");
+          toast.success(`Offre financée avec succès ! Contrat créé (ID: ${contractId.substring(0, 8)})`);
         } else {
-          throw new Error("Échec de la création du contrat");
+          console.error("❌ ÉTAPE 2: Échec de la création du contrat - contractId est null");
+          throw new Error("La fonction createContractFromOffer a retourné null");
         }
       } catch (contractError) {
-        console.error("❌ Erreur lors de la création du contrat:", contractError);
-        toast.error(`L'offre a été finalisée mais nous n'avons pas pu créer le contrat: ${contractError.message}`);
+        console.error("❌ ERREUR GLOBALE: Erreur lors de la création du contrat:", contractError);
+        console.error("❌ Stack trace:", contractError.stack);
+        toast.error(`Erreur lors de la conversion en contrat: ${contractError.message}`);
         
         // Optionnel : revenir au statut précédent en cas d'échec
-        // await supabase.from('offers').update({ workflow_status: safePreviousStatus }).eq('id', offerId);
+        console.log("🔄 Tentative de restauration du statut précédent...");
+        try {
+          await supabase.from('offers').update({ workflow_status: safePreviousStatus }).eq('id', offerId);
+          console.log("✅ Statut restauré vers:", safePreviousStatus);
+        } catch (rollbackError) {
+          console.error("❌ Impossible de restaurer le statut:", rollbackError);
+        }
       }
     }
     
