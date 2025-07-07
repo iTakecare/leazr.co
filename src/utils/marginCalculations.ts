@@ -68,13 +68,19 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
  * Uses the exact same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
  */
 export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
+  console.log("🔍 calculateOfferMargin - offer.amount:", offer.amount);
+  console.log("🔍 calculateOfferMargin - equipmentItems:", equipmentItems);
+  
   const totals = calculateEquipmentTotals(offer, equipmentItems);
+  console.log("🔍 calculateOfferMargin - totals:", totals);
   
   // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
   const financedAmount = getFinancedAmount(offer);
+  console.log("🔍 calculateOfferMargin - financedAmount:", financedAmount);
 
   // Calculer la marge directement : montant financé - prix d'achat total
   const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
+  console.log("🔍 calculateOfferMargin - displayMargin calculated:", displayMargin);
   
   return displayMargin;
 };
