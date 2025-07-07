@@ -34,6 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 import { sendOfferReadyEmail } from "@/services/emailService";
+import ScoringModal from "@/components/offers/detail/ScoringModal";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,8 @@ const OfferDetail = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [scoringModalOpen, setScoringModalOpen] = useState(false);
+  const [currentAnalysisType, setCurrentAnalysisType] = useState<'internal' | 'leaser' | null>(null);
   
   // Logs de débogage
   console.log("OfferDetail - ID from params:", id);
@@ -204,6 +207,12 @@ const OfferDetail = () => {
     } finally {
       setIsSendingEmail(false);
     }
+  };
+
+  const handleAnalysisClick = (analysisType: 'internal' | 'leaser') => {
+    console.log("🎯 OfferDetail - Analysis clicked:", analysisType);
+    setCurrentAnalysisType(analysisType);
+    setScoringModalOpen(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -454,6 +463,8 @@ const OfferDetail = () => {
                         lastUpdated={offer.updated_at}
                         isAdmin={true}
                         onStatusChange={handleStatusChange}
+                        onAnalysisClick={handleAnalysisClick}
+                        offer={offer}
                       />
                     </TabsContent>
                   </div>
@@ -545,6 +556,19 @@ const OfferDetail = () => {
       <Container>
         <div className="py-6">{renderContent()}</div>
       </Container>
+      
+      <ScoringModal
+        isOpen={scoringModalOpen}
+        onClose={() => setScoringModalOpen(false)}
+        offerId={id || ""}
+        currentStatus={offer?.workflow_status || "draft"}
+        analysisType={currentAnalysisType || 'internal'}
+        onScoreAssigned={async (score, reason) => {
+          setScoringModalOpen(false);
+          fetchOffer();
+        }}
+        isLoading={false}
+      />
     </PageTransition>
   );
 };

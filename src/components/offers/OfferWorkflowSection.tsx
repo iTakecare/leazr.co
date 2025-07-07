@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getWorkflowHistory, getCompletedStatuses, updateOfferStatus } from "@/services/offers/offerStatus";
-import OfferWorkflowVisualizer from "./workflow/OfferWorkflowVisualizer";
+import InteractiveWorkflowStepper from "./detail/InteractiveWorkflowStepper";
 import OfferWorkflowHistory from "./workflow/OfferWorkflowHistory";
 import StatusChangeDialog from "./workflow/StatusChangeDialog";
 import { OFFER_STATUSES } from "./OfferStatusBadge";
@@ -17,6 +17,8 @@ interface OfferWorkflowSectionProps {
   lastUpdated?: string;
   isAdmin?: boolean;
   onStatusChange?: (newStatus: string) => void;
+  onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
+  offer?: any;
 }
 
 const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
@@ -25,6 +27,8 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   lastUpdated,
   isAdmin = false,
   onStatusChange,
+  onAnalysisClick,
+  offer,
 }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [completedStatuses, setCompletedStatuses] = useState<string[]>([]);
@@ -145,11 +149,12 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
             </TabsList>
             
             <TabsContent value="workflow" className="py-4">
-              <OfferWorkflowVisualizer
+              <InteractiveWorkflowStepper
                 currentStatus={currentStatus}
-                completedStatuses={completedStatuses}
-                onStatusChange={isAdmin ? handleStatusClick : undefined}
-                lastUpdated={lastUpdated}
+                offerId={offerId}
+                onStatusChange={onStatusChange}
+                onAnalysisClick={onAnalysisClick}
+                offer={offer}
               />
               
               {isAdmin && (
