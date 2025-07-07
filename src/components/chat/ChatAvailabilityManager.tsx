@@ -90,7 +90,14 @@ export const ChatAvailabilityManager: React.FC<ChatAvailabilityManagerProps> = (
           throw error;
         }
 
-        setAvailabilityHours(data || []);
+        // Normaliser le format des heures (HH:MM:SS -> HH:MM)
+        const normalizedData = (data || []).map(hour => ({
+          ...hour,
+          start_time: hour.start_time?.substring(0, 5) || hour.start_time,
+          end_time: hour.end_time?.substring(0, 5) || hour.end_time
+        }));
+
+        setAvailabilityHours(normalizedData);
       } catch (error) {
         console.error('Error loading availability hours:', error);
         toast({
