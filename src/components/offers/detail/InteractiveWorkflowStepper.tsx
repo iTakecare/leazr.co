@@ -23,12 +23,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
   const steps = [
     { key: 'draft', label: 'Brouillon', icon: Circle },
-    { key: 'sent', label: 'Envoyée', icon: Clock },
-    { key: 'viewed', label: 'Vue', icon: Clock },
-    { key: 'info_requested', label: 'Infos demandées', icon: HelpCircle },
-    { key: 'signed', label: 'Signée', icon: CheckCircle },
-    { key: 'approved', label: 'Approuvée', icon: CheckCircle },
-    { key: 'financed', label: 'Finalisée', icon: CheckCircle }
+    { key: 'sent', label: 'Offre envoyée', icon: Clock },
+    { key: 'internal_review', label: 'Analyse interne', icon: HelpCircle },
+    { key: 'leaser_review', label: 'Analyse Leaser', icon: HelpCircle },
+    { key: 'validated', label: 'Offre validée', icon: CheckCircle }
   ];
 
   const getCurrentStepIndex = () => {
@@ -48,9 +46,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       return; // Pas de changement nécessaire
     }
 
-    // Confirmation spéciale pour la finalisation (conversion en contrat)
-    const confirmMessage = targetStatus === 'financed' 
-      ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
+    // Confirmation spéciale pour la validation (conversion en contrat)
+    const confirmMessage = targetStatus === 'validated' 
+      ? `Confirmer la validation de l'offre ? Cela créera automatiquement un contrat.`
       : targetIndex > currentIndex 
         ? `Confirmer le passage à l'étape "${steps[targetIndex].label}" ?`
         : `Confirmer le retour à l'étape "${steps[targetIndex].label}" ?`;
@@ -67,8 +65,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         offerId,
         targetStatus,
         currentStatus,
-        targetStatus === 'financed' 
-          ? `Finalisation manuelle - Conversion en contrat`
+        targetStatus === 'validated' 
+          ? `Validation manuelle - Conversion en contrat`
           : `Changement manuel depuis le stepper`
       );
 
@@ -77,9 +75,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
           onStatusChange(targetStatus);
         }
 
-        // Message de succès spécial pour la finalisation
-        if (targetStatus === 'financed') {
-          toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
+        // Message de succès spécial pour la validation
+        if (targetStatus === 'validated') {
+          toast.success(`Offre validée ! Un contrat va être créé automatiquement.`);
         } else {
           toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
         }
@@ -150,10 +148,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                 )}
               </div>
               <div className="mt-2 text-center">
-                <Badge 
+                 <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
                   className={`text-xs whitespace-nowrap px-2 py-1 ${
-                    step.key === 'financed' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
+                    step.key === 'validated' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
                   }`}
                 >
                   {step.label}
@@ -168,7 +166,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         Cliquez sur une étape pour modifier le statut
         {currentIndex === steps.length - 2 && (
           <div className="mt-2 text-orange-600 font-medium">
-            ⚠️ L'étape "Finalisée" convertira automatiquement l'offre en contrat
+            ⚠️ L'étape "Offre validée" convertira automatiquement l'offre en contrat
           </div>
         )}
       </div>

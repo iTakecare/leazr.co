@@ -14,11 +14,10 @@ const WorkflowStepper: React.FC<WorkflowStepperProps> = ({
 }) => {
   const steps = [
     { key: 'draft', label: 'Brouillon', icon: Circle },
-    { key: 'sent', label: 'Envoyée', icon: Clock },
-    { key: 'viewed', label: 'Vue', icon: Clock },
-    { key: 'signed', label: 'Signée', icon: CheckCircle },
-    { key: 'approved', label: 'Approuvée', icon: CheckCircle },
-    { key: 'completed', label: 'Finalisée', icon: CheckCircle }
+    { key: 'sent', label: 'Offre envoyée', icon: Clock },
+    { key: 'internal_review', label: 'Analyse interne', icon: Clock },
+    { key: 'leaser_review', label: 'Analyse Leaser', icon: Clock },
+    { key: 'validated', label: 'Offre validée', icon: CheckCircle }
   ];
 
   const getCurrentStepIndex = () => {

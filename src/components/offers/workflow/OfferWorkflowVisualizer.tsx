@@ -21,9 +21,15 @@ const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
   lastUpdated,
   completionPercentage = 0,
 }) => {
-  // Filtrer les colonnes pour exclure "rejected" du workflow normal
+  // Nouveau workflow à 5 étapes principales
   const workflowSteps = KANBAN_COLUMNS.filter(
-    (column) => column.id !== OFFER_STATUSES.REJECTED.id
+    (column) => [
+      OFFER_STATUSES.DRAFT.id,
+      OFFER_STATUSES.SENT.id,
+      OFFER_STATUSES.INTERNAL_REVIEW.id,
+      OFFER_STATUSES.LEASER_REVIEW.id,
+      OFFER_STATUSES.VALIDATED.id
+    ].includes(column.id)
   );
 
   // Déterminer le pourcentage de progression
@@ -57,7 +63,7 @@ const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         {workflowSteps.map((step, index) => {
           const StepIcon = step.icon;
           const completed = isCompleted(step.id);
