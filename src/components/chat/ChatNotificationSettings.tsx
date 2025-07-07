@@ -7,7 +7,7 @@ import { Bell, Volume2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export const ChatNotificationSettings: React.FC = () => {
-  const { settings, updateSettings, playSound } = useNotifications();
+  const { settings, updateSettings, playSound, audioContextReady, activateAudio } = useNotifications();
 
   return (
     <Card className="border-0 shadow-lg bg-background/95 backdrop-blur-sm">
@@ -26,6 +26,14 @@ export const ChatNotificationSettings: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               Jouer des sons pour les notifications
             </p>
+            {settings.soundEnabled && (
+              <div className="flex items-center gap-1 mt-1">
+                <div className={`w-2 h-2 rounded-full ${audioContextReady ? 'bg-green-500' : 'bg-orange-500'}`} />
+                <span className="text-xs text-muted-foreground">
+                  {audioContextReady ? 'Audio prêt' : 'Cliquez pour activer'}
+                </span>
+              </div>
+            )}
           </div>
           <Switch
             checked={settings.soundEnabled}
@@ -70,7 +78,16 @@ export const ChatNotificationSettings: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => playSound('message')}
+            onClick={async () => {
+              if (!audioContextReady) {
+                const activated = await activateAudio();
+                if (!activated) {
+                  console.warn('Impossible d\'activer l\'audio');
+                  return;
+                }
+              }
+              playSound('message');
+            }}
             disabled={!settings.soundEnabled}
             className="w-full"
           >
