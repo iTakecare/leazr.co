@@ -273,7 +273,14 @@ export const EnhancedAdminDashboard: React.FC = () => {
             
             // Play sound for new visitor messages
             if (newMessage.sender_type === 'visitor') {
-              playSound('message');
+              console.log('🔊 Tentative de jouer le son pour nouveau message visiteur');
+              try {
+                playSound('visitor');
+                console.log('✅ Son joué avec succès');
+              } catch (error) {
+                console.error('❌ Erreur lors du son:', error);
+              }
+              
               showNotification(
                 'Nouveau message',
                 `${newMessage.sender_name}: ${newMessage.message.substring(0, 50)}${newMessage.message.length > 50 ? '...' : ''}`,

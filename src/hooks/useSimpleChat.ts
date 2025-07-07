@@ -44,7 +44,8 @@ const generateNotificationSound = () => {
 const STORAGE_KEYS = {
   CONVERSATION_ID: 'simple_chat_conversation_id',
   VISITOR_INFO: 'simple_chat_visitor_info',
-  WIDGET_STATE: 'simple_chat_widget_state'
+  WIDGET_STATE: 'simple_chat_widget_state',
+  COMPANY_ID: 'simple_chat_company_id'
 };
 
 // Fonction pour sauvegarder dans localStorage
@@ -82,6 +83,10 @@ export const useSimpleChat = (): SimpleChatHook => {
       error: null
     };
   });
+
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(
+    loadFromStorage<string>(STORAGE_KEYS.COMPANY_ID)
+  );
 
   const realtimeChannelRef = useRef<any>(null);
   const agentStatusChannelRef = useRef<any>(null);
@@ -214,7 +219,7 @@ export const useSimpleChat = (): SimpleChatHook => {
 
   // Fonction pour restaurer une conversation existante
   const restoreExistingConversation = useCallback(async (conversationId: string, companyId: string) => {
-    console.log('🔄 Restauration de la conversation:', conversationId);
+    console.log('🔄 Restauration de la conversation:', conversationId, 'pour company:', companyId);
     
     try {
       // Vérifier que la conversation existe encore
@@ -229,6 +234,7 @@ export const useSimpleChat = (): SimpleChatHook => {
         // Conversation n'existe plus, nettoyer le localStorage
         localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
         localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
+        localStorage.removeItem(STORAGE_KEYS.COMPANY_ID);
         setState(prev => ({ 
           ...prev, 
           conversationId: null, 
@@ -237,6 +243,10 @@ export const useSimpleChat = (): SimpleChatHook => {
         }));
         return;
       }
+
+      // Sauvegarder le companyId
+      setCurrentCompanyId(companyId);
+      saveToStorage(STORAGE_KEYS.COMPANY_ID, companyId);
 
       // Reconnecter aux channels temps réel d'abord
       setupRealtimeSubscription(conversationId);
@@ -274,20 +284,26 @@ export const useSimpleChat = (): SimpleChatHook => {
 
   // Effet pour restaurer automatiquement une conversation au démarrage
   useEffect(() => {
-    if (!hasRestoredRef.current && state.conversationId && state.visitorInfo) {
+    if (!hasRestoredRef.current && state.conversationId && state.visitorInfo && currentCompanyId) {
       hasRestoredRef.current = true;
-      
-      // Déterminer le companyId depuis l'URL ou le contexte
+      console.log('🔄 Auto-restauration avec companyId:', currentCompanyId);
+      restoreExistingConversation(state.conversationId, currentCompanyId);
+    } else if (!hasRestoredRef.current && state.conversationId && state.visitorInfo && !currentCompanyId) {
+      // Essayer de détecter le companyId depuis l'URL en fallback
       const currentPath = window.location.pathname;
       const companyIdMatch = currentPath.match(/\/public\/([^\/]+)/);
       
       if (companyIdMatch) {
         const companyId = companyIdMatch[1];
+        console.log('🔄 CompanyId détecté depuis URL:', companyId);
+        hasRestoredRef.current = true;
         restoreExistingConversation(state.conversationId, companyId);
       } else {
-        // Si on ne peut pas déterminer le companyId, nettoyer le localStorage
+        console.log('❌ Impossible de déterminer le companyId, nettoyage');
+        hasRestoredRef.current = true;
         localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
         localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
+        localStorage.removeItem(STORAGE_KEYS.COMPANY_ID);
         setState(prev => ({ 
           ...prev, 
           conversationId: null, 
@@ -296,7 +312,7 @@ export const useSimpleChat = (): SimpleChatHook => {
         }));
       }
     }
-  }, [state.conversationId, state.visitorInfo, restoreExistingConversation]);
+  }, [state.conversationId, state.visitorInfo, currentCompanyId, restoreExistingConversation]);
 
   // Effet pour sauvegarder les données importantes
   useEffect(() => {
@@ -313,9 +329,14 @@ export const useSimpleChat = (): SimpleChatHook => {
 
   // Initialize chat
   const initializeChat = useCallback(async (companyId: string, visitorName: string, visitorEmail?: string) => {
+    console.log('🚀 Initialisation du chat pour company:', companyId, 'visitor:', visitorName);
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      // Sauvegarder le companyId
+      setCurrentCompanyId(companyId);
+      saveToStorage(STORAGE_KEYS.COMPANY_ID, companyId);
+      
       // Check agent availability
       const isAvailable = await checkAgentAvailability(companyId);
       
@@ -370,9 +391,11 @@ export const useSimpleChat = (): SimpleChatHook => {
       return;
     }
 
-    // Create optimistic message object
+    console.log('📤 Envoi du message:', message);
+
+    // Create optimistic message with special flag
     const optimisticMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: `optimistic-${crypto.randomUUID()}`,
       conversation_id: state.conversationId,
       sender_type: 'visitor',
       sender_name: state.visitorInfo.name,
@@ -402,6 +425,16 @@ export const useSimpleChat = (): SimpleChatHook => {
       if (error) {
         throw error;
       }
+
+      // Remove optimistic message after successful send
+      // The real message will come through realtime
+      setTimeout(() => {
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.filter(msg => msg.id !== optimisticMessage.id)
+        }));
+      }, 1000);
+
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove optimistic message on error
@@ -415,6 +448,7 @@ export const useSimpleChat = (): SimpleChatHook => {
 
   // Clear chat
   const clearChat = useCallback(() => {
+    console.log('🧹 Nettoyage du chat');
     if (realtimeChannelRef.current) {
       supabase.removeChannel(realtimeChannelRef.current);
       realtimeChannelRef.current = null;
@@ -428,6 +462,10 @@ export const useSimpleChat = (): SimpleChatHook => {
     localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
     localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
     localStorage.removeItem(STORAGE_KEYS.WIDGET_STATE);
+    localStorage.removeItem(STORAGE_KEYS.COMPANY_ID);
+    
+    setCurrentCompanyId(null);
+    hasRestoredRef.current = false;
     
     setState({
       conversationId: null,
