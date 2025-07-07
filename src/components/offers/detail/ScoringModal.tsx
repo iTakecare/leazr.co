@@ -58,7 +58,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [isSending, setIsSending] = useState(false);
 
   const isInternalAnalysis = analysisType === 'internal';
-  const canScore = currentStatus === (isInternalAnalysis ? 'sent' : 'internal_approved');
+  
+  // Déterminer si le scoring est possible selon le type d'analyse et le statut
+  const canScore = isInternalAnalysis 
+    ? ['draft', 'internal_review'].includes(currentStatus)
+    : ['internal_approved', 'leaser_review'].includes(currentStatus);
 
   const scoreOptions = [
     {
