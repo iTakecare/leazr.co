@@ -13,6 +13,7 @@ interface InteractiveWorkflowStepperProps {
   onStatusChange?: (status: string) => void;
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
+  onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
 }
 
 const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({ 
@@ -20,15 +21,16 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   offerId,
   onStatusChange,
   internalScore,
-  leaserScore
+  leaserScore,
+  onAnalysisClick
 }) => {
   const { user } = useAuth();
   const [updating, setUpdating] = useState(false);
 
   const steps = [
     { key: 'draft', label: 'Brouillon', icon: Circle },
-    { key: 'sent', label: 'Offre envoyée', icon: Clock },
     { key: 'internal_review', label: 'Analyse interne', icon: HelpCircle },
+    { key: 'sent', label: 'Offre envoyée', icon: Clock },
     { key: 'leaser_review', label: 'Analyse Leaser', icon: HelpCircle },
     { key: 'validated', label: 'Offre validée', icon: CheckCircle }
   ];
@@ -39,6 +41,13 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {
     const currentIndex = getCurrentStepIndex();
+    
+    // Gérer les clics sur les étapes d'analyse pour ouvrir la modale
+    if ((targetStatus === 'internal_review' || targetStatus === 'leaser_review') && onAnalysisClick) {
+      const analysisType = targetStatus === 'internal_review' ? 'internal' : 'leaser';
+      onAnalysisClick(analysisType);
+      return;
+    }
     
     // Ne permettre que d'avancer d'une étape à la fois ou de revenir en arrière
     if (targetIndex > currentIndex + 1) {
@@ -105,6 +114,12 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     if (stepKey === 'internal_review') return internalScore;
     if (stepKey === 'leaser_review') return leaserScore;
     return null;
+  };
+
+  const isWaitingForDocuments = (stepKey: string) => {
+    if (stepKey === 'internal_review') return currentStatus === 'internal_docs_requested';
+    if (stepKey === 'leaser_review') return currentStatus === 'leaser_docs_requested';
+    return false;
   };
 
   const getScoreBadgeColor = (score: 'A' | 'B' | 'C') => {
@@ -184,6 +199,18 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                       className={`text-xs ${getScoreBadgeColor(getScoreForStep(step.key)!)}`}
                     >
                       Score {getScoreForStep(step.key)}
+                    </Badge>
+                  </div>
+                )}
+                
+                {/* Badge "Attente d'informations" pour les étapes en attente de documents */}
+                {(step.key === 'internal_review' || step.key === 'leaser_review') && isWaitingForDocuments(step.key) && (
+                  <div className="flex justify-center mt-1">
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                    >
+                      Attente d'info
                     </Badge>
                   </div>
                 )}

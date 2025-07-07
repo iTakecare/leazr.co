@@ -23,7 +23,7 @@ import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSide
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
-import OfferScoringInterface from "@/components/offers/detail/OfferScoringInterface";
+import ScoringModal from "@/components/offers/detail/ScoringModal";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +37,8 @@ const AdminOfferDetail = () => {
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [scoringLoading, setScoringLoading] = useState(false);
+  const [scoringModalOpen, setScoringModalOpen] = useState(false);
+  const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
 
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
 
@@ -158,6 +160,11 @@ const AdminOfferDetail = () => {
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
+  };
+
+  const handleAnalysisClick = (analysisType: 'internal' | 'leaser') => {
+    setScoringAnalysisType(analysisType);
+    setScoringModalOpen(true);
   };
 
   const handleInternalScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
@@ -298,29 +305,9 @@ const AdminOfferDetail = () => {
               onStatusChange={handleStatusChange}
               internalScore={getScoreFromStatus(offer.workflow_status || '')}
               leaserScore={getScoreFromStatus(offer.workflow_status || '')}
+              onAnalysisClick={handleAnalysisClick}
             />
 
-            {/* Interface de scoring pour analyse interne */}
-            {(offer.workflow_status === 'sent' || offer.workflow_status === 'internal_review') && (
-              <OfferScoringInterface
-                offerId={offer.id}
-                currentStatus={offer.workflow_status}
-                analysisType="internal"
-                onScoreAssigned={handleInternalScoring}
-                isLoading={scoringLoading}
-              />
-            )}
-
-            {/* Interface de scoring pour analyse leaser */}
-            {(offer.workflow_status === 'internal_approved' || offer.workflow_status === 'leaser_review') && (
-              <OfferScoringInterface
-                offerId={offer.id}
-                currentStatus={offer.workflow_status}
-                analysisType="leaser"
-                onScoreAssigned={handleLeaserScoring}
-                isLoading={scoringLoading}
-              />
-            )}
 
             {/* Layout principal avec sidebar - structure flexible pour le scroll */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0">
@@ -382,6 +369,17 @@ const AdminOfferDetail = () => {
           onClose={() => setIsRequestInfoModalOpen(false)}
           offerId={id || ''}
           onSuccess={() => window.location.reload()}
+        />
+
+        {/* Modal de scoring */}
+        <ScoringModal
+          isOpen={scoringModalOpen}
+          onClose={() => setScoringModalOpen(false)}
+          offerId={offer.id}
+          currentStatus={offer.workflow_status}
+          analysisType={scoringAnalysisType}
+          onScoreAssigned={scoringAnalysisType === 'internal' ? handleInternalScoring : handleLeaserScoring}
+          isLoading={scoringLoading}
         />
       </Container>
     </PageTransition>
