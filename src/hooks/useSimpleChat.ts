@@ -68,7 +68,7 @@ const loadFromStorage = <T>(key: string): T | null => {
   }
 };
 
-export const useSimpleChat = (): SimpleChatHook => {
+export const useSimpleChat = (initialCompanyId?: string): SimpleChatHook => {
   // Initialiser l'état avec les données persistées
   const [state, setState] = useState<SimpleChatState>(() => {
     const savedConversationId = loadFromStorage<string>(STORAGE_KEYS.CONVERSATION_ID);
@@ -85,7 +85,7 @@ export const useSimpleChat = (): SimpleChatHook => {
   });
 
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(
-    loadFromStorage<string>(STORAGE_KEYS.COMPANY_ID)
+    initialCompanyId || loadFromStorage<string>(STORAGE_KEYS.COMPANY_ID)
   );
 
   const realtimeChannelRef = useRef<any>(null);
@@ -313,6 +313,22 @@ export const useSimpleChat = (): SimpleChatHook => {
       }
     }
   }, [state.conversationId, state.visitorInfo, currentCompanyId, restoreExistingConversation]);
+
+  // Effet pour vérifier le statut agent initial même sans conversation
+  useEffect(() => {
+    if (currentCompanyId && !state.conversationId && !hasRestoredRef.current) {
+      const checkInitialAgentStatus = async () => {
+        console.log('🔍 Vérification statut agent pour companyId:', currentCompanyId);
+        const isAvailable = await checkAgentAvailability(currentCompanyId);
+        setState(prev => ({ ...prev, isConnected: isAvailable }));
+        
+        // Commencer la surveillance du statut agent
+        setupAgentStatusMonitoring(currentCompanyId);
+      };
+      
+      checkInitialAgentStatus();
+    }
+  }, [currentCompanyId, state.conversationId, checkAgentAvailability, setupAgentStatusMonitoring]);
 
   // Effet pour sauvegarder les données importantes
   useEffect(() => {

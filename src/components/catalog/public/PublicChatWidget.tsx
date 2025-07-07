@@ -41,7 +41,7 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
     sendMessage,
     clearChat,
     playNotificationSound
-  } = useSimpleChat()
+  } = useSimpleChat(companyId)
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
