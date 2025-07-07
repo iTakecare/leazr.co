@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
 import { useCart } from "@/context/CartContext";
 
-const SimpleHeader = () => {
+interface SimpleHeaderProps {
+  companyId?: string;
+}
+
+const SimpleHeader = ({ companyId }: SimpleHeaderProps) => {
   const { cartCount } = useCart();
   
   return (
@@ -23,7 +27,7 @@ const SimpleHeader = () => {
           </Link>
           
           <Link
-            to="/panier"
+            to={companyId ? `/public/${companyId}/panier` : "/panier"}
             className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Voir le panier"
           >

@@ -14,6 +14,7 @@ import { Product } from "@/types/catalog";
 import { useCart } from "@/context/CartContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
 import { PublicChatWidget } from "@/components/catalog/public/PublicChatWidget";
+import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 
 const PublicCatalogAnonymous = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -115,67 +116,7 @@ const PublicCatalogAnonymous = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Company Header */}
-      <header className="bg-white border-b shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <CompanyLogo 
-                logoSize="sm" 
-                className="h-10"
-              />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{company?.name}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  {company?.contact_phone && (
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      <span>{company.contact_phone}</span>
-                    </div>
-                  )}
-                  {company?.contact_email && (
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      <span>{company.contact_email}</span>
-                    </div>
-                  )}
-                  {company?.website_url && (
-                    <div className="flex items-center gap-1">
-                      <ExternalLink className="h-3 w-3" />
-                      <a 
-                        href={company.website_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="hover:text-primary"
-                      >
-                        Site web
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                onClick={handleCartClick}
-                className="relative flex items-center gap-2"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Panier
-                {cartCount > 0 && (
-                  <Badge 
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    {cartCount}
-                  </Badge>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SimpleHeader companyId={companyId} />
       
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}

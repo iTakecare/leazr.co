@@ -81,7 +81,7 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <SimpleHeader />
+      <SimpleHeader companyId={companyId} />
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16 pt-8">
         <div className="mb-4">
