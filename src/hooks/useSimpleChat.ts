@@ -232,6 +232,24 @@ export const useSimpleChat = (): SimpleChatHook => {
       return;
     }
 
+    // Create optimistic message object
+    const optimisticMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      conversation_id: state.conversationId,
+      sender_type: 'visitor',
+      sender_name: state.visitorInfo.name,
+      message,
+      message_type: 'text',
+      created_at: new Date().toISOString()
+    };
+
+    // Add message immediately to local state for instant feedback
+    setState(prev => ({
+      ...prev,
+      messages: [...prev.messages, optimisticMessage],
+      error: null
+    }));
+
     try {
       const { error } = await supabase
         .from('chat_messages')
@@ -246,11 +264,14 @@ export const useSimpleChat = (): SimpleChatHook => {
       if (error) {
         throw error;
       }
-
-      setState(prev => ({ ...prev, error: null }));
     } catch (error) {
       console.error('Error sending message:', error);
-      setState(prev => ({ ...prev, error: 'Erreur lors de l\'envoi du message' }));
+      // Remove optimistic message on error
+      setState(prev => ({
+        ...prev,
+        messages: prev.messages.filter(msg => msg.id !== optimisticMessage.id),
+        error: 'Erreur lors de l\'envoi du message'
+      }));
     }
   }, [state.conversationId, state.visitorInfo]);
 

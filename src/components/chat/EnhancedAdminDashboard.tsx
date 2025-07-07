@@ -34,7 +34,6 @@ import {
   Star,
   Eye
 } from 'lucide-react';
-import { useChatRealtime } from '@/hooks/useChatRealtime';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
@@ -95,8 +94,26 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
   // Simple message sending functionality
   const sendMessage = async (conversationId: string, message: string, senderName: string, senderType: 'agent' | 'visitor') => {
+    // Create optimistic message object for immediate display
+    const optimisticMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      conversation_id: conversationId,
+      sender_type: senderType,
+      sender_id: senderType === 'agent' ? user?.id : null,
+      sender_name: senderName,
+      message,
+      message_type: 'text',
+      created_at: new Date().toISOString()
+    };
+
+    // Add message immediately to local state for instant feedback
+    setMessages(prev => ({
+      ...prev,
+      [conversationId]: [...(prev[conversationId] || []), optimisticMessage]
+    }));
+
     try {
-      await supabase
+      const { error } = await supabase
         .from('chat_messages')
         .insert({
           conversation_id: conversationId,
@@ -106,8 +123,18 @@ export const EnhancedAdminDashboard: React.FC = () => {
           message,
           message_type: 'text'
         });
+
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).filter(msg => msg.id !== optimisticMessage.id)
+      }));
+      showToast('Erreur', 'Impossible d\'envoyer le message', 'destructive');
     }
   };
 
@@ -212,6 +239,15 @@ export const EnhancedAdminDashboard: React.FC = () => {
       console.error('Error loading messages:', error);
     }
   };
+
+  // Initialize connection state for admin
+  useEffect(() => {
+    if (companyId && agentStatus?.is_online) {
+      setIsConnected(true);
+    } else {
+      setIsConnected(false);
+    }
+  }, [companyId, agentStatus?.is_online]);
 
   // Connect to selected conversation
   useEffect(() => {
@@ -673,31 +709,31 @@ export const EnhancedAdminDashboard: React.FC = () => {
                     <div className="border-t p-4 bg-muted/20">
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <Input
-                            placeholder="Tapez votre réponse..."
-                            value={currentMessage}
-                            onChange={(e) => handleInputChange(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            disabled={!isConnected}
-                            className="bg-white"
-                          />
+                           <Input
+                             placeholder="Tapez votre réponse..."
+                             value={currentMessage}
+                             onChange={(e) => handleInputChange(e.target.value)}
+                             onKeyPress={handleKeyPress}
+                             disabled={!agentStatus?.is_online}
+                             className="bg-white"
+                           />
                         </div>
-                        <Button
-                          onClick={handleSendMessage}
-                          disabled={!currentMessage.trim() || !isConnected}
-                          size="sm"
-                          className="px-4"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
+                         <Button
+                           onClick={handleSendMessage}
+                           disabled={!currentMessage.trim() || !agentStatus?.is_online}
+                           size="sm"
+                           className="px-4"
+                         >
+                           <Send className="h-4 w-4" />
+                         </Button>
                       </div>
                       
-                      {!isConnected && (
-                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                          <div className="w-3 h-3 border border-orange-600 border-t-transparent rounded-full animate-spin"></div>
-                          Connexion en cours...
-                        </p>
-                      )}
+                       {!agentStatus?.is_online && (
+                         <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                           <div className="w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                           Agent hors ligne - activez votre statut pour répondre
+                         </p>
+                       )}
                     </div>
                   )}
                 </CardContent>
