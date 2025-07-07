@@ -166,7 +166,13 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
               <th className="text-left py-3 px-4 font-medium text-gray-600">Désignation</th>
               <th className="text-center py-3 px-4 font-medium text-gray-600">Quantité</th>
               {!hideFinancialDetails && (
+                <th className="text-right py-3 px-4 font-medium text-gray-600">Prix d'achat</th>
+              )}
+              {!hideFinancialDetails && (
                 <th className="text-right py-3 px-4 font-medium text-gray-600">Prix mensuel</th>
+              )}
+              {!hideFinancialDetails && (
+                <th className="text-right py-3 px-4 font-medium text-gray-600">Marge (%)</th>
               )}
               <th className="text-right py-3 px-4 font-medium text-gray-600">Total mensuel</th>
               <th className="text-right py-3 px-4 font-medium text-gray-600">Détails</th>
@@ -202,7 +208,18 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     </td>
                     <td className="py-3 px-4 text-center">{item.quantity}</td>
                     {!hideFinancialDetails && (
+                      <td className="py-3 px-4 text-right">{formatCurrency(item.purchasePrice || 0)}</td>
+                    )}
+                    {!hideFinancialDetails && (
                       <td className="py-3 px-4 text-right">{formatCurrency(monthlyPayment)}</td>
+                    )}
+                    {!hideFinancialDetails && (
+                      <td className="py-3 px-4 text-right">
+                        {item.margin && item.purchasePrice ? 
+                          `${((item.margin / item.purchasePrice) * 100).toFixed(1)}%` : 
+                          '-'
+                        }
+                      </td>
                     )}
                     <td className="py-3 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
                     <td className="py-3 px-4 text-right text-gray-500 text-sm">
