@@ -15,7 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ProductDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, companyId } = useParams<{ id: string; companyId?: string }>();
   const navigate = useNavigate();
   
   const {
@@ -54,7 +54,11 @@ const ProductDetailPage = () => {
   } = attributeHelpers;
   
   const handleBackToCatalog = () => {
-    navigate("/catalog/anonymous");
+    if (companyId) {
+      navigate(`/public/${companyId}/catalog`);
+    } else {
+      navigate("/catalog/anonymous");
+    }
   };
   
   if (isLoading) {
@@ -71,6 +75,9 @@ const ProductDetailPage = () => {
   const productDescription = product?.description || "Aucune description disponible pour ce produit.";
   
   const configAttributes = getConfigAttributes();
+  
+  // Construire l'URL de base du catalogue
+  const catalogBaseUrl = companyId ? `/public/${companyId}/catalog` : "/catalog/anonymous";
   
   return (
     <div className="min-h-screen bg-white">
@@ -92,16 +99,16 @@ const ProductDetailPage = () => {
           
           <Breadcrumb className="mb-4">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/catalog/anonymous">Catalogue</BreadcrumbLink>
+              <BreadcrumbLink href={catalogBaseUrl}>Catalogue</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/catalog/anonymous?category=${productCategory}`}>
+              <BreadcrumbLink href={`${catalogBaseUrl}?category=${productCategory}`}>
                 {productCategory}
               </BreadcrumbLink>
             </BreadcrumbItem>
             {productBrand && (
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/catalog/anonymous?brand=${productBrand}`}>
+                <BreadcrumbLink href={`${catalogBaseUrl}?brand=${productBrand}`}>
                   {productBrand}
                 </BreadcrumbLink>
               </BreadcrumbItem>
