@@ -176,19 +176,19 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
           >
             <Card className={`w-80 shadow-xl transition-all duration-200 ${isMinimized ? 'h-14' : 'h-96'}`}>
               {/* Header */}
-              <CardHeader className="pb-2 px-4 py-3 bg-primary text-primary-foreground rounded-t-lg">
+              <CardHeader className="pb-2 px-4 py-3 bg-blue-600 text-white rounded-t-lg z-10 bg-opacity-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <MessageCircle className="h-4 w-4" />
                     Chat en direct
                     <div className="flex items-center gap-1">
                       {isConnected ? (
-                        <Badge variant="secondary" className="text-xs bg-green-500 text-white gap-1">
+                        <Badge className="text-xs bg-green-500 hover:bg-green-500 text-white gap-1 border-0">
                           <Wifi className="h-3 w-3" />
                           En ligne
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-xs bg-red-500 text-white gap-1">
+                        <Badge className="text-xs bg-red-500 hover:bg-red-500 text-white gap-1 border-0">
                           <WifiOff className="h-3 w-3" />
                           Hors ligne
                         </Badge>
@@ -199,7 +199,7 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                      className="h-6 w-6 p-0 text-white hover:bg-white/20"
                       onClick={() => setSoundEnabled(!soundEnabled)}
                       title={soundEnabled ? 'Désactiver le son' : 'Activer le son'}
                     >
@@ -208,7 +208,7 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                      className="h-6 w-6 p-0 text-white hover:bg-white/20"
                       onClick={() => setIsMinimized(!isMinimized)}
                     >
                       <Minimize2 className="h-3 w-3" />
@@ -216,7 +216,7 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                      className="h-6 w-6 p-0 text-white hover:bg-white/20"
                       onClick={() => setIsOpen(false)}
                     >
                       <X className="h-3 w-3" />
