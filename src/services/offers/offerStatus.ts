@@ -113,6 +113,27 @@ export const updateOfferStatus = async (
           console.error("❌ ERREUR ÉTAPE 1: Impossible de récupérer l'offre:", offerDataError);
           throw new Error("Impossible de récupérer les détails de l'offre");
         }
+
+        // Vérifier et corriger l'user_id si nécessaire
+        if (!offerData.user_id) {
+          console.log("⚠️ CORRECTION: user_id manquant, attribution automatique...");
+          const { data: adminUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('company_id', offerData.company_id)
+            .in('role', ['admin', 'super_admin'])
+            .limit(1)
+            .single();
+          
+          if (adminUser) {
+            await supabase
+              .from('offers')
+              .update({ user_id: adminUser.id })
+              .eq('id', offerId);
+            offerData.user_id = adminUser.id;
+            console.log("✅ user_id corrigé:", adminUser.id);
+          }
+        }
         
         console.log("✅ ÉTAPE 1: Données de l'offre récupérées:", {
           id: offerData.id,
