@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Hash, Euro } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { calculateEquipmentTotals, calculateOfferMargin } from "@/utils/marginCalculations";
 
 interface EquipmentSectionProps {
   offer: any;
@@ -124,40 +125,39 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
         )}
 
         {/* Afficher le total si on a des équipements */}
-        {equipmentItems.length > 0 && (
-          <div className="mt-6 pt-4 border-t bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="font-medium">
-                <p className="text-gray-500 mb-1">Total articles</p>
-                <p className="text-lg font-bold">{equipmentItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0)}</p>
-              </div>
-              <div className="font-medium">
-                <p className="text-gray-500 mb-1">Prix d'achat total</p>
-                <p className="text-lg font-bold text-blue-600">
-                  {formatCurrency(equipmentItems.reduce((sum: number, item: any) => 
-                    sum + ((item.purchasePrice || item.purchase_price || 0) * (item.quantity || 1)), 0
-                  ))}
-                </p>
-              </div>
-              <div className="font-medium">
-                <p className="text-gray-500 mb-1">Mensualité totale</p>
-                <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(equipmentItems.reduce((sum: number, item: any) => 
-                    sum + ((item.monthlyPayment || item.monthly_payment || 0) * (item.quantity || 1)), 0
-                  ))}
-                </p>
-              </div>
-              <div className="font-medium">
-                <p className="text-gray-500 mb-1">Marge totale</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {formatCurrency(equipmentItems.reduce((sum: number, item: any) => 
-                    sum + ((item.margin || 0) * (item.quantity || 1)), 0
-                  ))}
-                </p>
+        {equipmentItems.length > 0 && (() => {
+          const totals = calculateEquipmentTotals(offer);
+          const calculatedMargin = calculateOfferMargin(offer);
+          
+          return (
+            <div className="mt-6 pt-4 border-t bg-gray-50 rounded-lg p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="font-medium">
+                  <p className="text-gray-500 mb-1">Total articles</p>
+                  <p className="text-lg font-bold">{equipmentItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0)}</p>
+                </div>
+                <div className="font-medium">
+                  <p className="text-gray-500 mb-1">Prix d'achat total</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {formatCurrency(totals.totalPurchasePrice)}
+                  </p>
+                </div>
+                <div className="font-medium">
+                  <p className="text-gray-500 mb-1">Mensualité totale</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatCurrency(totals.totalMonthlyPayment)}
+                  </p>
+                </div>
+                <div className="font-medium">
+                  <p className="text-gray-500 mb-1">Marge totale</p>
+                  <p className="text-lg font-bold text-purple-600">
+                    {formatCurrency(calculatedMargin || 0)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         
         {offer.remarks && (
           <div className="mt-4 pt-4 border-t">

@@ -12,34 +12,60 @@ export interface OfferFinancialData {
 }
 
 /**
+ * Calculate equipment totals consistently (same logic as FinancialSection)
+ */
+export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
+  // Essayer de parser les équipements depuis equipment_description
+  let equipmentList = [];
+  if (offer.equipment_description) {
+    try {
+      const parsedEquipment = JSON.parse(offer.equipment_description);
+      if (Array.isArray(parsedEquipment)) {
+        equipmentList = parsedEquipment;
+      }
+    } catch (e) {
+      console.warn("Could not parse equipment_description as JSON");
+    }
+  }
+
+  // Si on a des équipements parsés, calculer depuis ces données
+  if (equipmentList.length > 0) {
+    return equipmentList.reduce((acc: any, item: any) => {
+      // Utiliser purchasePrice ou purchase_price pour le prix d'achat
+      const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
+      const quantity = parseInt(item.quantity) || 1;
+      // Utiliser monthlyPayment ou monthly_payment pour la mensualité
+      const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
+      return {
+        totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
+        totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment * quantity
+      };
+    }, {
+      totalPurchasePrice: 0,
+      totalMonthlyPayment: 0
+    });
+  }
+
+  // Fallback: essayer d'extraire le prix d'achat depuis les données de l'offre
+  return {
+    totalPurchasePrice: 0,
+    totalMonthlyPayment: offer.monthly_payment || 0
+  };
+};
+
+/**
  * Calculate margin consistently across all components
  * Uses the same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
  */
 export const calculateOfferMargin = (offer: OfferFinancialData): number | null => {
-  // Calculer le prix d'achat depuis les équipements si disponibles
-  let totalPurchasePrice = 0;
-  
-  if (offer.equipment_description) {
-    try {
-      const equipmentList = JSON.parse(offer.equipment_description);
-      if (Array.isArray(equipmentList)) {
-        totalPurchasePrice = equipmentList.reduce((sum: number, item: any) => {
-          const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
-          const quantity = parseInt(item.quantity) || 1;
-          return sum + purchasePrice * quantity;
-        }, 0);
-      }
-    } catch (e) {
-      // Si on ne peut pas parser, utiliser fallback
-    }
-  }
+  const totals = calculateEquipmentTotals(offer);
   
   // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
-  const financedAmount = Number(offer.amount) || 0;
-  
-  // Si on a pu calculer le prix d'achat depuis les équipements, calculer la marge
-  if (totalPurchasePrice > 0 && financedAmount > 0) {
-    return financedAmount - totalPurchasePrice;
+  const financedAmount = offer.amount || 0;
+
+  // Calculer la marge directement : montant financé - prix d'achat total
+  if (totals.totalPurchasePrice > 0) {
+    return financedAmount - totals.totalPurchasePrice;
   }
 
   // Fallback: use offer.margin if available
