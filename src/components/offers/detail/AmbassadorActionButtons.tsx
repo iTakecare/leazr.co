@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, CheckCircle, AlertCircle, FileDown, Copy } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, FileDown, Copy, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 interface ActionButtonsProps {
@@ -9,8 +9,10 @@ interface ActionButtonsProps {
   offerId: string;
   onSendSignatureLink: () => void;
   onDownloadPdf?: () => void;
+  onFinalizeFinancing?: () => void;
   sendingEmail: boolean;
   isPdfGenerating?: boolean;
+  isUpdatingStatus?: boolean;
 }
 
 const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
@@ -18,8 +20,10 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   offerId,
   onSendSignatureLink,
   onDownloadPdf,
+  onFinalizeFinancing,
   sendingEmail,
-  isPdfGenerating = false
+  isPdfGenerating = false,
+  isUpdatingStatus = false
 }) => {
   const canSendSignature = status === 'draft' || status === 'sent';
   const isCompleted = status === 'approved' || status === 'financed';
@@ -107,7 +111,29 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
           </div>
         )}
 
-        {!canSendSignature && !isCompleted && (
+        {/* Bouton pour finaliser le financement quand l'offre est approuvée */}
+        {status === 'approved' && onFinalizeFinancing && (
+          <Button 
+            onClick={onFinalizeFinancing}
+            disabled={isUpdatingStatus}
+            className="w-full bg-green-600 hover:bg-green-700"
+            size="lg"
+          >
+            {isUpdatingStatus ? (
+              <>
+                <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                Finalisation en cours...
+              </>
+            ) : (
+              <>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Finaliser le financement
+              </>
+            )}
+          </Button>
+        )}
+
+        {!canSendSignature && !isCompleted && status !== 'approved' && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
             <AlertCircle className="h-6 w-6 text-orange-600 mx-auto mb-2" />
             <div className="text-sm text-orange-700">
