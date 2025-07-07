@@ -41,7 +41,7 @@ import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
-import { calculateOfferMargin, formatMarginDisplay } from "@/utils/marginCalculations";
+import { calculateOfferMargin, formatMarginDisplay, getFinancedAmount } from "@/utils/marginCalculations";
 
 interface OffersTableProps {
   offers: any[];
@@ -186,8 +186,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
-                      {offer.financed_amount ? formatCurrency(offer.financed_amount) : 
-                        offer.monthly_payment ? formatCurrency((offer.monthly_payment * 100) / (offer.coefficient || 3.27)) : "N/A"}
+                      {formatCurrency(getFinancedAmount(offer))}
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium">

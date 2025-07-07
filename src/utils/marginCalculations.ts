@@ -12,7 +12,7 @@ export interface OfferFinancialData {
 }
 
 /**
- * Calculate equipment totals consistently (same logic as FinancialSection)
+ * Calculate equipment totals consistently (exact logic from FinancialSection)
  */
 export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
   // Essayer de parser les équipements depuis equipment_description
@@ -55,14 +55,22 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
 };
 
 /**
+ * Calculate financed amount consistently
+ */
+export const getFinancedAmount = (offer: OfferFinancialData): number => {
+  // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
+  return offer.amount || 0;
+};
+
+/**
  * Calculate margin consistently across all components
- * Uses the same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
+ * Uses the exact same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
  */
 export const calculateOfferMargin = (offer: OfferFinancialData): number | null => {
   const totals = calculateEquipmentTotals(offer);
   
   // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
-  const financedAmount = offer.amount || 0;
+  const financedAmount = getFinancedAmount(offer);
 
   // Calculer la marge directement : montant financé - prix d'achat total
   const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
