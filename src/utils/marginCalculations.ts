@@ -47,6 +47,7 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
   }
 
   // Fallback: essayer d'extraire le prix d'achat depuis les données de l'offre
+  // Si on n'a pas d'équipements détaillés, utiliser 0 pour éviter les erreurs
   return {
     totalPurchasePrice: 0,
     totalMonthlyPayment: offer.monthly_payment || 0
@@ -64,16 +65,9 @@ export const calculateOfferMargin = (offer: OfferFinancialData): number | null =
   const financedAmount = offer.amount || 0;
 
   // Calculer la marge directement : montant financé - prix d'achat total
-  if (totals.totalPurchasePrice > 0) {
-    return financedAmount - totals.totalPurchasePrice;
-  }
-
-  // Fallback: use offer.margin if available
-  if (offer.margin !== null && offer.margin !== undefined && !isNaN(Number(offer.margin))) {
-    return Number(offer.margin);
-  }
-
-  return null;
+  const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
+  
+  return displayMargin;
 };
 
 /**
