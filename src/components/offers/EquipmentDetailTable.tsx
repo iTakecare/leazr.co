@@ -215,10 +215,7 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
                     )}
                     {!hideFinancialDetails && (
                       <td className="py-3 px-4 text-right">
-                        {item.margin && item.purchasePrice ? 
-                          `${((item.margin / item.purchasePrice) * 100).toFixed(1)}%` : 
-                          '-'
-                        }
+                        {item.margin ? `${item.margin.toFixed(1)}%` : '-'}
                       </td>
                     )}
                     <td className="py-3 px-4 text-right font-medium text-blue-600">{formatCurrency(totalItemMonthly)}</td>
