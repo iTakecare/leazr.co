@@ -8,6 +8,7 @@ interface SendDocumentRequestParams {
   offerId: string;
   requestedDocuments: string[];
   customMessage?: string;
+  requestedBy?: 'internal' | 'leaser'; // Nouveau: identifier qui demande les documents
 }
 
 export const sendDocumentRequestEmail = async ({
@@ -15,7 +16,8 @@ export const sendDocumentRequestEmail = async ({
   offerClientName,
   offerId,
   requestedDocuments,
-  customMessage
+  customMessage,
+  requestedBy = 'internal'
 }: SendDocumentRequestParams): Promise<boolean> => {
   try {
     console.log("📧 Envoi de la demande de documents:", {
@@ -25,7 +27,7 @@ export const sendDocumentRequestEmail = async ({
     });
 
     // Créer le lien d'upload sécurisé
-    const token = await createUploadLink(offerId, requestedDocuments, customMessage);
+    const token = await createUploadLink(offerId, requestedDocuments, customMessage, requestedBy);
     if (!token) {
       throw new Error("Impossible de créer le lien d'upload");
     }

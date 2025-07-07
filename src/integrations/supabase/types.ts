@@ -1925,6 +1925,7 @@ export type Database = {
           id: string
           mime_type: string
           offer_id: string
+          requested_by: string | null
           status: string
           updated_at: string
           uploaded_at: string
@@ -1940,6 +1941,7 @@ export type Database = {
           id?: string
           mime_type: string
           offer_id: string
+          requested_by?: string | null
           status?: string
           updated_at?: string
           uploaded_at?: string
@@ -1955,6 +1957,7 @@ export type Database = {
           id?: string
           mime_type?: string
           offer_id?: string
+          requested_by?: string | null
           status?: string
           updated_at?: string
           uploaded_at?: string
@@ -2273,6 +2276,8 @@ export type Database = {
           equipment_description: string | null
           financed_amount: number | null
           id: string
+          internal_score: string | null
+          leaser_score: string | null
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
@@ -2305,6 +2310,8 @@ export type Database = {
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
+          internal_score?: string | null
+          leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
@@ -2337,6 +2344,8 @@ export type Database = {
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
+          internal_score?: string | null
+          leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
@@ -3683,6 +3692,8 @@ export type Database = {
           equipment_description: string | null
           financed_amount: number | null
           id: string
+          internal_score: string | null
+          leaser_score: string | null
           margin: number | null
           margin_difference: number | null
           monthly_payment: number

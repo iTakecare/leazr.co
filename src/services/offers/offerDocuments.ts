@@ -153,7 +153,8 @@ const ensureOfferDocumentsBucket = async (): Promise<boolean> => {
 export const createUploadLink = async (
   offerId: string,
   requestedDocuments: string[],
-  customMessage?: string
+  customMessage?: string,
+  requestedBy: 'internal' | 'leaser' = 'internal'
 ): Promise<string | null> => {
   try {
     const token = uuidv4();

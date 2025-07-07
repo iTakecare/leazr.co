@@ -20,6 +20,7 @@ import { getOfferById } from "@/services/offerService";
 import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScoringModalProps {
   isOpen: boolean;
@@ -73,7 +74,14 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           (currentStatus === 'leaser_docs_requested' && !isInternalAnalysis)) {
         
         try {
-          const documents = await getOfferDocuments(offerId);
+          const { data: documents, error } = await supabase
+            .from('offer_documents')
+            .select('id, document_type, status')
+            .eq('offer_id', offerId)
+            .eq('requested_by', analysisType); // Filtrer par type d'analyse
+          
+          if (error) throw error;
+          
           const allApproved = documents.length > 0 && 
             documents.every(doc => doc.status === 'approved') &&
             !documents.some(doc => doc.status === 'rejected');
@@ -81,7 +89,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           setAutoApprovalAvailable(allApproved);
           
           if (allApproved) {
-            console.log("🎉 Approbation automatique disponible - tous les documents sont validés");
+            console.log(`🎉 Approbation automatique disponible pour l'analyse ${analysisType} - tous les documents sont validés`);
           }
         } catch (error) {
           console.error("Erreur lors de la vérification des documents:", error);
@@ -94,7 +102,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     if (isOpen && canScore) {
       checkAutoApproval();
     }
-  }, [offerId, currentStatus, isInternalAnalysis, isOpen, canScore]);
+  }, [offerId, currentStatus, isInternalAnalysis, isOpen, canScore, analysisType]);
 
   const scoreOptions = [
     {
@@ -180,7 +188,8 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           offerClientName: offer.client_name,
           offerId: offerId,
           requestedDocuments: docsToRequest,
-          customMessage: customMessage || undefined
+          customMessage: customMessage || undefined,
+          requestedBy: analysisType
         });
 
         if (!success) {

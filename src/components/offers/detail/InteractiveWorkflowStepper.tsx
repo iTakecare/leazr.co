@@ -14,6 +14,7 @@ interface InteractiveWorkflowStepperProps {
   internalScore?: 'A' | 'B' | 'C' | null;
   leaserScore?: 'A' | 'B' | 'C' | null;
   onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
+  offer?: any; // Pour accéder aux scores depuis la base de données
 }
 
 const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({ 
@@ -22,7 +23,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   onStatusChange,
   internalScore,
   leaserScore,
-  onAnalysisClick
+  onAnalysisClick,
+  offer
 }) => {
   const { user } = useAuth();
   const [updating, setUpdating] = useState(false);
@@ -111,8 +113,13 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   };
 
   const getScoreForStep = (stepKey: string) => {
-    if (stepKey === 'internal_review') return internalScore;
-    if (stepKey === 'leaser_review') return leaserScore;
+    if (stepKey === 'internal_review') {
+      // Priorité aux scores de la DB, sinon fallback sur les props
+      return offer?.internal_score || internalScore;
+    }
+    if (stepKey === 'leaser_review') {
+      return offer?.leaser_score || leaserScore;
+    }
     return null;
   };
 

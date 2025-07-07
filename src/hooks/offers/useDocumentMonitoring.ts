@@ -7,12 +7,14 @@ import { updateOfferStatus } from "@/services/offers/offerStatus";
 interface UseDocumentMonitoringProps {
   offerId: string;
   currentStatus: string;
+  analysisType: 'internal' | 'leaser'; // Nouveau: spécifier le type d'analyse
   onStatusChange?: (newStatus: string) => void;
 }
 
 export const useDocumentMonitoring = ({ 
   offerId, 
   currentStatus, 
+  analysisType,
   onStatusChange 
 }: UseDocumentMonitoringProps) => {
   
@@ -23,8 +25,9 @@ export const useDocumentMonitoring = ({
       
       const { data: documents, error } = await supabase
         .from('offer_documents')
-        .select('id, document_type, status')
-        .eq('offer_id', offerId);
+        .select('id, document_type, status, requested_by')
+        .eq('offer_id', offerId)
+        .eq('requested_by', analysisType);
 
       if (error) {
         console.error("Erreur lors de la récupération des documents:", error);

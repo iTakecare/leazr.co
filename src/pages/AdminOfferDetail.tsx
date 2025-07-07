@@ -47,10 +47,19 @@ const AdminOfferDetail = () => {
     setOffer({ ...offer, workflow_status: newStatus });
   };
   
-  // Surveillance automatique des documents
+  // Surveillance automatique des documents pour l'analyse interne
   useDocumentMonitoring({
     offerId: id || '',
     currentStatus: offer?.workflow_status || '',
+    analysisType: 'internal',
+    onStatusChange: handleStatusChange
+  });
+
+  // Surveillance automatique des documents pour l'analyse leaser
+  useDocumentMonitoring({
+    offerId: id || '',
+    currentStatus: offer?.workflow_status || '',
+    analysisType: 'leaser',
     onStatusChange: handleStatusChange
   });
 
@@ -312,9 +321,10 @@ const AdminOfferDetail = () => {
               currentStatus={offer.workflow_status || 'draft'}
               offerId={offer.id}
               onStatusChange={handleStatusChange}
-              internalScore={getScoreFromStatus(offer.workflow_status || '')}
-              leaserScore={getScoreFromStatus(offer.workflow_status || '')}
+              internalScore={offer.internal_score}
+              leaserScore={offer.leaser_score}
               onAnalysisClick={handleAnalysisClick}
+              offer={offer}
             />
 
 
