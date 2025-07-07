@@ -40,8 +40,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
-        .eq("active", true)
-        .gt("price", 0);
+        .eq("active", true);
       
       if (productsError) {
         console.error("Error fetching products:", productsError);
@@ -241,7 +240,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     <p className="text-sm mt-1">
                       {searchQuery ? 
                         "Essayez de modifier vos critères de recherche" : 
-                        "Aucun produit avec prix configuré dans le catalogue"
+                        "Aucun produit trouvé dans le catalogue"
                       }
                     </p>
                   </div>
