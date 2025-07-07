@@ -2,7 +2,6 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -58,21 +57,11 @@ const ProductDetailPage = () => {
   };
   
   if (isLoading) {
-    return (
-      <>
-        <UnifiedNavigation />
-        <ProductLoadingState />
-      </>
-    );
+    return <ProductLoadingState />;
   }
   
   if (error || !product) {
-    return (
-      <>
-        <UnifiedNavigation />
-        <ProductErrorState onBackToCatalog={handleBackToCatalog} />
-      </>
-    );
+    return <ProductErrorState onBackToCatalog={handleBackToCatalog} />;
   }
   
   const productName = product?.name || "Produit";
@@ -83,8 +72,7 @@ const ProductDetailPage = () => {
   const configAttributes = getConfigAttributes();
   
   return (
-    <div className="min-h-screen bg-white pt-[120px] pb-24">
-      <UnifiedNavigation />
+    <div className="min-h-screen bg-white pt-8 pb-24">
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16">
         <div className="mb-4">
