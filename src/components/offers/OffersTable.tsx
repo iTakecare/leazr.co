@@ -231,9 +231,23 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         )}
                         
                         {!isAmbassador() && (
+                          <DropdownMenuItem onClick={() => handleCopyOnlineOfferLink(offer.id)}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Copier lien public
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {!isAmbassador() && ['sent', 'approved', 'info_requested', 'valid_itc', 'leaser_review', 'financed'].includes(offer.workflow_status) && (
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Voir offre en ligne
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {!isAmbassador() && offer.workflow_status === 'draft' && (
+                          <DropdownMenuItem disabled onClick={() => {}}>
+                            <ExternalLink className="mr-2 h-4 w-4 opacity-50" />
+                            <span className="text-muted-foreground">Offre non accessible (brouillon)</span>
                           </DropdownMenuItem>
                         )}
                         

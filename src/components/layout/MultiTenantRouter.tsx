@@ -17,7 +17,6 @@ import LandingPage from "@/pages/LandingPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
 import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
 import ProductDetailPage from "@/pages/ProductDetailPage";
-import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
 
@@ -109,7 +108,7 @@ const MultiTenantRouter = () => {
       {/* Routes publiques pour les entreprises (sans authentification) */}
       <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
       <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-      <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
+      <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
       <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
       <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
       

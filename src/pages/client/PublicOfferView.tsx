@@ -42,14 +42,39 @@ const PublicOfferView = () => {
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Card className="w-full max-w-3xl mx-auto">
           <CardHeader className="bg-red-50">
-            <CardTitle className="text-red-600">Erreur</CardTitle>
+            <CardTitle className="text-red-600">
+              {error?.includes('not accessible') || error?.includes('draft') ? 
+                'Offre non disponible' : 'Erreur'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <p className="text-gray-700">
-              {error || "Cette offre n'existe pas ou n'est plus disponible."}
-            </p>
+            <div className="space-y-4">
+              <p className="text-gray-700">
+                {error?.includes('not accessible') || error?.includes('draft') ? (
+                  <>
+                    Cette offre n'est pas encore accessible publiquement. Elle est encore en cours de préparation.
+                    <br /><br />
+                    Veuillez contacter votre conseiller pour plus d'informations.
+                  </>
+                ) : error?.includes('not found') ? (
+                  "Cette offre n'existe pas ou a été supprimée."
+                ) : (
+                  error || "Cette offre n'existe pas ou n'est plus disponible."
+                )}
+              </p>
+              
+              {error?.includes('not accessible') || error?.includes('draft') ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Information :</strong> Votre offre sera accessible dès qu'elle aura été finalisée et envoyée par nos équipes. 
+                    Vous recevrez une notification par email avec le lien d'accès.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            
             <Button 
-              className="mt-4" 
+              className="mt-6" 
               variant="outline" 
               onClick={() => window.location.href = '/'}
             >

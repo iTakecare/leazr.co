@@ -17,6 +17,8 @@ interface NotificationHook {
   requestPermission: () => Promise<boolean>;
   unreadCount: number;
   setUnreadCount: (count: number) => void;
+  audioContextReady: boolean;
+  activateAudio: () => Promise<boolean>;
 }
 
 export const useNotifications = (): NotificationHook => {
@@ -27,7 +29,9 @@ export const useNotifications = (): NotificationHook => {
   });
   
   const [unreadCount, setUnreadCount] = useState(0);
+  const [audioContextReady, setAudioContextReady] = useState(false);
   const soundGeneratorRef = useRef(getSoundGenerator());
+  const activationAttempted = useRef(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -40,6 +44,29 @@ export const useNotifications = (): NotificationHook => {
         console.error('Error loading notification settings:', error);
       }
     }
+    
+    // Auto-activate audio on any user interaction
+    const activateOnInteraction = async () => {
+      if (!activationAttempted.current) {
+        activationAttempted.current = true;
+        const success = await activateAudio();
+        if (success) {
+          console.log('🔊 Audio activé automatiquement');
+        }
+      }
+    };
+
+    // Listen for any user interaction
+    const events = ['click', 'keydown', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, activateOnInteraction, { once: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, activateOnInteraction);
+      });
+    };
   }, []);
 
   // Save settings to localStorage when they change
@@ -51,13 +78,37 @@ export const useNotifications = (): NotificationHook => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
 
-  const playSound = useCallback((type: 'message' | 'visitor' | 'alert') => {
+  const activateAudio = useCallback(async (): Promise<boolean> => {
+    try {
+      const success = await soundGeneratorRef.current.activate();
+      setAudioContextReady(success);
+      return success;
+    } catch (error) {
+      console.error('Error activating audio:', error);
+      return false;
+    }
+  }, []);
+
+  const playSound = useCallback(async (type: 'message' | 'visitor' | 'alert') => {
     if (!settings.soundEnabled) return;
 
-    soundGeneratorRef.current.playSound(type, settings.volume).catch(error => {
-      console.error('Error playing synthetic sound:', error);
-    });
-  }, [settings.soundEnabled, settings.volume]);
+    try {
+      // Try to activate audio if not ready
+      if (!audioContextReady) {
+        console.log('🔊 Tentative d\'activation audio...');
+        const activated = await activateAudio();
+        if (!activated) {
+          console.warn('⚠️ Impossible d\'activer l\'audio');
+          return;
+        }
+      }
+
+      await soundGeneratorRef.current.playSound(type, settings.volume);
+      console.log('✅ Son joué avec succès:', type);
+    } catch (error) {
+      console.error('❌ Erreur lors de la lecture du son:', error);
+    }
+  }, [settings.soundEnabled, settings.volume, audioContextReady, activateAudio]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!('Notification' in window)) {
@@ -129,6 +180,8 @@ export const useNotifications = (): NotificationHook => {
     showToast,
     requestPermission,
     unreadCount,
-    setUnreadCount
+    setUnreadCount,
+    audioContextReady,
+    activateAudio
   };
 };
