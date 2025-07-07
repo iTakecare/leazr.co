@@ -33,8 +33,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     { key: 'draft', label: 'Brouillon', icon: Circle },
     { key: 'internal_review', label: 'Analyse interne', icon: HelpCircle },
     { key: 'sent', label: 'Offre envoyée', icon: Clock },
+    { key: 'client_approved', label: 'Offre validée', icon: CheckCircle },
     { key: 'leaser_review', label: 'Analyse Leaser', icon: HelpCircle },
-    { key: 'validated', label: 'Offre validée', icon: CheckCircle }
+    { key: 'financed', label: 'Contrat prêt', icon: CheckCircle }
   ];
 
   const getCurrentStepIndex = () => {
@@ -46,7 +47,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       'leaser_docs_requested': 'leaser_review',
       'internal_rejected': 'internal_review',
       'leaser_rejected': 'leaser_review',
-      'validated': 'validated',
+      'client_approved': 'client_approved',
+      'validated': 'financed',
+      'financed': 'financed',
       'draft': 'draft',
       'sent': 'sent'
     };
@@ -75,9 +78,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       return; // Pas de changement nécessaire
     }
 
-    // Confirmation spéciale pour la validation (conversion en contrat)
-    const confirmMessage = targetStatus === 'validated' 
-      ? `Confirmer la validation de l'offre ? Cela créera automatiquement un contrat.`
+    // Confirmation spéciale pour la finalisation (conversion en contrat)
+    const confirmMessage = targetStatus === 'financed' 
+      ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
       : targetIndex > currentIndex 
         ? `Confirmer le passage à l'étape "${steps[targetIndex].label}" ?`
         : `Confirmer le retour à l'étape "${steps[targetIndex].label}" ?`;
@@ -94,8 +97,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         offerId,
         targetStatus,
         currentStatus,
-        targetStatus === 'validated' 
-          ? `Validation manuelle - Conversion en contrat`
+        targetStatus === 'financed' 
+          ? `Finalisation manuelle - Conversion en contrat`
           : `Changement manuel depuis le stepper`
       );
 
@@ -104,9 +107,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
           onStatusChange(targetStatus);
         }
 
-        // Message de succès spécial pour la validation
-        if (targetStatus === 'validated') {
-          toast.success(`Offre validée ! Un contrat va être créé automatiquement.`);
+        // Message de succès spécial pour la finalisation
+        if (targetStatus === 'financed') {
+          toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
         } else {
           toast.success(`Statut mis à jour vers "${steps[targetIndex].label}"`);
         }
@@ -205,9 +208,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
               <div className="mt-2 text-center space-y-1">
                  <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
-                  className={`text-xs whitespace-nowrap px-2 py-1 ${
-                    step.key === 'validated' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
-                  }`}
+                   className={`text-xs whitespace-nowrap px-2 py-1 ${
+                     step.key === 'financed' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
+                   }`}
                 >
                   {step.label}
                 </Badge>
@@ -245,7 +248,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         Cliquez sur une étape pour modifier le statut
         {currentIndex === steps.length - 2 && (
           <div className="mt-2 text-orange-600 font-medium">
-            ⚠️ L'étape "Offre validée" convertira automatiquement l'offre en contrat
+            ⚠️ L'étape "Contrat prêt" convertira automatiquement l'offre en contrat
           </div>
         )}
       </div>
