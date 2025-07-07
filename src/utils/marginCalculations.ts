@@ -14,10 +14,11 @@ export interface OfferFinancialData {
 /**
  * Calculate equipment totals consistently (exact logic extracted from FinancialSection)
  */
-export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
-  // Essayer de parser les équipements depuis equipment_description
-  let equipmentList = [];
-  if (offer.equipment_description) {
+export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentItems?: any[]) => {
+  // Utiliser les équipements passés en paramètre ou fallback sur equipment_description
+  let equipmentList = equipmentItems || [];
+  
+  if (!equipmentList.length && offer.equipment_description) {
     try {
       const parsedEquipment = JSON.parse(offer.equipment_description);
       if (Array.isArray(parsedEquipment)) {
@@ -66,8 +67,8 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
  * Calculate margin consistently across all components
  * Uses the exact same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
  */
-export const calculateOfferMargin = (offer: OfferFinancialData): number | null => {
-  const totals = calculateEquipmentTotals(offer);
+export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
+  const totals = calculateEquipmentTotals(offer, equipmentItems);
   
   // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
   const financedAmount = getFinancedAmount(offer);

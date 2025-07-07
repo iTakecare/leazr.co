@@ -126,8 +126,8 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
 
         {/* Afficher le total si on a des équipements */}
         {equipmentItems.length > 0 && (() => {
-          const totals = calculateEquipmentTotals(offer);
-          const calculatedMargin = calculateOfferMargin(offer);
+          const totals = calculateEquipmentTotals(offer, equipmentItems);
+          const calculatedMargin = calculateOfferMargin(offer, equipmentItems);
           
           return (
             <div className="mt-6 pt-4 border-t bg-gray-50 rounded-lg p-4">
