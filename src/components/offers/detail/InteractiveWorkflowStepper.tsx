@@ -11,12 +11,16 @@ interface InteractiveWorkflowStepperProps {
   currentStatus: string;
   offerId: string;
   onStatusChange?: (status: string) => void;
+  internalScore?: 'A' | 'B' | 'C' | null;
+  leaserScore?: 'A' | 'B' | 'C' | null;
 }
 
 const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({ 
   currentStatus, 
   offerId,
-  onStatusChange 
+  onStatusChange,
+  internalScore,
+  leaserScore
 }) => {
   const { user } = useAuth();
   const [updating, setUpdating] = useState(false);
@@ -97,6 +101,21 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     return status ? status.label : statusId;
   };
 
+  const getScoreForStep = (stepKey: string) => {
+    if (stepKey === 'internal_review') return internalScore;
+    if (stepKey === 'leaser_review') return leaserScore;
+    return null;
+  };
+
+  const getScoreBadgeColor = (score: 'A' | 'B' | 'C') => {
+    switch (score) {
+      case 'A': return 'bg-green-100 text-green-800 border-green-200';
+      case 'B': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'C': return 'bg-red-100 text-red-800 border-red-200';
+      default: return '';
+    }
+  };
+
   const currentIndex = getCurrentStepIndex();
 
   return (
@@ -147,7 +166,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                   />
                 )}
               </div>
-              <div className="mt-2 text-center">
+              <div className="mt-2 text-center space-y-1">
                  <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
                   className={`text-xs whitespace-nowrap px-2 py-1 ${
@@ -156,6 +175,18 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                 >
                   {step.label}
                 </Badge>
+                
+                {/* Badge de score pour les étapes d'analyse */}
+                {(step.key === 'internal_review' || step.key === 'leaser_review') && getScoreForStep(step.key) && (
+                  <div className="flex justify-center">
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${getScoreBadgeColor(getScoreForStep(step.key)!)}`}
+                    >
+                      Score {getScoreForStep(step.key)}
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
           );

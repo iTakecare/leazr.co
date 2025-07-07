@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { getOfferById } from "@/services/offerService";
+import { getOfferById, updateOfferStatus } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
@@ -23,6 +23,7 @@ import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSide
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
+import OfferScoringInterface from "@/components/offers/detail/OfferScoringInterface";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,7 @@ const AdminOfferDetail = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [isRequestInfoModalOpen, setIsRequestInfoModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [scoringLoading, setScoringLoading] = useState(false);
 
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
 
@@ -158,6 +160,75 @@ const AdminOfferDetail = () => {
     setOffer({ ...offer, workflow_status: newStatus });
   };
 
+  const handleInternalScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+    setScoringLoading(true);
+    try {
+      let newStatus = '';
+      switch (score) {
+        case 'A': newStatus = 'internal_approved'; break;
+        case 'B': newStatus = 'internal_docs_requested'; break;
+        case 'C': newStatus = 'internal_rejected'; break;
+      }
+      
+      const success = await updateOfferStatus(
+        offer.id,
+        newStatus,
+        offer.workflow_status,
+        reason || `Score attribué: ${score}`
+      );
+      
+      if (success) {
+        setOffer({ ...offer, workflow_status: newStatus });
+        toast.success(`Score ${score} attribué avec succès`);
+      } else {
+        toast.error("Erreur lors de l'attribution du score");
+      }
+    } catch (error) {
+      console.error("Erreur lors du scoring interne:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setScoringLoading(false);
+    }
+  };
+
+  const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+    setScoringLoading(true);
+    try {
+      let newStatus = '';
+      switch (score) {
+        case 'A': newStatus = 'leaser_approved'; break;
+        case 'B': newStatus = 'leaser_docs_requested'; break;
+        case 'C': newStatus = 'leaser_rejected'; break;
+      }
+      
+      const success = await updateOfferStatus(
+        offer.id,
+        newStatus,
+        offer.workflow_status,
+        reason || `Score attribué: ${score}`
+      );
+      
+      if (success) {
+        setOffer({ ...offer, workflow_status: newStatus });
+        toast.success(`Score ${score} attribué avec succès`);
+      } else {
+        toast.error("Erreur lors de l'attribution du score");
+      }
+    } catch (error) {
+      console.error("Erreur lors du scoring leaser:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setScoringLoading(false);
+    }
+  };
+
+  const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
+    if (status.includes('approved')) return 'A';
+    if (status.includes('docs_requested')) return 'B';
+    if (status.includes('rejected')) return 'C';
+    return null;
+  };
+
   const isAdmin = useCallback(() => {
     return user?.role === 'admin';
   }, [user]);
@@ -225,7 +296,31 @@ const AdminOfferDetail = () => {
               currentStatus={offer.workflow_status || 'draft'}
               offerId={offer.id}
               onStatusChange={handleStatusChange}
+              internalScore={getScoreFromStatus(offer.workflow_status || '')}
+              leaserScore={getScoreFromStatus(offer.workflow_status || '')}
             />
+
+            {/* Interface de scoring pour analyse interne */}
+            {(offer.workflow_status === 'sent' || offer.workflow_status === 'internal_review') && (
+              <OfferScoringInterface
+                offerId={offer.id}
+                currentStatus={offer.workflow_status}
+                analysisType="internal"
+                onScoreAssigned={handleInternalScoring}
+                isLoading={scoringLoading}
+              />
+            )}
+
+            {/* Interface de scoring pour analyse leaser */}
+            {(offer.workflow_status === 'internal_approved' || offer.workflow_status === 'leaser_review') && (
+              <OfferScoringInterface
+                offerId={offer.id}
+                currentStatus={offer.workflow_status}
+                analysisType="leaser"
+                onScoreAssigned={handleLeaserScoring}
+                isLoading={scoringLoading}
+              />
+            )}
 
             {/* Layout principal avec sidebar - structure flexible pour le scroll */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0">
