@@ -4,31 +4,67 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Hash, Euro } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateEquipmentTotals, calculateOfferMargin } from "@/utils/marginCalculations";
+import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 
 interface EquipmentSectionProps {
   offer: any;
 }
 
 const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
-  let equipmentItems = [];
+  // Utiliser le hook pour récupérer les équipements depuis les nouvelles tables
+  const { equipment, loading, error } = useOfferEquipment(offer.id);
   
-  // Essayer de parser les équipements depuis equipment_description
-  if (offer.equipment_description) {
-    try {
-      equipmentItems = JSON.parse(offer.equipment_description);
-    } catch (e) {
-      // Si ce n'est pas du JSON, traiter comme du texte
-      equipmentItems = [{
-        title: "Équipement",
-        description: offer.equipment_description,
-        quantity: 1
-      }];
-    }
+  // Convertir les données de la base de données au format attendu par les calculs
+  const equipmentItems = equipment.map(item => ({
+    id: item.id,
+    title: item.title,
+    purchasePrice: item.purchase_price,
+    quantity: item.quantity,
+    margin: item.margin,
+    monthlyPayment: item.monthly_payment,
+    serialNumber: item.serial_number,
+    // Convertir les attributs de array vers object pour l'affichage
+    attributes: item.attributes?.reduce((acc: any, attr: any) => {
+      acc[attr.key] = attr.value;
+      return acc;
+    }, {}) || {},
+    // Convertir les spécifications de array vers object pour l'affichage
+    specifications: item.specifications?.reduce((acc: any, spec: any) => {
+      acc[spec.key] = spec.value;
+      return acc;
+    }, {}) || {}
+  }));
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Équipements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500">Chargement des équipements...</p>
+        </CardContent>
+      </Card>
+    );
   }
 
-  // Utiliser les équipements parsés depuis parsedEquipment si disponibles
-  if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
-    equipmentItems = offer.parsedEquipment;
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Équipements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Erreur lors du chargement des équipements</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
