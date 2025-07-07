@@ -131,6 +131,7 @@ function App() {
                    {/* Public Catalog and Commerce Routes */}
                    <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
                    <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
+                   <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
                    <Route path="/product/:id" element={<ProductDetailPage />} />
                    <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
