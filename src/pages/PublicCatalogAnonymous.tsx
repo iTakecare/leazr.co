@@ -116,7 +116,7 @@ const PublicCatalogAnonymous = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SimpleHeader companyId={companyId} />
+      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
       
       <div className="container mx-auto p-6 space-y-6">
         {/* Hero Header */}

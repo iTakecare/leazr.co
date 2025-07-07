@@ -4,12 +4,14 @@ import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 
 interface ProductLoadingStateProps {
   companyId?: string;
+  companyLogo?: string;
+  companyName?: string;
 }
 
-const ProductLoadingState: React.FC<ProductLoadingStateProps> = ({ companyId }) => {
+const ProductLoadingState: React.FC<ProductLoadingStateProps> = ({ companyId, companyLogo, companyName }) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <SimpleHeader companyId={companyId} />
+      <SimpleHeader companyId={companyId} companyLogo={companyLogo} companyName={companyName} />
       <div className="container mx-auto px-4 py-8 mt-24">
         <div className="flex items-center space-x-2 mb-6">
           <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>

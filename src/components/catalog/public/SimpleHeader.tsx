@@ -7,9 +7,11 @@ import { useCart } from "@/context/CartContext";
 
 interface SimpleHeaderProps {
   companyId?: string;
+  companyLogo?: string;
+  companyName?: string;
 }
 
-const SimpleHeader = ({ companyId }: SimpleHeaderProps) => {
+const SimpleHeader = ({ companyId, companyLogo, companyName }: SimpleHeaderProps) => {
   const { cartCount } = useCart();
   
   return (
@@ -20,9 +22,17 @@ const SimpleHeader = ({ companyId }: SimpleHeaderProps) => {
             to="/" 
             className="text-xl md:text-2xl font-bold text-[#33638E] flex items-center group"
           >
-            <Logo variant="avatar" logoSize="md" showText={false} className="mr-3 transition-transform duration-300 group-hover:scale-110" />
+            {companyLogo ? (
+              <img 
+                src={companyLogo} 
+                alt={companyName || "Logo entreprise"} 
+                className="h-10 w-10 mr-3 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+            ) : (
+              <Logo variant="avatar" logoSize="md" showText={false} className="mr-3 transition-transform duration-300 group-hover:scale-110" />
+            )}
             <span className="bg-gradient-to-r from-[#33638E] to-[#48b5c3] bg-clip-text text-transparent text-xl">
-              iTakecare
+              {companyName || "iTakecare"}
             </span>
           </Link>
           

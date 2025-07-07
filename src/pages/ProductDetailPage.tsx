@@ -1,6 +1,8 @@
 
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
@@ -17,6 +19,24 @@ import { Button } from "@/components/ui/button";
 const ProductDetailPage = () => {
   const { id, companyId } = useParams<{ id: string; companyId?: string }>();
   const navigate = useNavigate();
+  
+  // Fetch company info for branding
+  const { data: company } = useQuery({
+    queryKey: ["company", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      const { data, error } = await supabase
+        .from("companies")
+        .select("name, logo_url")
+        .eq("id", companyId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
   
   const {
     product,
@@ -62,11 +82,11 @@ const ProductDetailPage = () => {
   };
   
   if (isLoading) {
-    return <ProductLoadingState companyId={companyId} />;
+    return <ProductLoadingState companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />;
   }
   
   if (error || !product) {
-    return <ProductErrorState onBackToCatalog={handleBackToCatalog} companyId={companyId} />;
+    return <ProductErrorState onBackToCatalog={handleBackToCatalog} companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />;
   }
   
   const productName = product?.name || "Produit";
@@ -81,7 +101,7 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <SimpleHeader companyId={companyId} />
+      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16 pt-8">
         <div className="mb-4">
