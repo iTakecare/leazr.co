@@ -38,7 +38,21 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   ];
 
   const getCurrentStepIndex = () => {
-    return steps.findIndex(step => step.key === currentStatus);
+    // Mapper les statuts d'approbation vers les étapes correspondantes
+    const statusMapping: { [key: string]: string } = {
+      'internal_approved': 'internal_review',
+      'leaser_approved': 'leaser_review',
+      'internal_docs_requested': 'internal_review',
+      'leaser_docs_requested': 'leaser_review',
+      'internal_rejected': 'internal_review',
+      'leaser_rejected': 'leaser_review',
+      'validated': 'validated',
+      'draft': 'draft',
+      'sent': 'sent'
+    };
+    
+    const mappedStatus = statusMapping[currentStatus] || currentStatus;
+    return steps.findIndex(step => step.key === mappedStatus);
   };
 
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {

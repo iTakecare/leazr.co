@@ -46,10 +46,27 @@ export const updateOfferStatus = async (
     // Ensure the previous status is never null for database constraints
     const safePreviousStatus = previousStatus || 'draft';
     
-    // First, update the offer's workflow_status
+    // First, update the offer's workflow_status and scores
+    const updateData: any = { workflow_status: newStatus };
+    
+    // Update scores based on status transitions
+    if (newStatus === 'internal_approved') {
+      updateData.internal_score = 'A';
+    } else if (newStatus === 'leaser_approved') {
+      updateData.leaser_score = 'A';
+    } else if (newStatus === 'internal_docs_requested') {
+      updateData.internal_score = 'B';
+    } else if (newStatus === 'leaser_docs_requested') {
+      updateData.leaser_score = 'B';
+    } else if (newStatus === 'internal_rejected') {
+      updateData.internal_score = 'C';
+    } else if (newStatus === 'leaser_rejected') {
+      updateData.leaser_score = 'C';
+    }
+    
     const { error: updateError } = await supabase
       .from('offers')
-      .update({ workflow_status: newStatus })
+      .update(updateData)
       .eq('id', offerId);
       
     if (updateError) {
