@@ -2,6 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import PublicHeader from "@/components/catalog/public/PublicHeader";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -72,9 +73,10 @@ const ProductDetailPage = () => {
   const configAttributes = getConfigAttributes();
   
   return (
-    <div className="min-h-screen bg-white pt-8 pb-24">
+    <div className="min-h-screen bg-white">
+      <PublicHeader />
       
-      <div className="container mx-auto px-4 max-w-[1320px] mb-16">
+      <div className="container mx-auto px-4 max-w-[1320px] mb-16 pt-8">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <Button 
