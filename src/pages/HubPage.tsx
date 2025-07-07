@@ -1,11 +1,11 @@
 
 import React from "react";
-import UnifiedNavigation from "@/components/layout/UnifiedNavigation";
+import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 
 const HubPage = () => {
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
-      <UnifiedNavigation />
+      <SimpleHeader />
       
       <div className="pt-[100px]">
         <div className="container mx-auto px-4 py-16">
