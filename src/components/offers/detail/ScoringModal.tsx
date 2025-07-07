@@ -65,7 +65,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   // Déterminer si le scoring est possible selon le type d'analyse et le statut
   const canScore = isInternalAnalysis 
     ? ['draft', 'internal_review', 'internal_docs_requested'].includes(currentStatus)
-    : ['internal_approved', 'leaser_review', 'leaser_docs_requested'].includes(currentStatus);
+    : ['internal_approved', 'leaser_review', 'leaser_docs_requested', 'client_approved'].includes(currentStatus);
 
   // Vérifier si une approbation automatique est disponible
   useEffect(() => {
