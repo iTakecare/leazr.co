@@ -62,11 +62,11 @@ const ProductDetailPage = () => {
   };
   
   if (isLoading) {
-    return <ProductLoadingState />;
+    return <ProductLoadingState companyId={companyId} />;
   }
   
   if (error || !product) {
-    return <ProductErrorState onBackToCatalog={handleBackToCatalog} />;
+    return <ProductErrorState onBackToCatalog={handleBackToCatalog} companyId={companyId} />;
   }
   
   const productName = product?.name || "Produit";
