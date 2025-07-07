@@ -34,6 +34,9 @@ export const useOfferDetail = (offerId: string) => {
       
       // Convert equipment data to the expected format for compatibility
       const parsedEquipment = equipmentData.map(item => {
+        console.log("🔧 DEBUG useOfferDetail - Raw equipment item from DB:", item);
+        console.log("🔧 DEBUG useOfferDetail - item.margin from DB:", item.margin);
+        
         // Convertir les attributs depuis le format array vers object pour compatibilité
         const attributesObject: Record<string, string> = {};
         if (item.attributes && item.attributes.length > 0) {

@@ -34,6 +34,12 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
   hideFinancialDetails = false,
   offerMargin
 }) => {
+  console.log("🎯 DEBUG EquipmentDetailTable - Props received:");
+  console.log("🎯 equipment:", equipment);
+  console.log("🎯 equipment margins:", equipment.map(item => ({ title: item.title, margin: item.margin })));
+  console.log("🎯 offerMargin:", offerMargin);
+  console.log("🎯 totalMargin:", totalMargin);
+  console.log("🎯 totalMarginWithDifference:", totalMarginWithDifference);
   // Calcul du nombre total d'articles
   const totalArticles = equipment.reduce((sum, item) => sum + item.quantity, 0);
   
