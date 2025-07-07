@@ -233,6 +233,92 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
 
+  const handleInternalScoring = async (offerId: string, score: 'A' | 'B' | 'C', reason?: string) => {
+    try {
+      setIsUpdatingStatus(true);
+      
+      const offer = offers.find(o => o.id === offerId);
+      if (!offer) throw new Error("Offre non trouvée");
+      
+      let newStatus: string;
+      let statusReason: string;
+      
+      switch (score) {
+        case 'A':
+          newStatus = 'internal_approved';
+          statusReason = `Analyse interne - Score A (Approuvé)${reason ? `: ${reason}` : ''}`;
+          break;
+        case 'B':
+          newStatus = 'internal_docs_requested';
+          statusReason = `Analyse interne - Score B (Documents requis): ${reason}`;
+          break;
+        case 'C':
+          newStatus = 'internal_rejected';
+          statusReason = `Analyse interne - Score C (Refusé): ${reason}`;
+          break;
+      }
+      
+      const success = await updateOfferStatus(offerId, newStatus, offer.workflow_status, statusReason);
+      
+      if (success) {
+        setOffers(prevOffers => prevOffers.map(o => 
+          o.id === offerId ? { ...o, workflow_status: newStatus } : o
+        ));
+        toast.success(`Score ${score} attribué avec succès`);
+      } else {
+        toast.error("Erreur lors de l'attribution du score");
+      }
+    } catch (error) {
+      console.error("Error scoring offer internally:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleLeaserScoring = async (offerId: string, score: 'A' | 'B' | 'C', reason?: string) => {
+    try {
+      setIsUpdatingStatus(true);
+      
+      const offer = offers.find(o => o.id === offerId);
+      if (!offer) throw new Error("Offre non trouvée");
+      
+      let newStatus: string;
+      let statusReason: string;
+      
+      switch (score) {
+        case 'A':
+          newStatus = 'validated';
+          statusReason = `Analyse Leaser - Score A (Approuvé)${reason ? `: ${reason}` : ''}`;
+          break;
+        case 'B':
+          newStatus = 'leaser_docs_requested';
+          statusReason = `Analyse Leaser - Score B (Documents requis): ${reason}`;
+          break;
+        case 'C':
+          newStatus = 'leaser_rejected';
+          statusReason = `Analyse Leaser - Score C (Refusé): ${reason}`;
+          break;
+      }
+      
+      const success = await updateOfferStatus(offerId, newStatus, offer.workflow_status, statusReason);
+      
+      if (success) {
+        setOffers(prevOffers => prevOffers.map(o => 
+          o.id === offerId ? { ...o, workflow_status: newStatus } : o
+        ));
+        toast.success(`Score ${score} attribué avec succès`);
+      } else {
+        toast.error("Erreur lors de l'attribution du score");
+      }
+    } catch (error) {
+      console.error("Error scoring offer by leaser:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return {
     isUpdatingStatus,
     isRequestingInfo,
@@ -243,6 +329,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     handleResendOffer,
     handleDownloadPdf,
     handleRequestInfo,
-    handleProcessInfoResponse
+    handleProcessInfoResponse,
+    handleInternalScoring,
+    handleLeaserScoring
   };
 };

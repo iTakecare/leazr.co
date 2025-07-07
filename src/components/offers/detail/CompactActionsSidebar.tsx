@@ -77,6 +77,15 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
     const labels: Record<string, string> = {
       'draft': 'Brouillon',
       'sent': 'Envoyée',
+      'internal_review': 'Analyse interne',
+      'internal_approved': 'Validée interne',
+      'internal_docs_requested': 'Docs demandés interne',
+      'internal_rejected': 'Rejetée interne',
+      'leaser_review': 'Analyse Leaser',
+      'leaser_approved': 'Validée Leaser',
+      'leaser_docs_requested': 'Docs demandés Leaser',
+      'leaser_rejected': 'Rejetée Leaser',
+      'validated': 'Offre validée',
       'viewed': 'Vue',
       'signed': 'Signée',
       'approved': 'Approuvée',
@@ -88,7 +97,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
 
   const canSendEmail = offer.workflow_status === 'draft' || offer.workflow_status === 'sent';
   const canEdit = offer.workflow_status === 'draft';
-  const canRequestInfo = ['sent', 'viewed'].includes(offer.workflow_status);
+  const canRequestInfo = true; // Toujours actif - on peut demander des documents à tout moment
+  const canProgressToAnalysis = offer.workflow_status === 'sent';
 
   return (
     <div className="space-y-4">
