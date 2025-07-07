@@ -151,15 +151,19 @@ export const useSimpleChat = (): SimpleChatHook => {
           const newMessage = payload.new as ChatMessage;
           
           setState(prev => {
-            // Avoid duplicates
-            const messageExists = prev.messages.some(msg => 
-              msg.id === newMessage.id || 
-              (msg.message === newMessage.message && 
-               msg.sender_name === newMessage.sender_name &&
-               Math.abs(new Date(msg.created_at!).getTime() - new Date(newMessage.created_at!).getTime()) < 1000)
-            );
+            // Improved deduplication - only check by ID if both have IDs
+            const messageExists = prev.messages.some(msg => {
+              if (msg.id && newMessage.id) {
+                return msg.id === newMessage.id;
+              }
+              // Fallback: check content + timestamp (less strict)
+              return msg.message === newMessage.message && 
+                     msg.sender_name === newMessage.sender_name &&
+                     Math.abs(new Date(msg.created_at!).getTime() - new Date(newMessage.created_at!).getTime()) < 2000;
+            });
             
             if (messageExists) {
+              console.log('📨 Message déjà existant, ignoré');
               return prev;
             }
 
@@ -168,6 +172,7 @@ export const useSimpleChat = (): SimpleChatHook => {
               playNotificationSound();
             }
 
+            console.log('📨 Nouveau message ajouté:', newMessage.message);
             return {
               ...prev,
               messages: [...prev.messages, newMessage]
@@ -233,15 +238,22 @@ export const useSimpleChat = (): SimpleChatHook => {
         return;
       }
 
-      // Vérifier la disponibilité des agents
-      const isAvailable = await checkAgentAvailability(companyId);
-      
-      // Reconnecter aux channels temps réel
+      // Reconnecter aux channels temps réel d'abord
       setupRealtimeSubscription(conversationId);
       setupAgentStatusMonitoring(companyId);
       
       // Charger l'historique des messages
       await loadMessages(conversationId);
+      
+      // Vérifier la disponibilité des agents avec retry
+      let isAvailable = await checkAgentAvailability(companyId);
+      
+      // Si pas disponible, retry après un court délai
+      if (!isAvailable) {
+        console.log('🔄 Retry de la vérification agent...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        isAvailable = await checkAgentAvailability(companyId);
+      }
       
       setState(prev => ({ 
         ...prev, 
@@ -249,7 +261,7 @@ export const useSimpleChat = (): SimpleChatHook => {
         isLoading: false 
       }));
       
-      console.log('✅ Conversation restaurée avec succès');
+      console.log('✅ Conversation restaurée avec succès, agent:', isAvailable ? 'en ligne' : 'hors ligne');
     } catch (error) {
       console.error('Erreur lors de la restauration:', error);
       setState(prev => ({ 

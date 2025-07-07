@@ -269,6 +269,18 @@ export const EnhancedAdminDashboard: React.FC = () => {
           },
           (payload) => {
             console.log('Admin: New message received:', payload);
+            const newMessage = payload.new as ChatMessage;
+            
+            // Play sound for new visitor messages
+            if (newMessage.sender_type === 'visitor') {
+              playSound('message');
+              showNotification(
+                'Nouveau message',
+                `${newMessage.sender_name}: ${newMessage.message.substring(0, 50)}${newMessage.message.length > 50 ? '...' : ''}`,
+                '/logo.png'
+              );
+            }
+            
             loadMessages(selectedConversation.id);
           }
         )
