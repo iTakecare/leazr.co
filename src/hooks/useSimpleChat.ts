@@ -40,18 +40,52 @@ const generateNotificationSound = () => {
   }
 };
 
+// Clés pour localStorage
+const STORAGE_KEYS = {
+  CONVERSATION_ID: 'simple_chat_conversation_id',
+  VISITOR_INFO: 'simple_chat_visitor_info',
+  WIDGET_STATE: 'simple_chat_widget_state'
+};
+
+// Fonction pour sauvegarder dans localStorage
+const saveToStorage = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Erreur sauvegarde localStorage:', error);
+  }
+};
+
+// Fonction pour charger depuis localStorage
+const loadFromStorage = <T>(key: string): T | null => {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.error('Erreur chargement localStorage:', error);
+    return null;
+  }
+};
+
 export const useSimpleChat = (): SimpleChatHook => {
-  const [state, setState] = useState<SimpleChatState>({
-    conversationId: null,
-    visitorInfo: null,
-    messages: [],
-    isConnected: false,
-    isLoading: false,
-    error: null
+  // Initialiser l'état avec les données persistées
+  const [state, setState] = useState<SimpleChatState>(() => {
+    const savedConversationId = loadFromStorage<string>(STORAGE_KEYS.CONVERSATION_ID);
+    const savedVisitorInfo = loadFromStorage<{ name: string; email?: string }>(STORAGE_KEYS.VISITOR_INFO);
+    
+    return {
+      conversationId: savedConversationId,
+      visitorInfo: savedVisitorInfo,
+      messages: [],
+      isConnected: false,
+      isLoading: savedConversationId ? true : false, // Loading si on a une conversation à restaurer
+      error: null
+    };
   });
 
   const realtimeChannelRef = useRef<any>(null);
   const agentStatusChannelRef = useRef<any>(null);
+  const hasRestoredRef = useRef<boolean>(false);
 
   const playNotificationSound = useCallback(() => {
     generateNotificationSound();
@@ -75,33 +109,6 @@ export const useSimpleChat = (): SimpleChatHook => {
       return false;
     }
   }, []);
-
-  // Set up agent status monitoring
-  const setupAgentStatusMonitoring = useCallback((companyId: string) => {
-    if (agentStatusChannelRef.current) {
-      supabase.removeChannel(agentStatusChannelRef.current);
-    }
-
-    const channel = supabase
-      .channel(`agent_status_${companyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_agent_status',
-          filter: `company_id=eq.${companyId}`
-        },
-        async () => {
-          console.log('🟢 Agent status changed, checking availability...');
-          const isAvailable = await checkAgentAvailability(companyId);
-          setState(prev => ({ ...prev, isConnected: isAvailable }));
-        }
-      )
-      .subscribe();
-
-    agentStatusChannelRef.current = channel;
-  }, [checkAgentAvailability]);
 
   // Load messages from database
   const loadMessages = useCallback(async (conversationId: string) => {
@@ -172,6 +179,125 @@ export const useSimpleChat = (): SimpleChatHook => {
 
     realtimeChannelRef.current = channel;
   }, [playNotificationSound]);
+
+  // Set up agent status monitoring
+  const setupAgentStatusMonitoring = useCallback((companyId: string) => {
+    if (agentStatusChannelRef.current) {
+      supabase.removeChannel(agentStatusChannelRef.current);
+    }
+
+    const channel = supabase
+      .channel(`agent_status_${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_agent_status',
+          filter: `company_id=eq.${companyId}`
+        },
+        async () => {
+          console.log('🟢 Agent status changed, checking availability...');
+          const isAvailable = await checkAgentAvailability(companyId);
+          setState(prev => ({ ...prev, isConnected: isAvailable }));
+        }
+      )
+      .subscribe();
+
+    agentStatusChannelRef.current = channel;
+  }, [checkAgentAvailability]);
+
+  // Fonction pour restaurer une conversation existante
+  const restoreExistingConversation = useCallback(async (conversationId: string, companyId: string) => {
+    console.log('🔄 Restauration de la conversation:', conversationId);
+    
+    try {
+      // Vérifier que la conversation existe encore
+      const { data: conversation, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single();
+
+      if (error || !conversation) {
+        console.log('❌ Conversation introuvable, nettoyage du localStorage');
+        // Conversation n'existe plus, nettoyer le localStorage
+        localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
+        localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
+        setState(prev => ({ 
+          ...prev, 
+          conversationId: null, 
+          visitorInfo: null, 
+          isLoading: false 
+        }));
+        return;
+      }
+
+      // Vérifier la disponibilité des agents
+      const isAvailable = await checkAgentAvailability(companyId);
+      
+      // Reconnecter aux channels temps réel
+      setupRealtimeSubscription(conversationId);
+      setupAgentStatusMonitoring(companyId);
+      
+      // Charger l'historique des messages
+      await loadMessages(conversationId);
+      
+      setState(prev => ({ 
+        ...prev, 
+        isConnected: isAvailable, 
+        isLoading: false 
+      }));
+      
+      console.log('✅ Conversation restaurée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la restauration:', error);
+      setState(prev => ({ 
+        ...prev, 
+        error: 'Erreur lors de la restauration de la conversation',
+        isLoading: false 
+      }));
+    }
+  }, [checkAgentAvailability, setupRealtimeSubscription, setupAgentStatusMonitoring, loadMessages]);
+
+  // Effet pour restaurer automatiquement une conversation au démarrage
+  useEffect(() => {
+    if (!hasRestoredRef.current && state.conversationId && state.visitorInfo) {
+      hasRestoredRef.current = true;
+      
+      // Déterminer le companyId depuis l'URL ou le contexte
+      const currentPath = window.location.pathname;
+      const companyIdMatch = currentPath.match(/\/public\/([^\/]+)/);
+      
+      if (companyIdMatch) {
+        const companyId = companyIdMatch[1];
+        restoreExistingConversation(state.conversationId, companyId);
+      } else {
+        // Si on ne peut pas déterminer le companyId, nettoyer le localStorage
+        localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
+        localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
+        setState(prev => ({ 
+          ...prev, 
+          conversationId: null, 
+          visitorInfo: null, 
+          isLoading: false 
+        }));
+      }
+    }
+  }, [state.conversationId, state.visitorInfo, restoreExistingConversation]);
+
+  // Effet pour sauvegarder les données importantes
+  useEffect(() => {
+    if (state.conversationId) {
+      saveToStorage(STORAGE_KEYS.CONVERSATION_ID, state.conversationId);
+    }
+  }, [state.conversationId]);
+
+  useEffect(() => {
+    if (state.visitorInfo) {
+      saveToStorage(STORAGE_KEYS.VISITOR_INFO, state.visitorInfo);
+    }
+  }, [state.visitorInfo]);
 
   // Initialize chat
   const initializeChat = useCallback(async (companyId: string, visitorName: string, visitorEmail?: string) => {
@@ -285,6 +411,11 @@ export const useSimpleChat = (): SimpleChatHook => {
       supabase.removeChannel(agentStatusChannelRef.current);
       agentStatusChannelRef.current = null;
     }
+    
+    // Nettoyer le localStorage
+    localStorage.removeItem(STORAGE_KEYS.CONVERSATION_ID);
+    localStorage.removeItem(STORAGE_KEYS.VISITOR_INFO);
+    localStorage.removeItem(STORAGE_KEYS.WIDGET_STATE);
     
     setState({
       conversationId: null,
