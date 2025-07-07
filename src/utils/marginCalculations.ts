@@ -12,7 +12,7 @@ export interface OfferFinancialData {
 }
 
 /**
- * Calculate equipment totals consistently (exact logic from FinancialSection)
+ * Calculate equipment totals consistently (exact logic extracted from FinancialSection)
  */
 export const calculateEquipmentTotals = (offer: OfferFinancialData) => {
   // Essayer de parser les équipements depuis equipment_description
