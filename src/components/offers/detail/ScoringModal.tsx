@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { getOfferById } from "@/services/offerService";
 import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { getOfferDocuments } from "@/services/offers/offerDocuments";
 
 interface ScoringModalProps {
   isOpen: boolean;
@@ -56,13 +57,44 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [otherDoc, setOtherDoc] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [autoApprovalAvailable, setAutoApprovalAvailable] = useState(false);
 
   const isInternalAnalysis = analysisType === 'internal';
   
   // Déterminer si le scoring est possible selon le type d'analyse et le statut
   const canScore = isInternalAnalysis 
-    ? ['draft', 'internal_review'].includes(currentStatus)
-    : ['internal_approved', 'leaser_review'].includes(currentStatus);
+    ? ['draft', 'internal_review', 'internal_docs_requested'].includes(currentStatus)
+    : ['internal_approved', 'leaser_review', 'leaser_docs_requested'].includes(currentStatus);
+
+  // Vérifier si une approbation automatique est disponible
+  useEffect(() => {
+    const checkAutoApproval = async () => {
+      if ((currentStatus === 'internal_docs_requested' && isInternalAnalysis) ||
+          (currentStatus === 'leaser_docs_requested' && !isInternalAnalysis)) {
+        
+        try {
+          const documents = await getOfferDocuments(offerId);
+          const allApproved = documents.length > 0 && 
+            documents.every(doc => doc.status === 'approved') &&
+            !documents.some(doc => doc.status === 'rejected');
+          
+          setAutoApprovalAvailable(allApproved);
+          
+          if (allApproved) {
+            console.log("🎉 Approbation automatique disponible - tous les documents sont validés");
+          }
+        } catch (error) {
+          console.error("Erreur lors de la vérification des documents:", error);
+        }
+      } else {
+        setAutoApprovalAvailable(false);
+      }
+    };
+
+    if (isOpen && canScore) {
+      checkAutoApproval();
+    }
+  }, [offerId, currentStatus, isInternalAnalysis, isOpen, canScore]);
 
   const scoreOptions = [
     {
@@ -205,6 +237,19 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {/* Notification d'approbation automatique disponible */}
+              {autoApprovalAvailable && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">Approbation automatique disponible</span>
+                  </div>
+                  <p className="text-sm text-green-700 mt-2">
+                    Tous les documents requis ont été validés. Vous pouvez directement attribuer le score A.
+                  </p>
+                </div>
+              )}
+
               {/* Options de scoring */}
               <div className="grid gap-3">
                 {scoreOptions.map((option) => {

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
+import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 // Import des composants améliorés
@@ -41,6 +42,17 @@ const AdminOfferDetail = () => {
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
 
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
+
+  const handleStatusChange = (newStatus: string) => {
+    setOffer({ ...offer, workflow_status: newStatus });
+  };
+  
+  // Surveillance automatique des documents
+  useDocumentMonitoring({
+    offerId: id || '',
+    currentStatus: offer?.workflow_status || '',
+    onStatusChange: handleStatusChange
+  });
 
   useEffect(() => {
     const fetchOfferDetails = async () => {
@@ -158,9 +170,6 @@ const AdminOfferDetail = () => {
     window.open(previewUrl, '_blank');
   };
 
-  const handleStatusChange = (newStatus: string) => {
-    setOffer({ ...offer, workflow_status: newStatus });
-  };
 
   const handleAnalysisClick = (analysisType: 'internal' | 'leaser') => {
     setScoringAnalysisType(analysisType);
