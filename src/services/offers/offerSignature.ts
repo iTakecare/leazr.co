@@ -28,6 +28,32 @@ export const saveOfferSignature = async (
       console.error("Données de signature invalides");
       return false;
     }
+
+    // Vérifier si l'utilisateur est authentifié
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // Utilisateur non authentifié - utiliser la fonction RPC sécurisée pour les signatures publiques
+      console.log("Signature publique - utilisation de la fonction RPC sécurisée");
+      
+      const { data, error } = await supabase.rpc('sign_offer_public', {
+        p_offer_id: offerId,
+        p_signature_data: signatureData,
+        p_signer_name: signerName.trim(),
+        p_signer_ip: ipAddress || null
+      });
+
+      if (error) {
+        console.error("Erreur lors de la signature publique:", error);
+        throw new Error(error.message);
+      }
+
+      console.log("Signature publique enregistrée avec succès pour l'offre:", offerId);
+      return data === true;
+    }
+
+    // Utilisateur authentifié - utiliser le processus normal
+    console.log("Signature d'utilisateur authentifié - processus normal");
     
     // Créer un timestamp ISO 8601 précis avec millisecondes pour la valeur légale
     const now = new Date().toISOString();
@@ -54,6 +80,7 @@ export const saveOfferSignature = async (
       .from('offer_workflow_logs')
       .insert({
         offer_id: offerId,
+        user_id: user.id,
         previous_status: 'sent', // On suppose que l'offre était en statut "sent"
         new_status: 'approved',
         reason: `Offre signée électroniquement par ${signerName}${ipAddress ? ` depuis l'adresse IP ${ipAddress}` : ''}`

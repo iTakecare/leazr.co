@@ -3896,6 +3896,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      sign_offer_public: {
+        Args: {
+          p_offer_id: string
+          p_signature_data: string
+          p_signer_name: string
+          p_signer_ip?: string
+        }
+        Returns: boolean
+      }
       unlink_client_from_ambassador_secure: {
         Args: { p_user_id: string; p_client_id: string }
         Returns: boolean
