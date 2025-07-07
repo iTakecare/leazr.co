@@ -24,23 +24,12 @@ export class SoundGenerator {
     if (this.audioContext.state === 'suspended') {
       try {
         await this.audioContext.resume();
-        console.log('🔊 AudioContext resumed successfully');
       } catch (error) {
         console.warn('Failed to resume audio context:', error);
-        return null;
       }
     }
 
     return this.audioContext;
-  }
-
-  async activate(): Promise<boolean> {
-    const context = await this.ensureAudioContext();
-    return context !== null && context.state === 'running';
-  }
-
-  get isReady(): boolean {
-    return this.audioContext !== null && this.audioContext.state === 'running';
   }
 
   private createOscillator(frequency: number, type: OscillatorType = 'sine') {

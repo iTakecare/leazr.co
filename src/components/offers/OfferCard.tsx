@@ -45,14 +45,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const openOnlineOffer = () => {
     const link = generateSignatureLink(offer.id);
-    const isAccessible = ['sent', 'approved', 'info_requested', 'valid_itc', 'leaser_review', 'financed'].includes(offer.workflow_status || '');
-    
-    if (isAccessible) {
-      window.open(link, '_blank', 'noopener,noreferrer');
-    } else {
-      // Naviguer vers la page pour montrer le message d'erreur approprié
-      window.open(link, '_blank', 'noopener,noreferrer');
-    }
+    window.open(link, '_blank', 'noopener,noreferrer');
   };
   
   const isConverted = offer.converted_to_contract;

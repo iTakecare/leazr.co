@@ -49,7 +49,7 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
       case OFFER_STATUSES.DRAFT.id:
         return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
       case OFFER_STATUSES.SENT.id:
-        return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
+        return "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-50";
       case OFFER_STATUSES.APPROVED.id:
         return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
       case OFFER_STATUSES.REJECTED.id:
@@ -67,11 +67,6 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
     }
   };
 
-  // Fonction pour déterminer si l'offre est publiquement accessible
-  const isPubliclyAccessible = () => {
-    return ['sent', 'approved', 'info_requested', 'valid_itc', 'leaser_review', 'financed'].includes(normalizedStatus);
-  };
-
   // Obtenir le statut correspondant ou utiliser un statut par défaut
   const statusObj = Object.values(OFFER_STATUSES).find(s => s.id === normalizedStatus) || {
     id: normalizedStatus,
@@ -85,9 +80,6 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
     <Badge variant="outline" className={`${getBadgeStyle()} ${className}`}>
       {showIcon && <StatusIcon className="mr-1 h-3 w-3" />}
       {isConverted ? "Convertie" : statusObj.label}
-      {isPubliclyAccessible() && (
-        <span className="ml-1 text-xs" title="Accessible publiquement">🔗</span>
-      )}
     </Badge>
   );
 };

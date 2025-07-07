@@ -18,6 +18,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { 
   MessageCircle, 
   Users, 
@@ -26,6 +34,11 @@ import {
   User,
   CheckCircle,
   AlertCircle,
+  Settings,
+  Bell,
+  BellOff,
+  Volume2,
+  VolumeX,
   Trash2,
   Phone,
   Video,
@@ -34,12 +47,11 @@ import {
   Star,
   Eye
 } from 'lucide-react';
+import { useWebRTCChat } from '@/hooks/useWebRTCChat';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatConversation, ChatMessage } from '@/types/chat';
 import { useAuth } from '@/context/AuthContext';
-import { OnlineStatusSwitch } from './OnlineStatusSwitch';
-import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 export const EnhancedAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -51,10 +63,6 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const [conversationToDelete, setConversationToDelete] = useState<ChatConversation | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState('waiting');
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
-  const [isConnected, setIsConnected] = useState(false);
-
-  const { agentStatus } = useAgentStatus();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -92,89 +100,53 @@ export const EnhancedAdminDashboard: React.FC = () => {
     fetchCompanyId();
   }, [user?.id]);
 
-  // Simple message sending functionality
-  const sendMessage = async (conversationId: string, message: string, senderName: string, senderType: 'agent' | 'visitor') => {
-    // Create optimistic message object for immediate display
-    const optimisticMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      conversation_id: conversationId,
-      sender_type: senderType,
-      sender_id: senderType === 'agent' ? user?.id : null,
-      sender_name: senderName,
-      message,
-      message_type: 'text',
-      created_at: new Date().toISOString()
-    };
+  const {
+    messages,
+    isConnected,
+    connect,
+    sendMessage,
+    sendTyping,
+    loadMessages,
+    setOnNotificationCallback
+  } = useWebRTCChat(companyId, undefined, user?.id);
 
-    // Add message immediately to local state for instant feedback
-    setMessages(prev => ({
-      ...prev,
-      [conversationId]: [...(prev[conversationId] || []), optimisticMessage]
-    }));
-
-    try {
-      const { error } = await supabase
-        .from('chat_messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_type: senderType,
-          sender_id: senderType === 'agent' ? user?.id : null,
-          sender_name: senderName,
-          message,
-          message_type: 'text'
-        });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Remove optimistic message on error
-      setMessages(prev => ({
-        ...prev,
-        [conversationId]: (prev[conversationId] || []).filter(msg => msg.id !== optimisticMessage.id)
-      }));
-      showToast('Erreur', 'Impossible d\'envoyer le message', 'destructive');
-    }
-  };
-
-  // Handle notifications for new conversations and messages
+  // Handle notifications from WebRTC
   useEffect(() => {
-    if (!companyId) return;
-    
-    // Monitor for new conversations
-    const conversationsChannel = supabase
-      .channel(`conversations_notifications_${companyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_conversations',
-          filter: `company_id=eq.${companyId}`
-        },
-        (payload) => {
-          const newConversation = payload.new as ChatConversation;
-          playSound('visitor');
-          showNotification(
-            'Nouveau visiteur',
-            `${newConversation.visitor_name} vient de rejoindre le chat`,
-            '/logo.png'
-          );
-          showToast(
-            'Nouveau visiteur',
-            `${newConversation.visitor_name} attend une réponse`
-          );
-          setUnreadCount(unreadCount + 1);
-          loadConversations();
-        }
-      )
-      .subscribe();
+    if (setOnNotificationCallback) {
+      setOnNotificationCallback((notification: any) => {
+        if (!notification) return;
+        
+        switch (notification.type) {
+          case 'new-visitor':
+            playSound('visitor');
+            showNotification(
+              'Nouveau visiteur',
+              `${notification.visitorName} vient de rejoindre le chat`,
+              '/logo.png'
+            );
+            showToast(
+              'Nouveau visiteur',
+              `${notification.visitorName} attend une réponse`
+            );
+            setUnreadCount(unreadCount + 1);
+            loadConversations();
+            break;
 
-    return () => {
-      supabase.removeChannel(conversationsChannel);
-    };
-  }, [companyId, playSound, showNotification, showToast, setUnreadCount]);
+          case 'new-message':
+            if (notification.conversationId !== selectedConversation?.id) {
+              playSound('message');
+              showNotification(
+                'Nouveau message',
+                `${notification.senderName}: ${notification.message}`,
+                '/logo.png'
+              );
+              setUnreadCount(unreadCount + 1);
+            }
+            break;
+        }
+      });
+    }
+  }, [setOnNotificationCallback, playSound, showNotification, showToast, selectedConversation?.id, setUnreadCount, unreadCount]);
 
   const loadConversations = async () => {
     if (!companyId) return;
@@ -224,34 +196,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
     }
   }, [companyId]);
 
-  // Load messages for selected conversation
-  const loadMessages = async (conversationId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(prev => ({ ...prev, [conversationId]: data || [] }));
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  };
-
-  // Initialize connection state for admin
-  useEffect(() => {
-    if (companyId && agentStatus?.is_online) {
-      setIsConnected(true);
-    } else {
-      setIsConnected(false);
-    }
-  }, [companyId, agentStatus?.is_online]);
-
   // Connect to selected conversation
   useEffect(() => {
     if (selectedConversation) {
+      connect(selectedConversation.id);
       loadMessages(selectedConversation.id);
       
       // Reset unread count for this conversation
@@ -269,25 +217,6 @@ export const EnhancedAdminDashboard: React.FC = () => {
           },
           (payload) => {
             console.log('Admin: New message received:', payload);
-            const newMessage = payload.new as ChatMessage;
-            
-            // Play sound for new visitor messages
-            if (newMessage.sender_type === 'visitor') {
-              console.log('🔊 Tentative de jouer le son pour nouveau message visiteur');
-              try {
-                playSound('visitor');
-                console.log('✅ Son joué avec succès');
-              } catch (error) {
-                console.error('❌ Erreur lors du son:', error);
-              }
-              
-              showNotification(
-                'Nouveau message',
-                `${newMessage.sender_name}: ${newMessage.message.substring(0, 50)}${newMessage.message.length > 50 ? '...' : ''}`,
-                '/logo.png'
-              );
-            }
-            
             loadMessages(selectedConversation.id);
           }
         )
@@ -297,7 +226,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
         supabase.removeChannel(messagesChannel);
       };
     }
-  }, [selectedConversation, setUnreadCount]);
+  }, [selectedConversation, connect, loadMessages, setUnreadCount]);
 
 
   const handleSendMessage = () => {
@@ -316,7 +245,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
     if (selectedConversation && value.trim() && !isTyping) {
       setIsTyping(true);
       const senderName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Agent';
-      // sendTyping functionality not yet implemented
+      sendTyping(selectedConversation.id, senderName, 'agent');
     }
 
     if (typingTimeoutRef.current) {
@@ -408,28 +337,28 @@ export const EnhancedAdminDashboard: React.FC = () => {
     switch (status) {
       case 'waiting':
         return (
-          <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100">
+          <Badge variant="outline" className="text-orange-600 border-orange-600 bg-orange-50">
             <Clock className="h-3 w-3 mr-1" />
             En attente
           </Badge>
         );
       case 'active':
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
+          <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
             <CheckCircle className="h-3 w-3 mr-1" />
             Actif
           </Badge>
         );
       case 'closed':
         return (
-          <Badge variant="secondary" className="bg-muted text-muted-foreground border-muted hover:bg-muted">
+          <Badge variant="outline" className="text-gray-600 border-gray-600 bg-gray-50">
             <CheckCircle className="h-3 w-3 mr-1" />
             Fermé
           </Badge>
         );
       case 'abandoned':
         return (
-          <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
+          <Badge variant="outline" className="text-red-600 border-red-600 bg-red-50">
             <AlertCircle className="h-3 w-3 mr-1" />
             Abandonné
           </Badge>
@@ -471,65 +400,117 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
   return (
     <div className="h-full max-h-[90vh]">
-      {/* Status Bar */}
+      {/* Header with notifications */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${agentStatus?.is_online ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-sm font-medium">
-                {agentStatus?.is_online ? 'En ligne' : 'Hors ligne'}
-              </span>
-            </div>
-            <OnlineStatusSwitch />
-            <div className="h-4 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {conversations.length} conversations
-              </span>
-            </div>
+          <div className="relative">
+            <MessageCircle className="h-8 w-8 text-primary" />
             {unreadCount > 0 && (
-              <>
-                <div className="h-4 w-px bg-border" />
-                <Badge variant="destructive" className="h-6 px-2 text-xs animate-bounce">
-                  {unreadCount} non lues
-                </Badge>
-              </>
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
             )}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Chat en direct</h1>
+            <p className="text-muted-foreground">
+              {isConnected ? 'Connecté' : 'Déconnecté'} • {conversations.length} conversations
+            </p>
           </div>
         </div>
 
+        {/* Settings Sheet */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Paramètres
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Paramètres de notification</SheetTitle>
+              <SheetDescription>
+                Configurez vos préférences de notification pour le chat
+              </SheetDescription>
+            </SheetHeader>
+            
+            <div className="space-y-6 mt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">Sons activés</label>
+                    <p className="text-xs text-muted-foreground">
+                      Jouer des sons pour les notifications
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.soundEnabled}
+                    onCheckedChange={(checked) => updateSettings({ soundEnabled: checked })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Volume</label>
+                  <Slider
+                    value={[settings.volume * 100]}
+                    onValueChange={([value]) => updateSettings({ volume: value / 100 })}
+                    max={100}
+                    step={10}
+                    disabled={!settings.soundEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">Notifications navigateur</label>
+                    <p className="text-xs text-muted-foreground">
+                      Afficher les notifications système
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.browserNotifications}
+                    onCheckedChange={(checked) => updateSettings({ browserNotifications: checked })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => playSound('message')}
+                    disabled={!settings.soundEnabled}
+                  >
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Tester le son
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-        <TabsList className="grid w-full grid-cols-4 bg-muted/50">
-          <TabsTrigger value="waiting" className="relative data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Clock className="h-4 w-4 mr-2" />
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="waiting" className="relative">
             En attente
             {conversations.filter(c => c.status === 'waiting').length > 0 && (
-              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-orange-500 text-white text-xs animate-pulse">
+              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-orange-500 text-xs">
                 {conversations.filter(c => c.status === 'waiting').length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <CheckCircle className="h-4 w-4 mr-2" />
+          <TabsTrigger value="active">
             Actives
             {conversations.filter(c => c.status === 'active').length > 0 && (
-              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-green-500 text-white text-xs">
+              <Badge className="ml-2 h-5 w-5 rounded-full p-0 bg-green-500 text-xs">
                 {conversations.filter(c => c.status === 'active').length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="closed" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Fermées
-          </TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Users className="h-4 w-4 mr-2" />
-            Toutes
-          </TabsTrigger>
+          <TabsTrigger value="closed">Fermées</TabsTrigger>
+          <TabsTrigger value="all">Toutes</TabsTrigger>
         </TabsList>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 h-[calc(100%-80px)]">
@@ -632,10 +613,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
                       
                       <div className="flex gap-1">
                         {selectedConversation.status === 'waiting' && (
-                           <Button
+                          <Button
                             size="sm"
                             onClick={() => updateConversationStatus(selectedConversation.id, 'active')}
-                            className="bg-green-600 hover:bg-green-700 text-white animate-pulse"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <Zap className="h-4 w-4 mr-1" />
                             Prendre en charge
@@ -728,31 +709,31 @@ export const EnhancedAdminDashboard: React.FC = () => {
                     <div className="border-t p-4 bg-muted/20">
                       <div className="flex gap-3">
                         <div className="flex-1">
-                           <Input
-                             placeholder="Tapez votre réponse..."
-                             value={currentMessage}
-                             onChange={(e) => handleInputChange(e.target.value)}
-                             onKeyPress={handleKeyPress}
-                             disabled={!agentStatus?.is_online}
-                             className="bg-white"
-                           />
+                          <Input
+                            placeholder="Tapez votre réponse..."
+                            value={currentMessage}
+                            onChange={(e) => handleInputChange(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            disabled={!isConnected}
+                            className="bg-white"
+                          />
                         </div>
-                         <Button
-                           onClick={handleSendMessage}
-                           disabled={!currentMessage.trim() || !agentStatus?.is_online}
-                           size="sm"
-                           className="px-4"
-                         >
-                           <Send className="h-4 w-4" />
-                         </Button>
+                        <Button
+                          onClick={handleSendMessage}
+                          disabled={!currentMessage.trim() || !isConnected}
+                          size="sm"
+                          className="px-4"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
                       </div>
                       
-                       {!agentStatus?.is_online && (
-                         <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                           <div className="w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                           Agent hors ligne - activez votre statut pour répondre
-                         </p>
-                       )}
+                      {!isConnected && (
+                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                          <div className="w-3 h-3 border border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                          Connexion en cours...
+                        </p>
+                      )}
                     </div>
                   )}
                 </CardContent>

@@ -33,15 +33,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { SidebarNotificationBadge } from "./SidebarNotificationBadge";
 import CompanyLogo from "./CompanyLogo";
-
-interface SidebarItem {
-  label: string;
-  icon: React.ComponentType<any>;
-  href: string;
-  hasNotification?: boolean;
-}
 
 interface SidebarProps {
   className?: string;
@@ -84,7 +76,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     fetchAvatar();
   }, [user]);
 
-  const mainSidebarItems: SidebarItem[] = [
+  const mainSidebarItems = [
     { label: "Tableau de bord", icon: LayoutDashboard, href: "/admin/dashboard" },
     { label: "CRM", icon: Users, href: "/admin/clients" },
     { label: "Offres", icon: FileText, href: "/admin/offers" },
@@ -93,10 +85,10 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     { label: "Contrats", icon: FileText, href: "/admin/contracts" },
     { label: "Facturation", icon: Receipt, href: "/admin/invoicing" },
     { label: "Catalogue", icon: Package, href: "/admin/catalog" },
-    { label: "Chat en direct", icon: MessageCircle, href: "/admin/chat", hasNotification: true },
+    { label: "Chat en direct", icon: MessageCircle, href: "/admin/chat" },
   ];
 
-  const bottomItems: SidebarItem[] = [
+  const bottomItems = [
     { label: "Paramètres", icon: Settings, href: "/admin/settings" },
   ];
 
@@ -164,19 +156,14 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                           setMobileOpen(false);
                         }}
                         className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300 relative",
+                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
                           isActive(item.href)
                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
                             : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
                       >
-                        <div className="relative">
-                          <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
-                        </div>
+                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
                         <span className="flex-1">{item.label}</span>
                       </Link>
                     </li>
@@ -192,19 +179,14 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                           setMobileOpen(false);
                         }}
                         className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300 relative",
+                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
                           isActive(item.href)
                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
                             : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
                       >
-                        <div className="relative">
-                          <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
-                        </div>
+                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
                         <span className="flex-1">{item.label}</span>
                       </Link>
                     </li>
@@ -287,7 +269,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                       <button
                         onClick={() => handleNavigation(item.href)}
                         className={cn(
-                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative",
+                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                           collapsed ? "justify-center px-2" : "px-3",
                           isActive(item.href)
                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
@@ -295,18 +277,13 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
                       >
-                        <div className="relative">
-                          <item.icon 
-                            className={cn(
-                              "h-5 w-5 flex-shrink-0", 
-                              collapsed ? "relative" : "mr-3",
-                              isActive(item.href) && "stroke-[2.5px]"
-                            )} 
-                          />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
-                        </div>
+                        <item.icon 
+                          className={cn(
+                            "h-5 w-5 flex-shrink-0", 
+                            collapsed ? "relative" : "mr-3",
+                            isActive(item.href) && "stroke-[2.5px]"
+                          )} 
+                        />
                         {!collapsed && (
                           <span className="flex-1 text-left">{item.label}</span>
                         )}

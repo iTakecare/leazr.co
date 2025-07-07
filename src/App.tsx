@@ -36,7 +36,7 @@ import AuthCallback from "@/pages/AuthCallback";
 
 // Public catalog and product pages
 import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
-import ProductDetailPage from "@/pages/ProductDetailPage";
+import PublicProductDetailPage from "@/pages/PublicProductDetailPage";
 import PublicCartPage from "@/pages/PublicCartPage";
 import PublicRequestPage from "@/pages/PublicRequestPage";
 import PublicRequestStepsPage from "@/pages/PublicRequestStepsPage";
@@ -131,8 +131,8 @@ function App() {
                    {/* Public Catalog and Commerce Routes */}
                    <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />
                    <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-                   <Route path="/product/:id" element={<ProductDetailPage />} />
-                   <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
+                  <Route path="/product/:id" element={<PublicProductDetailPage />} />
+                  <Route path="/public/:companyId/products/:id" element={<PublicProductDetailPage />} />
                   <Route path="/cart" element={<PublicCartPage />} />
                   <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
                   <Route path="/public/:companyId/demande" element={<PublicRequestStepsPage />} />

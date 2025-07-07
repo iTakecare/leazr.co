@@ -2,6 +2,3 @@ project_id = "cifbetjefyfocafanlhv"
 
 [functions.live-chat]
 verify_jwt = false
-
-[functions.webrtc-signaling]
-verify_jwt = false
