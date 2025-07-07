@@ -139,6 +139,15 @@ export const PublicChatWidget: React.FC<PublicChatWidgetProps> = ({
             size="lg"
           >
             <MessageCircle className="h-6 w-6" />
+            
+            {/* Status indicator dot */}
+            <div 
+              className={`absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-white ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+              title={isConnected ? 'Opérateur en ligne' : 'Opérateur hors ligne'}
+            />
+            
             {/* Unread badge */}
             <AnimatePresence>
               {unreadCount > 0 && (
