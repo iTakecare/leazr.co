@@ -81,10 +81,10 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
                   
                   {item.margin && (
                     <div className="flex items-center gap-2">
-                      <Euro className="w-4 h-4 text-gray-500" />
+                      <span className="w-4 h-4 text-gray-500">%</span>
                       <div>
-                        <p className="text-gray-500">Marge</p>
-                        <p className="font-medium">{formatCurrency(item.margin)}</p>
+                        <p className="text-gray-500">Marge (%)</p>
+                        <p className="font-medium">{item.margin}%</p>
                       </div>
                     </div>
                   )}
