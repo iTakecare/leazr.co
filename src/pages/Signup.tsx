@@ -21,7 +21,7 @@ const Signup = () => {
   const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("admin");
   const [isExistingClient, setIsExistingClient] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
-  const { signUp, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,33 +75,46 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!company.trim()) {
+      toast.error("Le nom de l'entreprise est requis");
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
-      // Mise à jour pour inclure le rôle personnalisé lors de l'inscription
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            company,
-            role: role // Utiliser le rôle sélectionné
-          }
+      console.log('Tentative de création d\'entreprise avec admin...');
+      
+      const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
+        body: {
+          companyName: company.trim(),
+          adminEmail: email,
+          adminPassword: password,
+          adminFirstName: firstName,
+          adminLastName: lastName,
+          plan: 'starter',
+          selectedModules: ['crm', 'offers', 'contracts']
         }
       });
       
       if (error) {
-        console.error("Signup error:", error);
+        console.error("Erreur lors de la création de l'entreprise:", error);
         toast.error(`Erreur d'inscription: ${error.message}`);
         return;
       }
       
-      if (data) {
-        toast.success("Compte créé avec succès! Vérifiez votre email pour confirmer votre inscription.");
+      if (data && data.success) {
+        console.log('Entreprise créée avec succès:', data);
+        toast.success("Entreprise et compte créés avec succès! Vous pouvez maintenant vous connecter.");
+        navigate('/login');
+      } else {
+        throw new Error(data?.error || 'Erreur inconnue lors de la création');
       }
     } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(`Erreur: ${error.message}`);
+      console.error("Erreur lors de l'inscription:", error);
+      toast.error(`Erreur: ${error.message || 'Une erreur est survenue'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -202,7 +215,7 @@ const Signup = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Entreprise {isExistingClient ? '' : '(optionnel)'}</Label>
+              <Label htmlFor="company">Entreprise</Label>
               <div className="relative">
                 <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -211,7 +224,7 @@ const Signup = () => {
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                   className={`pl-10 ${isExistingClient && clientInfo?.company ? 'border-green-500' : ''}`}
-                  required={isExistingClient && !!clientInfo?.company}
+                  required
                 />
               </div>
             </div>
