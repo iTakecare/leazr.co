@@ -14,10 +14,12 @@ export const useCatalogManagement = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Fetch products
+  // Fetch products with forced refresh on mount
   const { data: productsData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: () => getProducts(true), // Pass true to include admin-only products
+    staleTime: 0, // Force refresh
+    gcTime: 0, // Don't cache (gcTime replaces cacheTime in React Query v5)
   });
   
   // Enhanced products processing with better variant detection

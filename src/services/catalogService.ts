@@ -7,6 +7,8 @@ import { getCurrentUserCompanyId } from "@/services/multiTenantService";
  */
 export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnly?: boolean }) => {
   try {
+    console.log("🛒 CATALOG - Début getProducts");
+    
     // Normalize the parameter
     let showAdminOnly = false;
     if (typeof includeAdminOnly === 'boolean') {
@@ -15,10 +17,15 @@ export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnl
       showAdminOnly = !!includeAdminOnly.includeAdminOnly;
     }
 
-    // Récupérer tous les produits avec filtrage automatique par company_id via RLS
+    // Récupérer le company_id de l'utilisateur connecté pour un filtrage explicite
+    const company_id = await getCurrentUserCompanyId();
+    console.log("🛒 CATALOG - Company ID récupéré:", company_id);
+
+    // Récupérer les produits avec filtrage explicite par company_id
     let query = supabase
       .from("products")
       .select("*")
+      .eq("company_id", company_id)
       .order("created_at", { ascending: false });
     
     // Filter out admin_only products unless explicitly requested
@@ -29,6 +36,8 @@ export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnl
     const { data: productsData, error: productsError } = await query;
     
     if (productsError) throw productsError;
+    
+    console.log(`🛒 CATALOG - Produits trouvés pour company ${company_id}:`, productsData?.length || 0);
     
     // Récupérer tous les prix de variantes
     const { data: variantPricesData, error: variantPricesError } = await supabase
