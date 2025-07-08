@@ -1,28 +1,69 @@
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
-import { Mail, Lock, User, Building, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PersonalInfoStep } from "@/components/signup/PersonalInfoStep";
+import { ModuleSelectionStep } from "@/components/signup/ModuleSelectionStep";
+import { CompanyInfoStep } from "@/components/signup/CompanyInfoStep";
+import { StepperProgress } from "@/components/signup/StepperProgress";
+
+interface Module {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  is_core: boolean;
+}
 
 const Signup = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
-  const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("admin");
+  const [role, setRole] = useState("admin");
   const [isExistingClient, setIsExistingClient] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>(['crm', 'catalog', 'calculator']);
   const navigate = useNavigate();
+
+  const stepLabels = ["Informations", "Modules", "Entreprise"];
+  const totalSteps = 3;
+
+  // Load modules on component mount
+  useEffect(() => {
+    const loadModules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('modules')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error("Error loading modules:", error);
+          return;
+        }
+        
+        setModules(data || []);
+        
+        // Auto-select core modules
+        const coreModules = (data || []).filter(m => m.is_core).map(m => m.slug);
+        setSelectedModules([...coreModules]);
+      } catch (error) {
+        console.error("Error loading modules:", error);
+      }
+    };
+    
+    loadModules();
+  }, []);
 
   useEffect(() => {
     const checkExistingClient = async () => {
@@ -72,11 +113,35 @@ const Signup = () => {
     return () => clearTimeout(debounce);
   }, [email]);
 
+  const nextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const canProceedFromStep1 = () => {
+    return firstName.trim() && lastName.trim() && email.trim() && password.length >= 6;
+  };
+
+  const canProceedFromStep2 = () => {
+    return selectedModules.length > 0;
+  };
+
+  const canProceedFromStep3 = () => {
+    return company.trim() && role;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!company.trim()) {
-      toast.error("Le nom de l'entreprise est requis");
+    if (!canProceedFromStep3()) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
     
@@ -92,7 +157,7 @@ const Signup = () => {
           lastName: lastName,
           companyName: company.trim(),
           plan: 'starter',
-          selectedModules: ['crm', 'offers', 'contracts']
+          selectedModules: selectedModules
         }
       });
       
@@ -119,143 +184,131 @@ const Signup = () => {
     }
   };
 
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <PersonalInfoStep
+            firstName={firstName}
+            setFirstName={setFirstName}
+            lastName={lastName}
+            setLastName={setLastName}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            isExistingClient={isExistingClient}
+          />
+        );
+      case 2:
+        return (
+          <ModuleSelectionStep
+            modules={modules}
+            selectedModules={selectedModules}
+            setSelectedModules={setSelectedModules}
+          />
+        );
+      case 3:
+        return (
+          <CompanyInfoStep
+            company={company}
+            setCompany={setCompany}
+            role={role}
+            setRole={setRole}
+            isExistingClient={isExistingClient}
+            clientInfo={clientInfo}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <Container className="flex items-center justify-center min-h-[calc(100vh-10rem)] py-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Démarrer votre essai gratuit</CardTitle>
-          <CardDescription>
-            {isExistingClient 
-              ? `Bienvenue ${clientInfo?.name}! Démarrez votre essai gratuit de 14 jours.` 
-              : 'Commencez votre essai gratuit de 14 jours sans engagement'}
-          </CardDescription>
-          {isExistingClient && (
-            <div className="bg-green-50 border border-green-200 rounded p-2 text-sm text-green-800">
-              Votre adresse email est associée à un client existant. Certains champs ont été pré-remplis pour vous.
-            </div>
-          )}
+    <Container className="flex items-center justify-center min-h-[calc(100vh-5rem)] py-8">
+      <Card className="w-full max-w-4xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+            Démarrer votre essai gratuit
+          </CardTitle>
+          <p className="text-muted-foreground text-lg">
+            14 jours d'accès complet - Aucun engagement
+          </p>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="firstName"
-                    placeholder="Jean"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="lastName"
-                    placeholder="Dupont"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="exemple@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`pl-10 ${isExistingClient ? 'border-green-500' : ''}`}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Type de compte</Label>
-              <Select 
-                value={role} 
-                onValueChange={(value) => setRole(value as "client" | "partner" | "ambassador" | "admin")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez un type de compte" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="partner">Partenaire</SelectItem>
-                  <SelectItem value="ambassador">Ambassadeur</SelectItem>
-                  <SelectItem value="admin">Administrateur</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Entreprise</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="company"
-                  placeholder="Nom de votre entreprise"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className={`pl-10 ${isExistingClient && clientInfo?.company ? 'border-green-500' : ''}`}
-                  required
-                />
-              </div>
+        
+        <form onSubmit={currentStep === totalSteps ? handleSubmit : (e) => e.preventDefault()}>
+          <CardContent className="px-8">
+            <StepperProgress 
+              currentStep={currentStep} 
+              totalSteps={totalSteps} 
+              stepLabels={stepLabels} 
+            />
+            
+            <div className="min-h-[400px]">
+              {renderStepContent()}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Démarrage de l'essai...
-                </>
-              ) : (
-                "Démarrer l'essai gratuit"
+          
+          <CardFooter className="flex justify-between px-8 pb-8">
+            <div className="flex gap-3">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Précédent
+                </Button>
               )}
-            </Button>
-            <div className="text-center text-sm">
-              Déjà un compte?{" "}
-              <Link
-                to="/login"
-                className="text-primary hover:underline"
-              >
-                Se connecter
-              </Link>
+            </div>
+
+            <div className="flex gap-3">
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={
+                    (currentStep === 1 && !canProceedFromStep1()) ||
+                    (currentStep === 2 && !canProceedFromStep2())
+                  }
+                  className="flex items-center gap-2"
+                >
+                  Suivant
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isLoading || !canProceedFromStep3()}
+                  className="flex items-center gap-2 min-w-[200px]"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Démarrage de l'essai...
+                    </>
+                  ) : (
+                    "🚀 Démarrer l'essai gratuit"
+                  )}
+                </Button>
+              )}
             </div>
           </CardFooter>
         </form>
+
+        <div className="text-center pb-6">
+          <div className="text-sm text-muted-foreground">
+            Déjà un compte?{" "}
+            <Link
+              to="/login"
+              className="text-primary hover:underline font-medium"
+            >
+              Se connecter
+            </Link>
+          </div>
+        </div>
       </Card>
     </Container>
   );
