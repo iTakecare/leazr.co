@@ -46,6 +46,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Création sécurisée de l\'entreprise:', { companyName, adminEmail, plan });
 
+    // Vérifier si l'utilisateur existe déjà
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    const userExists = existingUser.users.some(user => user.email === adminEmail);
+    
+    if (userExists) {
+      throw new Error(`Un utilisateur avec l'email ${adminEmail} existe déjà`);
+    }
+
     // Étape 1: Créer l'utilisateur avec le client admin
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: adminEmail,
@@ -69,45 +77,45 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Utilisateur créé avec succès:', authData.user.id);
 
-    // Étape 2: Créer l'entreprise
-    const { data: companyData, error: companyError } = await supabaseAdmin
-      .from('companies')
-      .insert([{
-        name: companyName,
-        plan: plan,
-        account_status: 'trial',
-        trial_starts_at: new Date().toISOString(),
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 jours
-        modules_enabled: selectedModules,
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
+    // Étape 2: Utiliser la fonction sécurisée pour créer l'entreprise complète
+    const { data: companyResult, error: companyError } = await supabaseAdmin
+      .rpc('create_company_with_admin_complete', {
+        p_company_name: companyName,
+        p_admin_email: adminEmail,
+        p_admin_first_name: adminFirstName,
+        p_admin_last_name: adminLastName,
+        p_plan: plan
+      });
 
     if (companyError) {
-      console.error('Erreur lors de la création de l\'entreprise:', companyError);
+      console.error('Erreur lors de la création de l\'entreprise complète:', companyError);
       // Nettoyer l'utilisateur créé en cas d'erreur
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
     }
 
-    console.log('Entreprise créée avec succès:', companyData.id);
-
-    // Étape 3: Mettre à jour le profil utilisateur avec l'ID de l'entreprise
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        company_id: companyData.id,
-        role: 'admin'
-      })
-      .eq('id', authData.user.id);
-
-    if (profileError) {
-      console.error('Erreur lors de la mise à jour du profil:', profileError);
-      // Ne pas faire échouer si le profil n'est pas mis à jour
+    if (!companyResult || companyResult.length === 0) {
+      console.error('Aucun résultat retourné par la fonction de création d\'entreprise');
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw new Error('Erreur lors de la création de l\'entreprise: aucun résultat');
     }
 
-    // Étape 4: Associer les modules sélectionnés
+    const { company_id: companyId, user_id: userId } = companyResult[0];
+    console.log('Entreprise et profil créés avec succès:', { companyId, userId });
+
+    // Vérifier que l'isolation fonctionne - l'utilisateur ne doit voir que sa propre entreprise
+    const { data: isolationCheck, error: isolationError } = await supabaseAdmin
+      .from('company_data_isolation_check')
+      .select('*')
+      .eq('company_id', companyId);
+
+    if (isolationError) {
+      console.warn('Erreur lors de la vérification de l\'isolation:', isolationError);
+    } else {
+      console.log('Vérification de l\'isolation des données:', isolationCheck);
+    }
+
+    // Étape 3: Associer les modules sélectionnés
     if (selectedModules.length > 0) {
       const { data: modules, error: modulesQueryError } = await supabaseAdmin
         .from('modules')
@@ -116,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!modulesQueryError && modules && modules.length > 0) {
         const moduleAssociations = modules.map(module => ({
-          company_id: companyData.id,
+          company_id: companyId,
           module_id: module.id,
           enabled: true,
           activated_at: new Date().toISOString()
@@ -134,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Étape 5: Envoyer l'email de bienvenue
+    // Étape 4: Envoyer l'email de bienvenue
     try {
       const { error: emailError } = await supabaseAdmin.functions.invoke('send-trial-welcome-email', {
         body: {
@@ -143,7 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
           adminEmail: adminEmail,
           adminFirstName: adminFirstName,
           adminLastName: adminLastName,
-          companyId: companyData.id
+          companyId: companyId
         }
       });
 
@@ -159,8 +167,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        companyId: companyData.id,
-        userId: authData.user.id,
+        companyId: companyId,
+        userId: userId,
         message: 'Entreprise et utilisateur créés avec succès'
       }),
       {

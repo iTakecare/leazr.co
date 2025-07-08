@@ -205,6 +205,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ambassadors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "ambassadors_pdf_template_id_fkey"
             columns: ["pdf_template_id"]
             isOneToOne: false
@@ -415,6 +422,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_chat_agent_status_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       chat_availability_hours: {
@@ -517,6 +531,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_conversations_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -653,6 +674,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -882,6 +910,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_customizations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       company_email_confirmations: {
@@ -919,6 +954,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_email_confirmations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -961,6 +1003,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       company_modules: {
@@ -995,6 +1044,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_modules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "company_modules_module_id_fkey"
@@ -1327,6 +1383,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "contracts_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
@@ -1524,6 +1587,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "fleet_configurations_template_id_fkey"
@@ -1769,6 +1839,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "invoices_contract_id_fkey"
             columns: ["contract_id"]
             isOneToOne: true
@@ -1871,6 +1948,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leasers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -2424,6 +2508,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       pages_cms: {
@@ -2629,6 +2720,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "partners_pdf_template_id_fkey"
             columns: ["pdf_template_id"]
             isOneToOne: false
@@ -2807,6 +2905,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdf_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -3072,6 +3177,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       profiles: {
@@ -3128,6 +3240,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -3302,6 +3421,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       user_permissions: {
@@ -3391,7 +3517,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      company_data_isolation_check: {
+        Row: {
+          clients_count: number | null
+          company_id: string | null
+          company_name: string | null
+          leasers_count: number | null
+          products_count: number | null
+          profiles_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_brand: {
@@ -3469,6 +3605,20 @@ export type Database = {
           plan_type?: string
         }
         Returns: string
+      }
+      create_company_with_admin_complete: {
+        Args: {
+          p_company_name: string
+          p_admin_email: string
+          p_admin_first_name: string
+          p_admin_last_name: string
+          p_plan?: string
+        }
+        Returns: {
+          company_id: string
+          user_id: string
+          success: boolean
+        }[]
       }
       create_contract_workflow_log: {
         Args: {
@@ -3885,6 +4035,10 @@ export type Database = {
           variants_count: number
           variation_attributes: Json
         }[]
+      }
+      initialize_new_company: {
+        Args: { p_company_id: string; p_company_name: string }
+        Returns: boolean
       }
       insert_offer_equipment_attributes_secure: {
         Args: { p_equipment_id: string; p_attributes: Json }
