@@ -46,12 +46,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Création sécurisée de l\'entreprise:', { companyName, adminEmail, plan });
 
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifier si l'utilisateur existe déjà ET a déjà un profil complet
     const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
     const userExists = existingUser.users.some(user => user.email === adminEmail);
     
     if (userExists) {
-      throw new Error(`Un utilisateur avec l'email ${adminEmail} existe déjà`);
+      // Vérifier si l'utilisateur a déjà un profil avec une entreprise
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('company_id')
+        .eq('id', existingUser.users.find(u => u.email === adminEmail)?.id)
+        .single();
+      
+      if (existingProfile && existingProfile.company_id) {
+        throw new Error(`Un utilisateur avec l'email ${adminEmail} existe déjà et a déjà un profil`);
+      }
+      
+      console.log(`Utilisateur ${adminEmail} existe mais sans profil complet - on continue`);
     }
 
     // Étape 1: Créer l'utilisateur avec le client admin
