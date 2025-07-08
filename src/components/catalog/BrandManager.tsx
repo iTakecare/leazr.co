@@ -44,10 +44,13 @@ const BrandManager: React.FC = () => {
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
   const [editValues, setEditValues] = useState<Record<string, { name: string, translation: string }>>({});
 
-  // Fetch brands from the database with forced refresh
+  // Fetch brands from the database with forced refresh using service
   const { data: brandsData = [], isLoading } = useQuery({
     queryKey: ["brands"],
-    queryFn: getBrands,
+    queryFn: async () => {
+      const { getBrands } = await import("@/services/catalogService");
+      return getBrands();
+    },
     staleTime: 0, // Force refresh
     gcTime: 0, // Don't cache
   });

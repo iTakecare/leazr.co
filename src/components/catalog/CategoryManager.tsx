@@ -32,17 +32,12 @@ const CategoryManager = () => {
 
   const queryClient = useQueryClient();
 
-  // Fetch categories query with forced refresh
+  // Fetch categories query with forced refresh using service
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
-      
-      if (error) throw error;
-      return data;
+      const { getCategories } = await import("@/services/catalogService");
+      return getCategories();
     },
     staleTime: 0, // Force refresh
     gcTime: 0, // Don't cache
@@ -50,15 +45,9 @@ const CategoryManager = () => {
 
   // Add category mutation
   const addCategoryMutation = useMutation({
-    mutationFn: async (categoryData: Omit<Category, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await supabase
-        .from("categories")
-        .insert([categoryData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+    mutationFn: async (categoryData: { name: string; translation: string }) => {
+      const { addCategory } = await import("@/services/catalogService");
+      return addCategory(categoryData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -74,16 +63,10 @@ const CategoryManager = () => {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, ...categoryData }: Category) => {
-      const { data, error } = await supabase
-        .from("categories")
-        .update(categoryData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+    mutationFn: async ({ id, name, translation, ...categoryData }: Category) => {
+      const { updateCategory } = await import("@/services/catalogService");
+      // Use the name as originalName since that's what the service expects
+      return updateCategory({ originalName: name, name, translation });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -99,13 +82,9 @@ const CategoryManager = () => {
 
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+    mutationFn: async (categoryName: string) => {
+      const { deleteCategory } = await import("@/services/catalogService");
+      return deleteCategory({ name: categoryName });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -133,9 +112,9 @@ const CategoryManager = () => {
     updateCategoryMutation.mutate(selectedCategory);
   };
 
-  const handleDeleteCategory = (id: string) => {
+  const handleDeleteCategory = (categoryName: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette catégorie ?")) {
-      deleteCategoryMutation.mutate(id);
+      deleteCategoryMutation.mutate(categoryName);
     }
   };
 
@@ -179,7 +158,7 @@ const CategoryManager = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteCategory(category.id)}
+                    onClick={() => handleDeleteCategory(category.name)}
                     className="text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
