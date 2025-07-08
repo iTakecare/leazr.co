@@ -60,6 +60,8 @@ const SaaSSignupPage = () => {
     }
 
     setIsLoading(true);
+    console.log('Début de l\'inscription avec les données:', formData);
+    
     try {
       const result = await createCompanyWithAdmin({
         companyName: formData.companyName,
@@ -71,15 +73,18 @@ const SaaSSignupPage = () => {
         selectedModules: formData.selectedModules
       });
 
+      console.log('Résultat de l\'inscription:', result);
+
       if (result.success) {
         toast.success("Inscription réussie ! Vérifiez votre email pour activer votre compte.");
         navigate('/trial/confirm-email');
       } else {
+        console.error('Échec de l\'inscription:', result.error);
         toast.error(result.error || "Erreur lors de l'inscription");
       }
     } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error("Erreur lors de l'inscription");
+      console.error('Erreur complète lors de l\'inscription:', error);
+      toast.error(`Erreur d'inscription: ${error.message || 'Erreur inconnue'}`);
     } finally {
       setIsLoading(false);
     }

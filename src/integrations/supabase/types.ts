@@ -970,6 +970,7 @@ export type Database = {
           enabled: boolean | null
           id: string
           module_id: string | null
+          module_slug: string | null
         }
         Insert: {
           activated_at?: string | null
@@ -977,6 +978,7 @@ export type Database = {
           enabled?: boolean | null
           id?: string
           module_id?: string | null
+          module_slug?: string | null
         }
         Update: {
           activated_at?: string | null
@@ -984,6 +986,7 @@ export type Database = {
           enabled?: boolean | null
           id?: string
           module_id?: string | null
+          module_slug?: string | null
         }
         Relationships: [
           {

@@ -52,17 +52,6 @@ export const PLANS: Record<string, Plan> = {
 export const getAvailableModules = async (): Promise<Module[]> => {
   console.log('Récupération des modules disponibles...');
   
-  // Modules par défaut si la base de données n'est pas accessible
-  const defaultModules: Module[] = [
-    { id: '1', slug: 'calculator', name: 'Calculateur Leasing', is_core: true },
-    { id: '2', slug: 'catalog', name: 'Catalogue Produits', is_core: true },
-    { id: '3', slug: 'crm', name: 'CRM Client', is_core: true },
-    { id: '4', slug: 'ai_assistant', name: 'Assistant IA', is_core: false },
-    { id: '5', slug: 'fleet_generator', name: 'Générateur de Parc', is_core: false },
-    { id: '6', slug: 'contracts', name: 'Contrats', is_core: false },
-    { id: '7', slug: 'support', name: 'SAV & Support', is_core: false }
-  ];
-
   try {
     const { data, error } = await supabase
       .from('modules')
@@ -71,13 +60,18 @@ export const getAvailableModules = async (): Promise<Module[]> => {
     
     if (error) {
       console.warn('Erreur lors de la récupération des modules:', error);
-      return defaultModules;
+      throw error;
     }
     
-    return data || defaultModules;
+    return data || [];
   } catch (error) {
     console.warn('Erreur de connexion pour récupérer les modules:', error);
-    return defaultModules;
+    // Retourner les modules par défaut seulement en cas d'erreur de connexion
+    return [
+      { id: crypto.randomUUID(), slug: 'calculator', name: 'Calculateur Leasing', is_core: true },
+      { id: crypto.randomUUID(), slug: 'catalog', name: 'Catalogue Produits', is_core: true },
+      { id: crypto.randomUUID(), slug: 'crm', name: 'CRM Client', is_core: true }
+    ];
   }
 };
 
@@ -174,22 +168,32 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
     console.log('Étape 3: Association des modules...');
     
     if (params.selectedModules.length > 0) {
-      const moduleAssociations = params.selectedModules.map(moduleSlug => ({
-        company_id: companyData.id,
-        module_slug: moduleSlug,
-        is_active: true,
-        created_at: new Date().toISOString()
-      }));
+      // Récupérer les IDs des modules par leurs slugs
+      const { data: modules, error: modulesQueryError } = await supabase
+        .from('modules')
+        .select('id, slug')
+        .in('slug', params.selectedModules);
 
-      const { error: modulesError } = await supabase
-        .from('company_modules')
-        .insert(moduleAssociations);
+      if (modulesQueryError) {
+        console.warn('Erreur lors de la récupération des modules:', modulesQueryError);
+      } else if (modules && modules.length > 0) {
+        const moduleAssociations = modules.map(module => ({
+          company_id: companyData.id,
+          module_id: module.id,
+          enabled: true,
+          activated_at: new Date().toISOString()
+        }));
 
-      if (modulesError) {
-        console.warn('Erreur lors de l\'association des modules:', modulesError);
-        // Ne pas faire échouer la création pour les modules
-      } else {
-        console.log('Modules associés avec succès');
+        const { error: modulesError } = await supabase
+          .from('company_modules')
+          .insert(moduleAssociations);
+
+        if (modulesError) {
+          console.warn('Erreur lors de l\'association des modules:', modulesError);
+          // Ne pas faire échouer la création pour les modules
+        } else {
+          console.log('Modules associés avec succès');
+        }
       }
     }
 
