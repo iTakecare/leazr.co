@@ -28,12 +28,12 @@ const GeneralSettings = () => {
         if (data) {
           setSettings(data);
         } else {
-          // Si aucune donnée n'est retournée, initialiser avec des valeurs par défaut
+          // Si aucune donnée n'est retournée, initialiser avec des valeurs vides
           setSettings({
-            company_name: 'Leazr SRL',
-            company_address: 'Avenue Général Michel 1E\n6000 Charleroi\nBelgique',
-            company_phone: '+32 71 49 16 85',
-            company_email: 'contact@leazr.com'
+            company_name: '',
+            company_address: '',
+            company_phone: '',
+            company_email: ''
           });
         }
       } catch (err) {
@@ -74,14 +74,15 @@ const GeneralSettings = () => {
       // S'assurer que toutes les propriétés requises sont présentes
       const updatedSettings: SiteSettings = {
         id: settings.id,
+        company_id: settings.company_id,
         company_name: settings.company_name || '',
         company_address: settings.company_address || '',
         company_phone: settings.company_phone || '',
         company_email: settings.company_email || '',
         logo_url: settings.logo_url || '',
-        // Conserver les champs site_name et site_description pour la compatibilité
-        site_name: settings.site_name || 'Leazr',
-        site_description: settings.site_description || 'Hub de gestion'
+        primary_color: settings.primary_color,
+        secondary_color: settings.secondary_color,
+        accent_color: settings.accent_color
       };
       
       const success = await updateSiteSettings(updatedSettings);

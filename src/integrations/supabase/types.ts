@@ -865,8 +865,11 @@ export type Database = {
       company_customizations: {
         Row: {
           accent_color: string | null
+          company_address: string | null
+          company_email: string | null
           company_id: string
           company_name: string | null
+          company_phone: string | null
           created_at: string
           custom_domain: string | null
           favicon_url: string | null
@@ -878,8 +881,11 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          company_address?: string | null
+          company_email?: string | null
           company_id: string
           company_name?: string | null
+          company_phone?: string | null
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
@@ -891,8 +897,11 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          company_address?: string | null
+          company_email?: string | null
           company_id?: string
           company_name?: string | null
+          company_phone?: string | null
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
