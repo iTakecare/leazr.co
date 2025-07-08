@@ -282,6 +282,7 @@ export type Database = {
       }
       brands: {
         Row: {
+          company_id: string
           created_at: string
           id: string
           name: string
@@ -289,6 +290,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id: string
           created_at?: string
           id?: string
           name: string
@@ -296,13 +298,29 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           id?: string
           name?: string
           translation?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "brands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       business_profiles: {
         Row: {
@@ -348,6 +366,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          company_id: string
           created_at: string
           id: string
           name: string
@@ -355,6 +374,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id: string
           created_at?: string
           id?: string
           name: string
@@ -362,13 +382,29 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           id?: string
           name?: string
           translation?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       chat_agent_status: {
         Row: {
@@ -3623,6 +3659,7 @@ export type Database = {
       add_brand: {
         Args: { brand_name: string; brand_translation: string }
         Returns: {
+          company_id: string
           created_at: string
           id: string
           name: string
@@ -3863,6 +3900,7 @@ export type Database = {
       get_brands: {
         Args: Record<PropertyKey, never>
         Returns: {
+          company_id: string
           created_at: string
           id: string
           name: string
@@ -4255,6 +4293,7 @@ export type Database = {
           new_translation: string
         }
         Returns: {
+          company_id: string
           created_at: string
           id: string
           name: string
