@@ -32,7 +32,7 @@ const CategoryManager = () => {
 
   const queryClient = useQueryClient();
 
-  // Fetch categories query
+  // Fetch categories query with forced refresh
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -43,7 +43,9 @@ const CategoryManager = () => {
       
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 0, // Force refresh
+    gcTime: 0, // Don't cache
   });
 
   // Add category mutation

@@ -180,13 +180,20 @@ export const findVariantByAttributes = async (productId: string, selectedAttribu
 };
 
 /**
- * Récupère toutes les catégories disponibles
+ * Récupère toutes les catégories disponibles avec isolation par entreprise
  */
 export const getCategories = async () => {
   try {
+    console.log("🏷️ CATALOG - Début getCategories");
+    
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    console.log("🏷️ CATALOG - Company ID récupéré:", company_id);
+    
     const { data, error } = await supabase
       .from('categories')
       .select('*')
+      .eq('company_id', company_id)
       .order('name');
     
     if (error) {
@@ -194,6 +201,7 @@ export const getCategories = async () => {
       throw new Error(error.message);
     }
     
+    console.log(`🏷️ CATALOG - Catégories trouvées pour company ${company_id}:`, data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error in getCategories:', error);
@@ -202,13 +210,20 @@ export const getCategories = async () => {
 };
 
 /**
- * Récupère toutes les marques disponibles
+ * Récupère toutes les marques disponibles avec isolation par entreprise
  */
 export const getBrands = async () => {
   try {
+    console.log("🏷️ CATALOG - Début getBrands");
+    
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    console.log("🏷️ CATALOG - Company ID récupéré:", company_id);
+    
     const { data, error } = await supabase
       .from('brands')
       .select('*')
+      .eq('company_id', company_id)
       .order('name');
     
     if (error) {
@@ -216,6 +231,7 @@ export const getBrands = async () => {
       throw new Error(error.message);
     }
     
+    console.log(`🏷️ CATALOG - Marques trouvées pour company ${company_id}:`, data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error in getBrands:', error);
@@ -224,13 +240,21 @@ export const getBrands = async () => {
 };
 
 /**
- * Ajoute une nouvelle catégorie
+ * Ajoute une nouvelle catégorie avec isolation par entreprise
  */
 export const addCategory = async (category: { name: string; translation: string }) => {
   try {
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    
+    const categoryWithCompany = {
+      ...category,
+      company_id: company_id
+    };
+    
     const { data, error } = await supabase
       .from('categories')
-      .insert(category)
+      .insert(categoryWithCompany)
       .select()
       .single();
     
@@ -293,13 +317,21 @@ export const deleteCategory = async ({ name }: { name: string }) => {
 };
 
 /**
- * Ajoute une nouvelle marque
+ * Ajoute une nouvelle marque avec isolation par entreprise
  */
 export const addBrand = async (brand: { name: string; translation: string }) => {
   try {
+    // Récupérer le company_id de l'utilisateur connecté
+    const company_id = await getCurrentUserCompanyId();
+    
+    const brandWithCompany = {
+      ...brand,
+      company_id: company_id
+    };
+    
     const { data, error } = await supabase
       .from('brands')
-      .insert(brand)
+      .insert(brandWithCompany)
       .select()
       .single();
     
