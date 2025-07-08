@@ -6,7 +6,11 @@ import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
 import { useLocation } from "react-router-dom";
 import {
+  BarChart3,
   Users,
+  CreditCard,
+  Package,
+  LifeBuoy,
   Settings,
 } from "lucide-react";
 
@@ -21,8 +25,12 @@ const LeazrAdminSidebar = ({ className }: LeazrAdminSidebarProps) => {
   if (!user) return null;
 
   const menuItems = [
-    { icon: Users, label: "Clients Leazr", href: "/leazr-clients" },
-    { icon: Settings, label: "Paramètres", href: "/settings" },
+    { icon: BarChart3, label: "Dashboard", href: "/admin/leazr-saas-dashboard" },
+    { icon: Users, label: "Clients", href: "/admin/leazr-saas-clients" },
+    { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions" },
+    { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans" },
+    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
+    { icon: Settings, label: "Paramètres", href: "/admin/leazr-saas-settings" },
   ];
 
   const isActive = (href: string) => {

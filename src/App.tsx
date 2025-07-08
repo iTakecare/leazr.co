@@ -74,6 +74,11 @@ import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
 import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+import LeazrSaaSClients from "@/pages/LeazrSaaSClients";
+import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
+import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
+import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
+import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import FleetGenerator from "@/pages/FleetGenerator";
 import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
 import AdminChatPage from "@/pages/AdminChatPage";
@@ -430,10 +435,46 @@ function App() {
                       </Layout>
                     </PrivateRoute>
                   } />
+                  {/* Leazr SaaS Admin Routes */}
                   <Route path="/admin/leazr-saas-dashboard" element={
                     <PrivateRoute>
                       <Layout>
                         <LeazrSaaSDashboard />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-clients" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSClients />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-subscriptions" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSSubscriptions />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-plans" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSPlans />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-support" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSSupport />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-settings" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaaSSettings />
                       </Layout>
                     </PrivateRoute>
                   } />

@@ -20,42 +20,27 @@ import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useSaaSData, useRecentActivity } from "@/hooks/useSaaSData";
 
 const LeazrSaaSDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState({
-    totalClients: 0,
-    activeSubscriptions: 0,
-    monthlyRevenue: 0,
-    supportTickets: 0,
-    churnRate: 0,
-    newClientsThisMonth: 0
-  });
 
   // Vérifier si l'utilisateur est autorisé
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  
+  // Récupérer les vraies données SaaS
+  const { metrics: dashboardData, loading: dataLoading } = useSaaSData();
+  const recentActivity = useRecentActivity();
 
   useEffect(() => {
     if (!isLeazrSaaSAdmin) {
       navigate("/dashboard");
       return;
     }
-
-    // Simulation du chargement des données SaaS
-    setTimeout(() => {
-      setDashboardData({
-        totalClients: 47,
-        activeSubscriptions: 42,
-        monthlyRevenue: 12450,
-        supportTickets: 8,
-        churnRate: 3.2,
-        newClientsThisMonth: 6
-      });
-      setLoading(false);
-    }, 1000);
-  }, [isLeazrSaaSAdmin, navigate]);
+    setLoading(dataLoading);
+  }, [isLeazrSaaSAdmin, navigate, dataLoading]);
 
   if (!isLeazrSaaSAdmin) {
     return null;
@@ -77,12 +62,6 @@ const LeazrSaaSDashboard = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
 
-  const recentActivity = [
-    { type: "subscription", message: "Nouvel abonnement - Entreprise Alpha", time: "Il y a 2h", status: "success" },
-    { type: "support", message: "Ticket de support résolu - Beta Corp", time: "Il y a 4h", status: "info" },
-    { type: "payment", message: "Paiement reçu - Gamma Solutions (299€)", time: "Il y a 6h", status: "success" },
-    { type: "churn", message: "Annulation d'abonnement - Delta Inc", time: "Il y a 1j", status: "warning" },
-  ];
 
   if (loading) {
     return (
@@ -192,7 +171,7 @@ const LeazrSaaSDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Button 
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigate('/leazr-saas-clients')}
+                    onClick={() => navigate('/admin/leazr-saas-clients')}
                   >
                     <Users className="h-6 w-6" />
                     Gérer les clients
@@ -200,7 +179,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigate('/leazr-saas-subscriptions')}
+                    onClick={() => navigate('/admin/leazr-saas-subscriptions')}
                   >
                     <CreditCard className="h-6 w-6" />
                     Abonnements
@@ -208,7 +187,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigate('/leazr-saas-support')}
+                    onClick={() => navigate('/admin/leazr-saas-support')}
                   >
                     <LifeBuoy className="h-6 w-6" />
                     Support client
@@ -216,7 +195,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigate('/leazr-saas-plans')}
+                    onClick={() => navigate('/admin/leazr-saas-plans')}
                   >
                     <BarChart3 className="h-6 w-6" />
                     Plans & tarifs
