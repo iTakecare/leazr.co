@@ -3079,7 +3079,7 @@ export type Database = {
           avatar_url: string | null
           client_id: string | null
           company: string | null
-          company_id: string
+          company_id: string | null
           created_at: string | null
           first_name: string | null
           id: string
@@ -3092,7 +3092,7 @@ export type Database = {
           avatar_url?: string | null
           client_id?: string | null
           company?: string | null
-          company_id: string
+          company_id?: string | null
           created_at?: string | null
           first_name?: string | null
           id: string
@@ -3105,7 +3105,7 @@ export type Database = {
           avatar_url?: string | null
           client_id?: string | null
           company?: string | null
-          company_id?: string
+          company_id?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
