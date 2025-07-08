@@ -102,39 +102,90 @@ interface CreateCompanyParams {
 }
 
 export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
-  console.log('Création sécurisée de l\'entreprise via edge function:', params);
+  console.log('Création directe de l\'entreprise côté client:', params);
   
   try {
-    // Utiliser l'edge function sécurisée pour créer l'utilisateur et l'entreprise
-    const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
-      body: {
-        companyName: params.companyName,
-        adminEmail: params.adminEmail,
-        adminPassword: params.adminPassword,
-        adminFirstName: params.adminFirstName,
-        adminLastName: params.adminLastName,
-        plan: params.plan,
-        selectedModules: params.selectedModules
+    // Étape 1: Créer l'utilisateur
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: params.adminEmail,
+      password: params.adminPassword,
+      options: {
+        data: {
+          first_name: params.adminFirstName,
+          last_name: params.adminLastName,
+          role: 'admin'
+        }
       }
     });
 
-    if (error) {
-      console.error('Erreur lors de l\'appel à l\'edge function:', error);
-      throw new Error(`Erreur lors de la création: ${error.message}`);
+    if (authError) {
+      console.error('Erreur lors de la création de l\'utilisateur:', authError);
+      throw new Error(`Erreur d'authentification: ${authError.message}`);
     }
 
-    if (!data || !data.success) {
-      console.error('Échec de la création:', data);
-      throw new Error(data?.error || 'Erreur lors de la création de l\'entreprise');
+    if (!authData.user) {
+      throw new Error('Erreur lors de la création de l\'utilisateur');
     }
 
-    console.log('Entreprise créée avec succès via edge function:', data);
+    console.log('Utilisateur créé avec succès:', authData.user.id);
+
+    // Étape 2: Créer l'entreprise
+    const { data: companyData, error: companyError } = await supabase
+      .from('companies')
+      .insert([{
+        name: params.companyName,
+        plan: params.plan,
+        account_status: 'trial',
+        trial_starts_at: new Date().toISOString(),
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        modules_enabled: params.selectedModules
+      }])
+      .select()
+      .single();
+
+    if (companyError) {
+      console.error('Erreur lors de la création de l\'entreprise:', companyError);
+      throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
+    }
+
+    console.log('Entreprise créée avec succès:', companyData.id);
+
+    // Étape 3: Mettre à jour le profil utilisateur avec l'ID de l'entreprise
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        company_id: companyData.id,
+        role: 'admin'
+      })
+      .eq('id', authData.user.id);
+
+    if (profileError) {
+      console.warn('Erreur lors de la mise à jour du profil:', profileError);
+      // Ne pas faire échouer le processus si la mise à jour du profil échoue
+    }
+
+    // Étape 4: Envoyer l'email de bienvenue
+    try {
+      await supabase.functions.invoke('send-trial-welcome-email', {
+        body: {
+          type: 'welcome',
+          companyName: params.companyName,
+          adminEmail: params.adminEmail,
+          adminFirstName: params.adminFirstName,
+          adminLastName: params.adminLastName
+        }
+      });
+      console.log('Email de bienvenue envoyé avec succès');
+    } catch (emailError) {
+      console.warn('Erreur lors de l\'envoi de l\'email de bienvenue:', emailError);
+      // Ne pas faire échouer le processus si l'email n'est pas envoyé
+    }
 
     return {
       success: true,
-      companyId: data.companyId,
-      userId: data.userId,
-      needsEmailConfirmation: false // L'email est confirmé automatiquement
+      companyId: companyData.id,
+      userId: authData.user.id,
+      needsEmailConfirmation: false
     };
 
   } catch (error) {
