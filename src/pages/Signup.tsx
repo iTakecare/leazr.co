@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +18,11 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
-  const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("client");
+  const [role, setRole] = useState<"client" | "partner" | "ambassador" | "admin">("admin");
   const [isExistingClient, setIsExistingClient] = useState(false);
   const [clientInfo, setClientInfo] = useState<any>(null);
   const { signUp, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkExistingClient = async () => {

@@ -30,6 +30,9 @@ import HomePage from "@/pages/HomePage";
 // Auth pages
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import SaaSSignupPage from "@/pages/SaaSSignupPage";
+import EmailConfirmationPage from "@/pages/EmailConfirmationPage";
+import TrialActivationPage from "@/pages/TrialActivationPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import UpdatePassword from "@/pages/UpdatePassword";
 import AuthCallback from "@/pages/AuthCallback";
@@ -121,12 +124,14 @@ function App() {
                   <Route path="/hub" element={<HubPage />} />
                   <Route path="/home" element={<HomePage />} />
                   
-                  {/* Public Authentication Routes */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/update-password" element={<UpdatePassword />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
+                   {/* Public Authentication Routes */}
+                   <Route path="/login" element={<Login />} />
+                   <Route path="/signup" element={<SaaSSignupPage />} />
+                   <Route path="/trial/confirm-email" element={<EmailConfirmationPage />} />
+                   <Route path="/trial/activate/:token" element={<TrialActivationPage />} />
+                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                   <Route path="/update-password" element={<UpdatePassword />} />
+                   <Route path="/auth/callback" element={<AuthCallback />} />
                   
                    {/* Public Catalog and Commerce Routes */}
                    <Route path="/catalog/anonymous" element={<PublicCatalogAnonymous />} />

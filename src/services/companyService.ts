@@ -108,10 +108,10 @@ interface CreateCompanyParams {
 }
 
 export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
-  console.log('Création de l\'entreprise:', params);
+  console.log('Création de l\'entreprise en mode essai:', params);
   
   try {
-    // Étape 1: Créer l'utilisateur admin avec les métadonnées
+    // Étape 1: Créer l'utilisateur admin SANS confirmation automatique
     console.log('Étape 1: Création de l\'utilisateur admin...');
     
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -122,7 +122,8 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
           first_name: params.adminFirstName,
           last_name: params.adminLastName,
           role: 'admin'
-        }
+        },
+        emailRedirectTo: `${window.location.origin}/trial/activate`
       }
     });
 
@@ -138,15 +139,17 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
 
     console.log('Utilisateur créé avec succès:', authData.user.id);
 
-    // Étape 2: Créer l'entreprise
+    // Étape 2: Créer l'entreprise avec statut d'essai INACTIF
     console.log('Étape 2: Création de l\'entreprise...');
     
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .insert([{
         name: params.companyName,
-        admin_user_id: authData.user.id,
-        subscription_plan: params.plan,
+        plan: params.plan,
+        account_status: 'trial', // En attente d'activation
+        trial_starts_at: null, // Sera défini lors de l'activation
+        trial_ends_at: null, // Sera calculé lors de l'activation
         created_at: new Date().toISOString()
       }])
       .select()
@@ -190,10 +193,43 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
       }
     }
 
+    // Étape 4: Envoyer l'email de confirmation
+    console.log('Étape 4: Envoi de l\'email de confirmation...');
+    
+    // Stocker les données temporairement pour la page de confirmation
+    localStorage.setItem('pendingEmail', params.adminEmail);
+    localStorage.setItem('pendingCompanyName', params.companyName);
+    localStorage.setItem('pendingFirstName', params.adminFirstName);
+    localStorage.setItem('pendingLastName', params.adminLastName);
+
+    try {
+      const { error: emailError } = await supabase.functions.invoke('send-trial-welcome-email', {
+        body: {
+          type: 'confirmation',
+          companyName: params.companyName,
+          adminEmail: params.adminEmail,
+          adminFirstName: params.adminFirstName,
+          adminLastName: params.adminLastName,
+          companyId: companyData.id
+        }
+      });
+
+      if (emailError) {
+        console.warn('Erreur lors de l\'envoi de l\'email:', emailError);
+        // Ne pas faire échouer l'inscription pour l'email
+      } else {
+        console.log('Email de confirmation envoyé avec succès');
+      }
+    } catch (emailError) {
+      console.warn('Erreur lors de l\'envoi de l\'email:', emailError);
+      // Continue même si l'email échoue
+    }
+
     return {
       success: true,
       companyId: companyData.id,
-      userId: authData.user.id
+      userId: authData.user.id,
+      needsEmailConfirmation: true
     };
 
   } catch (error) {

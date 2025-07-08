@@ -771,6 +771,7 @@ export type Database = {
       companies: {
         Row: {
           accent_color: string | null
+          account_status: string
           created_at: string
           custom_domain: string | null
           favicon_url: string | null
@@ -786,10 +787,12 @@ export type Database = {
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
           trial_ends_at: string | null
+          trial_starts_at: string | null
           updated_at: string
         }
         Insert: {
           accent_color?: string | null
+          account_status?: string
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
@@ -805,10 +808,12 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
           trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
         }
         Update: {
           accent_color?: string | null
+          account_status?: string
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
@@ -824,6 +829,7 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
           trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -873,6 +879,44 @@ export type Database = {
             foreignKeyName: "company_customizations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_email_confirmations: {
+        Row: {
+          company_id: string
+          confirmed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          company_id: string
+          confirmed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          token: string
+        }
+        Update: {
+          company_id?: string
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_email_confirmations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
