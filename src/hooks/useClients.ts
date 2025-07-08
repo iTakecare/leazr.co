@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAllClients } from '@/services/clientService';
 import type { Client as ClientType } from '@/types/client';
 import { toast } from 'sonner';
+import { getCurrentUserCompanyId } from '@/services/multiTenantService';
+import { checkDataIsolation } from '@/utils/crmCacheUtils';
 
 export const useClients = () => {
   const [clients, setClients] = useState<ClientType[]>([]);
@@ -23,6 +25,15 @@ export const useClients = () => {
       if (clientsData && clientsData.length > 0) {
         console.log('Clients récupérés:', clientsData.length);
         
+        // Vérifier l'isolation par entreprise
+        const userCompanyId = await getCurrentUserCompanyId();
+        const isIsolationValid = checkDataIsolation(userCompanyId, clientsData, 'clients');
+        
+        if (!isIsolationValid) {
+          // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+          return;
+        }
+        
         // Ensure clients have updated_at property
         const formattedClients: ClientType[] = clientsData.map(client => ({
           ...client,
@@ -33,7 +44,7 @@ export const useClients = () => {
         
         setClients(formattedClients);
       } else {
-        console.log('Aucun client trouvé');
+        console.log('Aucun client trouvé pour cette entreprise');
         setClients([]);
       }
     } catch (err) {
@@ -46,6 +57,8 @@ export const useClients = () => {
   }, []);
 
   useEffect(() => {
+    // Force un rafraîchissement au premier chargement pour s'assurer de l'isolation
+    console.log("Chargement initial des clients avec isolation par entreprise");
     fetchClients();
   }, [fetchClients]);
 
@@ -73,11 +86,18 @@ export const useClients = () => {
 
   console.log('Clients filtrés:', filteredClients.length);
 
-  const refreshClients = useCallback(async (): Promise<void> => {
+  const refreshClients = useCallback(async (force = false): Promise<void> => {
     setIsLoading(true);
     try {
-      console.log("Refreshing clients list...");
+      console.log("Rafraîchissement de la liste des clients avec isolation par entreprise...", force ? "(forcé)" : "");
+      
+      // Forcer le nettoyage du cache local si nécessaire
+      if (force) {
+        setClients([]);
+      }
+      
       const refreshedClients = await getAllClients();
+      console.log(`Clients rafraîchis: ${refreshedClients.length} trouvés`);
       
       setClients(refreshedClients.map(client => ({
         ...client,

@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDateToFrench } from "@/utils/formatters";
 import { Client } from "@/types/client";
+import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 
 interface ClientListProps {
   clients: Client[];
   onDeleteClient: (id: string) => void;
   onEditClient: (id: string) => void;
   onViewClient: (id: string) => void;
+  onForceRefresh?: () => void;
 }
 
 const ClientList: React.FC<ClientListProps> = ({
@@ -22,6 +24,7 @@ const ClientList: React.FC<ClientListProps> = ({
   onDeleteClient,
   onEditClient,
   onViewClient,
+  onForceRefresh,
 }) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -62,11 +65,18 @@ const ClientList: React.FC<ClientListProps> = ({
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun client trouvé</h3>
         <p className="text-gray-500 mb-6">
-          Commencez par ajouter votre premier client.
+          Aucun client trouvé pour votre entreprise. Commencez par ajouter votre premier client.
         </p>
-        <Button onClick={() => navigate('/clients/new')}>
-          Ajouter un client
-        </Button>
+        <div className="space-x-2">
+          <Button onClick={() => navigate('/clients/new')}>
+            Ajouter un client
+          </Button>
+          {onForceRefresh && (
+            <Button variant="outline" onClick={onForceRefresh}>
+              Actualiser le cache
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

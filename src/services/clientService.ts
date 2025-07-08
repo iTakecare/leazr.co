@@ -32,35 +32,24 @@ export const createClient = async (clientData: any) => {
 };
 
 /**
- * Récupère tous les clients avec les nouvelles politiques permissives
- * @returns Liste de tous les clients
+ * Récupère tous les clients avec isolation par entreprise
+ * @returns Liste de tous les clients de l'entreprise
  */
 export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log("Récupération de tous les clients avec les nouvelles politiques RLS");
+    console.log("Récupération de tous les clients avec isolation par entreprise");
     
-    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.warn("Erreur avec client standard, utilisation de la fonction bypass:", error);
-      
-      // Fallback avec fonction RPC de contournement
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_all_clients_bypass_rls');
-      
-      if (rpcError) {
-        console.error("Erreur avec fonction bypass:", rpcError);
-        return [];
-      }
-      
-      console.log(`Récupéré ${rpcData?.length || 0} clients via fonction bypass`);
-      return rpcData || [];
+      console.error("Erreur lors de la récupération des clients:", error);
+      throw error;
     }
 
-    console.log(`Récupéré ${data?.length || 0} clients avec les nouvelles politiques RLS`);
+    console.log(`Récupéré ${data?.length || 0} clients avec isolation par entreprise`);
     return data || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des clients:", error);
@@ -69,7 +58,7 @@ export const getAllClients = async (): Promise<Client[]> => {
 };
 
 /**
- * Récupère un client par son ID avec les nouvelles politiques permissives
+ * Récupère un client par son ID avec isolation par entreprise
  * @param id ID du client à récupérer
  * @returns Le client correspondant ou null
  */
@@ -77,7 +66,6 @@ export const getClientById = async (id: string): Promise<Client | null> => {
   try {
     console.log(`Récupération du client avec l'ID: ${id}`);
     
-    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
     const { data: clientData, error } = await supabase
       .from('clients')
       .select('*')
@@ -85,38 +73,8 @@ export const getClientById = async (id: string): Promise<Client | null> => {
       .maybeSingle();
         
     if (error) {
-      console.warn(`Erreur avec client standard pour l'ID ${id}, utilisation de la fonction bypass:`, error);
-      
-      // Fallback avec fonction RPC de contournement
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        'get_client_by_id_bypass_rls',
-        { client_id: id }
-      );
-      
-      if (rpcError) {
-        console.error(`Erreur avec fonction bypass pour l'ID ${id}:`, rpcError);
-        return null;
-      }
-      
-      if (!rpcData || rpcData.length === 0) {
-        console.warn(`Aucun client trouvé via bypass pour l'ID: ${id}`);
-        return null;
-      }
-      
-      // Utiliser le premier résultat de la fonction RPC
-      const client = rpcData[0];
-      console.log(`Client récupéré via bypass:`, client);
-      
-      // Récupérer les collaborateurs
-      const { data: collaboratorsData } = await supabase
-        .from('collaborators')
-        .select('*')
-        .eq('client_id', id);
-
-      return {
-        ...client,
-        collaborators: collaboratorsData || []
-      };
+      console.error(`Erreur lors de la récupération du client avec l'ID ${id}:`, error);
+      throw error;
     }
 
     if (!clientData) {
@@ -156,7 +114,7 @@ export const getClientById = async (id: string): Promise<Client | null> => {
 };
 
 /**
- * Met à jour un client existant avec les nouvelles politiques permissives
+ * Met à jour un client existant avec isolation par entreprise
  * @param id ID du client à mettre à jour
  * @param updates Les mises à jour à appliquer au client
  * @returns Le client mis à jour
@@ -165,7 +123,6 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
   try {
     console.log(`Mise à jour du client ID: ${id}`, updates);
     
-    // Essayer d'abord avec le client standard (nouvelles politiques permissives)
     const { data, error } = await supabase
       .from('clients')
       .update(updates)
@@ -174,30 +131,8 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
       .single();
     
     if (error) {
-      console.warn("Erreur avec client standard, utilisation de la fonction bypass:", error);
-      
-      // Fallback avec fonction RPC de contournement
-      const { data: updateSuccess, error: rpcError } = await supabase.rpc(
-        'update_client_bypass_rls',
-        { 
-          p_client_id: id,
-          p_updates: updates
-        }
-      );
-      
-      if (rpcError || !updateSuccess) {
-        console.error("Erreur avec fonction bypass:", rpcError);
-        throw rpcError || new Error("Échec de la mise à jour via bypass");
-      }
-      
-      // Récupérer les données mises à jour
-      const updatedClient = await getClientById(id);
-      if (!updatedClient) {
-        throw new Error("Client non trouvé après mise à jour");
-      }
-      
-      console.log("Client mis à jour avec succès via bypass");
-      return updatedClient;
+      console.error(`Erreur lors de la mise à jour du client avec l'ID ${id}:`, error);
+      throw error;
     }
     
     console.log("Client mis à jour avec succès:", data);

@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useClients } from "@/hooks/useClients";
 import ClientsList from "@/components/crm/ClientsList";
 import CreateClientDialog from "@/components/clients/CreateClientDialog";
+import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
 import PartnersList from "@/components/crm/PartnersList";
 import {
@@ -43,6 +44,11 @@ const Clients = () => {
     setShowAmbassadorClients,
     refreshClients
   } = useClients();
+  
+  const handleForceRefresh = () => {
+    console.log("🔄 Forçage du rafraîchissement pour l'isolation CRM");
+    forceRefreshCRMCache();
+  };
   
   console.log(`Clients page rendering with ${clients.length} clients (loading: ${isLoading})`);
   
