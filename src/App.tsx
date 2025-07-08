@@ -30,6 +30,7 @@ import HomePage from "@/pages/HomePage";
 // Auth pages
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import ActivatePage from "@/pages/ActivatePage";
 import SaaSSignupPage from "@/pages/SaaSSignupPage";
 import EmailConfirmationPage from "@/pages/EmailConfirmationPage";
 import TrialActivationPage from "@/pages/TrialActivationPage";
@@ -130,9 +131,10 @@ function App() {
                   <Route path="/hub" element={<HubPage />} />
                   <Route path="/home" element={<HomePage />} />
                   
-                   {/* Public Authentication Routes */}
-                   <Route path="/login" element={<Login />} />
-                   <Route path="/signup" element={<SaaSSignupPage />} />
+                    {/* Public Authentication Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/activate" element={<ActivatePage />} />
                    <Route path="/trial/confirm-email" element={<EmailConfirmationPage />} />
                     <Route path="/trial/activate/:token" element={<TrialActivationPage />} />
                     <Route path="/trial/success" element={<TrialActivationSuccessPage />} />

@@ -83,30 +83,31 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      console.log('Tentative de création d\'entreprise avec admin...');
+      console.log('Création d\'un essai gratuit de 14 jours...');
       
-      const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
+      const { data, error } = await supabase.functions.invoke('create-prospect', {
         body: {
+          email: email,
+          firstName: firstName,
+          lastName: lastName,
           companyName: company.trim(),
-          adminEmail: email,
-          adminPassword: password,
-          adminFirstName: firstName,
-          adminLastName: lastName,
           plan: 'starter',
           selectedModules: ['crm', 'offers', 'contracts']
         }
       });
       
       if (error) {
-        console.error("Erreur lors de la création de l'entreprise:", error);
+        console.error("Erreur lors de la création du prospect:", error);
         toast.error(`Erreur d'inscription: ${error.message}`);
         return;
       }
       
       if (data && data.success) {
-        console.log('Entreprise créée avec succès:', data);
-        toast.success("Entreprise et compte créés avec succès! Vous pouvez maintenant vous connecter.");
-        navigate('/login');
+        console.log('Prospect créé avec succès:', data);
+        toast.success("Essai gratuit de 14 jours créé avec succès! Vérifiez votre email pour activer votre compte.");
+        
+        // Rediriger vers une page d'activation avec le token
+        navigate(`/activate?token=${data.activationToken}&email=${encodeURIComponent(email)}`);
       } else {
         throw new Error(data?.error || 'Erreur inconnue lors de la création');
       }
@@ -122,11 +123,11 @@ const Signup = () => {
     <Container className="flex items-center justify-center min-h-[calc(100vh-10rem)] py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
+          <CardTitle className="text-2xl font-bold">Démarrer votre essai gratuit</CardTitle>
           <CardDescription>
             {isExistingClient 
-              ? `Bienvenue ${clientInfo?.name}! Finalisez la création de votre compte.` 
-              : 'Remplissez le formulaire ci-dessous pour créer votre compte'}
+              ? `Bienvenue ${clientInfo?.name}! Démarrez votre essai gratuit de 14 jours.` 
+              : 'Commencez votre essai gratuit de 14 jours sans engagement'}
           </CardDescription>
           {isExistingClient && (
             <div className="bg-green-50 border border-green-200 rounded p-2 text-sm text-green-800">
@@ -238,10 +239,10 @@ const Signup = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création en cours...
+                  Démarrage de l'essai...
                 </>
               ) : (
-                "Créer un compte"
+                "Démarrer l'essai gratuit"
               )}
             </Button>
             <div className="text-center text-sm">

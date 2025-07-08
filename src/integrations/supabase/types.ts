@@ -3250,6 +3250,78 @@ export type Database = {
           },
         ]
       }
+      prospects: {
+        Row: {
+          activated_at: string | null
+          activation_token: string | null
+          company_name: string
+          converted_at: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          plan: string
+          selected_modules: string[] | null
+          source: string | null
+          status: string
+          trial_ends_at: string
+          trial_starts_at: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_token?: string | null
+          company_name: string
+          converted_at?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          plan?: string
+          selected_modules?: string[] | null
+          source?: string | null
+          status?: string
+          trial_ends_at?: string
+          trial_starts_at?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activation_token?: string | null
+          company_name?: string
+          converted_at?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          plan?: string
+          selected_modules?: string[] | null
+          source?: string | null
+          status?: string
+          trial_ends_at?: string
+          trial_starts_at?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           company_address: string | null
@@ -3530,6 +3602,15 @@ export type Database = {
       }
     }
     Functions: {
+      activate_prospect: {
+        Args: { p_activation_token: string; p_password: string }
+        Returns: {
+          success: boolean
+          user_id: string
+          company_id: string
+          message: string
+        }[]
+      }
       add_brand: {
         Args: { brand_name: string; brand_translation: string }
         Returns: {
@@ -3571,6 +3652,10 @@ export type Database = {
       check_user_exists_by_email: {
         Args: { user_email: string }
         Returns: boolean
+      }
+      cleanup_expired_prospects: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       count_ambassador_clients_secure: {
         Args: { p_user_id: string }
@@ -3637,6 +3722,21 @@ export type Database = {
           p_contact_name?: string
         }
         Returns: string
+      }
+      create_prospect: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_company_name: string
+          p_plan?: string
+          p_selected_modules?: string[]
+        }
+        Returns: {
+          prospect_id: string
+          activation_token: string
+          trial_ends_at: string
+        }[]
       }
       create_storage_bucket: {
         Args: { bucket_name: string }
@@ -3952,6 +4052,16 @@ export type Database = {
           template_type: string
           templateImages: Json | null
           updated_at: string
+        }[]
+      }
+      get_prospects_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_prospects: number
+          active_prospects: number
+          converted_prospects: number
+          expired_prospects: number
+          conversion_rate: number
         }[]
       }
       get_related_blog_posts: {
