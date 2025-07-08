@@ -67,6 +67,19 @@ const SignupPage: React.FC = () => {
       return false;
     }
     
+    // Validation email plus stricte
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.adminEmail)) {
+      toast.error('Veuillez saisir une adresse email valide');
+      return false;
+    }
+    
+    // Vérifier que l'email ne contient pas de caractères invalides
+    if (formData.adminEmail.includes(' ') || formData.adminEmail.length > 254) {
+      toast.error('Format d\'email invalide');
+      return false;
+    }
+    
     if (formData.adminPassword !== formData.confirmPassword) {
       toast.error('Les mots de passe ne correspondent pas');
       return false;

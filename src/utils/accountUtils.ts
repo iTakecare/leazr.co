@@ -152,31 +152,22 @@ export const deleteSpecificUserAccount = async (userId: string): Promise<void> =
       console.error(`Exception lors de la suppression du profil: ${err}`);
     }
     
-    // Delete the user with admin supabase client
+    // Utiliser seulement l'edge function pour supprimer l'utilisateur
+    // Les appels admin ne sont pas autorisés côté client
     try {
-      console.log("Tentative de suppression avec admin.deleteUser");
-      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      console.log("Suppression de l'utilisateur via l'edge function delete-user");
+      const { data, error: edgeFunctionError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId }
+      });
       
-      if (error) {
-        console.error(`Erreur lors de la suppression de l'utilisateur avec admin.deleteUser: ${error.message}`);
-        
-        // Fallback to edge function if admin client fails
-        console.log("Fallback vers l'edge function delete-user");
-        const { data, error: edgeFunctionError } = await supabase.functions.invoke('delete-user', {
-          body: { user_id: userId }
-        });
-        
-        if (edgeFunctionError) {
-          console.error(`Erreur lors de l'appel à l'edge function: ${edgeFunctionError.message}`);
-          throw new Error(`Échec de suppression de l'utilisateur: ${edgeFunctionError.message}`);
-        }
-        
-        console.log("Utilisateur supprimé avec succès via edge function");
-      } else {
-        console.log(`Utilisateur ${userId} supprimé avec succès via admin.deleteUser`);
+      if (edgeFunctionError) {
+        console.error(`Erreur lors de l'appel à l'edge function: ${edgeFunctionError.message}`);
+        throw new Error(`Impossible de supprimer l'utilisateur: ${edgeFunctionError.message}`);
       }
+      
+      console.log(`Utilisateur ${userId} supprimé avec succès via l'edge function`);
     } catch (error) {
-      console.error("Échec complet de la suppression:", error);
+      console.error(`Erreur lors de la suppression de l'utilisateur: ${error}`);
       throw error;
     }
     
