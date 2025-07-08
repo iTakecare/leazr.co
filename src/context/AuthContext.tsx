@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { cleanUserData } from '@/services/dataIsolationService';
 
 // Étendre le type User pour inclure les propriétés personnalisées
 interface ExtendedUser extends User {
@@ -262,6 +263,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 try {
                   console.log("🔄 AUTH EVENT - Début enrichissement avec timeout");
                   const enrichedUser = await enrichUserData(newSession.user);
+                  
+                  // Nettoyage automatique des données après connexion
+                  if (enrichedUser && newSession.user.email) {
+                    console.log("🧹 CLEANING - Début du nettoyage des données pour:", newSession.user.email);
+                    try {
+                      const cleaningReport = await cleanUserData();
+                      if (!cleaningReport.success) {
+                        console.warn("🧹 CLEANING - Problèmes détectés:", cleaningReport.issues);
+                      } else if (cleaningReport.corrected.length > 0) {
+                        console.log("🧹 CLEANING - Corrections appliquées:", cleaningReport.corrected);
+                      }
+                    } catch (cleaningError) {
+                      console.warn("🧹 CLEANING - Erreur non critique lors du nettoyage:", cleaningError);
+                    }
+                  }
+                  
                   if (isMounted) {
                     console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
                     setUser(enrichedUser);
