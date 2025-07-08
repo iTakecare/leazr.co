@@ -153,12 +153,9 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
     if (companyError) {
       console.error('Erreur lors de la création de l\'entreprise:', companyError);
       
-      // Nettoyer l'utilisateur créé en cas d'erreur
-      try {
-        await supabase.auth.admin.deleteUser(authData.user.id);
-      } catch (cleanupError) {
-        console.error('Erreur lors du nettoyage:', cleanupError);
-      }
+      // Note: L'utilisateur reste créé dans le système d'authentification
+      // Il pourra se connecter et réessayer la création d'entreprise
+      console.warn('L\'utilisateur a été créé mais l\'entreprise a échoué. L\'utilisateur peut se reconnecter pour réessayer.');
       
       throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
     }
