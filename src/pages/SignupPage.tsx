@@ -131,16 +131,10 @@ const SignupPage: React.FC = () => {
 
       if (result.success) {
         toast.success('Votre compte a été créé avec succès !');
-        console.log('Redirection vers la page de paiement...');
+        console.log('Redirection vers le tableau de bord...');
         
-        // Rediriger vers la page de paiement
-        navigate('/payment', { 
-          state: { 
-            companyId: result.companyId,
-            plan: formData.plan,
-            modules: formData.selectedModules 
-          } 
-        });
+        // Rediriger vers le dashboard - l'essai est activé automatiquement
+        window.location.href = '/dashboard';
       } else {
         console.error('Échec de la création:', result.error);
         toast.error(result.error || 'Erreur lors de la création du compte');

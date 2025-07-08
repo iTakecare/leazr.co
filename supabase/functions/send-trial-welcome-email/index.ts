@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resend = new Resend(Deno.env.get("LEAZR_RESEND_API") || Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -56,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
       const confirmationUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/v1', '')}/trial/activate/${token}`;
 
       const emailResponse = await resend.emails.send({
-        from: "Leazr <onboarding@resend.dev>",
+        from: "Leazr <noreply@leazr.co>",
         to: [adminEmail],
         subject: "Confirmez votre inscription à Leazr - Essai gratuit 14 jours",
         html: `
@@ -152,10 +152,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     } else if (type === 'welcome') {
-      const loginUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/v1', '')}/login`;
+      const loginUrl = 'https://preview--leazr.lovable.app/dashboard';
 
       const emailResponse = await resend.emails.send({
-        from: "Leazr <onboarding@resend.dev>",
+        from: "Leazr <noreply@leazr.co>",
         to: [adminEmail],
         subject: "🎉 Votre essai Leazr est maintenant actif !",
         html: `
@@ -200,11 +200,11 @@ const handler = async (req: Request): Promise<Response> => {
                   <p><strong>Mot de passe :</strong> Celui que vous avez défini lors de l'inscription</p>
                 </div>
                 
-                <div style="text-align: center;">
-                  <a href="${loginUrl}" class="cta-button">
-                    Accéder à mon espace Leazr
-                  </a>
-                </div>
+                 <div style="text-align: center;">
+                   <a href="${loginUrl}" class="cta-button">
+                     Accéder à mon tableau de bord
+                   </a>
+                 </div>
                 
                 <div class="next-steps">
                   <h3 style="margin-top: 0; color: #065f46;">Vos prochaines étapes :</h3>

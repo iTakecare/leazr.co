@@ -33,6 +33,7 @@ import Signup from "@/pages/Signup";
 import SaaSSignupPage from "@/pages/SaaSSignupPage";
 import EmailConfirmationPage from "@/pages/EmailConfirmationPage";
 import TrialActivationPage from "@/pages/TrialActivationPage";
+import TrialActivationSuccessPage from "@/pages/TrialActivationSuccessPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import UpdatePassword from "@/pages/UpdatePassword";
 import AuthCallback from "@/pages/AuthCallback";
@@ -133,7 +134,8 @@ function App() {
                    <Route path="/login" element={<Login />} />
                    <Route path="/signup" element={<SaaSSignupPage />} />
                    <Route path="/trial/confirm-email" element={<EmailConfirmationPage />} />
-                   <Route path="/trial/activate/:token" element={<TrialActivationPage />} />
+                    <Route path="/trial/activate/:token" element={<TrialActivationPage />} />
+                    <Route path="/trial/success" element={<TrialActivationSuccessPage />} />
                    <Route path="/forgot-password" element={<ForgotPassword />} />
                    <Route path="/update-password" element={<UpdatePassword />} />
                    <Route path="/auth/callback" element={<AuthCallback />} />

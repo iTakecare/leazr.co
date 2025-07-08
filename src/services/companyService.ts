@@ -102,136 +102,39 @@ interface CreateCompanyParams {
 }
 
 export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
-  console.log('Création de l\'entreprise en mode essai:', params);
+  console.log('Création sécurisée de l\'entreprise via edge function:', params);
   
   try {
-    // Étape 1: Créer l'utilisateur admin SANS confirmation automatique
-    console.log('Étape 1: Création de l\'utilisateur admin...');
-    
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: params.adminEmail,
-      password: params.adminPassword,
-      options: {
-        data: {
-          first_name: params.adminFirstName,
-          last_name: params.adminLastName,
-          role: 'admin'
-        },
-        emailRedirectTo: `${window.location.origin}/trial/activate`
+    // Utiliser l'edge function sécurisée pour créer l'utilisateur et l'entreprise
+    const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
+      body: {
+        companyName: params.companyName,
+        adminEmail: params.adminEmail,
+        adminPassword: params.adminPassword,
+        adminFirstName: params.adminFirstName,
+        adminLastName: params.adminLastName,
+        plan: params.plan,
+        selectedModules: params.selectedModules
       }
     });
 
-    if (authError) {
-      console.error('Erreur lors de la création de l\'utilisateur:', authError);
-      throw new Error(`Erreur d'authentification: ${authError.message}`);
+    if (error) {
+      console.error('Erreur lors de l\'appel à l\'edge function:', error);
+      throw new Error(`Erreur lors de la création: ${error.message}`);
     }
 
-    if (!authData.user) {
-      console.error('Aucun utilisateur créé');
-      throw new Error('Erreur lors de la création de l\'utilisateur');
+    if (!data || !data.success) {
+      console.error('Échec de la création:', data);
+      throw new Error(data?.error || 'Erreur lors de la création de l\'entreprise');
     }
 
-    console.log('Utilisateur créé avec succès:', authData.user.id);
-
-    // Étape 2: Créer l'entreprise avec statut d'essai INACTIF
-    console.log('Étape 2: Création de l\'entreprise...');
-    
-    const { data: companyData, error: companyError } = await supabase
-      .from('companies')
-      .insert([{
-        name: params.companyName,
-        plan: params.plan,
-        account_status: 'trial', // En attente d'activation
-        trial_starts_at: null, // Sera défini lors de l'activation
-        trial_ends_at: null, // Sera calculé lors de l'activation
-        modules_enabled: params.selectedModules, // Stockage direct des modules sélectionnés
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-
-    if (companyError) {
-      console.error('Erreur lors de la création de l\'entreprise:', companyError);
-      
-      // Note: L'utilisateur reste créé dans le système d'authentification
-      // Il pourra se connecter et réessayer la création d'entreprise
-      console.warn('L\'utilisateur a été créé mais l\'entreprise a échoué. L\'utilisateur peut se reconnecter pour réessayer.');
-      
-      throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
-    }
-
-    console.log('Entreprise créée avec succès:', companyData.id);
-
-    // Étape 3: Associer les modules sélectionnés
-    console.log('Étape 3: Association des modules...');
-    
-    if (params.selectedModules.length > 0) {
-      // Récupérer les IDs des modules par leurs slugs
-      const { data: modules, error: modulesQueryError } = await supabase
-        .from('modules')
-        .select('id, slug')
-        .in('slug', params.selectedModules);
-
-      if (modulesQueryError) {
-        console.warn('Erreur lors de la récupération des modules:', modulesQueryError);
-      } else if (modules && modules.length > 0) {
-        const moduleAssociations = modules.map(module => ({
-          company_id: companyData.id,
-          module_id: module.id,
-          enabled: true,
-          activated_at: new Date().toISOString()
-        }));
-
-        const { error: modulesError } = await supabase
-          .from('company_modules')
-          .insert(moduleAssociations);
-
-        if (modulesError) {
-          console.warn('Erreur lors de l\'association des modules:', modulesError);
-          // Ne pas faire échouer la création pour les modules
-        } else {
-          console.log('Modules associés avec succès');
-        }
-      }
-    }
-
-    // Étape 4: Envoyer l'email de confirmation
-    console.log('Étape 4: Envoi de l\'email de confirmation...');
-    
-    // Stocker les données temporairement pour la page de confirmation
-    localStorage.setItem('pendingEmail', params.adminEmail);
-    localStorage.setItem('pendingCompanyName', params.companyName);
-    localStorage.setItem('pendingFirstName', params.adminFirstName);
-    localStorage.setItem('pendingLastName', params.adminLastName);
-
-    try {
-      const { error: emailError } = await supabase.functions.invoke('send-trial-welcome-email', {
-        body: {
-          type: 'confirmation',
-          companyName: params.companyName,
-          adminEmail: params.adminEmail,
-          adminFirstName: params.adminFirstName,
-          adminLastName: params.adminLastName,
-          companyId: companyData.id
-        }
-      });
-
-      if (emailError) {
-        console.warn('Erreur lors de l\'envoi de l\'email:', emailError);
-        // Ne pas faire échouer l'inscription pour l'email
-      } else {
-        console.log('Email de confirmation envoyé avec succès');
-      }
-    } catch (emailError) {
-      console.warn('Erreur lors de l\'envoi de l\'email:', emailError);
-      // Continue même si l'email échoue
-    }
+    console.log('Entreprise créée avec succès via edge function:', data);
 
     return {
       success: true,
-      companyId: companyData.id,
-      userId: authData.user.id,
-      needsEmailConfirmation: true
+      companyId: data.companyId,
+      userId: data.userId,
+      needsEmailConfirmation: false // L'email est confirmé automatiquement
     };
 
   } catch (error) {
