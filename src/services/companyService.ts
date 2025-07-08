@@ -144,6 +144,7 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
         account_status: 'trial', // En attente d'activation
         trial_starts_at: null, // Sera défini lors de l'activation
         trial_ends_at: null, // Sera calculé lors de l'activation
+        modules_enabled: params.selectedModules, // Stockage direct des modules sélectionnés
         created_at: new Date().toISOString()
       }])
       .select()
