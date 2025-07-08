@@ -150,9 +150,9 @@ const LeazrSaaSDashboard = () => {
                 <LifeBuoy className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardData.supportTickets}</div>
+                <div className="text-2xl font-bold">{dashboardData.openTickets}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  En attente de traitement
+                  {dashboardData.supportTickets} tickets au total
                 </p>
               </CardContent>
             </Card>
@@ -245,11 +245,11 @@ const LeazrSaaSDashboard = () => {
                   <CardContent className="space-y-6">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Taux de rétention</span>
-                        <span className="text-sm font-bold text-green-600">96.8%</span>
+                        <span className="text-sm font-medium">Taux de conversion</span>
+                        <span className="text-sm font-bold text-green-600">{dashboardData.conversionRate}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full" style={{ width: '96.8%' }}></div>
+                        <div className="bg-green-600 h-2 rounded-full" style={{ width: `${dashboardData.conversionRate}%` }}></div>
                       </div>
                     </div>
 
@@ -266,17 +266,17 @@ const LeazrSaaSDashboard = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Satisfaction client</span>
-                        <span className="text-sm font-bold text-blue-600">4.7/5</span>
+                        <span className="text-sm font-bold text-blue-600">{dashboardData.satisfactionRate}/5</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: '94%' }}></div>
+                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(dashboardData.satisfactionRate / 5) * 100}%` }}></div>
                       </div>
                     </div>
 
                     <div className="pt-4 border-t">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">ARR</div>
-                        <div className="text-lg font-semibold">149,400€</div>
+                        <div className="text-lg font-semibold">{(dashboardData.monthlyRevenue * 12).toLocaleString('fr-FR')}€</div>
                         <div className="text-xs text-muted-foreground">Annual Recurring Revenue</div>
                       </div>
                     </div>

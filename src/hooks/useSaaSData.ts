@@ -8,6 +8,10 @@ export interface SaaSMetrics {
   supportTickets: number;
   churnRate: number;
   newClientsThisMonth: number;
+  openTickets: number;
+  avgResponseTime: number;
+  satisfactionRate: number;
+  conversionRate: number;
 }
 
 export interface CompanyData {
@@ -26,6 +30,35 @@ export interface CompanyData {
   };
 }
 
+export interface SupportTicket {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category: 'general' | 'technical' | 'billing' | 'feature_request';
+  created_by_email: string;
+  created_by_name: string;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string;
+  company?: {
+    name: string;
+  };
+}
+
+export interface ModuleData {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  is_core: boolean;
+  price?: number;
+  features?: string[];
+  category?: string;
+}
+
 export const useSaaSData = () => {
   const [metrics, setMetrics] = useState<SaaSMetrics>({
     totalClients: 0,
@@ -33,7 +66,11 @@ export const useSaaSData = () => {
     monthlyRevenue: 0,
     supportTickets: 0,
     churnRate: 0,
-    newClientsThisMonth: 0
+    newClientsThisMonth: 0,
+    openTickets: 0,
+    avgResponseTime: 0,
+    satisfactionRate: 0,
+    conversionRate: 0
   });
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,16 +131,39 @@ export const useSaaSData = () => {
           return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
         }).length || 0;
 
-        // Calculer le taux de churn (simplifié)
+        // Récupérer les tickets de support
+        const { data: supportTicketsData } = await supabase
+          .from('support_tickets')
+          .select('*');
+
+        const openTickets = supportTicketsData?.filter(t => t.status === 'open').length || 0;
+        const totalTickets = supportTicketsData?.length || 0;
+        
+        // Calculer le temps de réponse moyen (simulé basé sur les dates)
+        const avgResponseTime = supportTicketsData ? 
+          supportTicketsData.reduce((sum, ticket) => {
+            const hoursOpen = Math.floor((new Date().getTime() - new Date(ticket.created_at).getTime()) / (1000 * 60 * 60));
+            return sum + hoursOpen;
+          }, 0) / supportTicketsData.length : 0;
+
+        // Calculer le taux de churn
         const churnRate = totalCompanies > 0 ? ((totalCompanies - activeCompanies) / totalCompanies * 100) : 0;
+        
+        // Calculer le taux de conversion (essai vers abonnement)
+        const conversionRate = (trialCompanies + activeCompanies) > 0 ? 
+          (activeCompanies / (trialCompanies + activeCompanies)) * 100 : 0;
 
         setMetrics({
           totalClients: totalCompanies,
           activeSubscriptions: activeCompanies,
           monthlyRevenue,
-          supportTickets: 0, // À implémenter avec une vraie table de tickets
+          supportTickets: totalTickets,
           churnRate: Math.round(churnRate * 10) / 10,
-          newClientsThisMonth: newThisMonth
+          newClientsThisMonth: newThisMonth,
+          openTickets,
+          avgResponseTime: Math.round(avgResponseTime),
+          satisfactionRate: 4.8, // Simulé pour le moment
+          conversionRate: Math.round(conversionRate * 10) / 10
         });
 
       } catch (error) {
@@ -117,6 +177,69 @@ export const useSaaSData = () => {
   }, []);
 
   return { metrics, companies, loading };
+};
+
+export const useSupportTickets = () => {
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('support_tickets')
+          .select(`
+            *,
+            company:companies(name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Erreur lors de la récupération des tickets:', error);
+        } else if (data) {
+          setTickets(data);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des tickets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTickets();
+  }, []);
+
+  return { tickets, loading };
+};
+
+export const useModules = () => {
+  const [modules, setModules] = useState<ModuleData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('modules')
+          .select('*')
+          .order('name');
+
+        if (error) {
+          console.error('Erreur lors de la récupération des modules:', error);
+        } else if (data) {
+          setModules(data);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des modules:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
+  return { modules, loading };
 };
 
 export const useRecentActivity = () => {

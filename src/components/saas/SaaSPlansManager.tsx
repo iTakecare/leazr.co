@@ -1,13 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Check, 
   Plus, 
@@ -18,51 +14,33 @@ import {
   Package,
   Zap
 } from "lucide-react";
+import { useModules, useSaaSData } from "@/hooks/useSaaSData";
 
 interface Plan {
   id: string;
   name: string;
   price: number;
-  billingType: 'monthly' | 'yearly';
   description: string;
   features: string[];
   maxUsers: number;
   maxModules: number;
   popular: boolean;
-  active: boolean;
-  customizations: {
-    support: string;
-    storage: string;
-    integrations: boolean;
-    analytics: boolean;
-    whitelabel: boolean;
-  };
-}
-
-interface Module {
-  id: string;
-  name: string;
-  description: string;
-  priceStarter: number;
-  pricePro: number;
-  priceBusiness: number;
-  isCore: boolean;
 }
 
 const SaaSPlansManager = () => {
   const [activeTab, setActiveTab] = useState<'plans' | 'modules'>('plans');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { modules, loading: modulesLoading } = useModules();
+  const { companies } = useSaaSData();
 
-  // Plans d'abonnement
-  const [plans, setPlans] = useState<Plan[]>([
+  // Plans basés sur les vraies données Supabase
+  const plans: Plan[] = [
     {
-      id: '1',
+      id: 'starter',
       name: 'Starter',
       price: 49,
-      billingType: 'monthly',
       description: 'Parfait pour débuter avec Leazr',
       features: [
-        '1 module inclus',
+        'Modules principaux inclus',
         '1 utilisateur',
         'Support email',
         '1 GB de stockage',
@@ -70,21 +48,12 @@ const SaaSPlansManager = () => {
       ],
       maxUsers: 1,
       maxModules: 1,
-      popular: false,
-      active: true,
-      customizations: {
-        support: 'Email',
-        storage: '1 GB',
-        integrations: false,
-        analytics: false,
-        whitelabel: false
-      }
+      popular: false
     },
     {
-      id: '2',
+      id: 'pro',
       name: 'Pro',
       price: 149,
-      billingType: 'monthly',
       description: 'Pour les équipes qui grandissent',
       features: [
         'Jusqu\'à 3 modules',
@@ -96,21 +65,12 @@ const SaaSPlansManager = () => {
       ],
       maxUsers: 5,
       maxModules: 3,
-      popular: true,
-      active: true,
-      customizations: {
-        support: 'Chat + Email',
-        storage: '10 GB',
-        integrations: true,
-        analytics: true,
-        whitelabel: false
-      }
+      popular: true
     },
     {
-      id: '3',
+      id: 'business',
       name: 'Business',
       price: 299,
-      billingType: 'monthly',
       description: 'Pour les grandes organisations',
       features: [
         'Tous les modules',
@@ -123,96 +83,29 @@ const SaaSPlansManager = () => {
       ],
       maxUsers: 10,
       maxModules: -1,
-      popular: false,
-      active: true,
-      customizations: {
-        support: 'Dédié',
-        storage: '50 GB',
-        integrations: true,
-        analytics: true,
-        whitelabel: true
-      }
+      popular: false
     }
-  ]);
+  ];
 
-  // Modules disponibles
-  const [modules] = useState<Module[]>([
-    {
-      id: '1',
-      name: 'Calculateur Leasing',
-      description: 'Outil de calcul et simulation de leasing',
-      priceStarter: 0,
-      pricePro: 0,
-      priceBusiness: 0,
-      isCore: true
-    },
-    {
-      id: '2',
-      name: 'Catalogue Produits',
-      description: 'Gestion complète du catalogue produits',
-      priceStarter: 0,
-      pricePro: 0,
-      priceBusiness: 0,
-      isCore: true
-    },
-    {
-      id: '3',
-      name: 'CRM Client',
-      description: 'Gestion de la relation client',
-      priceStarter: 0,
-      pricePro: 0,
-      priceBusiness: 0,
-      isCore: true
-    },
-    {
-      id: '4',
-      name: 'Assistant IA',
-      description: 'Assistant intelligent pour optimiser les offres',
-      priceStarter: 29,
-      pricePro: 19,
-      priceBusiness: 0,
-      isCore: false
-    },
-    {
-      id: '5',
-      name: 'Générateur de Parc',
-      description: 'Création automatique de parcs d\'équipements',
-      priceStarter: 39,
-      pricePro: 29,
-      priceBusiness: 0,
-      isCore: false
-    },
-    {
-      id: '6',
-      name: 'Contrats Avancés',
-      description: 'Gestion complète des contrats et signatures',
-      priceStarter: 49,
-      pricePro: 39,
-      priceBusiness: 0,
-      isCore: false
-    },
-    {
-      id: '7',
-      name: 'SAV & Support',
-      description: 'Module de support client intégré',
-      priceStarter: 19,
-      pricePro: 15,
-      priceBusiness: 0,
-      isCore: false
-    }
-  ]);
+  // Calculer les statistiques d'utilisation des plans
+  const planStats = plans.map(plan => {
+    const count = companies.filter(c => c.plan === plan.id).length;
+    const activeCount = companies.filter(c => c.plan === plan.id && c.account_status === 'active').length;
+    return {
+      ...plan,
+      totalUsers: count,
+      activeUsers: activeCount,
+      revenue: activeCount * plan.price
+    };
+  });
 
-  const togglePlanStatus = (planId: string) => {
-    setPlans(plans.map(plan => 
-      plan.id === planId ? { ...plan, active: !plan.active } : plan
-    ));
-  };
-
-  const togglePopular = (planId: string) => {
-    setPlans(plans.map(plan => 
-      plan.id === planId ? { ...plan, popular: !plan.popular } : plan
-    ));
-  };
+  if (modulesLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">Chargement des données...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -248,7 +141,7 @@ const SaaSPlansManager = () => {
       {activeTab === 'plans' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {plans.map((plan) => (
+            {planStats.map((plan) => (
               <Card key={plan.id} className={`relative ${plan.popular ? 'ring-2 ring-purple-500' : ''}`}>
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -264,13 +157,6 @@ const SaaSPlansManager = () => {
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
                       <CardDescription className="mt-2">{plan.description}</CardDescription>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Switch 
-                        checked={plan.active} 
-                        onCheckedChange={() => togglePlanStatus(plan.id)}
-                      />
-                      <Label className="text-xs">Actif</Label>
-                    </div>
                   </div>
                   <div className="mt-4">
                     <div className="flex items-baseline">
@@ -280,6 +166,18 @@ const SaaSPlansManager = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Statistiques d'utilisation */}
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded-lg">
+                    <div className="text-center">
+                      <div className="text-lg font-bold">{plan.totalUsers}</div>
+                      <div className="text-xs text-muted-foreground">Clients totaux</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold">{plan.activeUsers}</div>
+                      <div className="text-xs text-muted-foreground">Abonnés actifs</div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -303,39 +201,58 @@ const SaaSPlansManager = () => {
                     </ul>
                   </div>
 
-                  <div className="space-y-3 pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm">Plan populaire</Label>
-                      <Switch 
-                        checked={plan.popular} 
-                        onCheckedChange={() => togglePopular(plan.id)}
-                      />
+                  <div className="pt-4 border-t">
+                    <div className="text-center">
+                      <div className="text-sm font-medium">Revenus mensuels</div>
+                      <div className="text-lg font-bold text-green-600">{plan.revenue.toLocaleString('fr-FR')}€</div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Modifier
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Edit className="h-3 w-3 mr-1" />
+                      Modifier
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
 
+          {/* Résumé des revenus */}
           <Card>
             <CardHeader>
-              <CardTitle>Ajouter un nouveau plan</CardTitle>
-              <CardDescription>Créer un plan d'abonnement personnalisé</CardDescription>
+              <CardTitle>Résumé financier</CardTitle>
+              <CardDescription>Revenus par plan d'abonnement</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau plan
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {planStats.reduce((sum, plan) => sum + plan.revenue, 0).toLocaleString('fr-FR')}€
+                  </div>
+                  <div className="text-sm text-muted-foreground">Revenus totaux/mois</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {planStats.reduce((sum, plan) => sum + plan.activeUsers, 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Abonnés actifs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {planStats.reduce((sum, plan) => sum + plan.totalUsers, 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Clients totaux</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {((planStats.reduce((sum, plan) => sum + plan.activeUsers, 0) / 
+                       planStats.reduce((sum, plan) => sum + plan.totalUsers, 0)) * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">Taux de conversion</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -358,31 +275,33 @@ const SaaSPlansManager = () => {
                         <div>
                           <h4 className="font-medium">{module.name}</h4>
                           <p className="text-sm text-muted-foreground">{module.description}</p>
+                          {module.features && module.features.length > 0 && (
+                            <div className="mt-2">
+                              <div className="text-xs text-muted-foreground">Fonctionnalités:</div>
+                              <div className="text-xs">
+                                {module.features.slice(0, 3).join(', ')}
+                                {module.features.length > 3 && '...'}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {module.isCore && (
-                          <Badge variant="secondary">Module principal</Badge>
-                        )}
+                        <div className="flex space-x-2">
+                          {module.is_core && (
+                            <Badge variant="secondary">Module principal</Badge>
+                          )}
+                          {module.category && (
+                            <Badge variant="outline">{module.category}</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-6">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="text-center">
-                          <div className="text-xs text-muted-foreground">Starter</div>
-                          <div className="font-medium">
-                            {module.priceStarter === 0 ? 'Inclus' : `+${module.priceStarter}€`}
-                          </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold">
+                          {module.price === 0 || module.is_core ? 'Inclus' : `${module.price}€/mois`}
                         </div>
-                        <div className="text-center">
-                          <div className="text-xs text-muted-foreground">Pro</div>
-                          <div className="font-medium">
-                            {module.pricePro === 0 ? 'Inclus' : `+${module.pricePro}€`}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs text-muted-foreground">Business</div>
-                          <div className="font-medium">
-                            {module.priceBusiness === 0 ? 'Inclus' : `+${module.priceBusiness}€`}
-                          </div>
+                        <div className="text-xs text-muted-foreground">
+                          {module.is_core ? 'Dans tous les plans' : 'Module additionnel'}
                         </div>
                       </div>
                       <Button variant="outline" size="sm">
