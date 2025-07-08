@@ -129,7 +129,23 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
 
     console.log('Utilisateur créé avec succès:', authData.user.id);
 
-    // Étape 2: Créer l'entreprise
+    // Étape 2: Créer le profil utilisateur manuellement
+    const { error: profileCreationError } = await supabase
+      .from('profiles')
+      .insert([{
+        id: authData.user.id,
+        first_name: params.adminFirstName,
+        last_name: params.adminLastName,
+        role: 'admin',
+        company_id: null // Sera mis à jour après création de l'entreprise
+      }]);
+
+    if (profileCreationError) {
+      console.warn('Erreur lors de la création du profil:', profileCreationError);
+      // Ne pas faire échouer le processus si la création du profil échoue
+    }
+
+    // Étape 3: Créer l'entreprise
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .insert([{
@@ -150,7 +166,7 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
 
     console.log('Entreprise créée avec succès:', companyData.id);
 
-    // Étape 3: Mettre à jour le profil utilisateur avec l'ID de l'entreprise
+    // Étape 4: Mettre à jour le profil utilisateur avec l'ID de l'entreprise
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
@@ -164,7 +180,7 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
       // Ne pas faire échouer le processus si la mise à jour du profil échoue
     }
 
-    // Étape 4: Envoyer l'email de bienvenue
+    // Étape 5: Envoyer l'email de bienvenue
     try {
       await supabase.functions.invoke('send-trial-welcome-email', {
         body: {
