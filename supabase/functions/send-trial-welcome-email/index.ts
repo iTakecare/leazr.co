@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-const resend = new Resend(Deno.env.get("LEAZR_RESEND_API") || Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -33,6 +32,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${type} email to ${adminEmail} for company ${companyName}`);
 
+    // Récupérer les paramètres SMTP depuis la base de données
+    const { data: smtpSettings, error: settingsError } = await supabase
+      .from('smtp_settings')
+      .select('resend_api_key, from_email, from_name')
+      .eq('id', 1)
+      .single();
+    
+    if (settingsError) {
+      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
+      throw new Error(`Erreur de base de données: ${settingsError.message}`);
+    }
+    
+    if (!smtpSettings || !smtpSettings.resend_api_key) {
+      console.error("Clé API Resend non configurée dans la base de données");
+      throw new Error("Clé API Resend non configurée");
+    }
+
+    console.log("Clé API Resend récupérée avec succès");
+    
+    // Vérifier si la clé API n'est pas vide et ne contient pas de placeholder
+    const apiKey = smtpSettings.resend_api_key.trim();
+    if (apiKey === "" || apiKey.includes("YOUR_API_KEY") || apiKey.includes("RESEND_API_KEY")) {
+      console.error("Clé API Resend invalide ou non configurée correctement");
+      throw new Error("Clé API Resend invalide");
+    }
+    
+    const resend = new Resend(apiKey);
+
+    // Format d'expéditeur 
+    const fromName = smtpSettings.from_name || "Leazr";
+    const fromEmail = smtpSettings.from_email || "noreply@leazr.co";
+    const from = `${fromName} <${fromEmail}>`;
+
     if (type === 'confirmation') {
       // Generate confirmation token if not provided
       const token = confirmationToken || crypto.randomUUID();
@@ -56,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
       const confirmationUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/v1', '')}/trial/activate/${token}`;
 
       const emailResponse = await resend.emails.send({
-        from: "Leazr <noreply@leazr.co>",
+        from: from,
         to: [adminEmail],
         subject: "Confirmez votre inscription à Leazr - Essai gratuit 14 jours",
         html: `
@@ -155,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       const loginUrl = 'https://preview--leazr.lovable.app/dashboard';
 
       const emailResponse = await resend.emails.send({
-        from: "Leazr <noreply@leazr.co>",
+        from: from,
         to: [adminEmail],
         subject: "🎉 Votre essai Leazr est maintenant actif !",
         html: `
