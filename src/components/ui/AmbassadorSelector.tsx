@@ -43,72 +43,36 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
   }, [isOpen]);
 
   const fetchAmbassadors = async () => {
+    if (!isOpen) return;
+    
     try {
       setLoading(true);
       console.log("🔍 Fetching ambassadors...");
       
-      // Vérifier l'authentification en premier
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log("🔍 Session check:", { hasSession: !!session, sessionError });
-      
-      if (!session) {
-        toast.error("Vous devez être connecté pour voir les ambassadeurs.");
-        return;
-      }
-      
-      // Récupérer le company_id de l'utilisateur connecté
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('company_id, role')
-        .eq('id', session.user.id)
-        .single();
-      
-      console.log("🔍 User profile:", { userProfile, profileError });
-      
-      if (profileError || !userProfile?.company_id) {
-        toast.error("Impossible de récupérer vos informations d'entreprise.");
-        return;
-      }
-      
-      // Diagnostic complet de l'authentification
-      const diagnostic = await diagnoseAuthSession();
-      console.log("🔬 Diagnostic résultat:", diagnostic);
-      
-      // Requête pour récupérer les ambassadeurs avec filtrage côté client
-      // comme sécurité supplémentaire puisque RLS ne fonctionne pas correctement
+      // Requête simple qui fait confiance à la politique RLS
+      // Utilise le même système que les clients, catalogue, etc.
       const { data, error } = await supabase
         .from('ambassadors')
         .select(`
           id,
           name,
           email,
-          commission_level_id,
-          company_id
+          commission_level_id
         `)
         .eq('status', 'active');
 
       if (error) {
-        console.error("❌ Error fetching ambassadors:", error);
-        throw error;
+        console.error("❌ Erreur lors de la récupération des ambassadeurs:", error);
+        toast.error("Erreur lors du chargement des ambassadeurs");
+        return;
       }
 
       console.log("✅ Raw ambassador data:", data);
-      console.log("🏢 User company_id:", userProfile.company_id);
-      
-      // FILTRAGE CÔTÉ CLIENT pour sécurité supplémentaire
-      // Filtrer pour ne garder que les ambassadeurs de la même entreprise
-      const filteredByCompany = data?.filter(ambassador => {
-        const isOwn = ambassador.company_id === userProfile.company_id;
-        console.log(`🔍 Ambassador ${ambassador.name}: company_id=${ambassador.company_id}, user_company=${userProfile.company_id}, match=${isOwn}`);
-        return isOwn;
-      }) || [];
-      
-      console.log("🏢 Ambassadors after company filter:", filteredByCompany.length);
 
       // Si on a besoin des noms des niveaux de commission, on peut faire une requête séparée
       let commissionLevels = {};
-      if (filteredByCompany && filteredByCompany.length > 0) {
-        const levelIds = [...new Set(filteredByCompany.map(a => a.commission_level_id).filter(Boolean))];
+      if (data && data.length > 0) {
+        const levelIds = [...new Set(data.map(a => a.commission_level_id).filter(Boolean))];
         
         if (levelIds.length > 0) {
           const { data: levels } = await supabase
@@ -125,20 +89,19 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
         }
       }
 
-      const formattedAmbassadors = filteredByCompany?.map(ambassador => ({
+      const formattedAmbassadors = data?.map(ambassador => ({
         id: ambassador.id,
         name: ambassador.name || 'Ambassadeur sans nom',
         email: ambassador.email || 'Email non défini',
-        commission_level_id: ambassador.commission_level_id, // Inclure directement l'ID
+        commission_level_id: ambassador.commission_level_id,
         commission_level: ambassador.commission_level_id ? commissionLevels[ambassador.commission_level_id] : undefined
       })) || [];
 
       console.log("✅ Formatted ambassadors:", formattedAmbassadors);
       setAmbassadors(formattedAmbassadors);
     } catch (error) {
-      console.error("❌ Error fetching ambassadors:", error);
-      toast.error("Erreur lors du chargement des ambassadeurs");
-      setAmbassadors([]);
+      console.error("❌ Erreur inattendue:", error);
+      toast.error("Une erreur inattendue s'est produite");
     } finally {
       setLoading(false);
     }
