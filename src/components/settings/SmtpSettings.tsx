@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Send, CheckCircle2, InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 interface ResendSettingsData {
   id: number;
@@ -15,6 +16,7 @@ interface ResendSettingsData {
   resend_api_key?: string;
   use_resend: boolean;
   updated_at?: string;
+  company_id?: string;
 }
 
 const ResendSettings = () => {
@@ -35,14 +37,16 @@ const ResendSettings = () => {
       setLoading(true);
       setSaveError(null);
       
-      console.log("Fetching email settings...");
+      const companyId = await getCurrentUserCompanyId();
+      console.log("🏢 Fetching email settings for company:", companyId);
+      
       const { data, error } = await supabase
         .from('smtp_settings')
-        .select('id, from_email, from_name, use_resend, resend_api_key')
-        .eq('id', 1)
-        .single();
+        .select('id, from_email, from_name, use_resend, resend_api_key, company_id')
+        .eq('company_id', companyId)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Erreur lors de la récupération des paramètres:", error);
         toast.error("Erreur lors du chargement des paramètres d'envoi d'email");
         return;
@@ -54,11 +58,23 @@ const ResendSettings = () => {
           resend_api_key: data.resend_api_key ? "**********" : "" 
         });
         setSettings({
-          id: data.id || 1,
+          id: data.id,
           from_email: data.from_email || "",
-          from_name: data.from_name || "iTakecare",
+          from_name: data.from_name || "Votre Entreprise",
           use_resend: data.use_resend || true,
-          resend_api_key: data.resend_api_key || ""
+          resend_api_key: data.resend_api_key || "",
+          company_id: data.company_id
+        });
+      } else {
+        // Aucun paramètre trouvé, utiliser des valeurs par défaut
+        console.log("No settings found for company, using defaults");
+        setSettings({
+          id: 0,
+          from_email: "",
+          from_name: "Votre Entreprise",
+          use_resend: true,
+          resend_api_key: "",
+          company_id: companyId
         });
       }
     } catch (err) {
@@ -78,21 +94,41 @@ const ResendSettings = () => {
       setSaving(true);
       setSaveError(null);
       
+      const companyId = await getCurrentUserCompanyId();
+      
       const settingsToSave = {
         ...settings,
+        company_id: companyId,
         updated_at: new Date().toISOString()
       };
       
-      console.log("Saving email settings with Resend API key");
+      console.log("🏢 Saving email settings for company:", companyId);
+      
+      // Si c'est une création (id = 0), on récupère le prochain ID
+      if (settings.id === 0) {
+        const { data: maxIdData } = await supabase
+          .from('smtp_settings')
+          .select('id')
+          .order('id', { ascending: false })
+          .limit(1);
+        
+        const nextId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id + 1 : 1;
+        settingsToSave.id = nextId;
+      }
       
       const { error } = await supabase
         .from('smtp_settings')
-        .upsert(settingsToSave);
+        .upsert(settingsToSave, { onConflict: 'id' });
       
       if (error) {
         console.error("Error updating email settings:", error);
         setSaveError(`Erreur base de données: ${error.message}`);
         throw error;
+      }
+      
+      // Mettre à jour l'état local avec le nouvel ID si c'était une création
+      if (settings.id === 0) {
+        setSettings(prev => ({ ...prev, id: settingsToSave.id }));
       }
       
       toast.success("Paramètres d'envoi d'emails enregistrés avec succès");

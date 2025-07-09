@@ -3461,6 +3461,7 @@ export type Database = {
       }
       smtp_settings: {
         Row: {
+          company_id: string | null
           created_at: string
           enabled: boolean
           from_email: string
@@ -3476,6 +3477,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           enabled?: boolean
           from_email: string
@@ -3491,6 +3493,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           enabled?: boolean
           from_email?: string
@@ -3832,6 +3835,10 @@ export type Database = {
         Returns: string
       }
       create_default_leasers_for_company: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
+      create_default_smtp_settings_for_company: {
         Args: { p_company_id: string }
         Returns: boolean
       }

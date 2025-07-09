@@ -225,11 +225,14 @@ export const sendEmail = async (
     // Récupérer les paramètres de configuration avec diagnostic amélioré
     console.log("   → Tentative de récupération depuis la table smtp_settings...");
     
+    const companyId = await getCurrentUserCompanyId();
+    console.log(`   → Company ID: ${companyId}`);
+    
     const { data: settings, error: settingsError } = await supabase
       .from('smtp_settings')
       .select('from_email, from_name')
-      .eq('id', 1)
-      .single();
+      .eq('company_id', companyId)
+      .maybeSingle();
       
     if (settingsError) {
       console.error("❌ ERREUR lors de la récupération des paramètres SMTP:", settingsError);
