@@ -19,6 +19,7 @@ import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
+import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -181,102 +182,7 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
-          <div className="space-y-6">
-            {/* Subscription Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Abonnement
-                </CardTitle>
-                <CardDescription>
-                  Gérez votre abonnement et votre facturation
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Plan actuel:</span>
-                      {subscription?.subscribed ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          {planNames[subscription.subscription_tier as keyof typeof planNames] || subscription.subscription_tier}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">Aucun abonnement actif</Badge>
-                      )}
-                    </div>
-                    {subscription?.subscription_end && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        Expire le: {new Date(subscription.subscription_end).toLocaleDateString('fr-FR')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefreshSubscription}
-                      disabled={loading}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                      Actualiser
-                    </Button>
-                    {subscription?.subscribed && (
-                      <Button
-                        onClick={handleManageSubscription}
-                        disabled={loading}
-                      >
-                        Gérer l'abonnement
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {!subscription?.subscribed && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-yellow-800">
-                      Aucun abonnement actif. Souscrivez à un plan pour accéder à toutes les fonctionnalités.
-                    </p>
-                    <Button
-                      className="mt-2"
-                      onClick={() => window.location.href = '/signup'}
-                    >
-                      Choisir un plan
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Account Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Informations du compte
-                </CardTitle>
-                <CardDescription>
-                  Vos informations personnelles
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Email</label>
-                  <p className="text-lg">{user?.email}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">ID utilisateur</label>
-                  <p className="text-sm text-gray-500 font-mono">{user?.id}</p>
-                </div>
-                <div className="pt-4 border-t">
-                  <Button variant="outline" onClick={logout}>
-                    Se déconnecter
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <TrialAwareSubscriptionCard />
         </TabsContent>
       </Tabs>
     </div>

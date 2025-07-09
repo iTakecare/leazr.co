@@ -38,6 +38,11 @@ const CompanyCRM = () => {
     isLoading 
   } = useCompanyCRM();
   
+  // Debug logs pour diagnostiquer les données affichées
+  console.log("🔍 CRM RENDER - Stats:", stats);
+  console.log("🔍 CRM RENDER - Clients count:", clients?.length || 0);
+  console.log("🔍 CRM RENDER - Offers count:", offers?.length || 0);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("clients");
 

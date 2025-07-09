@@ -3752,6 +3752,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      cleanup_company_data_isolation: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       cleanup_expired_prospects: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -3853,6 +3857,15 @@ export type Database = {
       delete_brand: {
         Args: { brand_name: string }
         Returns: boolean
+      }
+      diagnose_data_isolation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          user_company_data_count: number
+          other_company_data_count: number
+          isolation_status: string
+        }[]
       }
       ensure_site_settings_bucket: {
         Args: Record<PropertyKey, never>
@@ -4243,6 +4256,16 @@ export type Database = {
       get_user_profile_with_associations: {
         Args: { user_id: string }
         Returns: Json
+      }
+      get_user_trial_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_trial: boolean
+          trial_ends_at: string
+          days_remaining: number
+          company_name: string
+          prospect_email: string
+        }[]
       }
       group_products_by_sku: {
         Args: Record<PropertyKey, never>

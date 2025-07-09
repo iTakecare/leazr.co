@@ -27,15 +27,24 @@ export const getCurrentUserCompanyId = async (): Promise<string> => {
     throw new Error("Utilisateur non authentifié");
   }
 
-  console.log("🏢 SERVICE - Appel de get_user_company_id RPC");
-  const { data: companyId, error } = await supabase
-    .rpc('get_user_company_id');
+  // Utiliser la nouvelle fonction sécurisée qui évite les récursions
+  console.log("🏢 SERVICE - Appel de get_current_user_profile RPC");
+  const { data: profileData, error } = await supabase
+    .rpc('get_current_user_profile');
 
-  console.log("🏢 SERVICE - Résultat RPC:", { companyId, error });
+  console.log("🏢 SERVICE - Résultat RPC:", { profileData, error });
 
-  if (error || !companyId) {
-    console.error("🏢 SERVICE - Erreur lors de la récupération du company_id:", error);
-    throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+  if (error) {
+    console.error("🏢 SERVICE - Erreur lors de la récupération du profil:", error);
+    throw new Error("Impossible de récupérer le profil de l'utilisateur");
+  }
+
+  // Récupérer le company_id depuis les données du profil
+  const companyId = profileData && profileData.length > 0 ? profileData[0].company_id : null;
+  
+  if (!companyId) {
+    console.error("🏢 SERVICE - Aucun company_id trouvé dans le profil");
+    throw new Error("Aucune entreprise associée à cet utilisateur");
   }
 
   console.log("🏢 SERVICE - CompanyId retourné:", companyId);

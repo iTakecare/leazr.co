@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { cleanUserData } from '@/services/dataIsolationService';
+import { DataIsolationCleanupService } from '@/services/dataIsolationCleanupService';
 
 // Étendre le type User pour inclure les propriétés personnalisées
 interface ExtendedUser extends User {
@@ -274,6 +275,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                       } else if (cleaningReport.corrected.length > 0) {
                         console.log("🧹 CLEANING - Corrections appliquées:", cleaningReport.corrected);
                       }
+                      
+                      // Nouveau nettoyage d'isolation amélioré
+                      DataIsolationCleanupService.autoCleanupOnLogin();
                     } catch (cleaningError) {
                       console.warn("🧹 CLEANING - Erreur non critique lors du nettoyage:", cleaningError);
                     }
