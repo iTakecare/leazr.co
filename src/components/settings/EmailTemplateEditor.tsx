@@ -38,26 +38,38 @@ const EmailTemplateEditor: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const { settings } = useSiteSettings();
 
-  // Charger tous les templates disponibles
+  // Charger tous les templates disponibles pour cette entreprise
   const loadTemplates = async () => {
     try {
       setIsLoading(true);
+      console.log("🔍 Chargement des templates d'email...");
+      
       const { data, error } = await supabase
         .from('email_templates')
         .select('*')
+        .eq('active', true)  // Seulement les templates actifs
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Erreur lors du chargement des templates:", error);
+        throw error;
+      }
+      
+      console.log("✅ Templates chargés:", data?.length || 0, "templates trouvés");
+      console.log("📄 Templates:", data?.map(t => ({ id: t.id, type: t.type, name: t.name, company_id: t.company_id })));
       
       setTemplates(data || []);
       
       // Si des modèles sont disponibles, sélectionner le premier par défaut
       if (data && data.length > 0) {
+        console.log("🎯 Sélection du premier template:", data[0].type);
         setSelectedTemplateType(data[0].type);
         setCurrentTemplate(data[0]);
+      } else {
+        console.log("⚠️ Aucun template trouvé pour cette entreprise");
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des modèles:", error);
+      console.error("❌ Erreur lors du chargement des modèles:", error);
       toast.error("Impossible de charger les modèles d'email");
     } finally {
       setIsLoading(false);
@@ -157,6 +169,11 @@ const EmailTemplateEditor: React.FC = () => {
                   Il semble qu'aucun modèle d'email n'ait été configuré pour votre entreprise. 
                   Cliquez sur "Initialiser les modèles d'email" ci-dessus pour créer les modèles de base.
                 </p>
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Si vous voyez encore des templates d'autres entreprises, actualisez la page dans quelques secondes.
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
