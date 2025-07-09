@@ -34,6 +34,15 @@ interface Subscription {
   current_period_end?: string;
   stripe_subscription_id?: string;
   status: 'active' | 'trial' | 'expired' | 'cancelled';
+  prospect_data?: {
+    email: string;
+    status: string;
+    first_name: string;
+    last_name: string;
+    trial_ends_at: string;
+  };
+  account_status?: string;
+  trial_ends_at?: string;
 }
 
 const LeazrSubscriptionManagement = () => {
@@ -50,12 +59,14 @@ const LeazrSubscriptionManagement = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Requête pour récupérer les données company avec les prospects liés
+      const { data: companies, error: companiesError } = await supabase
         .from('companies')
         .select(`
           id,
           name,
           plan,
+          account_status,
           is_active,
           created_at,
           trial_ends_at,
@@ -64,22 +75,35 @@ const LeazrSubscriptionManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erreur lors du chargement des abonnements:', error);
+      if (companiesError) {
+        console.error('Erreur lors du chargement des entreprises:', companiesError);
         toast.error('Erreur lors du chargement des abonnements');
         return;
       }
 
-      const formattedSubscriptions = data?.map(company => ({
-        id: company.id,
-        company_name: company.name,
-        plan: company.plan,
-        is_active: company.is_active,
-        started_at: company.created_at,
-        current_period_end: company.subscription_ends_at,
-        stripe_subscription_id: company.stripe_subscription_id,
-        status: getSubscriptionStatus(company)
-      })) || [];
+      // Récupérer les prospects pour enrichir les données
+      const { data: prospects } = await supabase
+        .from('prospects')
+        .select('email, status, first_name, last_name, trial_ends_at');
+
+      const formattedSubscriptions = companies?.map(company => {
+        // Essayer de trouver le prospect correspondant (logique simplifiée)
+        const prospect = prospects?.find(p => p.email && company.name && p.email.includes(company.name.toLowerCase()));
+        
+        return {
+          id: company.id,
+          company_name: company.name,
+          plan: company.plan,
+          is_active: company.is_active,
+          started_at: company.created_at,
+          current_period_end: company.subscription_ends_at || company.trial_ends_at || prospect?.trial_ends_at,
+          stripe_subscription_id: company.stripe_subscription_id,
+          status: getSubscriptionStatus(company, prospect),
+          prospect_data: prospect,
+          account_status: company.account_status,
+          trial_ends_at: company.trial_ends_at
+        };
+      }) || [];
 
       setSubscriptions(formattedSubscriptions);
     } catch (error) {
@@ -90,13 +114,23 @@ const LeazrSubscriptionManagement = () => {
     }
   };
 
-  const getSubscriptionStatus = (company: any): 'active' | 'trial' | 'expired' | 'cancelled' => {
+  const getSubscriptionStatus = (company: any, prospect?: any): 'active' | 'trial' | 'expired' | 'cancelled' => {
     if (!company.is_active) return 'cancelled';
     
-    if (company.trial_ends_at && new Date(company.trial_ends_at) > new Date()) {
+    // Priorité aux données de trial
+    const trialEndDate = company.trial_ends_at || prospect?.trial_ends_at;
+    
+    // Si account_status est trial ET qu'il y a une date de fin d'essai
+    if (company.account_status === 'trial' && trialEndDate) {
+      return new Date(trialEndDate) > new Date() ? 'trial' : 'expired';
+    }
+    
+    // Si il y a une date de fin d'essai active
+    if (trialEndDate && new Date(trialEndDate) > new Date()) {
       return 'trial';
     }
     
+    // Vérifier l'expiration d'abonnement payant
     if (company.subscription_ends_at && new Date(company.subscription_ends_at) < new Date()) {
       return 'expired';
     }
@@ -119,7 +153,26 @@ const LeazrSubscriptionManagement = () => {
     }
   };
 
-  const getPlanBadge = (plan: string) => {
+  const getPlanBadge = (subscription: Subscription) => {
+    // Si c'est un essai, afficher "Essai gratuit" au lieu du plan
+    if (subscription.status === 'trial') {
+      const trialEndDate = subscription.trial_ends_at || subscription.current_period_end;
+      const daysRemaining = trialEndDate ? Math.max(0, Math.ceil((new Date(trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+      
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge className="bg-yellow-100 text-yellow-800">
+            Essai gratuit
+          </Badge>
+          {daysRemaining > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {daysRemaining} jour{daysRemaining > 1 ? 's' : ''} restant{daysRemaining > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      );
+    }
+
     const planColors = {
       starter: "bg-blue-100 text-blue-800",
       pro: "bg-purple-100 text-purple-800",
@@ -127,8 +180,8 @@ const LeazrSubscriptionManagement = () => {
     };
     
     return (
-      <Badge className={planColors[plan as keyof typeof planColors] || "bg-gray-100 text-gray-800"}>
-        {plan.charAt(0).toUpperCase() + plan.slice(1)}
+      <Badge className={planColors[subscription.plan as keyof typeof planColors] || "bg-gray-100 text-gray-800"}>
+        {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}
       </Badge>
     );
   };
@@ -278,7 +331,7 @@ const LeazrSubscriptionManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getPlanBadge(subscription.plan)}
+                    {getPlanBadge(subscription)}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(subscription.status)}
