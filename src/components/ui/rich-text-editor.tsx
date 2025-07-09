@@ -1,6 +1,7 @@
 
-import React, { useRef } from "react";
-import { Editor } from "@tinymce/tinymce-react";
+import React, { useMemo } from "react";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { cn } from "@/lib/utils";
 
 interface RichTextEditorProps {
@@ -20,63 +21,112 @@ const RichTextEditor = ({
   height = 300,
   isEmailEditor = false
 }: RichTextEditorProps) => {
-  const editorRef = useRef<any>(null);
   
-  // Configuration spécifique pour l'éditeur d'emails
-  const emailPlugins = [
-    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-    'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
-  ];
-  
-  const emailToolbar = 'undo redo | blocks | ' +
-    'bold italic forecolor | alignleft aligncenter ' +
-    'alignright alignjustify | bullist numlist outdent indent | ' +
-    'removeformat | link | table | insertButton | help';
-
-  const standardToolbar = 'undo redo | blocks | ' +
-    'bold italic forecolor | alignleft aligncenter ' +
-    'alignright alignjustify | bullist numlist outdent indent | ' +
-    'removeformat | help';
-
-  // Fonction pour insérer un bouton dans l'éditeur
-  const setupEmailEditor = (editor: any) => {
-    editor.ui.registry.addButton('insertButton', {
-      text: 'Insérer un bouton',
-      tooltip: 'Insérer un bouton de création de compte',
-      onAction: function () {
-        editor.insertContent(
-          `<div style="text-align: center; margin: 20px 0;">
-            <a href="{{account_creation_link}}" style="display: inline-block; background-color: #4F46E5; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">Créer mon compte</a>
-          </div>`
-        );
+  // Configuration des modules Quill
+  const modules = useMemo(() => {
+    const baseModules = {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['link'],
+        ['clean']
+      ],
+      clipboard: {
+        matchVisual: false
       }
-    });
-  };
-  
+    };
+
+    if (isEmailEditor) {
+      // Configuration étendue pour les emails
+      baseModules.toolbar = [
+        ['bold', 'italic', 'underline'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['link'],
+        ['insertButton'],
+        ['clean']
+      ];
+    }
+
+    return baseModules;
+  }, [isEmailEditor]);
+
+  // Formats autorisés
+  const formats = [
+    'bold', 'italic', 'underline',
+    'color', 'background',
+    'align',
+    'list', 'bullet',
+    'link'
+  ];
+
+  // Styles personnalisés pour Quill
+  const editorStyle = useMemo(() => ({
+    height: `${height - 42}px`, // Soustraire la hauteur de la toolbar
+    fontFamily: 'Helvetica, Arial, sans-serif',
+    fontSize: '14px'
+  }), [height]);
+
   return (
-    <div className={cn("rounded-md border border-input", className)}>
-      <Editor
-        apiKey="7brhs4b679mgzy88ps7dwcxqjqlsqmi34i8yqnl1p9u800hy"
-        onInit={(evt, editor) => editorRef.current = editor}
+    <div className={cn("rounded-md border border-input bg-background", className)}>
+      <ReactQuill
+        theme="snow"
         value={value}
-        onEditorChange={(newValue) => onChange(newValue)}
-        init={{
-          height,
-          menubar: isEmailEditor,
-          plugins: emailPlugins,
-          toolbar: isEmailEditor ? emailToolbar : standardToolbar,
-          content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-          placeholder,
-          branding: false,
-          promotion: false,
-          language: 'fr_FR',
-          skin: 'oxide',
-          resize: false,
-          statusbar: false,
-          setup: isEmailEditor ? setupEmailEditor : undefined
+        onChange={onChange}
+        placeholder={placeholder}
+        modules={modules}
+        formats={formats}
+        style={{
+          height: `${height}px`
         }}
+        className="quill-editor"
       />
+      
+      <style>
+        {`
+        .quill-editor .ql-editor {
+          min-height: ${height - 42}px !important;
+          font-family: Helvetica, Arial, sans-serif;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        
+        .quill-editor .ql-toolbar {
+          border-top: none;
+          border-left: none;
+          border-right: none;
+          border-bottom: 1px solid hsl(var(--border));
+          background: hsl(var(--background));
+        }
+        
+        .quill-editor .ql-container {
+          border: none;
+          font-family: inherit;
+        }
+        
+        .quill-editor .ql-editor.ql-blank::before {
+          color: hsl(var(--muted-foreground));
+          font-style: normal;
+        }
+        
+        .quill-editor .ql-snow .ql-tooltip {
+          background: hsl(var(--popover));
+          border: 1px solid hsl(var(--border));
+          color: hsl(var(--foreground));
+        }
+        
+        .quill-editor .ql-snow .ql-stroke {
+          stroke: hsl(var(--foreground));
+        }
+        
+        .quill-editor .ql-snow .ql-fill {
+          fill: hsl(var(--foreground));
+        }
+        `}
+      </style>
     </div>
   );
 };
