@@ -128,20 +128,20 @@ const MultiTenantUserManager = () => {
       // Récupérer les données prospects pour avoir les vraies dates d'essai
       const { data: prospectsData } = await supabase
         .from('prospects')
-        .select('email, trial_ends_at, company_name')
+        .select('email, trial_ends_at, company')
         .in('status', ['active', 'converted']);
 
       // Créer un map des prospects par nom d'entreprise pour récupérer les vraies dates d'essai
       const prospectsMap = new Map();
-      if (prospectsData && user?.email) {
-        console.log("🔍 DEBUG - User email:", user.email);
+      if (prospectsData) {
+        console.log("🔍 DEBUG - User email:", user?.email);
         console.log("🔍 DEBUG - Prospects data:", prospectsData);
         
         prospectsData.forEach(prospect => {
-          console.log("🔍 DEBUG - Checking prospect:", prospect.email, "vs user:", user.email, "company:", prospect.company_name);
-          if (prospect.email === user.email && prospect.company_name) {
-            console.log("✅ DEBUG - Match found for company:", prospect.company_name, "trial_ends_at:", prospect.trial_ends_at);
-            prospectsMap.set(prospect.company_name, prospect);
+          console.log("🔍 DEBUG - Adding prospect to map:", prospect.company, "trial_ends_at:", prospect.trial_ends_at);
+          // Utiliser le nom de l'entreprise du prospect comme clé, pas l'email
+          if (prospect.company) {
+            prospectsMap.set(prospect.company, prospect);
           }
         });
       }
