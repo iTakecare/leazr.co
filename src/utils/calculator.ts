@@ -82,7 +82,7 @@ export const getCoefficientRate = async (amount: number): Promise<number> => {
     const leasers = await getLeasers();
     
     if (leasers && leasers.length > 0) {
-      // Prenons le premier leaser (généralement Grenke)
+      // Prenons le premier leaser disponible
       const leaser = leasers[0];
       
       // Mettre à jour le cache

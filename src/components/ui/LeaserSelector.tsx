@@ -40,7 +40,7 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
       setLeasers(fetchedLeasers);
       
       if (fetchedLeasers.length === 0) {
-        toast.error("Aucun prestataire de leasing trouvé");
+        toast.info("Aucun bailleur configuré. Veuillez en ajouter un dans les paramètres.");
       }
     } catch (error) {
       console.error("LeaserSelector: Error fetching leasers:", error);
@@ -132,11 +132,19 @@ const LeaserSelector: React.FC<LeaserSelectorProps> = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? 
-                `Aucun leaser trouvé pour "${searchTerm}".` : 
-                "Aucun leaser disponible."
-              }
+            <div className="text-center py-8 space-y-3">
+              <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50" />
+              <div className="text-muted-foreground">
+                {searchTerm ? 
+                  `Aucun leaser trouvé pour "${searchTerm}".` : 
+                  "Aucun bailleur configuré."
+                }
+              </div>
+              {!searchTerm && (
+                <p className="text-sm text-muted-foreground">
+                  Veuillez configurer un bailleur dans les paramètres avant de créer une offre.
+                </p>
+              )}
             </div>
           )}
         </div>

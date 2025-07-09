@@ -161,9 +161,15 @@ export const updateOfferStatus = async (
           user_id: offerData.user_id
         });
         
-        // Utiliser un bailleur par défaut (pourrait être amélioré pour permettre le choix)
-        const leaserName = "Grenke";
-        const leaserLogo = "https://logo.clearbit.com/grenke.com";
+        // Récupérer le premier leaser disponible de l'entreprise
+        const { data: availableLeasers } = await supabase
+          .from('leasers')
+          .select('name, logo_url')
+          .eq('company_id', offerData.company_id)
+          .limit(1);
+        
+        const leaserName = availableLeasers?.[0]?.name || "Leaser par défaut";
+        const leaserLogo = availableLeasers?.[0]?.logo_url || null;
         
         console.log("🏢 ÉTAPE 2: Création du contrat avec le bailleur:", leaserName);
         

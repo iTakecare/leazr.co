@@ -271,7 +271,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
               name="name" 
               defaultValue={currentLeaser?.name || ""}
               required
-              placeholder="ex: 1. Grenke Lease SRL"
+              placeholder="ex: Mon Bailleur SRL"
             />
           </div>
           
@@ -281,7 +281,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
               id="company_name" 
               name="company_name" 
               defaultValue={currentLeaser?.company_name || ""}
-              placeholder="ex: Grenke"
+              placeholder="ex: Mon Bailleur"
             />
             <p className="text-xs text-muted-foreground">
               Nom utilisé pour la correspondance avec les contrats
