@@ -368,7 +368,7 @@ const MultiTenantUserManager = () => {
       const currentDate = new Date();
       const timeDiff = trialEndDate.getTime() - currentDate.getTime();
       const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
-      const daysRemaining = Math.max(0, Math.ceil(daysDiff));
+      const daysRemaining = Math.max(0, Math.floor(daysDiff));
       
       console.log("🔍 DEBUG - Trial end date:", trialEndDate.toISOString());
       console.log("🔍 DEBUG - Current date:", currentDate.toISOString());
