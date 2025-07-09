@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserCompanyId } from '@/services/multiTenantService';
+import { checkDataIsolation } from '@/utils/crmCacheUtils';
 
 export interface CommissionRate {
   id: string;
@@ -37,6 +39,25 @@ export const getCommissionLevels = async (type: 'partner' | 'ambassador' = 'part
       throw error;
     }
     
+    if (!data || data.length === 0) {
+      console.log('No commission levels found in database for this company');
+      return [];
+    }
+    
+    // Vérifier l'isolation par entreprise
+    try {
+      const userCompanyId = await getCurrentUserCompanyId();
+      const dataWithCompanyId = data.map(level => ({ ...level, company_id: level.company_id }));
+      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'commission_levels');
+      
+      if (!isIsolationValid) {
+        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+        return [];
+      }
+    } catch (error) {
+      console.error('Error checking company isolation for commission levels:', error);
+    }
+    
     console.log(`[getCommissionLevels] Found ${data?.length || 0} commission levels`);
     return data || [];
   } catch (error) {
@@ -62,60 +83,26 @@ export const getCommissionRates = async (levelId: string): Promise<CommissionRat
       throw error;
     }
     
-    console.log(`[getCommissionRates] Found ${data?.length || 0} rates for level ${levelId}`);
-    
-    // Si aucun taux n'est trouvé, utiliser des taux par défaut
     if (!data || data.length === 0) {
-      console.log("[getCommissionRates] No rates found, using default static rates");
-      return [
-        {
-          id: 'default-1',
-          commission_level_id: levelId,
-          min_amount: 500,
-          max_amount: 2500,
-          rate: 10,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'default-2',
-          commission_level_id: levelId,
-          min_amount: 2500.01,
-          max_amount: 5000,
-          rate: 13,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'default-3',
-          commission_level_id: levelId,
-          min_amount: 5000.01,
-          max_amount: 12500,
-          rate: 18,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'default-4',
-          commission_level_id: levelId,
-          min_amount: 12500.01,
-          max_amount: 25000,
-          rate: 21,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'default-5',
-          commission_level_id: levelId,
-          min_amount: 25000.01,
-          max_amount: 50000,
-          rate: 25,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
+      console.log('No commission rates found in database for this company');
+      return [];
     }
     
+    // Vérifier l'isolation par entreprise
+    try {
+      const userCompanyId = await getCurrentUserCompanyId();
+      const dataWithCompanyId = data.map(rate => ({ ...rate, company_id: rate.company_id }));
+      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'commission_rates');
+      
+      if (!isIsolationValid) {
+        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+        return [];
+      }
+    } catch (error) {
+      console.error('Error checking company isolation for commission rates:', error);
+    }
+    
+    console.log(`[getCommissionRates] Found ${data?.length || 0} rates for level ${levelId}`);
     return data;
   } catch (error) {
     console.error("[getCommissionRates] Error:", error);
@@ -171,18 +158,22 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
   try {
     const { name, type, is_default = false } = levelData;
     
+    // Obtenir l'ID de l'entreprise actuelle
+    const company_id = await getCurrentUserCompanyId();
+    
     if (is_default) {
       // Si le nouveau niveau est défini comme par défaut, mettre à jour tous les autres niveaux pour les définir comme non par défaut
       await supabase
         .from('commission_levels')
         .update({ is_default: false })
-        .eq('type', type);
+        .eq('type', type)
+        .eq('company_id', company_id);
     }
     
     const { data, error } = await supabase
       .from('commission_levels')
       .insert([
-        { name, type, is_default }
+        { name, type, is_default, company_id }
       ])
       .select();
     
@@ -425,6 +416,9 @@ export const createCommissionRate = async (rateData: Omit<CommissionRate, "id" |
   try {
     const { commission_level_id, min_amount, max_amount, rate, updated_at } = rateData;
     
+    // Obtenir l'ID de l'entreprise actuelle
+    const company_id = await getCurrentUserCompanyId();
+    
     const { data, error } = await supabase
       .from('commission_rates')
       .insert([{ 
@@ -432,7 +426,8 @@ export const createCommissionRate = async (rateData: Omit<CommissionRate, "id" |
         min_amount, 
         max_amount, 
         rate,
-        updated_at
+        updated_at,
+        company_id
       }])
       .select();
     

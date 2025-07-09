@@ -7,7 +7,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit, Check, X, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,7 @@ import {
 import CommissionLevelForm from "./CommissionLevelForm";
 import CommissionRateForm from "./CommissionRateForm";
 import { supabase } from "@/integrations/supabase/client";
+import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 
 const CommissionManager = () => {
   const [activeTab, setActiveTab] = useState<"partner" | "ambassador">("partner");
@@ -83,6 +84,10 @@ const CommissionManager = () => {
       setPartnerLevels(partnerLevelsData);
       setAmbassadorLevels(ambassadorLevelsData);
       
+      if (partnerLevelsData.length === 0 && ambassadorLevelsData.length === 0) {
+        toast.info("Aucune donnée de commission trouvée pour cette entreprise");
+      }
+      
       if (!selectedLevel) {
         const currentTabLevels = activeTab === 'partner' ? partnerLevelsData : ambassadorLevelsData;
         if (currentTabLevels.length > 0) {
@@ -95,6 +100,11 @@ const CommissionManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForceRefreshCache = () => {
+    console.log("🔄 Forçage du rafraîchissement du cache pour l'isolation des commissions");
+    forceRefreshCRMCache();
   };
 
   const loadRates = async (levelId: string) => {
@@ -284,13 +294,102 @@ const CommissionManager = () => {
           <TabsContent key={tabValue} value={tabValue} className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Barèmes de commissionnement</h2>
-              <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
-                <DialogTrigger asChild>
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Ajouter un niveau</span>
-                  </Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleForceRefreshCache}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Actualiser
+                </Button>
+                <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      <span>Ajouter un niveau</span>
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+              <div className="flex items-center justify-between mb-4">
+                <TabsList className="grid w-[280px] grid-cols-2">
+                  <TabsTrigger value="partner">Partenaires</TabsTrigger>
+                  <TabsTrigger value="ambassador">Ambassadeurs</TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div>
+                  <h3 className="text-md font-medium mb-3">Niveaux de commission</h3>
+                  <div className="space-y-2">
+                    {getCurrentLevels().map((level) => (
+                      <div
+                        key={level.id}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          selectedLevel?.id === level.id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                        }`}
+                        onClick={() => setSelectedLevel(level)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{level.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Type: {level.type === 'partner' ? 'Partenaire' : 'Ambassadeur'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {level.is_default && (
+                              <Badge variant="secondary">Par défaut</Badge>
+                            )}
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditLevel(level);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLevel(level);
+                                  setDeleteLevelDialog(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-md font-medium">
+                      Tranches de commission {selectedLevel ? `- ${selectedLevel.name}` : ''}
+                    </h3>
+                    {selectedLevel && (
+                      <Dialog open={isAddRateOpen} onOpenChange={setIsAddRateOpen}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Ajouter
+                          </Button>
+                        </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Ajouter un niveau de commission</DialogTitle>

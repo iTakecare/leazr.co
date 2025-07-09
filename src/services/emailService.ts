@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getSiteSettings } from "./settingsService";
+import { getCurrentUserCompanyId } from '@/services/multiTenantService';
+import { checkDataIsolation } from '@/utils/crmCacheUtils';
 
 interface EmailTemplate {
   subject: string;
@@ -59,11 +61,74 @@ export const getEmailTemplate = async (
       return null;
     }
     
+    if (!data) {
+      console.log('No email template found for this company');
+      return null;
+    }
+    
+    // Vérifier l'isolation par entreprise
+    try {
+      const userCompanyId = await getCurrentUserCompanyId();
+      const dataWithCompanyId = [{ ...data, company_id: data.company_id }];
+      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'email_templates');
+      
+      if (!isIsolationValid) {
+        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+        return null;
+      }
+    } catch (error) {
+      console.error('Error checking company isolation for email template:', error);
+    }
+    
     console.log(`Modèle d'email récupéré avec succès:`, data);
     return data;
   } catch (error) {
     console.error("Exception lors de la récupération du modèle d'email:", error);
     return null;
+  }
+};
+
+/**
+ * Récupère tous les templates email pour la gestion
+ */
+export const getAllEmailTemplates = async (): Promise<EmailTemplateData[]> => {
+  try {
+    console.log('Fetching all email templates for company');
+    
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .order('type', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching email templates:", error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No email templates found for this company');
+      return [];
+    }
+    
+    // Vérifier l'isolation par entreprise
+    try {
+      const userCompanyId = await getCurrentUserCompanyId();
+      const dataWithCompanyId = data.map(template => ({ ...template, company_id: template.company_id }));
+      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'email_templates');
+      
+      if (!isIsolationValid) {
+        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+        return [];
+      }
+    } catch (error) {
+      console.error('Error checking company isolation for email templates:', error);
+    }
+    
+    console.log(`Found ${data.length} email templates`);
+    return data;
+  } catch (error) {
+    console.error("Exception while fetching email templates:", error);
+    return [];
   }
 };
 
