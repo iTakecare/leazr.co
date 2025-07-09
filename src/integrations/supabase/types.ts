@@ -627,22 +627,15 @@ export type Database = {
           city: string | null
           company: string | null
           company_id: string
-          contact_name: string | null
           country: string | null
           created_at: string
           email: string | null
-          has_different_shipping_address: boolean | null
           has_user_account: boolean | null
           id: string
-          is_ambassador_client: boolean | null
           name: string
           notes: string | null
           phone: string | null
           postal_code: string | null
-          shipping_address: string | null
-          shipping_city: string | null
-          shipping_country: string | null
-          shipping_postal_code: string | null
           status: string | null
           updated_at: string
           user_account_created_at: string | null
@@ -654,22 +647,15 @@ export type Database = {
           city?: string | null
           company?: string | null
           company_id: string
-          contact_name?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
-          has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
-          is_ambassador_client?: boolean | null
           name: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
-          shipping_address?: string | null
-          shipping_city?: string | null
-          shipping_country?: string | null
-          shipping_postal_code?: string | null
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
@@ -681,22 +667,15 @@ export type Database = {
           city?: string | null
           company?: string | null
           company_id?: string
-          contact_name?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
-          has_different_shipping_address?: boolean | null
           has_user_account?: boolean | null
           id?: string
-          is_ambassador_client?: boolean | null
           name?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
-          shipping_address?: string | null
-          shipping_city?: string | null
-          shipping_country?: string | null
-          shipping_postal_code?: string | null
           status?: string | null
           updated_at?: string
           user_account_created_at?: string | null
@@ -3370,17 +3349,28 @@ export type Database = {
         Row: {
           activated_at: string | null
           activation_token: string | null
-          company_name: string
+          address: string | null
+          city: string | null
+          company: string
+          contact_name: string | null
           converted_at: string | null
+          country: string | null
           created_at: string
           email: string
           first_name: string
+          has_different_shipping_address: boolean | null
           id: string
+          is_ambassador_client: boolean | null
           last_name: string
           notes: string | null
           phone: string | null
           plan: string
+          postal_code: string | null
           selected_modules: string[] | null
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
           source: string | null
           status: string
           trial_ends_at: string
@@ -3389,21 +3379,33 @@ export type Database = {
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
+          vat_number: string | null
         }
         Insert: {
           activated_at?: string | null
           activation_token?: string | null
-          company_name: string
+          address?: string | null
+          city?: string | null
+          company: string
+          contact_name?: string | null
           converted_at?: string | null
+          country?: string | null
           created_at?: string
           email: string
           first_name: string
+          has_different_shipping_address?: boolean | null
           id?: string
+          is_ambassador_client?: boolean | null
           last_name: string
           notes?: string | null
           phone?: string | null
           plan?: string
+          postal_code?: string | null
           selected_modules?: string[] | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           source?: string | null
           status?: string
           trial_ends_at?: string
@@ -3412,21 +3414,33 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          vat_number?: string | null
         }
         Update: {
           activated_at?: string | null
           activation_token?: string | null
-          company_name?: string
+          address?: string | null
+          city?: string | null
+          company?: string
+          contact_name?: string | null
           converted_at?: string | null
+          country?: string | null
           created_at?: string
           email?: string
           first_name?: string
+          has_different_shipping_address?: boolean | null
           id?: string
+          is_ambassador_client?: boolean | null
           last_name?: string
           notes?: string | null
           phone?: string | null
           plan?: string
+          postal_code?: string | null
           selected_modules?: string[] | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           source?: string | null
           status?: string
           trial_ends_at?: string
@@ -3435,6 +3449,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          vat_number?: string | null
         }
         Relationships: []
       }
