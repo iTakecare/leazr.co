@@ -49,12 +49,7 @@ const LeaserManager = () => {
     try {
       const fetchedLeasers = await getLeasers();
       setLeasers(fetchedLeasers);
-      
-      if (fetchedLeasers.length === 0) {
-        setError('Aucun leaser trouvé dans la base de données.');
-      } else {
-        toast.success(`${fetchedLeasers.length} leasers chargés avec succès`);
-      }
+      toast.success(`${fetchedLeasers.length} leasers chargés avec succès`);
     } catch (error: any) {
       console.error('LeaserManager: Error loading leasers:', error);
       setError(`Erreur lors du chargement des leasers: ${error.message}`);
