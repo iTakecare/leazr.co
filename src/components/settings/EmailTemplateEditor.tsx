@@ -44,10 +44,31 @@ const EmailTemplateEditor: React.FC = () => {
       setIsLoading(true);
       console.log("🔍 Chargement des templates d'email...");
       
+      // Récupérer d'abord le company_id de l'utilisateur
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Utilisateur non authentifié");
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .rpc('get_current_user_profile');
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      const companyId = profileData && profileData.length > 0 ? profileData[0].company_id : null;
+      if (!companyId) {
+        throw new Error("Aucune entreprise associée à cet utilisateur");
+      }
+
+      console.log("🏢 Company ID utilisateur:", companyId);
+      
       const { data, error } = await supabase
         .from('email_templates')
         .select('*')
         .eq('active', true)  // Seulement les templates actifs
+        .eq('company_id', companyId)  // Seulement les templates de cette entreprise
         .order('name');
       
       if (error) {
