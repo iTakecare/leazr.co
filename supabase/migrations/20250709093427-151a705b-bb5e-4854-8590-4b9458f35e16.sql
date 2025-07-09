@@ -1,0 +1,252 @@
+-- =============================================
+-- ISOLATION COMPLÈTE DES DONNÉES ET GESTION DES ESSAIS GRATUITS
+-- =============================================
+
+-- 1. Créer une fonction pour vérifier le statut d'essai d'un utilisateur
+CREATE OR REPLACE FUNCTION public.get_user_trial_status()
+RETURNS TABLE(
+  is_trial boolean,
+  trial_ends_at timestamp with time zone,
+  days_remaining integer,
+  company_name text,
+  prospect_email text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path TO 'public'
+AS $$
+DECLARE
+  current_user_email text;
+  prospect_record record;
+BEGIN
+  -- Récupérer l'email de l'utilisateur actuel
+  SELECT email INTO current_user_email 
+  FROM auth.users 
+  WHERE id = auth.uid();
+  
+  -- Chercher dans la table prospects
+  SELECT * INTO prospect_record
+  FROM prospects 
+  WHERE email = current_user_email 
+    AND status = 'active' 
+    AND trial_ends_at > now();
+  
+  IF FOUND THEN
+    RETURN QUERY SELECT
+      true as is_trial,
+      prospect_record.trial_ends_at,
+      GREATEST(0, EXTRACT(days FROM (prospect_record.trial_ends_at - now()))::integer) as days_remaining,
+      prospect_record.company_name,
+      prospect_record.email;
+  ELSE
+    RETURN QUERY SELECT
+      false as is_trial,
+      null::timestamp with time zone as trial_ends_at,
+      0 as days_remaining,
+      null::text as company_name,
+      null::text as prospect_email;
+  END IF;
+END;
+$$;
+
+-- 2. Nettoyer et renforcer l'isolation des données pour les leasers
+DROP POLICY IF EXISTS "leasers_company_isolation" ON public.leasers;
+CREATE POLICY "leasers_strict_company_isolation" 
+ON public.leasers 
+FOR ALL 
+USING (
+  (get_user_company_id() IS NOT NULL) AND 
+  ((company_id = get_user_company_id()) OR is_admin_optimized())
+)
+WITH CHECK (
+  (get_user_company_id() IS NOT NULL) AND 
+  ((company_id = get_user_company_id()) OR is_admin_optimized())
+);
+
+-- 3. Nettoyer et renforcer l'isolation des données pour les PDF templates
+DROP POLICY IF EXISTS "pdf_templates_company_isolation" ON public.pdf_templates;
+CREATE POLICY "pdf_templates_strict_company_isolation" 
+ON public.pdf_templates 
+FOR ALL 
+USING (
+  (get_user_company_id() IS NOT NULL) AND 
+  ((company_id = get_user_company_id()) OR is_admin_optimized())
+)
+WITH CHECK (
+  (get_user_company_id() IS NOT NULL) AND 
+  ((company_id = get_user_company_id()) OR is_admin_optimized())
+);
+
+-- 4. Créer une fonction pour nettoyer les données d'iTakecare des autres entreprises
+CREATE OR REPLACE FUNCTION public.cleanup_company_data_isolation()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  current_company_id uuid;
+  itakecare_company_id uuid := 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0';
+BEGIN
+  -- Récupérer l'ID de l'entreprise de l'utilisateur actuel
+  current_company_id := get_user_company_id();
+  
+  -- Si l'utilisateur n'a pas d'entreprise, ne rien faire
+  IF current_company_id IS NULL THEN
+    RETURN false;
+  END IF;
+  
+  -- Si c'est iTakecare, ne rien nettoyer
+  IF current_company_id = itakecare_company_id THEN
+    RETURN true;
+  END IF;
+  
+  -- Supprimer les données d'iTakecare qui pourraient être visibles
+  -- Nettoyer les leasers
+  DELETE FROM public.leasers 
+  WHERE company_id = itakecare_company_id 
+    AND EXISTS (
+      SELECT 1 FROM public.leasers l2 
+      WHERE l2.company_id = current_company_id
+    );
+  
+  -- Nettoyer les PDF templates
+  DELETE FROM public.pdf_templates 
+  WHERE company_id = itakecare_company_id 
+    AND EXISTS (
+      SELECT 1 FROM public.pdf_templates pt2 
+      WHERE pt2.company_id = current_company_id
+    );
+  
+  -- Nettoyer les produits
+  DELETE FROM public.products 
+  WHERE company_id = itakecare_company_id 
+    AND EXISTS (
+      SELECT 1 FROM public.products p2 
+      WHERE p2.company_id = current_company_id
+    );
+  
+  RETURN true;
+END;
+$$;
+
+-- 5. Corriger l'isolation pour tous les composants du CRM
+-- Nettoyer les politiques existantes qui pourraient causer des boucles
+DROP POLICY IF EXISTS "crm_clients_access" ON public.clients;
+DROP POLICY IF EXISTS "crm_offers_access" ON public.offers;
+DROP POLICY IF EXISTS "crm_contracts_access" ON public.contracts;
+
+-- Recréer des politiques RLS optimisées pour le CRM sans récursion
+CREATE POLICY "crm_clients_strict_isolation" 
+ON public.clients 
+FOR ALL 
+USING (
+  (get_user_company_id() IS NOT NULL) AND 
+  (company_id = get_user_company_id() OR is_admin_optimized() OR user_id = auth.uid())
+);
+
+CREATE POLICY "crm_offers_strict_isolation" 
+ON public.offers 
+FOR ALL 
+USING (
+  (get_user_company_id() IS NOT NULL) AND 
+  (company_id = get_user_company_id() OR is_admin_optimized())
+);
+
+CREATE POLICY "crm_contracts_strict_isolation" 
+ON public.contracts 
+FOR ALL 
+USING (
+  (get_user_company_id() IS NOT NULL) AND 
+  (company_id = get_user_company_id() OR is_admin_optimized() OR 
+   client_id IN (SELECT id FROM clients WHERE user_id = auth.uid()))
+);
+
+-- 6. Améliorer la fonction de diagnostic pour détecter les problèmes d'isolation
+CREATE OR REPLACE FUNCTION public.diagnose_data_isolation()
+RETURNS TABLE(
+  table_name text,
+  user_company_data_count bigint,
+  other_company_data_count bigint,
+  isolation_status text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  current_company_id uuid;
+BEGIN
+  current_company_id := get_user_company_id();
+  
+  IF current_company_id IS NULL THEN
+    RETURN QUERY SELECT 
+      'error'::text, 
+      0::bigint, 
+      0::bigint, 
+      'No company ID found'::text;
+    RETURN;
+  END IF;
+  
+  -- Diagnostiquer les clients
+  RETURN QUERY
+  SELECT 
+    'clients'::text,
+    (SELECT COUNT(*) FROM clients WHERE company_id = current_company_id)::bigint,
+    (SELECT COUNT(*) FROM clients WHERE company_id != current_company_id)::bigint,
+    CASE 
+      WHEN (SELECT COUNT(*) FROM clients WHERE company_id != current_company_id) = 0 
+      THEN 'GOOD'::text 
+      ELSE 'LEAK'::text 
+    END;
+  
+  -- Diagnostiquer les offres
+  RETURN QUERY
+  SELECT 
+    'offers'::text,
+    (SELECT COUNT(*) FROM offers WHERE company_id = current_company_id)::bigint,
+    (SELECT COUNT(*) FROM offers WHERE company_id != current_company_id)::bigint,
+    CASE 
+      WHEN (SELECT COUNT(*) FROM offers WHERE company_id != current_company_id) = 0 
+      THEN 'GOOD'::text 
+      ELSE 'LEAK'::text 
+    END;
+  
+  -- Diagnostiquer les contrats
+  RETURN QUERY
+  SELECT 
+    'contracts'::text,
+    (SELECT COUNT(*) FROM contracts WHERE company_id = current_company_id)::bigint,
+    (SELECT COUNT(*) FROM contracts WHERE company_id != current_company_id)::bigint,
+    CASE 
+      WHEN (SELECT COUNT(*) FROM contracts WHERE company_id != current_company_id) = 0 
+      THEN 'GOOD'::text 
+      ELSE 'LEAK'::text 
+    END;
+  
+  -- Diagnostiquer les leasers
+  RETURN QUERY
+  SELECT 
+    'leasers'::text,
+    (SELECT COUNT(*) FROM leasers WHERE company_id = current_company_id)::bigint,
+    (SELECT COUNT(*) FROM leasers WHERE company_id != current_company_id)::bigint,
+    CASE 
+      WHEN (SELECT COUNT(*) FROM leasers WHERE company_id != current_company_id) = 0 
+      THEN 'GOOD'::text 
+      ELSE 'LEAK'::text 
+    END;
+  
+  -- Diagnostiquer les PDF templates
+  RETURN QUERY
+  SELECT 
+    'pdf_templates'::text,
+    (SELECT COUNT(*) FROM pdf_templates WHERE company_id = current_company_id)::bigint,
+    (SELECT COUNT(*) FROM pdf_templates WHERE company_id != current_company_id)::bigint,
+    CASE 
+      WHEN (SELECT COUNT(*) FROM pdf_templates WHERE company_id != current_company_id) = 0 
+      THEN 'GOOD'::text 
+      ELSE 'LEAK'::text 
+    END;
+END;
+$$;
