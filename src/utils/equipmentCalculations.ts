@@ -18,18 +18,27 @@ export const calculateFinancedAmountForEquipment = (equipment: Equipment): numbe
   return equipment.purchasePrice * equipment.quantity * (1 + equipment.margin / 100);
 };
 
+// Valeurs de fallback statiques pour éviter les erreurs
+const DEFAULT_FALLBACK_RANGES = [
+  { id: "fallback-1", min: 500, max: 2500, coefficient: 3.55 },
+  { id: "fallback-2", min: 2500.01, max: 5000, coefficient: 3.27 },
+  { id: "fallback-3", min: 5000.01, max: 12500, coefficient: 3.18 },
+  { id: "fallback-4", min: 12500.01, max: 25000, coefficient: 3.17 },
+  { id: "fallback-5", min: 25000.01, max: 50000, coefficient: 3.16 }
+];
+
 export const findCoefficientForAmount = (amount: number, leaser: Leaser | null): number => {
-  const currentLeaser = leaser || defaultLeasers[0];
+  const ranges = leaser?.ranges || DEFAULT_FALLBACK_RANGES;
   
-  if (!currentLeaser?.ranges || currentLeaser.ranges.length === 0) {
-    return defaultLeasers[0].ranges[0].coefficient;
+  if (!ranges || ranges.length === 0) {
+    return 3.55; // Coefficient par défaut
   }
   
-  const range = currentLeaser.ranges.find((r: LeaserRange) => 
+  const range = ranges.find((r: LeaserRange) => 
     amount >= r.min && amount <= r.max
   );
   
-  return range?.coefficient || currentLeaser.ranges[0].coefficient;
+  return range?.coefficient || ranges[0].coefficient;
 };
 
 export const calculateEquipmentResults = (

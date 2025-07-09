@@ -9,7 +9,7 @@ import {
 } from '@/utils/equipmentCalculations';
 
 export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) => {
-  const leaser = selectedLeaser || defaultLeasers[0];
+  const leaser = selectedLeaser;
   
   // États pour l'équipement en cours de création/édition
   const [equipment, setEquipment] = useState<Equipment>({
@@ -71,7 +71,16 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
       return;
     }
     
-    const ranges = leaser?.ranges || defaultLeasers[0].ranges;
+    // Valeurs de fallback statiques
+    const DEFAULT_RANGES = [
+      { id: "fallback-1", min: 500, max: 2500, coefficient: 3.55 },
+      { id: "fallback-2", min: 2500.01, max: 5000, coefficient: 3.27 },
+      { id: "fallback-3", min: 5000.01, max: 12500, coefficient: 3.18 },
+      { id: "fallback-4", min: 12500.01, max: 25000, coefficient: 3.17 },
+      { id: "fallback-5", min: 25000.01, max: 50000, coefficient: 3.16 }
+    ];
+    
+    const ranges = leaser?.ranges || DEFAULT_RANGES;
     
     let coef = ranges[0].coefficient;
     for (const range of ranges) {
