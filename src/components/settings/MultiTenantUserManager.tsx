@@ -134,23 +134,37 @@ const MultiTenantUserManager = () => {
       // Créer un map des prospects par nom d'entreprise pour récupérer les vraies dates d'essai
       const prospectsMap = new Map();
       if (prospectsData && user?.email) {
+        console.log("🔍 DEBUG - User email:", user.email);
+        console.log("🔍 DEBUG - Prospects data:", prospectsData);
+        
         prospectsData.forEach(prospect => {
+          console.log("🔍 DEBUG - Checking prospect:", prospect.email, "vs user:", user.email, "company:", prospect.company_name);
           if (prospect.email === user.email && prospect.company_name) {
+            console.log("✅ DEBUG - Match found for company:", prospect.company_name, "trial_ends_at:", prospect.trial_ends_at);
             prospectsMap.set(prospect.company_name, prospect);
           }
         });
       }
 
+      console.log("🔍 DEBUG - Prospects map:", prospectsMap);
+
       // Enrichir les données company avec les dates d'essai des prospects
       const enrichedCompanies = (companiesData || []).map(company => {
         const prospect = prospectsMap.get(company.name);
+        console.log("🔍 DEBUG - Company:", company.name, "original trial_ends_at:", company.trial_ends_at);
+        console.log("🔍 DEBUG - Prospect found:", !!prospect, "prospect trial_ends_at:", prospect?.trial_ends_at);
+        
+        const finalTrialDate = prospect?.trial_ends_at || company.trial_ends_at;
+        console.log("🔍 DEBUG - Final trial date used:", finalTrialDate);
+        
         return {
           ...company,
           // Utiliser la date d'essai du prospect si disponible, sinon celle de l'entreprise
-          trial_ends_at: prospect?.trial_ends_at || company.trial_ends_at
+          trial_ends_at: finalTrialDate
         };
       });
 
+      console.log("🔍 DEBUG - Enriched companies:", enrichedCompanies);
       setCompanies(enrichedCompanies);
     } catch (error) {
       console.error("Error fetching companies:", error);
@@ -346,10 +360,22 @@ const MultiTenantUserManager = () => {
   };
 
   const getCompanyDisplayText = (company: Company) => {
+    console.log("🔍 DEBUG getCompanyDisplayText - Company:", company.name, "account_status:", company.account_status, "trial_ends_at:", company.trial_ends_at);
+    
     // Si l'entreprise est en période d'essai
     if (company.account_status === 'trial' && company.trial_ends_at) {
       const trialEndDate = new Date(company.trial_ends_at);
-      const daysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+      const currentDate = new Date();
+      const timeDiff = trialEndDate.getTime() - currentDate.getTime();
+      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+      const daysRemaining = Math.max(0, Math.ceil(daysDiff));
+      
+      console.log("🔍 DEBUG - Trial end date:", trialEndDate.toISOString());
+      console.log("🔍 DEBUG - Current date:", currentDate.toISOString());
+      console.log("🔍 DEBUG - Time diff (ms):", timeDiff);
+      console.log("🔍 DEBUG - Days diff (exact):", daysDiff);
+      console.log("🔍 DEBUG - Days remaining (ceil):", daysRemaining);
+      console.log("🔍 DEBUG - Days remaining (floor):", Math.max(0, Math.floor(daysDiff)));
       
       if (daysRemaining > 0) {
         return `${company.name} (Essai - ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''})`;
