@@ -105,8 +105,11 @@ const MultiTenantUserManager = () => {
 
   const fetchCompanies = async () => {
     try {
+      // Récupérer l'email de l'utilisateur connecté pour faire le lien avec les prospects
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Récupérer seulement l'entreprise de l'utilisateur connecté
-      const { data, error } = await supabase
+      const { data: companiesData, error } = await supabase
         .from('companies')
         .select(`
           id, 
@@ -121,7 +124,34 @@ const MultiTenantUserManager = () => {
         .order('name');
       
       if (error) throw error;
-      setCompanies(data || []);
+
+      // Récupérer les données prospects pour avoir les vraies dates d'essai
+      const { data: prospectsData } = await supabase
+        .from('prospects')
+        .select('email, trial_ends_at, company_name')
+        .in('status', ['active', 'converted']);
+
+      // Créer un map des prospects par nom d'entreprise pour récupérer les vraies dates d'essai
+      const prospectsMap = new Map();
+      if (prospectsData && user?.email) {
+        prospectsData.forEach(prospect => {
+          if (prospect.email === user.email && prospect.company_name) {
+            prospectsMap.set(prospect.company_name, prospect);
+          }
+        });
+      }
+
+      // Enrichir les données company avec les dates d'essai des prospects
+      const enrichedCompanies = (companiesData || []).map(company => {
+        const prospect = prospectsMap.get(company.name);
+        return {
+          ...company,
+          // Utiliser la date d'essai du prospect si disponible, sinon celle de l'entreprise
+          trial_ends_at: prospect?.trial_ends_at || company.trial_ends_at
+        };
+      });
+
+      setCompanies(enrichedCompanies);
     } catch (error) {
       console.error("Error fetching companies:", error);
       toast.error("Erreur lors de la récupération des entreprises");
