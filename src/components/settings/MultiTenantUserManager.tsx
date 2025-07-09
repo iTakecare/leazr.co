@@ -42,6 +42,9 @@ type Company = {
   name: string;
   plan: string;
   is_active: boolean;
+  account_status?: string;
+  trial_ends_at?: string;
+  trial_starts_at?: string;
 };
 
 type PermissionProfile = {
@@ -102,9 +105,19 @@ const MultiTenantUserManager = () => {
 
   const fetchCompanies = async () => {
     try {
+      // Récupérer seulement l'entreprise de l'utilisateur connecté
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, plan, is_active')
+        .select(`
+          id, 
+          name, 
+          plan, 
+          is_active, 
+          account_status, 
+          trial_ends_at,
+          trial_starts_at
+        `)
+        .eq('id', companyId)
         .order('name');
       
       if (error) throw error;
@@ -302,6 +315,23 @@ const MultiTenantUserManager = () => {
     }
   };
 
+  const getCompanyDisplayText = (company: Company) => {
+    // Si l'entreprise est en période d'essai
+    if (company.account_status === 'trial' && company.trial_ends_at) {
+      const trialEndDate = new Date(company.trial_ends_at);
+      const daysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+      
+      if (daysRemaining > 0) {
+        return `${company.name} (Essai - ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''})`;
+      } else {
+        return `${company.name} (Essai expiré)`;
+      }
+    }
+    
+    // Sinon afficher le plan normal
+    return `${company.name} (${company.plan})`;
+  };
+
   if (!canManageUsers) {
     return (
       <div className="text-center py-8">
@@ -329,7 +359,7 @@ const MultiTenantUserManager = () => {
               <SelectContent>
                 {companies.map((company) => (
                   <SelectItem key={company.id} value={company.id}>
-                    {company.name} ({company.plan})
+                    {getCompanyDisplayText(company)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -495,7 +525,7 @@ const MultiTenantUserManager = () => {
                 <SelectContent>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
-                      {company.name} ({company.plan})
+                      {getCompanyDisplayText(company)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -582,7 +612,7 @@ const MultiTenantUserManager = () => {
                   <SelectItem value="keep_current">Garder l'entreprise actuelle</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
-                      {company.name} ({company.plan})
+                      {getCompanyDisplayText(company)}
                     </SelectItem>
                   ))}
                 </SelectContent>
