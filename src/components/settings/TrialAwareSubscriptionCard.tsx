@@ -34,18 +34,26 @@ const TrialAwareSubscriptionCard: React.FC = () => {
   const fetchTrialStatus = async () => {
     try {
       setTrialLoading(true);
+      console.log('Récupération du statut d\'essai...');
+      
       const { data, error } = await supabase.rpc('get_user_trial_status');
       
+      console.log('Réponse RPC get_user_trial_status:', { data, error });
+      
       if (error) {
-        console.error('Erreur lors de la récupération du statut d\'essai:', error);
+        console.error('Erreur RPC lors de la récupération du statut d\'essai:', error);
         return;
       }
 
       if (data && data.length > 0) {
+        console.log('Statut d\'essai trouvé:', data[0]);
         setTrialStatus(data[0]);
+      } else {
+        console.log('Aucun statut d\'essai trouvé dans la réponse');
+        setTrialStatus(null);
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération du statut d\'essai:', error);
+      console.error('Exception lors de la récupération du statut d\'essai:', error);
     } finally {
       setTrialLoading(false);
     }
@@ -104,6 +112,10 @@ const TrialAwareSubscriptionCard: React.FC = () => {
   };
 
   const getCurrentPlanBadge = () => {
+    console.log('getCurrentPlanBadge - trialStatus:', trialStatus);
+    console.log('getCurrentPlanBadge - subscription:', subscription);
+    
+    // Prioriser l'affichage des informations d'essai
     if (trialStatus?.is_trial) {
       return getTrialBadge();
     }
