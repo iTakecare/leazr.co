@@ -46,6 +46,20 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
       setLoading(true);
       console.log("🔍 Fetching ambassadors...");
       
+      // Diagnostiquer le problème d'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("🔐 Session diagnostic:", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        hasAccessToken: !!session?.access_token,
+        tokenLength: session?.access_token?.length
+      });
+      
+      // Test direct de auth.uid()
+      const { data: authTest, error: authError } = await supabase.rpc('get_current_user_profile');
+      console.log("🔐 Auth test result:", { authTest, authError });
+      
       // Requête simplifiée pour éviter les erreurs de JOIN
       const { data, error } = await supabase
         .from('ambassadors')
