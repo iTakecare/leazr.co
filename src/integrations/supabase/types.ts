@@ -3288,6 +3288,7 @@ export type Database = {
           company: string | null
           company_id: string | null
           created_at: string | null
+          email: string | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -3301,6 +3302,7 @@ export type Database = {
           company?: string | null
           company_id?: string | null
           created_at?: string | null
+          email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
@@ -3314,6 +3316,7 @@ export type Database = {
           company?: string | null
           company_id?: string | null
           created_at?: string | null
+          email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
