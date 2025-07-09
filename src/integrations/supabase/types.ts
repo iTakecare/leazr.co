@@ -769,6 +769,7 @@ export type Database = {
       }
       commission_levels: {
         Row: {
+          company_id: string
           created_at: string
           id: string
           is_default: boolean | null
@@ -777,6 +778,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id: string
           created_at?: string
           id?: string
           is_default?: boolean | null
@@ -785,6 +787,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           id?: string
           is_default?: boolean | null
@@ -792,11 +795,27 @@ export type Database = {
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "commission_levels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_levels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       commission_rates: {
         Row: {
           commission_level_id: string
+          company_id: string
           created_at: string
           id: string
           max_amount: number
@@ -806,6 +825,7 @@ export type Database = {
         }
         Insert: {
           commission_level_id: string
+          company_id: string
           created_at?: string
           id?: string
           max_amount: number
@@ -815,6 +835,7 @@ export type Database = {
         }
         Update: {
           commission_level_id?: string
+          company_id?: string
           created_at?: string
           id?: string
           max_amount?: number
@@ -823,6 +844,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "commission_rates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_rates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
           {
             foreignKeyName: "commission_rates_level_id_fkey"
             columns: ["commission_level_id"]
@@ -1453,6 +1488,7 @@ export type Database = {
       email_templates: {
         Row: {
           active: boolean
+          company_id: string
           created_at: string
           html_content: string
           id: number
@@ -1464,6 +1500,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id: string
           created_at?: string
           html_content: string
           id?: number
@@ -1475,6 +1512,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           created_at?: string
           html_content?: string
           id?: number
@@ -1484,7 +1522,22 @@ export type Database = {
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       equipment_assignments_history: {
         Row: {
