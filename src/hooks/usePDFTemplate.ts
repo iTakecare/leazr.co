@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { loadPDFModel, savePDFModel, DEFAULT_MODEL } from "@/utils/pdfModelUtils";
+import { loadPDFModel, savePDFModel, DEFAULT_MODEL_TEMPLATE, getCurrentCompanyId } from "@/utils/pdfModelUtils";
 import { PDFModel } from "@/utils/pdfModelUtils";
 
 export const usePDFTemplate = (templateId: string = 'default') => {
@@ -30,8 +30,17 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       
       if (!data) {
         console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
+        
+        // Récupérer le company_id pour créer un modèle par défaut approprié
+        const companyId = await getCurrentCompanyId();
+        if (!companyId) {
+          throw new Error("Impossible de récupérer l'ID de l'entreprise");
+        }
+        
         const defaultTemplate = {
-          ...DEFAULT_MODEL,
+          ...DEFAULT_MODEL_TEMPLATE,
+          id: `default-${companyId}`,
+          company_id: companyId,
           templateImages: [],
           fields: []
         };
@@ -60,14 +69,23 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       toast.error(`Erreur lors du chargement du modèle: ${errorMessage}`);
       
       // Fallback au modèle par défaut en cas d'erreur
-      const fallbackTemplate = {
-        ...DEFAULT_MODEL,
-        templateImages: [],
-        fields: []
-      };
-      setTemplate(fallbackTemplate);
-      setTemplateExists(false);
-      setTemplateName("Modèle par défaut (fallback)");
+      try {
+        const companyId = await getCurrentCompanyId();
+        const fallbackTemplate = {
+          ...DEFAULT_MODEL_TEMPLATE,
+          id: companyId ? `default-${companyId}` : 'default-fallback',
+          company_id: companyId || '',
+          templateImages: [],
+          fields: []
+        };
+        setTemplate(fallbackTemplate);
+        setTemplateExists(false);
+        setTemplateName("Modèle par défaut (fallback)");
+      } catch (fallbackError) {
+        console.error("Erreur lors de la création du fallback:", fallbackError);
+        setTemplate(null);
+        setTemplateName(undefined);
+      }
     } finally {
       setLoading(false);
     }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Loader2 } from "lucide-react";
-import { loadPDFModel, savePDFModel, DEFAULT_MODEL } from "@/utils/pdfModelUtils";
+import { loadPDFModel, savePDFModel, DEFAULT_MODEL_TEMPLATE, getCurrentCompanyId } from "@/utils/pdfModelUtils";
 import PDFModelCompanyInfo from "./PDFModelCompanyInfo";
 import PDFTemplateWithFields from "./PDFTemplateWithFields";
 import { AlertCircle } from "lucide-react";
@@ -42,8 +42,22 @@ const PDFModelManager = () => {
       console.error("Erreur lors du chargement du modèle:", err);
       setError(err.message || "Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
-      // En cas d'erreur, utiliser le modèle par défaut
-      setModel(DEFAULT_MODEL);
+      // En cas d'erreur, utiliser un modèle par défaut pour cette entreprise
+      try {
+        const companyId = await getCurrentCompanyId();
+        if (companyId) {
+          const defaultModel = {
+            ...DEFAULT_MODEL_TEMPLATE,
+            id: `default-${companyId}`,
+            company_id: companyId,
+            templateImages: [],
+            fields: []
+          };
+          setModel(defaultModel);
+        }
+      } catch (fallbackError) {
+        console.error("Erreur lors de la création du modèle de fallback:", fallbackError);
+      }
     } finally {
       setLoading(false);
     }

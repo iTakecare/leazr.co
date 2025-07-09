@@ -2868,6 +2868,7 @@ export type Database = {
       }
       pdf_models: {
         Row: {
+          company_id: string
           companyAddress: string
           companyContact: string
           companyName: string
@@ -2885,6 +2886,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id: string
           companyAddress: string
           companyContact: string
           companyName: string
@@ -2902,6 +2904,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string
           companyAddress?: string
           companyContact?: string
           companyName?: string
@@ -2918,7 +2921,22 @@ export type Database = {
           templateImages?: Json | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pdf_models_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdf_models_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_data_isolation_check"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       pdf_templates: {
         Row: {
