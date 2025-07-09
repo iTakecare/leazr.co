@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Leaser } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 import { toast } from 'sonner';
+import { getCurrentUserCompanyId } from '@/services/multiTenantService';
+import { checkDataIsolation } from '@/utils/crmCacheUtils';
 
 /**
  * Récupère la liste des leasers depuis la base de données
@@ -40,8 +42,22 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     }
     
     if (!data || data.length === 0) {
-      console.log('No leasers found in database');
+      console.log('No leasers found in database for this company');
       return [];
+    }
+    
+    // Vérifier l'isolation par entreprise
+    try {
+      const userCompanyId = await getCurrentUserCompanyId();
+      const dataWithCompanyId = data.map(leaser => ({ ...leaser, company_id: leaser.company_id }));
+      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'leasers');
+      
+      if (!isIsolationValid) {
+        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
+        return [];
+      }
+    } catch (error) {
+      console.error('Error checking company isolation for leasers:', error);
     }
     
     // Transformer les données de la base de données au format attendu par l'application

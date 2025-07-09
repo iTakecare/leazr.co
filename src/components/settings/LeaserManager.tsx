@@ -25,6 +25,7 @@ import {
 import { Leaser } from "@/types/equipment";
 import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
 import { toast } from "sonner";
+import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import LeaserList from "./LeaserList";
 import LeaserForm from "./LeaserForm";
 
@@ -73,6 +74,11 @@ const LeaserManager = () => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleForceRefreshCache = () => {
+    console.log("🔄 Forçage du rafraîchissement du cache pour l'isolation des leasers");
+    forceRefreshCRMCache();
   };
   
   const handleOpenSheet = (leaser?: Leaser) => {
@@ -172,6 +178,13 @@ const LeaserManager = () => {
                     onClick={refreshLeasers}
                   >
                     Réessayer
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleForceRefreshCache}
+                  >
+                    Forcer le cache
                   </Button>
                 </div>
               </AlertDescription>
