@@ -3760,6 +3760,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      complete_data_isolation_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      complete_isolation_diagnostic: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          user_company_data_count: number
+          itakecare_data_count: number
+          other_company_data_count: number
+          isolation_status: string
+        }[]
+      }
       count_ambassador_clients_secure: {
         Args: { p_user_id: string }
         Returns: number
@@ -3816,6 +3830,10 @@ export type Database = {
           p_reason?: string
         }
         Returns: string
+      }
+      create_default_leasers_for_company: {
+        Args: { p_company_id: string }
+        Returns: boolean
       }
       create_primary_collaborator_for_client: {
         Args: {
@@ -4276,6 +4294,10 @@ export type Database = {
           variants_count: number
           variation_attributes: Json
         }[]
+      }
+      immediate_global_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       initialize_new_company: {
         Args: { p_company_id: string; p_company_name: string }
