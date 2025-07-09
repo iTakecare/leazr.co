@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { diagnoseAuthSession, fixAuthTransmission } from "@/utils/authDiagnostic";
 
 export interface AmbassadorSelectorAmbassador {
   id: string;
@@ -46,21 +47,23 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
       setLoading(true);
       console.log("🔍 Fetching ambassadors...");
       
-      // Diagnostiquer le problème d'authentification
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("🔐 Session diagnostic:", {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userEmail: session?.user?.email,
-        hasAccessToken: !!session?.access_token,
-        tokenLength: session?.access_token?.length
-      });
+      // Diagnostic complet de l'authentification
+      const diagnostic = await diagnoseAuthSession();
+      console.log("🔬 Diagnostic résultat:", diagnostic);
       
-      // Test direct de auth.uid()
-      const { data: authTest, error: authError } = await supabase.rpc('get_current_user_profile');
-      console.log("🔐 Auth test result:", { authTest, authError });
+      // Si le diagnostic détecte un problème, essayer de le corriger
+      if (!diagnostic.success || !diagnostic.session) {
+        console.log("🔧 Tentative de correction de l'authentification...");
+        const fixResult = await fixAuthTransmission();
+        console.log("🔧 Résultat de la correction:", fixResult);
+        
+        if (!fixResult.success) {
+          toast.error("Problème d'authentification détecté. Veuillez vous reconnecter.");
+          return;
+        }
+      }
       
-      // Requête simplifiée pour éviter les erreurs de JOIN
+      // Requête pour récupérer les ambassadeurs
       const { data, error } = await supabase
         .from('ambassadors')
         .select(`
