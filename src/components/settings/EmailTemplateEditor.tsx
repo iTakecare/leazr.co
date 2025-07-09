@@ -139,6 +139,32 @@ const EmailTemplateEditor: React.FC = () => {
     );
   }
 
+  // Show message when no templates are available
+  if (templates.length === 0) {
+    return (
+      <div className="space-y-6">
+        <EmailTemplateControls onRefresh={loadTemplates} />
+        
+        <Card className="p-8 text-center">
+          <CardContent>
+            <div className="space-y-4">
+              <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <Info className="h-8 w-8 text-gray-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Aucun modèle d'email disponible</h3>
+                <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                  Il semble qu'aucun modèle d'email n'ait été configuré pour votre entreprise. 
+                  Cliquez sur "Initialiser les modèles d'email" ci-dessus pour créer les modèles de base.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <EmailTemplateControls onRefresh={loadTemplates} />
