@@ -99,13 +99,34 @@ export const useSaaSData = () => {
           .eq('profiles.role', 'admin')
           .order('created_at', { ascending: false });
 
+        // Récupérer les données prospects pour avoir les vraies dates d'essai
+        const { data: prospectsData } = await supabase
+          .from('prospects')
+          .select('email, trial_ends_at, company as company_name')
+          .in('status', ['active', 'converted']);
+
         if (companiesError) {
           console.error('Erreur lors de la récupération des entreprises:', companiesError);
         } else if (companiesData) {
-          const formattedCompanies = companiesData.map(company => ({
-            ...company,
-            profile: Array.isArray(company.profiles) ? company.profiles[0] : company.profiles
-          }));
+          // Créer un map des prospects par nom d'entreprise pour récupérer les vraies dates d'essai
+          const prospectsMap = new Map();
+          if (prospectsData) {
+            prospectsData.forEach(prospect => {
+              if (prospect.company_name) {
+                prospectsMap.set(prospect.company_name, prospect);
+              }
+            });
+          }
+
+          const formattedCompanies = companiesData.map(company => {
+            const prospect = prospectsMap.get(company.name);
+            return {
+              ...company,
+              profile: Array.isArray(company.profiles) ? company.profiles[0] : company.profiles,
+              // Utiliser la date d'essai du prospect si disponible, sinon celle de l'entreprise
+              trial_ends_at: prospect?.trial_ends_at || company.trial_ends_at
+            };
+          });
           setCompanies(formattedCompanies);
         }
 
