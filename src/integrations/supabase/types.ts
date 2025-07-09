@@ -3919,6 +3919,14 @@ export type Database = {
         Args: { brand_name: string }
         Returns: boolean
       }
+      diagnose_ambassador_isolation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          step_name: string
+          result: string
+          details: string
+        }[]
+      }
       diagnose_data_isolation: {
         Args: Record<PropertyKey, never>
         Returns: {
