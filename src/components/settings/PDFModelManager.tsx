@@ -32,32 +32,20 @@ const PDFModelManager = () => {
     try {
       console.log("Chargement du modèle PDF...");
       
-      // Charger le modèle
+      // Charger le modèle pour l'entreprise actuelle
       const modelData = await loadPDFModel('default');
       
-      console.log("Modèle chargé avec succès");
-      setModel(modelData);
-      toast.success("Modèle chargé avec succès");
+      if (modelData) {
+        console.log("Modèle chargé avec succès:", modelData.companyName);
+        setModel(modelData);
+        toast.success("Modèle chargé avec succès");
+      } else {
+        throw new Error("Impossible de charger le modèle PDF");
+      }
     } catch (err: any) {
       console.error("Erreur lors du chargement du modèle:", err);
       setError(err.message || "Erreur lors du chargement du modèle");
       toast.error("Erreur lors du chargement du modèle");
-      // En cas d'erreur, utiliser un modèle par défaut pour cette entreprise
-      try {
-        const companyId = await getCurrentCompanyId();
-        if (companyId) {
-          const defaultModel = {
-            ...DEFAULT_MODEL_TEMPLATE,
-            id: `default-${companyId}`,
-            company_id: companyId,
-            templateImages: [],
-            fields: []
-          };
-          setModel(defaultModel);
-        }
-      } catch (fallbackError) {
-        console.error("Erreur lors de la création du modèle de fallback:", fallbackError);
-      }
     } finally {
       setLoading(false);
     }

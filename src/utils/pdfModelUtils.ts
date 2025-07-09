@@ -42,14 +42,34 @@ export const DEFAULT_MODEL_TEMPLATE = {
 export const getCurrentCompanyId = async (): Promise<string | null> => {
   try {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase.rpc('get_current_user_profile');
+    
+    // Récupérer l'utilisateur actuel
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Erreur lors de la récupération de l\'utilisateur:', userError);
+      return null;
+    }
+    
+    // Utiliser une approche directe pour récupérer le company_id
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .maybeSingle();
     
     if (error) {
       console.error('Erreur lors de la récupération du profil utilisateur:', error);
       return null;
     }
     
-    return data && data.length > 0 ? data[0].company_id : null;
+    if (!data?.company_id) {
+      console.warn('Aucun company_id trouvé pour l\'utilisateur:', user.id);
+      return null;
+    }
+    
+    console.log('Company ID récupéré:', data.company_id);
+    return data.company_id;
   } catch (error) {
     console.error('Erreur lors de la récupération de company_id:', error);
     return null;
@@ -157,11 +177,22 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
         company_id: companyId,
         companyName: customizationData?.company_name || companyData?.name || 'Votre Entreprise',
         companyAddress: customizationData?.company_address || 'Adresse à renseigner',
-        companyContact: customizationData?.company_email || 'contact@votre-entreprise.com',
+        companyContact: customizationData?.company_email || customizationData?.company_phone || 'contact@votre-entreprise.com',
+        companySiret: 'SIRET à renseigner',
         primaryColor: customizationData?.primary_color || companyData?.primary_color || '#3b82f6',
         secondaryColor: customizationData?.secondary_color || companyData?.secondary_color || '#64748b',
-        logoURL: customizationData?.logo_url || ''
+        logoURL: customizationData?.logo_url || '',
+        headerText: 'Offre de Leasing',
+        footerText: 'Merci de votre confiance'
       };
+      
+      // Sauvegarder automatiquement ce modèle par défaut dans la base
+      try {
+        await savePDFModel(defaultModel);
+        console.log('Modèle par défaut sauvegardé pour l\'entreprise:', companyId);
+      } catch (saveError) {
+        console.warn('Impossible de sauvegarder le modèle par défaut:', saveError);
+      }
       
       return defaultModel;
     }

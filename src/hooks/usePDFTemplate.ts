@@ -28,28 +28,8 @@ export const usePDFTemplate = (templateId: string = 'default') => {
       console.log(`Chargement du modèle PDF: ${id}`);
       const data = await loadPDFModel(id);
       
-      if (!data) {
-        console.log("Aucun modèle trouvé, utilisation du modèle par défaut");
-        
-        // Récupérer le company_id pour créer un modèle par défaut approprié
-        const companyId = await getCurrentCompanyId();
-        if (!companyId) {
-          throw new Error("Impossible de récupérer l'ID de l'entreprise");
-        }
-        
-        const defaultTemplate = {
-          ...DEFAULT_MODEL_TEMPLATE,
-          id: `default-${companyId}`,
-          company_id: companyId,
-          templateImages: [],
-          fields: []
-        };
-        setTemplate(defaultTemplate);
-        setTemplateExists(false);
-        setTemplateName("Modèle par défaut");
-        toast.info("Modèle par défaut chargé");
-      } else {
-        console.log("Modèle chargé avec succès:", data);
+      if (data) {
+        console.log("Modèle chargé avec succès:", data.name, "Company:", data.companyName);
         
         const sanitizedTemplate = {
           ...data,
@@ -61,31 +41,17 @@ export const usePDFTemplate = (templateId: string = 'default') => {
         setTemplateExists(true);
         setTemplateName(sanitizedTemplate.name);
         toast.success(`Modèle "${sanitizedTemplate.name}" chargé avec succès`);
+      } else {
+        // Si aucun modèle n'est retourné, c'est que getCurrentCompanyId() a échoué
+        throw new Error("Impossible de charger le modèle PDF - vérifiez votre connexion");
       }
     } catch (err) {
       console.error("Erreur lors du chargement du modèle:", err);
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
       setError(`Erreur lors du chargement du modèle: ${errorMessage}`);
       toast.error(`Erreur lors du chargement du modèle: ${errorMessage}`);
-      
-      // Fallback au modèle par défaut en cas d'erreur
-      try {
-        const companyId = await getCurrentCompanyId();
-        const fallbackTemplate = {
-          ...DEFAULT_MODEL_TEMPLATE,
-          id: companyId ? `default-${companyId}` : 'default-fallback',
-          company_id: companyId || '',
-          templateImages: [],
-          fields: []
-        };
-        setTemplate(fallbackTemplate);
-        setTemplateExists(false);
-        setTemplateName("Modèle par défaut (fallback)");
-      } catch (fallbackError) {
-        console.error("Erreur lors de la création du fallback:", fallbackError);
-        setTemplate(null);
-        setTemplateName(undefined);
-      }
+      setTemplate(null);
+      setTemplateName(undefined);
     } finally {
       setLoading(false);
     }
