@@ -20,6 +20,7 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
+import { DataIsolationDiagnostic } from '@/components/admin/DataIsolationDiagnostic';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -75,7 +76,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -115,6 +116,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Intégrations
+          </TabsTrigger>
+          <TabsTrigger value="diagnostic" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Diagnostic
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -179,6 +184,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="integrations" className="mt-6">
           <IntegrationsManager />
+        </TabsContent>
+
+        <TabsContent value="diagnostic" className="mt-6">
+          <DataIsolationDiagnostic />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
