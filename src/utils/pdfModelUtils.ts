@@ -128,25 +128,45 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
     
     console.log(`Chargement du modèle PDF ${templateId} pour l'entreprise ${companyId}`);
     
-    // Chercher d'abord un modèle spécifique à l'entreprise
-    let { data, error } = await supabase
-      .from('pdf_templates')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('id', templateId)
-      .maybeSingle();
+    let data, error;
     
-    // Si pas trouvé et c'est 'default', chercher le premier template disponible
-    if (!data && templateId === 'default') {
-      const { data: fallbackData, error: fallbackError } = await supabase
+    // Si c'est 'default', chercher le template par défaut de l'entreprise
+    if (templateId === 'default') {
+      const { data: defaultData, error: defaultError } = await supabase
         .from('pdf_templates')
         .select('*')
         .eq('company_id', companyId)
+        .eq('is_default', true)
         .limit(1)
-        .maybeSingle();
+        .single();
       
-      data = fallbackData;
-      error = fallbackError;
+      data = defaultData;
+      error = defaultError;
+      
+      // Si pas de template par défaut trouvé, prendre le premier disponible
+      if (!data) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('pdf_templates')
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .limit(1)
+          .single();
+        
+        data = fallbackData;
+        error = fallbackError;
+      }
+    } else {
+      // Chercher un modèle spécifique par ID
+      const { data: specificData, error: specificError } = await supabase
+        .from('pdf_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('id', templateId)
+        .single();
+      
+      data = specificData;
+      error = specificError;
     }
     
     if (error) {
