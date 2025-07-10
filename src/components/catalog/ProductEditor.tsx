@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { addProduct, uploadProductImage, getBrands } from "@/services/catalogService";
+import { addProduct, uploadProductImage, getBrands, getCategories } from "@/services/catalogService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,10 +79,22 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
     queryFn: getBrands
   });
   
+  // Fetch categories from API
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories
+  });
+  
   // Process brands data for the dropdown
   const brandOptions = brandsData.map((brand: any) => ({
     value: brand.name,
     label: brand.translation || brand.name
+  }));
+  
+  // Process categories data for the dropdown
+  const categoryOptions = categoriesData.map((category: any) => ({
+    value: category.name,
+    label: category.translation || category.name
   }));
 
   const resetForm = () => {
@@ -351,11 +363,17 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSucces
                       <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
                     <SelectContent>
-                      {productCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {categoryTranslations[cat] || cat}
-                        </SelectItem>
-                      ))}
+                      {categoryOptions.length > 0 ? (
+                        categoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          Aucune catégorie disponible. Créez des catégories dans la gestion du catalogue.
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
