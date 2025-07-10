@@ -174,13 +174,12 @@ export const getAmbassadorById = async (id: string): Promise<Ambassador | null> 
 
 export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
-    const { data, error } = await supabase
-      .from('ambassadors')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log("Récupération des ambassadeurs avec isolation par entreprise via RPC sécurisée");
+    
+    const { data, error } = await supabase.rpc('get_company_ambassadors_secure');
 
     if (error) {
-      console.error('Error fetching ambassadors:', error);
+      console.error('Erreur lors de la récupération des ambassadeurs via RPC:', error);
       return [];
     }
 
