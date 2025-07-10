@@ -14,66 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_pending_requests: {
-        Row: {
-          amount: number | null
-          client_company: string | null
-          client_contact_email: string | null
-          client_email: string | null
-          client_id: string | null
-          client_name: string | null
-          coefficient: number | null
-          commission: number | null
-          converted_to_contract: boolean | null
-          created_at: string | null
-          equipment_description: string | null
-          id: string | null
-          monthly_payment: number | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-          workflow_status: string | null
-        }
-        Insert: {
-          amount?: number | null
-          client_company?: string | null
-          client_contact_email?: string | null
-          client_email?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          coefficient?: number | null
-          commission?: number | null
-          converted_to_contract?: boolean | null
-          created_at?: string | null
-          equipment_description?: string | null
-          id?: string | null
-          monthly_payment?: number | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_status?: string | null
-        }
-        Update: {
-          amount?: number | null
-          client_company?: string | null
-          client_contact_email?: string | null
-          client_email?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          coefficient?: number | null
-          commission?: number | null
-          converted_to_contract?: boolean | null
-          created_at?: string | null
-          equipment_description?: string | null
-          id?: string | null
-          monthly_payment?: number | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          workflow_status?: string | null
-        }
-        Relationships: []
-      }
       ambassador_clients: {
         Row: {
           ambassador_id: string
@@ -307,48 +247,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      business_profiles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          requirements: Json | null
-          sector: string
-          typical_budget_max: number | null
-          typical_budget_min: number | null
-          typical_team_size_max: number | null
-          typical_team_size_min: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          requirements?: Json | null
-          sector: string
-          typical_budget_max?: number | null
-          typical_budget_min?: number | null
-          typical_team_size_max?: number | null
-          typical_team_size_min?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          requirements?: Json | null
-          sector?: string
-          typical_budget_max?: number | null
-          typical_budget_min?: number | null
-          typical_team_size_max?: number | null
-          typical_team_size_min?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       categories: {
         Row: {
@@ -1036,30 +934,6 @@ export type Database = {
           },
         ]
       }
-      content_cms: {
-        Row: {
-          content: Json
-          created_at: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          content: Json
-          created_at?: string
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          content?: Json
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       contract_documents: {
         Row: {
           admin_notes: string | null
@@ -1491,259 +1365,6 @@ export type Database = {
         }
         Relationships: []
       }
-      fleet_configurations: {
-        Row: {
-          budget: number | null
-          business_sector: string | null
-          client_id: string | null
-          company_id: string | null
-          created_at: string | null
-          equipment_list: Json
-          generated_configuration: Json
-          id: string
-          monthly_cost: number | null
-          name: string
-          optimization_score: number | null
-          requirements: Json | null
-          status: string | null
-          team_size: number
-          template_id: string | null
-          total_cost: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          budget?: number | null
-          business_sector?: string | null
-          client_id?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          equipment_list?: Json
-          generated_configuration?: Json
-          id?: string
-          monthly_cost?: number | null
-          name: string
-          optimization_score?: number | null
-          requirements?: Json | null
-          status?: string | null
-          team_size: number
-          template_id?: string | null
-          total_cost?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          budget?: number | null
-          business_sector?: string | null
-          client_id?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          equipment_list?: Json
-          generated_configuration?: Json
-          id?: string
-          monthly_cost?: number | null
-          name?: string
-          optimization_score?: number | null
-          requirements?: Json | null
-          status?: string | null
-          team_size?: number
-          template_id?: string | null
-          total_cost?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fleet_configurations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fleet_configurations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fleet_configurations_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "fleet_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fleet_generation_logs: {
-        Row: {
-          action: string
-          configuration_id: string | null
-          created_at: string | null
-          data: Json | null
-          execution_time_ms: number | null
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          configuration_id?: string | null
-          created_at?: string | null
-          data?: Json | null
-          execution_time_ms?: number | null
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          configuration_id?: string | null
-          created_at?: string | null
-          data?: Json | null
-          execution_time_ms?: number | null
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fleet_generation_logs_configuration_id_fkey"
-            columns: ["configuration_id"]
-            isOneToOne: false
-            referencedRelation: "fleet_configurations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fleet_recommendations: {
-        Row: {
-          configuration_id: string | null
-          cost_impact: number | null
-          created_at: string | null
-          data: Json | null
-          description: string | null
-          id: string
-          impact_score: number | null
-          is_applied: boolean | null
-          recommendation_type: string
-          title: string
-        }
-        Insert: {
-          configuration_id?: string | null
-          cost_impact?: number | null
-          created_at?: string | null
-          data?: Json | null
-          description?: string | null
-          id?: string
-          impact_score?: number | null
-          is_applied?: boolean | null
-          recommendation_type: string
-          title: string
-        }
-        Update: {
-          configuration_id?: string | null
-          cost_impact?: number | null
-          created_at?: string | null
-          data?: Json | null
-          description?: string | null
-          id?: string
-          impact_score?: number | null
-          is_applied?: boolean | null
-          recommendation_type?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fleet_recommendations_configuration_id_fkey"
-            columns: ["configuration_id"]
-            isOneToOne: false
-            referencedRelation: "fleet_configurations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fleet_templates: {
-        Row: {
-          business_profile_id: string | null
-          configuration: Json
-          created_at: string | null
-          description: string | null
-          equipment_list: Json
-          estimated_budget: number | null
-          id: string
-          is_active: boolean | null
-          name: string
-          team_size_max: number | null
-          team_size_min: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          business_profile_id?: string | null
-          configuration?: Json
-          created_at?: string | null
-          description?: string | null
-          equipment_list?: Json
-          estimated_budget?: number | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          team_size_max?: number | null
-          team_size_min?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          business_profile_id?: string | null
-          configuration?: Json
-          created_at?: string | null
-          description?: string | null
-          equipment_list?: Json
-          estimated_budget?: number | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          team_size_max?: number | null
-          team_size_min?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fleet_templates_business_profile_id_fkey"
-            columns: ["business_profile_id"]
-            isOneToOne: false
-            referencedRelation: "business_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hero_cms: {
-        Row: {
-          buttontext: string
-          created_at: string
-          id: string
-          imageurl: string
-          subtitle: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          buttontext: string
-          created_at?: string
-          id?: string
-          imageurl: string
-          subtitle: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          buttontext?: string
-          created_at?: string
-          id?: string
-          imageurl?: string
-          subtitle?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       invoices: {
         Row: {
           amount: number
@@ -1915,57 +1536,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      menus_cms: {
-        Row: {
-          created_at: string
-          id: string
-          items: Json
-          location: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          items?: Json
-          location: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          items?: Json
-          location?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      meta_cms: {
-        Row: {
-          created_at: string
-          id: string
-          key: string
-          updated_at: string
-          value: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          key: string
-          updated_at?: string
-          value?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          key?: string
-          updated_at?: string
-          value?: string | null
-        }
-        Relationships: []
       }
       modules: {
         Row: {
@@ -2679,104 +2249,6 @@ export type Database = {
           },
         ]
       }
-      pdf_model_images: {
-        Row: {
-          created_at: string
-          data: string
-          id: string
-          image_id: string
-          model_id: string
-          name: string
-          page: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          data: string
-          id?: string
-          image_id: string
-          model_id: string
-          name: string
-          page?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          data?: string
-          id?: string
-          image_id?: string
-          model_id?: string
-          name?: string
-          page?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pdf_models: {
-        Row: {
-          company_id: string
-          companyAddress: string
-          companyContact: string
-          companyName: string
-          companySiret: string
-          created_at: string
-          fields: Json | null
-          footerText: string
-          headerText: string
-          id: string
-          logoURL: string | null
-          name: string
-          primaryColor: string
-          secondaryColor: string
-          templateImages: Json | null
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          companyAddress: string
-          companyContact: string
-          companyName: string
-          companySiret: string
-          created_at?: string
-          fields?: Json | null
-          footerText: string
-          headerText: string
-          id: string
-          logoURL?: string | null
-          name: string
-          primaryColor: string
-          secondaryColor: string
-          templateImages?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          companyAddress?: string
-          companyContact?: string
-          companyName?: string
-          companySiret?: string
-          created_at?: string
-          fields?: Json | null
-          footerText?: string
-          headerText?: string
-          id?: string
-          logoURL?: string | null
-          name?: string
-          primaryColor?: string
-          secondaryColor?: string
-          templateImages?: Json | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pdf_models_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pdf_templates: {
         Row: {
           company_id: string | null
@@ -3418,59 +2890,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
-        Row: {
-          company_id: string | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          ended_at: string | null
-          id: string
-          is_active: boolean | null
-          plan: string
-          started_at: string | null
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          company_id?: string | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          ended_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          plan: string
-          started_at?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          ended_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          plan?: string
-          started_at?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_permissions: {
         Row: {
           created_at: string
@@ -3525,36 +2944,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      woocommerce_configs: {
-        Row: {
-          consumer_key: string
-          consumer_secret: string
-          created_at: string | null
-          id: string
-          site_url: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          consumer_key: string
-          consumer_secret: string
-          created_at?: string | null
-          id?: string
-          site_url: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          consumer_key?: string
-          consumer_secret?: string
-          created_at?: string | null
-          id?: string
-          site_url?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
       }
     }
     Views: {
@@ -3916,19 +3305,6 @@ export type Database = {
           pdf_template_id: string
         }[]
       }
-      get_company_dashboard_metrics: {
-        Args: { p_company_id: string; time_filter?: string }
-        Returns: {
-          total_revenue: number
-          total_clients: number
-          total_offers: number
-          total_contracts: number
-          pending_offers: number
-          active_contracts: number
-          monthly_growth_revenue: number
-          monthly_growth_clients: number
-        }[]
-      }
       get_company_partners_secure: {
         Args: { p_company_id: string }
         Returns: {
@@ -3944,17 +3320,6 @@ export type Database = {
           company_id: string
           created_at: string
           updated_at: string
-        }[]
-      }
-      get_company_recent_activity: {
-        Args: { p_company_id: string; p_limit?: number }
-        Returns: {
-          activity_type: string
-          activity_description: string
-          entity_id: string
-          entity_name: string
-          created_at: string
-          user_name: string
         }[]
       }
       get_company_users: {
@@ -4042,17 +3407,6 @@ export type Database = {
           user_id: string
           has_user_account: boolean
           company_id: string
-        }[]
-      }
-      get_menus_cms: {
-        Args: { location_name: string }
-        Returns: {
-          created_at: string
-          id: string
-          items: Json
-          location: string
-          name: string
-          updated_at: string
         }[]
       }
       get_offer_by_id_public: {
