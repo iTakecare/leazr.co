@@ -265,23 +265,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   console.log("🔄 AUTH EVENT - Début enrichissement avec timeout");
                   const enrichedUser = await enrichUserData(newSession.user);
                   
-                  // Nettoyage automatique des données après connexion
-                  if (enrichedUser && newSession.user.email) {
-                    console.log("🧹 CLEANING - Début du nettoyage des données pour:", newSession.user.email);
-                    try {
-                      const cleaningReport = await cleanUserData();
-                      if (!cleaningReport.success) {
-                        console.warn("🧹 CLEANING - Problèmes détectés:", cleaningReport.issues);
-                      } else if (cleaningReport.corrected.length > 0) {
-                        console.log("🧹 CLEANING - Corrections appliquées:", cleaningReport.corrected);
-                      }
-                      
-                      // Nouveau nettoyage d'isolation amélioré
-                      DataIsolationCleanupService.autoCleanupOnLogin();
-                    } catch (cleaningError) {
-                      console.warn("🧹 CLEANING - Erreur non critique lors du nettoyage:", cleaningError);
-                    }
-                  }
+                  // NETTOYAGE AUTOMATIQUE DÉSACTIVÉ
+                  // Pour éviter la suppression accidentelle des données iTakecare
+                  // Le nettoyage automatique a été désactivé pour protéger les données
+                  console.log("🧹 CLEANING - Nettoyage automatique désactivé pour protéger les données iTakecare");
                   
                   if (isMounted) {
                     console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
