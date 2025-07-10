@@ -37,15 +37,12 @@ export const createClient = async (clientData: any) => {
  */
 export const getAllClients = async (): Promise<Client[]> => {
   try {
-    console.log("Récupération de tous les clients avec isolation par entreprise");
+    console.log("Récupération de tous les clients avec isolation par entreprise via RPC sécurisée");
     
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_clients_secure');
 
     if (error) {
-      console.error("Erreur lors de la récupération des clients:", error);
+      console.error("Erreur lors de la récupération des clients via RPC:", error);
       throw error;
     }
 
