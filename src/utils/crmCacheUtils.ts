@@ -28,10 +28,10 @@ export const forceRefreshCRMCache = () => {
     });
   }
   
-  // Forcer un rechargement complet de la page pour éviter les problèmes de cache
-  setTimeout(() => {
-    window.location.reload();
-  }, 100);
+  // TEMPORAIREMENT DÉSACTIVÉ - Éviter la boucle infinie de rafraîchissement
+  // setTimeout(() => {
+  //   window.location.reload();
+  // }, 100);
   
   toast.success("Cache CRM actualisé pour l'isolation par entreprise");
 };

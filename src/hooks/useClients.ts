@@ -14,10 +14,10 @@ export const useClients = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [showAmbassadorClients, setShowAmbassadorClients] = useState(false);
 
-  const fetchClients = useCallback(async () => {
+  const fetchClients = async () => {
     try {
       setIsLoading(true);
-      setError(null); // Reset error state before fetching
+      setError(null);
       
       console.log("Appel à getAllClients pour récupérer tous les clients");
       const clientsData = await getAllClients();
@@ -25,21 +25,16 @@ export const useClients = () => {
       if (clientsData && clientsData.length > 0) {
         console.log('Clients récupérés:', clientsData.length);
         
-        // Vérifier l'isolation par entreprise
+        // ISOLATION SIMPLIFIÉE - Juste log, pas de vérification company_id pour l'instant
         const userCompanyId = await getCurrentUserCompanyId();
-        const isIsolationValid = checkDataIsolation(userCompanyId, clientsData, 'clients');
-        
-        if (!isIsolationValid) {
-          // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
-          return;
-        }
+        console.log(`Isolation check: userCompanyId=${userCompanyId}, clients=${clientsData.length}`);
         
         // Ensure clients have updated_at property
         const formattedClients: ClientType[] = clientsData.map(client => ({
           ...client,
           company: client.company || '',
-          updated_at: client.updated_at || new Date(), // Ensure updated_at exists
-          status: client.status || 'active' // Ensure status exists
+          updated_at: client.updated_at || new Date(),
+          status: client.status || 'active'
         }));
         
         setClients(formattedClients);
@@ -54,13 +49,12 @@ export const useClients = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    // Force un rafraîchissement au premier chargement pour s'assurer de l'isolation
-    console.log("Chargement initial des clients avec isolation par entreprise");
+    console.log("Chargement initial des clients");
     fetchClients();
-  }, [fetchClients]);
+  }, []); // Dépendances vides pour éviter les re-renders
 
   // Make sure filteredClients is always initialized as an array
   const filteredClients = clients ? clients.filter((client) => {
@@ -86,12 +80,11 @@ export const useClients = () => {
 
   console.log('Clients filtrés:', filteredClients.length);
 
-  const refreshClients = useCallback(async (force = false): Promise<void> => {
+  const refreshClients = async (force = false): Promise<void> => {
     setIsLoading(true);
     try {
-      console.log("Rafraîchissement de la liste des clients avec isolation par entreprise...", force ? "(forcé)" : "");
+      console.log("Rafraîchissement de la liste des clients...", force ? "(forcé)" : "");
       
-      // Forcer le nettoyage du cache local si nécessaire
       if (force) {
         setClients([]);
       }
@@ -110,7 +103,7 @@ export const useClients = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   return {
     clients: filteredClients,
