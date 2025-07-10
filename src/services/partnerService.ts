@@ -43,14 +43,32 @@ export interface Partner {
 // Export des types pour compatibilité
 export type PartnerType = Partner;
 
-// Récupérer tous les partenaires
+// Récupérer tous les partenaires de l'entreprise (sécurisé)
 export const getPartners = async (): Promise<Partner[]> => {
   try {
     console.log("Fetching partners from database...");
+    
+    // Récupérer le company_id de l'utilisateur connecté
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    // Récupérer le profil pour obtenir le company_id
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile?.company_id) {
+      console.error("Error fetching user profile:", profileError);
+      throw new Error("Impossible de récupérer l'ID de l'entreprise de l'utilisateur");
+    }
+
+    // Utiliser la fonction sécurisée pour récupérer les partners
     const { data, error } = await supabase
-      .from("partners")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .rpc('get_company_partners_secure', { p_company_id: profile.company_id });
 
     if (error) {
       console.error("Error in getPartners:", error);

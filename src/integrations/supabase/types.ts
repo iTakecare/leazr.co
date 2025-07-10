@@ -4107,6 +4107,23 @@ export type Database = {
           monthly_growth_clients: number
         }[]
       }
+      get_company_partners_secure: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          name: string
+          contact_name: string
+          email: string
+          phone: string
+          type: string
+          status: string
+          notes: string
+          commission_level_id: string
+          company_id: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_company_recent_activity: {
         Args: { p_company_id: string; p_limit?: number }
         Returns: {
