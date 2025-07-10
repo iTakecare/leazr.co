@@ -3949,7 +3949,7 @@ export type Database = {
         Returns: string[]
       }
       get_all_clients_secure: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { p_company_id: string }
         Returns: {
           id: string
           name: string
@@ -4066,7 +4066,7 @@ export type Database = {
         }[]
       }
       get_company_ambassadors_secure: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { p_company_id: string }
         Returns: {
           id: string
           name: string

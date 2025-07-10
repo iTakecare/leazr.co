@@ -39,7 +39,18 @@ export const getAllClients = async (): Promise<Client[]> => {
   try {
     console.log("Récupération de tous les clients avec isolation par entreprise via RPC sécurisée");
     
-    const { data, error } = await supabase.rpc('get_all_clients_secure');
+    // Récupérer le company_id de l'utilisateur actuel
+    const { getCurrentUserCompanyId } = await import('./multiTenantService');
+    const companyId = await getCurrentUserCompanyId();
+    
+    if (!companyId) {
+      console.warn("Aucun company_id trouvé pour l'utilisateur actuel");
+      return [];
+    }
+    
+    const { data, error } = await supabase.rpc('get_all_clients_secure', { 
+      p_company_id: companyId 
+    });
 
     if (error) {
       console.error("Erreur lors de la récupération des clients via RPC:", error);
