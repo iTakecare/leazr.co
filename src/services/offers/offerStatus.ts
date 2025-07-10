@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
-import { logStatusChange } from "./offerHistory";
 
 export const deleteOffer = async (offerId: string): Promise<boolean> => {
   try {
@@ -76,14 +75,6 @@ export const updateOfferStatus = async (
     
     console.log("Offer status updated successfully");
 
-    // NOUVEAU : Utiliser le nouveau système d'historique pour enregistrer le changement de statut
-    try {
-      await logStatusChange(offerId, user.id, safePreviousStatus, newStatus, reason);
-      console.log("✅ Changement de statut ajouté à l'historique complet");
-    } catch (historyError) {
-      console.error("❌ Erreur lors de l'ajout à l'historique complet:", historyError);
-      // Ne pas faire échouer la mise à jour pour un problème d'historique
-    }
 
     // Then, log the status change with more detailed logging
     console.log("Inserting workflow log:", {
