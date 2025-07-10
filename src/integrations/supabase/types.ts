@@ -4043,6 +4043,35 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_company_ambassadors_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          address: string
+          city: string
+          postal_code: string
+          country: string
+          company: string
+          vat_number: string
+          notes: string
+          status: string
+          commission_level_id: string
+          company_id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          has_user_account: boolean
+          user_account_created_at: string
+          clients_count: number
+          commissions_total: number
+          last_commission: number
+          region: string
+          pdf_template_id: string
+        }[]
+      }
       get_company_dashboard_metrics: {
         Args: { p_company_id: string; time_filter?: string }
         Returns: {
