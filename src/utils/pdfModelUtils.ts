@@ -130,19 +130,19 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
     
     // Chercher d'abord un modèle spécifique à l'entreprise
     let { data, error } = await supabase
-      .from('pdf_models')
+      .from('pdf_templates')
       .select('*')
       .eq('company_id', companyId)
       .eq('id', templateId)
       .maybeSingle();
     
-    // Si pas trouvé et c'est 'default', essayer avec le format 'default-{company_id}'
+    // Si pas trouvé et c'est 'default', chercher le premier template disponible
     if (!data && templateId === 'default') {
       const { data: fallbackData, error: fallbackError } = await supabase
-        .from('pdf_models')
+        .from('pdf_templates')
         .select('*')
         .eq('company_id', companyId)
-        .eq('id', `default-${companyId}`)
+        .limit(1)
         .maybeSingle();
       
       data = fallbackData;
@@ -202,11 +202,24 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
     // Charger les images séparément
     const templateImages = await pdfModelImageService.loadImages(data.id);
     
-    // Assurer que les champs sont des tableaux
+    // Convertir les données pdf_templates vers le format PDFModel
     const sanitizedData: PDFModel = {
-      ...data,
-      templateImages,
-      fields: Array.isArray(data.fields) ? data.fields : []
+      id: data.id,
+      name: data.name,
+      companyName: data.companyName,
+      companyAddress: data.companyAddress,
+      companyContact: data.companyContact,
+      companySiret: data.companySiret,
+      logoURL: data.logoURL || '',
+      primaryColor: data.primaryColor,
+      secondaryColor: data.secondaryColor,
+      headerText: data.headerText,
+      footerText: data.footerText,
+      templateImages: data.templateImages || templateImages || [],
+      fields: Array.isArray(data.fields) ? data.fields : [],
+      company_id: data.company_id,
+      created_at: data.created_at,
+      updated_at: data.updated_at
     };
     
     return sanitizedData;
@@ -238,7 +251,7 @@ export const savePDFModel = async (model: PDFModel): Promise<void> => {
     
     console.log(`Sauvegarde du modèle PDF ${model.id} pour l'entreprise ${model.company_id}`);
     
-    // Préparer les données pour la sauvegarde (sans les images)
+    // Préparer les données pour la sauvegarde en format pdf_templates
     const modelData = {
       id: model.id,
       name: model.name,
@@ -252,13 +265,17 @@ export const savePDFModel = async (model: PDFModel): Promise<void> => {
       headerText: model.headerText,
       footerText: model.footerText,
       fields: model.fields || [],
+      templateImages: model.templateImages || [],
       company_id: model.company_id,
+      template_type: 'standard',
+      is_active: true,
+      is_default: model.id.includes('default'),
       updated_at: new Date().toISOString()
     };
     
     // Upsert avec vérification de l'entreprise
     const { error } = await supabase
-      .from('pdf_models')
+      .from('pdf_templates')
       .upsert(modelData, { 
         onConflict: 'id',
         ignoreDuplicates: false 
@@ -317,9 +334,10 @@ export const getAllPDFModels = async () => {
     
     // Récupérer tous les modèles de cette entreprise
     const { data, error } = await supabase
-      .from('pdf_models')
+      .from('pdf_templates')
       .select('*')
       .eq('company_id', companyId)
+      .eq('is_active', true)
       .order('name');
     
     if (error) {
