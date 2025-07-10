@@ -47,32 +47,27 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
     
     try {
       setLoading(true);
-      console.log("🔍 Fetching ambassadors...");
+      console.log("🔍 Fetching ambassadors using RPC...");
       
-      // Requête simple qui fait confiance à la politique RLS
-      // Utilise le même système que les clients, catalogue, etc.
-      const { data, error } = await supabase
-        .from('ambassadors')
-        .select(`
-          id,
-          name,
-          email,
-          commission_level_id
-        `)
-        .eq('status', 'active');
+      // Utilise la fonction RPC sécurisée pour récupérer les ambassadeurs de l'entreprise
+      // Même pattern que get_free_clients_secure qui fonctionne parfaitement
+      const { data, error } = await supabase.rpc('get_company_ambassadors_secure');
 
       if (error) {
-        console.error("❌ Erreur lors de la récupération des ambassadeurs:", error);
+        console.error("❌ Erreur lors de la récupération des ambassadeurs via RPC:", error);
         toast.error("Erreur lors du chargement des ambassadeurs");
         return;
       }
 
-      console.log("✅ Raw ambassador data:", data);
+      console.log("✅ Raw ambassador data from RPC:", data);
+
+      // Filtrer seulement les ambassadeurs actifs
+      const activeAmbassadors = data?.filter(ambassador => ambassador.status === 'active') || [];
 
       // Si on a besoin des noms des niveaux de commission, on peut faire une requête séparée
       let commissionLevels = {};
-      if (data && data.length > 0) {
-        const levelIds = [...new Set(data.map(a => a.commission_level_id).filter(Boolean))];
+      if (activeAmbassadors && activeAmbassadors.length > 0) {
+        const levelIds = [...new Set(activeAmbassadors.map(a => a.commission_level_id).filter(Boolean))];
         
         if (levelIds.length > 0) {
           const { data: levels } = await supabase
@@ -89,13 +84,13 @@ const AmbassadorSelector: React.FC<AmbassadorSelectorProps> = ({
         }
       }
 
-      const formattedAmbassadors = data?.map(ambassador => ({
+      const formattedAmbassadors = activeAmbassadors.map(ambassador => ({
         id: ambassador.id,
         name: ambassador.name || 'Ambassadeur sans nom',
         email: ambassador.email || 'Email non défini',
         commission_level_id: ambassador.commission_level_id,
         commission_level: ambassador.commission_level_id ? commissionLevels[ambassador.commission_level_id] : undefined
-      })) || [];
+      }));
 
       console.log("✅ Formatted ambassadors:", formattedAmbassadors);
       setAmbassadors(formattedAmbassadors);
