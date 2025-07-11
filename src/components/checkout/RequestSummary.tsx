@@ -89,7 +89,9 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
       
       const requestData = {
-        company_id: companyId,
+        // CORRECTION: Ne pas envoyer le company_id pour les demandes publiques
+        // Laisser l'edge function détecter automatiquement le bon company_id
+        // company_id: companyId,
         client_name: contactData.name,
         client_email: companyData.email,
         client_company: companyData.company,

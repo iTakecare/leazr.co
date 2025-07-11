@@ -28,6 +28,25 @@ serve(async (req) => {
     // Récupérer les données de la requête
     const data = await req.json();
     console.log("Données reçues par la fonction Edge:", data);
+    
+    // CORRECTION: Détecter automatiquement le company_id correct pour les demandes publiques
+    // Ne pas utiliser le company_id de l'admin connecté pour les demandes publiques
+    let targetCompanyId = data.company_id;
+    
+    // Si aucun company_id n'est fourni ou si c'est iTakecare (admin connecté), 
+    // utiliser la logique de détection basée sur le domaine ou défaut
+    if (!targetCompanyId || targetCompanyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
+      console.log("Détection automatique du company_id pour demande publique...");
+      
+      // Essayer de détecter à partir du domaine de referer
+      const referer = req.headers.get('referer') || '';
+      console.log("Referer URL:", referer);
+      
+      // Pour l'instant, utiliser iTakecare comme défaut pour les demandes publiques
+      // TODO: Implémenter la détection basée sur le domaine personnalisé
+      targetCompanyId = 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0';
+      console.log("Company_id défini pour demande publique:", targetCompanyId);
+    }
 
     // Créer un client Supabase avec la clé de service
     const supabaseAdmin = createClient(
@@ -58,7 +77,7 @@ serve(async (req) => {
       country: data.country || 'BE',
       status: 'active',
       contact_name: data.client_name,
-      company_id: data.company_id
+      company_id: targetCompanyId
     };
 
     console.log("Création du client avec les données:", clientData);
@@ -103,7 +122,7 @@ serve(async (req) => {
       status: "pending",
       remarks: data.message || '',
       user_id: null,
-      company_id: data.company_id
+      company_id: targetCompanyId
     };
 
     console.log("Création de l'offre avec les données:", offerData);
