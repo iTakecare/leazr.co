@@ -31,31 +31,54 @@ const PublicCatalogAnonymous = () => {
   const companySlug = searchParams.get('slug');
   
   const resolveCompanyId = async (): Promise<string | null> => {
+    console.log('🔍 RESOLVE COMPANY - Début de la détection', {
+      urlCompanyId,
+      companyParam,
+      companySlug,
+      origin: window.location.origin
+    });
+    
     // 1. Direct company ID from URL params
-    if (urlCompanyId) return urlCompanyId;
+    if (urlCompanyId) {
+      console.log('✅ RESOLVE COMPANY - Company ID trouvé dans l\'URL:', urlCompanyId);
+      return urlCompanyId;
+    }
     
     // 2. Company name/slug from query params
     if (companyParam || companySlug) {
       const identifier = companyParam || companySlug;
+      console.log('🔍 RESOLVE COMPANY - Recherche par identifier:', identifier);
       
       // Try to find company by subdomain first
-      const { data: domainData } = await supabase
+      console.log('🔍 RESOLVE COMPANY - Recherche dans company_domains avec subdomain:', identifier);
+      const { data: domainData, error: domainError } = await supabase
         .from('company_domains')
         .select('company_id')
         .eq('subdomain', identifier)
         .eq('is_active', true)
         .maybeSingle();
       
-      if (domainData?.company_id) return domainData.company_id;
+      console.log('🔍 RESOLVE COMPANY - Résultat company_domains:', { domainData, domainError });
+      
+      if (domainData?.company_id) {
+        console.log('✅ RESOLVE COMPANY - Company trouvée via subdomain:', domainData.company_id);
+        return domainData.company_id;
+      }
       
       // Fallback: try to find by company name
-      const { data: companyData } = await supabase
+      console.log('🔍 RESOLVE COMPANY - Fallback recherche par nom:', identifier);
+      const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id')
         .ilike('name', `%${identifier}%`)
         .maybeSingle();
       
-      if (companyData?.id) return companyData.id;
+      console.log('🔍 RESOLVE COMPANY - Résultat companies:', { companyData, companyError });
+      
+      if (companyData?.id) {
+        console.log('✅ RESOLVE COMPANY - Company trouvée via nom:', companyData.id);
+        return companyData.id;
+      }
     }
     
     // 3. Detect from domain/origin using edge function
