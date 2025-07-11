@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
   initialAttributes = {},
   onAttributesUpdated
 }) => {
+  const queryClient = useQueryClient();
   const [attributes, setAttributes] = useState<ProductVariationAttributes>(initialAttributes || {});
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValue, setNewAttributeValue] = useState("");
@@ -77,6 +78,9 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     onSuccess: (data) => {
       console.log("Successfully updated product attributes for ID:", productId);
       toast.success("Attributs de variation mis à jour avec succès");
+      
+      // Invalidate the product cache to trigger a refresh
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
       
       // Make sure to call the onAttributesUpdated callback
       if (onAttributesUpdated) {
