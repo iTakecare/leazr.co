@@ -115,6 +115,9 @@ const MultiTenantRouter = () => {
       {/* Routes de catalogue avec détection automatique d'entreprise */}
       <Route path="/catalog" element={<PublicCatalogAnonymous />} />
       
+      {/* Anciennes routes pour compatibilité - redirection */}
+      <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
+      
       {/* Routage intelligent basé sur le rôle */}
       <Route path="/*" element={<RoleBasedRoutes />} />
     </Routes>
