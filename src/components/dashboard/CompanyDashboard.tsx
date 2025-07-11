@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const CompanyDashboard = () => {
   const [timeFilter, setTimeFilter] = useState('month');
-  const { metrics, recentActivity, isLoading } = useCompanyDashboard(timeFilter);
+  const { metrics, recentActivity, isLoading } = useCompanyDashboard();
   const { branding } = useCompanyBranding();
 
   // Couleurs pour les graphiques (utilise le branding de l'entreprise)

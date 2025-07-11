@@ -26,7 +26,7 @@ export interface RecentActivity {
 /**
  * Hook pour les métriques du dashboard multi-tenant
  */
-export const useCompanyDashboard = (timeFilter: string = 'month') => {
+export const useCompanyDashboard = () => {
   const { companyId, loading: companyLoading } = useMultiTenant();
   const [realTimeMetrics, setRealTimeMetrics] = useState<CompanyDashboardMetrics | null>(null);
 
@@ -36,14 +36,9 @@ export const useCompanyDashboard = (timeFilter: string = 'month') => {
     isLoading: metricsLoading, 
     refetch: refetchMetrics 
   } = useQuery({
-    queryKey: ['company-dashboard-metrics', companyId, timeFilter],
+    queryKey: ['company-dashboard-metrics', companyId],
     queryFn: async () => {
-      if (!companyId) return null;
-      
-      const { data, error } = await supabase.rpc('get_company_dashboard_metrics', {
-        p_company_id: companyId,
-        time_filter: timeFilter
-      });
+      const { data, error } = await supabase.rpc('get_company_dashboard_metrics');
 
       if (error) throw error;
       return data?.[0] as CompanyDashboardMetrics || null;
@@ -59,12 +54,7 @@ export const useCompanyDashboard = (timeFilter: string = 'month') => {
   } = useQuery({
     queryKey: ['company-recent-activity', companyId],
     queryFn: async () => {
-      if (!companyId) return [];
-      
-      const { data, error } = await supabase.rpc('get_company_recent_activity', {
-        p_company_id: companyId,
-        p_limit: 10
-      });
+      const { data, error } = await supabase.rpc('get_company_recent_activity');
 
       if (error) throw error;
       return data as RecentActivity[] || [];
