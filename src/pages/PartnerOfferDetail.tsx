@@ -13,7 +13,7 @@ import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import OfferStatusCard from "@/components/offers/detail/OfferStatusCard";
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
-import EquipmentInfoCard from "@/components/offers/detail/EquipmentInfoCard";
+
 import FinancialSummaryCard from "@/components/offers/detail/FinancialSummaryCard";
 import QuickActionsCard from "@/components/offers/detail/QuickActionsCard";
 import { hasCommission } from "@/utils/offerTypeTranslator";
@@ -222,12 +222,6 @@ const PartnerOfferDetail = () => {
                 clientName={offer.client_name}
                 clientEmail={offer.client_email}
                 clientCompany={offer.clients?.company}
-              />
-              
-              <EquipmentInfoCard 
-                equipmentDescription={offer.equipment_description}
-                equipmentItems={offer.equipmentItems}
-                offer={offer}
               />
               
               <FinancialSummaryCard 
