@@ -11,6 +11,7 @@ import { PersonalInfoStep } from "@/components/signup/PersonalInfoStep";
 import { ModuleSelectionStep } from "@/components/signup/ModuleSelectionStep";
 import { CompanyInfoStep } from "@/components/signup/CompanyInfoStep";
 import { StepperProgress } from "@/components/signup/StepperProgress";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface Module {
   id: string;
@@ -21,6 +22,9 @@ interface Module {
 }
 
 const Signup = () => {
+  const navigate = useNavigate();
+  const { customSignup, detectCompany, loading: authLoading, error: authError } = useCustomAuth();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,12 +37,14 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [modules, setModules] = useState<Module[]>([]);
   const [selectedModules, setSelectedModules] = useState<string[]>(['crm', 'catalog', 'calculator']);
-  const navigate = useNavigate();
+  
+  // Company detection
+  const [detectedCompany, setDetectedCompany] = useState<any>(null);
 
   const stepLabels = ["Informations", "Modules", "Entreprise"];
   const totalSteps = 3;
 
-  // Load modules on component mount
+  // Load modules and detect company on component mount
   useEffect(() => {
     const loadModules = async () => {
       try {
@@ -62,7 +68,25 @@ const Signup = () => {
       }
     };
     
+    const detectCurrentCompany = async () => {
+      try {
+        const companyInfo = await detectCompany();
+        if (companyInfo?.success) {
+          setDetectedCompany(companyInfo.company);
+          console.log('Detected company:', companyInfo.company);
+          
+          // Update company name if detected
+          if (companyInfo.company?.name && !company) {
+            setCompany(companyInfo.company.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error detecting company:', error);
+      }
+    };
+    
     loadModules();
+    detectCurrentCompany();
   }, []);
 
   useEffect(() => {
@@ -148,34 +172,31 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      console.log('Création d\'un essai gratuit de 14 jours...');
+      console.log('Création du compte avec authentification personnalisée...');
       
-      const { data, error } = await supabase.functions.invoke('create-prospect', {
-        body: {
-          email: email,
-          firstName: firstName,
-          lastName: lastName,
-          companyName: company.trim(),
-          plan: 'starter',
-          selectedModules: selectedModules
-        }
+      const result = await customSignup({
+        email,
+        password,
+        firstName,
+        lastName,
+        companyId: detectedCompany?.id
       });
-      
-      if (error) {
-        console.error("Erreur lors de la création du prospect:", error);
-        toast.error(`Erreur d'inscription: ${error.message}`);
+
+      if (!result.success) {
+        toast.error(result.error || 'Erreur lors de la création du compte');
         return;
       }
+
+      console.log('Compte créé avec succès:', result.data);
+      toast.success('Votre compte a été créé avec succès ! Vérifiez votre email pour l\'activer.');
       
-      if (data && data.success) {
-        console.log('Prospect créé avec succès:', data);
-        toast.success("Essai gratuit de 14 jours créé avec succès! Vérifiez votre email pour activer votre compte.");
-        
-        // Rediriger vers une page d'activation avec le token
-        navigate(`/activate?token=${data.activationToken}&email=${encodeURIComponent(email)}`);
-      } else {
-        throw new Error(data?.error || 'Erreur inconnue lors de la création');
-      }
+      // Redirect to activation sent page
+      navigate('/auth/activation-sent', { 
+        state: { 
+          email,
+          companyName: detectedCompany?.name || 'Notre plateforme'
+        } 
+      });
     } catch (error: any) {
       console.error("Erreur lors de l'inscription:", error);
       toast.error(`Erreur: ${error.message || 'Une erreur est survenue'}`);
